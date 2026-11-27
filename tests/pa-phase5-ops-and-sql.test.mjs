@@ -10,7 +10,6 @@ const ts = require('typescript');
 
 import { PUSH_TYPES, PUSH_TYPE_KEYS } from '../src/lib/push/push-prefs.js';
 import equitySnapshotHandler from '../pages/api/sandbox/_routes/equity-snapshot.js';
-import saveHandHandler from '../pages/api/sandbox/_routes/save-hand.js';
 import { auditMigration } from '../scripts/ci/check-explicit-table-access.mjs';
 import { normalizeUserLeakRow, leakTypeTitle } from '../src/lib/personal-assistant/leakRecord.js';
 import { ACCESS_LEVELS } from '../src/lib/personal-assistant/contextAuthority.js';
@@ -149,17 +148,15 @@ test('Retired sandbox route: equity-snapshot returns HTTP 410 Gone with private 
   assert.equal(res.body?.success, false);
 });
 
-test('Retired sandbox route: save-hand returns HTTP 410 Gone with private headers', async () => {
-  const req = { method: 'POST', body: {} };
-  const res = mockRes();
-
-  await saveHandHandler(req, res);
-
-  assert.equal(res.statusCode, 410);
-  assert.equal(res.getHeader('cache-control'), 'private, no-store, max-age=0');
-  assert.equal(res.getHeader('vary'), 'Authorization');
-  assert.equal(res.body?.code, 'SANDBOX_ENDPOINT_RETIRED');
-  assert.equal(res.body?.success, false);
+test('Restored sandbox route: save-hand enforces private headers, auth, active-play gate, and persistence contract', () => {
+  const src = read('pages/api/sandbox/_routes/save-hand.js');
+  assert.match(src, /private, no-store, max-age=0/);
+  assert.match(src, /Vary['"],\s*['"]Authorization/);
+  assert.match(src, /getServerUserWithFallback/);
+  assert.match(src, /checkSandboxAccess/);
+  assert.match(src, /SANDBOX_BLOCKED_LIVE_PLAY/);
+  assert.match(src, /persistedResult/);
+  assert.match(src, /persistenceFailure/);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

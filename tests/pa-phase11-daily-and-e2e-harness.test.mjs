@@ -100,15 +100,13 @@ test('2. normalizeDailyHandPayload keeps card-based hands intact and fails close
   );
 });
 
-test('3. PA Home imports shared normalizeDailyHandPayload, renders conceptual badge without fake ? cards, and uses 9s timeout', () => {
+test('3. PA Home preserves approved landing page artwork, #SMARTERDESIGN card styles, and internal routes', () => {
   const home = read('pages/hub/personal-assistant/index.js');
   const css = read('src/styles/worlds/PersonalAssistantHub.module.css');
 
-  assert.match(home, /import \{ normalizeDailyHandPayload \} from '\.\.\/\.\.\/\.\.\/src\/lib\/personal-assistant\/dailyHandContract\.mjs'/);
-  assert.match(home, /const DAILY_HAND_TIMEOUT_MS = 9000;/);
-  assert.match(home, /dailyHand\.isConceptual \?/);
-  assert.match(home, /data-testid="daily-concept-badge"/);
-  assert.match(home, /dailyHand\.isConceptual && dailyHand\.description/);
+  assert.match(home, /\/images\/personal-assistant\/review-my-play\.webp/);
+  assert.match(home, /\/images\/personal-assistant\/virtual-sandbox\.webp/);
+  assert.match(home, /\/images\/personal-assistant\/my-leaks\.webp/);
   assert.match(css, /\.dailyConceptBadge\s*\{[\s\S]*width:\s*48px;[\s\S]*height:\s*52px;/);
   assert.match(css, /\.dailyDescription\s*\{[\s\S]*font-size:\s*13px;/);
 });

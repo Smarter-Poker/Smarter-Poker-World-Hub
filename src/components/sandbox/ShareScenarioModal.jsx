@@ -1,460 +1,368 @@
 /**
- * SHARE SCENARIO MODAL (W6-2)
+ * SHARE SCENARIO MODAL (W6-2: Hardened Internal Sharing)
  * ═══════════════════════════════════════════════════════════════════════════
- * Generates a public link to the current sandbox state.
- *
- * Mobile: the native share sheet is the primary action (clipboard access is
- * undefined on insecure origins and inside several in-app webviews), copy is
- * the secondary path, and a QR code covers "show it to the person next to me".
- * Failures are mapped to human copy instead of raw fetch error text.
- *
- * REVOKE. The create response carries `revocable`, which is true only when the
- * row was written with a creator_id (i.e. the caller was signed in). Guest
- * links have a null creator_id and genuinely cannot be taken back, so the
- * control is not rendered for them rather than rendered and failing.
- * Revoking sends DELETE /api/sandbox/create-share/<id> with the Bearer token ·
- * the id travels in the path because DELETE bodies are dropped by some proxies
- * and the server reads the trailing path segment.
- *
- * The confirm step is inline, not window.confirm(): native dialogs are
- * suppressed in installed PWAs and several in-app webviews, which would turn a
- * destructive action into a no-op with no feedback.
+ * Internal sharing for authored Virtual Sandbox scenarios:
+ *   1. Post an ungraded scenario summary to the Smarter.Poker Study Feed
+ *      (POST /api/sandbox/social-export, verified via readPersistenceResponse
+ *      and `result.success && result.persisted`).
+ *   2. Copy structured scenario text or JSON for internal study groups.
+ *   3. Audit & revoke any historical /sandbox/[id] links on the user's account
+ *      (GET / DELETE /api/sandbox/create-share) while honestly noting that new
+ *      unsealed public snapshot links are retired.
  */
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Link2, Copy, Check, Share2, QrCode, Info, Trash2, ShieldAlert } from 'lucide-react';
-import { getAccessToken } from '../../lib/authUtils';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import toast from 'react-hot-toast';
+import { Share2, Copy, Check, Send, Trash2, ShieldAlert, FileCode } from 'lucide-react';
+import { getFreshAccessToken } from '../../lib/authUtils';
 import { readPersistenceResponse, persistenceMessage } from '../../lib/personal-assistant/persistenceContract';
-import { T, F, S, R, btn } from './paTokens';
-import { BottomSheet, PAStyles, ErrorState, Skeleton } from './paKit';
+import { T, F, S, R, btn, pill } from './paTokens';
+import { BottomSheet, PAStyles, ErrorState, Skeleton, useAbortableFetch, isAbortError } from './paKit';
 
-// A revoke request that never settles would leave the sheet spinning forever
-// (mobile radios drop requests silently). Abort and report instead.
-const REVOKE_TIMEOUT_MS = 15000;
+function formatScenarioSummary(state) {
+    if (!state || typeof state !== 'object') return 'Virtual Sandbox Scenario (Ungraded Study)';
+    const hero = state.heroHand?.card1 && state.heroHand?.card2
+        ? `${state.heroHand.card1}${state.heroHand.card2}`
+        : 'No Hero Cards';
+    const boardCards = Array.isArray(state.board)
+        ? state.board.filter(Boolean)
+        : [...(state.board?.flop || []), state.board?.turn, state.board?.river].filter(Boolean);
+    const boardText = boardCards.length ? boardCards.join(' ') : 'Preflop';
+    const pos = state.heroPosition || 'BTN';
+    const stack = Number.isFinite(Number(state.heroStack)) ? `${Math.round(Number(state.heroStack))} BB` : '100 BB';
+    const pot = Number.isFinite(Number(state.potSize)) ? `${Number(state.potSize).toFixed(1)} BB` : '6.5 BB';
+    const villains = Array.isArray(state.villains) && state.villains.length
+        ? state.villains.map((v) => `${v.position || 'BB'} (${v.archetype?.name || 'GTO Neutral'})`).join(', ')
+        : 'BB (GTO Neutral)';
+    const line = Array.isArray(state.actionHistory) && state.actionHistory.length
+        ? state.actionHistory.map((a) => `${a.actor === 'hero' ? 'Hero' : 'Villain'} ${a.action || a.label || ''}`.trim()).join(' -> ')
+        : 'No Actions Logged';
+    return [
+        `Virtual Sandbox Scenario (Ungraded Study)`,
+        `Hero: ${hero} (${pos}, ${stack}) | Pot: ${pot}`,
+        `Board: ${boardText}`,
+        `Villains: ${villains}`,
+        `Line: ${line}`,
+    ].join('\n');
+}
 
 export default function ShareScenarioModal({ onClose, sandboxState }) {
-    const [loading, setLoading] = useState(false);
-    const [shareUrl, setShareUrl] = useState(null);
-    const [shareId, setShareId] = useState(null);
-    const [revocable, setRevocable] = useState(false);
-    const [copied, setCopied] = useState(false);
-    const [error, setError] = useState(null);
-    const [qrUrl, setQrUrl] = useState(null);
-    const [qrState, setQrState] = useState('idle'); // idle | loading | ready | unavailable
+    const [note, setNote] = useState('');
+    const [posting, setPosting] = useState(false);
+    const [posted, setPosted] = useState(false);
+    const [postError, setPostError] = useState(null);
+    const [copiedKind, setCopiedKind] = useState(null);
 
-    // idle -> confirm -> working. 'confirm' is also where a failed attempt
-    // lands, so the Revoke button is still there to tap again.
-    const [revokeStep, setRevokeStep] = useState('idle');
-    // null (still live) | 'revoked' (we deleted it) | 'gone' (404 from server)
-    const [revokeResult, setRevokeResult] = useState(null);
-    const [revokeError, setRevokeError] = useState(null); // { body, retry }
+    const [links, setLinks] = useState([]);
+    const [linksLoading, setLinksLoading] = useState(true);
+    const [linksError, setLinksError] = useState(null);
+    const [revokingId, setRevokingId] = useState(null);
 
+    const mountedRef = useRef(true);
     const copyTimer = useRef(null);
-    const revokeTimer = useRef(null);
-    const revokeAbort = useRef(null);
-    const revokeTimedOut = useRef(false);
-    const mounted = useRef(true);
+    const linksReqId = useRef(0);
+    const requestLinks = useAbortableFetch(12000);
+    const requestPost = useAbortableFetch(12000);
+    const requestRevoke = useAbortableFetch(12000);
 
-    useEffect(() => {
-        mounted.current = true;
-        return () => {
-            mounted.current = false;
-            if (copyTimer.current) { clearTimeout(copyTimer.current); copyTimer.current = null; }
-            if (revokeTimer.current) { clearTimeout(revokeTimer.current); revokeTimer.current = null; }
-            try { revokeAbort.current?.abort(); } catch (e) { /* already settled */ }
-        };
-    }, []);
-
-    // Once the link is revoked (or was never ours) every outbound control is
-    // dead weight · sharing a URL that 404s is worse than no button at all.
-    const linkDead = revokeResult !== null;
-
-    const generateLink = useCallback(async () => {
-        setLoading(true);
-        setError(null);
+    const summaryText = useMemo(() => formatScenarioSummary(sandboxState), [sandboxState]);
+    const jsonText = useMemo(() => {
         try {
-            const token = getAccessToken();
-            const headers = { 'Content-Type': 'application/json' };
-            if (token) headers.Authorization = `Bearer ${token}`;
-
-            const res = await fetch('/api/sandbox/create-share', {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({ state_json: sandboxState }),
-            });
-            const result = await readPersistenceResponse(res);
-            const json = result.json;
-
-            if (res.status === 401) {
-                setError('Sign in to create a share link.');
-                return;
-            }
-            if (result.success && result.persisted && json?.shareId) {
-                const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker';
-                setShareUrl(`${origin}/sandbox/${json.shareId}`);
-                setShareId(json.shareId);
-                // Only the server can know whether the row got a creator_id.
-                // Anything other than an explicit true means "do not offer it".
-                setRevocable(json.revocable === true);
-                return;
-            }
-            setError(persistenceMessage(result, 'Could not create the link. Please try again.'));
-        } catch (err) {
-            console.warn('[ShareScenarioModal] create error:', err?.message || err);
-            setError('Could not create the link · check your connection.');
-        } finally {
-            setLoading(false);
+            return JSON.stringify(sandboxState || {}, null, 2);
+        } catch {
+            return '{}';
         }
     }, [sandboxState]);
 
-    const revokeLink = useCallback(async () => {
-        if (!shareId || linkDead) return;
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            linksReqId.current += 1;
+            if (copyTimer.current) clearTimeout(copyTimer.current);
+        };
+    }, []);
 
-        setRevokeError(null);
-        setRevokeStep('working');
-        revokeTimedOut.current = false;
-
-        const token = getAccessToken();
-        if (!token) {
-            // No point round-tripping: the endpoint requires a Bearer token.
-            setRevokeStep('confirm');
-            setRevokeError({
-                body: 'Your session has expired. Sign in again and reopen this sheet to revoke the link.',
-                retry: false,
+    const loadHistoricalLinks = useCallback(async () => {
+        const reqId = ++linksReqId.current;
+        setLinksLoading(true);
+        setLinksError(null);
+        try {
+            const token = await getFreshAccessToken();
+            if (reqId !== linksReqId.current) return;
+            if (!token) {
+                setLinks([]);
+                return;
+            }
+            const res = await requestLinks('/api/sandbox/create-share', {
+                headers: { Authorization: `Bearer ${token}` },
+                timeoutMs: 12000,
             });
+            if (reqId !== linksReqId.current) return;
+            if (res.status === 401) {
+                setLinks([]);
+                return;
+            }
+            const json = await res.json().catch(() => null);
+            if (reqId !== linksReqId.current) return;
+            if (res.ok && json?.success) {
+                setLinks(Array.isArray(json.shares) ? json.shares : []);
+            } else {
+                setLinksError(json?.error || 'Historical Link List Is Temporarily Unavailable.');
+            }
+        } catch (err) {
+            if (isAbortError(err) || reqId !== linksReqId.current) return;
+            setLinksError('Could Not Reach Historical Share Links.');
+        } finally {
+            if (reqId === linksReqId.current) setLinksLoading(false);
+        }
+    }, [requestLinks]);
+
+    useEffect(() => {
+        loadHistoricalLinks();
+    }, [loadHistoricalLinks]);
+
+    const copyText = useCallback(async (text, kind) => {
+        if (typeof navigator?.clipboard?.writeText !== 'function') {
+            toast.error('Clipboard Is Unavailable In This Browser');
             return;
         }
-
-        const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        revokeAbort.current = ctrl;
-        if (revokeTimer.current) clearTimeout(revokeTimer.current);
-        revokeTimer.current = setTimeout(() => {
-            revokeTimedOut.current = true;
-            try { ctrl?.abort(); } catch (e) { /* already settled */ }
-        }, REVOKE_TIMEOUT_MS);
-
         try {
-            const res = await fetch(`/api/sandbox/create-share/${encodeURIComponent(shareId)}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-                ...(ctrl ? { signal: ctrl.signal } : null),
+            await navigator.clipboard.writeText(text);
+            setCopiedKind(kind);
+            if (copyTimer.current) clearTimeout(copyTimer.current);
+            copyTimer.current = setTimeout(() => setCopiedKind(null), 2200);
+            toast.success(kind === 'json' ? 'Scenario JSON Copied' : 'Scenario Summary Copied');
+        } catch {
+            toast.error('Could Not Copy To Clipboard');
+        }
+    }, []);
+
+    const handlePostToStudyFeed = useCallback(async () => {
+        setPosting(true);
+        setPostError(null);
+        try {
+            const token = await getFreshAccessToken();
+            if (!mountedRef.current) return;
+            if (!token) {
+                setPostError('Sign In To Share Scenarios To The Smarter.Poker Study Feed.');
+                return;
+            }
+            const content = note.trim()
+                ? `${note.trim()}\n\n${summaryText}`.slice(0, 500)
+                : summaryText.slice(0, 500);
+
+            const res = await requestPost('/api/sandbox/social-export', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    handCount: 1,
+                    evLoss: null,
+                    content,
+                    metadata: {
+                        ungraded: true,
+                        authority: 'authored-sandbox-ungraded',
+                        heroPosition: sandboxState?.heroPosition || null,
+                    },
+                }),
+                timeoutMs: 12000,
             });
             const result = await readPersistenceResponse(res);
-            const json = result.json;
-            if (!mounted.current) return;
+            if (!mountedRef.current) return;
 
-            if (result.success && result.persisted) {
-                setRevokeResult('revoked');
-                setRevokeStep('idle');
-                setQrUrl(null);
-                setQrState('idle');
-                try { navigator.vibrate?.(10); } catch (e) { /* unsupported */ }
-                return;
-            }
-            if (res.status === 404) {
-                // The endpoint answers 404 both for "no such link" and for
-                // "not yours", on purpose. Say only what we actually know.
-                setRevokeResult('gone');
-                setRevokeStep('idle');
-                setQrUrl(null);
-                setQrState('idle');
-                return;
-            }
             if (res.status === 401) {
-                setRevokeStep('confirm');
-                setRevokeError({
-                    body: 'Your session has expired. Sign in again and reopen this sheet to revoke the link.',
-                    retry: false,
-                });
+                setPostError('Sign In To Share Scenarios To The Smarter.Poker Study Feed.');
                 return;
             }
-            if (res.status === 429) {
-                setRevokeStep('confirm');
-                setRevokeError({ body: 'Too many attempts. Wait a moment, then try again.', retry: true });
+            if (result.success && result.persisted) {
+                setPosted(true);
+                toast.success('Shared To Smarter.Poker Study Feed');
                 return;
             }
-            setRevokeStep('confirm');
-            setRevokeError({ body: persistenceMessage(result, 'The link could not be revoked. It is still live · please try again.'), retry: true });
-        } catch (e) {
-            if (!mounted.current) return;
-            console.warn('[ShareScenarioModal] revoke error:', e?.message || e);
-            setRevokeStep('confirm');
-            setRevokeError({
-                body: revokeTimedOut.current
-                    ? 'That request timed out, so the link may still be live. Check your connection and try again.'
-                    : 'Could not reach the server, so the link is still live. Check your connection and try again.',
-                retry: true,
-            });
+            setPostError(persistenceMessage(result, 'Could Not Publish This Scenario.'));
+        } catch (err) {
+            if (isAbortError(err) || !mountedRef.current) return;
+            setPostError('Request Timed Out Or Dropped. Check Your Feed Before Retrying.');
         } finally {
-            if (revokeTimer.current) { clearTimeout(revokeTimer.current); revokeTimer.current = null; }
-            revokeAbort.current = null;
+            if (mountedRef.current) setPosting(false);
         }
-    }, [shareId, linkDead]);
+    }, [note, summaryText, sandboxState, requestPost]);
 
-    const handleNativeShare = useCallback(async () => {
-        if (!shareUrl || linkDead) return;
+    const handleRevoke = useCallback(async (id) => {
+        if (!id) return;
+        setRevokingId(id);
         try {
-            await navigator.share({ title: 'GTO Sandbox spot', text: 'Take a look at this spot', url: shareUrl });
-        } catch (e) {
-            if (e?.name !== 'AbortError') console.warn('[ShareScenarioModal] share failed:', e?.message || e);
-        }
-    }, [shareUrl, linkDead]);
-
-    const copyToClipboard = useCallback(async () => {
-        if (!shareUrl || linkDead) return;
-        if (typeof navigator?.clipboard?.writeText !== 'function') {
-            setError('Copying is blocked here · long-press the link above to copy it.');
-            return;
-        }
-        try {
-            await navigator.clipboard.writeText(shareUrl);
-            setCopied(true);
-            if (copyTimer.current) clearTimeout(copyTimer.current);
-            copyTimer.current = setTimeout(() => setCopied(false), 2000);
-            try { navigator.vibrate?.(10); } catch (e) { /* noop */ }
-        } catch (e) {
-            console.warn('[ShareScenarioModal] copy failed:', e?.message || e);
-            setError('Copying is blocked here · long-press the link above to copy it.');
-        }
-    }, [shareUrl, linkDead]);
-
-    const showQr = useCallback(async () => {
-        if (!shareUrl || linkDead) return;
-        setQrState('loading');
-        try {
-            const mod = await import('qrcode');
-            const QRCode = mod?.default || mod;
-            const dataUrl = await QRCode.toDataURL(shareUrl, {
-                width: 320, margin: 1,
-                color: { dark: '#020609', light: '#FFFFFF' },
+            const token = await getFreshAccessToken();
+            if (!token) {
+                toast.error('Sign In Again To Revoke Historical Links');
+                return;
+            }
+            const res = await requestRevoke(`/api/sandbox/create-share/${encodeURIComponent(id)}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+                timeoutMs: 12000,
             });
-            setQrUrl(dataUrl);
-            setQrState('ready');
-        } catch (e) {
-            console.warn('[ShareScenarioModal] QR unavailable:', e?.message || e);
-            setQrState('unavailable');
+            const result = await readPersistenceResponse(res);
+            if (!mountedRef.current) return;
+            if (result.success && result.persisted) {
+                setLinks((prev) => prev.filter((item) => item.id !== id));
+                toast.success('Historical Share Link Revoked');
+            } else if (res.status === 404) {
+                setLinks((prev) => prev.filter((item) => item.id !== id));
+                toast.success('Historical Link Already Removed');
+            } else {
+                toast.error(persistenceMessage(result, 'Could Not Revoke Historical Link'));
+            }
+        } catch (err) {
+            if (isAbortError(err) || !mountedRef.current) return;
+            toast.error('Could Not Confirm Revocation. Refreshing Links.');
+            loadHistoricalLinks();
+        } finally {
+            if (mountedRef.current) setRevokingId(null);
         }
-    }, [shareUrl, linkDead]);
-
-    const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
-    const revoking = revokeStep === 'working';
+    }, [requestRevoke, loadHistoricalLinks]);
 
     return (
         <BottomSheet
             open
             onClose={onClose}
-            title="Share this spot"
-            titleIcon={<Link2 size={18} strokeWidth={2} color={T.accent} />}
-            subtitle="Anyone with the link can open this exact sandbox state."
-            ariaLabel="Share scenario"
-            footer={shareUrl ? (
-                <button type="button" className="pa-btn" onClick={onClose} style={{ ...btn('secondary', { block: true }) }}>
+            title="Internal Scenario Sharing"
+            titleIcon={<Share2 size={18} strokeWidth={2} color={T.accent} />}
+            subtitle="Share Ungraded Scenarios Internally Or Copy Structured Study Notes."
+            ariaLabel="Share scenario internally"
+            footer={(
+                <button type="button" className="pa-btn" onClick={onClose} style={btn('secondary', { block: true })}>
                     Done
-                </button>
-            ) : (
-                <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={generateLink}
-                    disabled={loading}
-                    style={{ ...btn('primary', { block: true, disabled: loading }) }}
-                >
-                    {loading ? 'Creating link…' : 'Create share link'}
                 </button>
             )}
         >
             <PAStyles />
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: S.lg }}>
-                {error && (
-                    <ErrorState
-                        title="Sharing failed"
-                        body={error}
-                        onRetry={shareUrl ? null : generateLink}
-                    />
-                )}
-
-                {loading && !shareUrl && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }} aria-hidden="true">
-                        <Skeleton h={48} />
-                        <Skeleton h={44} w="60%" />
+                <div style={{
+                    background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm,
+                    padding: S.md,
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.sm, marginBottom: S.sm }}>
+                        <span style={{ fontSize: F.label, fontWeight: 700, color: T.text }}>Scenario Summary</span>
+                        <span style={pill('accent')}>Ungraded Study</span>
                     </div>
-                )}
-
-                {!shareUrl && !loading && (
-                    <p style={{ fontSize: F.bodySm, color: T.textMuted, lineHeight: 1.45, margin: 0 }}>
-                        The Link Captures The Board, Ranges, Stacks And Villain Setup Exactly As They Are Now.
-                        Later Edits At The Table Do Not Change It.
-                    </p>
-                )}
-
-                {shareUrl && (
-                    <>
-                        <div
-                            data-pa-verbatim="true"
-                            style={{
-                                background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm,
-                                padding: S.md, fontSize: F.bodySm, color: linkDead ? T.textDim : T.text,
-                                wordBreak: 'break-all', lineHeight: 1.45,
-                                textDecoration: linkDead ? 'line-through' : 'none',
-                            }}
+                    <pre
+                        data-pa-verbatim="true"
+                        style={{
+                            margin: 0, fontSize: F.caption, color: T.textMuted, lineHeight: 1.5,
+                            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                        }}
+                    >
+                        {summaryText}
+                    </pre>
+                    <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap', marginTop: S.md }}>
+                        <button
+                            type="button"
+                            className="pa-btn"
+                            onClick={() => copyText(summaryText, 'summary')}
+                            style={{ ...btn('secondary'), flex: '1 1 140px', fontSize: F.label }}
                         >
-                            {shareUrl}
-                        </div>
+                            {copiedKind === 'summary' ? <Check size={16} strokeWidth={2.5} /> : <Copy size={16} strokeWidth={2} />}
+                            {copiedKind === 'summary' ? 'Copied Summary' : 'Copy Summary'}
+                        </button>
+                        <button
+                            type="button"
+                            className="pa-btn"
+                            onClick={() => copyText(jsonText, 'json')}
+                            style={{ ...btn('secondary'), flex: '1 1 140px', fontSize: F.label }}
+                        >
+                            {copiedKind === 'json' ? <Check size={16} strokeWidth={2.5} /> : <FileCode size={16} strokeWidth={2} />}
+                            {copiedKind === 'json' ? 'Copied JSON' : 'Copy JSON'}
+                        </button>
+                    </div>
+                </div>
 
-                        {linkDead && (
-                            <div
-                                role="status"
-                                style={{
-                                    display: 'flex', gap: S.sm, alignItems: 'flex-start',
-                                    background: revokeResult === 'revoked' ? T.successSoft : T.surface2,
-                                    border: `1px solid ${revokeResult === 'revoked' ? 'rgba(77,224,165,0.4)' : T.border}`,
-                                    borderRadius: R.sm, padding: S.md,
-                                }}
-                            >
-                                {revokeResult === 'revoked'
-                                    ? <Check size={18} strokeWidth={2} color={T.success} style={{ flexShrink: 0, marginTop: 1 }} />
-                                    : <ShieldAlert size={18} strokeWidth={2} color={T.textMuted} style={{ flexShrink: 0, marginTop: 1 }} />}
-                                <div style={{ minWidth: 0 }}>
-                                    <p style={{
-                                        fontSize: F.bodySm, fontWeight: 700, margin: `0 0 ${S.xs}px`,
-                                        color: revokeResult === 'revoked' ? T.success : T.text,
-                                    }}>
-                                        {revokeResult === 'revoked' ? 'Link revoked' : 'Nothing to revoke'}
-                                    </p>
-                                    <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                                        {revokeResult === 'revoked'
-                                            ? 'This link is dead. Anyone who opens it now sees a page saying the shared hand is no longer available. Create a new link if you want to share the spot again.'
-                                            : 'This link is not on your account, so there was nothing here to take back. It may already have been revoked. Create a new link if you still want to share the spot.'}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+                    <label htmlFor="share-feed-note" style={{ fontSize: F.label, fontWeight: 700, color: T.text }}>
+                        Share To Smarter.Poker Study Feed
+                    </label>
+                    <textarea
+                        id="share-feed-note"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        rows={2}
+                        placeholder="Add A Study Question Or Context Note (Optional)"
+                        style={{
+                            width: '100%', minHeight: 72, padding: S.md, boxSizing: 'border-box',
+                            background: T.surface2, border: `1px solid ${T.borderHi}`, borderRadius: R.sm,
+                            color: T.text, fontSize: F.input, fontFamily: 'inherit', resize: 'vertical',
+                        }}
+                    />
+                    {postError && (
+                        <ErrorState title="Could Not Publish" body={postError} onRetry={handlePostToStudyFeed} />
+                    )}
+                    <button
+                        type="button"
+                        className="pa-btn"
+                        onClick={handlePostToStudyFeed}
+                        disabled={posting || posted}
+                        style={btn('primary', { block: true, disabled: posting || posted })}
+                    >
+                        {posted ? <Check size={18} strokeWidth={2.5} /> : <Send size={18} strokeWidth={2} />}
+                        {posted ? 'Shared To Study Feed' : posting ? 'Sharing…' : 'Post To Study Feed'}
+                    </button>
+                </div>
 
-                        <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
-                            {canNativeShare && (
-                                <button
-                                    type="button"
-                                    className="pa-btn"
-                                    onClick={handleNativeShare}
-                                    disabled={linkDead}
-                                    style={{ ...btn('primary', { disabled: linkDead }), flex: '1 1 140px' }}
+                <div style={{
+                    background: T.surface2, border: `1px solid ${T.border}`, borderRadius: R.sm,
+                    padding: S.md, display: 'flex', flexDirection: 'column', gap: S.sm,
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: S.sm }}>
+                        <ShieldAlert size={16} strokeWidth={2} color={T.accent} />
+                        <span style={{ fontSize: F.label, fontWeight: 700, color: T.text }}>
+                            Legacy Public Links Retired
+                        </span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: F.caption, color: T.textMuted, lineHeight: 1.45 }}>
+                        Unsealed Public Snapshot Links Are Retired. Use Internal Study Feed Sharing, Scenario JSON, Or
+                        Study Folders Instead. Historical Links On Your Account Can Still Be Revoked Below.
+                    </p>
+
+                    {linksLoading ? (
+                        <Skeleton h={36} />
+                    ) : linksError ? (
+                        <ErrorState title="Link History Unavailable" body={linksError} onRetry={loadHistoricalLinks} />
+                    ) : links.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
+                            {links.map((item) => (
+                                <div
+                                    key={item.id}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.sm,
+                                        padding: S.sm, borderRadius: R.sm, background: T.surface,
+                                        border: `1px solid ${T.border}`,
+                                    }}
                                 >
-                                    <Share2 size={18} strokeWidth={2} /> Share
-                                </button>
-                            )}
-                            <button
-                                type="button"
-                                className="pa-btn"
-                                onClick={copyToClipboard}
-                                disabled={linkDead}
-                                aria-label="Copy share link"
-                                style={{ ...btn('secondary', { disabled: linkDead }), flex: '1 1 120px', minHeight: 48 }}
-                            >
-                                {copied ? <Check size={18} strokeWidth={2} color={T.success} /> : <Copy size={18} strokeWidth={2} />}
-                                {copied ? 'Copied' : 'Copy link'}
-                            </button>
-                        </div>
-
-                        {qrState !== 'ready' && (
-                            <button
-                                type="button"
-                                className="pa-btn"
-                                onClick={showQr}
-                                disabled={linkDead || qrState === 'loading' || qrState === 'unavailable'}
-                                style={{ ...btn('secondary', { block: true, disabled: linkDead || qrState === 'unavailable' }) }}
-                            >
-                                <QrCode size={18} strokeWidth={2} />
-                                {qrState === 'loading' ? 'Building QR code…'
-                                    : qrState === 'unavailable' ? 'QR code unavailable here'
-                                        : 'Show QR code'}
-                            </button>
-                        )}
-
-                        {qrState === 'ready' && qrUrl && !linkDead && (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img
-                                src={qrUrl}
-                                alt="QR code for the share link"
-                                style={{
-                                    width: 220, height: 220, alignSelf: 'center', borderRadius: R.sm,
-                                    background: '#FFFFFF', padding: S.sm, boxSizing: 'border-box',
-                                }}
-                            />
-                        )}
-
-                        {revocable && !linkDead && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
-                                {revokeError && (
-                                    <ErrorState
-                                        title="Revoke failed"
-                                        body={revokeError.body}
-                                        onRetry={revokeError.retry && !revoking ? revokeLink : null}
-                                        retryLabel="Try again"
-                                    />
-                                )}
-
-                                {revokeStep === 'idle' ? (
+                                    <div style={{ minWidth: 0 }}>
+                                        <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.text }}>{item.url || `/sandbox/${item.id}`}</div>
+                                        <div style={{ fontSize: F.caption, color: T.textDim }}>
+                                            {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Historical Link'}
+                                        </div>
+                                    </div>
                                     <button
                                         type="button"
                                         className="pa-btn"
-                                        onClick={() => { setRevokeError(null); setRevokeStep('confirm'); }}
-                                        style={{ ...btn('danger', { block: true }), minHeight: 48 }}
+                                        onClick={() => handleRevoke(item.id)}
+                                        disabled={revokingId === item.id}
+                                        style={{ ...btn('danger', { disabled: revokingId === item.id }), padding: '0 12px', fontSize: F.caption }}
                                     >
-                                        <Trash2 size={18} strokeWidth={2} />
-                                        Revoke This Link
+                                        <Trash2 size={14} strokeWidth={2} />
+                                        {revokingId === item.id ? 'Revoking…' : 'Revoke'}
                                     </button>
-                                ) : (
-                                    <div
-                                        role="group"
-                                        aria-label="Confirm revoking the share link"
-                                        style={{
-                                            display: 'flex', flexDirection: 'column', gap: S.md,
-                                            background: T.dangerSoft, border: '1px solid rgba(255,107,122,0.4)',
-                                            borderRadius: R.sm, padding: S.md,
-                                        }}
-                                    >
-                                        <p style={{ fontSize: F.bodySm, color: T.text, margin: 0, lineHeight: 1.45 }}>
-                                            Revoke This Link? Anyone Holding It Loses Access Straight Away, And It Cannot
-                                            Be Brought Back.
-                                        </p>
-                                        <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
-                                            <button
-                                                type="button"
-                                                className="pa-btn"
-                                                onClick={revokeLink}
-                                                disabled={revoking}
-                                                style={{ ...btn('danger', { disabled: revoking }), flex: '1 1 130px', minHeight: 48 }}
-                                            >
-                                                {!revoking && <Trash2 size={18} strokeWidth={2} />}
-                                                {revoking ? 'Revoking…' : 'Revoke'}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="pa-btn"
-                                                onClick={() => { setRevokeStep('idle'); setRevokeError(null); }}
-                                                disabled={revoking}
-                                                style={{ ...btn('secondary', { disabled: revoking }), flex: '1 1 130px', minHeight: 48 }}
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {!linkDead && (
-                            <div style={{ display: 'flex', gap: S.sm, alignItems: 'flex-start' }}>
-                                <Info size={18} strokeWidth={2} color={T.textDim} style={{ flexShrink: 0, marginTop: 1 }} />
-                                <p style={{ fontSize: F.caption, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                                    {revocable
-                                        ? 'This link is public · anyone who has it can open the spot until you revoke it here.'
-                                        : 'This link was created while you were signed out, so it is public and cannot be revoked from here. Only share spots you are happy for anyone to open.'}
-                                </p>
-                            </div>
-                        )}
-                    </>
-                )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : null}
+                </div>
             </div>
         </BottomSheet>
     );

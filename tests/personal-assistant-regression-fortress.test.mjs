@@ -506,14 +506,17 @@ test('Fortress [Routing, AEO & UI Wiring]: zero dead /hub/sandbox or /hub/jarvis
   assert.equal(md.includes('https://smarter.poker/hub/sandbox)'), false, 'markdownIngestion must never publish dead 404 /hub/sandbox URL');
 
   const paIndex = read('pages/hub/personal-assistant/index.js');
-  assert.match(paIndex, /title:\s*['"]Play['"][\s\S]*title:\s*['"]Diagnose['"][\s\S]*title:\s*['"]Train['"]/);
-  assert.match(paIndex, /window\.location\.assign/);
+  assert.match(paIndex, /Review My Play/);
+  assert.match(paIndex, /Virtual Sandbox/);
+  assert.match(paIndex, /My Leaks/);
+  assert.doesNotMatch(paIndex, /\/hub\/training/);
   const useAssistantSrc = read('src/hooks/useAssistant.js');
   assert.match(useAssistantSrc, /pa-data-updated/);
 
   const sandboxPage = read('pages/hub/personal-assistant/sandbox.js');
-  assert.doesNotMatch(sandboxPage, /useStudyDeck|useAvatar|assistantAuth/);
-  assert.match(sandboxPage, /verified-evidence-required/);
+  assert.doesNotMatch(sandboxPage, /useStudyDeck|GodModePanel|\/api\/assistant\/sandbox\/analyze/);
+  assert.match(sandboxPage, /authored-sandbox-ungraded/);
+  assert.match(sandboxPage, /getFreshAccessToken/);
 
   const leaksPage = read('pages/hub/personal-assistant/leaks.js');
   assert.match(leaksPage, /pa-auto-detect-last:\$\{userId\}/);

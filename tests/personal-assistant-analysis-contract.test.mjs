@@ -307,7 +307,7 @@ test('node-lock model changes the recommendation but removes unmeasured EV claim
   assert.match(adjusted.explanation, /modeled exploit adjustment/i);
 });
 
-test('Sandbox API fails closed and the UI routes users to verified evidence surfaces', () => {
+test('Sandbox API fails closed and the restored UI stays strictly ungraded while linking verified surfaces', () => {
   const api = fs.readFileSync(new URL('../pages/api/assistant/sandbox/analyze.js', import.meta.url), 'utf8');
   const page = fs.readFileSync(new URL('../pages/hub/personal-assistant/sandbox.js', import.meta.url), 'utf8');
 
@@ -317,10 +317,10 @@ test('Sandbox API fails closed and the UI routes users to verified evidence surf
   assert.match(api, /verifiedRoute: '\/hub\/training'/);
   assert.doesNotMatch(api, /validateAndNormalizeScenario|createClient|getGrokClient|\.from\(|\.rpc\(|solverResult|ruleBasedFallback/);
 
-  assert.match(page, /data-training-authority="verified-evidence-required"/);
-  assert.match(page, /\/hub\/training\?source=assistant-sandbox-retired/);
-  assert.match(page, /spot-trainer\?source=assistant-sandbox-retired/);
-  assert.match(page, /hand-history-upload\?source=assistant-sandbox-retired/);
-  assert.match(page, /No Answer, Frequency, EV, Accuracy, Streak, Reward, Study Record, Or Progress Is Created/);
-  assert.doesNotMatch(page, /displayResults|Modeled Exploit Frequencies|localSolve|optimalAction/);
+  assert.match(page, /data-training-authority="authored-sandbox-ungraded"/);
+  assert.match(page, /\/hub\/personal-assistant\/leaks\?source=personal-assistant-sandbox/);
+  assert.match(page, /Multiway Equity Is Available/i);
+  assert.match(page, /Original Action Builder Is Heads-Up/i);
+  assert.match(page, /Legacy Hand-History Parsing Does Not Preserve Precise Historical Wager Sizes/i);
+  assert.doesNotMatch(page, /\/api\/assistant\/sandbox\/analyze|Modeled Exploit Frequencies|localSolve|gradeAction|GodModePanel/);
 });

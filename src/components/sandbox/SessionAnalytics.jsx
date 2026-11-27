@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { BarChart3, ChevronDown, Target, TrendingUp } from 'lucide-react';
-import { getAccessToken } from '../../lib/authUtils';
+import { getFreshAccessToken } from '../../lib/authUtils';
 import { T, F, S, R, card, btn, pill, numeric, sectionTitle } from './paTokens';
 import {
     PAStyles, Skeleton, ErrorState, EmptyState, SignInState,
@@ -217,9 +217,11 @@ export default function SessionAnalytics({ userId }) {
         if (!userId) { setLoading(false); return; }
         setError(null);
         try {
-            const token = getAccessToken();
+            const token = await getFreshAccessToken();
+            if (!mountedRef.current) return;
             const res = await abortableFetch('/api/sandbox/session-stats', {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
+                timeoutMs: 12000,
             });
             if (!mountedRef.current) return;
             if (res.status === 401) { setAuthRequired(true); setStats(null); return; }

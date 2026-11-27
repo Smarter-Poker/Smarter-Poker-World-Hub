@@ -674,16 +674,33 @@ export function useThrottledRefresh(fn, { enabled = true, minIntervalMs = 60000,
     return run;
 }
 
-/** Wraps fetch with an AbortController that is cancelled on unmount. */
-export function useAbortableFetch() {
+/** Wraps fetch with an AbortController, request deadline timeout, and cancel-on-unmount. */
+export function useAbortableFetch(defaultTimeoutMs = 15000) {
     const ctrlRef = useRef(null);
-    useEffect(() => () => { try { ctrlRef.current?.abort(); } catch (e) { /* noop */ } }, []);
-    return useCallback((url, opts = {}) => {
+    const timerRef = useRef(null);
+    useEffect(() => () => {
+        if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
         try { ctrlRef.current?.abort(); } catch (e) { /* noop */ }
+    }, []);
+    return useCallback((url, opts = {}) => {
+        if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+        try { ctrlRef.current?.abort(); } catch (e) { /* noop */ }
+        const { timeoutMs = defaultTimeoutMs, ...fetchOpts } = opts || {};
         const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
         ctrlRef.current = ctrl;
-        return fetch(url, ctrl ? { ...opts, signal: ctrl.signal } : opts);
-    }, []);
+        if (ctrl && Number.isFinite(timeoutMs) && timeoutMs > 0) {
+            timerRef.current = setTimeout(() => {
+                try { ctrl.abort(); } catch (e) { /* noop */ }
+            }, timeoutMs);
+        }
+        const promise = fetch(url, ctrl ? { ...fetchOpts, signal: ctrl.signal } : fetchOpts);
+        return promise.finally(() => {
+            if (ctrlRef.current === ctrl && timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
+            }
+        });
+    }, [defaultTimeoutMs]);
 }
 
 /** True when an abort caused the rejection (do not surface those as errors). */

@@ -418,13 +418,10 @@ test('syncClubArenaHandsForAudit honors incremental watermark and bypasses on fu
   assert.equal(driftRes.handsFound, 3);
 });
 
-test('orphaned legacy Sandbox components are permanently removed and reusable E2E verifier exists', () => {
+test('retired grading/tilt Sandbox components stay removed while restored workspace tools and E2E verifier exist', () => {
   const removed = [
     'src/components/sandbox/CoachFeedback.jsx',
-    'src/components/sandbox/EquityHeatmapOverlay.jsx',
     'src/components/sandbox/NodeLockExploits.jsx',
-    'src/components/sandbox/SaveHandModal.jsx',
-    'src/components/sandbox/StudyFolders.jsx',
     'src/components/sandbox/TiltMonitor.jsx',
   ];
   for (const rel of removed) {

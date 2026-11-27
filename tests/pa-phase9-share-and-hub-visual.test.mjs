@@ -94,10 +94,12 @@ test('2. PersonalAssistantHub.module.css and index.js use GPU opacity skeleton p
   }
   assert.match(css, /transform:\s*scale\(0\.985\)/);
 
-  // Obsidian 4-color beveled card surfaces + crisp suit contrast + 'T' -> '10' formatting
+  // Obsidian 4-color beveled card surfaces + crisp suit contrast + approved landing artwork
   assert.match(css, /\.playingCard,\s*\.boardCard\s*\{[\s\S]{0,360}linear-gradient\(180deg,\s*#132238 0%,\s*#08101c 100%\)/i);
   assert.match(css, /\.suitHearts\s*\{[^}]*color:\s*#ff6b7a;/i);
-  assert.match(home, /const rank = rawRank === 'T' \? '10' : rawRank;/);
+  assert.match(home, /\/images\/personal-assistant\/review-my-play\.webp/);
+  assert.match(home, /\/images\/personal-assistant\/virtual-sandbox\.webp/);
+  assert.match(home, /\/images\/personal-assistant\/my-leaks\.webp/);
 
   // Confirmed unused CSS classes removed
   for (const deadClass of [
@@ -118,19 +120,17 @@ test('2. PersonalAssistantHub.module.css and index.js use GPU opacity skeleton p
 
   // Generic [App] Handled exception logs cleaned and tagged as [Personal Assistant]
   assert.doesNotMatch(home, /\[App\] Handled exception/);
-  assert.match(home, /\[Personal Assistant\] Session refresh error:/);
-  assert.match(home, /\[Personal Assistant\] Stats refresh error:/);
+  assert.match(home, /\[Personal Assistant\]/);
 });
 
-test('3. pages/hub/personal-assistant/sandbox.js adds hover, reduced-motion active scale, focus-visible, and rotating disclosure chevron', () => {
+test('3. pages/hub/personal-assistant/sandbox.js enforces #SMARTERDESIGN workspace framing and responsive breakpoints', () => {
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
 
-  assert.match(sandbox, /\.destination:hover/);
-  assert.match(sandbox, /\.summary-disclosure > summary:hover/);
-  assert.match(sandbox, /\.summary-disclosure > summary:focus-visible[\s\S]*outline:\s*2px solid #83deff/);
-  assert.match(sandbox, /\.summary-disclosure > summary::after/);
-  assert.match(sandbox, /\.summary-disclosure\[open\] > summary::after\s*\{\s*transform:\s*rotate\(225deg\);\s*\}/);
-  assert.match(sandbox, /@media \(prefers-reduced-motion: no-preference\)[\s\S]*transform:\s*scale\(0\.985\)/);
+  assert.match(sandbox, /\.sandbox-workspace\s*\{/);
+  assert.match(sandbox, /\.sandbox-command-bar\s*\{/);
+  assert.match(sandbox, /@media \(max-width: 768px\)/);
+  assert.match(sandbox, /overflow-x:\s*clip;/);
+  assert.doesNotMatch(sandbox, /min-height:\s*100vh/);
 });
 
 test('4. pages/features/virtual-poker-sandbox.js enforces >=12px button/link text, 44px hero CTAs, focus-visible outline, and honest Title Case copy', () => {

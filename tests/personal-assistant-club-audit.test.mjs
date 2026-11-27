@@ -1109,11 +1109,12 @@ await test('audits a real Hetzner 6-max cash hand without summary, reconstructin
   assert.equal(result.solverVerified, 1, 'real Hetzner 6-max cash flop c-bet must solver-verify');
 });
 
-await test('makes each Personal Assistant tool card one full-card button', () => {
+await test('makes each Personal Assistant primary selection card a clean internal route action', () => {
   const source = readFileSync(resolve('pages/hub/personal-assistant/index.js'), 'utf8');
-  assert.ok(source.includes('className={styles.systemCardTrigger}'));
-  assert.ok(source.includes('onClick={() => openGuardedRoute(system.route)}'));
-  assert.equal((source.match(/className=\{styles\.systemCardTrigger\}/g) || []).length, 1);
+  assert.ok(source.includes("openInternalRoute('/hub/personal-assistant/review')"));
+  assert.ok(source.includes("openInternalRoute('/hub/personal-assistant/sandbox')"));
+  assert.ok(source.includes("openInternalRoute('/hub/personal-assistant/leaks')"));
+  assert.ok(!source.includes("'/hub/training"), 'Landing page body must not redirect to Training Games');
 });
 
 process.stdout.write(`\n${passed} passed, ${failed} failed\n`);

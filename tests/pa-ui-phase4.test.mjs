@@ -417,36 +417,17 @@ test('no block-level tags sit inside any <button> in the Phase 4 surfaces', () =
   }
 });
 
-test('PA Home: recap is gated by recapEligible and an inactive live table; due nudges and the live spot card are wired', () => {
+test('PA Home: approved illustrated landing cards, Log A Hand modal, My Coaching Plan, and Settings are wired', () => {
   const src = read('pages/hub/personal-assistant/index.js');
   const css = read('src/styles/worlds/PersonalAssistantHub.module.css');
-  assert.match(src, /sessionDebrief\?\.recapEligible === true[\s\S]{0,160}!sessionDebrief\?\.liveTableActive[\s\S]{0,80}!sessionDebrief\?\.cooldownActive[\s\S]{0,80}!coachingSnapshot\?\.liveTableActive/);
-  assert.match(src, /Last Session Recap/);
-  assert.match(src, /Drill Session Spots/);
-  assert.match(src, /topLeakedHands/);
-  assert.match(src, /slice\(0, 2\)/);
-  // The recap lives inside the existing mission frame, below the training plan preview.
-  const frameStart = src.indexOf('className={styles.missionFrame}');
-  const recapAt = src.indexOf('data-session-recap="true"');
-  const frameEnd = src.indexOf('Compact 4-Metric Summary Strip');
-  assert.ok(frameStart > 0 && recapAt > frameStart && recapAt < frameEnd, 'Recap must render inside missionFrame');
-  assert.ok(recapAt > src.indexOf('Open Training Plan'), 'Recap sits below the training plan preview');
-  assert.match(src, /Leak Finder\{dueSuffix\}/);
-  assert.match(src, /dueCount > 0 \? ` \(\$\{dueCount\}\)` : ''/);
-  assert.match(src, /\$\{dueCount\} Due/);
-  assert.match(src, /const LIVE_SPOT_ENTRY = \{/);
-  assert.match(src, /className=\{styles\.liveSpotTrigger\}/);
+  assert.match(src, /Review My Play/);
+  assert.match(src, /Virtual Sandbox/);
+  assert.match(src, /My Leaks/);
+  assert.match(src, /Log A Hand/);
+  assert.match(src, /My Coaching Plan/);
   assert.match(src, /onClick=\{openLiveSpot\}/);
-  assert.equal((src.match(/className=\{styles\.systemCardTrigger\}/g) || []).length, 1, 'Existing one-full-card-button contract is preserved');
   assert.match(src, /import\('..\/..\/..\/src\/components\/personal-assistant\/LiveSpotQuickEntry'\)/);
-  // The live spot entry sits inside the existing Tools & Evidence disclosure, not above the fold.
-  const toolsAt = src.indexOf('Tools &amp; Evidence Boundary');
-  const toolsEnd = src.indexOf('Secondary Disclosure: Activity');
-  const mapAt = src.indexOf('SYSTEMS.map');
-  const liveAt = src.indexOf('data-live-spot-card="home"');
-  assert.ok(toolsAt > 0 && mapAt > toolsAt && mapAt < toolsEnd);
-  assert.ok(liveAt > mapAt && liveAt < toolsEnd, 'Live spot entry sits inside the Tools disclosure');
-  assert.equal((src.match(/className=\{styles\.primaryButton\}/g) || []).length, 2, 'Home keeps exactly its existing primary CTAs');
+  assert.doesNotMatch(src, /\/hub\/training/, 'Landing page body must not redirect to Training Games');
   assert.match(css, /\.recapStrip/);
   assert.doesNotMatch(css, /\.recapStrip[^}]*display:\s*none/);
 });
@@ -495,10 +476,10 @@ test('Coaching Workspace: due alert jump, ranked gaps, funnel, debrief hands, vi
   assert.match(css, /\.alertAction[^}]*min-height: 44px/);
 });
 
-test('Sandbox boundary links the live spot logger and the retired sandbox/[id] route stays noindex', () => {
+test('Restored Virtual Sandbox links verified destinations and the retired sandbox/[id] route stays noindex', () => {
   const src = read('pages/hub/personal-assistant/sandbox.js');
-  assert.match(src, /title: 'Log A Live Poker Spot'/);
-  assert.match(src, /\/hub\/personal-assistant\/leaks\?quickspot=1/);
+  assert.match(src, /data-training-authority="authored-sandbox-ungraded"/);
+  assert.match(src, /\/hub\/personal-assistant\/leaks\?source=personal-assistant-sandbox/);
   const retired = read('pages/sandbox/[id].js');
   assert.match(retired, /noindex/i, 'Retired /sandbox/[id] must keep its noindex contract');
 });

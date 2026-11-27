@@ -16,10 +16,10 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { ClipboardList, Download, Share2, Send } from 'lucide-react';
-import { getAccessToken } from '../../lib/authUtils';
+import { getFreshAccessToken } from '../../lib/authUtils';
 import { readPersistenceResponse, persistenceMessage } from '../../lib/personal-assistant/persistenceContract';
 import { T, F, S, R, btn, pill, numeric } from './paTokens';
-import { BottomSheet, PAStyles, EmptyState, Segmented } from './paKit';
+import { BottomSheet, PAStyles, EmptyState, Segmented, useAbortableFetch, isAbortError } from './paKit';
 import { createHiDPICanvas, exportCanvas, canvasPreviewUrl, wrapText, roundRect } from '../../lib/sandbox/exportCanvas';
 
 function pctTone(pct) {
@@ -64,11 +64,17 @@ function drawReportCanvas(data) {
     ctx.font = font(16);
     ctx.fillText(`Virtual Sandbox · ${scopeLabel}`, W / 2, 90);
 
-    const boxes = [
-        { val: String(totalHands), label: 'HANDS', color: T.accent },
-        { val: scoredHands > 0 ? `${accuracy}%` : 'Not Available', label: 'GTO ACCURACY', color: scoredHands > 0 ? pctTone(accuracy) : T.textMuted },
-        { val: coachStreak > 0 ? String(coachStreak) : 'Not Available', label: 'STREAK', color: coachStreak > 0 ? T.warn : T.textMuted },
-    ];
+    const boxes = scoredHands > 0
+        ? [
+            { val: String(totalHands), label: 'HANDS', color: T.accent },
+            { val: `${accuracy}%`, label: 'HISTORICAL ACCURACY', color: pctTone(accuracy) },
+            { val: coachStreak > 0 ? String(coachStreak) : 'Not Available', label: 'STREAK', color: coachStreak > 0 ? T.accent : T.textMuted },
+        ]
+        : [
+            { val: String(totalHands), label: 'SPOTS STUDIED', color: T.accent },
+            { val: String(posEntries.length), label: 'POSITIONS', color: T.success },
+            { val: 'Ungraded', label: 'STUDY MODE', color: T.textMuted },
+        ];
     const boxW = (W - 80 - 2 * 16) / 3;
     boxes.forEach((b, i) => {
         const x = 40 + i * (boxW + 16);
@@ -161,6 +167,7 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
     const [previewError, setPreviewError] = useState(null);
     const successTimer = useRef(null);
     const previewUrlRef = useRef(null);
+    const requestPost = useAbortableFetch(12000);
 
     const fullLog = useMemo(() => (Array.isArray(sessionLog) ? sessionLog : []), [sessionLog]);
 
@@ -276,21 +283,24 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
     const handlePostToHub = useCallback(async () => {
         setSharing(true);
         try {
-            const token = getAccessToken();
+            const token = await getFreshAccessToken();
             if (!token) {
                 toast.error('Sign in to post to the hub');
                 return;
             }
-            const res = await fetch('/api/sandbox/social-export', {
+            const res = await requestPost('/api/sandbox/social-export', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
                     // The true sum over scored hands · avg x totalHands inflated
                     // this by the ratio of unscored hands (often 10x).
                     handCount: stats.totalHands,
-                    evLoss: Number(stats.evSum.toFixed(2)),
-                    content: `Sandbox session: ${stats.totalHands} hands${stats.scoredHands > 0 ? ` at ${stats.accuracy}% GTO accuracy` : ''}${stats.evCount > 0 ? ` across ${stats.evCount} scored spots` : ''}.`,
+                    evLoss: stats.evCount > 0 ? Number(stats.evSum.toFixed(2)) : null,
+                    content: stats.scoredHands > 0
+                        ? `Sandbox session: ${stats.totalHands} hands at ${stats.accuracy}% historical accuracy across ${stats.evCount} recorded spots.`
+                        : `Virtual Sandbox study log: explored ${stats.totalHands} ungraded scenario${stats.totalHands === 1 ? '' : 's'} across ${stats.posEntries.length || 1} position${stats.posEntries.length === 1 ? '' : 's'}.`,
                 }),
+                timeoutMs: 12000,
             });
             const result = await readPersistenceResponse(res);
             if (result.success && result.persisted) {
@@ -298,7 +308,7 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                 if (successTimer.current) clearTimeout(successTimer.current);
                 successTimer.current = setTimeout(() => setShareSuccess(false), 5000);
                 try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-                toast.success('Posted to hub');
+                toast.success('Posted To Study Feed');
             } else if (res.status === 401) {
                 toast.error('Sign in to post to the hub');
             } else {
@@ -306,12 +316,13 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                 toast.error(persistenceMessage(result, 'Could not post the report'));
             }
         } catch (e) {
+            if (isAbortError(e)) return;
             console.warn('[SessionReport] Post to Hub error:', e);
-            toast.error('Could not post the report');
+            toast.error('Could Not Confirm Post. Check Your Feed Before Retrying.');
         } finally {
             setSharing(false);
         }
-    }, [stats]);
+    }, [stats, requestPost]);
 
     return (
         <BottomSheet
@@ -341,7 +352,7 @@ export default function SessionReport({ sessionLog = [], coachStreak = 0, sessio
                         className="pa-btn"
                         onClick={handlePostToHub}
                         disabled={sharing}
-                        style={{ ...btn('secondary', { disabled: sharing }), color: T.purple, borderColor: 'rgba(167,139,250,0.4)' }}
+                        style={{ ...btn('secondary', { disabled: sharing }), color: T.accent, borderColor: 'rgba(99,231,255,0.4)' }}
                     >
                         <Send size={18} strokeWidth={2} />
                         {shareSuccess ? 'Posted' : sharing ? 'Posting…' : 'Post'}

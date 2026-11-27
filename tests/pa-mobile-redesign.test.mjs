@@ -19,13 +19,14 @@ import path from 'node:path';
 const ROOT = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
-test('Home page exposes single dynamic next-step hero, 3-tile stat strip, and ?hand= auto-redirect', () => {
+test('Home page exposes approved Personal Assistant landing cards, utility actions, and ?hand= auto-redirect', () => {
   const src = read('pages/hub/personal-assistant/index.js');
   assert.match(src, /router\.query\.hand|query\?\.hand/, 'Home must forward ?hand=<uuid> deep links');
-  assert.match(src, /Your Next Step|data-pa-next-step/, 'Home must present a single primary Next Step CTA');
-  assert.match(src, /Active Leaks/, 'Home stat strip must show Active Leaks');
-  assert.match(src, /Drills Due/, 'Home stat strip must show Drills Due');
-  assert.match(src, /Verified Fixed/, 'Home stat strip must show Verified Fixed');
+  assert.match(src, /Review My Play/, 'Home must lead with Review My Play');
+  assert.match(src, /Virtual Sandbox/, 'Home must include Virtual Sandbox');
+  assert.match(src, /My Leaks/, 'Home must include My Leaks');
+  assert.match(src, /Log A Hand/, 'Home must expose Log A Hand');
+  assert.match(src, /My Coaching Plan/, 'Home must expose My Coaching Plan');
   assert.doesNotMatch(src, /data-pa-sandbox-share/, 'Retired sandbox share controls must stay removed');
 });
 

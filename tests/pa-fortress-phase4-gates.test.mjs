@@ -104,15 +104,15 @@ test('account closure purges Personal Assistant and Sandbox data for every close
 
 // ── 2. Dead-code resurrection ────────────────────────────────────────────────
 
+// Restored September 5 Virtual Sandbox workspace components (ImportHHModal,
+// SandboxPokerTable, VillainPresetPicker) are actively wired by sandbox.js.
+// Legacy personal-assistant/shared barrel and CustomDrillBuilder remain deleted.
 const DELETED_ORPHANS = [
   'src/components/personal-assistant/shared/index.js',
   'src/components/personal-assistant/shared/IntegrityBadge.jsx',
   'src/components/personal-assistant/shared/TrustSeal.jsx',
   'src/components/personal-assistant/shared/CardPicker.jsx',
   'src/components/sandbox/CustomDrillBuilder.jsx',
-  'src/components/sandbox/ImportHHModal.jsx',
-  'src/components/sandbox/SandboxPokerTable.jsx',
-  'src/components/sandbox/VillainPresetPicker.jsx',
 ];
 // Looked orphaned but are live: RangeHeatGrid imports RangeExplorer's helpers,
 // SandboxComponents dynamically imports ExportCard, and Training Phase 17 (#3008)
