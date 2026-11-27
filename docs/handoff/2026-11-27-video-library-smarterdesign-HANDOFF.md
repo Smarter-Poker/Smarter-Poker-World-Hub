@@ -257,7 +257,7 @@ The "?" (Cashier chrome icon) opens a step-by-step tour that highlights each ste
 - Confirm `https://smarter.poker/api/health` reports the merged revision, then open https://smarter.poker/hub/video-library and the sub pages live.
 - Delete the bookmark branch after merge.
 
-### 3.6 Before/after images already produced (old container only; regenerate in V2)
+### 3.6 Before/after images (SAVED ON THE BOOKMARK BRANCH at `docs/handoff/2026-11-27-images/`; regenerate after V1)
 
 All in `/mnt/user-data/outputs/`:
 
@@ -292,3 +292,15 @@ git clone --depth 50 https://github.com/Smarter-Poker/smarter-poker-world-hub wh
 git fetch origin bookmark/video-library-smarterdesign-2026-11-27 && git checkout -b video-library-smarterdesign FETCH_HEAD
 git diff 02933bc a967ed4 --stat   # audit the unfinished WIP pass, then do Phase V1
 ```
+
+
+## 7. IMAGE ARCHIVE
+
+All 20 screenshots from this session are committed on the bookmark branch in `docs/handoff/2026-11-27-images/`:
+
+- Player Stats (approved and shipped): `stats-cash-before-after.jpg`, `stats-cash-perf-before-after.jpg`, `stats-tournament-before-after.jpg`.
+- Video Library, state at `02933bc`/`d07fdb9`, before the V1 fixes:
+  - `video-library-index-phone-before-after.jpg`, `video-library-index-desktop-before-after.jpg`, `video-library-index-help-393.jpg`
+  - `video-library-{channels,channel,players,player,playlist,watch,owner}-{393,986}-before-after.jpg`
+
+This folder is reference only. Do NOT include `docs/handoff/` in the final PR to main, or include only the .md if the repo wants it; never the images.
