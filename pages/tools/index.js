@@ -14,6 +14,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
@@ -680,7 +681,7 @@ export default function PokerToolsDirectoryPage() {
           style={{
             background: '#0f172a',
             border: '1px solid #1e293b',
-            borderRadius: 12,
+            borderRadius: 0,
             padding: 18,
             marginBottom: 22,
           }}
@@ -700,7 +701,7 @@ export default function PokerToolsDirectoryPage() {
                   padding: '10px 14px',
                   background: '#070b14',
                   border: '1px solid #1e293b',
-                  borderRadius: 8,
+                  borderRadius: 0,
                   color: '#f8fafc',
                   fontSize: 13,
                   fontWeight: 700,
@@ -708,7 +709,7 @@ export default function PokerToolsDirectoryPage() {
                 }}
               >
                 <span>{item.label}</span>
-                <span style={{ fontSize: 11, color: '#38bdf8', background: '#1e293b', padding: '2px 7px', borderRadius: 4 }}>
+                <span style={{ fontSize: 11, color: '#38bdf8', background: '#1e293b', padding: '2px 7px', borderRadius: 0 }}>
                   {item.tag}
                 </span>
               </Link>
@@ -722,7 +723,7 @@ export default function PokerToolsDirectoryPage() {
           style={{
             background: '#0f172a',
             border: '1px solid #1e293b',
-            borderRadius: 12,
+            borderRadius: 0,
             padding: 18,
             marginBottom: 28,
           }}
@@ -742,7 +743,7 @@ export default function PokerToolsDirectoryPage() {
                 padding: '11px 14px',
                 background: '#070b14',
                 border: '1px solid #38bdf8',
-                borderRadius: 8,
+                borderRadius: 0,
                 color: '#f8fafc',
                 fontSize: 14,
                 boxSizing: 'border-box',
@@ -760,7 +761,7 @@ export default function PokerToolsDirectoryPage() {
                     onClick={() => setActiveCategory(cat)}
                     style={{
                       padding: '7px 13px',
-                      borderRadius: 6,
+                      borderRadius: 0,
                       border: isActive ? '1px solid #38bdf8' : '1px solid #1e293b',
                       background: isActive ? '#38bdf8' : '#070b14',
                       color: isActive ? '#070b14' : '#cbd5e1',
@@ -792,7 +793,7 @@ export default function PokerToolsDirectoryPage() {
                 style={{
                   background: '#0f172a',
                   border: '1px solid #1e293b',
-                  borderRadius: 12,
+                  borderRadius: 0,
                   padding: 20,
                   display: 'flex',
                   flexDirection: 'column',
@@ -801,7 +802,7 @@ export default function PokerToolsDirectoryPage() {
               >
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 9px', borderRadius: 6, background: '#1e293b', color: '#38bdf8' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 9px', borderRadius: 0, background: '#1e293b', color: '#38bdf8' }}>
                       {tool.badge}
                     </span>
                     <a href={tool.mdHref} style={{ fontSize: 12, color: '#64748b', textDecoration: 'none' }}>
@@ -818,7 +819,7 @@ export default function PokerToolsDirectoryPage() {
                   </p>
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: '#cbd5e1', background: '#070b14', padding: '8px 10px', borderRadius: 8, border: '1px solid #1e293b', marginBottom: 12, fontFamily: 'monospace' }}>
+                  <div style={{ fontSize: 12, color: '#cbd5e1', background: '#070b14', padding: '8px 10px', borderRadius: 0, border: '1px solid #1e293b', marginBottom: 12, fontFamily: 'monospace' }}>
                     {tool.formula}
                   </div>
                   <Link
@@ -826,9 +827,9 @@ export default function PokerToolsDirectoryPage() {
                     style={{
                       display: 'inline-block',
                       padding: '8px 14px',
-                      background: '#0284c7',
+                      background: '#1f6feb',
                       color: '#ffffff',
-                      borderRadius: 8,
+                      borderRadius: 0,
                       fontSize: 13,
                       fontWeight: 700,
                       textDecoration: 'none',
@@ -842,13 +843,21 @@ export default function PokerToolsDirectoryPage() {
           </div>
         </section>
 
+        <div style={{ marginBottom: 40 }}>
+          <SmarterAccountUnlockGate
+            variant="calculator-pro"
+            context="tools-directory"
+            redirectPath={canonicalPath}
+          />
+        </div>
+
         {/* Positional 100BB 6-Max GTO Preflop Charts Table */}
         <section style={{ marginBottom: 44 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             100BB 6-Max Positional GTO Preflop Range Charts
           </h2>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 0 }}>
               <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
                 Solver-Approved 100BB 6-Max Raise First In (RFI) Frequencies And Combos By Table Position
               </caption>
@@ -881,48 +890,48 @@ export default function PokerToolsDirectoryPage() {
         </section>
 
         {/* Cross-Link Navigation To Knowledge Hubs */}
-        <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 12, border: '1px solid #1e293b' }}>
+        <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 0, border: '1px solid #1e293b' }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             Explore Connected Smarter.Poker Strategy &amp; Data Hubs
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <Link href="/learn/hands" style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/hands" style={{ padding: '8px 14px', background: '#1f6feb', color: '#fff', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               169 Starting Hand Encyclopedia
             </Link>
-            <Link href="/learn/matchups" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/matchups" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               25 All-In Hand Matchups
             </Link>
-            <Link href="/learn/poker-hand-rankings" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn/poker-hand-rankings" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Poker Hand Rankings Cheat Sheet
             </Link>
-            <Link href="/rules" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/rules" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               30 Official TDA &amp; Cash Rules
             </Link>
-            <Link href="/games" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/games" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               15 Poker Variants &amp; Mixed Games
             </Link>
-            <Link href="/poker-rooms/guides" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/poker-rooms/guides" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               12 US Regional Poker Market Guides
             </Link>
-            <Link href="/poker-rooms/first-time-guide" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/poker-rooms/first-time-guide" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               First-Time Live Poker Room Guide
             </Link>
-            <Link href="/poker-series/guides" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/poker-series/guides" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               10 Major Poker Series Survival Guides
             </Link>
-            <Link href="/learn" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/learn" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               GTO Strategy Academy
             </Link>
-            <Link href="/research" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/research" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Empirical Poker Research Hub
             </Link>
-            <Link href="/glossary" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/glossary" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Poker Glossary
             </Link>
-            <Link href="/compare" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/compare" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               30 Platform Comparisons
             </Link>
-            <Link href="/hub/video-library" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/hub/video-library" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Poker Video Library
             </Link>
           </div>

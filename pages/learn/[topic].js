@@ -29,6 +29,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import { firstThatFits, fitMetaDescription } from '../../src/lib/seo/titleFit.js';
 import {
   LEARN_PATH,
@@ -341,6 +342,13 @@ export default function LessonPage({ lesson, related, glossary, cta }) {
             </ul>
           </section>
 
+          <SmarterAccountUnlockGate
+            variant={lesson.category === 'Preflop' ? 'solver-matrix' : 'study-deck'}
+            context={`learn-topic-${lesson.slug}`}
+            title={`Save ${lesson.title} & Unlock Interactive GTO Spot Drills Free`}
+            redirectPath={path}
+          />
+
           <SmarterConversionCta
             eyebrow="Free Smarter.Poker GTO Training"
             title={`Drill ${lesson.category} Spots Free On Smarter.Poker`}
@@ -383,20 +391,20 @@ export default function LessonPage({ lesson, related, glossary, cta }) {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: 'linear-gradient(180deg, #0a0a12 0%, #050510 100%)',
-    color: '#e6ecf5',
+    background: 'linear-gradient(180deg, #0a1a2b 0%, #071321 100%)',
+    color: '#f2f7ff',
     fontFamily: 'var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif',
   },
   article: { maxWidth: 820, margin: '0 auto', padding: '40px 16px 64px' },
-  crumbs: { fontSize: 13, color: '#7f8ca3', margin: '0 0 16px', display: 'flex', gap: 8, flexWrap: 'wrap' },
-  crumbLink: { color: '#9fd8ff', textDecoration: 'none' },
-  crumbSep: { color: '#4b5568' },
+  crumbs: { fontSize: 13, color: '#bdd0e2', margin: '0 0 16px', display: 'flex', gap: 8, flexWrap: 'wrap' },
+  crumbLink: { color: '#86daff', textDecoration: 'none' },
+  crumbSep: { color: '#2b4663' },
   h1: {
     fontFamily: 'var(--font-orbitron), sans-serif',
     fontSize: 'clamp(24px, 4vw, 36px)',
     fontWeight: 700,
     lineHeight: 1.25,
-    color: '#ffffff',
+    color: '#f2f7ff',
     margin: '0 0 20px',
     letterSpacing: '0.5px',
     overflowWrap: 'anywhere',
@@ -405,66 +413,67 @@ const styles = {
     fontFamily: 'var(--font-orbitron), sans-serif',
     fontSize: 'clamp(17px, 2.4vw, 21px)',
     fontWeight: 600,
-    color: '#ffffff',
+    color: '#f2f7ff',
     margin: '32px 0 12px',
     letterSpacing: '0.5px',
   },
-  lead: { fontSize: 18, lineHeight: 1.7, color: '#dbe4f0', margin: '0 0 12px' },
-  meta: { fontSize: 13, color: '#7f8ca3', margin: '0 0 8px' },
-  p: { fontSize: 16, lineHeight: 1.75, color: '#c9d3e3', margin: '0 0 14px' },
+  lead: { fontSize: 18, lineHeight: 1.7, color: '#f2f7ff', margin: '0 0 12px' },
+  meta: { fontSize: 13, color: '#bdd0e2', margin: '0 0 8px' },
+  p: { fontSize: 16, lineHeight: 1.75, color: '#bdd0e2', margin: '0 0 14px' },
   figure: { margin: '8px 0 20px' },
   scroll: { overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '8px 0 16px', maxWidth: '100%' },
   grid: { borderCollapse: 'collapse', fontSize: 11, minWidth: 620, width: '100%' },
-  caption: { captionSide: 'top', textAlign: 'left', fontSize: 13, color: '#9fb0c8', padding: '0 0 8px' },
+  caption: { captionSide: 'top', textAlign: 'left', fontSize: 13, color: '#bdd0e2', padding: '0 0 8px' },
   corner: { padding: 4 },
   hidden: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' },
-  rankHead: { padding: '4px 6px', color: '#9fd8ff', fontWeight: 700, textAlign: 'center' },
+  rankHead: { padding: '4px 6px', color: '#86daff', fontWeight: 700, textAlign: 'center' },
   cell: {
-    border: '1px solid rgba(255, 255, 255, 0.08)',
+    border: '1px solid #2b4663',
     padding: '4px 3px',
     textAlign: 'center',
     verticalAlign: 'middle',
-    color: '#ffffff',
+    color: '#f2f7ff',
     lineHeight: 1.25,
   },
   hand: { display: 'block', fontWeight: 700 },
-  freq: { display: 'block', color: '#dbe4f0' },
-  figcaption: { fontSize: 13, lineHeight: 1.6, color: '#9fb0c8' },
-  table: { borderCollapse: 'collapse', fontSize: 14, width: '100%', minWidth: 420 },
-  th: { textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid rgba(0, 198, 255, 0.35)', color: '#ffffff' },
-  tdHead: { textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', color: '#dbe4f0', fontWeight: 600 },
-  td: { padding: '8px 10px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', color: '#c9d3e3' },
+  freq: { display: 'block', color: '#f2f7ff' },
+  figcaption: { fontSize: 13, lineHeight: 1.6, color: '#bdd0e2' },
+  table: { borderCollapse: 'collapse', fontSize: 14, width: '100%', minWidth: 420, background: '#0a1a2b', border: '1px solid #2b4663' },
+  th: { textAlign: 'left', padding: '8px 10px', background: '#0d1f33', borderBottom: '1px solid #2b4663', color: '#86daff' },
+  tdHead: { textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid #2b4663', color: '#f2f7ff', fontWeight: 600 },
+  td: { padding: '8px 10px', borderBottom: '1px solid #2b4663', color: '#bdd0e2' },
   list: { margin: 0, padding: '0 0 0 18px', display: 'grid', gap: 6 },
   listItem: { fontSize: 15, lineHeight: 1.6 },
   chips: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap', gap: 8 },
   chip: {
     display: 'inline-block',
     padding: '6px 12px',
-    borderRadius: 999,
-    border: '1px solid rgba(0, 198, 255, 0.25)',
-    color: '#9fd8ff',
+    borderRadius: 0,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    color: '#86daff',
     fontSize: 14,
     textDecoration: 'none',
   },
   cta: {
     marginTop: 36,
-    background: 'rgba(0, 198, 255, 0.06)',
-    border: '1px solid rgba(0, 198, 255, 0.25)',
-    borderRadius: 14,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '18px 18px 12px',
   },
   ctaHeading: {
     fontFamily: 'var(--font-orbitron), sans-serif',
     fontSize: 18,
     fontWeight: 600,
-    color: '#ffffff',
+    color: '#f2f7ff',
     margin: '0 0 8px',
   },
-  ctaText: { fontSize: 14, lineHeight: 1.6, color: '#b8c4d6', margin: '0 0 10px' },
+  ctaText: { fontSize: 14, lineHeight: 1.6, color: '#bdd0e2', margin: '0 0 10px' },
   ctaList: { margin: 0, padding: '0 0 0 18px', display: 'grid', gap: 8, fontSize: 15 },
-  ctaLink: { color: '#00c6ff', fontWeight: 600, textDecoration: 'underline' },
-  ctaNote: { color: '#9fb0c8', fontSize: 14 },
-  inlineLink: { color: '#9fd8ff', textDecoration: 'underline' },
+  ctaLink: { color: '#38bdf8', fontWeight: 600, textDecoration: 'underline' },
+  ctaNote: { color: '#bdd0e2', fontSize: 14 },
+  inlineLink: { color: '#86daff', textDecoration: 'underline' },
   back: { fontSize: 15, margin: '32px 0 0' },
-  compliance: { fontSize: 12, lineHeight: 1.6, color: '#7f8ca3', margin: '24px 0 0' },
+  compliance: { fontSize: 12, lineHeight: 1.6, color: '#bdd0e2', margin: '24px 0 0' },
 };

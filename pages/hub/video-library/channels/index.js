@@ -5,6 +5,7 @@ import SEOHead from '../../../../src/components/video-library/VideoLibrarySEOHea
 import HubPageShell from '../../../../src/components/ui/HubPageShell';
 import { getMenuConfig } from '../../../../src/config/hamburgerMenus';
 import { buildVideoLibraryBreadcrumbs } from '../../../../src/lib/videoLibraryBreadcrumbs.mjs';
+import SmarterAccountUnlockGate from '../../../../src/components/seo/SmarterAccountUnlockGate';
 
 const UniversalHeader = dynamic(() => import('../../../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../../../src/components/ui/HamburgerMenu'), { ssr: false });
@@ -84,6 +85,13 @@ export default function VideoLibraryChannelsDirectory({ channels = [] }) {
                         ) : (
                             <p>Browse All Verified Channels Directly From The <Link href="/hub/video-library">Poker Video Library</Link>.</p>
                         )}
+                        <div style={{ marginTop: 24 }}>
+                            <SmarterAccountUnlockGate
+                                variant="video-drill"
+                                context="video-library-channels-index"
+                                redirectPath="/hub/video-library/channels"
+                            />
+                        </div>
                     </article>
                 </HubPageShell>
             </div>

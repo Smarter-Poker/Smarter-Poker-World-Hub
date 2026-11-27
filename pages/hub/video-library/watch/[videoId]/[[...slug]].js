@@ -41,6 +41,7 @@ import { useYouTubeErrorManager } from '../../../../../src/hooks/useYouTubeError
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../../../src/components/video-library/VideoLibrarySEOHead';
 import SmarterConversionCta from '../../../../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../../../../src/components/seo/SmarterAccountUnlockGate';
 import HubPageShell from '../../../../../src/components/ui/HubPageShell';
 import { getMenuConfig } from '../../../../../src/config/hamburgerMenus';
 import {
@@ -433,7 +434,7 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                     {channelHref ? <Link className="vl-info-source vl-channel-link" href={channelHref}>{channel.name}</Link> : <span className="vl-info-source">{channel.name}</span>}
                                 </div>
 
-                                <div className="vl-hud" role="group" aria-label="Video actions">
+                                <div className="vl-hud" role="group" aria-label="Video Actions">
                                     <Link href={videoLibrarySocialShareHref(video)} className="vl-hud-link">Share To Feed</Link>
                                     <button type="button" disabled={!(relatedVideos[0] || channelVideos[0])} onClick={() => playbackQueue.enqueueNext(relatedVideos[0] || channelVideos[0], video)}>Queue Next Video</button>
                                     <Link href={libraryHref} rel="nofollow" className="vl-hud-link is-primary">Save, Playlists And Training</Link>
@@ -461,6 +462,13 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                         {views && <div><dt>Views On YouTube</dt><dd>{views.replace(/\s*Views$/i, '')}</dd></div>}
                                     </dl>
                                 </section>
+                                <div style={{ marginTop: 18 }}>
+                                    <SmarterAccountUnlockGate
+                                        variant="video-drill"
+                                        context="video-library-watch"
+                                        redirectPath={watchPath(video)}
+                                    />
+                                </div>
                                 <div style={{ marginTop: 18 }}>
                                     <SmarterConversionCta
                                         compact

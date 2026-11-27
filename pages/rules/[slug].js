@@ -17,6 +17,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import {
   POKER_RULES,
   RULES_AS_OF,
@@ -204,7 +205,7 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
                     fontWeight: 700,
                     background: '#101a20',
                     color: '#25c8ff',
-                    border: '1px solid #1e293b',
+                    border: '1px solid #2b4663',
                     borderRadius: '2px',
                     textDecoration: 'none',
                   }}
@@ -219,7 +220,7 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
                     fontWeight: 700,
                     background: '#101a20',
                     color: '#38bdf8',
-                    border: '1px solid #1e293b',
+                    border: '1px solid #2b4663',
                     borderRadius: '2px',
                     textDecoration: 'none',
                   }}
@@ -235,7 +236,7 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
                 marginTop: '14px',
                 padding: '14px 16px',
                 background: '#081118',
-                border: '1px solid #1e293b',
+                border: '1px solid #2b4663',
                 borderRadius: '2px',
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -314,7 +315,7 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
                   gap: '10px',
                   padding: '8px 10px',
                   background: '#050b10',
-                  border: '1px solid #1e293b',
+                  border: '1px solid #2b4663',
                   borderRadius: '2px',
                 }}
               >
@@ -349,7 +350,7 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
               }
               body, main, div, article, section, header {
                 background: #ffffff !important;
-                color: #0f172a !important;
+                color: #0d1f33 !important;
                 border-color: #cbd5e1 !important;
               }
             }
@@ -495,6 +496,14 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
             <a href="/rules.md" style={styles.rawIndexLink}>
               View Complete {'/rules.md'} Specification
             </a>
+          </div>
+
+          <div style={{ margin: '28px 0' }}>
+            <SmarterAccountUnlockGate
+              variant="study-deck"
+              context="rules-detail"
+              redirectPath={`/rules/${rule.slug}`}
+            />
           </div>
 
           <p style={styles.complianceFooter}>

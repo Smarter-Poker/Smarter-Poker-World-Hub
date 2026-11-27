@@ -15,6 +15,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import {
   POKER_ROADMAPS,
   ROADMAPS_AS_OF,
@@ -230,6 +231,13 @@ export default function PokerRoadmapDetailPage({ roadmap, otherRoadmaps = [] }) 
             ))}
           </div>
         </section>
+        <SmarterAccountUnlockGate
+          variant="study-deck"
+          context={`learn-roadmap-${roadmap.slug}`}
+          title="Save This Progression Roadmap & Track Weekly GTO Milestones Free"
+          redirectPath={canonicalPath}
+        />
+
 
         {/* FAQs */}
         <section aria-label="Frequently Asked Questions" style={styles.sectionPlate}>
@@ -271,8 +279,8 @@ export default function PokerRoadmapDetailPage({ roadmap, otherRoadmaps = [] }) 
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#0a0f18',
-    color: '#e2e8f0',
+    backgroundColor: '#071321',
+    color: '#f2f7ff',
     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
   },
   container: {
@@ -286,25 +294,25 @@ const styles = {
     flexWrap: 'wrap',
     gap: '8px',
     fontSize: '13px',
-    color: '#94a3b8',
+    color: '#bdd0e2',
     marginBottom: '20px',
   },
   crumbLink: {
-    color: '#00d4ff',
+    color: '#38bdf8',
     textDecoration: 'none',
     fontWeight: 600,
   },
   crumbSep: {
-    color: '#475569',
+    color: '#2b4663',
   },
   crumbCurrent: {
-    color: '#e2e8f0',
+    color: '#f2f7ff',
     fontWeight: 600,
   },
   heroPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    backgroundColor: '#0a1a2b',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px',
     marginBottom: '24px',
   },
@@ -316,12 +324,12 @@ const styles = {
   },
   cyanBadge: {
     backgroundColor: 'rgba(0, 212, 255, 0.12)',
-    border: '1px solid #00d4ff',
-    color: '#00d4ff',
+    border: '1px solid #38bdf8',
+    color: '#38bdf8',
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   emeraldBadge: {
@@ -331,20 +339,20 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   h1: {
     fontSize: '30px',
     fontWeight: 800,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     margin: '0 0 14px',
     lineHeight: 1.2,
   },
   lead: {
     fontSize: '15.5px',
     lineHeight: 1.65,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: '0 0 22px',
   },
   metricsGrid: {
@@ -354,22 +362,22 @@ const styles = {
     marginBottom: '22px',
   },
   metricCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   metricLabel: {
     fontSize: '12px',
     fontWeight: 600,
-    color: '#94a3b8',
+    color: '#bdd0e2',
     textTransform: 'uppercase',
     marginBottom: '6px',
   },
   metricValueCyan: {
     fontSize: '15px',
     fontWeight: 700,
-    color: '#00d4ff',
+    color: '#38bdf8',
     lineHeight: 1.45,
   },
   metricValueEmerald: {
@@ -384,44 +392,44 @@ const styles = {
     gap: '10px',
   },
   crossBtnCyan: {
-    backgroundColor: '#00d4ff',
-    color: '#0a0f18',
+    backgroundColor: '#38bdf8',
+    color: '#071321',
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
     backgroundColor: '#10b981',
-    color: '#0a0f18',
+    color: '#071321',
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnOutline: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    color: '#e2e8f0',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    color: '#f2f7ff',
     fontWeight: 600,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   sectionPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    backgroundColor: '#0a1a2b',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px',
     marginBottom: '24px',
   },
   h2: {
     fontSize: '21px',
     fontWeight: 800,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     margin: '0 0 14px',
   },
   milestoneList: {
@@ -429,9 +437,9 @@ const styles = {
     gap: '16px',
   },
   milestoneCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '20px',
   },
   milestoneTop: {
@@ -441,14 +449,14 @@ const styles = {
     display: 'inline-block',
     fontSize: '11px',
     fontWeight: 800,
-    color: '#00d4ff',
+    color: '#38bdf8',
     marginBottom: '4px',
     letterSpacing: '0.06em',
   },
   h3: {
     fontSize: '18px',
     fontWeight: 700,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     margin: 0,
   },
   objectiveText: {
@@ -465,7 +473,7 @@ const styles = {
   },
   actionItem: {
     fontSize: '14px',
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     lineHeight: 1.6,
   },
   linkRow: {
@@ -474,13 +482,13 @@ const styles = {
     gap: '10px',
   },
   resourceBtn: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #00d4ff',
-    color: '#00d4ff',
+    backgroundColor: '#0a1a2b',
+    border: '1px solid #38bdf8',
+    color: '#38bdf8',
     fontSize: '12.5px',
     fontWeight: 700,
     padding: '7px 14px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   peerGrid: {
@@ -489,9 +497,9 @@ const styles = {
     gap: '12px',
   },
   peerCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '14px',
     textDecoration: 'none',
     display: 'flex',
@@ -501,12 +509,12 @@ const styles = {
   peerCode: {
     fontSize: '11.5px',
     fontWeight: 700,
-    color: '#00d4ff',
+    color: '#38bdf8',
   },
   peerName: {
     fontSize: '14.5px',
     fontWeight: 700,
-    color: '#f8fafc',
+    color: '#f2f7ff',
   },
   peerGoal: {
     fontSize: '12px',
@@ -518,21 +526,21 @@ const styles = {
     gap: '14px',
   },
   faqItem: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   faqQ: {
     fontSize: '15.5px',
     fontWeight: 700,
-    color: '#00d4ff',
+    color: '#38bdf8',
     margin: '0 0 8px',
   },
   faqA: {
     fontSize: '14px',
     lineHeight: 1.6,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: 0,
   },
 };

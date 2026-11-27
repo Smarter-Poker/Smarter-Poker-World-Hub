@@ -19,6 +19,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { computeMalmuthHarvilleIcm, useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -448,6 +449,16 @@ export default function BubbleFactorCalculatorPage({
             </table>
           </div>
         </section>
+
+        {!isEmbed && (
+          <div style={{ marginBottom: 32 }}>
+            <SmarterAccountUnlockGate
+              variant="calculator-pro"
+              context="tools-bubble-factor-calculator"
+              redirectPath={canonicalPath}
+            />
+          </div>
+        )}
 
         <section style={{ marginBottom: 32, padding: 20, background: '#101a20', borderRadius: '2px', border: '1px solid #1e293b' }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>

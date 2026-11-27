@@ -8,6 +8,7 @@ import supabase from '../src/lib/supabase';
 import { analyzeSession, analyzeHand } from '../src/lib/poker-brain/session-audit';
 
 import SEOHead from '../src/components/seo/SEOHead';
+import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
 
 // Lazy-load the HUD launcher — it uses getDisplayMedia (browser-only)
 const PokerBrainLaunchButton = dynamic(
@@ -35,7 +36,7 @@ function MiniCard({ rank, suit }) {
 
 function StatBox({ label, value, sub }) {
   return (
-    <div className="bg-slate-800 rounded-xl p-4 text-center">
+    <div className="bg-slate-800 rounded-none p-4 text-center">
       <div className="text-2xl font-black text-white">{value}</div>
       <div className="text-xs text-slate-400 mt-1">{label}</div>
       {sub && <div className="text-[10px] text-slate-500 mt-0.5">{sub}</div>}
@@ -45,10 +46,10 @@ function StatBox({ label, value, sub }) {
 
 function EquityBar({ value, max = 100 }) {
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
-  const color = pct > 60 ? '#10b981' : pct > 40 ? '#f59e0b' : '#ef4444';
+  const color = pct > 60 ? '#10b981' : pct > 40 ? '#38bdf8' : '#ef4444';
   return (
-    <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
-      <div className="h-full rounded-full transition-all" style={{ width: pct + '%', backgroundColor: color }} />
+    <div className="w-full h-2 bg-slate-700 rounded-none overflow-hidden">
+      <div className="h-full rounded-none transition-all" style={{ width: pct + '%', backgroundColor: color }} />
     </div>
   );
 }
@@ -74,7 +75,7 @@ function OverviewTab({ stats, loading }) {
 
       {/* Position breakdown */}
       {stats.byPosition && Object.keys(stats.byPosition || {}).length > 0 && (
-        <div className="bg-slate-800 rounded-xl p-4">
+        <div className="bg-slate-800 rounded-none p-4">
           <h3 className="text-sm font-bold text-white mb-3">By Position</h3>
           <div className="space-y-2">
             {Object.entries(stats.byPosition || {}).map(([pos, data]) => (
@@ -91,7 +92,7 @@ function OverviewTab({ stats, loading }) {
 
       {/* Street breakdown */}
       {stats.byStreet && Object.keys(stats.byStreet || {}).length > 0 && (
-        <div className="bg-slate-800 rounded-xl p-4">
+        <div className="bg-slate-800 rounded-none p-4">
           <h3 className="text-sm font-bold text-white mb-3">By Street</h3>
           <div className="space-y-2">
             {Object.entries(stats.byStreet || {}).map(([street, data]) => (
@@ -108,7 +109,7 @@ function OverviewTab({ stats, loading }) {
 
       {/* Equity distribution */}
       {stats.equityDistribution && stats.equityDistribution.length > 0 && (
-        <div className="bg-slate-800 rounded-xl p-4">
+        <div className="bg-slate-800 rounded-none p-4">
           <h3 className="text-sm font-bold text-white mb-3">Equity Distribution</h3>
           <div className="flex items-end gap-1 h-24">
             {stats.equityDistribution.map((bucket, i) => {
@@ -117,11 +118,11 @@ function OverviewTab({ stats, loading }) {
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1">
                   <div
-                    className="w-full rounded-t"
+                    className="w-full rounded-none"
                     style={{
                       height: h + '%',
                       minHeight: bucket.count > 0 ? '4px' : '0',
-                      backgroundColor: i < 3 ? '#ef4444' : i < 6 ? '#f59e0b' : '#10b981',
+                      backgroundColor: i < 3 ? '#ef4444' : i < 6 ? '#38bdf8' : '#10b981',
                     }}
                   />
                   <span className="text-[8px] text-slate-500">{bucket.range}</span>
@@ -134,11 +135,11 @@ function OverviewTab({ stats, loading }) {
 
       {/* Variant breakdown */}
       {stats.byVariant && Object.keys(stats.byVariant || {}).length > 0 && (
-        <div className="bg-slate-800 rounded-xl p-4">
+        <div className="bg-slate-800 rounded-none p-4">
           <h3 className="text-sm font-bold text-white mb-3">Variants Played</h3>
           <div className="flex flex-wrap gap-2">
             {Object.entries(stats.byVariant || {}).map(([v, count]) => (
-              <span key={v} className="bg-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full">
+              <span key={v} className="bg-slate-700 text-slate-300 text-xs px-3 py-1 rounded-none">
                 {v.toUpperCase()} ({count} Sessions)
               </span>
             ))}
@@ -168,20 +169,20 @@ function SessionAuditPanel({ hands }) {
 
   if (!audit || audit.handsAnalyzed === 0) {
     return (
-      <div className="bg-slate-900/60 rounded-lg p-3 text-xs text-slate-500">
+      <div className="bg-slate-900/60 rounded-none p-3 text-xs text-slate-500">
         No Decision Data Available For Audit. Play With Poker Brain Active To Record Per-Street Decisions.
       </div>
     );
   }
 
   const gradeColor = {
-    A: '#10b981', B: '#34d399', C: '#f59e0b', D: '#f97316', F: '#ef4444',
+    A: '#10b981', B: '#34d399', C: '#38bdf8', D: '#0284c7', F: '#ef4444',
   };
 
   return (
     <div className="space-y-3">
       {/* Grade + Score */}
-      <div className="bg-slate-900 rounded-lg p-4 flex items-center gap-4">
+      <div className="bg-slate-900 rounded-none p-4 flex items-center gap-4">
         <div className="text-center">
           <div className="text-4xl font-black" style={{ color: gradeColor[audit.grade] || '#94a3b8' }}>
             {audit.grade}
@@ -193,9 +194,9 @@ function SessionAuditPanel({ hands }) {
             <span className="text-slate-400">Score</span>
             <span className="text-white font-bold">{audit.overallScore}/100</span>
           </div>
-          <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-slate-700 rounded-none overflow-hidden">
             <div
-              className="h-full rounded-full"
+              className="h-full rounded-none"
               style={{
                 width: audit.overallScore + '%',
                 backgroundColor: gradeColor[audit.grade] || '#94a3b8',
@@ -210,15 +211,15 @@ function SessionAuditPanel({ hands }) {
 
       {/* Leaks */}
       {audit.leaks.length > 0 && (
-        <div className="bg-slate-900 rounded-lg p-3">
+        <div className="bg-slate-900 rounded-none p-3">
           <h4 className="text-xs font-bold text-red-400 mb-2">Identified Leaks</h4>
           <div className="space-y-2">
             {audit.leaks.map((leak, i) => (
-              <div key={i} className="bg-slate-800 rounded-lg p-2">
+              <div key={i} className="bg-slate-800 rounded-none p-2">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={
-                    'text-[10px] font-bold px-1.5 py-0.5 rounded ' +
-                    (leak.severity === 'high' ? 'bg-red-900 text-red-300' : 'bg-amber-900 text-amber-300')
+                    'text-[10px] font-bold px-1.5 py-0.5 rounded-none ' +
+                    (leak.severity === 'high' ? 'bg-red-900 text-red-300' : 'bg-sky-900 text-sky-300')
                   }>
                     {leak.severity.toUpperCase()}
                   </span>
@@ -234,15 +235,15 @@ function SessionAuditPanel({ hands }) {
 
       {/* Street Breakdown */}
       {Object.keys(audit.streetBreakdown || {}).length > 0 && (
-        <div className="bg-slate-900 rounded-lg p-3">
+        <div className="bg-slate-900 rounded-none p-3">
           <h4 className="text-xs font-bold text-slate-300 mb-2">Street Scores</h4>
           <div className="grid grid-cols-4 gap-2">
             {['preflop', 'flop', 'turn', 'river'].map(street => {
               const data = audit.streetBreakdown[street];
               if (!data) return null;
-              const c = data.avgScore >= 70 ? '#10b981' : data.avgScore >= 50 ? '#f59e0b' : '#ef4444';
+              const c = data.avgScore >= 70 ? '#10b981' : data.avgScore >= 50 ? '#38bdf8' : '#ef4444';
               return (
-                <div key={street} className="text-center bg-slate-800 rounded-lg p-2">
+                <div key={street} className="text-center bg-slate-800 rounded-none p-2">
                   <div className="text-lg font-black" style={{ color: c }}>{data.avgScore}</div>
                   <div className="text-[9px] text-slate-500 capitalize">{street}</div>
                   <div className="text-[8px] text-slate-600">{data.hands}h</div>
@@ -255,13 +256,13 @@ function SessionAuditPanel({ hands }) {
 
       {/* Position Breakdown */}
       {Object.keys(audit.positionBreakdown || {}).length > 0 && (
-        <div className="bg-slate-900 rounded-lg p-3">
+        <div className="bg-slate-900 rounded-none p-3">
           <h4 className="text-xs font-bold text-slate-300 mb-2">Position Scores</h4>
           <div className="flex flex-wrap gap-2">
             {Object.entries(audit.positionBreakdown || {}).map(([pos, data]) => {
-              const c = data.avgScore >= 70 ? '#10b981' : data.avgScore >= 50 ? '#f59e0b' : '#ef4444';
+              const c = data.avgScore >= 70 ? '#10b981' : data.avgScore >= 50 ? '#38bdf8' : '#ef4444';
               return (
-                <div key={pos} className="bg-slate-800 rounded-lg px-3 py-2 text-center">
+                <div key={pos} className="bg-slate-800 rounded-none px-3 py-2 text-center">
                   <div className="text-sm font-black" style={{ color: c }}>{data.avgScore}</div>
                   <div className="text-[9px] text-slate-500 uppercase">{pos}</div>
                 </div>
@@ -273,7 +274,7 @@ function SessionAuditPanel({ hands }) {
 
       {/* Recommendations */}
       {audit.recommendations.length > 0 && (
-        <div className="bg-slate-900 rounded-lg p-3">
+        <div className="bg-slate-900 rounded-none p-3">
           <h4 className="text-xs font-bold text-blue-400 mb-2">Recommendations</h4>
           <div className="space-y-1">
             {audit.recommendations.map((rec, i) => (
@@ -285,11 +286,11 @@ function SessionAuditPanel({ hands }) {
 
       {/* Worst Hands Review */}
       {audit.handReviews.filter(r => r.score !== null && r.score < 50).length > 0 && (
-        <div className="bg-slate-900 rounded-lg p-3">
-          <h4 className="text-xs font-bold text-amber-400 mb-2">Hands To Review (Lowest Scored)</h4>
+        <div className="bg-slate-900 rounded-none p-3">
+          <h4 className="text-xs font-bold text-sky-400 mb-2">Hands To Review (Lowest Scored)</h4>
           <div className="space-y-1.5 max-h-48 overflow-y-auto">
             {audit.handReviews.filter(r => r.score !== null && r.score < 50).slice(0, 10).map((review, i) => (
-              <div key={i} className="flex items-center gap-2 bg-slate-800 rounded-lg px-2 py-1.5 text-[11px]">
+              <div key={i} className="flex items-center gap-2 bg-slate-800 rounded-none px-2 py-1.5 text-[11px]">
                 <span className="font-black w-8" style={{ color: gradeColor[review.grade] || '#94a3b8' }}>
                   {review.grade}
                 </span>
@@ -370,7 +371,7 @@ function SessionsTab({ userId }) {
   return (
     <div className="space-y-3">
       {sessions.map(s => (
-        <div key={s.id} className="bg-slate-800 rounded-xl overflow-hidden">
+        <div key={s.id} className="bg-slate-800 rounded-none overflow-hidden">
           <button
             onClick={() => loadSessionDetail(s.id)}
             className="w-full text-left p-4 hover:bg-slate-750 transition-colors"
@@ -392,13 +393,13 @@ function SessionsTab({ userId }) {
               <SessionAuditPanel hands={sessionHands} />
 
               {/* Raw Hand List */}
-              <details className="bg-slate-900 rounded-lg">
+              <details className="bg-slate-900 rounded-none">
                 <summary className="text-xs text-slate-400 font-bold px-3 py-2 cursor-pointer hover:text-white">
                   All Hands ({sessionHands.length})
                 </summary>
                 <div className="space-y-1 px-3 pb-3 max-h-64 overflow-y-auto">
                   {sessionHands.map((h, i) => (
-                    <div key={h.id || i} className="flex items-center gap-2 text-xs bg-slate-800 rounded-lg px-3 py-2">
+                    <div key={h.id || i} className="flex items-center gap-2 text-xs bg-slate-800 rounded-none px-3 py-2">
                       <span className="text-slate-500 w-6">#{i + 1}</span>
                       <div className="flex gap-0.5">
                         {(h.hole_cards || []).map((c, ci) => (
@@ -420,7 +421,7 @@ function SessionsTab({ userId }) {
                       {h.action_taken && (
                         <span className={
                           h.action_taken === 'FOLD' ? 'text-red-400' :
-                          h.action_taken === 'RAISE' ? 'text-amber-400' :
+                          h.action_taken === 'RAISE' ? 'text-sky-400' :
                           'text-blue-400'
                         }>{h.action_taken}</span>
                       )}
@@ -429,11 +430,11 @@ function SessionsTab({ userId }) {
                         <div className="flex gap-1 ml-1">
                           {Object.entries(h.street_decisions || {}).map(([st, dec]) => {
                             if (!dec) return null;
-                            const scoreColor = dec.confidence >= 80 ? '#10b981' : dec.confidence >= 50 ? '#f59e0b' : '#ef4444';
+                            const scoreColor = dec.confidence >= 80 ? '#10b981' : dec.confidence >= 50 ? '#38bdf8' : '#ef4444';
                             return (
                               <span
                                 key={st}
-                                className="text-[8px] px-1 rounded"
+                                className="text-[8px] px-1 rounded-none"
                                 style={{ backgroundColor: scoreColor + '20', color: scoreColor }}
                                 title={`${st}: ${dec.action} (equity ${Math.round(dec.equity || 0)}%, conf ${Math.round(dec.confidence || 0)}%)`}
                               >
@@ -458,13 +459,13 @@ function SessionsTab({ userId }) {
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="text-xs px-3 py-1 rounded bg-slate-700 text-white disabled:opacity-30"
+            className="text-xs px-3 py-1 rounded-none bg-slate-700 text-white disabled:opacity-30"
           >Prev</button>
           <span className="text-xs text-slate-400 py-1">Page {page} Of {Math.ceil(total / 15)}</span>
           <button
             onClick={() => setPage(p => p + 1)}
             disabled={page >= Math.ceil(total / 15)}
-            className="text-xs px-3 py-1 rounded bg-slate-700 text-white disabled:opacity-30"
+            className="text-xs px-3 py-1 rounded-none bg-slate-700 text-white disabled:opacity-30"
           >Next</button>
         </div>
       )}
@@ -550,14 +551,14 @@ function SettingsTab({ userId }) {
   return (
     <div className="space-y-6">
       {/* Calibration Profiles */}
-      <div className="bg-slate-800 rounded-xl p-4">
+      <div className="bg-slate-800 rounded-none p-4">
         <h3 className="text-sm font-bold text-white mb-3">Calibration Profiles</h3>
         <p className="text-xs text-slate-400 mb-3">
           Save Your Current Calibration To The Cloud So You Can Load It On Other Devices.
         </p>
         <button
           onClick={saveCurrentCalibration}
-          className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold mb-3"
+          className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-none font-bold mb-3"
         >
           Save Current Calibration
         </button>
@@ -568,14 +569,14 @@ function SettingsTab({ userId }) {
         ) : (
           <div className="space-y-2">
             {profiles.map(p => (
-              <div key={p.id} className="flex items-center justify-between bg-slate-900 rounded-lg px-3 py-2">
+              <div key={p.id} className="flex items-center justify-between bg-slate-900 rounded-none px-3 py-2">
                 <div>
                   <div className="text-xs text-white font-bold">{p.name}</div>
                   <div className="text-[10px] text-slate-500">{p.device_name} -- {new Date(p.updated_at || p.created_at).toLocaleDateString()}</div>
                 </div>
                 <button
                   onClick={() => loadProfile(p.overrides)}
-                  className="text-[10px] bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded"
+                  className="text-[10px] bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded-none"
                 >
                   Load
                 </button>
@@ -586,7 +587,7 @@ function SettingsTab({ userId }) {
       </div>
 
       {/* Equity Migration */}
-      <div className="bg-slate-800 rounded-xl p-4">
+      <div className="bg-slate-800 rounded-none p-4">
         <h3 className="text-sm font-bold text-white mb-3">Equity Recomputation</h3>
         <p className="text-xs text-slate-400 mb-3">
           Recompute Equity Values For Hands Stored Under Older Engine Versions.
@@ -596,20 +597,20 @@ function SettingsTab({ userId }) {
           <button
             onClick={() => runMigration(true)}
             disabled={migrating}
-            className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg font-bold disabled:opacity-40"
+            className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-none font-bold disabled:opacity-40"
           >
             {migrating ? 'Running...' : 'Dry Run'}
           </button>
           <button
             onClick={() => runMigration(false)}
             disabled={migrating}
-            className="text-xs bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-lg font-bold disabled:opacity-40"
+            className="text-xs bg-sky-600 hover:bg-sky-500 text-white px-3 py-2 rounded-none font-bold disabled:opacity-40"
           >
             {migrating ? 'Running...' : 'Run Migration'}
           </button>
         </div>
         {migrateResult && (
-          <pre className="mt-3 text-[10px] text-slate-300 bg-slate-900 rounded p-2 overflow-x-auto">
+          <pre className="mt-3 text-[10px] text-slate-300 bg-slate-900 rounded-none p-2 overflow-x-auto">
             {JSON.stringify(migrateResult, null, 2)}
           </pre>
         )}
@@ -707,7 +708,7 @@ function AuditTab({ userId }) {
   }
 
   const gradeColor = {
-    A: '#10b981', B: '#34d399', C: '#f59e0b', D: '#f97316', F: '#ef4444',
+    A: '#10b981', B: '#34d399', C: '#38bdf8', D: '#0284c7', F: '#ef4444',
   };
   let overallGrade;
   if (auditData.overallScore >= 85) overallGrade = 'A';
@@ -719,7 +720,7 @@ function AuditTab({ userId }) {
   return (
     <div className="space-y-4">
       {/* Overall Score */}
-      <div className="bg-slate-800 rounded-xl p-5 flex items-center gap-5">
+      <div className="bg-slate-800 rounded-none p-5 flex items-center gap-5">
         <div className="text-center">
           <div className="text-5xl font-black" style={{ color: gradeColor[overallGrade] }}>{overallGrade}</div>
           <div className="text-[10px] text-slate-500 mt-1">Overall</div>
@@ -727,23 +728,23 @@ function AuditTab({ userId }) {
         <div className="flex-1">
           <div className="text-lg font-bold text-white">{auditData.overallScore}/100</div>
           <div className="text-xs text-slate-400">Across {auditData.totalHands} Hands In {auditData.sessionAudits.length} Sessions</div>
-          <div className="w-full h-3 bg-slate-700 rounded-full overflow-hidden mt-2">
-            <div className="h-full rounded-full" style={{ width: auditData.overallScore + '%', backgroundColor: gradeColor[overallGrade] }} />
+          <div className="w-full h-3 bg-slate-700 rounded-none overflow-hidden mt-2">
+            <div className="h-full rounded-none" style={{ width: auditData.overallScore + '%', backgroundColor: gradeColor[overallGrade] }} />
           </div>
         </div>
       </div>
 
       {/* Persistent Leaks */}
       {auditData.aggregateLeaks.length > 0 && (
-        <div className="bg-slate-800 rounded-xl p-4">
+        <div className="bg-slate-800 rounded-none p-4">
           <h3 className="text-sm font-bold text-red-400 mb-3">Recurring Leaks</h3>
           <div className="space-y-2">
             {auditData.aggregateLeaks.map((leak, i) => (
-              <div key={i} className="bg-slate-900 rounded-lg p-3">
+              <div key={i} className="bg-slate-900 rounded-none p-3">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={
-                    'text-[10px] font-bold px-1.5 py-0.5 rounded ' +
-                    (leak.severity === 'high' ? 'bg-red-900 text-red-300' : 'bg-amber-900 text-amber-300')
+                    'text-[10px] font-bold px-1.5 py-0.5 rounded-none ' +
+                    (leak.severity === 'high' ? 'bg-red-900 text-red-300' : 'bg-sky-900 text-sky-300')
                   }>
                     {leak.severity.toUpperCase()}
                   </span>
@@ -761,11 +762,11 @@ function AuditTab({ userId }) {
       )}
 
       {/* Per-Session Grades */}
-      <div className="bg-slate-800 rounded-xl p-4">
+      <div className="bg-slate-800 rounded-none p-4">
         <h3 className="text-sm font-bold text-white mb-3">Session Grades</h3>
         <div className="space-y-2">
           {auditData.sessionAudits.map((sa, i) => (
-            <div key={i} className="flex items-center gap-3 bg-slate-900 rounded-lg px-3 py-2">
+            <div key={i} className="flex items-center gap-3 bg-slate-900 rounded-none px-3 py-2">
               <span className="text-xl font-black w-8 text-center" style={{ color: gradeColor[sa.audit.grade] || '#94a3b8' }}>
                 {sa.audit.grade}
               </span>
@@ -828,10 +829,17 @@ function PokerBrainDashboardBody() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-black mb-2">Poker Brain</h1>
-          <p className="text-slate-400">Sign In To Access Your Poker Brain Dashboard.</p>
+      <div className="min-h-screen bg-[#071321] text-white flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-2xl">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-black mb-2">Poker Brain</h1>
+            <p className="text-slate-300">Sign In To Access Your Poker Brain Dashboard.</p>
+          </div>
+          <SmarterAccountUnlockGate
+            variant="study-deck"
+            context="pokerbrain-dashboard"
+            redirectPath="/pokerbrain"
+          />
         </div>
       </div>
     );
@@ -847,7 +855,7 @@ function PokerBrainDashboardBody() {
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
-              className="text-xs bg-slate-800 text-slate-300 border border-slate-700 rounded px-2 py-1"
+              className="text-xs bg-slate-800 text-slate-300 border border-slate-700 rounded-none px-2 py-1"
             >
               <option value="7d">Last 7 Days</option>
               <option value="30d">Last 30 Days</option>
@@ -861,7 +869,7 @@ function PokerBrainDashboardBody() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={
-                  'text-xs font-bold px-4 py-2 rounded-lg transition-colors ' +
+                  'text-xs font-bold px-4 py-2 rounded-none transition-colors ' +
                   (activeTab === tab.id
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-800 text-slate-400 hover:bg-slate-700')

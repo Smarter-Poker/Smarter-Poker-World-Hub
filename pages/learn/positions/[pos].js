@@ -16,6 +16,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import {
   POKER_POSITIONS,
   POSITIONS_AS_OF,
@@ -184,7 +185,7 @@ export default function PokerPositionDetailPage({ position, allPositions = [] })
             </div>
           </div>
 
-          <div style={{ marginTop: 14, padding: '14px 16px', background: '#070b14', border: '1px solid #1e293b', borderRadius: 10 }}>
+          <div style={{ marginTop: 14, padding: '14px 16px', background: '#071321', border: '1px solid #2b4663', borderRadius: 0 }}>
             <div style={{ fontSize: 11.5, fontWeight: 800, color: '#38bdf8', letterSpacing: '0.06em', marginBottom: 8 }}>
               INTERACTIVE CALCULATORS FOR THIS SPOT
             </div>
@@ -213,7 +214,7 @@ export default function PokerPositionDetailPage({ position, allPositions = [] })
               <button
                 type="button"
                 onClick={() => handleCopyFactSheet('discord', discordFactSheet)}
-                style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#25c8ff', borderColor: 'rgba(37, 200, 255, 0.45)' }}
+                style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#38bdf8', borderColor: 'rgba(37, 200, 255, 0.45)' }}
               >
                 {copiedCard === 'discord' ? 'Copied Discord Fact Sheet!' : 'Copy Discord Position Card'}
               </button>
@@ -305,6 +306,13 @@ export default function PokerPositionDetailPage({ position, allPositions = [] })
             })}
           </div>
         </section>
+        <SmarterAccountUnlockGate
+          variant="solver-matrix"
+          context={`learn-position-${position.slug}`}
+          title={`Unlock Full ${position.code} Multi-Stack Solver Ranges & 3-Bet Trees Free`}
+          redirectPath={canonicalPath}
+        />
+
 
         {/* FAQs */}
         <section aria-label="Frequently Asked Questions" style={styles.sectionPlate}>
@@ -346,8 +354,8 @@ export default function PokerPositionDetailPage({ position, allPositions = [] })
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#0a0f18',
-    color: '#e2e8f0',
+    backgroundColor: '#071321',
+    color: '#f2f7ff',
     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
   },
   container: {
@@ -361,25 +369,25 @@ const styles = {
     flexWrap: 'wrap',
     gap: '8px',
     fontSize: '13px',
-    color: '#94a3b8',
+    color: '#bdd0e2',
     marginBottom: '20px',
   },
   crumbLink: {
-    color: '#00d4ff',
+    color: '#38bdf8',
     textDecoration: 'none',
     fontWeight: 600,
   },
   crumbSep: {
-    color: '#475569',
+    color: '#2b4663',
   },
   crumbCurrent: {
-    color: '#e2e8f0',
+    color: '#f2f7ff',
     fontWeight: 600,
   },
   heroPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    backgroundColor: '#0a1a2b',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px',
     marginBottom: '24px',
   },
@@ -391,12 +399,12 @@ const styles = {
   },
   cyanBadge: {
     backgroundColor: 'rgba(0, 212, 255, 0.12)',
-    border: '1px solid #00d4ff',
-    color: '#00d4ff',
+    border: '1px solid #38bdf8',
+    color: '#38bdf8',
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   emeraldBadge: {
@@ -406,20 +414,20 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   h1: {
     fontSize: '30px',
     fontWeight: 800,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     margin: '0 0 14px',
     lineHeight: 1.2,
   },
   lead: {
     fontSize: '15.5px',
     lineHeight: 1.65,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: '0 0 22px',
   },
   metricsGrid: {
@@ -429,22 +437,22 @@ const styles = {
     marginBottom: '22px',
   },
   metricCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   metricLabel: {
     fontSize: '12px',
     fontWeight: 600,
-    color: '#94a3b8',
+    color: '#bdd0e2',
     textTransform: 'uppercase',
     marginBottom: '6px',
   },
   metricValueCyan: {
     fontSize: '24px',
     fontWeight: 800,
-    color: '#00d4ff',
+    color: '#38bdf8',
   },
   metricValueEmerald: {
     fontSize: '24px',
@@ -457,49 +465,49 @@ const styles = {
     gap: '10px',
   },
   crossBtnCyan: {
-    backgroundColor: '#00d4ff',
-    color: '#0a0f18',
+    backgroundColor: '#38bdf8',
+    color: '#071321',
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
     backgroundColor: '#10b981',
-    color: '#0a0f18',
+    color: '#071321',
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnOutline: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    color: '#e2e8f0',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    color: '#f2f7ff',
     fontWeight: 600,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   sectionPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    backgroundColor: '#0a1a2b',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px',
     marginBottom: '24px',
   },
   h2: {
     fontSize: '21px',
     fontWeight: 800,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     margin: '0 0 12px',
   },
   sectionSub: {
     fontSize: '14px',
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     lineHeight: 1.6,
     margin: '0 0 14px',
   },
@@ -509,15 +517,15 @@ const styles = {
     gap: '16px',
   },
   strategyBox: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '18px',
   },
   boxTagCyan: {
     fontSize: '11px',
     fontWeight: 700,
-    color: '#00d4ff',
+    color: '#38bdf8',
     marginBottom: '6px',
     letterSpacing: '0.05em',
   },
@@ -531,13 +539,13 @@ const styles = {
   h3: {
     fontSize: '16.5px',
     fontWeight: 700,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     margin: '0 0 8px',
   },
   bodyText: {
     fontSize: '14px',
     lineHeight: 1.65,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: 0,
   },
   handsGrid: {
@@ -546,9 +554,9 @@ const styles = {
     gap: '12px',
   },
   handCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '14px',
     textDecoration: 'none',
     display: 'flex',
@@ -558,12 +566,12 @@ const styles = {
   handCode: {
     fontSize: '20px',
     fontWeight: 800,
-    color: '#00d4ff',
+    color: '#38bdf8',
   },
   handName: {
     fontSize: '14px',
     fontWeight: 700,
-    color: '#f8fafc',
+    color: '#f2f7ff',
   },
   handAction: {
     fontSize: '12px',
@@ -575,22 +583,22 @@ const styles = {
     gap: '12px',
   },
   leakItem: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   leakBadge: {
     display: 'inline-block',
     fontSize: '11px',
     fontWeight: 800,
-    color: '#00d4ff',
+    color: '#38bdf8',
     marginBottom: '6px',
   },
   leakText: {
     fontSize: '14px',
     lineHeight: 1.6,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: 0,
   },
   peerGrid: {
@@ -599,9 +607,9 @@ const styles = {
     gap: '12px',
   },
   peerCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '12px 14px',
     textDecoration: 'none',
     display: 'flex',
@@ -610,8 +618,8 @@ const styles = {
   },
   peerCardActive: {
     backgroundColor: 'rgba(0, 212, 255, 0.1)',
-    border: '1px solid #00d4ff',
-    borderRadius: '6px',
+    border: '1px solid #38bdf8',
+    borderRadius: 0,
     padding: '12px 14px',
     textDecoration: 'none',
     display: 'flex',
@@ -621,12 +629,12 @@ const styles = {
   peerCode: {
     fontSize: '12px',
     fontWeight: 700,
-    color: '#00d4ff',
+    color: '#38bdf8',
   },
   peerName: {
     fontSize: '14px',
     fontWeight: 700,
-    color: '#f8fafc',
+    color: '#f2f7ff',
   },
   peerWin: {
     fontSize: '12px',
@@ -638,21 +646,21 @@ const styles = {
     gap: '14px',
   },
   faqItem: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   faqQ: {
     fontSize: '15.5px',
     fontWeight: 700,
-    color: '#00d4ff',
+    color: '#38bdf8',
     margin: '0 0 8px',
   },
   faqA: {
     fontSize: '14px',
     lineHeight: 1.6,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: 0,
   },
 };

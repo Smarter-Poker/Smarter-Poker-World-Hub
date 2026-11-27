@@ -10,7 +10,7 @@
  *  - Ace-To-Five (California) vs. Deuce-To-Seven (Kansas City) Lowball Rankings
  *  - Official Split-Pot Tie-Breaker & Kicker Rules
  *
- * Design: #SMARTERDESIGN (#060d1a ink-navy, #081121 panel, #38bdf8 ice-blue,
+ * Design: #SMARTERDESIGN (#071321 ink-navy, #0a1a2b panel, #38bdf8 ice-blue,
  * #1d4ed8 cobalt primary CTA, 1px steel rim rgba(148, 184, 224, 0.28)).
  * House style: Title Case, zero em dashes.
  */
@@ -21,6 +21,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 
 const PAGE_PATH = '/learn/poker-hand-rankings';
@@ -344,7 +345,7 @@ export default function PokerHandRankingsPage() {
             Combinatorics (Out Of 133,784,560 7-Card Deals In Hold&apos;Em And 7-Card Stud), And Tie-Breaker Rules:
           </p>
 
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
             <table style={styles.table}>
               <thead>
                 <tr style={styles.trHead}>
@@ -399,7 +400,7 @@ export default function PokerHandRankingsPage() {
             9-High Straight:
           </p>
 
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
             <table style={styles.table}>
               <thead>
                 <tr style={styles.trHead}>
@@ -482,7 +483,7 @@ export default function PokerHandRankingsPage() {
             :
           </p>
 
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
             <table style={styles.table}>
               <thead>
                 <tr style={styles.trHead}>
@@ -588,6 +589,13 @@ export default function PokerHandRankingsPage() {
             ))}
           </div>
         </section>
+        <SmarterAccountUnlockGate
+          variant="study-deck"
+          context="learn-poker-hand-rankings"
+          title="Save Poker Hand Rankings Cheat Sheet & Practice 107 Free GTO Games"
+          redirectPath={PAGE_PATH}
+        />
+
 
         <CitationBacklinkBox
           title="Official Poker Hand Rankings & Combinatorial Cheat Sheet"
@@ -617,8 +625,8 @@ export default function PokerHandRankingsPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#060d1a',
-    color: '#e2e8f0',
+    backgroundColor: '#071321',
+    color: '#f2f7ff',
     fontFamily: 'var(--font-inter), Inter, system-ui, -apple-system, sans-serif',
   },
   container: {
@@ -631,7 +639,7 @@ const styles = {
     alignItems: 'center',
     gap: '8px',
     fontSize: '13px',
-    color: '#94a3b8',
+    color: '#bdd0e2',
     marginBottom: '20px',
     flexWrap: 'wrap',
   },
@@ -641,15 +649,15 @@ const styles = {
     fontWeight: 600,
   },
   crumbSep: {
-    color: '#475569',
+    color: '#2b4663',
   },
   crumbCurrent: {
-    color: '#cbd5e1',
+    color: '#bdd0e2',
   },
   heroPlate: {
-    backgroundColor: '#081121',
+    backgroundColor: '#0a1a2b',
     border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: '10px',
+    borderRadius: 0,
     padding: '28px 26px',
     marginBottom: '24px',
     boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 32px rgba(0, 0, 0, 0.55)',
@@ -668,27 +676,27 @@ const styles = {
     fontWeight: 700,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
   },
   cyanBadge: {
     backgroundColor: 'rgba(148, 184, 224, 0.12)',
     border: '1px solid rgba(148, 184, 224, 0.35)',
-    color: '#e2e8f0',
+    color: '#f2f7ff',
     fontSize: '11px',
     fontWeight: 700,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
   },
   mdBadge: {
     backgroundColor: 'rgba(148, 163, 184, 0.12)',
     border: '1px solid rgba(148, 184, 224, 0.35)',
-    color: '#e2e8f0',
+    color: '#f2f7ff',
     fontSize: '11px',
     fontWeight: 700,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   h1: {
@@ -701,12 +709,12 @@ const styles = {
     letterSpacing: '0.02em',
   },
   summaryBox: {
-    backgroundColor: '#060d1a',
+    backgroundColor: '#071321',
     borderLeft: '4px solid #38bdf8',
     borderTop: '1px solid rgba(148, 184, 224, 0.28)',
     borderRight: '1px solid rgba(148, 184, 224, 0.28)',
     borderBottom: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '16px 18px',
     marginBottom: '20px',
   },
@@ -738,7 +746,7 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '10px 16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnCyan: {
@@ -750,26 +758,26 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '10px 16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnOutline: {
     display: 'inline-flex',
     alignItems: 'center',
     minHeight: '44px',
-    backgroundColor: '#060d1a',
+    backgroundColor: '#071321',
     border: '1px solid rgba(148, 184, 224, 0.28)',
     color: '#38bdf8',
     fontWeight: 600,
     fontSize: '13px',
     padding: '10px 16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   sectionPlate: {
-    backgroundColor: '#081121',
+    backgroundColor: '#0a1a2b',
     border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: '10px',
+    borderRadius: 0,
     padding: '24px',
     marginBottom: '26px',
   },
@@ -797,7 +805,7 @@ const styles = {
   bodyText: {
     fontSize: '14.5px',
     lineHeight: 1.65,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: '0 0 16px',
   },
   inlineLink: {
@@ -811,7 +819,7 @@ const styles = {
     fontSize: '13px',
   },
   trHead: {
-    backgroundColor: '#060d1a',
+    backgroundColor: '#071321',
     borderBottom: '2px solid #38bdf8',
     textAlign: 'left',
   },
@@ -853,7 +861,7 @@ const styles = {
   },
   tdCell: {
     padding: '12px',
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     lineHeight: 1.55,
     verticalAlign: 'top',
   },
@@ -861,7 +869,7 @@ const styles = {
     padding: '12px',
     verticalAlign: 'top',
     minWidth: '150px',
-    color: '#e2e8f0',
+    color: '#f2f7ff',
     fontWeight: 600,
   },
   mathBold: {
@@ -876,7 +884,7 @@ const styles = {
   },
   mathSub: {
     fontSize: '11.5px',
-    color: '#94a3b8',
+    color: '#bdd0e2',
     marginTop: '2px',
   },
   omahaGrid: {
@@ -885,9 +893,9 @@ const styles = {
     gap: '14px',
   },
   omahaCard: {
-    backgroundColor: '#060d1a',
+    backgroundColor: '#071321',
     border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '16px 18px',
   },
   omahaLabel: {
@@ -900,7 +908,7 @@ const styles = {
   omahaText: {
     fontSize: '14px',
     lineHeight: 1.6,
-    color: '#e2e8f0',
+    color: '#f2f7ff',
     margin: 0,
   },
   tieGrid: {
@@ -909,9 +917,9 @@ const styles = {
     gap: '14px',
   },
   tieCard: {
-    backgroundColor: '#060d1a',
+    backgroundColor: '#071321',
     border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '16px 18px',
   },
   tieTitle: {
@@ -923,13 +931,13 @@ const styles = {
   tieBody: {
     fontSize: '13.5px',
     lineHeight: 1.6,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: 0,
   },
   crossHubPlate: {
-    backgroundColor: '#081121',
+    backgroundColor: '#0a1a2b',
     border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: '10px',
+    borderRadius: 0,
     padding: '24px',
     marginBottom: '26px',
     marginTop: '26px',
@@ -941,9 +949,9 @@ const styles = {
     marginTop: '14px',
   },
   hubCard: {
-    backgroundColor: '#060d1a',
+    backgroundColor: '#071321',
     border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '14px 16px',
     textDecoration: 'none',
     display: 'flex',
@@ -953,7 +961,7 @@ const styles = {
   hubCardLabel: {
     fontSize: '11px',
     fontWeight: 700,
-    color: '#e2e8f0',
+    color: '#f2f7ff',
     letterSpacing: '0.07em',
   },
   hubCardTitle: {
@@ -968,9 +976,9 @@ const styles = {
     marginTop: '14px',
   },
   faqItem: {
-    backgroundColor: '#060d1a',
+    backgroundColor: '#071321',
     border: '1px solid rgba(148, 184, 224, 0.22)',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '16px 18px',
   },
   faqQ: {
@@ -982,12 +990,12 @@ const styles = {
   faqA: {
     fontSize: '14px',
     lineHeight: 1.65,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: 0,
   },
   complianceFooter: {
     fontSize: '12px',
-    color: '#94a3b8',
+    color: '#bdd0e2',
     textAlign: 'center',
     marginTop: '32px',
   },

@@ -28,6 +28,7 @@ import { buildDailyTournamentSchema, serializePokerJsonLd } from '../../../src/l
 import { getWeekendDates } from '../../../src/lib/poker-near-me/weekendSchedule.mjs';
 import { datasetSchema, faqSchema, breadcrumbSchema } from '../../../src/lib/seo/hubPageSchema';
 import FaqSection from '../../../src/components/seo/FaqSection';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 
 const WEEKEND_TOURNAMENTS_FAQS = [
   {
@@ -336,7 +337,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
             <div className="dropdowns-group">
               <select
                 className="filter-select"
-                aria-label="Filter by State"
+                aria-label="Filter By State"
                 value={selectedState}
                 onChange={(e) => setSelectedState(e.target.value)}
               >
@@ -350,7 +351,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
 
               <select
                 className="filter-select"
-                aria-label="Filter by Buy-in"
+                aria-label="Filter By Buy-In"
                 value={selectedBuyin.label}
                 onChange={(e) => {
                   const found = BUYIN_RANGES.find((b) => b.label === e.target.value);
@@ -367,7 +368,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
               <input
                 type="text"
                 className="search-input"
-                placeholder="Search venue or city..."
+                placeholder="Search Venue Or City..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -430,6 +431,14 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
               </div>
             </div>
           </section>
+          <div style={{ margin: '28px 0' }}>
+            <SmarterAccountUnlockGate
+              variant="live-venue-intel"
+              context="weekend-tournaments"
+              title="Sync Weekend Tournament Alerts, Buy-Ins & Late Reg Reminders Free"
+              redirectPath="/hub/tournaments/this-weekend"
+            />
+          </div>
           <FaqSection faqs={WEEKEND_TOURNAMENTS_FAQS} />
         </main>
 
@@ -454,10 +463,10 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
             align-items: center;
             gap: 8px;
             padding: 6px 14px;
-            border-radius: 9999px;
-            background: rgba(0, 212, 255, 0.12);
-            border: 1px solid rgba(0, 212, 255, 0.3);
-            color: #00d4ff;
+            border-radius: 0;
+            background: linear-gradient(180deg, #0d1f33 0%, #071321 100%);
+            border: 1px solid #2b4663;
+            color: #86daff;
             font-size: 13px;
             font-weight: 600;
             margin-bottom: 16px;
@@ -466,7 +475,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
             background: #22c55e;
             color: #000;
             padding: 2px 6px;
-            border-radius: 4px;
+            border-radius: 0;
             font-size: 10px;
             font-weight: 800;
           }
@@ -477,10 +486,10 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
             margin: 0 0 12px;
           }
           .highlight-cyan {
-            color: #00d4ff;
+            color: #38bdf8;
           }
           .highlight-gold {
-            color: #f59e0b;
+            color: #34d399;
           }
           .weekend-lead {
             font-size: 1.05rem;
@@ -497,9 +506,9 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
             margin: 0 auto;
           }
           .stat-card {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            background: linear-gradient(180deg, #0d1f33 0%, #071321 100%);
+            border: 1px solid #2b4663;
+            border-radius: 0;
             padding: 14px 12px;
             text-align: center;
           }
@@ -517,9 +526,9 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
             margin: 0;
           }
           .weekend-controls {
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 14px;
+            background: linear-gradient(180deg, #0d1f33 0%, #071321 100%);
+            border: 1px solid #2b4663;
+            border-radius: 0;
             padding: 16px 20px;
             margin-bottom: 30px;
             display: flex;
@@ -532,25 +541,25 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
             flex-wrap: wrap;
           }
           .day-tab {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: #071321;
+            border: 1px solid #2b4663;
             color: #cbd5e1;
             padding: 8px 16px;
-            border-radius: 8px;
+            border-radius: 0;
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.15s ease;
           }
           .day-tab:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: #0d1f33;
             color: #ffffff;
           }
           .day-tab.active {
-            background: #00d4ff;
+            background: #38bdf8;
             color: #000000;
-            border-color: #00d4ff;
-            box-shadow: 0 0 14px rgba(0, 212, 255, 0.4);
+            border-color: #38bdf8;
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
           }
           .dropdowns-group {
             display: flex;
@@ -558,11 +567,11 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
             flex-wrap: wrap;
           }
           .filter-select, .search-input {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: #071321;
+            border: 1px solid #2b4663;
             color: #f1f5f9;
             padding: 8px 14px;
-            border-radius: 8px;
+            border-radius: 0;
             font-size: 13px;
           }
           .search-input {
@@ -582,8 +591,8 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
           .spinner {
             width: 32px;
             height: 32px;
-            border: 3px solid rgba(0, 212, 255, 0.2);
-            border-top-color: #00d4ff;
+            border: 3px solid rgba(56, 189, 248, 0.2);
+            border-top-color: #38bdf8;
             border-radius: 50%;
             animation: spin 1s infinite linear;
             margin: 0 auto 16px;
@@ -592,11 +601,11 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
             to { transform: rotate(360deg); }
           }
           .reset-btn {
-            background: #00d4ff;
+            background: #38bdf8;
             color: #000;
             border: none;
             padding: 8px 18px;
-            border-radius: 6px;
+            border-radius: 0;
             font-weight: 600;
             cursor: pointer;
             margin-top: 12px;
@@ -604,7 +613,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
           .weekend-seo-content {
             margin-top: 60px;
             padding-top: 40px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid #2b4663;
           }
           .weekend-seo-content h2 {
             font-size: 1.4rem;
@@ -621,9 +630,9 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
             gap: 20px;
           }
           .seo-tip {
-            background: rgba(15, 23, 42, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
+            background: linear-gradient(180deg, #0d1f33 0%, #071321 100%);
+            border: 1px solid #2b4663;
+            border-radius: 0;
             padding: 16px;
           }
           .seo-tip h3 {
@@ -694,9 +703,9 @@ function WeekendTournamentCard({ tournament }) {
 
       <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
         .card-item {
-          background: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
+          background: linear-gradient(180deg, #0d1f33 0%, #071321 100%);
+          border: 1px solid #2b4663;
+          border-radius: 0;
           padding: 14px;
           display: flex;
           flex-direction: column;
@@ -704,7 +713,7 @@ function WeekendTournamentCard({ tournament }) {
           transition: transform 0.15s, border-color 0.15s;
         }
         .card-item:hover {
-          border-color: rgba(0, 212, 255, 0.3);
+          border-color: #38bdf8;
           transform: translateY(-2px);
         }
         .card-header {
@@ -713,12 +722,12 @@ function WeekendTournamentCard({ tournament }) {
           gap: 8px;
         }
         .card-day-badge {
-          background: rgba(0, 212, 255, 0.15);
-          color: #00d4ff;
+          background: rgba(56, 189, 248, 0.15);
+          color: #86daff;
           font-size: 11px;
           font-weight: 700;
           padding: 2px 6px;
-          border-radius: 4px;
+          border-radius: 0;
           text-transform: uppercase;
         }
         .card-time {
@@ -745,7 +754,7 @@ function WeekendTournamentCard({ tournament }) {
         }
         .card-location {
           font-size: 12px;
-          color: #64748b;
+          color: #94a3b8;
           display: flex;
           align-items: center;
           gap: 4px;
@@ -759,20 +768,20 @@ function WeekendTournamentCard({ tournament }) {
         .pill {
           font-size: 11px;
           padding: 2px 6px;
-          border-radius: 4px;
+          border-radius: 0;
           font-weight: 600;
         }
         .pill.game-type {
           background: rgba(59, 130, 246, 0.2);
-          color: #60a5fa;
+          color: #86daff;
         }
         .pill.gtd {
-          background: rgba(245, 158, 11, 0.2);
-          color: #fbbf24;
+          background: rgba(52, 211, 153, 0.18);
+          color: #34d399;
         }
         .pill.weekend-badge {
-          background: rgba(168, 85, 247, 0.2);
-          color: #c084fc;
+          background: rgba(56, 189, 248, 0.18);
+          color: #38bdf8;
         }
         .pill.open-now-badge {
           background: rgba(34, 197, 94, 0.2);

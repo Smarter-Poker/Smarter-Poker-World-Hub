@@ -20,6 +20,7 @@ import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { datasetSchema } from '../../../src/lib/seo/hubPageSchema';
 import HubPageSummary, { HUB_PAGE_SUMMARIES } from '../../../src/components/seo/HubPageSummary';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
@@ -4293,6 +4294,15 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                 gave each tab a name; nothing gave it a body. This is the
                 body, and it renders on the server for the tab the URL asks
                 for. */}
+            <div style={{ margin: '20px auto', maxWidth: 1120, padding: '0 16px' }}>
+              <SmarterAccountUnlockGate
+                variant="live-venue-intel"
+                context={`pnm-tab-${canonicalSlug}`}
+                title="See Live Waitlists, Peak Hours & Seat Alerts With A Free Account"
+                redirectPath={`/hub/poker-near-me/${canonicalSlug}`}
+              />
+            </div>
+
             {HUB_PAGE_SUMMARIES[`pnm-${canonicalSlug}`] && (
               <HubPageSummary page={`pnm-${canonicalSlug}`} />
             )}

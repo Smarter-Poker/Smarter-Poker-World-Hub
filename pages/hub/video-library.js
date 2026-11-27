@@ -24,6 +24,7 @@ import { buildWatchDescription } from '../../src/lib/videoLibraryWatch.mjs';
 import SEOHead from '../../src/components/video-library/VideoLibrarySEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 
 // AEO phase 3 & 4 (2026-10-29).
 const VIDEO_LIBRARY_SCHEMA = hubProductSchema({
@@ -2234,7 +2235,7 @@ export default function VideoLibraryPage() {
                     )}
 
                     {hasActiveFilters && (
-                        <div className="vl-active-view" aria-label="Active video filters">
+                        <div className="vl-active-view" aria-label="Active Video Filters">
                             <span className="vl-active-filter-list">{activeFilterLabels.join(' · ')}</span>
                             <button type="button" className="vl-text-button" onClick={clearAllFilters}>Reset</button>
                         </div>
@@ -2338,7 +2339,7 @@ export default function VideoLibraryPage() {
                        aria-prohibited-attr, serious). A labelled region is
                        what the command rail's aria-controls points at. */
                     role="region"
-                    aria-label="Poker videos"
+                    aria-label="Poker Videos"
                 >
                     {catalogLoading && videos.length === 0 && Array.from({ length: 6 }, (_, index) => (
                         <div key={`catalog-skeleton-${index}`} className="vl-video-skeleton" aria-hidden="true">
@@ -2461,7 +2462,7 @@ export default function VideoLibraryPage() {
                                 <div className="vl-shelf-header">
                                     <h2 id="vl-discovery-title">Explore</h2>
                                 </div>
-                                <div className="vl-explore-tabs" role="tablist" aria-label="Video discovery views">
+                                <div className="vl-explore-tabs" role="tablist" aria-label="Video Discovery Views">
                                     {exploreViews.map(view => (
                                         <button
                                             type="button"
@@ -2577,7 +2578,7 @@ export default function VideoLibraryPage() {
                                     className="vl-player-nav"
                                     data-side="previous"
                                     onClick={handlePrevVideo}
-                                    aria-label="Play previous video"
+                                    aria-label="Play Previous Video"
                                     title="Previous Video"
                                 >Previous</button>
                                 <button
@@ -2585,7 +2586,7 @@ export default function VideoLibraryPage() {
                                     className="vl-player-nav"
                                     data-side="next"
                                     onClick={handleNextVideo}
-                                    aria-label="Play next video"
+                                    aria-label="Play Next Video"
                                     title="Next Video"
                                 >Next</button>
                               </span>
@@ -2714,7 +2715,7 @@ export default function VideoLibraryPage() {
                         <div
                             className="vl-hud"
                             role="group"
-                            aria-label="Video actions"
+                            aria-label="Video Actions"
                             onFocusCapture={vlRevealHud}
                         >
                             <button
@@ -2734,7 +2735,7 @@ export default function VideoLibraryPage() {
                             </button>
                             <button
                                 type="button"
-                                aria-label="Copy video link"
+                                aria-label="Copy Video Link"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     if (selectedVideo) handleShareVideo(selectedVideo);
@@ -2762,7 +2763,7 @@ export default function VideoLibraryPage() {
                             <button
                                 ref={playlistTriggerRef}
                                 type="button"
-                                aria-label="Save video to a playlist"
+                                aria-label="Save Video To A Playlist"
                                 onClick={(event) => {
                                     event.stopPropagation();
                                     if (!userId) {
@@ -2812,7 +2813,7 @@ export default function VideoLibraryPage() {
                                         body: JSON.stringify({ ref: 'video-library', vid: ctx.vid, title: ctx.title, source: ctx.source, tags, matchedGameIds: gameIds.slice(0, 3) }),
                                     }).catch(error => reportVideoLibraryIssue('training_log_request', error));
                                 }}
-                                title="Open GTO Trainer with AI-matched drills from this video"
+                                title="Open GTO Trainer With AI-Matched Drills From This Video"
                             >
                                 <span className="vl-hud-command">Train This Spot</span>
                             </button>
@@ -2931,7 +2932,7 @@ export default function VideoLibraryPage() {
 
             {/* Reels Modal — full-screen TikTok doom-scroll */}
             {showReelsModal && (
-                <div ref={reelsDialogRef} className="vl-reels-dialog" role="dialog" aria-modal="true" aria-label="Video reels" tabIndex={-1}>
+                <div ref={reelsDialogRef} className="vl-reels-dialog" role="dialog" aria-modal="true" aria-label="Video Reels" tabIndex={-1}>
                     <VideoLibraryReelsBoundary onClose={() => setShowReelsModal(false)}>
                         <ReelsViewer onClose={() => setShowReelsModal(false)} />
                     </VideoLibraryReelsBoundary>
@@ -2963,7 +2964,7 @@ export default function VideoLibraryPage() {
                         <div className="vl-playlist-header">
                             <h2 id="vl-playlist-title">Save To Playlist</h2>
                             <button onClick={() => { setShowPlaylistModal(null); setPlaylistActionError(null); }}
-                                type="button" aria-label="Close playlist dialog"
+                                type="button" aria-label="Close Playlist Dialog"
                                 className="vl-text-button">Close</button>
                         </div>
                         <div className="vl-playlist-list">
@@ -3021,7 +3022,7 @@ export default function VideoLibraryPage() {
                                 value={newPlaylistName}
                                 onChange={e => setNewPlaylistName(e.target.value)}
                                 onKeyDown={(e) => { if (e.key === 'Enter' && newPlaylistName.trim() && !isCreatingPlaylist) { e.preventDefault(); createPlaylistButtonRef.current?.click(); } }}
-                                placeholder="New playlist name..."
+                                placeholder="New Playlist Name..."
                                 disabled={isCreatingPlaylist}
                             />
                             <button
@@ -3115,6 +3116,13 @@ export default function VideoLibraryPage() {
             only body copy a crawler that runs no JavaScript ever sees here. */}
         {/* as="h1" while the body did not server-render and this was the only
             heading a crawler saw. The body renders now and brings its own. */}
+        <div style={{ maxWidth: 1200, margin: '24px auto', padding: '0 16px' }}>
+            <SmarterAccountUnlockGate
+                variant="video-drill"
+                context="video-library-index"
+                redirectPath="/hub/video-library"
+            />
+        </div>
         <HubPageSummary page="video-library" />
         </>
     );

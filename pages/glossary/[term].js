@@ -22,6 +22,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import { firstThatFits } from '../../src/lib/seo/titleFit.js';
 import {
   GLOSSARY_TERMS,
@@ -252,6 +253,14 @@ export default function GlossaryTermPage({ term, related, products, lessons = []
             markdownUrl={`${url}.md`}
           />
 
+          <div style={{ margin: '28px 0' }}>
+            <SmarterAccountUnlockGate
+              variant="study-deck"
+              context="glossary-term"
+              redirectPath={termPath(entry.slug)}
+            />
+          </div>
+
           <p style={styles.back}>
             <Link href={GLOSSARY_PATH} style={styles.inlineLink}>
               Back To The Poker Glossary
@@ -300,7 +309,7 @@ const styles = {
   chip: {
     display: 'inline-block',
     padding: '6px 12px',
-    borderRadius: 999,
+    borderRadius: 0,
     border: '1px solid rgba(0, 198, 255, 0.25)',
     color: '#9fd8ff',
     fontSize: 14,
@@ -310,7 +319,7 @@ const styles = {
   item: {
     background: 'rgba(255, 255, 255, 0.04)',
     border: '1px solid rgba(0, 198, 255, 0.18)',
-    borderRadius: 12,
+    borderRadius: 0,
     padding: '14px 16px 12px',
   },
   link: {

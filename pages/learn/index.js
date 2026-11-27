@@ -24,6 +24,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import {
   LEARN_PATH,
   LEARN_URL,
@@ -169,7 +170,7 @@ export default function LearnIndex({ count, groups }) {
             </section>
           ))}
 
-          <section style={{ marginTop: 36, marginBottom: 24, padding: 20, background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(0, 198, 255, 0.18)', borderRadius: 12 }}>
+          <section style={{ marginTop: 36, marginBottom: 24, padding: 20, background: '#0a1a2b', border: '1px solid #2b4663', borderRadius: 0 }}>
             <h2 style={styles.h2}>Explore All Smarter.Poker Strategy &amp; Authority Hubs</h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
               <Link href="/learn/hands" style={styles.tocLink}>169 Starting Hand Encyclopedia</Link>
@@ -208,6 +209,13 @@ export default function LearnIndex({ count, groups }) {
               <Link href="/compare/decision-matrix" style={styles.tocLink}>20-Scenario Decision Matrix</Link>
             </div>
           </section>
+
+          <SmarterAccountUnlockGate
+            variant="study-deck"
+            context="learn-index"
+            title="Save Strategy Lessons, Unlock Printable Cheat Sheets & Track Leaks Free"
+            redirectPath={LEARN_PATH}
+          />
 
           <GeoCitationCapsule
             title="Smarter.Poker Strategy & GTO Curriculum Quantitative Capsule"
@@ -254,31 +262,32 @@ export default function LearnIndex({ count, groups }) {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: 'linear-gradient(180deg, #0a0a12 0%, #050510 100%)',
-    color: '#e6ecf5',
+    background: 'linear-gradient(180deg, #0a1a2b 0%, #071321 100%)',
+    color: '#f2f7ff',
     fontFamily: 'var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif',
   },
   wrap: { maxWidth: 900, margin: '0 auto', padding: '40px 16px 64px' },
-  crumbs: { fontSize: 13, color: '#7f8ca3', margin: '0 0 16px', display: 'flex', gap: 8, flexWrap: 'wrap' },
-  crumbLink: { color: '#9fd8ff', textDecoration: 'none' },
-  crumbSep: { color: '#4b5568' },
+  crumbs: { fontSize: 13, color: '#bdd0e2', margin: '0 0 16px', display: 'flex', gap: 8, flexWrap: 'wrap' },
+  crumbLink: { color: '#86daff', textDecoration: 'none' },
+  crumbSep: { color: '#2b4663' },
   h1: {
     fontFamily: 'var(--font-orbitron), sans-serif',
     fontSize: 'clamp(26px, 4.5vw, 40px)',
     fontWeight: 700,
     lineHeight: 1.2,
-    color: '#ffffff',
+    color: '#f2f7ff',
     margin: '0 0 18px',
     letterSpacing: '0.5px',
   },
-  lead: { fontSize: 18, lineHeight: 1.7, color: '#dbe4f0', margin: '0 0 12px' },
-  note: { fontSize: 14, lineHeight: 1.6, color: '#9fb0c8', margin: '0 0 20px' },
+  lead: { fontSize: 18, lineHeight: 1.7, color: '#f2f7ff', margin: '0 0 12px' },
+  note: { fontSize: 14, lineHeight: 1.6, color: '#bdd0e2', margin: '0 0 20px' },
   toc: { display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 12px' },
   tocLink: {
     padding: '6px 12px',
-    borderRadius: 999,
-    border: '1px solid rgba(0, 198, 255, 0.25)',
-    color: '#9fd8ff',
+    borderRadius: 0,
+    background: '#0d1f33',
+    border: '1px solid #2b4663',
+    color: '#86daff',
     fontSize: 14,
     textDecoration: 'none',
   },
@@ -287,20 +296,20 @@ const styles = {
     fontFamily: 'var(--font-orbitron), sans-serif',
     fontSize: 'clamp(18px, 2.6vw, 22px)',
     fontWeight: 600,
-    color: '#ffffff',
+    color: '#f2f7ff',
     margin: '0 0 6px',
     letterSpacing: '0.5px',
   },
   h2Link: {
-    color: '#ffffff',
+    color: '#f2f7ff',
     textDecoration: 'none',
   },
-  intro: { fontSize: 14, lineHeight: 1.6, color: '#9fb0c8', margin: '0 0 12px' },
+  intro: { fontSize: 14, lineHeight: 1.6, color: '#bdd0e2', margin: '0 0 12px' },
   list: { listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 },
   item: {
-    background: 'rgba(255, 255, 255, 0.04)',
-    border: '1px solid rgba(0, 198, 255, 0.18)',
-    borderRadius: 12,
+    background: '#0a1a2b',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '14px 16px 12px',
   },
   link: {
@@ -308,11 +317,11 @@ const styles = {
     fontFamily: 'var(--font-orbitron), sans-serif',
     fontSize: 15,
     fontWeight: 600,
-    color: '#00c6ff',
+    color: '#38bdf8',
     textDecoration: 'none',
     marginBottom: 6,
     letterSpacing: '0.5px',
   },
-  summary: { fontSize: 14, lineHeight: 1.55, color: '#b8c4d6' },
-  compliance: { fontSize: 12, lineHeight: 1.6, color: '#7f8ca3', margin: '32px 0 0' },
+  summary: { fontSize: 14, lineHeight: 1.55, color: '#bdd0e2' },
+  compliance: { fontSize: 12, lineHeight: 1.6, color: '#bdd0e2', margin: '32px 0 0' },
 };

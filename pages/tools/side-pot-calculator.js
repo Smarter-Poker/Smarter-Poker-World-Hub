@@ -15,6 +15,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -242,7 +243,7 @@ export default function SidePotCalculatorPage({
           style={{
             background: '#0f172a',
             border: '1px solid #1e293b',
-            borderRadius: 14,
+            borderRadius: 0,
             padding: 24,
             marginBottom: 36,
           }}
@@ -257,9 +258,9 @@ export default function SidePotCalculatorPage({
               disabled={stacks.length >= 9}
               style={{
                 padding: '8px 14px',
-                borderRadius: 8,
+                borderRadius: 0,
                 border: '1px solid #38bdf8',
-                background: '#0284c7',
+                background: '#1f6feb',
                 color: '#ffffff',
                 fontSize: 13,
                 fontWeight: 700,
@@ -272,7 +273,7 @@ export default function SidePotCalculatorPage({
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14, marginBottom: 20 }}>
             {stacks.map((amt, idx) => (
-              <div key={`player-stack-${idx}`} style={{ background: '#070b14', padding: 12, borderRadius: 10, border: '1px solid #1e293b' }}>
+              <div key={`player-stack-${idx}`} style={{ background: '#070b14', padding: 12, borderRadius: 0, border: '1px solid #1e293b' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#cbd5e1' }}>Player {idx + 1} Commitment</span>
                   {stacks.length > 2 && (
@@ -295,7 +296,7 @@ export default function SidePotCalculatorPage({
                   style={{
                     width: '100%',
                     padding: '8px 10px',
-                    borderRadius: 8,
+                    borderRadius: 0,
                     border: '1px solid #334155',
                     background: '#0f172a',
                     color: '#f8fafc',
@@ -306,7 +307,7 @@ export default function SidePotCalculatorPage({
               </div>
             ))}
 
-            <div style={{ background: '#070b14', padding: 12, borderRadius: 10, border: '1px solid #38bdf8' }}>
+            <div style={{ background: '#070b14', padding: 12, borderRadius: 0, border: '1px solid #38bdf8' }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#38bdf8', marginBottom: 6 }}>
                 Dead Money (Folded Blinds &amp; Antes)
                 <input
@@ -319,7 +320,7 @@ export default function SidePotCalculatorPage({
                     width: '100%',
                     marginTop: 6,
                     padding: '8px 10px',
-                    borderRadius: 8,
+                    borderRadius: 0,
                     border: '1px solid #334155',
                     background: '#0f172a',
                     color: '#f8fafc',
@@ -333,7 +334,7 @@ export default function SidePotCalculatorPage({
 
           {/* Summary KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
-            <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b' }}>
+            <div style={{ background: '#070b14', padding: 16, borderRadius: 0, border: '1px solid #1e293b' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Total Chips Committed
               </div>
@@ -345,7 +346,7 @@ export default function SidePotCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b' }}>
+            <div style={{ background: '#070b14', padding: 16, borderRadius: 0, border: '1px solid #1e293b' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Contested Pots Created
               </div>
@@ -357,7 +358,7 @@ export default function SidePotCalculatorPage({
               </div>
             </div>
 
-            <div style={{ background: '#070b14', padding: 16, borderRadius: 10, border: '1px solid #1e293b' }}>
+            <div style={{ background: '#070b14', padding: 16, borderRadius: 0, border: '1px solid #1e293b' }}>
               <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Uncalled Overbet Return
               </div>
@@ -372,7 +373,7 @@ export default function SidePotCalculatorPage({
 
           {/* Step-by-Step Pot Breakdown Table */}
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#070b14', borderRadius: 10 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#070b14', borderRadius: 0 }}>
               <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
                 Exact Step-By-Step Main Pot And Side Pot Breakdown For Active Commitments
               </caption>
@@ -414,13 +415,21 @@ export default function SidePotCalculatorPage({
           </div>
         </section>
 
+        <div style={{ marginBottom: 32 }}>
+          <SmarterAccountUnlockGate
+            variant="calculator-pro"
+            context="tools-side-pot-calculator"
+            redirectPath={canonicalPath}
+          />
+        </div>
+
         {/* Reference Table: Standard Multi-Way Side Pot Scenarios */}
         <section style={{ marginBottom: 36 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             Standard Multi-Way All-In Side Pot Reference Examples
           </h2>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 10 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, background: '#0f172a', borderRadius: 0 }}>
               <caption style={{ textAlign: 'left', fontWeight: 600, padding: '8px 0', color: '#94a3b8' }}>
                 Pre-Computed Main Pot And Side Pot Allocations Under Official TDA Poker Rules
               </caption>
@@ -449,27 +458,27 @@ export default function SidePotCalculatorPage({
         </section>
 
         {/* Cross-Link Navigation */}
-        <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 12, border: '1px solid #1e293b' }}>
+        <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 0, border: '1px solid #1e293b' }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
             Related Smarter.Poker Calculators &amp; Tournament Tools
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <Link href="/tools" style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools" style={{ padding: '8px 14px', background: '#1f6feb', color: '#fff', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               All Poker Calculators
             </Link>
-            <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Multiway Equity Calculator
             </Link>
-            <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/icm-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Tournament ICM Calculator
             </Link>
-            <Link href="/tools/blind-structure-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/blind-structure-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Blind Structure Generator
             </Link>
-            <Link href="/tools/spr-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/tools/spr-calculator" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               SPR &amp; Geometric Sizing
             </Link>
-            <Link href="/hub/commander/home-games" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            <Link href="/hub/commander/home-games" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Host A Home Game
             </Link>
           </div>
