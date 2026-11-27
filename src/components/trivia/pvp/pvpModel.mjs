@@ -1,3 +1,5 @@
+import { getTrainingSpotForCategory, TRAINING_SPOT_MAP } from '../../../lib/trivia/trainingSpotMap.mjs';
+
 const ACTIVE_PVP_STATES = new Set(['searching', 'dealing', 'playing', 'waiting', 'settling']);
 const POLLED_PVP_STATES = new Set(['searching', 'dealing', 'playing', 'waiting', 'settling']);
 const PVP_QUESTION_STATES = new Set(['unanswered', 'answered', 'timeout', 'locked']);
@@ -401,4 +403,203 @@ export function pvpOutcomeInk(result) {
         case 'tie': case 'refund': case 'void': return 'blue';
         default: return 'silver';
     }
+}
+
+function formatCategoryFallbackLabel(category) {
+    if (typeof category !== 'string' || !category.trim()) return 'Poker Trivia';
+    return category
+        .trim()
+        .replace(/[_-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .split(' ')
+        .map((word) => (word ? `${word[0].toUpperCase()}${word.slice(1).toLowerCase()}` : ''))
+        .join(' ');
+}
+
+export function isPvpHorseOpponent(opponentOrRow) {
+    if (!opponentOrRow || typeof opponentOrRow !== 'object') return false;
+    const opponent = opponentOrRow.opponent && typeof opponentOrRow.opponent === 'object'
+        ? opponentOrRow.opponent
+        : opponentOrRow;
+    const matchType = String(
+        opponentOrRow.match_type ?? opponentOrRow.matchType ?? opponentOrRow.kind ?? '',
+    ).trim().toLowerCase();
+    const displayName = String(
+        opponent?.displayName ?? opponent?.display_name ?? opponent?.label ?? '',
+    ).trim().toLowerCase();
+    return Boolean(
+        opponent?.isHorse === true
+        || opponent?.is_horse === true
+        || opponent?.kind === 'horse'
+        || matchType === 'human_horse'
+        || matchType === 'horse'
+        || displayName === 'smarter horse',
+    );
+}
+
+export function resolvePvpOpponentKey(opponentOrRow) {
+    if (!opponentOrRow || typeof opponentOrRow !== 'object') return null;
+    if (isPvpHorseOpponent(opponentOrRow)) return null;
+    const opponent = opponentOrRow.opponent && typeof opponentOrRow.opponent === 'object'
+        ? opponentOrRow.opponent
+        : opponentOrRow;
+    const idCandidates = [
+        opponent?.id,
+        opponent?.userId,
+        opponent?.user_id,
+        opponentOrRow.opponentId,
+        opponentOrRow.opponent_id,
+    ];
+    for (const candidate of idCandidates) {
+        if (typeof candidate === 'string' && candidate.trim().length > 0) {
+            return candidate.trim();
+        }
+    }
+    const name = String(
+        opponent?.displayName ?? opponent?.display_name ?? opponentOrRow.opponentName ?? opponentOrRow.opponent_name ?? '',
+    ).trim();
+    if (!name) return null;
+    const lower = name.toLowerCase();
+    if (lower === 'player' || lower === 'smarter horse') return null;
+    return name;
+}
+
+/**
+ * Computes the head-to-head series record against a single human opponent from
+ * authoritative /api/trivia/pvp/history rows. Smarter Horse matches and rows
+ * with missing/anonymous opponent identity are always excluded.
+ */
+export function computeHeadToHeadSeries(historyRows, opponentId) {
+    const empty = {
+        played: 0,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        netDiamonds: 0,
+        opponentName: null,
+    };
+    if (!Array.isArray(historyRows) || typeof opponentId !== 'string') return empty;
+    const target = opponentId.trim();
+    if (!target) return empty;
+    const targetLower = target.toLowerCase();
+    if (targetLower === 'smarter horse' || targetLower === 'player') return empty;
+
+    let played = 0;
+    let wins = 0;
+    let losses = 0;
+    let ties = 0;
+    let netDiamonds = 0;
+    let opponentName = null;
+
+    for (const row of historyRows) {
+        if (!row || typeof row !== 'object') continue;
+        if (isPvpHorseOpponent(row)) continue;
+
+        const opponent = row.opponent && typeof row.opponent === 'object' ? row.opponent : null;
+        const idCandidates = [
+            opponent?.id,
+            opponent?.userId,
+            opponent?.user_id,
+            row.opponentId,
+            row.opponent_id,
+        ]
+            .filter((value) => typeof value === 'string' && value.trim().length > 0)
+            .map((value) => value.trim());
+
+        const rawName = String(
+            opponent?.displayName
+            ?? opponent?.display_name
+            ?? row.opponentName
+            ?? row.opponent_name
+            ?? '',
+        ).trim();
+
+        let matched = false;
+        if (idCandidates.length > 0) {
+            matched = idCandidates.some((candidate) => candidate.toLowerCase() === targetLower);
+        } else if (rawName && rawName.toLowerCase() !== 'player' && rawName.toLowerCase() !== 'smarter horse') {
+            matched = rawName.toLowerCase() === targetLower;
+        }
+        if (!matched) continue;
+
+        played += 1;
+        const outcome = String(row.outcome || '').trim().toLowerCase();
+        if (outcome === 'win') wins += 1;
+        else if (outcome === 'loss') losses += 1;
+        else if (outcome === 'tie') ties += 1;
+
+        const rawNet = row.net ?? row.netDiamonds ?? row.net_diamonds;
+        if (rawNet !== null && rawNet !== undefined && rawNet !== '' && Number.isFinite(Number(rawNet))) {
+            netDiamonds += Math.trunc(Number(rawNet));
+        }
+
+        if (!opponentName && rawName && rawName.toLowerCase() !== 'player') {
+            opponentName = rawName;
+        }
+    }
+
+    return {
+        played,
+        wins,
+        losses,
+        ties,
+        netDiamonds,
+        opponentName: played > 0 ? (opponentName || target) : null,
+    };
+}
+
+/**
+ * Aggregates post-settlement question review items by category and maps every
+ * category to its verified Training Spot destination via trainingSpotMap.mjs.
+ * Sorted weakest accuracy first so the player's biggest leak surfaces at the top.
+ */
+export function buildPvpCategoryBreakdown(reviewItems) {
+    if (!Array.isArray(reviewItems) || reviewItems.length === 0) return [];
+
+    const buckets = new Map();
+    for (const item of reviewItems) {
+        if (!item || typeof item !== 'object') continue;
+        const rawCategory = typeof item.category === 'string' && item.category.trim()
+            ? item.category.trim()
+            : 'general';
+        const correct = Boolean(item.wasCorrect ?? item.isCorrect ?? item.correct);
+        const existing = buckets.get(rawCategory);
+        if (existing) {
+            existing.total += 1;
+            if (correct) existing.correct += 1;
+        } else {
+            buckets.set(rawCategory, {
+                category: rawCategory,
+                correct: correct ? 1 : 0,
+                total: 1,
+            });
+        }
+    }
+
+    const breakdown = [];
+    for (const bucket of buckets.values()) {
+        const spot = getTrainingSpotForCategory(bucket.category);
+        const knownCategory = Object.prototype.hasOwnProperty.call(TRAINING_SPOT_MAP, bucket.category);
+        const accuracyPct = bucket.total > 0 ? Math.round((bucket.correct / bucket.total) * 100) : 0;
+        breakdown.push({
+            category: bucket.category,
+            label: knownCategory ? spot.categoryLabel : formatCategoryFallbackLabel(bucket.category),
+            correct: bucket.correct,
+            total: bucket.total,
+            accuracyPct,
+            trainingHref: spot.href,
+            trainingLabel: spot.label,
+        });
+    }
+
+    breakdown.sort((left, right) => {
+        if (left.accuracyPct !== right.accuracyPct) return left.accuracyPct - right.accuracyPct;
+        const leftMissed = left.total - left.correct;
+        const rightMissed = right.total - right.correct;
+        if (leftMissed !== rightMissed) return rightMissed - leftMissed;
+        if (left.total !== right.total) return right.total - left.total;
+        return left.category.localeCompare(right.category);
+    });
+
+    return breakdown;
 }
