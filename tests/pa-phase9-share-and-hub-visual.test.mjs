@@ -85,11 +85,12 @@ test('2. PA Home keeps opt-in skeleton motion, accessible live controls, proport
   }
   assert.match(css, /\.page :is\(a, button\):focus-visible\s*\{[^}]*outline:/);
 
-  // The three image subjects remain complete rather than being cropped or stretched.
-  assert.match(css, /\.featureArt\s*\{[^}]*object-fit:\s*contain;/);
-  assert.match(home, /\/images\/personal-assistant\/review-my-play-chrome\.webp/);
-  assert.match(home, /\/images\/personal-assistant\/virtual-sandbox-chrome\.webp/);
-  assert.match(home, /\/images\/personal-assistant\/my-leaks-chrome\.webp/);
+  // Exact approved subjects use proportional SVG viewports at every card size.
+  const art = read('src/components/personal-assistant/ApprovedLandingArt.jsx');
+  assert.match(art, /preserveAspectRatio="xMidYMid meet"/);
+  assert.match(home, /<ApprovedIllustration\s+kind="review"/);
+  assert.match(home, /<ApprovedIllustration\s+kind="sandbox"/);
+  assert.match(home, /<ApprovedIllustration\s+kind="leaks"/);
 
   // Confirmed unused CSS classes removed
   for (const deadClass of [

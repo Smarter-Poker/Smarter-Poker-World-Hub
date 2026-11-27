@@ -50,6 +50,7 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { getAccessToken, getFreshAccessToken } from '../../../src/lib/authUtils';
 import { useModalHistory } from '../../../src/hooks/useModalHistory';
 import { anonymizeHandForShare } from '../../../src/lib/personal-assistant/anonymizeHandForShare.mjs';
+import { collectSavedHandsExport } from '../../../src/lib/personal-assistant/savedHandExport.mjs';
 import styles from '../../../src/styles/worlds/PersonalAssistantReview.module.css';
 
 const REQUEST_TIMEOUT_MS = 12000;
@@ -692,13 +693,14 @@ export default function PersonalAssistantReviewPage() {
   const loadGenRef = useRef(0);
   const saveAbortRef = useRef(null);
   const analysisAbortRef = useRef(null);
+  const exportAbortRef = useRef(null);
   const lastVisibilityRefreshRef = useRef(0);
   const selectedHandIdRef = useRef('');
   selectedHandIdRef.current = selectedHandId;
 
   const applyUnreviewedDelta = useCallback((previousStatus, nextStatus) => {
-    const wasUnreviewed = previousStatus !== 'reviewed';
-    const isNowUnreviewed = nextStatus !== 'reviewed';
+    const wasUnreviewed = previousStatus === 'saved';
+    const isNowUnreviewed = nextStatus === 'saved';
     if (wasUnreviewed === isNowUnreviewed) return;
     setUnreviewedCount((prev) => (
       prev !== null ? Math.max(0, prev + (isNowUnreviewed ? 1 : -1)) : null
@@ -844,6 +846,7 @@ export default function PersonalAssistantReviewPage() {
 
   const loadSavedHands = useCallback(async ({ preferHandId = '', silent = false } = {}) => {
     const gen = ++loadGenRef.current;
+    setLoadingMore(false);
     if (authInitializing) return;
     if (!user?.id) {
       setHands([]);
@@ -934,14 +937,14 @@ export default function PersonalAssistantReviewPage() {
       setHands(loadedHands);
       setNextCursor(listRes.body.nextCursor || null);
       setTotalCount(
-        Number.isFinite(Number(listRes.body.totalCount))
-          ? Number(listRes.body.totalCount)
-          : loadedHands.length,
+        listRes.body.countsComplete !== false && Number.isFinite(listRes.body.totalCount)
+          ? listRes.body.totalCount
+          : null,
       );
       setUnreviewedCount(
-        Number.isFinite(Number(listRes.body.unreviewedCount))
-          ? Number(listRes.body.unreviewedCount)
-          : loadedHands.filter((h) => getReviewMeta(h).status !== 'reviewed').length,
+        listRes.body.countsComplete !== false && Number.isFinite(listRes.body.unreviewedCount)
+          ? listRes.body.unreviewedCount
+          : null,
       );
       setLoadStatus('ready');
 
@@ -990,11 +993,12 @@ export default function PersonalAssistantReviewPage() {
   const handleLoadMore = useCallback(async () => {
     if (!nextCursor || loadingMore || !user?.id) return;
     const expectedUserId = user.id;
+    const gen = loadGenRef.current;
     setLoadingMore(true);
     setLoadError('');
     try {
       const token = await getFreshAccessToken();
-      if (activeUserIdRef.current !== expectedUserId) return;
+      if (gen !== loadGenRef.current || activeUserIdRef.current !== expectedUserId) return;
       if (!token) {
         setLoadStatus('signed_out');
         return;
@@ -1005,7 +1009,7 @@ export default function PersonalAssistantReviewPage() {
         cache: 'no-store',
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
       });
-      if (activeUserIdRef.current !== expectedUserId) return;
+      if (gen !== loadGenRef.current || activeUserIdRef.current !== expectedUserId) return;
       if (res.status === 401) {
         setHands([]);
         setNextCursor(null);
@@ -1020,7 +1024,10 @@ export default function PersonalAssistantReviewPage() {
         setLoadError(res.body?.error || 'Could Not Load More Saved Hands. Please Retry.');
         return;
       }
-      const incoming = res.body.hands;
+      const hidingId = pendingDeleteRef.current?.ownerUserId === expectedUserId
+        ? String(pendingDeleteRef.current?.hand?.id || '')
+        : '';
+      const incoming = res.body.hands.filter((row) => String(row.id) !== hidingId);
       setHands((prev) => {
         const seen = new Set(prev.map((row) => String(row.id)));
         const merged = [...prev];
@@ -1033,8 +1040,12 @@ export default function PersonalAssistantReviewPage() {
         return merged;
       });
       setNextCursor(res.body.nextCursor || null);
+      if (!selectedHandIdRef.current && incoming.length > 0) {
+        setSelectedHandId(incoming[0].id);
+        syncEditorFromHand(incoming[0]);
+      }
     } catch (err) {
-      if (activeUserIdRef.current === expectedUserId) {
+      if (gen === loadGenRef.current && activeUserIdRef.current === expectedUserId) {
         setLoadError(
           err?.name === 'AbortError'
             ? 'Loading More Hands Timed Out. Check Your Connection And Retry.'
@@ -1042,11 +1053,11 @@ export default function PersonalAssistantReviewPage() {
         );
       }
     } finally {
-      if (activeUserIdRef.current === expectedUserId) {
+      if (gen === loadGenRef.current && activeUserIdRef.current === expectedUserId) {
         setLoadingMore(false);
       }
     }
-  }, [nextCursor, loadingMore, user?.id, buildFilterQueryParams]);
+  }, [nextCursor, loadingMore, user?.id, buildFilterQueryParams, syncEditorFromHand]);
 
   // Synchronously flush pending deletes and reset all user-scoped state on account switch BEFORE any draft effect runs.
   useEffect(() => {
@@ -1081,6 +1092,9 @@ export default function PersonalAssistantReviewPage() {
 
     saveAbortRef.current?.abort?.();
     analysisAbortRef.current?.abort?.();
+    exportAbortRef.current?.abort?.();
+    exportAbortRef.current = null;
+    setExportingFormat('');
 
     draftOwnerUserIdRef.current = null;
     draftHandIdRef.current = '';
@@ -1168,6 +1182,8 @@ export default function PersonalAssistantReviewPage() {
   useEffect(() => () => {
     saveAbortRef.current?.abort?.();
     analysisAbortRef.current?.abort?.();
+    exportAbortRef.current?.abort?.();
+    exportAbortRef.current = null;
     if (deleteTimerRef.current) {
       window.clearTimeout(deleteTimerRef.current);
       deleteTimerRef.current = null;
@@ -1578,8 +1594,12 @@ export default function PersonalAssistantReviewPage() {
         if (prev.some((row) => String(row.id) === String(savedRow.id))) return prev;
         return [savedRow, ...prev];
       });
-      setTotalCount((prev) => (prev !== null ? prev + 1 : 1));
-      setUnreviewedCount((prev) => (prev !== null ? prev + 1 : 1));
+      if (!res.body.alreadySaved) {
+        setTotalCount((prev) => (prev !== null && !hasActiveFilters ? prev + 1 : null));
+        if (getReviewMeta(savedRow).status === 'saved') {
+          setUnreviewedCount((prev) => (prev !== null ? prev + 1 : null));
+        }
+      }
       setLoadStatus('ready');
       handleSelectHand(savedRow);
       broadcastSavedHandsSync({
@@ -1597,7 +1617,7 @@ export default function PersonalAssistantReviewPage() {
         setSavingSuggestedId('');
       }
     }
-  }, [user?.id, savingSuggestedId, handleSelectHand]);
+  }, [user?.id, savingSuggestedId, handleSelectHand, hasActiveFilters]);
 
   const handleExploreInSandbox = useCallback(() => {
     if (!selectedHand?.id) return;
@@ -1640,29 +1660,39 @@ export default function PersonalAssistantReviewPage() {
   }, [selectedHand]);
 
   const handleExportHands = useCallback(async (format) => {
-    if (!user?.id || exportingFormat) return;
+    if (!user?.id || exportingFormat || exportAbortRef.current) return;
+    const expectedUserId = user.id;
+    const controller = new AbortController();
+    exportAbortRef.current = controller;
     const ext = format === 'json' ? 'json' : 'txt';
     setExportingFormat(format);
     setExportError('');
     try {
       const token = await getFreshAccessToken();
+      if (controller.signal.aborted || activeUserIdRef.current !== expectedUserId) return;
       if (!token) {
         setExportError('Sign In Again To Export Your Saved Hands.');
         return;
       }
-      const res = await fetch(`/api/poker/saved-hands?export=${encodeURIComponent(format)}`, {
-        method: 'GET',
-        cache: 'no-store',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: format === 'json' ? 'application/json' : 'text/plain',
-        },
-      });
-      if (!res.ok) {
-        setExportError('Could Not Export Saved Hands Right Now.');
-        return;
-      }
-      const blob = await res.blob();
+      const result = await collectSavedHandsExport(async (cursor, signal) => {
+        if (activeUserIdRef.current !== expectedUserId) {
+          controller.abort();
+          throw new Error('Export Account Changed');
+        }
+        const suffix = cursor ? `&cursor=${encodeURIComponent(cursor)}` : '';
+        const res = await fetchJsonWithTimeout(`/api/poker/saved-hands?export=${encodeURIComponent(format)}&chunk=1${suffix}`, {
+          method: 'GET',
+          cache: 'no-store',
+          signal,
+          headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        });
+        if (!res.ok || !res.body?.success) {
+          throw new Error(res.body?.error || 'Export Was Interrupted. No Partial File Was Downloaded.');
+        }
+        return res.body;
+      }, { format, signal: controller.signal });
+      if (controller.signal.aborted || activeUserIdRef.current !== expectedUserId) return;
+      const blob = new Blob(result.parts, { type: result.mimeType });
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = objectUrl;
@@ -1671,10 +1701,16 @@ export default function PersonalAssistantReviewPage() {
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-    } catch {
-      setExportError('Export Was Interrupted. Please Retry.');
+    } catch (err) {
+      if (activeUserIdRef.current !== expectedUserId || exportAbortRef.current !== controller) return;
+      setExportError(controller.signal.aborted
+        ? 'Export Cancelled. No Partial File Was Downloaded.'
+        : err?.message || 'Export Was Interrupted. No Partial File Was Downloaded.');
     } finally {
-      setExportingFormat('');
+      if (exportAbortRef.current === controller) {
+        exportAbortRef.current = null;
+        setExportingFormat('');
+      }
     }
   }, [user?.id, exportingFormat]);
 
@@ -1747,7 +1783,7 @@ export default function PersonalAssistantReviewPage() {
       clearDraftFromSession(ownerUserId, hand.id, getReviewMeta(hand).revision);
       if (activeUserIdRef.current === ownerUserId) {
         setTotalCount((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
-        if (getReviewMeta(hand).status !== 'reviewed') {
+        if (getReviewMeta(hand).status === 'saved') {
           setUnreviewedCount((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
         }
       }
@@ -1999,6 +2035,16 @@ export default function PersonalAssistantReviewPage() {
                       <Download size={15} aria-hidden="true" />
                       {exportingFormat === 'text' ? 'Exporting…' : 'Export Text'}
                     </button>
+                    {exportingFormat && (
+                      <button
+                        type="button"
+                        className={styles.secondaryBtn}
+                        data-testid="cancel-export-btn"
+                        onClick={() => exportAbortRef.current?.abort?.()}
+                      >
+                        Cancel Export
+                      </button>
+                    )}
                   </>
                 )}
                 <button
@@ -2197,7 +2243,7 @@ export default function PersonalAssistantReviewPage() {
                     <div className={styles.panelHead}>
                       <h2>Saved Hands</h2>
                       <span className={styles.panelCount}>
-                        {totalCount !== null ? `${totalCount} Total` : `${hands.length}`}
+                        {totalCount !== null ? `${totalCount} Total` : `${hands.length} Loaded`}
                         {unreviewedCount !== null ? ` · ${unreviewedCount} Unreviewed` : ''}
                       </span>
                     </div>
@@ -2264,8 +2310,10 @@ export default function PersonalAssistantReviewPage() {
 
                     {hands.length === 0 ? (
                       <div className={styles.emptyState}>
-                        <h2>No Matching Hands</h2>
-                        <p>Try Clearing A Filter Or Searching A Different Term.</p>
+                        <h2>{nextCursor ? 'No Matching Hands In This Batch' : 'No Matching Hands'}</h2>
+                        <p>{nextCursor
+                          ? 'Load More To Search Older Saved Hands.'
+                          : 'Try Clearing A Filter Or Searching A Different Term.'}</p>
                         <button type="button" className={styles.secondaryBtn} onClick={handleClearFilters}>
                           Clear Filters
                         </button>

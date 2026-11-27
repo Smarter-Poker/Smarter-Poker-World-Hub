@@ -4,11 +4,14 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { compareFixtureValues, matchesFixtureOr, compareFixtureOrders, projectFixtureRow } from './helpers/saved-hand-query-fixture.mjs';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
 const savedHandsLib = await import(pathToFileURL(path.join(ROOT, 'src/lib/personal-assistant/savedHands.mjs')).href);
 const routeCore = await import(pathToFileURL(path.join(ROOT, 'src/lib/personal-assistant/savedHandsRouteCore.mjs')).href);
+const { collectSavedHandsExport } = await import(pathToFileURL(path.join(ROOT, 'src/lib/personal-assistant/savedHandExport.mjs')).href);
 const shareLib = await import(pathToFileURL(path.join(ROOT, 'src/lib/personal-assistant/anonymizeHandForShare.mjs')).href);
 
 const HERO_ID = '11111111-1111-4111-8111-111111111111';
@@ -83,8 +86,11 @@ function createFakeSupabase({
 } = {}) {
   const savedRows = initialSavedRows.map((r) => structuredClone(r));
   let raceTriggered = false;
+  const queryLog = [];
 
   const matchesFilters = (row, filters) => filters.every((f) => {
+    if (f.type === 'or') return matchesFixtureOr(row, f.expression);
+    if (f.type === 'lte') return row[f.col] !== null && row[f.col] !== undefined && compareFixtureValues(row[f.col], f.val) <= 0;
     if (f.type === 'eq') return String(row[f.col] ?? '') === String(f.val ?? '');
     if (f.type === 'in') return f.vals.map(String).includes(String(row[f.col] ?? ''));
     if (f.type === 'is') {
@@ -117,9 +123,9 @@ function createFakeSupabase({
       filters: [],
       mode: 'select',
       payload: null,
-      orderCol: null,
-      orderDesc: false,
+      orders: [],
       limitN: null,
+      columns: null,
     };
     const sourceList = () => {
       if (tableName === 'hand_history') return handHistoryRows;
@@ -132,6 +138,7 @@ function createFakeSupabase({
     };
 
     const execute = async (singleMode) => {
+      queryLog.push({ tableName, ...structuredClone(state) });
       const list = sourceList();
       if (state.mode === 'insert') {
         const row = structuredClone(state.payload);
@@ -164,22 +171,14 @@ function createFakeSupabase({
       }
 
       let rows = list.filter((r) => matchesFilters(r, state.filters)).map((r) => structuredClone(r));
-      if (state.orderCol) {
-        const col = state.orderCol;
-        rows.sort((a, b) => {
-          const av = String(a[col] ?? '');
-          const bv = String(b[col] ?? '');
-          return state.orderDesc ? bv.localeCompare(av) : av.localeCompare(bv);
-        });
-      } else if (state.orderDesc) {
-        rows.reverse();
-      }
+      if (state.orders.length) rows.sort((a, b) => compareFixtureOrders(a, b, state.orders));
       if (state.limitN) rows = rows.slice(0, state.limitN);
+      rows = rows.map(row => projectFixtureRow(row, state.columns));
       return { data: singleMode ? (rows[0] || null) : rows, error: null };
     };
 
     const api = {
-      select() { return api; },
+      select(columns) { state.columns = columns; return api; },
       insert(payload) { state.mode = 'insert'; state.payload = payload; return api; },
       update(payload) { state.mode = 'update'; state.payload = payload; return api; },
       delete() { state.mode = 'delete'; return api; },
@@ -199,7 +198,9 @@ function createFakeSupabase({
         }
         return api;
       },
-      order(col, opts) { state.orderCol = col; state.orderDesc = opts?.ascending === false; return api; },
+      or(expression) { state.filters.push({ type: 'or', expression }); return api; },
+      lte(col, val) { state.filters.push({ type: 'lte', col, val }); return api; },
+      order(col, opts) { state.orders.push({ col, descending: opts?.ascending === false }); return api; },
       limit(n) { state.limitN = n; return api; },
       maybeSingle() { return execute(true); },
       then(resolve, reject) { return execute(false).then(resolve, reject); },
@@ -208,6 +209,7 @@ function createFakeSupabase({
   };
 
   return {
+    queryLog,
     savedRows,
     pokerSessionsRows,
     tableSeatsRows,
@@ -1112,6 +1114,63 @@ test('GET /api/poker/saved-hands?export=json|text downloads caller-owned hands w
   assert.equal(badExport.statusCode, 400);
 });
 
+test('exports never assign an unidentified first player to Hero or reveal that player\'s hidden cards', async () => {
+  for (const marker of [undefined, false, 'false', 'true', 1]) {
+    const row = {
+      id: 'legacy-unmarked-owner', user_id: HERO_ID, table_id: 'legacy-table',
+      created_at: '2026-11-27T08:00:00Z', started_at: '2026-11-27T08:00:00Z', completed_at: '2026-11-27T08:01:00Z',
+      hand_data: { source: 'club-arena', players: [
+        { name: 'Hidden Opponent', isHero: marker, holeCards: ['7s', '2d'], cardsVisibility: 'hidden', showedCards: false, folded: true },
+        { name: 'Owner', holeCards: [] },
+      ] },
+    };
+    const exported = savedHandsLib.formatSavedHandForExport(row);
+    assert.deepEqual(exported.heroCards, [], `no positive Hero identity for marker ${String(marker)}`);
+    assert.deepEqual(exported.players[0].holeCards, []);
+    assert.equal(exported.players[0].isHero, false);
+    assert.doesNotMatch(savedHandsLib.formatSavedHandsAsText([row]), /Dealt to Hero|7s|2d/);
+    const sb = createFakeSupabase({ savedRows: [row] });
+    for (const format of ['json', 'text']) {
+      const chunk = await callHandler({ supabase: sb, query: { export: format, chunk: '1' } });
+      assert.equal(chunk.statusCode, 200);
+      assert.doesNotMatch(JSON.stringify(chunk.body), /7s|2d|Dealt to Hero/);
+    }
+  }
+});
+
+test('exports preserve positively identified heroes, revealed showdown cards and canonical manual imports', async () => {
+  const canonical = savedHandsLib.buildClubArenaSavedHandRow({ userId: HERO_ID, handRow: makeCompletedHandRow() });
+  const explicit = { hand_data: { players: [
+    { name: 'Hidden Opponent', holeCards: ['7s', '2d'], cardsVisibility: 'hidden' },
+    { name: 'Owner', isHero: true, holeCards: ['Ah', 'Kh'] },
+  ] } };
+  const matchingOwner = { user_id: HERO_ID, hand_data: { players: [
+    { id: OUTSIDER_ID, holeCards: ['7s', '2d'], cardsVisibility: 'hidden' },
+    { id: HERO_ID, holeCards: ['Ah', 'Kh'] },
+  ] } };
+  // Historical AI-Scan list projections omit user_id, but its one stored
+  // player_ids owner still positively identifies the matching player entry.
+  const legacyScan = {
+    table_id: 'AI-Scan', player_ids: [HERO_ID], hand_data: { source: 'ai-scan', players: [
+      { id: OUTSIDER_ID, holeCards: ['7s', '2d'], cardsVisibility: 'hidden' },
+      { id: HERO_ID, holeCards: ['Ah', 'Kh'] },
+    ] },
+  };
+  const { buildImportedSavedHandRows } = await import('../src/lib/personal-assistant/importedSavedHands.mjs');
+  const [imported] = buildImportedSavedHandRows({ userId: HERO_ID, evidenceScope: 'external_upload', hands: [{
+    id: 'manual-1', site: 'PokerStars', hero: { name: 'Owner', holeCards: ['Ah', 'Kh'] },
+    players: [{ name: 'Opponent', seat: 1 }, { name: 'Owner', seat: 2 }],
+  }] });
+  for (const row of [canonical, explicit, matchingOwner, legacyScan, imported]) {
+    const exported = savedHandsLib.formatSavedHandForExport(row);
+    assert.deepEqual(exported.heroCards, ['Ah', 'Kh']);
+    assert.ok(exported.players.some(player => player.isHero && player.holeCards.join(' ') === 'Ah Kh'));
+    assert.doesNotMatch(JSON.stringify(exported), /7s|2d/);
+    assert.match(savedHandsLib.formatSavedHandsAsText([row]), /Dealt to Hero \[Ah Kh\]/);
+  }
+  assert.deepEqual(savedHandsLib.formatSavedHandForExport(canonical).players.find(player => player.name === 'ShownVillain').holeCards, ['Qd', 'Qc']);
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // FEATURE 7: Privacy-Safe Share Helper (`anonymizeHandForShare`)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1191,9 +1250,9 @@ test('approved Personal Assistant landing page preserves artwork, order, interna
   assert.ok(sandboxIdx > reviewIdx, 'Virtual Sandbox follows Review My Play');
   assert.ok(leaksIdx > sandboxIdx, 'My Leaks follows Virtual Sandbox');
 
-  assert.match(hub, /\/images\/personal-assistant\/review-my-play-chrome\.webp/);
-  assert.match(hub, /\/images\/personal-assistant\/virtual-sandbox-chrome\.webp/);
-  assert.match(hub, /\/images\/personal-assistant\/my-leaks-chrome\.webp/);
+  assert.match(hub, /<ApprovedIllustration\s+kind="review"/);
+  assert.match(hub, /<ApprovedIllustration\s+kind="sandbox"/);
+  assert.match(hub, /<ApprovedIllustration\s+kind="leaks"/);
   assert.match(hub, /\/hub\/personal-assistant\/review/);
   assert.match(hub, /\/hub\/personal-assistant\/sandbox/);
   assert.match(hub, /\/hub\/personal-assistant\/leaks/);
@@ -1202,9 +1261,8 @@ test('approved Personal Assistant landing page preserves artwork, order, interna
   assert.doesNotMatch(hub, /\/hub\/training/, 'landing-page body has no Training Games redirects');
 
   for (const img of [
-    'public/images/personal-assistant/review-my-play-chrome.webp',
-    'public/images/personal-assistant/virtual-sandbox-chrome.webp',
-    'public/images/personal-assistant/my-leaks-chrome.webp',
+    'public/images/personal-assistant/approved-layout-sprite.webp',
+    'public/images/personal-assistant/approved-card-edit-sprite.webp',
   ]) {
     assert.ok(fs.existsSync(path.join(ROOT, img)), `artwork asset exists: ${img}`);
   }
@@ -1220,4 +1278,302 @@ test('Review My Play page wires durable readback, conflict resolution, canonical
   assert.match(reviewPage, /Not Analyzed/);
   assert.match(reviewPage, /Analyzed/);
   assert.match(reviewPage, /Keep My Changes And Save/);
+});
+
+
+function largeSavedQueue(count = 1205) {
+  const timestamp = '2026-11-27T08:00:00.123456Z';
+  return Array.from({ length: count }, (_, index) => ({
+    id: `saved-${String(index).padStart(5, '0')}`,
+    hand_id: `manual-${index}`,
+    user_id: HERO_ID,
+    table_id: 'Personal-Assistant',
+    variant: 'NLH',
+    small_blind: 1,
+    big_blind: 2,
+    pot_total: 20,
+    created_at: index % 3 === 0 ? timestamp : null,
+    completed_at: index % 3 === 2 ? null : timestamp,
+    started_at: timestamp,
+    hand_data: {
+      source: 'manual',
+      heroCards: ['Ah', 'Kh'],
+      communityCards: ['As', '4s', '5s'],
+      review: { status: 'saved', notes: index === 0 ? 'Oldest Needle' : '', tags: [], revision: 1 },
+    },
+  }));
+}
+
+test('bounded saved-hand pagination reaches every row beyond 1000 with timestamp ties, legacy timestamps, and owner isolation', async () => {
+  const rows = largeSavedQueue();
+  const sb = createFakeSupabase({ savedRows: [...rows, { ...rows[0], id: 'outsider', user_id: OUTSIDER_ID }] });
+  const seen = [];
+  const responses = [];
+  const cursors = new Set();
+  let cursor = '';
+  do {
+    const response = await callHandler({ supabase: sb, query: { limit: '100', ...(cursor ? { cursor } : {}) } });
+    assert.equal(response.statusCode, 200);
+    assert.ok(response.body.hands.length <= 100);
+    responses.push(response.body);
+    seen.push(...response.body.hands.map((row) => row.id));
+    cursor = response.body.nextCursor;
+    if (cursor) {
+      assert.ok(!cursors.has(cursor), 'every page advances');
+      cursors.add(cursor);
+    }
+    assert.ok(cursors.size < 20, 'the loop remains finite');
+  } while (cursor);
+  assert.deepEqual(seen, rows.map((row) => row.id).reverse());
+  assert.equal(new Set(seen).size, 1205);
+  for (const response of responses) {
+    assert.equal(response.countsComplete, false, 'a bounded window is never a whole-account count');
+    assert.equal(response.totalCount, null);
+    assert.equal(response.unreviewedCount, null);
+  }
+  const reads = sb.queryLog.filter((query) => query.tableName === 'hand_histories');
+  assert.ok(reads.every((query) => query.limitN > 0 && query.limitN <= 201), 'database reads are bounded before transfer');
+  assert.ok(reads.every((query) => query.filters.some((filter) => filter.type === 'eq' && filter.col === 'user_id' && filter.val === HERO_ID)), 'every stream remains owner-scoped');
+});
+
+test('a filter with no matches in the first 1000 rows continues to older matching saved hands', async () => {
+  const rows = largeSavedQueue().map((row, index) => ({
+    ...row, created_at: new Date(Date.parse('2026-11-27T08:00:00Z') + index * 1000).toISOString(),
+  }));
+  const sb = createFakeSupabase({ savedRows: rows });
+  const first = await callHandler({ supabase: sb, query: { q: 'Oldest Needle', limit: '25' } });
+  assert.equal(first.statusCode, 200);
+  assert.deepEqual(first.body.hands, []);
+  assert.ok(first.body.nextCursor, 'an empty scan window must retain continuation');
+  assert.equal(first.body.countsComplete, false);
+  assert.equal(first.body.totalCount, null);
+  assert.ok(sb.queryLog.length <= 15, 'one filtered request scans at most five bounded batches');
+  const last = await callHandler({ supabase: sb, query: { q: 'Oldest Needle', cursor: first.body.nextCursor } });
+  assert.deepEqual(last.body.hands.map((row) => row.id), ['saved-00000']);
+  assert.equal(last.body.nextCursor, null);
+});
+
+test('saved-hand keyset order retains database microseconds before using an ID tie break', async () => {
+  const base = largeSavedQueue(1)[0];
+  const rows = [
+    { ...base, id: 'z-older', created_at: '2026-11-27T08:00:00.123400Z' },
+    { ...base, id: 'a-newer', created_at: null, completed_at: '2026-11-27T08:00:00.123900Z' },
+    { ...base, id: 'b-newest', created_at: null, completed_at: null, started_at: '2026-11-27T08:00:00.123999Z' },
+  ];
+  const sb = createFakeSupabase({ savedRows: rows });
+  const first = await callHandler({ supabase: sb, query: { limit: '1' } });
+  const second = await callHandler({ supabase: sb, query: { limit: '1', cursor: first.body.nextCursor } });
+  const third = await callHandler({ supabase: sb, query: { limit: '1', cursor: second.body.nextCursor } });
+  assert.deepEqual([first, second, third].map((res) => res.body.hands[0].id), ['b-newest', 'a-newer', 'z-older']);
+  assert.equal(third.body.nextCursor, null);
+});
+
+test('complete JSON and text exports collect bounded chunks beyond 1000 and reject a truncated direct download', async () => {
+  const rows = largeSavedQueue();
+  const sb = createFakeSupabase({ savedRows: [...rows, { ...rows[0], id: 'outsider', user_id: OUTSIDER_ID }] });
+  for (const format of ['json', 'text']) {
+    const direct = await callHandler({ supabase: sb, query: { export: format } });
+    assert.equal(direct.statusCode, 409, 'legacy attachment cannot silently truncate');
+    assert.equal(direct.body.code, 'EXPORT_REQUIRES_PAGINATION');
+    assert.equal(direct.headers['content-disposition'], undefined);
+    const exported = await collectSavedHandsExport(async (cursor) => {
+      const response = await callHandler({ supabase: sb, query: { export: format, chunk: '1', ...(cursor ? { cursor } : {}) } });
+      assert.equal(response.statusCode, 200);
+      assert.ok(response.body.count <= 100);
+      return response.body;
+    }, { format });
+    assert.equal(exported.count, 1205);
+    const content = exported.parts.join('');
+    assert.ok(!content.includes('outsider'));
+    if (format === 'json') {
+      const parsed = JSON.parse(content);
+      assert.equal(parsed.count, 1205);
+      assert.deepEqual(parsed.hands.map((row) => row.id), rows.map((row) => row.id).reverse());
+    } else {
+      assert.ok(content.includes('saved-01204'));
+      assert.ok(content.includes('saved-00000'));
+      assert.equal((content.match(/^Smarter\.Poker Hand #/gm) || []).length, 1205);
+    }
+  }
+});
+
+test('suggested hands exclude saved canonical and legacy copies beyond the first 1000 account rows', async () => {
+  const rows = largeSavedQueue(1100);
+  rows[1098].hand_id = `club-arena:${HAND_UUID}`;
+  rows[1099].hand_id = `ca:${HAND_UUID_2}`;
+  const sb = createFakeSupabase({
+    savedRows: rows,
+    factsRows: [HAND_UUID, HAND_UUID_2].map((id) => ({
+      user_id: HERO_ID, hand_id: id, played_at: '2026-11-27T10:00:00Z', table_id: TABLE_UUID,
+      net_bb: -100, went_to_showdown: true, position: 'BTN',
+    })),
+  });
+  const response = await callHandler({ supabase: sb, query: { suggested: '1' }, checkAccess: async () => ({ allowed: true, accessLevel: 'full', contextState: 'idle' }) });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.body.suggested, []);
+  const savedReads = sb.queryLog.filter((query) => query.tableName === 'hand_histories');
+  assert.equal(savedReads.length, 1);
+  assert.equal(savedReads[0].limitN, 50);
+  const predicate = savedReads[0].filters.find(filter => filter.type === 'or')?.expression;
+  assert.ok(predicate.includes(HAND_UUID) && predicate.includes(HAND_UUID_2));
+  assert.ok(!predicate.includes(rows[0].hand_id), 'unrelated account rows never enter the candidate lookup');
+});
+
+test('suggestions exclude every supported legacy source identity while keeping another account isolated', async () => {
+  const identities = [
+    { hand_id: HAND_UUID, hand_data: {} },
+    { hand_id: 'arbitrary-legacy-key', hand_data: { sourceHandId: HAND_UUID } },
+    { hand_id: `club-arena:${HAND_UUID}`, hand_data: {} },
+    { hand_id: `ca:${HAND_UUID}`, hand_data: {} },
+    { hand_id: `  CLUB-ARENA:${HAND_UUID.toUpperCase()}\t`, hand_data: {} },
+    { hand_id: `\t${HAND_UUID.toUpperCase()}\n`, hand_data: {} },
+    { hand_id: 'arbitrary-legacy-key', hand_data: { sourceHandId: `\t${HAND_UUID.toUpperCase()}\n` } },
+  ];
+  for (const identity of identities) {
+    const sb = createFakeSupabase({
+      savedRows: [
+        { id: 'saved-legacy', user_id: HERO_ID, ...identity },
+        { id: 'other-account', user_id: OUTSIDER_ID, hand_id: HAND_UUID_2, hand_data: { sourceHandId: HAND_UUID_2 } },
+      ],
+      factsRows: [HAND_UUID, HAND_UUID_2].map(hand_id => ({
+        user_id: HERO_ID, hand_id, played_at: '2026-11-27T10:00:00Z', table_id: TABLE_UUID,
+        net_bb: -100, went_to_showdown: true, position: 'BTN',
+      })),
+    });
+    const response = await callHandler({ supabase: sb, query: { suggested: '1' }, checkAccess: async () => ({ allowed: true }) });
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(response.body.suggested.map(row => row.handId), [HAND_UUID_2], `legacy identity: ${JSON.stringify(identity)}`);
+    const lookups = sb.queryLog.filter(query => query.tableName === 'hand_histories');
+    assert.ok(lookups.length > 0 && lookups.length <= 3);
+    for (const lookup of lookups) {
+      assert.ok(lookup.filters.some(filter => filter.type === 'eq' && filter.col === 'user_id' && filter.val === HERO_ID));
+      assert.equal(lookup.limitN, 50, 'each candidate lookup is response-bounded');
+      assert.equal(lookup.columns, 'hand_id,source_hand_id:hand_data->>sourceHandId', 'no private hand payload is needed for existence');
+    }
+  }
+});
+
+test('duplicate legacy copies cannot hide a later saved candidate behind the suggestion lookup limit', async () => {
+  const duplicates = Array.from({ length: 1100 }, (_, index) => ({
+    id: `copy-${String(index).padStart(4, '0')}`, user_id: HERO_ID,
+    hand_id: `old-import-${index}`, hand_data: { sourceHandId: HAND_UUID },
+  }));
+  const sb = createFakeSupabase({
+    savedRows: [...duplicates, { id: 'z-last', user_id: HERO_ID, hand_id: HAND_UUID_2, hand_data: {} }],
+    factsRows: [HAND_UUID, HAND_UUID_2].map(hand_id => ({
+      user_id: HERO_ID, hand_id, played_at: '2026-11-27T10:00:00Z', table_id: TABLE_UUID,
+      net_bb: -100, went_to_showdown: true, position: 'BTN',
+    })),
+  });
+  const response = await callHandler({ supabase: sb, query: { suggested: '1' }, checkAccess: async () => ({ allowed: true }) });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.body.suggested, []);
+  const lookups = sb.queryLog.filter(query => query.tableName === 'hand_histories');
+  assert.equal(lookups.length, 2, 'remove the confirmed candidate before checking remaining candidates');
+  assert.ok(lookups.every(query => query.limitN === 50));
+  assert.ok(!JSON.stringify(lookups[1].filters).includes(HAND_UUID), 'do not scan more duplicates of an already-confirmed hand');
+});
+
+test('the installed Supabase client serializes a bounded owner-scoped legacy suggestion lookup', async () => {
+  const { createClient } = await import('@supabase/supabase-js');
+  const requests = [];
+  const supabase = createClient('http://127.0.0.1:9', 'local-fixture-only', {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: async (input) => {
+      const url = new URL(String(input));
+      requests.push(url);
+      assert.equal(url.searchParams.get('user_id'), `eq.${HERO_ID}`);
+      if (url.pathname.endsWith('/ca_hand_facts')) {
+        assert.equal(url.searchParams.get('limit'), '100');
+        return Response.json([HAND_UUID, `${HAND_UUID}.*`].map(hand_id => ({
+          user_id: HERO_ID, hand_id, played_at: '2026-11-27T10:00:00Z', net_bb: -100,
+        })));
+      }
+      assert.equal(url.pathname, '/rest/v1/hand_histories');
+      assert.equal(url.searchParams.get('select'), 'hand_id,source_hand_id:hand_data->>sourceHandId');
+      assert.equal(url.searchParams.get('limit'), '50');
+      assert.equal(url.searchParams.get('order'), 'id.asc');
+      const expression = url.searchParams.get('or');
+      assert.ok(expression.startsWith('(') && expression.endsWith(')'));
+      const predicates = expression.slice(1, -1);
+      assert.doesNotMatch(predicates, /\.\*/, 'unvalidated fact IDs cannot become regex syntax');
+      for (const hand_id of [HAND_UUID, `ca:${HAND_UUID}`, `  CLUB-ARENA:${HAND_UUID.toUpperCase()}\t`]) {
+        assert.equal(matchesFixtureOr({ hand_id }, predicates), true);
+      }
+      assert.equal(matchesFixtureOr({ hand_id: `unrelated:${HAND_UUID}` }, predicates), false);
+      const row = { hand_id: 'arbitrary-legacy-key', hand_data: { sourceHandId: `\t${HAND_UUID.toUpperCase()}\n` } };
+      assert.equal(matchesFixtureOr(row, predicates), true);
+      return Response.json([projectFixtureRow(row, url.searchParams.get('select'))]);
+    } },
+  });
+  const response = await callHandler({ supabase, query: { suggested: '1' }, checkAccess: async () => ({ allowed: true }) });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.body.suggested, []);
+  assert.equal(requests.length, 2, 'one bounded candidate read and one bounded saved-identity read');
+});
+
+function exportChunk(ids, nextCursor = null, format = 'json') {
+  return {
+    success: true, schemaVersion: 1, format, ids, count: ids.length,
+    nextCursor, complete: nextCursor === null, exportedAt: '2026-11-27T10:00:00Z',
+    ...(format === 'json' ? { hands: ids.map((id) => ({ id })) } : { text: ids.join('\n') }),
+  };
+}
+
+test('export collector rejects partial responses, errors, cursor cycles, duplicate hands, and bounded-size failures', async () => {
+  const badSequences = [
+    [exportChunk(['a'], 'next'), new Error('Connection Lost')],
+    [exportChunk(['a'], 'repeat'), exportChunk(['b'], 'repeat')],
+    [exportChunk(['a'], 'next'), exportChunk(['a'])],
+    [{ ...exportChunk(['a']), complete: false }],
+    [{ ...exportChunk(['a']), count: 2 }],
+    [{ ...exportChunk(['a']), hands: [{ id: 'different' }] }],
+    [exportChunk([], 'next')],
+  ];
+  for (const sequence of badSequences) {
+    let index = 0;
+    await assert.rejects(collectSavedHandsExport(async () => {
+      const value = sequence[index++];
+      if (value instanceof Error) throw value;
+      return value;
+    }));
+  }
+  await assert.rejects(collectSavedHandsExport(async () => exportChunk(['a']), { maxBytes: 32 }), /Too Large/);
+  await assert.rejects(collectSavedHandsExport(async () => exportChunk(['a'], 'next'), { maxPages: 1 }), /Download Limit/);
+});
+
+test('export collector aborts before fetching or after an in-flight response and never returns partial parts', async () => {
+  const before = new AbortController();
+  before.abort();
+  await assert.rejects(collectSavedHandsExport(async () => assert.fail('must not fetch'), { signal: before.signal }), { name: 'AbortError' });
+  const during = new AbortController();
+  await assert.rejects(collectSavedHandsExport(async () => {
+    during.abort();
+    return exportChunk(['a']);
+  }, { signal: during.signal }), { name: 'AbortError' });
+});
+
+
+test('list and export response byte budgets retain continuation and reject an oversized legacy record explicitly', async () => {
+  const rows = largeSavedQueue(20).map((row) => ({
+    ...row, hand_data: { ...row.hand_data, streets: [{ name: 'flop', actions: [{ action: 'check', playerName: 'x'.repeat(160000) }] }] },
+  }));
+  const sb = createFakeSupabase({ savedRows: rows });
+  for (const query of [{ limit: '100' }, { export: 'json', chunk: '1' }, { export: 'text', chunk: '1' }]) {
+    const first = await callHandler({ supabase: sb, query });
+    assert.equal(first.statusCode, 200);
+    assert.ok(Buffer.byteLength(JSON.stringify(first.body)) <= 2 * 1024 * 1024);
+    assert.ok(first.body.nextCursor, 'byte-limited response retains a continuation');
+    const last = await callHandler({ supabase: sb, query: { ...query, cursor: first.body.nextCursor } });
+    assert.equal(last.statusCode, 200);
+    assert.equal(last.body.nextCursor, null);
+    const ids = query.export ? [...first.body.ids, ...last.body.ids] : [...first.body.hands, ...last.body.hands].map((hand) => hand.id);
+    assert.deepEqual(ids, rows.map((row) => row.id).reverse());
+  }
+  const oversized = largeSavedQueue(1)[0];
+  oversized.hand_data.streets = [{ name: 'x'.repeat(3 * 1024 * 1024) }];
+  const tooLarge = await callHandler({ supabase: createFakeSupabase({ savedRows: [oversized] }), query: { export: 'json', chunk: '1' } });
+  assert.equal(tooLarge.statusCode, 413);
+  assert.equal(tooLarge.body.success, false);
+  assert.equal(tooLarge.headers['content-disposition'], undefined);
 });

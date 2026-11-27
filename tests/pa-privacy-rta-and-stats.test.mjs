@@ -626,6 +626,7 @@ test('Section 5.2 [All Actionable Guidance Routes]: blocks seated live play, pos
   process.env.NEXT_PUBLIC_SUPABASE_URL = prevUrl || 'https://example.supabase.co';
   process.env.SUPABASE_SERVICE_ROLE_KEY = prevKey || 'test-service-role-key';
   const auditHhMod = compileRoute('pages/api/training/audit-hand-history.js', {
+    '../../../src/lib/personal-assistant/importedSavedHands.mjs': { persistImportedSavedHands: async () => { throw new Error('Unexpected Review Queue Write In RTA Fixture'); } },
     '../../../src/lib/serverAuth.js': authStub,
     '../../../src/lib/supabaseServerClient.js': { createClient: () => auditHhDbProxy },
     '../../../src/lib/apiRateLimit.js': rateLimitStub,

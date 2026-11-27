@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import { readFileSync } from 'node:fs';
 
 import {
   calculateEquity,
@@ -20,6 +21,164 @@ import {
   patternIsMeasured,
 } from '../src/lib/personal-assistant/leakRecord.js';
 import { buildCoachingSnapshot, buildTrainingPlan } from '../src/lib/personal-assistant/coachingIntelligence.mjs';
+import { replayScenarioFromEntry } from '../src/components/sandbox/replayScenario.mjs';
+import { computeHandState } from '../src/components/sandbox/actionEngine.mjs';
+
+const sandboxSource = () => readFileSync(new URL('../pages/hub/personal-assistant/sandbox.js', import.meta.url), 'utf8');
+
+test('native Sandbox runouts use every seated opponent in range and random-hand modes', async () => {
+  const source = sandboxSource();
+  const rangeStart = source.indexOf('  const equityRangeArg = useMemo(');
+  const rangeEnd = source.indexOf('\n  const {\n    equity,', rangeStart);
+  const effectStart = source.indexOf('  useEffect(() => {', source.indexOf('// ── Async Runout Simulation'));
+  const effectEnd = source.indexOf('// ── Snapshot & Undo Helpers', effectStart);
+  assert.ok(rangeStart >= 0 && rangeEnd > rangeStart && effectStart >= 0 && effectEnd > effectStart);
+
+  for (const scenario of [
+    { ranges: ['QQ', 'KK'], enabled: true, expected: { villains: ['QQ', 'KK'] } },
+    { ranges: ['QQ', 'KK', 'JJ', 'TT', '99'], enabled: true, expected: { villains: ['QQ', 'KK', 'JJ', 'TT', '99'] } },
+    { ranges: ['QQ', 'KK'], enabled: false, expected: { villains: [null, null] } },
+    { ranges: ['QQ'], enabled: true, expected: 'QQ' },
+    { ranges: ['QQ'], enabled: false, expected: null },
+  ]) {
+    const calls = [];
+    const pending = [];
+    const context = {
+      useMemo: fn => fn(),
+      useEffect: fn => fn(),
+      activePlayBlock: null,
+      villains: scenario.ranges.map(range => ({ range })),
+      equityVsRange: scenario.enabled,
+      resolvedVillainRanges: scenario.ranges,
+      heroCardsMemo: ['As', 'Ad'],
+      communityCards: ['Kh', '7c', '2d', '9c'],
+      runoutReqIdRef: { current: 0 },
+      makeAbortHandle: () => ({ signal: undefined, abort() {} }),
+      setRunouts() {},
+      setRunoutsComputing() {},
+      isAbortError: () => false,
+      simulateRunoutsAsync: (...args) => {
+        calls.push(args);
+        const result = Promise.resolve({ baseline: 4, distribution: [] });
+        pending.push(result);
+        return result;
+      },
+    };
+    vm.runInNewContext(source.slice(rangeStart, rangeEnd) + source.slice(effectStart, effectEnd), context);
+    await Promise.all(pending);
+    assert.equal(calls.length, 1);
+    assert.deepEqual(JSON.parse(JSON.stringify(calls[0][3])), scenario.expected);
+  }
+
+  // An independent numerical witness makes this more than a prop-name test:
+  // aces beat QQ on this turn, but must hit an ace to beat the second seat's set.
+  const hero = ['As', 'Ad'];
+  const board = ['Kh', '7c', '2d', '9c'];
+  const headsUp = simulateRunouts(hero, board, 50, 'QQ', 123);
+  const multiway = simulateRunouts(hero, board, 50, { villains: ['QQ', 'KK'] }, 123);
+  assert.ok(headsUp.baseline > 90);
+  assert.ok(multiway.baseline < 10);
+  assert.deepEqual(multiway.bestCards.slice(0, 2).map(card => card.card).sort(), ['Ac', 'Ah']);
+});
+
+test('native Hand Replay restores its logged board, seats, position, stacks and pot/action state', () => {
+  const source = sandboxSource();
+  const recordStart = source.indexOf('  const recordExplorationSnapshot = useCallback(');
+  const recordEnd = source.indexOf('// ── Table Card & Deal Interactions', recordStart);
+  const restoreStart = source.indexOf('  const restoreScenario = useCallback(');
+  const restoreEnd = source.indexOf('  const restoreScenarioRef = useRef(', restoreStart);
+  const replayHandler = source.match(/onLoadScenario=\{\(entry\) => \{([\s\S]*?)\n          \}\}/);
+  assert.ok(recordStart >= 0 && recordEnd > recordStart && restoreStart >= 0 && restoreEnd > restoreStart && replayHandler);
+
+  const initial = {
+    gameType: 'tournament', heroPosition: 'CO', heroStack: 85, potBase: 6.5,
+    heroHand: { card1: 'As', card2: 'Ad' },
+    board: { flop: ['Kh', '7c', '2d'], turn: '9c', river: '4s' },
+    villains: [
+      { id: 7, position: 'BB', stack: 95, range: 'QQ', archetype: { id: 'gto_neutral', name: 'GTO Neutral' } },
+      { id: 9, position: 'SB', stack: 45, range: 'KK', archetype: { id: 'gto_neutral', name: 'GTO Neutral' } },
+    ],
+    actionHistory: [
+      { street: 'flop', actorKey: 'hero', isHero: true, action: 'bet', amount: 5 },
+      { street: 'flop', actorKey: 'villain_0', isVillain: true, action: 'call', amount: 5 },
+    ],
+    preflopPosts: [],
+    authority: 'authored-sandbox-ungraded',
+  };
+  let log = [];
+  const restored = {};
+  const context = {
+    useCallback: fn => fn,
+    sandboxSnapshot: initial,
+    heroHand: initial.heroHand,
+    heroPosition: initial.heroPosition,
+    heroStack: initial.heroStack,
+    communityCards: ['Kh', '7c', '2d', '9c', '4s'],
+    currentStreet: 'river',
+    equity: { heroEquity: 4 },
+    handState: { pot: 16.5 },
+    actionHistory: initial.actionHistory,
+    sessionStartedAtRef: { current: 1 },
+    setSessionLog: update => { log = update(log); },
+    pushUndo() {},
+    POSITIONS: ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'],
+    MAX_VILLAINS: 5,
+    DEFAULT_VILLAINS: [{ id: 0, position: 'BB', stack: 100, range: '' }],
+    withVillainIds: list => list,
+    boardToArray: value => Array.isArray(value) ? value.filter(Boolean) : [...(value.flop || []), value.turn, value.river].filter(Boolean),
+    pruneActionsToMaxVillains: actions => actions,
+    replayScenarioFromEntry,
+    toast: { success() {}, error(message) { assert.fail(message); } },
+    setActiveVillainIdx() {},
+    setReplayIndex() {},
+  };
+  for (const [setter, field] of Object.entries({
+    setGameType: 'gameType', setHeroPosition: 'heroPosition', setHeroStack: 'heroStack',
+    setPotBase: 'potBase', setHeroHand: 'heroHand', setBoard: 'board', setVillains: 'villains',
+    setActionHistory: 'actionHistory', setPreflopPosts: 'preflopPosts',
+  })) context[setter] = value => { restored[field] = value; };
+  vm.runInNewContext(
+    source.slice(restoreStart, restoreEnd) + source.slice(recordStart, recordEnd)
+      + '\nrecordExplorationSnapshot("Logged For Replay");'
+      + `\n((entry) => {${replayHandler[1]}})(globalThis.logEntry());`,
+    { ...context, logEntry: () => log[0] },
+  );
+  assert.equal(log.length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(restored)), {
+    gameType: initial.gameType, heroPosition: initial.heroPosition, heroStack: initial.heroStack,
+    potBase: initial.potBase, heroHand: initial.heroHand, board: initial.board,
+    villains: initial.villains, actionHistory: initial.actionHistory, preflopPosts: initial.preflopPosts,
+  });
+  const replayedHand = computeHandState({
+    ...restored, basePot: restored.potBase, actions: restored.actionHistory, street: 'river',
+  });
+  assert.equal(replayedHand.pot, 16.5, 'replaying must add the two recorded bets exactly once');
+});
+
+test('legacy replays restore display fields without stale wagers and reject impossible cards', () => {
+  const legacy = {
+    hand: 'AsAd', board: 'Kh 7c 2d 9c 4s', position: 'CO', stackDepth: 85, potSize: 16.5,
+  };
+  const restored = replayScenarioFromEntry(legacy);
+  assert.deepEqual(restored.board, { flop: ['Kh', '7c', '2d'], turn: '9c', river: '4s' });
+  assert.equal(restored.heroPosition, 'CO');
+  assert.equal(restored.heroStack, 85);
+  assert.equal(restored.potBase, 16.5);
+  assert.deepEqual(restored.actionHistory, []);
+  assert.deepEqual(restored.preflopPosts, []);
+  assert.equal(restored.villains.length, 1);
+  assert.equal(restored.authority, 'authored-sandbox-ungraded');
+  assert.equal(replayScenarioFromEntry({ ...legacy, board: 'As 7c 2d' }), null);
+  assert.equal(replayScenarioFromEntry({ ...legacy, hand: 'AsAs' }), null);
+  assert.equal(replayScenarioFromEntry({ ...legacy, board: 'Kh 7c' }), null);
+  assert.equal(replayScenarioFromEntry({ ...legacy, board: 'Invalid Board' }), null);
+  assert.equal(replayScenarioFromEntry({ ...legacy, board: { flop: ['Kh', '7c', '2d'], turn: null, river: '4s' } }), null);
+  assert.equal(replayScenarioFromEntry({ ...legacy, board: { flop: ['Kh', '7c'], turn: '9c', river: '4s' } }), null);
+  assert.equal(replayScenarioFromEntry({ ...legacy, villains: [null] }), null);
+  const missingBase = replayScenarioFromEntry({ ...legacy, potBase: null, actionHistory: [{ action: 'bet', amount: 5 }] });
+  assert.equal(missingBase.potBase, 16.5);
+  assert.deepEqual(missingBase.actionHistory, []);
+});
 
 function bootEquityWorkerVm() {
   const messages = [];
