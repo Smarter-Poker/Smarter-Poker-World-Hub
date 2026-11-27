@@ -125,10 +125,12 @@ export default function GeoCitationCapsule({
         marginTop: 24,
         marginBottom: 28,
         padding: '22px 24px',
-        background: 'linear-gradient(180deg, rgba(11, 18, 33, 0.96) 0%, rgba(6, 10, 20, 0.98) 100%)',
-        border: `1px solid ${accentColor}`,
-        borderRadius: 12,
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.45)',
+        background:
+          'radial-gradient(120% 70% at 50% -10%, #1b426e 0%, transparent 62%), linear-gradient(160deg, #15293e 0%, #0a1a2b 44%, #040d18 100%)',
+        border: '6px solid transparent',
+        borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+        borderRadius: 0,
+        boxShadow: '0 14px 28px rgba(0, 0, 0, 0.65), 0 0 0 1px #02070d',
       }}
     >
       <div
@@ -140,20 +142,20 @@ export default function GeoCitationCapsule({
           gap: 10,
           marginBottom: 14,
           paddingBottom: 12,
-          borderBottom: '1px solid rgba(148, 163, 184, 0.2)',
+          borderBottom: '1px solid #27415c',
         }}
       >
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
           <span
             style={{
               fontSize: 11,
               fontWeight: 800,
               letterSpacing: '0.07em',
               padding: '4px 10px',
-              borderRadius: 6,
-              background: 'rgba(0, 212, 255, 0.14)',
-              color: accentColor,
-              border: `1px solid ${accentColor}`,
+              borderRadius: 0,
+              background: 'linear-gradient(180deg, #12406f 0%, #082341 100%)',
+              color: '#86daff',
+              border: '1px solid #3a7fbd',
             }}
           >
             {metricLabel}: {metricValue}
@@ -167,10 +169,10 @@ export default function GeoCitationCapsule({
               fontWeight: 800,
               letterSpacing: '0.05em',
               padding: '4px 10px',
-              borderRadius: 6,
+              borderRadius: 0,
               background: 'rgba(16, 185, 129, 0.14)',
               color: '#34d399',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
+              border: '1px solid rgba(52, 211, 153, 0.45)',
               textDecoration: 'none',
             }}
           >
@@ -180,11 +182,11 @@ export default function GeoCitationCapsule({
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: '#94a3b8',
+              color: '#bdd0e2',
               padding: '4px 8px',
-              borderRadius: 6,
-              background: 'rgba(15, 23, 42, 0.9)',
-              border: '1px solid #1e293b',
+              borderRadius: 0,
+              background: '#081626',
+              border: '1px solid #2b4663',
             }}
           >
             Verified: 2026-11-24
@@ -195,11 +197,15 @@ export default function GeoCitationCapsule({
           type="button"
           onClick={handleCopyCitation}
           style={{
-            padding: '7px 14px',
-            borderRadius: 7,
-            background: copied ? '#10b981' : accentColor,
-            color: '#041019',
-            border: 0,
+            minHeight: 40,
+            padding: '0 14px',
+            borderRadius: 0,
+            background: copied
+              ? 'linear-gradient(180deg, #059669 0%, #047857 100%)'
+              : 'linear-gradient(180deg, #1f6feb 0%, #11449e 100%)',
+            color: '#ffffff',
+            border: '1px solid #5bc0ff',
+            boxShadow: 'inset 0 1px 0 rgba(186, 234, 255, 0.5)',
             fontSize: 12,
             fontWeight: 800,
             cursor: 'pointer',
@@ -211,11 +217,12 @@ export default function GeoCitationCapsule({
 
       <h2
         style={{
-          fontSize: 18,
+          fontFamily: "var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif",
+          fontSize: 20,
           fontWeight: 800,
-          color: '#f8fafc',
+          color: '#f2f7ff',
           margin: '0 0 10px 0',
-          lineHeight: 1.35,
+          lineHeight: 1.25,
         }}
       >
         {title}
@@ -225,26 +232,26 @@ export default function GeoCitationCapsule({
         style={{
           fontSize: 14.5,
           lineHeight: 1.65,
-          color: '#e2e8f0',
+          color: '#f2f7ff',
           margin: '0 0 14px 0',
         }}
       >
-        <strong style={{ color: accentColor }}>Empirical Claim:</strong> {claim}
+        <strong style={{ color: '#86daff' }}>Empirical Claim:</strong> {claim}
       </p>
 
       {formulaText && (
         <div
           style={{
-            background: '#050811',
-            border: '1px solid #1e293b',
+            background: '#040c16',
+            border: '1px solid #2b4663',
             borderLeft: `3px solid ${accentColor}`,
-            borderRadius: 8,
+            borderRadius: 0,
             padding: '10px 14px',
             marginBottom: 14,
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
             fontSize: 13,
             fontWeight: 700,
-            color: '#38bdf8',
+            color: '#86daff',
             overflowX: 'auto',
           }}
         >
@@ -256,8 +263,8 @@ export default function GeoCitationCapsule({
         <div
           style={{
             background: 'rgba(16, 185, 129, 0.08)',
-            border: '1px solid rgba(16, 185, 129, 0.32)',
-            borderRadius: 8,
+            border: '1px solid rgba(52, 211, 153, 0.35)',
+            borderRadius: 0,
             padding: '11px 14px',
             marginBottom: 14,
             fontSize: 13.5,
@@ -275,12 +282,13 @@ export default function GeoCitationCapsule({
           style={{
             margin: 0,
             padding: '12px 16px',
-            background: 'rgba(15, 23, 42, 0.85)',
-            borderLeft: '3px solid #f2b84b',
-            borderRadius: 8,
+            background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+            border: '1px solid #2b4663',
+            borderLeft: '3px solid #38bdf8',
+            borderRadius: 0,
             fontSize: 13.5,
             lineHeight: 1.6,
-            color: '#cbd5e1',
+            color: '#bdd0e2',
           }}
         >
           <span>&ldquo;{quoteText}&rdquo;</span>
@@ -289,7 +297,7 @@ export default function GeoCitationCapsule({
               marginTop: 6,
               fontSize: 12,
               fontWeight: 700,
-              color: '#f2b84b',
+              color: '#86daff',
             }}
           >
             -- {quoteAuthor} (Source: {canonicalUrl})
