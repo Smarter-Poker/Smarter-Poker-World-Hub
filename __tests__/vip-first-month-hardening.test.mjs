@@ -273,7 +273,7 @@ test('checkout counts a new one dollar session before it takes the claim', async
   const limiter = checkout.indexOf('await consumeVipIntroCheckoutAllowance(getSupabase(), user.id, req)');
   const claim = checkout.indexOf("'claim_vip_subscription_checkout',");
   assert.ok(limiter > 0 && claim > limiter);
-  assert.match(checkout, /if \(preparedCheckout\.intro && !matchingSession\) \{/);
+  assert.match(checkout, /if \(\(preparedCheckout\.intro \|\| preparedCheckout\.comeback\) && !matchingSession\) \{/);
   assert.match(checkout, /code: 'VIP_INTRO_CHECKOUT_LIMIT'/);
   assert.match(checkout, /if \(allowance === 'unavailable'\) \{\s*return res\.status\(503\)/);
   assert.match(checkout, /if \(allowance !== 'allowed'\) \{[\s\S]{0,140}return res\.status\(429\)/);

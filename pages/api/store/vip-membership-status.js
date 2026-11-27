@@ -13,6 +13,8 @@ import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 import { vipIntroOfferPublicTerms } from '../../../src/lib/store/vipIntroOffer.mjs';
 import { resolveVipIntroOffer } from '../../../src/lib/store/vipIntroEligibility';
+import { VIP_COMEBACK_OFFER } from '../../../src/lib/store/vipComebackOffer.mjs';
+import { resolveVipComebackOffer } from '../../../src/lib/store/vipComebackEligibility';
 
 let _supabase = null;
 function getSupabase() {
@@ -100,6 +102,18 @@ export default async function handler(req, res) {
     const introDecision = isLifetime
       ? { eligible: false, reason: 'lifetime' }
       : await resolveVipIntroOffer(getSupabase(), user);
+    /* The comeback price for a lapsed Card member, from the same decision
+       Checkout charges from (resolveVipComebackOffer). Never alongside the $1
+       month: it is only decided once that offer is ruled out, exactly as
+       Checkout decides it. `eligible` null is unknown (show the regular
+       price). Additive field; no existing display reads it. */
+    const comebackDecision = isLifetime
+      ? { eligible: false, reason: 'lifetime' }
+      : introDecision.eligible === true
+        ? { eligible: false, reason: 'first_month_offer' }
+        : introDecision.eligible === null
+          ? { eligible: null, reason: 'eligibility_unknown' }
+          : await resolveVipComebackOffer(getSupabase(), user);
     const checkoutOpensAt =
       !isLifetime && !isCardSubscription && entitlementIsActive(profile)
         ? profile.vip_expires_at
@@ -112,6 +126,12 @@ export default async function handler(req, res) {
         eligible: introDecision.eligible,
         reason: introDecision.reason,
         checkoutOpensAt,
+      },
+      comebackOffer: {
+        eligible: comebackDecision.eligible,
+        firstPeriodCents: VIP_COMEBACK_OFFER.firstPeriodCents,
+        regularCents: VIP_COMEBACK_OFFER.regularCents,
+        reason: comebackDecision.reason,
       },
       membership: {
         isVip: entitlementIsActive(profile),

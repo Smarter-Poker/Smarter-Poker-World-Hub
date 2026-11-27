@@ -4,6 +4,7 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 import * as vipIntroOffer from '../src/lib/store/vipIntroOffer.mjs';
+import * as vipComebackOffer from '../src/lib/store/vipComebackOffer.mjs';
 
 const ROUTE_PATH = new URL('../pages/api/store/switch-vip-plan.js', import.meta.url);
 const routeSource = await readFile(ROUTE_PATH, 'utf8');
@@ -194,6 +195,7 @@ async function loadHarness({
     },
     '../../../src/lib/store/vipStripePrice.mjs': { vipStripePriceMismatch: () => null },
     '../../../src/lib/store/vipIntroOffer.mjs': { ...vipIntroOffer },
+    '../../../src/lib/store/vipComebackOffer.mjs': { ...vipComebackOffer },
     '../../../src/lib/supabaseServerClient': { createClient: () => supabase },
     stripe: { default: Stripe },
   };
