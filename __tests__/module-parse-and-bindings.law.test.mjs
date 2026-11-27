@@ -214,3 +214,36 @@ test('gate is wired into both Pre-Deploy Safety Checks (CI) and pre-push-js-safe
     'pre-push-js-safety.sh must validate the simulated merge against refs/remotes/origin/main',
   );
 });
+
+test('every pre-build test in scripts["build:vercel"] also gates PRs in Pre-Deploy Safety Checks', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  const ciYml = fs.readFileSync(path.join(ROOT, '.github/workflows/build-safety-gate.yml'), 'utf8');
+  const safetyStart = ciYml.indexOf('\n  safety-checks:');
+  const notifyStart = ciYml.indexOf('\n  notify-failure:', safetyStart);
+  assert.ok(safetyStart > 0 && notifyStart > safetyStart, 'could not isolate safety-checks job in build-safety-gate.yml');
+  const safetyJob = ciYml.slice(safetyStart, notifyStart);
+
+  const buildVercel = pkg.scripts?.['build:vercel'] ?? '';
+  const testSegments = buildVercel
+    .split('&&')
+    .map((s) => s.trim())
+    .filter((s) => /\bnpm run test:/.test(s) || /\bnode\b[^&]*\s--test\b/.test(s));
+
+  assert.ok(testSegments.length > 0, 'expected at least one pre-build test command in scripts["build:vercel"]');
+
+  const missingInCi = [];
+  for (const seg of testSegments) {
+    const core = seg.replace(/^NODE_ENV=test\s+/, '').trim();
+    if (!safetyJob.includes(core)) {
+      missingInCi.push(core);
+    }
+  }
+
+  assert.deepEqual(
+    missingInCi,
+    [],
+    'Every pre-build test command in scripts["build:vercel"] must also execute inside Pre-Deploy Safety Checks ' +
+      '(build-safety-gate.yml), otherwise a PR can pass CI and immediately fail Vercel deployment (incident 86bcafc1 / #3143):\n' +
+      missingInCi.map((c) => `  - ${c}`).join('\n'),
+  );
+});
