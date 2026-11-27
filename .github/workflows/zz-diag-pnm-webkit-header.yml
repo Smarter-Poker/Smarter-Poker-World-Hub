@@ -53,10 +53,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
       - name: Geometry diagnostic
-        run: BASE_URL=http://127.0.0.1:$PORT RUNS=6 node scripts/diag-pnm-header.cjs
+        run: BASE_URL=http://127.0.0.1:$PORT RUNS=1 node scripts/diag-pnm-header.cjs
       - name: Spec repeat
         if: always()
-        run: npx playwright test e2e/024-world-menu-mobile-phase3.spec.ts --project=world-menu-phase3-webkit --workers=1 --grep "deep Series route" --repeat-each=3 || true
+        run: npx playwright test e2e/024-world-menu-mobile-phase3.spec.ts --project=world-menu-phase3-webkit --workers=1 --grep "deep Series route" --repeat-each=20 || true
         env:
           CI: true
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ env.PORT }}

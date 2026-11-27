@@ -352,33 +352,30 @@ test('Poker Near Me deep Series route keeps its approved header trigger after do
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   await expect(trigger).toBeVisible();
 
-  // The pin is read from the engine's own layout at this instant, and the
-  // trigger must be what a tap at its centre reaches. WebKit's protocol box
-  // (Playwright's boundingBox, Page.getContentQuads) for a position: fixed
-  // element lags the layout viewport for a few frames after a programmatic
-  // scroll while the document is still growing: CI recorded y = 1979 for a
-  // header that the same frame's screenshot painted at the top, that
-  // getBoundingClientRect placed at y = 0 and that elementFromPoint hit
-  // (2026-11-26 probe, 4 of 12 WebKit runs; never in Chromium). A single
-  // protocol read is therefore not evidence either way; the DOM read is.
+  // The pin is read from the engine's own layout at this instant.
+  // WebKit's protocol box (Playwright's boundingBox, Page.getContentQuads)
+  // and its hit-testing for a position: fixed element lag the layout viewport
+  // until the next rendering update after a programmatic scroll while the
+  // document is still growing: CI recorded y = 1979 for a header that the same
+  // frame's screenshot painted at the top and getBoundingClientRect placed at
+  // y = 0 (2026-11-26 probe, about half of WebKit runs; never in Chromium).
+  // A single protocol read is therefore not evidence either way; the DOM is.
   const pin = await trigger.evaluate((element) => {
     const rect = element.getBoundingClientRect();
-    const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
-    return {
-      x: rect.x,
-      y: rect.y,
-      width: rect.width,
-      height: rect.height,
-      reachable: Boolean(hit) && (hit === element || element.contains(hit)),
-      scrollY: window.scrollY,
-    };
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, scrollY: window.scrollY };
   });
   expect(pin.scrollY).toBeGreaterThan(0);
-  expect(pin.reachable, 'a tap at the trigger centre reaches the trigger').toBe(true);
   expect(pin.x).toBeGreaterThanOrEqual(0);
   expect(pin.y).toBeGreaterThanOrEqual(0);
   expect(pin.x + pin.width).toBeLessThanOrEqual(PHONE.width + 1);
   expect(pin.y + pin.height).toBeLessThanOrEqual(PHONE.height + 1);
+
+  // A tap at the trigger centre must reach the trigger, not something above it.
+  await expect.poll(() => trigger.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+    return Boolean(hit) && (hit === element || element.contains(hit));
+  }), { message: 'a tap at the trigger centre reaches the trigger', timeout: 5_000 }).toBe(true);
   await expect(trigger).toBeInViewport({ ratio: 1 });
 
   // The protocol box must agree once WebKit's layout viewport has caught up.
