@@ -79,6 +79,8 @@ import {
     buildCustomTrainingArenaHref,
     evaluateMultiwayPostflopSpot,
     evaluateFullHandLineAndBranchComparison,
+    getHorseBrainSpotCacheStats,
+    clearHorseBrainSpotCache,
 } from '../../../lib/training/horseBrainTrainingAdapter';
 import {
     RANGE_PAINTER_5X5_CLUSTERS,
@@ -2631,6 +2633,7 @@ function UniversalDynamicTable({
     const nextStreet = whatIfBaseBoard.length === 3 ? 'turn' : 'river';
 
     const whatIfEvaluation = useMemo(() => {
+        if (!showFeedback && continuedBoardCards.length === 0) return null;
         try {
             const simBoard = [...whatIfBaseBoard.slice(0, nextStreet === 'turn' ? 3 : 4), activeRunoutCard];
             const res = evaluateTrainingSpotWithHorseBrain({
@@ -2675,7 +2678,7 @@ function UniversalDynamicTable({
                 explanation: '',
             };
         }
-    }, [gameId, activeNormalizedVariant, nextStreet, heroPosition, villainPosition, heroCards, whatIfBaseBoard, activeRunoutCard, pot, scenario, heroStack]);
+    }, [showFeedback, continuedBoardCards.length, gameId, activeNormalizedVariant, activeBettingStructure, activeGameFormat, nextStreet, heroPosition, villainPosition, heroCards, whatIfBaseBoard, activeRunoutCard, pot, scenario, heroStack]);
 
     const sessionMistakeTarget = useMemo(() => {
         const list = sessionMistakesListRef.current || [];
@@ -2892,10 +2895,15 @@ function UniversalDynamicTable({
     }, []);
 
     const handleRestartScenario = useCallback(() => {
+        const cacheStats = getHorseBrainSpotCacheStats();
+        if (cacheStats.size > cacheStats.maxEntries) {
+            clearHorseBrainSpotCache();
+        }
         setContinuationStreetIndex(0);
         setContinuedBoardCards([]);
         setContinuedPotBonusBb(0);
         setContinuedLastAction(null);
+        setActiveBranchReplay(null);
         setSliderSizingBb(null);
         setChosenRaiseInfo(null);
         setHeroActionFlight(null);
@@ -3486,6 +3494,7 @@ function UniversalDynamicTable({
     const [coachingTimingMode, setCoachingTimingMode] = useState('immediate'); // 'immediate' | 'end_of_hand'
     const [activeLineBranch, setActiveLineBranch] = useState('aggressive_line');
     const [rewoundStreetTarget, setRewoundStreetTarget] = useState('flop');
+    const [activeBranchReplay, setActiveBranchReplay] = useState(null);
     const handleToggleCoachingTiming = useCallback(() => {
         setCoachingTimingMode((prev) => (prev === 'immediate' ? 'end_of_hand' : 'immediate'));
         soundManager?.play('check');
@@ -3840,21 +3849,67 @@ function UniversalDynamicTable({
     );
 
     const fullHandBranchComparison = useMemo(
-        () => evaluateFullHandLineAndBranchComparison({
-            gameId: gameId || 'cash-005',
-            variant: activeNormalizedVariant,
-            bettingStructure: activeBettingStructure,
-            format: activeGameFormat,
-            heroCards,
-            fullBoardCards: completedFiveCardBoard,
-            heroPosition: heroPosition || 'BTN',
-            villainPosition: villainPosition || 'BB',
-            basePotBb: Math.max(1.5, Number(pot) || 6.5),
-            effectiveStackBb: Math.max(10, Number(heroStack) || 100),
-            chosenBranch: activeLineBranch,
-        }),
-        [gameId, activeNormalizedVariant, activeBettingStructure, activeGameFormat, heroCards, completedFiveCardBoard, heroPosition, villainPosition, pot, heroStack, activeLineBranch],
+        () => {
+            if (!showFeedback) {
+                return {
+                    ok: true,
+                    variant: activeNormalizedVariant,
+                    engineModule: 'holdem-brain.js',
+                    streetEvaluations: [],
+                    branches: [],
+                    branchesMap: {},
+                    activeBranch: {
+                        key: activeLineBranch,
+                        branchId: activeLineBranch,
+                        label: 'GTO Aggressive Value / Barrel Line',
+                        totalEvBb: 0,
+                        evDeltaVsOptimalBb: 0,
+                    },
+                    optimalTotalEvBb: 0,
+                };
+            }
+            return evaluateFullHandLineAndBranchComparison({
+                gameId: gameId || 'cash-005',
+                variant: activeNormalizedVariant,
+                bettingStructure: activeBettingStructure,
+                format: activeGameFormat,
+                heroCards,
+                fullBoardCards: completedFiveCardBoard,
+                heroPosition: heroPosition || 'BTN',
+                villainPosition: villainPosition || 'BB',
+                basePotBb: Math.max(1.5, Number(pot) || 6.5),
+                effectiveStackBb: Math.max(10, Number(heroStack) || 100),
+                chosenBranch: activeLineBranch,
+            });
+        },
+        [showFeedback, gameId, activeNormalizedVariant, activeBettingStructure, activeGameFormat, heroCards, completedFiveCardBoard, heroPosition, villainPosition, pot, heroStack, activeLineBranch],
     );
+
+    const handlePlayRewoundBranchOnFelt = useCallback((targetStreetOverride = null, branchOverride = null) => {
+        const st = String(targetStreetOverride || rewoundStreetTarget || 'flop').toLowerCase();
+        const brId = String(branchOverride || activeLineBranch || 'aggressive_line');
+        if (targetStreetOverride) setRewoundStreetTarget(st);
+        if (branchOverride) setActiveLineBranch(brId);
+        const boardSliceCount = st === 'preflop' ? 0 : st === 'flop' ? 3 : st === 'turn' ? 4 : 5;
+        const nextBoard = completedFiveCardBoard.slice(0, boardSliceCount);
+        setContinuedBoardCards(nextBoard);
+        setContinuationStreetIndex(st === 'preflop' ? 0 : st === 'flop' ? 1 : st === 'turn' ? 2 : 3);
+        setContinuedLastAction(`Branch Replay: ${st.toUpperCase()} (${brId})`);
+        setActiveBranchReplay({
+            street: st,
+            branchId: brId,
+            boardCards: nextBoard,
+            replayedAt: Date.now(),
+        });
+        answerSubmittedRef.current = false;
+        setRetryActive(true);
+        setSelectedAnswer(null);
+        setFeedbackCollapsed(false);
+        soundManager?.play('deal');
+        if (onNextHand) {
+            onNextHand({ retry: true, retryQuestion: lastQuestionRef.current || question, branchId: brId, street: st });
+        }
+    }, [rewoundStreetTarget, activeLineBranch, completedFiveCardBoard, onNextHand, question]);
 
     const showdownOutcome = useMemo(() => {
         const potTotal = Math.max(2, Number(pot) || 6.5);
@@ -3929,6 +3984,17 @@ function UniversalDynamicTable({
     }, []);
 
     const runItTwiceOutcome = useMemo(() => {
+        if (!showFeedback) {
+            return {
+                board1: [],
+                board2: [],
+                winner1: 'HERO',
+                winner2: 'HERO',
+                heroPayoutBb: 0,
+                allInEvBb: 0,
+                varianceSavedBb: 0,
+            };
+        }
         const basePrefix = visibleBoard.length >= 3 ? visibleBoard.slice(0, 3) : completedFiveCardBoard.slice(0, 3);
         const used = new Set([
             ...(heroCards || []).map((c) => String(c).toLowerCase()),
@@ -3995,7 +4061,7 @@ function UniversalDynamicTable({
                 varianceSavedBb: 0,
             };
         }
-    }, [visibleBoard, completedFiveCardBoard, heroCards, activeVillainHandObj, pot, activeNormalizedVariant, heroPosition, villainPosition]);
+    }, [showFeedback, visibleBoard, completedFiveCardBoard, heroCards, activeVillainHandObj, pot, activeNormalizedVariant, heroPosition, villainPosition]);
 
     // PHASE 5: Adaptive Difficulty Level (computed from session accuracy)
     const computedDifficulty = useMemo(() => {
@@ -4860,6 +4926,17 @@ function UniversalDynamicTable({
             } else if (showFeedback && onNextHand && (key === 'Enter' || key === 'ArrowRight')) {
                 e.preventDefault();
                 onNextHand();
+            } else if (showFeedback && onNextHand && !isMultiStreetActive && (key === 'r' || key === 'R')) {
+                e.preventDefault();
+                answerSubmittedRef.current = false;
+                setRetryActive(true);
+                setSelectedAnswer(null);
+                setFeedbackCollapsed(false);
+                onNextHand({ retry: true, retryQuestion: lastQuestionRef.current || question });
+            }
+            if (presetOnlyProp && (key === 'k' || key === 'K' || (e.shiftKey && (key === 'c' || key === 'C')))) {
+                e.preventDefault();
+                setCustomizeOpen((v) => !v);
             }
         };
 
@@ -10033,6 +10110,37 @@ function UniversalDynamicTable({
                                             );
                                         })}
                                     </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 8 }}>
+                                        <button
+                                            type="button"
+                                            data-play-rewound-branch-on-felt="true"
+                                            data-rewound-branch-street={rewoundStreetTarget}
+                                            data-rewound-branch-id={activeLineBranch}
+                                            onClick={() => handlePlayRewoundBranchOnFelt()}
+                                            style={{
+                                                padding: '5px 11px',
+                                                borderRadius: 6,
+                                                fontSize: 12,
+                                                fontWeight: 900,
+                                                cursor: 'pointer',
+                                                border: '1.5px solid #56d8ff',
+                                                background: 'linear-gradient(180deg, rgba(8, 124, 250, 0.35) 0%, rgba(0, 68, 172, 0.48) 100%)',
+                                                color: '#f4fbff',
+                                            }}
+                                        >
+                                            {`Play Out ${rewoundStreetTarget.toUpperCase()} Branch On Felt (${fullHandBranchComparison.activeBranch.label})`}
+                                        </button>
+                                        {activeBranchReplay && (
+                                            <span
+                                                data-active-branch-replay="true"
+                                                data-replayed-street={activeBranchReplay.street}
+                                                data-replayed-branch={activeBranchReplay.branchId}
+                                                style={{ color: '#86daff', fontWeight: 800, fontSize: 12 }}
+                                            >
+                                                {`Active Branch Replay: ${activeBranchReplay.street.toUpperCase()} · ${activeBranchReplay.branchId}`}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 </details>}
                             </div>
@@ -11350,6 +11458,63 @@ function UniversalDynamicTable({
                                     >
                                         Practice Again
                                     </motion.button>
+                                )}
+                                {!isMultiStreetActive && lastQuestionRef.current && (
+                                    <div
+                                        data-replay-vs-archetype-strip="true"
+                                        data-active-replay-archetype={villainNodeLockProfile}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            flexWrap: 'wrap',
+                                            gap: 6,
+                                            padding: '4px 8px',
+                                            borderRadius: 8,
+                                            background: 'rgba(13, 32, 54, 0.72)',
+                                            border: '1px solid rgba(134, 218, 255, 0.28)',
+                                        }}
+                                    >
+                                        <span style={{ fontSize: 12, fontWeight: 800, color: '#bdd0e2' }}>
+                                            Replay Vs:
+                                        </span>
+                                        {Object.values(VILLAIN_NODELOCK_PROFILES).map((prof) => {
+                                            const isProfActive = villainNodeLockProfile === prof.key;
+                                            return (
+                                                <button
+                                                    key={prof.key}
+                                                    type="button"
+                                                    data-replay-vs-archetype={prof.key}
+                                                    aria-pressed={isProfActive}
+                                                    onClick={() => {
+                                                        handleSelectVillainProfile(prof.key);
+                                                        answerSubmittedRef.current = false;
+                                                        setRetryActive(true);
+                                                        setSelectedAnswer(null);
+                                                        setFeedbackCollapsed(false);
+                                                        if (onNextHand) {
+                                                            onNextHand({
+                                                                retry: true,
+                                                                retryQuestion: lastQuestionRef.current || question,
+                                                                archetype: prof.key,
+                                                            });
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        padding: '4px 8px',
+                                                        borderRadius: 6,
+                                                        fontSize: 12,
+                                                        fontWeight: 800,
+                                                        cursor: 'pointer',
+                                                        border: isProfActive ? '1px solid #56d8ff' : '1px solid rgba(255,255,255,0.14)',
+                                                        background: isProfActive ? 'rgba(8, 124, 250, 0.28)' : 'rgba(255,255,255,0.04)',
+                                                        color: isProfActive ? '#86daff' : '#cbd5e1',
+                                                    }}
+                                                >
+                                                    {prof.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 )}
                                 {/* PHASE 6: Bookmark Button */}
                                 <motion.button
