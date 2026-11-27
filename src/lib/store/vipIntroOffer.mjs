@@ -91,3 +91,115 @@ export const VIP_INTRO_COPY = Object.freeze({
   cta: 'Go VIP: $1 First Month',
   subscribe: 'Subscribe With Card: $1 First Month, Then $20/Month',
 });
+
+/* ------------------------------------------------------------------------
+   THE OFF SWITCH (2026-11-27).
+
+   One environment variable, read at request time, turns the offer off for
+   everyone: VIP_INTRO_OFFER_DISABLED. Unset (or an explicit "off" value such
+   as 0/false/no/off) means the offer is ON, which is Dan's standing ruling.
+   1/true/yes/on means the offer is OFF and every account sees and pays the
+   regular price. Any other value is a typo, and a typo is UNKNOWN: a caller
+   must stop the $1 checkout rather than guess which price was meant.
+
+   Checkout, the membership status route and the public catalog all read the
+   switch through this one function (the two routes via resolveVipIntroOffer
+   in vipIntroEligibility.js), so a display and a charge cannot disagree.
+
+   Flipping it is a Vercel environment change plus a redeploy; there is no
+   runtime settings store in this platform that the store routes already
+   trust, and a new one is new infrastructure.
+   ------------------------------------------------------------------------ */
+export const VIP_INTRO_SWITCH_ENV = 'VIP_INTRO_OFFER_DISABLED';
+const SWITCH_OFFER_ON_VALUES = new Set(['', '0', 'false', 'no', 'off']);
+const SWITCH_OFFER_OFF_VALUES = new Set(['1', 'true', 'yes', 'on']);
+
+/** 'on' | 'off' | 'unknown'. Never throws. */
+export function readVipIntroOfferSwitch(env = process.env) {
+  let raw;
+  try {
+    raw = env?.[VIP_INTRO_SWITCH_ENV];
+  } catch (_error) {
+    return 'unknown';
+  }
+  if (raw === undefined || raw === null) return 'on';
+  if (typeof raw !== 'string') return 'unknown';
+  const value = raw.trim().toLowerCase();
+  if (SWITCH_OFFER_ON_VALUES.has(value)) return 'on';
+  if (SWITCH_OFFER_OFF_VALUES.has(value)) return 'off';
+  return 'unknown';
+}
+
+/**
+ * Public catalog terms: the offer when it is on, otherwise null. An off or
+ * unreadable switch publishes no offer, so a display falls back to the regular
+ * price - the only price that is certainly not an overstatement of a discount.
+ */
+export function vipIntroOfferCatalogTerms(env = process.env) {
+  return readVipIntroOfferSwitch(env) === 'on' ? vipIntroOfferPublicTerms() : null;
+}
+
+/* ------------------------------------------------------------------------
+   CARD-TESTING LIMITS. A $1 charge is what stolen-card testers look for.
+   Durable counters (check_rate_limit_strict, the same authority every other
+   expensive route uses) bound how many NEW $1 Checkout Sessions may be opened.
+   ------------------------------------------------------------------------ */
+export const VIP_INTRO_CHECKOUT_LIMITS = Object.freeze({
+  account: Object.freeze({ max: 5, windowSeconds: 24 * 60 * 60 }),
+  network: Object.freeze({ max: 20, windowSeconds: 24 * 60 * 60 }),
+});
+
+/* ------------------------------------------------------------------------
+   PLAN SWITCHES DURING THE $1 MONTH.
+
+   switch-vip-plan.js changes the price with proration_behavior
+   'create_prorations'. The one-time coupon is consumed by the first invoice,
+   so by the time a member switches it is no longer on the subscription, and
+   Stripe's classic proration credits "unused time" from the current $20 price
+   even though that month cost $1. A member could pay $1, switch to yearly the
+   same day and carry about $19 of credit they never paid for. So a
+   subscription that started on the offer may not change plan until Stripe
+   shows it has been billed the full price at least once.
+   ------------------------------------------------------------------------ */
+function objectId(value) {
+  if (typeof value === 'string') return value;
+  return typeof value?.id === 'string' ? value.id : null;
+}
+
+/** True when this Stripe subscription was opened on the $1 first month. */
+export function isVipIntroSubscription(subscription) {
+  if (!subscription || typeof subscription !== 'object') return false;
+  if (subscription.metadata?.vip_intro_offer === VIP_INTRO_OFFER.metadataValue) return true;
+  const discounts = [
+    subscription.discount,
+    ...(Array.isArray(subscription.discounts) ? subscription.discounts : []),
+  ];
+  return discounts.some(
+    (discount) => objectId(discount?.coupon) === VIP_INTRO_OFFER.couponId
+  );
+}
+
+/**
+ * 'open' | 'locked' | 'unknown' for a plan change on `subscription`, given the
+ * Stripe list of its PAID invoices. Unknown is its own answer: an invoice list
+ * that is malformed or truncated never opens the switch and never locks it.
+ */
+export function vipIntroPlanSwitchDecision(subscription, paidInvoices) {
+  if (!isVipIntroSubscription(subscription)) return 'open';
+  const subscriptionId = objectId(subscription);
+  const rows = paidInvoices?.data;
+  if (!subscriptionId || !Array.isArray(rows)) return 'unknown';
+  const billedFullPrice = rows.some(
+    (invoice) =>
+      invoice?.status === 'paid' &&
+      objectId(invoice?.subscription) === subscriptionId &&
+      String(invoice?.currency || '').toLowerCase() === 'usd' &&
+      Number.isSafeInteger(invoice?.total) &&
+      invoice.total >= VIP_INTRO_OFFER.regularCents
+  );
+  if (billedFullPrice) return 'open';
+  return paidInvoices.has_more ? 'unknown' : 'locked';
+}
+
+export const VIP_INTRO_PLAN_SWITCH_LOCKED_MESSAGE =
+  'Plan Changes Open After Your First Full-Price Renewal.';

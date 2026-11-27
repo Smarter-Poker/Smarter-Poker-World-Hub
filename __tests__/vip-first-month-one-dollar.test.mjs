@@ -136,10 +136,10 @@ test('an account is eligible only when it has never held a Card subscription', a
 test('Checkout decides the offer on the server and charges it with a one-time coupon', async () => {
   const route = await read('pages/api/store/create-checkout-session.js');
   // Eligibility is read before the offer is built, and unknown stops the sale.
-  const eligibility = route.indexOf('await readVipIntroEligibility(getSupabase(), user.id)');
+  const eligibility = route.indexOf('await resolveVipIntroOffer(getSupabase(), user)');
   const offer = route.indexOf('let checkoutOffer = buildCheckoutOffer(type, preparedCheckout, user.id);');
   assert.ok(eligibility > 0 && offer > eligibility);
-  assert.match(route, /if \(introEligible === null\) \{\s*return res\.status\(503\)/);
+  assert.match(route, /if \(introDecision\.eligible === null\) \{[\s\S]{0,120}return res\.status\(503\)/);
   // The amount never comes from the request: only the server constant sets it.
   assert.match(route, /firstPeriodCents: VIP_INTRO_OFFER\.firstPeriodCents,\s*couponId: introCoupon\.id,/);
   assert.match(route, /sessionConfig\.discounts = \[\{ coupon: preparedCheckout\.intro\.couponId \}\];/);
@@ -161,7 +161,7 @@ test('the one dollar month does not earn the monthly Diamond stipend', async () 
   assert.match(cron, /const INTRO_PERIOD_DAYS\s+= 31;/);
   assert.match(cron, /row\.tier === 'monthly' && row\.created_at && row\.created_at > introPeriodFloorISO/);
   assert.match(cron, /\.lte\('created_at', introPeriodFloorISO\)/);
-  assert.match(cron, /eligibleUserIds\.delete\(userId\);\s*stats\.introPeriodSkipped \+= 1;/);
+  assert.match(cron, /eligibleUserIds\.delete\(userId\);\s*if \(soldOnIntro === true\) stats\.introPeriodSkipped \+= 1;/);
 });
 
 test('every surface that sells monthly VIP states the first month price', async () => {
@@ -184,6 +184,6 @@ test('every surface that sells monthly VIP states the first month price', async 
   assert.match(memory, /Go VIP - \$1 First Month, Then \$20\/Month/);
   assert.match(memory, /introCents: VIP_INTRO_OFFER\.firstPeriodCents/);
   assert.match(compare, /New Subscribers: \$1 First Month/);
-  assert.match(status, /introOffer: \{ \.\.\.vipIntroOfferPublicTerms\(\), eligible: introEligible \}/);
-  assert.match(catalog, /vipIntroOffer: vipIntroOfferPublicTerms\(\),/);
+  assert.match(status, /introOffer: \{\s*\.\.\.vipIntroOfferPublicTerms\(\),\s*eligible: introDecision\.eligible,/);
+  assert.match(catalog, /vipIntroOffer: vipIntroOfferCatalogTerms\(\),/);
 });
