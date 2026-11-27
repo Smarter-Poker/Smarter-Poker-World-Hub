@@ -2762,3 +2762,53 @@ test('MAG LAW 29: the magazine carries the real Smarter.Poker wordmark and never
         assert.ok(fs.existsSync(path.join(REPO, 'public', file)), `Brand art file exists: ${file}`);
     }
 });
+
+test('MAG LAW 30: printed strategy spots are card-accurate (no duplicate cards, and a titled N-out Omaha wrap is a real N-out draw with no made straight)', async () => {
+    const { SPOT_OF_THE_WEEK_CATALOG } = await import('../src/lib/newsletter/weeklyWireCatalog.mjs');
+    const RANKS = '23456789TJQKA';
+    const rankOf = (card) => RANKS.indexOf(String(card).replace('10', 'T')[0]) + 2;
+    const straightHigh = (ranks) => {
+        const s = new Set(ranks);
+        if (s.has(14)) s.add(1);
+        let best = 0;
+        for (let h = 5; h <= 14; h += 1) {
+            if ([0, 1, 2, 3, 4].every((d) => s.has(h - d))) best = h;
+        }
+        return best;
+    };
+    const combos = (arr, k) => (k === 0 ? [[]] : arr.flatMap((x, i) => combos(arr.slice(i + 1), k - 1).map((c) => [x, ...c])));
+    // Omaha rule: exactly two hole cards and exactly three board cards.
+    const omahaStraight = (holeRanks, boardRanks) => {
+        let best = 0;
+        for (const h of combos(holeRanks, 2)) {
+            for (const b of combos(boardRanks, 3)) {
+                const r = [...h, ...b];
+                if (new Set(r).size === 5) best = Math.max(best, straightHigh(r));
+            }
+        }
+        return best;
+    };
+    for (const spot of SPOT_OF_THE_WEEK_CATALOG) {
+        const hero = (spot.heroCards || []).filter(Boolean);
+        const board = (spot.boardCards || []).filter(Boolean);
+        const all = [...hero, ...board];
+        assert.equal(new Set(all).size, all.length, `${spot.slug}: a card appears twice`);
+        const wrap = /(\d+)-Out Wrap/i.exec(spot.title || '');
+        if (!wrap || !/^plo/.test(spot.variant || '')) continue;
+        assert.equal(board.length, 3, `${spot.slug}: a wrap spot is a flop spot`);
+        const heroRanks = hero.map(rankOf);
+        const boardRanks = board.map(rankOf);
+        assert.equal(omahaStraight(heroRanks, boardRanks), 0, `${spot.slug}: hero already holds a straight, so it is not a wrap`);
+        const suits = ['♠', '♥', '♦', '♣'];
+        let outs = 0;
+        for (let r = 2; r <= 14; r += 1) {
+            for (const s of suits) {
+                const card = `${RANKS[r - 2]}${s}`;
+                if (all.includes(card)) continue;
+                if (omahaStraight(heroRanks, [...boardRanks, r])) outs += 1;
+            }
+        }
+        assert.equal(outs, Number(wrap[1]), `${spot.slug}: title says ${wrap[1]} outs but the hand has ${outs}`);
+        assert.match(spot.situation, new RegExp(`${wrap[1]}-out wrap`, 'i'), `${spot.slug}: the situation text matches the title's out count`);
+    }
+});
