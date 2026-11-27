@@ -1466,6 +1466,36 @@ test('Phase 24 optimizations & enhancements: Horse Brain LRU cache, demand-drive
   );
 });
 
+test('Phase 25: mobile action-state table geometry floor, synchronous Practice Again reset, and GTOQuestionCard hotkeys', () => {
+  const udtSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
+  assert.ok(
+    udtSrc.includes('.gto-trainer-container .sp-club-gto-table-area,') &&
+      udtSrc.includes("min-height: min(397px, 102vw) !important;"),
+    'UniversalDynamicTable must preserve full phone-scale min-height on .sp-club-gto-table-area in both action and verdict states on mobile viewports',
+  );
+  assert.ok(
+    udtSrc.includes('aria-pressed={customizeOpen}') &&
+      udtSrc.includes('presetOnlyProp, isMultiStreetActive, question]);'),
+    'UniversalDynamicTable Customize toggle must expose aria-pressed and include presetOnlyProp in handleKeyDown dependencies',
+  );
+
+  const hookSrc = read('src/hooks/useGTOTrainer.js');
+  const retryIdx = hookSrc.indexOf('if (options && typeof options === \'object\' && options.retry === true)');
+  const awaitPersistIdx = hookSrc.indexOf('? await persistPendingAnswer(pendingPersistence)');
+  assert.ok(
+    retryIdx > 0 && awaitPersistIdx > retryIdx,
+    'useGTOTrainer nextQuestion({ retry: true }) must synchronously reset showFeedback before awaiting network answer persistence',
+  );
+
+  const cardSrc = read('src/components/training/GTOQuestionCard.jsx');
+  assert.ok(
+    cardSrc.includes("if (key === 'r' || key === 'R')") &&
+      cardSrc.includes("if (key === 'Enter' || key === 'ArrowRight')"),
+    'GTOQuestionCard must support keyboard shortcuts for Practice Again (R), Next Question (Enter/ArrowRight), and options (1-4 / A-D)',
+  );
+});
+
+
 
 
 
