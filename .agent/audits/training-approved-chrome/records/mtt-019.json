@@ -1,0 +1,71 @@
+{
+  "id": "mtt-019",
+  "name": "Stop & Go",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:51:16.174Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Stop & Go.\nSubject: Stop & Go: a short chip stack held behind a raised metal betting gate, while the next section of table opens into a clear shove lane\nCamera: oblique close-up through the gate from the side\nComposition: Two unmistakable spatial phases: a tight shadowed waiting pocket at left and a bright open cobalt lane extending right. A few chips are frozen just as the gate lifts. The action spans the scene, no clock, arrows or pedestal.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Stop & Go: a short chip stack held behind a raised metal betting gate, while the next section of table opens into a clear shove lane",
+  "camera": "oblique close-up through the gate from the side",
+  "composition": "Two unmistakable spatial phases: a tight shadowed waiting pocket at left and a bright open cobalt lane extending right. A few chips are frozen just as the gate lifts. The action spans the scene, no clock, arrows or pedestal.",
+  "source": {
+    "fileName": "exec-1a20efe5-81ec-41f6-a76c-7e66bbb0f36b.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2348195,
+    "sha256": "b98c2747df451692f042d199b2ea9e9b14f01854f2684238184a75a92c047080"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-019.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 37840,
+      "sha256": "1d076763b7ab392087cf3f8a1321e0d512efe2d7af8d0d1351188bce5d38e93b"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-019.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 32116,
+      "sha256": "0e3d55b1fa9f1397f6f9d52b44c7dcb7a27360f2b92d97985a9280e09d1bd84b"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-019.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 74102,
+      "sha256": "86a7135452d99db39c887e8b55e2833261acd6832bef1637a1198e67ba179143"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-019.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 59119,
+      "sha256": "ee2a0c8cf860e89a0d3db5836071aaef52356c3ad955986a57b1086d1eb3eab8"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-019.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 136594,
+      "sha256": "99044241abd6aca79f9dbcc99eadd382dc3b7b0a3e56ced945b4d43f5ecd1392"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-019.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 98733,
+      "sha256": "a88eb14c0e7f620eb6eb6e59585515e05b8faeb5b74bf258dc121527d962ca99"
+    }
+  ]
+}

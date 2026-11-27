@@ -1,0 +1,81 @@
+{
+  "id": "mtt-017",
+  "name": "Blind Defense MTT",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:50:49.099Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Blind Defense MTT.\nSubject: Blind Defense MTT: a short cobalt big-blind stack protected at the curved table rail as a larger incoming wager crosses the betting line\nCamera: tight player's-eye view along the right-hand poker rail\nComposition: A thick silver table edge sweeps diagonally behind the protected stack on the left, incoming chips come from upper right. Leave a natural quiet felt area on the lower right for two native cards. Show positional tension with actual poker objects, no shield icon.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "Blind Defense MTT: a short cobalt big-blind stack protected at the curved table rail as a larger incoming wager crosses the betting line",
+  "camera": "tight player's-eye view along the right-hand poker rail",
+  "composition": "A thick silver table edge sweeps diagonally behind the protected stack on the left, incoming chips come from upper right. Leave a natural quiet felt area on the lower right for two native cards. Show positional tension with actual poker objects, no shield icon.",
+  "source": {
+    "fileName": "exec-8635ddf1-258d-4d4b-9da0-d76f9d3024a3.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2393631,
+    "sha256": "6d7593defcacd2e5da775694065dd2d02ee6b03b40714174bf9878d912b631f0"
+  },
+  "nativeCards": [
+    "Ad",
+    "Jh"
+  ],
+  "placement": "right",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-017.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 33544,
+      "sha256": "248ade86f0f4eadf643c251897d1946a89d9efaecc8db47f9669ee643d3c3860"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-017.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 28584,
+      "sha256": "11f38b5e374247f7366029a78386b6afdef9610a8c3f57fd26f36a841e7b89b0"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-017.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 69102,
+      "sha256": "01b5852855ce4a1426404f4f2ba53e6919c712c8791e0f865f310781608058d3"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-017.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 55732,
+      "sha256": "0b03bf0d6b20f3d7f50272dde679f660be2c32876a214eb4d9a8b1866561058d"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-017.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 132566,
+      "sha256": "1199e1d912e33960f424afc2aba5ded9160cb49b50f9bdce9892aef219c0fc87"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-017.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 96548,
+      "sha256": "b2b02a04d1f054ab72868f8ad10a8b62178124c48e29de421375e21f903438b2"
+    }
+  ],
+  "overlay": {
+    "left": 74,
+    "bottom": 17,
+    "width": 36,
+    "height": 58
+  },
+  "overlayVerification": "Planned geometry visually reviewed; actual component crops remain a root-owned hosted browser check."
+}

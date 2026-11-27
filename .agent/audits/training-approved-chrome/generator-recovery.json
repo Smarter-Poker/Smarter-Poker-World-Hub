@@ -1,0 +1,8 @@
+{
+  "event": "Final worker allocation race after all queued IDs had been claimed",
+  "effect": "The orchestration ended before the last adv-020 result could be recorded. All other106 records and their asset sets were recovered from disk.",
+  "recovery": "Run only the missing adv-020 job as a single finite request; no other render is repeated.",
+  "remainingId": "adv-020",
+  "resolvedAt": "2026-11-27T19:05:40.232Z",
+  "result": "adv-020 generated and optimized successfully as a single finite request; all107 active records now present."
+}

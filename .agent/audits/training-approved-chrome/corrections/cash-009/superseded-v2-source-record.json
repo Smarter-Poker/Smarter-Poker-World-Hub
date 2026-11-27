@@ -1,0 +1,71 @@
+{
+  "id": "cash-009",
+  "name": "Deep Stack Cash",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:51:07.574Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Deep Stack Cash.\nSubject: A dramatic canyon of deep cash-game chip reserves rising on both sides of a narrow black felt corridor. The lowest chips show wear and fine ridges; the tall stacks extend almost beyond the top crop, emphasizing depth and a long decision horizon.\nCamera: Extreme low wide-angle view between the stacks, looking upward and along the table.\nComposition: The towering reserves form steep asymmetrical walls at the left and right edges, while the narrow center corridor recedes toward a distant small pot. Reflections are on the chip edges and a narrow chrome rail only. No mirrored platform, isolated pair of towers, card area or tidy product arrangement.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A dramatic canyon of deep cash-game chip reserves rising on both sides of a narrow black felt corridor. The lowest chips show wear and fine ridges; the tall stacks extend almost beyond the top crop, emphasizing depth and a long decision horizon.",
+  "camera": "Extreme low wide-angle view between the stacks, looking upward and along the table.",
+  "composition": "The towering reserves form steep asymmetrical walls at the left and right edges, while the narrow center corridor recedes toward a distant small pot. Reflections are on the chip edges and a narrow chrome rail only. No mirrored platform, isolated pair of towers, card area or tidy product arrangement.",
+  "source": {
+    "fileName": "exec-cccfd553-f427-4488-9b81-d96520a121e7.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2623488,
+    "sha256": "15f04bda35f322a6a403871c73bf8409cebc02fa8860573a2fc15098af91a321"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-009.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 55990,
+      "sha256": "0b95aa7f6245522c2ebe2c4159128bf4905afd81e41bac740956a29e672621f1"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-009.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 52574,
+      "sha256": "1b832a8bb9062199c71d3a15679593688c65844de59dea79f2a1ec1e92f855fe"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-009.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 105966,
+      "sha256": "c49303fb8d8572c5ea4fda2cbaccb44ff3cc5ef98a6b86e3a34cfc092a3d3056"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-009.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 95595,
+      "sha256": "622e9dd3317d782e093aeda75fbf742ea6e51897829b073e0f0afc93fb90c51a"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-009.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 189974,
+      "sha256": "f09457de9ae1192273336c4e9fb67f727db0f1f28bde25d9cd9ca10db7bc4158"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-009.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 160549,
+      "sha256": "702502f88d42fcb96a5d38e9c1f47737c85b2c7ac5c68e836b7d8ee02465a6da"
+    }
+  ]
+}

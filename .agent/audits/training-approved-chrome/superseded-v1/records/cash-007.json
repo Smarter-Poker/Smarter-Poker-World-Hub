@@ -1,0 +1,72 @@
+{
+  "id": "cash-007",
+  "name": "3-Bet Pots",
+  "category": "CASH",
+  "version": "approved-chrome-v1",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:36:47.617Z",
+  "prompt": "Use case: stylized-concept. Create one premium 3D studio illustration for a Smarter.Poker poker training game, landscape 16:9, ideally 1536x864. The approved #SMARTERDESIGN look is glossy black and deep ink navy, polished mirror CHROME AND SILVER, rich COBALT and controlled electric-blue rim lighting. Render large tactile hero objects on a close-up black mirrored circular studio platform with beautiful realistic reflections and sculpted chrome edges, crisp high-definition product-photography quality. No wide room, no distant environment, no tiny details, no text or typography, no logo, no UI, no frames surrounding the picture, no watermarks. NO PLAYING CARDS OF ANY KIND, NO CARD BACKS OR CARD FACES, NO SUIT/RANK MARKINGS, NO LETTERS OR NUMBERS. Real card faces will be composited by the application later. No gold, yellow, orange, purple or pink accent lighting. Black, blue, silver and clear glass only. Keep important objects inside 8% safe margins. Objects must fill the image and remain easily readable in a mobile game card. Subject: Three large polished chrome rings rising around a substantial cobalt chip pot on a dark circular stage. Reserve a quiet empty dark central area spanning x=29% to 70%, y=18% to 79% for two REAL playing-card asset overlays. Arrange the specified hero objects to the sides and at the low foreground; the overlay zone is in front of the scene and must not obscure important objects. A clear glass dome may surround this space if specified, but its center must stay empty. Do not draw placeholders or blank cards in this area. Preserve clean true object proportions and ensure the lighting is bright enough to recognize all central objects. The artwork should feel like an exquisite collectible game cover in a chrome-and-cobalt poker training lobby.",
+  "subject": "Three large polished chrome rings rising around a substantial cobalt chip pot on a dark circular stage",
+  "source": {
+    "fileName": "exec-0abad209-8faf-44ea-9c80-a74c77a00220.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1850247,
+    "sha256": "c05987a6932540725da4b7b8e3d98bed5ccfe972584dc63d02b4b18899777ff5"
+  },
+  "nativeCards": [
+    "Ah",
+    "Kh"
+  ],
+  "placement": "center",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-007.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 32438,
+      "sha256": "4e37ce60797c35f7c5ffdf50664276c3d38a00daa9c1f639747fa3c01152a125"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-007.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 30952,
+      "sha256": "db4b486faeba61ce0ae16b9530ee1f6252f26ca3608a2ce4aead74af1d4107af"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-007.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 56926,
+      "sha256": "7da9ef15cccfc38af94a734410a2f435a111c27d0e7db1f3da8df6167fc5b21e"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-007.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 49152,
+      "sha256": "4a77b5d6239eb41bce01d0e6e51d9c62392e39aa1bab026ad9630e4c6283c7fe"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-007.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 98754,
+      "sha256": "dcce0e43b9ddfbbf89e0a23b087daa4e7248fae55fa68f3d5ba6df1f35f42943"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-007.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 75464,
+      "sha256": "614a088c5b999f6f4ada7ad076b4989a83c1852c50b6ceb1036eaa474df10e13"
+    }
+  ]
+}

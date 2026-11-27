@@ -1,0 +1,71 @@
+{
+  "id": "mixed-strategy-lab",
+  "name": "Mixed Strategy Lab",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:01:35.957Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Mixed Strategy Lab.\nSubject: Mixed Strategy Lab: two transparent blue mixing channels weave around a chrome probability wheel and emerge as a deliberately varied sequence of poker chips\nCamera: top-down laboratory process composition\nComposition: The wheel is cropped into the upper-left corner, channels curl in an asymmetric S across the frame, and alternating chip outcomes exit at lower right. Distinct movement and mixed frequencies, no text, axes, cards or centered stage.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Mixed Strategy Lab: two transparent blue mixing channels weave around a chrome probability wheel and emerge as a deliberately varied sequence of poker chips",
+  "camera": "top-down laboratory process composition",
+  "composition": "The wheel is cropped into the upper-left corner, channels curl in an asymmetric S across the frame, and alternating chip outcomes exit at lower right. Distinct movement and mixed frequencies, no text, axes, cards or centered stage.",
+  "source": {
+    "fileName": "exec-9fbf8add-7e23-482a-a7b4-3d7cafdf218a.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2555115,
+    "sha256": "bb33aa7e455acc640818def3375ed4236cb0c6354fd9bcf6cc2b1416950b5b0d"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mixed-strategy-lab.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 37960,
+      "sha256": "3143bf5d32ea96bca5129d6caa2addeef9b0c0a991dc9cc462982bf16babef74"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mixed-strategy-lab.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 37274,
+      "sha256": "36cc246de99c9c7f7e623c69f4312c250bc2c326ddffc2bcc629aa9607705c16"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mixed-strategy-lab.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 70046,
+      "sha256": "6ad689ddc16f324147aada62e7d6a87c7fa1f32d140f34a6e5e5c27d4920899c"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mixed-strategy-lab.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 62372,
+      "sha256": "9892d9e4106eb2cbc4b872bf7cbc70653abc1d2c949c383c070c05c1159c359b"
+    },
+    {
+      "path": "/images/training/approved-chrome/mixed-strategy-lab.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 133228,
+      "sha256": "7aff466a45e6dd2c9ae708f2d39ded3e354a873c74e74582863ae41c51056f3c"
+    },
+    {
+      "path": "/images/training/approved-chrome/mixed-strategy-lab.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 105094,
+      "sha256": "1a6189b4f8b68d78b6f80fcdf4e2e1d27629c25a6283a02ca6406b5814f2ab0a"
+    }
+  ]
+}

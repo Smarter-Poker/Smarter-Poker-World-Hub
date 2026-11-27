@@ -1,0 +1,71 @@
+{
+  "id": "adv-017",
+  "name": "Capped Ranges",
+  "category": "ADVANCED",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:03:32.640Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Capped Ranges.\nSubject: Capped Ranges: a broad field of low rectangular cobalt range blocks and short poker-chip columns is constrained by a strict horizontal glass ceiling, while one much taller polished silver column rises beyond that limit.\nCamera: side-on analytical sculpture close-up\nComposition: The glass ceiling spans the left three quarters, keeping every cobalt block and short chip column below the same maximum; a single tall silver column stands beyond the cap on the right. Strong simple height contrast, matte black background and crisp cobalt edges. Use only plain geometric blocks and poker chips. Absolutely no chess pieces, pawns, kings, queens, knights, chessboard, crown, pedestal or text.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Capped Ranges: a broad field of low rectangular cobalt range blocks and short poker-chip columns is constrained by a strict horizontal glass ceiling, while one much taller polished silver column rises beyond that limit.",
+  "camera": "side-on analytical sculpture close-up",
+  "composition": "The glass ceiling spans the left three quarters, keeping every cobalt block and short chip column below the same maximum; a single tall silver column stands beyond the cap on the right. Strong simple height contrast, matte black background and crisp cobalt edges. Use only plain geometric blocks and poker chips. Absolutely no chess pieces, pawns, kings, queens, knights, chessboard, crown, pedestal or text.",
+  "source": {
+    "fileName": "exec-526a5a98-adc6-4222-9182-4c4e702efb45.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1708747,
+    "sha256": "f405999242cf79ea44104c86a8d2bb43cc04301bb76ee17ba926f11ff629c16d"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/adv-017.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 16046,
+      "sha256": "5b84c02793a1d87a74c54ad026f5266f5d39c3311a8fd5217b388b0b0e29a9e5"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/adv-017.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 14408,
+      "sha256": "80fcf96e1a83d9f3831009f2185cd47a6a97e599fe8a48433734f691cab77409"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-017.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 27426,
+      "sha256": "24a86176e45a32a38a4ef9f113ac8ff950b8f58343439836436163aefee82a1c"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/adv-017.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 23144,
+      "sha256": "07eca2d920601cc1df0185ecb20be97b9abe07a7b05e902f4c9547e8262dc9c6"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-017.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 50320,
+      "sha256": "eaa488969d192157d11dc68f6fda5e5246b4bda65475fbcf5fd00499b1770743"
+    },
+    {
+      "path": "/images/training/approved-chrome/adv-017.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 36651,
+      "sha256": "43e8e5fde974ce9e079690cdcba2749ca9097aad91c1bd7f55327f7546e4b758"
+    }
+  ]
+}

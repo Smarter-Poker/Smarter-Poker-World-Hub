@@ -15,6 +15,7 @@ import TrainingLobbyResults from '../../../../src/components/training/lobby/Trai
 import TrainingFiltersSheet from '../../../../src/components/training/lobby/TrainingFiltersSheet';
 import TrainingSortBar from '../../../../src/components/training/lobby/TrainingSortBar';
 import TrainingGamePreviewSheet from '../../../../src/components/training/lobby/TrainingGamePreviewSheet';
+import lobbyStyles from '../../../../src/components/training/lobby/TrainingLobby.module.css';
 import { resolvePresetForGame, VARIANT_METADATA } from '../../../../src/lib/training/trainingPresets.mjs';
 import {
   DEFAULT_LOBBY_FILTERS,
@@ -70,6 +71,7 @@ export default function CategoryPage() {
     useTrainingFavorites(authUser, initializing);
   const favoritesUnavailable = favoritesLoading || Boolean(favoritesError);
   const [categoryFilters, setCategoryFilters] = useState(DEFAULT_LOBBY_FILTERS);
+  const [viewMode, setViewMode] = useState('grid');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { query, favoritesOnly, variant } = categoryFilters;
   const advancedCount = countAdvancedFilters(categoryFilters);
@@ -152,7 +154,7 @@ export default function CategoryPage() {
       <div className="sp-training-category" style={{ '--category-accent': 'var(--sd-ice)' }}>
         <UniversalHeader pageDepth={2} />
 
-        <main className="sp-arena-lobby-shell">
+        <main className={`sp-arena-lobby-shell ${lobbyStyles.shell}`}>
           <section className="sp-arena-masthead sp-category-hero sd-masthead">
             <div className="sp-category-hero-art" aria-hidden="true">
               <TrainingGameArt
@@ -205,7 +207,7 @@ export default function CategoryPage() {
             )}
           </section>
 
-          <section className="sp-arena-lobby-section" aria-labelledby="category-library-title">
+          <section className={`sp-arena-lobby-section ${lobbyStyles.library}`} aria-labelledby="category-library-title">
             <div className="sp-arena-deck" ref={controlsRef}>
               <div className="sp-arena-deck__heading-row">
                 <h2 id="category-library-title" className="sp-arena-deck__heading">
@@ -249,6 +251,22 @@ export default function CategoryPage() {
 
             <TrainingSortBar
               filters={categoryFilters}
+              filteredCount={favoritesOnly && favoritesUnavailable ? null : items.length}
+              totalCount={games.length}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              fiveMinuteLeakFix={featuredGame ? {
+                game: featuredGame,
+                basis: 'daily-warmup',
+                title: `10-Hand Warmup: ${featuredGame.name}`,
+                overrides: {
+                  ...(variant !== 'ALL' && featuredGame.category !== 'PSYCHOLOGY'
+                    ? { variant, bettingStructure: VARIANT_METADATA[variant]?.defaultStructure }
+                    : {}),
+                  questionsCount: 10,
+                },
+              } : null}
+              onPlayGame={playGame}
               onSortChange={(sortKey, sortDir) => updateFilters({ sortKey, sortDir })}
               onToggleFavorites={() => updateFilters({ favoritesOnly: !favoritesOnly })}
               onOpenFilters={() => setFiltersOpen(true)}
@@ -268,7 +286,9 @@ export default function CategoryPage() {
             {favoritesOnly && favoritesUnavailable ? null : items.length > 0 ? (
               <TrainingLobbyResults
                 key={JSON.stringify([categoryId, categoryFilters])}
-                sections={[{ id: categoryId, items }]}
+                sections={[{ id: categoryId, label: category.title, items }]}
+                filters={{ ...categoryFilters, category: categoryId }}
+                viewMode={viewMode}
                 onStart={playGame}
                 favoritesUnavailable={favoritesUnavailable}
                 onToggleFavorite={toggleFavorite}
@@ -323,9 +343,9 @@ export default function CategoryPage() {
           overflow: hidden;
         }
         .sp-category-hero-art { position: absolute; inset: 0; overflow: hidden; }
-        .sp-category-hero-art :global(picture),
-        .sp-category-hero-art :global(img) { display: block; width: 100%; height: 100%; }
-        .sp-category-hero-art :global(img) { object-fit: cover; object-position: center; filter: saturate(1.02) contrast(1.08) brightness(0.45); }
+        .sp-category-hero-art :global(.training-art),
+        .sp-category-hero-art :global(picture) { display: block; width: 100%; height: 100%; }
+        .sp-category-hero-art :global(.training-art-scene) { object-fit: cover; object-position: center; filter: saturate(1.02) contrast(1.08) brightness(0.45); }
         .sp-category-hero-shade {
           position: absolute;
           inset: 0;

@@ -1,0 +1,71 @@
+{
+  "id": "psy-020",
+  "name": "Level 10: Mind Master",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:56:35.600Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Level 10: Mind Master.\nSubject: Mind Master: a serene seated poker competitor seen from behind at a dark table, with a balanced field of blue decision lights reflected in the polished rail\nCamera: medium cinematic rear portrait, slightly above shoulder height\nComposition: A calm dark silhouette sits in the left third; the table opens broadly to the right with a controlled orderly chip stack and delicate arcs of silver light. The human composure is the hero, no visible face, trophy, brain ornament or text.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Mind Master: a serene seated poker competitor seen from behind at a dark table, with a balanced field of blue decision lights reflected in the polished rail",
+  "camera": "medium cinematic rear portrait, slightly above shoulder height",
+  "composition": "A calm dark silhouette sits in the left third; the table opens broadly to the right with a controlled orderly chip stack and delicate arcs of silver light. The human composure is the hero, no visible face, trophy, brain ornament or text.",
+  "source": {
+    "fileName": "exec-d43ccacb-704d-4c4a-9c71-7028fba4e461.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2074937,
+    "sha256": "bc1f9350638223c47f06ef8371d1a2e96a7909935b813b5c0cb6286b9835d90f"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-020.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 24170,
+      "sha256": "e49380fda1ec52619b9c77a5b3b4f3cfe6e2c45a4153ab1537a10b79c56ded45"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-020.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 20451,
+      "sha256": "5285212bf929210c557e2eb1aa96d85afe4cff7764f94f9d8b12dd2a31dacf35"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-020.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 47364,
+      "sha256": "9fa7cb5418a3d94bc7dfcaad3a140b472cc8722daff2fc9487b36d44b7a7518d"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-020.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 38844,
+      "sha256": "c23d03d2c8e3ba0dac2958b30002b1a8b3a7a2770d6daeb0055851875d1a8e03"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-020.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 90786,
+      "sha256": "c9a5395db6d66146bd57292281189b9a03e5a23f864a0872a5a2c18a6ef5ddd4"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-020.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 69344,
+      "sha256": "d7205c51504c71769add00acdc74d9050cb99b2cc11ef46c55493f82fe5ce0ff"
+    }
+  ]
+}

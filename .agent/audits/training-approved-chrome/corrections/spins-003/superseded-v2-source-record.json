@@ -1,0 +1,74 @@
+{
+  "id": "spins-003",
+  "name": "Button Limp",
+  "category": "SPINS",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T19:00:32.720Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Button Limp.\nSubject: A deliberately modest single-chip entry from the button conceals a strong holding and a much deeper reserve in shadow. A plain chrome dealer disc lies beside the entry, while native pocket aces make the trap readable.\nCamera: Close overhead crop rotated diagonally, with the button corner nearest the viewer.\nComposition: The small limp chip sits just across the betting line at center. The plain dealer disc is close at lower right; the strong native cards occupy a compact lower-left hand area; the reserve disappears into the upper-right shadow. This is a quiet tactical scene with no trapdoor, mechanical jaws or podium.\nDo not render the mentioned playing cards. Keep their described natural table area clean; the application will add the source-exact card assets afterward.",
+  "subject": "A deliberately modest single-chip entry from the button conceals a strong holding and a much deeper reserve in shadow. A plain chrome dealer disc lies beside the entry, while native pocket aces make the trap readable.",
+  "camera": "Close overhead crop rotated diagonally, with the button corner nearest the viewer.",
+  "composition": "The small limp chip sits just across the betting line at center. The plain dealer disc is close at lower right; the strong native cards occupy a compact lower-left hand area; the reserve disappears into the upper-right shadow. This is a quiet tactical scene with no trapdoor, mechanical jaws or podium.",
+  "source": {
+    "fileName": "exec-88ed0cd5-4102-4e97-8431-8fed0b3e7467.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2641787,
+    "sha256": "ed64f370cfc0dd646bf684c60292efdc0eeedc22a69bab691d8852110ebe9366"
+  },
+  "nativeCards": [
+    "As",
+    "Ah"
+  ],
+  "placement": "left",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/spins-003.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 33480,
+      "sha256": "9a0ff52f8057c308bc637411adb6cafdbd69f80221bd36b52b444a2a1175ecc3"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/spins-003.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 29048,
+      "sha256": "d8643c1729ed364a11431af47ea02ba2f8d215392afe030404c14104dcc95f71"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-003.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 78082,
+      "sha256": "8146a1d452059a2f9e334e4a7ebdbd4cb8ffb65645681390dcd3c5b048828630"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/spins-003.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 66038,
+      "sha256": "61c15581dc87292d3ecb35888fbd7da767d5706bcb29beda8c0b54e344b09cb9"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-003.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 162596,
+      "sha256": "3eb7440d293f35c111bafdba16a3f55775587563d5f77b1a1a39d220f1e7388a"
+    },
+    {
+      "path": "/images/training/approved-chrome/spins-003.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 121267,
+      "sha256": "c6f8abc5cb67cf8f94e82b731e1c50ae1adc7d8d96a6aefe2bdde1584c0e52fc"
+    }
+  ]
+}

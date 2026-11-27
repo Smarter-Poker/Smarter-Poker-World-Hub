@@ -1,0 +1,71 @@
+{
+  "id": "mtt-006",
+  "name": "Satellite Survival",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:47:55.043Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Satellite Survival.\nSubject: Satellite Survival: one last empty cobalt tournament seat beyond a narrow admission gate, with equal silver entry tokens already allocated to the neighboring chairs\nCamera: low seat-height perspective looking along the final row\nComposition: The open chair is close and large on the right, the gate crosses the left foreground, and a short queue of black chip stacks stops just before the threshold. Finite seats and survival are the story; quiet, tense cinematic lighting.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Satellite Survival: one last empty cobalt tournament seat beyond a narrow admission gate, with equal silver entry tokens already allocated to the neighboring chairs",
+  "camera": "low seat-height perspective looking along the final row",
+  "composition": "The open chair is close and large on the right, the gate crosses the left foreground, and a short queue of black chip stacks stops just before the threshold. Finite seats and survival are the story; quiet, tense cinematic lighting.",
+  "source": {
+    "fileName": "exec-8f665669-9a19-4e4c-898b-e7733d3c1962.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2222444,
+    "sha256": "ccf5a1ac2a879f3aaffdcc6499bc61c82fdb6dc0404c487318467d51e23e3030"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-006.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 35274,
+      "sha256": "d98afdc2e30b6c202f7eb46f7808b75e0de98abba462797e788146003ceadc25"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-006.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 30492,
+      "sha256": "9251da4c816f0e3fb1583d519b03f68bbcbf2e70b17cdca6cd4f96bd1342b34c"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-006.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 68724,
+      "sha256": "aacfdeec6951d62a3bfbca0878ca9a5e8691a4d40ae83ba010fdd371ab7dc6b0"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-006.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 57586,
+      "sha256": "d2b7eac44b6926af49b31394b96074deeade92315230175c3c70ef19e4051674"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-006.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 130054,
+      "sha256": "6e544ba3ce99dfa6a912387c7271e735ab3da8eace9dd5e11bbd14e4b86c3134"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-006.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 98396,
+      "sha256": "3352e6a2666ff5ac4ca0a81005fec1c9abf2e08870d2d372612660b65b56f64e"
+    }
+  ]
+}

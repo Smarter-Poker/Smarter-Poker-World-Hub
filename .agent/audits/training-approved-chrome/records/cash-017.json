@@ -1,0 +1,71 @@
+{
+  "id": "cash-017",
+  "name": "Rake Awareness",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:48:53.183Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Rake Awareness.\nSubject: A poker-table rake slot siphons one small chip away from a larger pot. A clear cutaway reveals that chip dropping into a separate collection tray beneath the felt, making the otherwise easy-to-ignore cost physically visible.\nCamera: Macro cross-section at the actual table edge, half above the felt and half below.\nComposition: The top-left shows the pot close to a narrow chrome slot; a single chip descends through the center; the bottom-right reveals the collection channel. Use a strong horizontal felt boundary, dark transparent cutaway glass and precise silver reflections. No scale, podium or playing cards.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A poker-table rake slot siphons one small chip away from a larger pot. A clear cutaway reveals that chip dropping into a separate collection tray beneath the felt, making the otherwise easy-to-ignore cost physically visible.",
+  "camera": "Macro cross-section at the actual table edge, half above the felt and half below.",
+  "composition": "The top-left shows the pot close to a narrow chrome slot; a single chip descends through the center; the bottom-right reveals the collection channel. Use a strong horizontal felt boundary, dark transparent cutaway glass and precise silver reflections. No scale, podium or playing cards.",
+  "source": {
+    "fileName": "exec-458a7e50-c684-4e17-8839-4a07dc5fda01.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2107711,
+    "sha256": "5e0ab84db489db793e6efc3d19cdbdd3bcaea18422a903503c7ea2d203121f73"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-017.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 33784,
+      "sha256": "a898c89bdbadf1202af430aaa284c5bb015b3ab87c411007d406465c3871758b"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-017.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 31200,
+      "sha256": "6633597c2936cb43f3ebdf9205f0b2df154b182851b587b0b539b53781bcd07a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-017.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 63582,
+      "sha256": "611af63f5e20914cd648bc508e93b3cfb9d4f1776a3fb2649c0c558740a30954"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-017.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 54533,
+      "sha256": "01d794ae60c9b6fbdbb00d1ff7a4bf802ffeb8c00b416976f1ecfca40b60eacd"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-017.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 114840,
+      "sha256": "2521e96a35e5343f17e55b4fd159e949636e7710edf0777cdbec502b8ff6438b"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-017.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 89074,
+      "sha256": "551375df112a0019e0d00955505dca7c563964ce4a84bd622ec2ac76d1ac94ff"
+    }
+  ]
+}

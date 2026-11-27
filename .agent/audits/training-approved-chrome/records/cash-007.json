@@ -1,0 +1,71 @@
+{
+  "id": "cash-007",
+  "name": "3-Bet Pots",
+  "category": "CASH",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:50:49.617Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: 3-Bet Pots.\nSubject: A substantial contested pot tightly squeezed between two shorter remaining chip reserves. Three broad action tracks feed the pot, but the available space behind each player's wager is visibly reduced, suggesting the lower room for maneuver after a preflop three-bet.\nCamera: Steep overhead trapezoidal crop of the actual felt, close enough to see individual chip edges.\nComposition: The large irregular pot dominates the middle diagonal. Two compact reserve clusters sit in opposite corners; broad chrome-inlaid bet tracks converge around them. The composition is compressed and crowded by design. No rings, arches, arena stage, decorative tower or card placeholders.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "A substantial contested pot tightly squeezed between two shorter remaining chip reserves. Three broad action tracks feed the pot, but the available space behind each player's wager is visibly reduced, suggesting the lower room for maneuver after a preflop three-bet.",
+  "camera": "Steep overhead trapezoidal crop of the actual felt, close enough to see individual chip edges.",
+  "composition": "The large irregular pot dominates the middle diagonal. Two compact reserve clusters sit in opposite corners; broad chrome-inlaid bet tracks converge around them. The composition is compressed and crowded by design. No rings, arches, arena stage, decorative tower or card placeholders.",
+  "source": {
+    "fileName": "exec-5bf54360-7e18-439a-848f-1b524fd08b5b.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 3211669,
+    "sha256": "2c8f1e8efe07515755aefe99847ee705c07540529fcbc5c6e8c5ff93e3a839a5"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/cash-007.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 49314,
+      "sha256": "20473fcf569cc426666b8aa09c3ddf8d63664f71d307745260d72d7119954fe5"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/cash-007.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 49140,
+      "sha256": "7477fd4c93cf57e841afc20679c48b5fdf464795c01bf6252e1db92f50d4ba3e"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-007.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 109974,
+      "sha256": "d4b99df910c4b33d18dde9a26dc91afc377c40d41f0cdc490fb1820c7b8f5926"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/cash-007.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 102463,
+      "sha256": "53986bb2a1a9404ccd10d387bc73bce5b026eee4cb8f6e1e91c6dbc07bb4fcdb"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-007.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 236540,
+      "sha256": "11e44d8ac9cd1afa202de7e9cb91b3bf3f7fd9fa4a8d0e6125639ec6e96a479d"
+    },
+    {
+      "path": "/images/training/approved-chrome/cash-007.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 200126,
+      "sha256": "8374d676cd79a0f9cd60b6fc2dbee82ebc59effd71219492b05f3e3d2863f657"
+    }
+  ]
+}

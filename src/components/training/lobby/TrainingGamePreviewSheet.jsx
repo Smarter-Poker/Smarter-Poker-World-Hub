@@ -1,15 +1,9 @@
-/**
- * TrainingGamePreviewSheet — Compact Quick-Preview & Variant Customize Dialog
- * ─────────────────────────────────────────────────────────────────────────────
- * Opens from a row's ⚙ options button without cluttering the dense lobby list.
- * Displays the game's canonical TrainingGameArt, preset telemetry, variant and
- * street selector, favorite toggle, and direct Arena launch CTA.
- */
-
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Play, Star, Layers } from 'lucide-react';
 import TrainingGameArt from '../TrainingGameArt';
 import { VARIANT_METADATA, SUPPORTED_VARIANTS } from '../../../lib/training/trainingPresets.mjs';
+import TrainingLobbyDialog from './TrainingLobbyDialog';
+import styles from './TrainingLobby.module.css';
 
 const STREET_OPTIONS = [
   { id: '', label: 'Full Hand' },
@@ -18,16 +12,6 @@ const STREET_OPTIONS = [
   { id: 'turn', label: 'Turn' },
   { id: 'river', label: 'River' },
 ];
-
-function isOutsideDialog(event, dialog) {
-  const rect = dialog.getBoundingClientRect();
-  return (
-    event.clientX < rect.left
-    || event.clientX > rect.right
-    || event.clientY < rect.top
-    || event.clientY > rect.bottom
-  );
-}
 
 export default function TrainingGamePreviewSheet({
   item,
@@ -38,63 +22,18 @@ export default function TrainingGamePreviewSheet({
   favoritesUnavailable,
   defaultVariant,
 }) {
-  const dialogRef = useRef(null);
   const [variant, setVariant] = useState('nlh');
   const [targetStreet, setTargetStreet] = useState('');
-
   const game = item?.game || null;
   const meta = item?.meta || null;
-  const isOpen = Boolean(game);
+  const supportsVariants = meta?.category !== 'PSYCHOLOGY';
 
   useEffect(() => {
     if (!item) return;
-    const initialVariant =
-      defaultVariant && defaultVariant !== 'ALL' && SUPPORTED_VARIANTS.includes(defaultVariant)
-        ? defaultVariant
-        : (item.meta?.preset?.variant || 'nlh');
-    setVariant(initialVariant);
+    setVariant(defaultVariant && defaultVariant !== 'ALL' && SUPPORTED_VARIANTS.includes(defaultVariant)
+      ? defaultVariant : (item.meta?.preset?.variant || 'nlh'));
     setTargetStreet('');
   }, [item, defaultVariant]);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return undefined;
-
-    if (isOpen && !dialog.open) {
-      if (typeof dialog.showModal === 'function') dialog.showModal();
-    } else if (!isOpen && dialog.open) {
-      dialog.close();
-    }
-
-    const handleClose = () => {
-      dialog.returnValue = '';
-      if (isOpen) onClose();
-    };
-    dialog.addEventListener('close', handleClose);
-
-    let cleanupBackdrop = null;
-    if (typeof HTMLDialogElement !== 'undefined' && !('closedBy' in HTMLDialogElement.prototype)) {
-      let pressedOutside = false;
-      const onPointerDown = (e) => { pressedOutside = isOutsideDialog(e, dialog); };
-      const onPointerUp = (e) => {
-        if (pressedOutside && isOutsideDialog(e, dialog) && dialog.open) {
-          dialog.close();
-        }
-        pressedOutside = false;
-      };
-      dialog.addEventListener('pointerdown', onPointerDown);
-      dialog.addEventListener('pointerup', onPointerUp);
-      cleanupBackdrop = () => {
-        dialog.removeEventListener('pointerdown', onPointerDown);
-        dialog.removeEventListener('pointerup', onPointerUp);
-      };
-    }
-
-    return () => {
-      dialog.removeEventListener('close', handleClose);
-      if (cleanupBackdrop) cleanupBackdrop();
-    };
-  }, [isOpen, onClose]);
 
   const handleStart = () => {
     if (!game) return;
@@ -104,119 +43,53 @@ export default function TrainingGamePreviewSheet({
       bettingStructure: variantMeta.defaultStructure,
       ...(targetStreet ? { targetStreet } : {}),
     };
-    dialogRef.current?.close();
+    onClose();
     onLaunch(game, overrides);
   };
 
-  const supportsVariants = meta?.category !== 'PSYCHOLOGY';
-
   return (
-    <dialog
-      ref={dialogRef}
-      closedby="any"
-      className="sp-arena-sheet sp-arena-sheet--preview"
-      aria-labelledby="training-preview-title"
-      data-training-preview-sheet="true"
-    >
+    <TrainingLobbyDialog open={Boolean(game)} onClose={onClose} labelledBy="training-preview-title" data-training-preview-sheet="true">
       {game && meta && (
-        <div className="sp-arena-sheet__chrome">
-          <header className="sp-arena-sheet__head">
+        <>
+          <header className={styles.dialogHeader}>
             <div>
-              <span className="sp-arena-preview__cat">{meta.categoryLabel} · {meta.plaqueLabel}</span>
-              <h1 id="training-preview-title" className="sp-arena-sheet__title">{game.name}</h1>
+              <span className={styles.previewCategory}>{meta.categoryLabel} · {meta.plaqueLabel}</span>
+              <h2 id="training-preview-title">{game.name}</h2>
             </div>
-            <button
-              type="button"
-              className="sp-arena-sheet__close sd-button"
-              aria-label="Close Preview"
-              onClick={() => dialogRef.current?.close()}
-            >
-              <X size={18} aria-hidden="true" />
-            </button>
+            <button type="button" className={`${styles.chromeButton} ${styles.iconButton}`} aria-label="Close Preview" onClick={onClose}><X size={21} aria-hidden="true" /></button>
           </header>
-
-          <div className="sp-arena-sheet__body">
-            <div className="sp-arena-preview__banner">
-              <TrainingGameArt
-                gameId={game.id}
-                loading="eager"
-                sizes="(max-width: 600px) calc(100vw - 24px), 520px"
-                className="sp-arena-preview__art"
-              />
-              <div className="sp-arena-preview__shade" aria-hidden="true" />
-              <div className="sp-arena-preview__meta-bar">
-                {meta.stackBb != null && <span><Layers size={13} aria-hidden="true" /> {meta.stackBb} BB</span>}
-                <span className="sp-num">Level {meta.difficulty}/5</span>
-                <span className="sp-num">{item.progress}% Calibrated</span>
-              </div>
+          <div className={styles.dialogBody}>
+            <TrainingGameArt gameId={game.id} loading="eager" sizes="(max-width: 600px) calc(100vw - 48px), 620px" className={styles.previewArt} />
+            <div className={styles.previewMeta}>
+              {meta.stackBb != null && <span><Layers size={16} aria-hidden="true" /> {meta.stackBb} BB</span>}
+              <span>Level {meta.difficulty}/5</span>
+              <span>{Math.round(Number(item.progress) || 0)}% Complete</span>
             </div>
-
-            <p className="sp-arena-preview__focus">{game.focus}</p>
-            {meta.preset?.summary && (
-              <p className="sp-arena-preview__preset">{meta.preset.summary}</p>
-            )}
-
+            <p className={styles.previewFocus}>{game.focus}</p>
+            {meta.preset?.summary && <p className={styles.previewSummary}>{meta.preset.summary}</p>}
             {supportsVariants && (
-              <fieldset className="sp-arena-sheet__group">
-                <legend className="sp-arena-sheet__label">Poker Variant</legend>
-                <div className="sp-arena-sheet__pills">
-                  {SUPPORTED_VARIANTS.map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      className="sp-arena-sheet__pill sd-button"
-                      aria-pressed={variant === v}
-                      onClick={() => setVariant(v)}
-                    >
-                      {VARIANT_METADATA[v].shortLabel}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-            )}
-
-            {supportsVariants && (
-              <fieldset className="sp-arena-sheet__group">
-                <legend className="sp-arena-sheet__label">Street Focus</legend>
-                <div className="sp-arena-sheet__pills">
-                  {STREET_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.id || 'full'}
-                      type="button"
-                      className="sp-arena-sheet__pill sd-button"
-                      aria-pressed={targetStreet === opt.id}
-                      onClick={() => setTargetStreet(opt.id)}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
+              <>
+                <fieldset className={styles.filterGroup}>
+                  <legend className={styles.filterLabel}>Poker Variant</legend>
+                  <div className={styles.filterOptions}>
+                    {SUPPORTED_VARIANTS.map((value) => <button key={value} type="button" className={styles.chromeButton} aria-pressed={variant === value} onClick={() => setVariant(value)}>{VARIANT_METADATA[value].shortLabel}</button>)}
+                  </div>
+                </fieldset>
+                <fieldset className={styles.filterGroup}>
+                  <legend className={styles.filterLabel}>Street Focus</legend>
+                  <div className={styles.filterOptions}>
+                    {STREET_OPTIONS.map((option) => <button key={option.id || 'full'} type="button" className={styles.chromeButton} aria-pressed={targetStreet === option.id} onClick={() => setTargetStreet(option.id)}>{option.label}</button>)}
+                  </div>
+                </fieldset>
+              </>
             )}
           </div>
-
-          <footer className="sp-arena-sheet__foot">
-            <button
-              type="button"
-              className={`sp-arena-sheet__reset sd-button${isFavorite ? ' active' : ''}`}
-              aria-pressed={isFavorite}
-              disabled={favoritesUnavailable}
-              onClick={() => onToggleFavorite(game.id)}
-            >
-              <Star size={15} aria-hidden="true" fill={isFavorite ? 'currentColor' : 'none'} />
-              <span>{isFavorite ? 'Favorited' : 'Favorite'}</span>
-            </button>
-            <button
-              type="button"
-              className="sp-arena-sheet__apply sd-button sd-primary"
-              onClick={handleStart}
-            >
-              <Play size={15} aria-hidden="true" />
-              <span>Play Drill</span>
-            </button>
+          <footer className={styles.dialogFooter}>
+            <button type="button" className={styles.chromeButton} aria-pressed={Boolean(isFavorite)} disabled={favoritesUnavailable} onClick={() => onToggleFavorite(game.id)}><Star size={19} aria-hidden="true" fill={isFavorite ? 'currentColor' : 'none'} /> {isFavorite ? 'Favorited' : 'Favorite'}</button>
+            <button type="button" className={`${styles.chromeButton} ${styles.primaryButton}`} onClick={handleStart}><Play size={21} aria-hidden="true" /> Play Drill</button>
           </footer>
-        </div>
+        </>
       )}
-    </dialog>
+    </TrainingLobbyDialog>
   );
 }

@@ -1,14 +1,7 @@
-/**
- * TrainingFiltersSheet — Native Modal Filters & Sort Sheet
- * ─────────────────────────────────────────────────────────────────────────────
- * Uses native <dialog closedby="any"> opened with showModal() for built-in
- * top-layer stacking, focus containment, Esc dismissal, and focus return, with
- * the pointer-bounds light-dismiss fallback for browsers without closedby.
- */
-
-import { useEffect, useRef } from 'react';
 import { X, Search, RotateCcw } from 'lucide-react';
 import { QUICK_FILTER_PILLS } from '../../../lib/training/trainingLobbyFilter.mjs';
+import TrainingLobbyDialog from './TrainingLobbyDialog';
+import styles from './TrainingLobby.module.css';
 
 const VARIANT_OPTIONS = [
   { id: 'ALL', label: 'All Variants' },
@@ -57,15 +50,13 @@ const SORT_OPTIONS = [
   { key: 'name', dir: 'asc', label: 'Name (A-Z)' },
 ];
 
-function isOutsideDialog(event, dialog) {
-  const rect = dialog.getBoundingClientRect();
-  return (
-    event.clientX < rect.left
-    || event.clientX > rect.right
-    || event.clientY < rect.top
-    || event.clientY > rect.bottom
-  );
-}
+const FILTER_GROUPS = [
+  { label: 'Poker Variant', field: 'variant', options: VARIANT_OPTIONS },
+  { label: 'Difficulty Level', field: 'difficultyTier', options: DIFFICULTY_OPTIONS },
+  { label: 'Strategy Focus', field: 'styleTag', options: STYLE_OPTIONS },
+  { label: 'Completion Status', field: 'statusFilter', options: STATUS_OPTIONS },
+  { label: 'Access', field: 'accessFilter', options: ACCESS_OPTIONS },
+];
 
 export default function TrainingFiltersSheet({
   isOpen,
@@ -75,238 +66,51 @@ export default function TrainingFiltersSheet({
   onResetFilters,
   matchingCount,
 }) {
-  const dialogRef = useRef(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return undefined;
-
-    if (isOpen && !dialog.open) {
-      if (typeof dialog.showModal === 'function') dialog.showModal();
-    } else if (!isOpen && dialog.open) {
-      dialog.close();
-    }
-
-    const handleClose = () => {
-      dialog.returnValue = '';
-      if (isOpen) onClose();
-    };
-    dialog.addEventListener('close', handleClose);
-
-    // Safari / fallback for browsers without native <dialog closedby="any">
-    let cleanupBackdrop = null;
-    if (typeof HTMLDialogElement !== 'undefined' && !('closedBy' in HTMLDialogElement.prototype)) {
-      let pressedOutside = false;
-      const onPointerDown = (e) => { pressedOutside = isOutsideDialog(e, dialog); };
-      const onPointerUp = (e) => {
-        if (pressedOutside && isOutsideDialog(e, dialog) && dialog.open) {
-          dialog.close();
-        }
-        pressedOutside = false;
-      };
-      dialog.addEventListener('pointerdown', onPointerDown);
-      dialog.addEventListener('pointerup', onPointerUp);
-      cleanupBackdrop = () => {
-        dialog.removeEventListener('pointerdown', onPointerDown);
-        dialog.removeEventListener('pointerup', onPointerUp);
-      };
-    }
-
-    return () => {
-      dialog.removeEventListener('close', handleClose);
-      if (cleanupBackdrop) cleanupBackdrop();
-    };
-  }, [isOpen, onClose]);
-
   return (
-    <dialog
-      ref={dialogRef}
-      closedby="any"
-      className="sp-arena-sheet"
-      aria-labelledby="training-filters-title"
-      data-training-filters-sheet="true"
-    >
-      <div className="sp-arena-sheet__chrome">
-        <header className="sp-arena-sheet__head">
-          <h1 id="training-filters-title" className="sp-arena-sheet__title">
-            Filter &amp; Sort Training Games
-          </h1>
-          <button
-            type="button"
-            className="sp-arena-sheet__close sd-button"
-            aria-label="Close Filters"
-            onClick={() => dialogRef.current?.close()}
-          >
-            <X size={18} aria-hidden="true" />
-          </button>
-        </header>
-
-        <div className="sp-arena-sheet__body">
-          {/* Keyword Search */}
-          <div className="sp-arena-sheet__group">
-            <label className="sp-arena-sheet__label" htmlFor="training-sheet-search">
-              Search Games
-            </label>
-            <div className="sp-arena-sheet__search">
-              <Search size={15} aria-hidden="true" />
-              <input
-                id="training-sheet-search"
-                type="search"
-                value={filters.query}
-                placeholder="Push/Fold, ICM, 3-Bet, River, Tilt…"
-                onChange={(e) => onUpdateFilters({ query: e.target.value })}
-              />
-            </div>
+    <TrainingLobbyDialog open={isOpen} onClose={onClose} labelledBy="training-filters-title" data-training-filters-sheet="true">
+      <header className={styles.dialogHeader}>
+        <h2 id="training-filters-title">Filter &amp; Sort Training Games</h2>
+        <button type="button" className={`${styles.chromeButton} ${styles.iconButton}`} aria-label="Close Filters" onClick={onClose}><X size={21} aria-hidden="true" /></button>
+      </header>
+      <div className={styles.dialogBody}>
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor="training-sheet-search">Search Games</label>
+          <div className={styles.searchWell}>
+            <Search size={21} aria-hidden="true" />
+            <input id="training-sheet-search" type="search" value={filters.query} placeholder="Push/Fold, ICM, 3-Bet, River, Tilt" onChange={(event) => onUpdateFilters({ query: event.target.value })} />
           </div>
-
-          <fieldset className="sp-arena-sheet__group">
-            <legend className="sp-arena-sheet__label">Quick Filters</legend>
-            <div className="sp-arena-sheet__pills">
-              {QUICK_FILTER_PILLS.map((pill) => (
-                <button
-                  key={pill.id}
-                  type="button"
-                  className="sp-arena-sheet__pill sd-button"
-                  data-quick-filter={pill.id.toLowerCase()}
-                  aria-pressed={filters.quickFilter === pill.id}
-                  onClick={() => onUpdateFilters({ quickFilter: filters.quickFilter === pill.id ? 'ALL' : pill.id })}
-                >
-                  {pill.label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          {/* Poker Variant */}
-          <fieldset className="sp-arena-sheet__group">
-            <legend className="sp-arena-sheet__label">Poker Variant</legend>
-            <div className="sp-arena-sheet__pills">
-              {VARIANT_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  className="sp-arena-sheet__pill sd-button"
-                  aria-pressed={filters.variant === opt.id}
-                  onClick={() => onUpdateFilters({ variant: opt.id })}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          {/* Difficulty Tier */}
-          <fieldset className="sp-arena-sheet__group">
-            <legend className="sp-arena-sheet__label">Difficulty Level</legend>
-            <div className="sp-arena-sheet__pills">
-              {DIFFICULTY_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  className="sp-arena-sheet__pill sd-button"
-                  aria-pressed={filters.difficultyTier === opt.id}
-                  onClick={() => onUpdateFilters({ difficultyTier: opt.id })}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          {/* Strategy Focus */}
-          <fieldset className="sp-arena-sheet__group">
-            <legend className="sp-arena-sheet__label">Strategy Focus</legend>
-            <div className="sp-arena-sheet__pills">
-              {STYLE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  className="sp-arena-sheet__pill sd-button"
-                  aria-pressed={filters.styleTag === opt.id}
-                  onClick={() => onUpdateFilters({ styleTag: opt.id })}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          {/* Progress Status */}
-          <fieldset className="sp-arena-sheet__group">
-            <legend className="sp-arena-sheet__label">Completion Status</legend>
-            <div className="sp-arena-sheet__pills">
-              {STATUS_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  className="sp-arena-sheet__pill sd-button"
-                  aria-pressed={filters.statusFilter === opt.id}
-                  onClick={() => onUpdateFilters({ statusFilter: opt.id })}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          {/* Access Tier */}
-          <fieldset className="sp-arena-sheet__group">
-            <legend className="sp-arena-sheet__label">Access</legend>
-            <div className="sp-arena-sheet__pills">
-              {ACCESS_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  className="sp-arena-sheet__pill sd-button"
-                  aria-pressed={filters.accessFilter === opt.id}
-                  onClick={() => onUpdateFilters({ accessFilter: opt.id })}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          {/* Sort Order */}
-          <fieldset className="sp-arena-sheet__group">
-            <legend className="sp-arena-sheet__label">Sort Order</legend>
-            <div className="sp-arena-sheet__pills">
-              {SORT_OPTIONS.map((opt) => {
-                const active = filters.sortKey === opt.key && filters.sortDir === opt.dir;
-                return (
-                  <button
-                    key={`${opt.key}-${opt.dir}`}
-                    type="button"
-                    className="sp-arena-sheet__pill sd-button"
-                    aria-pressed={active}
-                    onClick={() => onUpdateFilters({ sortKey: opt.key, sortDir: opt.dir })}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
         </div>
-
-        <footer className="sp-arena-sheet__foot">
-          <button
-            type="button"
-            className="sp-arena-sheet__reset sd-button"
-            onClick={onResetFilters}
-          >
-            <RotateCcw size={14} aria-hidden="true" />
-            <span>Reset All</span>
-          </button>
-          <button
-            type="button"
-            className="sp-arena-sheet__apply sd-button sd-primary"
-            onClick={() => dialogRef.current?.close()}
-          >
-            Show {matchingCount} {matchingCount === 1 ? 'Game' : 'Games'}
-          </button>
-        </footer>
+        <fieldset className={styles.filterGroup}>
+          <legend className={styles.filterLabel}>Quick Filters</legend>
+          <div className={styles.filterOptions}>
+            {QUICK_FILTER_PILLS.map((pill) => (
+              <button type="button" key={pill.id} className={styles.chromeButton} data-quick-filter={pill.id.toLowerCase()} aria-pressed={filters.quickFilter === pill.id} onClick={() => onUpdateFilters({ quickFilter: filters.quickFilter === pill.id ? 'ALL' : pill.id })}>{pill.label}</button>
+            ))}
+          </div>
+        </fieldset>
+        {FILTER_GROUPS.map(({ label, field, options }) => (
+          <fieldset key={field} className={styles.filterGroup}>
+            <legend className={styles.filterLabel}>{label}</legend>
+            <div className={styles.filterOptions}>
+              {options.map((option) => (
+                <button type="button" key={option.id} className={styles.chromeButton} aria-pressed={filters[field] === option.id} onClick={() => onUpdateFilters({ [field]: option.id })}>{option.label}</button>
+              ))}
+            </div>
+          </fieldset>
+        ))}
+        <fieldset className={styles.filterGroup}>
+          <legend className={styles.filterLabel}>Sort Order</legend>
+          <div className={styles.filterOptions}>
+            {SORT_OPTIONS.map((option) => (
+              <button type="button" key={`${option.key}-${option.dir}`} className={styles.chromeButton} aria-pressed={filters.sortKey === option.key && filters.sortDir === option.dir} onClick={() => onUpdateFilters({ sortKey: option.key, sortDir: option.dir })}>{option.label}</button>
+            ))}
+          </div>
+        </fieldset>
       </div>
-    </dialog>
+      <footer className={styles.dialogFooter}>
+        <button type="button" className={styles.chromeButton} onClick={onResetFilters}><RotateCcw size={18} aria-hidden="true" /> Reset All</button>
+        <button type="button" className={`${styles.chromeButton} ${styles.primaryButton}`} onClick={onClose}>Show {matchingCount} {matchingCount === 1 ? 'Game' : 'Games'}</button>
+      </footer>
+    </TrainingLobbyDialog>
   );
 }

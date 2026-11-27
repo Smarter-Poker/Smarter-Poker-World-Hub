@@ -24,6 +24,7 @@
  * Author: redesign generated 2026-05-06
  */
 
+import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
@@ -80,6 +81,7 @@ import TrainingSortBar from '../../src/components/training/lobby/TrainingSortBar
 import TrainingLobbyResults from '../../src/components/training/lobby/TrainingLobbyResults';
 import TrainingFiltersSheet from '../../src/components/training/lobby/TrainingFiltersSheet';
 import TrainingGamePreviewSheet from '../../src/components/training/lobby/TrainingGamePreviewSheet';
+import lobbyStyles from '../../src/components/training/lobby/TrainingLobby.module.css';
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
 import { leakService } from '../../src/services/LeakService';
 import { analyzeVerifiedTrainingWeaknesses } from '../../src/lib/training/weaknessAnalysis.mjs';
@@ -100,15 +102,6 @@ const CATEGORY_META = {
   PSYCHOLOGY: { label: 'Mental Game',  Icon: Brain,      color: '#86daff', glow: 'rgba(134,218,255,0.16)' },
   ADVANCED:   { label: 'Poker Strategy',     Icon: Atom,       color: '#60A5FA', glow: 'rgba(96,165,250,0.22)' },
 };
-
-const VARIANT_FILTERS = [
-  { id: 'ALL', label: 'All' },
-  { id: 'nlh', label: 'NLH' },
-  { id: 'plo4', label: 'PLO4' },
-  { id: 'plo5', label: 'PLO5' },
-  { id: 'plo6', label: 'PLO6' },
-  { id: 'plo8', label: 'PLO8' },
-];
 
 const CATEGORY_ORDER = ['MTT', 'CASH', 'SPINS', 'PSYCHOLOGY', 'ADVANCED'];
 
@@ -169,6 +162,7 @@ export default function TrainingPage() {
   const favoritesUnavailable = favoritesLoading || Boolean(favoritesError);
 
   const [filters, setFilters] = useState(DEFAULT_LOBBY_FILTERS);
+  const [viewMode, setViewMode] = useState('grid');
   const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState(null);
   const libraryHeadingRef = useRef(null);
@@ -575,6 +569,15 @@ export default function TrainingPage() {
         canonical="/hub/training"
         jsonLd={TRAINING_SCHEMA}
       />
+      <Head>
+        <link
+          rel="preload"
+          as="image"
+          type="image/avif"
+          imageSrcSet="/images/training/approved-chrome/640/mtt-001.avif 640w, /images/training/approved-chrome/960/mtt-001.avif 960w, /images/training/approved-chrome/mtt-001.avif 1440w"
+          imageSizes="(max-width: 600px) 88vw, (max-width: 1000px) 46vw, 400px"
+        />
+      </Head>
 
       <GlobalStyle />
 
@@ -584,7 +587,7 @@ export default function TrainingPage() {
           {/* Pull down at the top to re-read the dashboard. Off while a filter
               or preview sheet is open so a drag inside it cannot fire a reload. */}
           <PullToRefresh onRefresh={refreshDashboard} disabled={filtersSheetOpen || Boolean(previewItem)}>
-          <main id="main" className="sp-main sp-arena-lobby-shell">
+          <main id="main" className={`sp-main sp-arena-lobby-shell ${lobbyStyles.shell}`}>
 
             <TrainingLobbyHeader
               heroGame={heroGame}
@@ -593,7 +596,7 @@ export default function TrainingPage() {
               onPlayGame={playGame}
             />
 
-            <section id="training-library" className="sp-arena-lobby-section" aria-labelledby="lib-h" data-tutorial="library">
+            <section id="training-library" className={`sp-arena-lobby-section ${lobbyStyles.library}`} aria-labelledby="lib-h" data-tutorial="library">
               <TrainingLobbyControls
                 filters={filters}
                 onUpdateFilters={updateFilters}
@@ -608,33 +611,14 @@ export default function TrainingPage() {
                 headingRef={libraryHeadingRef}
               />
 
-              <div className="sp-arena-variants" role="group" aria-label="Poker Variant" data-variant-filter-bar="true">
-                {VARIANT_FILTERS.map(({ id, label }) => (
-                  <button
-                    type="button"
-                    key={id}
-                    data-variant-filter={id.toLowerCase()}
-                    aria-pressed={filters.variant === id}
-                    aria-label={id === 'ALL' ? 'All Poker Variants' : VARIANT_METADATA[id].label}
-                    onClick={() => updateFilters({ variant: id })}
-                  >{label}</button>
-                ))}
-                {filters.variant.startsWith('plo') && (
-                  <button
-                    type="button"
-                    className="sp-arena-variants__play"
-                    data-quick-launch-omaha={filters.variant}
-                    onClick={() => playGame(TRAINING_LIBRARY.find((game) => game.id === 'cash-005'), {
-                      variant: filters.variant, bettingStructure: 'pot_limit', format: 'cash',
-                    })}
-                  >
-                    <Play size={14} aria-hidden="true" /> Play {filters.variant.toUpperCase()} Cash Now
-                  </button>
-                )}
-              </div>
-
               <TrainingSortBar
                 filters={filters}
+                filteredCount={filters.favoritesOnly && favoritesUnavailable ? null : filtered.length}
+                totalCount={TRAINING_LIBRARY.length}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                fiveMinuteLeakFix={fiveMinuteLeakFix}
+                onPlayGame={playGame}
                 onSortChange={(sortKey, sortDir) => updateFilters({ sortKey, sortDir })}
                 onToggleFavorites={() => updateFilters({ favoritesOnly: !filters.favoritesOnly })}
                 onOpenFilters={() => setFiltersSheetOpen(true)}
@@ -652,6 +636,9 @@ export default function TrainingPage() {
                 <TrainingLobbyResults
                   key={JSON.stringify(filters)}
                   sections={sections}
+                  filters={filters}
+                  viewMode={viewMode}
+                  onUpdateFilters={updateFilters}
                   onStart={handleRowStart}
                   favoritesUnavailable={favoritesUnavailable}
                   onToggleFavorite={toggleFavorite}

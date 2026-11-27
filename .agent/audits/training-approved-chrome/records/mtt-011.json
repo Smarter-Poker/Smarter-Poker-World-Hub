@@ -1,0 +1,71 @@
+{
+  "id": "mtt-011",
+  "name": "Ante Theft",
+  "category": "MTT",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:49:17.073Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Ante Theft.\nSubject: Ante Theft: a small ring of unattended ante chips being swept from the center of a tournament table by a swift silver chip rake\nCamera: close bird's-eye view with slight rotational motion\nComposition: The rake enters from lower right, an incomplete arc of small cobalt antes curves on the left, and gathered chips skid into a compact pile. Active negative space and motion, no pedestal or floating token.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Ante Theft: a small ring of unattended ante chips being swept from the center of a tournament table by a swift silver chip rake",
+  "camera": "close bird's-eye view with slight rotational motion",
+  "composition": "The rake enters from lower right, an incomplete arc of small cobalt antes curves on the left, and gathered chips skid into a compact pile. Active negative space and motion, no pedestal or floating token.",
+  "source": {
+    "fileName": "exec-f061335e-0a2f-4eef-8ada-7a35e0a58a6c.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2615555,
+    "sha256": "9be510da977fda375e2f275bf46339143ca2c17a2b1d2434222c114d5ba31f1c"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/mtt-011.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 27056,
+      "sha256": "74a3ce0d6672f032cb69f4d806054dc7afb7a10f449687a517be66401ec64d7a"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/mtt-011.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 24386,
+      "sha256": "be65a33c027ccb42974554c2c46c330794922fc5c3eee4b4a1784c7827a4a38a"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-011.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 58636,
+      "sha256": "209775bfbd1cc12589c284fad5e590cdf14e2c6fbc2eb781bff1608f08f60928"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/mtt-011.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 48511,
+      "sha256": "832635cb5257293f1bdbe311786020cc6e21c4b39940d1aa7e3fae7ad4941d2c"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-011.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 122930,
+      "sha256": "de003bd5ae9eb3325d3ec6a4d608517304b2ea495c056dd7a4b810781b4731a9"
+    },
+    {
+      "path": "/images/training/approved-chrome/mtt-011.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 94116,
+      "sha256": "e831401a398ad4c4da387031733bb484b12f478322684254d86a16097263dcbf"
+    }
+  ]
+}

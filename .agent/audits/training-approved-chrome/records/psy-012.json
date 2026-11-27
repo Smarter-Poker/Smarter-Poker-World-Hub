@@ -1,0 +1,71 @@
+{
+  "id": "psy-012",
+  "name": "Snap Decision",
+  "category": "PSYCHOLOGY",
+  "version": "approved-chrome-v2",
+  "tool": "image_gen.imagegen",
+  "generatedAt": "2026-11-27T18:54:47.021Z",
+  "prompt": "Use case: stylized-concept. Create ONE finished premium landscape 16:9 game-cover image, ideally 1536x864, for the specified Smarter.Poker training game. Use the Smarter.Poker material identity: deep black and ink navy, polished CHROME or brushed SILVER, rich COBALT, restrained electric-blue accents and clean white reflections. Follow this individual scene and camera direction; each game has its own composition and image treatment. Make the meaningful subject LARGE, instantly recognizable at 350-pixel card width, with tactile realistic materials, refined lighting and a compelling professional game-cover finish. Vary surface finish to suit the described scene. No image border, UI, captions, logos, watermarks, letters, numbers, words or equations. NO PLAYING CARDS, NO CARD BACKS, NO CARD FACES, NO SUIT/RANK MARKINGS, NO BLANK CARD PLACEHOLDERS: any real card faces required will be layered separately from the actual Club Arena assets. No yellow, gold, purple, pink or orange accents. Do not add a circular display pedestal, a centered glowing ring, a generic symmetric studio platform, or flanking chip towers unless the individual subject specifically requires actual deep chip reserves. The individual scene is the entire image, not an icon on a stage. Keep the key content within 5% safe margins, retain natural proportions, and make the lighting bright enough to read the objects on mobile.\nGame: Snap Decision.\nSubject: Snap Decision: a fingertip sends one silver-edged cobalt chip through a rapidly closing split-second opening\nCamera: ultra-fast macro freeze frame with strong directional motion\nComposition: Finger and chip enter from right foreground, two blurred chrome shutters form a narrow left-side gate, and the successful trajectory is crisp. Clean minimal navy field and precise physical timing, no clock or floating brain.\nThis composition uses NO playing cards and needs NO card-sized empty reserved zone.",
+  "subject": "Snap Decision: a fingertip sends one silver-edged cobalt chip through a rapidly closing split-second opening",
+  "camera": "ultra-fast macro freeze frame with strong directional motion",
+  "composition": "Finger and chip enter from right foreground, two blurred chrome shutters form a narrow left-side gate, and the successful trajectory is crisp. Clean minimal navy field and precise physical timing, no clock or floating brain.",
+  "source": {
+    "fileName": "exec-2014f03d-6f53-4d3f-a86a-0c18e6f59efd.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2061848,
+    "sha256": "ac86c34ae7bf9f53e8fd19e44af45870ce9abe2260d969c733ce64785f8121b9"
+  },
+  "nativeCards": [],
+  "placement": "none",
+  "outputs": [
+    {
+      "path": "/images/training/approved-chrome/640/psy-012.webp",
+      "format": "webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 25138,
+      "sha256": "e16b92e840183ef4675f85489eb8b5a3763e5a52460e99c53e29abb41b801a86"
+    },
+    {
+      "path": "/images/training/approved-chrome/640/psy-012.avif",
+      "format": "avif",
+      "width": 640,
+      "height": 360,
+      "bytes": 18997,
+      "sha256": "6f37f68e705e3ec30c79a380c3448542a5635d13ada773dff84a599efe1b4b4c"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-012.webp",
+      "format": "webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 46768,
+      "sha256": "2aba2a40c6b1e793173235f4523d3d5f6a7dea674d0a88edd52caf5a55226b65"
+    },
+    {
+      "path": "/images/training/approved-chrome/960/psy-012.avif",
+      "format": "avif",
+      "width": 960,
+      "height": 540,
+      "bytes": 32736,
+      "sha256": "fcaf8daca1e804be6a4f2fa14da449d3ab30ffafeacdd7a5e0a0a6a68777b988"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-012.webp",
+      "format": "webp",
+      "width": 1440,
+      "height": 810,
+      "bytes": 86950,
+      "sha256": "d08a103fe1239e582b2f4d65f4e3670f4dd75fe4ee02953a74ae310dc3f61955"
+    },
+    {
+      "path": "/images/training/approved-chrome/psy-012.avif",
+      "format": "avif",
+      "width": 1440,
+      "height": 810,
+      "bytes": 55224,
+      "sha256": "02a2c23ddc5887959c3786325a2a04104b21c6affc51aa9369985453e0e52a75"
+    }
+  ]
+}
