@@ -176,6 +176,10 @@ export const POKER_VARIANTS = [
         q: 'What Is A 20-Out Wrap Draw In Pot-Limit Omaha?',
         a: 'When You Hold Four Consecutive Cards Around Two Connected Flop Cards (Such As Q-J-8-7 On A T-9-2 Flop), Any Queen, Jack, Eight, Or Seven Completes A Straight, Giving You 16 To 20 Unseen Straight Outs.',
       },
+      {
+        q: 'PLO4 Vs PLO5: What Is The Main Mathematical Difference?',
+        a: 'PLO4 Deals Four Hole Cards (6 Two-Card Combos, 120 To 145 BB/100 Variance, 65 To 85 Buy-In Bankroll), Whereas PLO5 Deals Five Hole Cards (10 Two-Card Combos, 155 To 185 BB/100 Variance, 100 To 130 Buy-In Bankroll), Compressing Preflop Equity Closer To 50/50 And Requiring Stronger Nut Redraws.',
+      },
     ],
   },
   {
@@ -226,6 +230,10 @@ export const POKER_VARIANTS = [
       {
         q: 'Why Is Top Two Pair Or Bare Top Set Much Weaker In PLO5 Than In PLO4?',
         a: 'With 10 Two-Card Combinations Per Player Instead Of 6, Opponents Flop Straight Wraps Coupled With Nut Flush Draws Far More Often, Requiring You To Hold Backdoor Flush Or Higher Boat Redraws To Continue.',
+      },
+      {
+        q: 'PLO4 Vs PLO5: How Much Larger Should Your Bankroll Be For 5-Card PLO?',
+        a: 'Because 5-Card PLO Expands Hand Combinations From 270,725 (PLO4) To 2,598,960 (PLO5) And Raises Standard Deviation To 155 To 185 BB/100, Winning PLO5 Players Should Keep 100 To 130 Buy-Ins Compared To 65 To 85 Buy-Ins For PLO4.',
       },
     ],
   },

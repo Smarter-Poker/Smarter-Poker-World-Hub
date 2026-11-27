@@ -18,6 +18,8 @@ import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import FaqSection from '../../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../../src/components/seo/SmarterSeoMasthead';
+import { fitMetaDescription } from '../../../src/lib/seo/titleFit.js';
 import {
   LEARN_PATH,
   LEARN_URL,
@@ -144,12 +146,15 @@ function categorySchema({ category, path, description, lessons, faqs }) {
 export default function LearnCategoryPillarPage({ category, intro, lessons, otherCategories, feature }) {
   const path = learnCategoryPath(category);
   const faqs = categoryFaqs({ category, intro, lessons, feature });
-  const description = `Master ${category} Poker Strategy With ${lessons.length} Free GTO Lessons & Worked Examples On Smarter.Poker: ${intro} Includes Interactive Practice Tools.`;
+  const description = fitMetaDescription(
+    `Free ${category} Poker Strategy: ${lessons.length} GTO Lessons, Charts & Interactive Drills On Smarter.Poker. ${intro}`,
+    158,
+  );
 
   return (
     <>
       <SEOHead
-        title={`${category} Poker Strategy: ${lessons.length} Free GTO Lessons`}
+        title={`${category} Poker Strategy: ${lessons.length} Free GTO Guides`}
         description={description}
         canonical={path}
         markdownUrl={`${SITE_URL}${path}.md`}
@@ -174,12 +179,23 @@ export default function LearnCategoryPillarPage({ category, intro, lessons, othe
             <span>{category} Strategy</span>
           </nav>
 
-          <h1 style={styles.h1}>{category} Poker Strategy Lessons</h1>
-
-          <p style={styles.lead}>
-            {intro} Browse {lessons.length} Free {category} Lessons Below, Each Written With The Answer In The First
-            Sentence And Backed By Free Smarter.Poker Training Tools.
-          </p>
+          <SmarterSeoMasthead
+            vertical="learn"
+            eyebrow={`${category} Strategy Cluster`}
+            title={`${category} Poker Strategy Lessons`}
+            lead={`${intro} Browse ${lessons.length} Free ${category} Lessons Below, Each Backed By Solver Ranges & Interactive Smarter.Poker Training Tools.`}
+            stats={[
+              { label: 'Free Lessons', value: `${lessons.length} Guides` },
+              { label: 'Cost To Study', value: '$0 Free' },
+              { label: 'Primary Tool', value: feature.toolName },
+              { label: 'GTO Drills', value: '107 Games' },
+            ]}
+            redirectPath={path}
+            unlockKey={`masthead-learn-category-${categoryAnchor(category)}`}
+            primaryCtaLabel={`Start Free ${category} Training`}
+            secondaryHref={feature.toolHref}
+            secondaryLabel={`Open ${feature.toolName}`}
+          />
 
           <section style={styles.section}>
             <h2 style={styles.h2}>All {category} Lessons</h2>
