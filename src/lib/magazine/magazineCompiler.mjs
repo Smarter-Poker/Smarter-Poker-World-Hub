@@ -1002,24 +1002,24 @@ export function buildMagazineManifestFromVault({
     ];
 
     const tocEntries = [
-        makeTocEntry({ pageNumber: 3, endPageNumber: 3, title: 'First Hand: From The Editorial Desk', subtitle: 'Monthly telemetry, masthead & state of the game', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'editor_first_hand' }),
-        makeTocEntry({ pageNumber: 6, endPageNumber: 9, title: 'The Rail: Monthly Poker News Digest', subtitle: 'Four pages of industry, tour & high-stakes headlines', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'news_rail' }),
+        makeTocEntry({ pageNumber: 3, endPageNumber: 3, title: 'First Hand: From The Editorial Desk', subtitle: 'Monthly telemetry, masthead & state of the game', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'editor_first_hand' }),
+        makeTocEntry({ pageNumber: 6, endPageNumber: 9, title: 'The Rail: Monthly Poker News Digest', subtitle: 'Four pages of industry, tour & high-stakes headlines', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'news_rail' }),
         makeTocEntry({ pageNumber: 10, endPageNumber: 11, title: 'Capture The Moment: Photo Spread', subtitle: 'Two-page championship photography showcase', group: 'features', groupLabel: 'Features & Cover Stories', kind: 'capture_the_moment_left' }),
         makeTocEntry({ pageNumber: 12, endPageNumber: 15, title: coverHeadline, subtitle: 'Four-page Cover Story investigation & key numbers', group: 'features', groupLabel: 'Features & Cover Stories', kind: 'cover_feature' }),
         makeTocEntry({ pageNumber: 16, endPageNumber: 17, title: secondaryHeadline, subtitle: 'Live circuit deep dive & field dynamics', group: 'features', groupLabel: 'Features & Cover Stories', kind: 'secondary_feature' }),
         makeTocEntry({ pageNumber: 18, endPageNumber: 19, title: 'Inside Smarter.Poker: New Upgrades Shipped', subtitle: 'Latest trainers, calculators & Club Arena features', group: 'features', groupLabel: 'Features & Cover Stories', kind: 'platform_feature' }),
-        makeTocEntry({ pageNumber: 20, endPageNumber: 21, title: hasRealPoy ? `${yearNum} Player Of The Year Top 25` : `Champions Board: ${monthName}'s Title Winners`, subtitle: hasRealPoy ? 'Official standings & monthly mover spotlights' : "The month's tournament champions at a glance", group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'poy_standings' }),
-        makeTocEntry({ pageNumber: 22, endPageNumber: 23, title: 'Final Table: Major Circuit Results', subtitle: 'Championship storylines & trophy winners', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'final_table_live' }),
-        makeTocEntry({ pageNumber: 24, endPageNumber: 25, title: 'Kings Club 25450 Results', subtitle: 'Completed Club Arena majors & Chips prize pools', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'kings_club_champions' }),
+        makeTocEntry({ pageNumber: 20, endPageNumber: 21, title: hasRealPoy ? `${yearNum} Player Of The Year Top 25` : `Champions Board: ${monthName}'s Title Winners`, subtitle: hasRealPoy ? 'Official standings & monthly mover spotlights' : "The month's tournament champions at a glance", group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'poy_standings' }),
+        makeTocEntry({ pageNumber: 22, endPageNumber: 23, title: 'Final Table: Major Circuit Results', subtitle: 'Championship storylines & trophy winners', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'final_table_live' }),
+        makeTocEntry({ pageNumber: 24, endPageNumber: 25, title: 'Kings Club 25450 Results', subtitle: 'Completed Club Arena majors & Chips prize pools', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'kings_club_champions' }),
         makeTocEntry({ pageNumber: 26, endPageNumber: 27, title: `NLH Solver Lab: ${nlhSpot.title}`, subtitle: 'Deep-stack geometry, EVs & community vote split', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'strategy_nlh' }),
         makeTocEntry({ pageNumber: 28, endPageNumber: 29, title: `Tournament ICM Lab: ${icmSpot.title}`, subtitle: 'Pay-jump bubble factors & deal calculator math', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'strategy_icm' }),
         makeTocEntry({ pageNumber: 30, endPageNumber: 31, title: `Pot-Limit Omaha Lab: ${ploSpot.title}`, subtitle: 'PLO4/PLO5 nut blockers, wraps & equity realization', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'strategy_plo' }),
         makeTocEntry({ pageNumber: 32, endPageNumber: 33, title: 'AI Coach Column: Leak-Busting & Bankroll Shield', subtitle: 'Eliminating positional EV leaks & shot-taking discipline', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'strategy_ai_coach' }),
         makeTocEntry({ pageNumber: 34, endPageNumber: 35, title: 'The Smarter.Poker Test: 4-Spot IQ Challenge', subtitle: 'Test your poker math with full answer key', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'the_test_quiz' }),
         makeTocEntry({ pageNumber: 36, endPageNumber: 37, title: 'Video & Pro Tool Spotlight Of The Month', subtitle: 'Scan-to-watch hand breakdowns & pro utilities', group: 'strategy', groupLabel: 'The Strategy Lab', kind: 'video_tool_spotlight' }),
-        makeTocEntry({ pageNumber: 38, endPageNumber: 39, title: '60-Day Coast-To-Coast Live Series Radar', subtitle: 'Upcoming tournament stops & daily guarantees', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'live_series_radar' }),
-        makeTocEntry({ pageNumber: 40, endPageNumber: 41, title: 'Featured Poker Rooms Across America', subtitle: 'Verified cardroom directory & table counts', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'poker_rooms_directory' }),
-        makeTocEntry({ pageNumber: 42, endPageNumber: 43, title: 'Cardroom Print Bundle & Weekly Wire Guide', subtitle: 'Stock complimentary monthly print copies in your room', group: 'departments', groupLabel: 'Departments, POY & Final Table', kind: 'cardroom_bundle_cta' }),
+        makeTocEntry({ pageNumber: 38, endPageNumber: 39, title: '60-Day Coast-To-Coast Live Series Radar', subtitle: 'Upcoming tournament stops & daily guarantees', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'live_series_radar' }),
+        makeTocEntry({ pageNumber: 40, endPageNumber: 41, title: 'Featured Poker Rooms Across America', subtitle: 'Verified cardroom directory & table counts', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'poker_rooms_directory' }),
+        makeTocEntry({ pageNumber: 42, endPageNumber: 43, title: 'Cardroom Print Bundle & Weekly Wire Guide', subtitle: 'Stock complimentary monthly print copies in your room', group: 'departments', groupLabel: 'Departments, Standings & Final Table', kind: 'cardroom_bundle_cta' }),
     ];
 
     const photoLeftImg = ensureFirstPartyMagazineImageUrl(photoEssayItems[0]?.vaulted_image_url || coverWebImage);
@@ -1093,7 +1093,7 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 3,
             kind: 'editor_first_hand',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: `First Hand • ${periodLabel}`,
             headline: 'First Hand: Precision At Every Decision Point',
@@ -1163,7 +1163,7 @@ export function buildMagazineManifestFromVault({
             return {
                 pageNumber: 6 + railIdx,
                 kind: 'news_rail',
-                department: 'Departments, POY & Final Table',
+                department: 'Departments, Standings & Final Table',
                 tocGroup: 'departments',
                 runningHeader: `The Rail • Page ${railIdx + 1} Of 4`,
                 headline: railTitles[railIdx],
@@ -1314,7 +1314,7 @@ export function buildMagazineManifestFromVault({
             const common = {
                 pageNumber: 20 + idx,
                 kind: 'poy_standings',
-                department: 'Departments, POY & Final Table',
+                department: 'Departments, Standings & Final Table',
                 tocGroup: 'departments',
                 imageUrl: IMAGE_VAULT_FALLBACK_URL,
                 masterImageUrl: IMAGE_VAULT_FALLBACK_URL,
@@ -1388,7 +1388,7 @@ export function buildMagazineManifestFromVault({
             return {
                 pageNumber: 22 + idx,
                 kind: 'final_table_live',
-                department: 'Departments, POY & Final Table',
+                department: 'Departments, Standings & Final Table',
                 tocGroup: 'departments',
                 runningHeader: `Final Table Results • Page ${idx + 1} Of 2`,
                 headline:
@@ -1412,7 +1412,7 @@ export function buildMagazineManifestFromVault({
             return {
                 pageNumber: 24 + idx,
                 kind: 'kings_club_champions',
-                department: 'Departments, POY & Final Table',
+                department: 'Departments, Standings & Final Table',
                 tocGroup: 'departments',
                 runningHeader: `Kings Club 25450 • Page ${idx + 1} Of 2`,
                 headline:
@@ -1711,7 +1711,7 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 38,
             kind: 'live_series_radar',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: '60-Day Live Series Radar • National Stops',
             headline: 'Coast-To-Coast Upcoming 60-Day Live Series Schedule',
@@ -1727,7 +1727,7 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 39,
             kind: 'live_series_radar',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: '60-Day Live Series Radar • Regional & Daily',
             headline: 'Regional Stops & Recurring Cardroom Tournament Highlights',
@@ -1744,7 +1744,7 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 40,
             kind: 'poker_rooms_directory',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: 'Featured Poker Rooms • West & Las Vegas',
             headline: 'Featured Poker Rooms Across America: West & Las Vegas',
@@ -1760,7 +1760,7 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 41,
             kind: 'poker_rooms_directory',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: 'Featured Poker Rooms • Texas, Midwest & East',
             headline: 'Featured Poker Rooms Across America: Texas, South & East Coast',
@@ -1777,11 +1777,11 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 42,
             kind: 'cardroom_bundle_cta',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: 'Smarter.Poker Weekly Wire • Free Tuesday Brief',
             headline: 'Never Miss A Tuesday: Subscribe Free To The Smarter.Poker Weekly Wire',
-            subheadline: 'Fresh Solver Spots, POY Updates, Kings Club Schedules & Curated Tour Coverage',
+            subheadline: 'Fresh Solver Spots, Tour Results, Kings Club Schedules & Curated Tour Coverage',
             byline: 'Subscriber Services',
             imageUrl: IMAGE_VAULT_FALLBACK_URL,
             masterImageUrl: IMAGE_VAULT_FALLBACK_URL,
@@ -1821,7 +1821,7 @@ export function buildMagazineManifestFromVault({
         {
             pageNumber: 43,
             kind: 'cardroom_bundle_cta',
-            department: 'Departments, POY & Final Table',
+            department: 'Departments, Standings & Final Table',
             tocGroup: 'departments',
             runningHeader: 'Cardroom Print Program • Request Copies',
             headline: 'Poker Room Managers: Stock Smarter.Poker Magazine In Your Cardroom',

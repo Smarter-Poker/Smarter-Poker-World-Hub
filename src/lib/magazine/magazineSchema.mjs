@@ -41,7 +41,7 @@ export const MAGAZINE_SECTIONS = Object.freeze([
 
 export const MAGAZINE_TOC_GROUPS = Object.freeze([
     { key: 'features', label: 'Features & Cover Stories' },
-    { key: 'departments', label: 'Departments, POY & Final Table' },
+    { key: 'departments', label: 'Departments, Standings & Final Table' },
     { key: 'strategy', label: 'The Strategy Lab' },
 ]);
 
@@ -652,7 +652,7 @@ export function normalizeIssueManifest(raw = {}, fallbackIssue = {}) {
         ? m.pages.map((p, idx) => ({
               pageNumber: Number(p?.pageNumber) || idx + 1,
               kind: String(p?.kind || 'news_rail'),
-              department: stripMagazineDashes(p?.department || 'Departments, POY & Final Table'),
+              department: stripMagazineDashes(p?.department || 'Departments, Standings & Final Table'),
               tocGroup: p?.tocGroup || 'departments',
               runningHeader: stripMagazineDashes(p?.runningHeader || MAGAZINE_MASTHEAD),
               headline: stripMagazineDashes(p?.headline || ''),
