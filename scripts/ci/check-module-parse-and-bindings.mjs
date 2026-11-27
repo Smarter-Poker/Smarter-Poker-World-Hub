@@ -31,6 +31,8 @@ const require = createRequire(import.meta.url);
 
 export const SOURCE_ROOTS = ['pages', 'app', 'src', 'components', 'lib', 'utils'];
 export const MODULE_EXT_RE = /\.(js|jsx|mjs|cjs|ts|tsx)$/;
+export const CRITICAL_CONFIG_JSON_RE =
+  /^(?:vercel|package|package-lock|tsconfig|jsconfig)\.json$|^config\/.*\.json$/;
 const RESOLVE_EXTS = [
   '',
   '.js',
@@ -48,6 +50,32 @@ const RESOLVE_EXTS = [
 ];
 const ASSET_EXT_RE =
   /\.(css|scss|sass|less|png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|eot|mp4|mp3|wav|pdf|txt|md)$/i;
+const STYLESHEET_EXT_RE = /\.(css|scss|sass|less)$/i;
+const CSS_MODULE_EXT_RE = /\.module\.(css|scss|sass|less)$/i;
+
+function isLocalOrAliasSpec(spec) {
+  return typeof spec === 'string' && (spec.startsWith('./') || spec.startsWith('../') || spec.startsWith('@/'));
+}
+
+function walkAst(node, visitor) {
+  if (!node || typeof node !== 'object') return;
+  visitor(node);
+  for (const key of Object.keys(node)) {
+    if (key === 'loc' || key === 'start' || key === 'end' || key === 'tokens' || key === 'comments') {
+      continue;
+    }
+    const val = node[key];
+    if (Array.isArray(val)) {
+      for (const item of val) {
+        if (item && typeof item === 'object' && typeof item.type === 'string') {
+          walkAst(item, visitor);
+        }
+      }
+    } else if (val && typeof val === 'object' && typeof val.type === 'string') {
+      walkAst(val, visitor);
+    }
+  }
+}
 
 let cachedBabelParse = null;
 function getBabelParse(resolveFromDir) {
@@ -120,6 +148,9 @@ export function extractModuleSurface(filePath, source, ast) {
 
   const relativeImports = [];
   const relativeNamedImports = [];
+  const relativeDefaultImports = [];
+  const nextDocumentImports = [];
+  const localGlobalCssImports = [];
 
   const recordValueExport = (name, line) => {
     if (valueExports.has(name)) {
@@ -132,20 +163,43 @@ export function extractModuleSurface(filePath, source, ast) {
   for (const node of ast.program.body) {
     if (node.type === 'ImportDeclaration') {
       const spec = node.source?.value;
-      if (node.importKind !== 'type' && spec && (spec.startsWith('./') || spec.startsWith('../'))) {
-        relativeImports.push({ spec, line: node.loc?.start?.line ?? 0 });
-        const names = [];
-        for (const sp of node.specifiers || []) {
-          if (sp.importKind === 'type') continue;
-          if (sp.type === 'ImportSpecifier') {
-            const imported = sp.imported?.name ?? sp.imported?.value;
-            if (imported && imported !== 'default') {
-              names.push({ imported, line: sp.loc?.start?.line ?? node.loc?.start?.line ?? 0 });
+      const line = node.loc?.start?.line ?? 0;
+      if (node.importKind !== 'type' && spec) {
+        if (spec === 'next/document') {
+          nextDocumentImports.push({ spec, line });
+        }
+        if (
+          (spec.startsWith('./') || spec.startsWith('../')) &&
+          STYLESHEET_EXT_RE.test(spec) &&
+          !CSS_MODULE_EXT_RE.test(spec)
+        ) {
+          localGlobalCssImports.push({ spec, line });
+        }
+        if (isLocalOrAliasSpec(spec)) {
+          relativeImports.push({ spec, line, kind: 'static' });
+          const names = [];
+          for (const sp of node.specifiers || []) {
+            if (sp.importKind === 'type') continue;
+            if (sp.type === 'ImportSpecifier') {
+              const imported = sp.imported?.name ?? sp.imported?.value;
+              if (imported === 'default') {
+                relativeDefaultImports.push({
+                  spec,
+                  line: sp.loc?.start?.line ?? line,
+                });
+              } else if (imported) {
+                names.push({ imported, line: sp.loc?.start?.line ?? line });
+              }
+            } else if (sp.type === 'ImportDefaultSpecifier') {
+              relativeDefaultImports.push({
+                spec,
+                line: sp.loc?.start?.line ?? line,
+              });
             }
           }
-        }
-        if (names.length > 0) {
-          relativeNamedImports.push({ spec, names });
+          if (names.length > 0) {
+            relativeNamedImports.push({ spec, names });
+          }
         }
       }
     } else if (node.type === 'ExportDefaultDeclaration') {
@@ -157,13 +211,13 @@ export function extractModuleSurface(filePath, source, ast) {
     } else if (node.type === 'ExportAllDeclaration') {
       hasStarReExport = true;
       const spec = node.source?.value;
-      if (node.exportKind !== 'type' && spec && (spec.startsWith('./') || spec.startsWith('../'))) {
-        relativeImports.push({ spec, line: node.loc?.start?.line ?? 0 });
+      if (node.exportKind !== 'type' && isLocalOrAliasSpec(spec)) {
+        relativeImports.push({ spec, line: node.loc?.start?.line ?? 0, kind: 're-export' });
       }
     } else if (node.type === 'ExportNamedDeclaration') {
       const spec = node.source?.value;
-      if (node.exportKind !== 'type' && spec && (spec.startsWith('./') || spec.startsWith('../'))) {
-        relativeImports.push({ spec, line: node.loc?.start?.line ?? 0 });
+      if (node.exportKind !== 'type' && isLocalOrAliasSpec(spec)) {
+        relativeImports.push({ spec, line: node.loc?.start?.line ?? 0, kind: 're-export' });
       }
       const isTypeOnlyDecl =
         node.exportKind === 'type' ||
@@ -202,6 +256,21 @@ export function extractModuleSurface(filePath, source, ast) {
     }
   }
 
+  // Dynamic import('...') and CommonJS require('...') with static local/@/ string literals
+  walkAst(ast.program, (node) => {
+    if (node.type !== 'CallExpression') return;
+    const firstArg = node.arguments?.[0];
+    if (!firstArg || firstArg.type !== 'StringLiteral') return;
+    const spec = firstArg.value;
+    if (!isLocalOrAliasSpec(spec)) return;
+    const line = node.loc?.start?.line ?? 0;
+    if (node.callee?.type === 'Import') {
+      relativeImports.push({ spec, line, kind: 'dynamic-import' });
+    } else if (node.callee?.type === 'Identifier' && node.callee.name === 'require') {
+      relativeImports.push({ spec, line, kind: 'require' });
+    }
+  });
+
   return {
     valueExports,
     typeExports,
@@ -211,11 +280,16 @@ export function extractModuleSurface(filePath, source, ast) {
     isDynamicCjs,
     relativeImports,
     relativeNamedImports,
+    relativeDefaultImports,
+    nextDocumentImports,
+    localGlobalCssImports,
   };
 }
 
 export function resolveTrackedTarget(fromFile, spec, trackedSet) {
-  const relBase = path.posix.normalize(path.posix.join(path.posix.dirname(fromFile), spec));
+  const relBase = spec.startsWith('@/')
+    ? path.posix.normalize(spec.slice(2))
+    : path.posix.normalize(path.posix.join(path.posix.dirname(fromFile), spec));
   if (ASSET_EXT_RE.test(spec)) {
     return trackedSet.has(relBase) ? relBase : null;
   }
@@ -299,6 +373,12 @@ export function validateModuleTree({ allTrackedFiles, readFile, onlyCheckFiles =
     ? onlyCheckFiles.filter((f) => trackedSet.has(f) && isDirectModule(f))
     : allTrackedFiles.filter(isScannedModule);
 
+  const jsonFilesToCheck = new Set(
+    (onlyCheckFiles ? onlyCheckFiles.filter((f) => trackedSet.has(f)) : allTrackedFiles).filter((f) =>
+      CRITICAL_CONFIG_JSON_RE.test(f),
+    ),
+  );
+
   const surfaceCache = new Map();
   const parseAndCache = (filePath) => {
     if (surfaceCache.has(filePath)) return surfaceCache.get(filePath);
@@ -349,20 +429,30 @@ export function validateModuleTree({ allTrackedFiles, readFile, onlyCheckFiles =
       });
     }
 
-    // 2. Case-exact relative import / re-export path resolution
+    // 2. Case-exact relative & @/* alias import / re-export / dynamic import / require resolution
     for (const imp of surface.relativeImports) {
       const target = resolveTrackedTarget(filePath, imp.spec, trackedSet);
       if (!target) {
+        const label =
+          imp.kind === 'dynamic-import'
+            ? 'Dynamic import'
+            : imp.kind === 'require'
+              ? 'require()'
+              : imp.spec.startsWith('@/')
+                ? 'Alias import'
+                : 'Relative import';
         violations.push({
           kind: 'broken-or-case-mismatched-import',
           file: filePath,
           line: imp.line,
-          message: `Relative import "${imp.spec}" (line ${imp.line}) does not match any tracked file with exact case`,
+          message: `${label} "${imp.spec}" (line ${imp.line}) does not match any tracked file with exact case`,
         });
+      } else if (target.endsWith('.json')) {
+        jsonFilesToCheck.add(target);
       }
     }
 
-    // 3. Local static ESM named-export parity
+    // 3. Local & @/* static ESM named-export parity
     const importerIsTS = /\.(ts|tsx)$/.test(filePath);
     for (const group of surface.relativeNamedImports) {
       const target = resolveTrackedTarget(filePath, group.spec, trackedSet);
@@ -382,6 +472,76 @@ export function validateModuleTree({ allTrackedFiles, readFile, onlyCheckFiles =
           });
         }
       }
+    }
+
+    // 3b. Local & @/* static ESM default-export parity
+    for (const defImp of surface.relativeDefaultImports) {
+      const target = resolveTrackedTarget(filePath, defImp.spec, trackedSet);
+      if (!target || !MODULE_EXT_RE.test(target) || ASSET_EXT_RE.test(target)) continue;
+      const targetSurface = parseAndCache(target);
+      if (!targetSurface || targetSurface.isDynamicCjs || targetSurface.hasStarReExport) continue;
+      if (!targetSurface.hasDefault) {
+        violations.push({
+          kind: 'missing-local-default-export',
+          file: filePath,
+          line: defImp.line,
+          message: `Default import from "${defImp.spec}" (line ${defImp.line}) has no default export in ${target}`,
+        });
+      }
+    }
+
+    // 4. Next.js build-time page & stylesheet invariants
+    if (filePath.startsWith('pages/') && !filePath.startsWith('pages/api/')) {
+      if (surface.valueExports.has('getStaticProps') && surface.valueExports.has('getServerSideProps')) {
+        violations.push({
+          kind: 'next-page-data-method-conflict',
+          file: filePath,
+          message: 'Next.js page cannot export both getStaticProps and getServerSideProps',
+        });
+      }
+      if (surface.valueExports.has('getStaticPaths') && !surface.valueExports.has('getStaticProps')) {
+        violations.push({
+          kind: 'next-page-static-paths-without-props',
+          file: filePath,
+          message: 'Next.js page exports getStaticPaths without getStaticProps',
+        });
+      }
+    }
+
+    if (!/^pages\/_document\.(js|jsx|ts|tsx)$/.test(filePath)) {
+      for (const docImp of surface.nextDocumentImports) {
+        violations.push({
+          kind: 'next-document-import-outside-document',
+          file: filePath,
+          line: docImp.line,
+          message: `next/document cannot be imported outside pages/_document.* (line ${docImp.line})`,
+        });
+      }
+    }
+
+    if (!/^pages\/_app\.(js|jsx|ts|tsx)$/.test(filePath) && !filePath.startsWith('app/')) {
+      for (const cssImp of surface.localGlobalCssImports) {
+        violations.push({
+          kind: 'next-global-css-outside-app',
+          file: filePath,
+          line: cssImp.line,
+          message: `Global CSS "${cssImp.spec}" (line ${cssImp.line}) cannot be imported outside pages/_app.* (use *.module.css)`,
+        });
+      }
+    }
+  }
+
+  // 5. Critical config & imported JSON parse validation
+  for (const jsonPath of jsonFilesToCheck) {
+    try {
+      const raw = readFile(jsonPath);
+      JSON.parse(raw);
+    } catch (err) {
+      violations.push({
+        kind: 'invalid-json',
+        file: jsonPath,
+        message: `Invalid JSON: ${err.message}`,
+      });
     }
   }
 
