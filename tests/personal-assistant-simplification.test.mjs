@@ -147,9 +147,10 @@ test('Personal Assistant preserves its approved landing composition, optional di
     assert.match(css, /#040d18/i, `${name} must use approved #040d18 MTT lobby canvas`);
   }
   assert.match(homeSrc, /<HubPageShell\b/, 'Home keeps the app-owned responsive shell');
-  assert.match(hubCss, /\.featureArt\s*\{[^}]*object-fit:\s*contain;/, 'Home artwork must remain complete and proportional');
+  const homeArt = fs.readFileSync(path.resolve('src/components/personal-assistant/ApprovedLandingArt.jsx'), 'utf8');
+  assert.match(homeArt, /preserveAspectRatio="xMidYMid meet"/, 'Home artwork must remain complete and proportional');
   assert.match(sandboxSrc, /className="sandbox-workspace"/, 'Sandbox workspace must frame the native table');
-  assert.match(hubCss, /#087cfa/, 'Home primary CTA must retain the approved royal-blue emphasis');
+  assert.match(hubCss, /\.featureCtaPrimary\s*\{[^}]*background:\s*linear-gradient\(180deg,\s*#08a6ff 0%,\s*#0051fa 18%,\s*#0020c8 47%,\s*#00053d 83%,\s*#093477 100%\)/, 'Home primary CTA must retain the exact approved royal-blue emphasis');
   assert.match(coachCss, /#087cfa/, 'Coaching Workspace primary CTA / active tab must use MTT lobby royal blue');
 
   // Home has direct destinations, while the retained tabbed tools need a non-color indicator.

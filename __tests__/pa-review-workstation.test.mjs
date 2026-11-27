@@ -11,11 +11,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from '@babel/parser';
+import React from 'react';
+import TestRenderer from 'react-test-renderer';
 import { isSafeRelativePath } from '../src/lib/clubInvite.js';
 import { anonymizeHandForShare } from '../src/lib/personal-assistant/anonymizeHandForShare.mjs';
+import { collectSavedHandsExport } from '../src/lib/personal-assistant/savedHandExport.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -143,6 +147,76 @@ test('Review My Play supports tags, filters, search, and cursor Load More pagina
   assert.match(src, /Load More/);
 });
 
+function variableInitializer(source, name) {
+  const ast = parse(source, { sourceType: 'module', plugins: ['jsx'] });
+  let initializer;
+  const visit = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id?.name === name) {
+      initializer = node.init;
+      return;
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  };
+  visit(ast.program);
+  assert.ok(initializer, `${name} exists in the actual source`);
+  return initializer;
+}
+
+function loadPageCallback(name, bindings) {
+  const source = read(REVIEW_PAGE);
+  const callback = variableInitializer(source, name).arguments[0];
+  return new Function(...Object.keys(bindings), `return (${source.slice(callback.start, callback.end)});`)(...Object.values(bindings));
+}
+
+test('Review pagination discards a delayed page after filters or the list generation change', async () => {
+  for (const outcome of ['success', 'failure']) {
+    let settleRequest;
+    let markRequested;
+    const requested = new Promise((resolve) => { markRequested = resolve; });
+    const response = new Promise((resolve, reject) => { settleRequest = outcome === 'success' ? resolve : reject; });
+    const state = { hands: [{ id: 'new-filter-hand' }], cursor: 'new-filter-cursor', error: '', loading: false, status: 'ready' };
+    const generation = { current: 1 };
+    const handleLoadMore = loadPageCallback('handleLoadMore', {
+      nextCursor: 'old-filter-cursor',
+      loadingMore: false,
+      user: { id: 'test-owner' },
+      activeUserIdRef: { current: 'test-owner' },
+      loadGenRef: generation,
+      getFreshAccessToken: async () => 'synthetic-test-token',
+      buildFilterQueryParams: (cursor) => `status=saved&cursor=${cursor}`,
+      fetchJsonWithTimeout: () => { markRequested(); return response; },
+      setLoadingMore: (value) => { state.loading = value; },
+      setLoadError: (value) => { state.error = value; },
+      setLoadStatus: (value) => { state.status = value; },
+      setHands: (value) => { state.hands = typeof value === 'function' ? value(state.hands) : value; },
+      setNextCursor: (value) => { state.cursor = value; },
+      setTotalCount: () => assert.fail('A stale page cannot reset counts'),
+      setUnreviewedCount: () => assert.fail('A stale page cannot reset counts'),
+      setSelectedHandId: () => assert.fail('A stale page cannot reset selection'),
+    });
+    const pending = handleLoadMore();
+    await requested;
+    generation.current += 1;
+    // The next list owns the loading indicator while the old request settles.
+    state.loading = true;
+    if (outcome === 'success') {
+      settleRequest({ ok: true, status: 200, body: { success: true, hands: [{ id: 'old-filter-hand' }], nextCursor: 'old-next-cursor' } });
+    } else {
+      settleRequest(new Error('Old Filter Request Failed'));
+    }
+    await pending;
+    assert.deepEqual(state.hands, [{ id: 'new-filter-hand' }]);
+    assert.equal(state.cursor, 'new-filter-cursor');
+    assert.equal(state.error, '');
+    assert.equal(state.loading, true);
+    assert.equal(state.status, 'ready');
+  }
+});
+
 test('Review My Play wires post-session Suggested Hands To Review and Active-Table RTA analysis gate', () => {
   const src = read(REVIEW_PAGE);
   assert.match(src, /\/api\/poker\/saved-hands\?suggested=1/);
@@ -235,7 +309,9 @@ test('Review My Play wires privacy-safe anonymizeHandForShare and authenticated 
   assert.match(src, /data-testid="export-text-btn"/);
   assert.match(src, /\/api\/poker\/saved-hands\?export=\$\{encodeURIComponent\(format\)\}/);
   assert.match(src, /Authorization: `Bearer \$\{token\}`/);
-  assert.match(src, /await res\.blob\(\)/);
+  assert.match(src, /await collectSavedHandsExport\(/);
+  assert.match(src, /new Blob\(result\.parts, \{ type: result\.mimeType \}\)/);
+  assert.match(src, /data-testid="cancel-export-btn"/);
   assert.match(src, /URL\.createObjectURL\(blob\)/);
   assert.match(src, /URL\.revokeObjectURL\(objectUrl\)/);
 });
@@ -258,36 +334,45 @@ test('Sign-In redirect preserves ?hand=<uuid> across review CTA, login, OAuth ca
 
 test('Personal Assistant landing page satisfies optimize-image-priority LCP standard and live signed-in counts', () => {
   const src = read(LANDING_PAGE);
-  const imgs = getJsxElementsByName(src, 'img');
-
-  const reviewImg = imgs.find((el) => getJsxAttrStringValue(el, 'src') === '/images/personal-assistant/review-my-play-chrome.webp');
-  const sandboxImg = imgs.find((el) => getJsxAttrStringValue(el, 'src') === '/images/personal-assistant/virtual-sandbox-chrome.webp');
-  const leaksImg = imgs.find((el) => getJsxAttrStringValue(el, 'src') === '/images/personal-assistant/my-leaks-chrome.webp');
-
-  assert.ok(reviewImg, 'approved Review My Play artwork exists');
-  // React 18 uses the lowercase DOM prop, as Next's Image component does.
-  assert.equal(getJsxAttrStringValue(reviewImg, 'fetchpriority'), 'high', 'LCP hero image has high fetch priority');
-  assert.equal(getJsxAttrStringValue(reviewImg, 'width'), 1600);
-  assert.equal(getJsxAttrStringValue(reviewImg, 'height'), 900);
-  assert.equal(getJsxAttrStringValue(reviewImg, 'loading'), 'eager', 'LCP hero image MUST NOT be lazy-loaded');
-
-  assert.ok(sandboxImg, 'approved Virtual Sandbox artwork exists');
-  assert.equal(getJsxAttrStringValue(sandboxImg, 'fetchPriority'), null, 'virtual-sandbox omits fetchPriority');
-  assert.equal(getJsxAttrStringValue(sandboxImg, 'loading'), null, 'virtual-sandbox is not lazy-loaded');
-  assert.equal(getJsxAttrStringValue(sandboxImg, 'width'), 1600);
-  assert.equal(getJsxAttrStringValue(sandboxImg, 'height'), 672);
-
-  assert.ok(leaksImg, 'approved My Leaks artwork exists');
-  assert.equal(getJsxAttrStringValue(leaksImg, 'loading'), 'lazy', 'below-the-fold my-leaks image has loading="lazy"');
-  assert.equal(getJsxAttrStringValue(leaksImg, 'fetchPriority'), null, 'below-the-fold my-leaks omits fetchPriority');
-  assert.equal(getJsxAttrStringValue(leaksImg, 'width'), 1600);
-  assert.equal(getJsxAttrStringValue(leaksImg, 'height'), 533);
+  const artSource = read('src/components/personal-assistant/ApprovedLandingArt.jsx');
+  const illustrations = getJsxElementsByName(src, 'ApprovedIllustration');
+  for (const kind of ['review', 'sandbox', 'leaks', 'log', 'coaching']) {
+    assert.equal(illustrations.filter((el) => getJsxAttrStringValue(el, 'kind') === kind).length, 1, `one approved ${kind} subject`);
+  }
+  const mainKinds = illustrations.map((el) => getJsxAttrStringValue(el, 'kind')).filter((kind) => ['review', 'sandbox', 'leaks'].includes(kind));
+  assert.deepEqual(mainKinds, ['review', 'sandbox', 'leaks'], 'illustrated selection hierarchy is unchanged');
+  const preloads = getJsxElementsByName(src, 'link').filter((el) => getJsxAttrStringValue(el, 'rel') === 'preload' && getJsxAttrStringValue(el, 'as') === 'image');
+  assert.equal(preloads.length, 1, 'one shared sprite preload avoids competing hero requests');
+  assert.equal(getJsxAttrStringValue(preloads[0], 'fetchPriority') || getJsxAttrStringValue(preloads[0], 'fetchpriority'), 'high');
+  assert.match(src.slice(preloads[0].start, preloads[0].end), /href=\{APPROVED_LANDING_SPRITE\}/);
+  const subjectSvg = getJsxElementsByName(artSource, 'svg').find((el) => getJsxAttrNames(el).includes('data-approved-illustration'));
+  assert.ok(subjectSvg);
+  assert.equal(getJsxAttrStringValue(subjectSvg, 'preserveAspectRatio'), 'xMidYMid meet', 'subjects cannot scale their axes independently');
+  const artBoxes = variableInitializer(artSource, 'ART');
+  assert.deepEqual(new Function(`return (${artSource.slice(artBoxes.start, artBoxes.end)});`)(), {
+    review: [89, 220, 489, 238], sandbox: [89, 490, 507, 164], leaks: [89, 681, 391, 94],
+    log: [137, 797, 153, 113], coaching: [666, 792, 123, 119], settings: [955, 155, 35, 35],
+    target: [604, 330, 34, 34], check: [940, 708, 38, 38],
+  }, 'illustrations use the actual approved-reference coordinates');
+  for (const image of getJsxElementsByName(artSource, 'image')) {
+    assert.equal(getJsxAttrStringValue(image, 'width'), '1249');
+    assert.equal(getJsxAttrStringValue(image, 'height'), '1061');
+  }
+  assert.match(artSource, /kind === 'sandbox' \|\| kind === 'leaks' \? CARDS : APPROVED_LANDING_SPRITE/);
+  assert.match(artSource, /approved-card-edit-sprite\.webp/);
+  const sprite = fs.readFileSync(path.join(ROOT, 'public/images/personal-assistant/approved-layout-sprite.webp'));
+  assert.equal(createHash('sha256').update(sprite).digest('hex'), '30ea73e7b35c12906fd44aa59ce6b34fe3bf49889df9b1442f5b07a811016655', 'unchanged approved-reference artwork identity');
+  assert.match(src, /Ace Of Hearts, Four Of Spades, And Five Of Spades/);
+  assert.match(src, /King Of Hearts And Queen Of Hearts/);
+  assert.match(src, /<h2 id="card-review-title"[^>]*>Review My Play<\/h2>/, 'heading remains live HTML');
+  assert.match(src, /<Link[\s\S]*?href="\/hub\/personal-assistant\/review"[\s\S]*?Start Review[\s\S]*?<\/Link>/, 'primary action remains an interactive live link');
 
   // Live signed-in counts with AbortController + timeout
   assert.match(src, /\/api\/poker\/saved-hands\?limit=1/);
   assert.match(src, /new AbortController\(\)/);
   assert.match(src, /window\.setTimeout\(\(\) => controller\.abort\(\)/);
-  assert.match(src, /Saved Hands.*Unreviewed/);
+  assert.match(src, /unreviewedHandsCount\.toLocaleString\(\)/);
+  assert.match(src, /All Saved Hands Reviewed/);
   assert.doesNotMatch(src, /\/hub\/training/, 'zero /hub/training redirects on landing page');
 });
 
@@ -352,4 +437,164 @@ test('Review My Play satisfies all World Hub PA HTML, CSS, landmark, and touch-t
       assert.ok(Number(minH[1]) >= 36, `.${className} min-height (${minH[1]}px) must be >= 36px`);
     }
   }
+});
+
+
+test('Review keeps incomplete totals unknown and loads the first older filtered match into its editor', async () => {
+  const state = { hands: [], cursor: null, selected: '', total: 'unset', unreviewed: 'unset', editor: null };
+  const selectedHandIdRef = { current: '' };
+  const bindings = {
+    user: { id: 'owner' }, authInitializing: false,
+    activeUserIdRef: { current: 'owner' }, loadGenRef: { current: 0 },
+    pendingDeleteRef: { current: null }, selectedHandIdRef,
+    getFreshAccessToken: async () => 'synthetic-test-token',
+    buildFilterQueryParams: () => 'q=oldest', requestedQueryHandId: '', hasActiveFilters: true,
+    setLoadingMore: () => {}, setLoadError: () => {}, setLoadStatus: () => {}, setMissingRequestedId: () => {},
+    setHands: (value) => { state.hands = typeof value === 'function' ? value(state.hands) : value; },
+    setNextCursor: (value) => { state.cursor = value; },
+    setSelectedHandId: (value) => { state.selected = value; selectedHandIdRef.current = value; },
+    setTotalCount: (value) => { state.total = value; },
+    setUnreviewedCount: (value) => { state.unreviewed = value; },
+    syncEditorFromHand: (hand) => { state.editor = hand.id; },
+  };
+  const load = loadPageCallback('loadSavedHands', {
+    ...bindings,
+    fetchJsonWithTimeout: async () => ({ ok: true, status: 200, body: {
+      success: true, hands: [], nextCursor: 'older', countsComplete: false, totalCount: null, unreviewedCount: null,
+    } }),
+  });
+  await load();
+  assert.equal(state.total, null);
+  assert.equal(state.unreviewed, null);
+  assert.equal(state.cursor, 'older');
+  const more = loadPageCallback('handleLoadMore', {
+    ...bindings, nextCursor: state.cursor, loadingMore: false,
+    fetchJsonWithTimeout: async () => ({ ok: true, status: 200, body: { success: true, hands: [{ id: 'oldest' }], nextCursor: null } }),
+  });
+  await more();
+  assert.equal(state.selected, 'oldest');
+  assert.equal(state.editor, 'oldest');
+  assert.equal(state.cursor, null);
+  assert.deepEqual(state.hands, [{ id: 'oldest' }]);
+});
+
+test('Review downloads only after all export chunks complete and suppresses interrupted or cross-account files', async () => {
+  for (const outcome of ['complete', 'failure', 'cancel', 'account-change', 'unmount']) {
+    let settleSecond;
+    let markSecond;
+    const secondStarted = new Promise((resolve) => { markSecond = resolve; });
+    const secondResponse = new Promise((resolve, reject) => { settleSecond = outcome === 'failure' ? reject : resolve; });
+    let requests = 0;
+    let downloads = 0;
+    let downloadedBlob;
+    let error = '';
+    let exporting = '';
+    const owner = { current: 'owner' };
+    const exportAbortRef = { current: null };
+    const chunk = (id, nextCursor) => ({ ok: true, status: 200, body: {
+      success: true, schemaVersion: 1, format: 'json', count: 1, ids: [id], hands: [{ id }],
+      nextCursor, complete: nextCursor === null,
+    } });
+    const handleExport = loadPageCallback('handleExportHands', {
+      user: { id: 'owner' }, activeUserIdRef: owner, exportAbortRef, exportingFormat: '',
+      setExportingFormat: (value) => { exporting = value; },
+      setExportError: (value) => { error = value; },
+      getFreshAccessToken: async () => 'synthetic-test-token', collectSavedHandsExport,
+      fetchJsonWithTimeout: async (url, options) => {
+        assert.match(url, /export=json&chunk=1/);
+        assert.equal(options.headers.Authorization, 'Bearer synthetic-test-token');
+        assert.equal(options.signal, exportAbortRef.current.signal);
+        requests += 1;
+        if (requests === 1) return chunk('first', 'next');
+        assert.match(url, /cursor=next/);
+        markSecond();
+        return secondResponse;
+      },
+      URL: { createObjectURL: (blob) => { downloadedBlob = blob; return 'blob:synthetic'; }, revokeObjectURL: () => {} },
+      document: { body: { appendChild: () => {} }, createElement: () => ({ click: () => { downloads += 1; }, remove: () => {} }) },
+      window: { setTimeout: (callback) => callback() },
+    });
+    const pending = handleExport('json');
+    await secondStarted;
+    assert.equal(downloads, 0, 'first chunk must never be offered as a completed export');
+    if (outcome === 'cancel') exportAbortRef.current.abort();
+    if (outcome === 'account-change') owner.current = 'different-owner';
+    if (outcome === 'unmount') { exportAbortRef.current.abort(); exportAbortRef.current = null; }
+    if (outcome === 'failure') settleSecond(new Error('Connection Interrupted'));
+    else settleSecond(chunk('second', null));
+    await pending;
+    assert.equal(exporting, outcome === 'unmount' ? 'json' : '', 'unmounted components receive no late state updates');
+    assert.equal(downloads, outcome === 'complete' ? 1 : 0);
+    if (outcome === 'complete') {
+      const data = JSON.parse(await downloadedBlob.text());
+      assert.equal(data.count, 2);
+      assert.deepEqual(data.hands.map((hand) => hand.id), ['first', 'second']);
+    }
+    if (outcome === 'cancel') assert.match(error, /Cancelled/);
+    if (outcome === 'failure') assert.match(error, /Interrupted/);
+  }
+});
+
+
+test('Review query selection preserves React state while unrelated routes retain URL-key resets', () => {
+  const appSource = read('pages/_app.js');
+  const expression = variableInitializer(appSource, 'pageErrorBoundaryKey');
+  const keyFor = new Function('resolvedPath', 'router', `return (${appSource.slice(expression.start, expression.end)});`);
+  for (const pathname of ['/hub/personal-assistant/review', '/hub/profile']) {
+    let mounts = 0;
+    let setFilter;
+    function Workstation() {
+      const [filter, set] = React.useState('');
+      setFilter = set;
+      React.useEffect(() => { mounts += 1; }, []);
+      return React.createElement('p', null, filter);
+    }
+    const router = {
+      asPath: pathname,
+      replace: ({ pathname: nextPath, query }, _unused, options) => {
+        assert.equal(options.shallow, true);
+        router.asPath = `${nextPath}?hand=${query.hand}`;
+      },
+    };
+    const render = () => React.createElement(Workstation, { key: keyFor(pathname, router) });
+    let renderer;
+    try {
+      TestRenderer.act(() => { renderer = TestRenderer.create(render()); });
+      TestRenderer.act(() => { setFilter('Unreviewed'); });
+      if (pathname.endsWith('/review')) {
+        const noop = () => {};
+        loadPageCallback('handleSelectHand', {
+          router, saveAbortRef: { current: null }, analysisAbortRef: { current: null },
+          setSelectedHandId: noop, setMissingRequestedId: noop, syncEditorFromHand: noop,
+        })({ id: 'synthetic-hand' });
+      } else {
+        router.asPath = `${pathname}?tab=settings`;
+      }
+      TestRenderer.act(() => { renderer.update(render()); });
+      assert.equal(mounts, pathname.endsWith('/review') ? 1 : 2);
+      assert.deepEqual(renderer.toJSON().children, pathname.endsWith('/review') ? ['Unreviewed'] : null);
+    } finally {
+      TestRenderer.act(() => renderer?.unmount());
+    }
+  }
+});
+
+
+test('landing count parsing never labels incomplete account counts as zero or all reviewed', () => {
+  const source = read(LANDING_PAGE);
+  const complete = variableInitializer(source, 'countsComplete');
+  const total = variableInitializer(source, 'total');
+  const unreviewed = variableInitializer(source, 'unreviewed');
+  const readCounts = new Function('payload', `
+    const countsComplete = ${source.slice(complete.start, complete.end)};
+    return [${source.slice(total.start, total.end)}, ${source.slice(unreviewed.start, unreviewed.end)}];
+  `);
+  for (const payload of [
+    { countsComplete: false, totalCount: null, unreviewedCount: null },
+    { countsComplete: false, totalCount: 1000, unreviewedCount: 12 },
+    { totalCount: null, unreviewedCount: null },
+    { totalCount: 10 },
+  ]) assert.deepEqual(readCounts(payload), [null, null]);
+  assert.deepEqual(readCounts({ countsComplete: true, totalCount: 0, unreviewedCount: 0 }), [0, 0]);
+  assert.deepEqual(readCounts({ countsComplete: true, totalCount: 20, unreviewedCount: 5 }), [20, 5]);
 });

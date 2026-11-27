@@ -8,6 +8,7 @@ import { auditParsedHands } from '../../../src/lib/training/handAuditEngine.js';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 import { parseStakesToBlinds } from '../../../src/lib/training/clubArenaTableParity.js';
 import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter.js';
+import { persistImportedSavedHands } from '../../../src/lib/personal-assistant/importedSavedHands.mjs';
 
 const HOLE_CARD_COUNT_BY_VARIANT = Object.freeze({
   nlh: 2,
@@ -702,9 +703,11 @@ export default async function handler(req, res) {
       }
     }
 
+    const saveToReviewQueue = req.body?.source === 'personal-assistant-live-spot';
+    let reviewQueue = null;
     try {
       const nowIso = new Date().toISOString();
-      const toolRecords = rankedSyncedHands.slice(0, 25).map((h) => ({
+      const toolRecords = rankedSyncedHands.slice(0, saveToReviewQueue ? 100 : 25).map((h) => ({
         user_id: user.id,
         tool_id: 'synced-hand-history',
         record_type: 'hand',
@@ -713,17 +716,33 @@ export default async function handler(req, res) {
         updated_at: nowIso,
       }));
       if (toolRecords.length > 0) {
-        await getSupabase()
+        const syncWrite = await getSupabase()
           .from('training_tool_records')
           .upsert(toolRecords, { onConflict: 'user_id,tool_id,record_key' });
+        if (saveToReviewQueue && syncWrite?.error) throw new Error('Imported Hand Record Write Failed');
+      }
+      if (saveToReviewQueue) {
+        reviewQueue = await persistImportedSavedHands(getSupabase(), { userId: user.id, hands, evidenceScope });
       }
     } catch (syncPersistErr) {
+      if (saveToReviewQueue) {
+        console.warn('[HandAudit] Review queue persistence failed:', syncPersistErr?.message);
+        return res.status(503).json({
+          ...result,
+          success: false,
+          evidenceScope,
+          reviewQueue: { saved: false },
+          code: 'REVIEW_QUEUE_SAVE_INCOMPLETE',
+          error: 'The Audit Finished, But Saving To Review My Play Could Not Be Confirmed. Retry This Import Safely To Finish Saving It.',
+        });
+      }
       console.warn('[HandAudit] Non-fatal synced hand record write warning:', syncPersistErr?.message);
     }
 
     return res.status(200).json({
       success: true,
       ...result,
+      ...(reviewQueue ? { reviewQueue } : {}),
       evidenceScope: evidenceScope,
       participantVerified: true,
       syncedHands: rankedSyncedHands,

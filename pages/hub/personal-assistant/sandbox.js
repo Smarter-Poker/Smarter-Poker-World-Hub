@@ -47,7 +47,7 @@ import {
   readPersistenceResponse, persistenceMessage,
 } from '../../../src/lib/personal-assistant/persistenceContract';
 import {
-  calculateEquityAsync, simulateRunoutsAsync,
+  calculateEquityAsync, simulateRunoutsAsync, expandRangeToCombos,
 } from '../../../src/lib/sandbox/EquityEngine';
 import {
   useEquityWorker, DEFAULT_PREVIEW_TRIALS, DEFAULT_FULL_TRIALS,
@@ -64,6 +64,7 @@ import { handleSpatialGridKeyDown } from '../../../src/components/sandbox/spatia
 import {
   consumeReviewHandoffFromStorage, parseReviewHandoffPayload,
 } from '../../../src/components/sandbox/reviewHandoff.mjs';
+import { replayScenarioFromEntry } from '../../../src/components/sandbox/replayScenario.mjs';
 import {
   T, F, S, R, btn, iconBtn, pill, cardCompact, sectionTitle, numeric as NUM,
 } from '../../../src/components/sandbox/paTokens';
@@ -1382,8 +1383,7 @@ export default function VirtualSandboxPage() {
     const abortHandle = makeAbortHandle();
     setRunoutsComputing(true);
 
-    const rangeArg = equityVsRange ? (resolvedVillainRanges[0] || null) : null;
-    simulateRunoutsAsync(heroCardsMemo, communityCards, 250, rangeArg, {
+    simulateRunoutsAsync(heroCardsMemo, communityCards, 250, equityRangeArg, {
       signal: abortHandle.signal,
     })
       .then((res) => {
@@ -1399,7 +1399,7 @@ export default function VirtualSandboxPage() {
       });
 
     return () => { abortHandle.abort(); };
-  }, [heroCardsMemo, communityCards, equityVsRange, resolvedVillainRanges, activePlayBlock]);
+  }, [heroCardsMemo, communityCards, equityRangeArg, activePlayBlock]);
 
   // ── Snapshot & Undo Helpers ──
   const sandboxSnapshot = useMemo(() => ({
@@ -1567,6 +1567,8 @@ export default function VirtualSandboxPage() {
 
   const recordExplorationSnapshot = useCallback((label = 'Explored Spot', overrideScenario = null) => {
     const hasOverride = Boolean(overrideScenario && typeof overrideScenario === 'object');
+    const replayScenario = replayScenarioFromEntry(hasOverride ? overrideScenario : { scenario: sandboxSnapshot });
+    if (!replayScenario) return;
     let snapHero = heroHand;
     if (hasOverride) {
       if (overrideScenario.heroHand && (overrideScenario.heroHand.card1 || overrideScenario.heroHand.card2)) {
@@ -1622,6 +1624,7 @@ export default function VirtualSandboxPage() {
         stackDepth: snapStack,
         potSize: snapPot,
         actionLine: snapActions.map((a) => `${a.isHero || a.actor === 'hero' ? 'H' : (a.position || 'V')}:${a.label || a.action || ''}`).join(' -> '),
+        scenario: replayScenario,
         source: 'live',
         note: label,
         sessionStartedAt: sessionStartedAtRef.current,
@@ -1631,7 +1634,7 @@ export default function VirtualSandboxPage() {
         evDelta: null,
       },
     ]);
-  }, [heroHand, heroPosition, currentStreet, communityCards, equity, heroStack, handState.pot, actionHistory]);
+  }, [heroHand, heroPosition, currentStreet, communityCards, equity, heroStack, handState.pot, actionHistory, sandboxSnapshot]);
 
   // ── Table Card & Deal Interactions ──
   const openHeroPicker = useCallback(() => {
@@ -2162,7 +2165,7 @@ export default function VirtualSandboxPage() {
               <span className="metric-label">Pot &amp; SPR</span>
               <strong className="metric-value">{Number(tablePot).toFixed(1)} BB</strong>
               <span className="metric-sub">
-                SPR {tableSpr != null && Number.isFinite(Number(tableSpr)) ? tableSpr : 'Not Available'} · {villains.length} Villain{villains.length === 1 ? '' : 's'}
+                SPR {tableSpr != null && Number.isFinite(Number(tableSpr)) ? tableSpr : 'Not Available'} · {`${villains.length} ${villains.length === 1 ? 'Villain' : 'Villains'}`}
               </span>
             </div>
             <div className="metric-tile">
@@ -2542,13 +2545,13 @@ export default function VirtualSandboxPage() {
                     onChangeScenario={setPreflopScenario}
                     onPickHand={(handLabel) => {
                       if (!handLabel || handLabel.length < 2 || activePlayBlock) return;
-                      const r1 = handLabel[0];
-                      const r2 = handLabel[1];
-                      const suited = handLabel.endsWith('s');
-                      const c1 = `${r1}s`;
-                      const c2 = suited ? `${r2}s` : (r1 === r2 ? `${r2}h` : `${r2}d`);
+                      const combo = expandRangeToCombos(handLabel, new Set(communityCards))[0];
+                      if (!combo) {
+                        toast.error('No Available Cards For This Hand On The Current Board');
+                        return;
+                      }
                       pushUndo();
-                      setHeroHand({ card1: c1, card2: c2 });
+                      setHeroHand({ card1: combo[0], card2: combo[1] });
                     }}
                   />
                 )}
@@ -2902,7 +2905,12 @@ export default function VirtualSandboxPage() {
         <HandReplay
           sessionLog={sessionLog}
           onLoadScenario={(entry) => {
-            restoreScenario(entry);
+            const replayScenario = replayScenarioFromEntry(entry);
+            if (!replayScenario) {
+              toast.error('This Replay Contains Incomplete Or Invalid Cards.');
+              return;
+            }
+            restoreScenario(replayScenario);
             toast.success('Loaded Spot From Replay');
           }}
           onClose={() => setShowHandReplay(false)}
