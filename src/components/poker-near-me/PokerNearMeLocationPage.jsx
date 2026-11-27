@@ -522,7 +522,7 @@ export default function PokerNearMeLocationPage({
                 </Link>
               </h3>
               <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1', lineHeight: 1.5 }}>
-                Compare Las Vegas Strip Heavyweights On Tables, Bobby&apos;s Room, High Roller Tournaments And Amenities.
+                Compare Las Vegas Strip Heavyweights On Tables, {"Bobby's"} Room, High Roller Tournaments And Amenities.
               </p>
             </PokerNearMePanelShell>
             <PokerNearMePanelShell style={{ padding: '20px' }}>
