@@ -32,7 +32,9 @@ import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
 import ReportQuestionButton from './ReportQuestionButton';
+import TriviaNetworkBanner from './TriviaNetworkBanner';
 import TriviaSkeleton from './TriviaSkeleton';
+import { triggerTriviaHaptic } from '../../lib/trivia/triviaHaptics';
 import TriviaConsole from './console/TriviaConsole';
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
 import ResponsiveModeArt from './console/ResponsiveModeArt';
@@ -683,7 +685,10 @@ export default function StrategyTrivia({ mode }) {
         }
         const q = questions[currentQuestionIndex];
         if (!q || typeof q.id !== 'string') return;
-        if (!isOnline) {
+        const currentlyOnline = typeof window !== 'undefined'
+            ? window.navigator.onLine !== false
+            : isOnline;
+        if (!currentlyOnline) {
             setAnswerFailure({
                 questionId: q.id,
                 displayIndex,
@@ -700,6 +705,7 @@ export default function StrategyTrivia({ mode }) {
         answerOperationRef.current = answerOperation;
         setAnswerPending(true);
         setAnswerFailure(null);
+        if (displayIndex >= 0 && !invalidQuestion) triggerTriviaHaptic('tap');
         if (displayIndex >= 0) setSelectedAnswer(displayIndex); // instant visual lock on the tap
         try {
             const v = await serverRun.answer({ questionId: q.id, displayIndex, invalidQuestion });
@@ -728,8 +734,10 @@ export default function StrategyTrivia({ mode }) {
                 setResumeNotice('The Server Verified This Question As Unavailable. It Was Voided And Does Not Count Against The Run.');
             } else if (v?.wasCorrect === true) {
                 setCorrectCount(prev => prev + 1);
+                triggerTriviaHaptic('correct');
                 busEmit.decisionCorrect(correctCount + 1);
             } else {
+                triggerTriviaHaptic('wrong');
                 busEmit.decisionIncorrect(correctCount);
                 busEmit.screenShake('light');
             }
@@ -765,6 +773,24 @@ export default function StrategyTrivia({ mode }) {
                 if (accountOperationScopeRef.current.isCurrent(operationScope)) setAnswerPending(false);
             }
         }
+    }
+
+    function retryPendingStrategyAnswer() {
+        if (gameState !== 'playing' || showResult || answerPending || answerLockRef.current) return;
+        if (!answerFailure || answerFailure.requiresRefresh) return;
+        if (answerFailure.questionId !== currentQuestion?.id) return;
+        if (
+            hasAuthoritativeShotClock
+            && Number.isFinite(timerDeadlineMs)
+            && Date.now() >= timerDeadlineMs
+            && answerFailure.displayIndex >= 0
+        ) {
+            return;
+        }
+        gradeAnswer(answerFailure.displayIndex, {
+            retry: true,
+            invalidQuestion: Boolean(answerFailure.invalidQuestion),
+        });
     }
 
     // Strategy tables are untimed unless the server-issued run contract says
@@ -1089,6 +1115,18 @@ export default function StrategyTrivia({ mode }) {
                             {entryError}
                         </p>
                     )}
+                    <TriviaNetworkBanner
+                        hasPendingRetry={Boolean(
+                            gameState === 'playing'
+                            && !showResult
+                            && answerFailure
+                            && !answerFailure.requiresRefresh
+                            && answerFailure.questionId === currentQuestion?.id
+                        )}
+                        isRetrying={answerPending}
+                        onRetryNow={retryPendingStrategyAnswer}
+                        onReconnect={retryPendingStrategyAnswer}
+                    />
                     {!isOnline && (
                         <p className="strategy-alert tc-ink--cyan" role="status">
                             Offline. Your Current Run Identity Is Preserved. Reconnect To Continue.
