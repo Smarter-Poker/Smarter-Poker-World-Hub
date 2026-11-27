@@ -756,7 +756,7 @@
     },
     {
       "path": "/api/cron/trivia-pool-guard",
-      "schedule": "30 13 * * *"
+      "schedule": "30 * * * *"
     },
     {
       "path": "/api/cron/trivia-economy-audit",
