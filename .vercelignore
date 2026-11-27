@@ -192,6 +192,8 @@ _legacy_sql/
 !/__tests__/vip-complimentary-term-does-not-block-card.test.mjs
 !/supabase/migrations/20261127074620_vip_complimentary_term_does_not_block_card_subscription.sql
 !/__tests__/vip-lifecycle-notices.test.mjs
+!/__tests__/vip-failed-renewal-revokes.test.mjs
+!/supabase/migrations/20261127171926_vip_failed_renewal_revokes_card_vip.sql
 !/__tests__/vip-first-month-hardening.test.mjs
 !/__tests__/vip-one-first-month-per-card.test.mjs
 !/__tests__/vip-comeback-price.test.mjs
