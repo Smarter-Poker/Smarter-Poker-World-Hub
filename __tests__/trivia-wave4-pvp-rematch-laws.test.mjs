@@ -136,7 +136,7 @@ test('Wave 4 PvP Law 2: buildPvpCategoryBreakdown sorts weakest-first and resolv
             VALID_TRAINING_HREFS.has(entry.trainingHref),
             `Unexpected trainingHref for ${entry.category}: ${entry.trainingHref}`,
         );
-        assert.ok(entry.trainingHref.startsWith('/hub/training/'));
+        assert.equal(entry.trainingHref, TRAINING_SPOT_MAP[entry.category].href);
         assert.ok(entry.trainingLabel.length > 0);
         assert.ok(entry.label.length > 0);
     }
