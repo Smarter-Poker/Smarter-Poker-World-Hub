@@ -7,7 +7,7 @@
 
 # 🎯 MISSION STATEMENT
 
-Build the most addictive, gamified GTO training platform in poker. Beat GTO Wizard on features while offering FREE access with Diamond currency or $19.99/month VIP. Every interaction must feel like a video game, not a study session.
+Build the most addictive, gamified GTO training platform in poker. Beat GTO Wizard on features while offering FREE access with Diamond currency or $20/month VIP ($1 first month for a first-time Card subscriber). Every interaction must feel like a video game, not a study session.
 
 ---
 
@@ -16,7 +16,7 @@ Build the most addictive, gamified GTO training platform in poker. Beat GTO Wiza
 | Access Type | Cost | Features |
 |-------------|------|----------|
 | **Free Play** | 10 💎 per game | Limited access, earn diamonds through other orbs |
-| **VIP Unlimited** | $19.99/month | All games, all levels, unlimited plays, exclusive modes |
+| **VIP Unlimited** | $20/month ($1 first month) | All games, all levels, unlimited plays, exclusive modes |
 | **Diamond Packs** | IAP | Buy diamonds for à la carte access |
 
 ---
@@ -266,7 +266,7 @@ Total: Exponential (will use PioSolver aggregation)
 | Feeling | Study tool | **Video Game** |
 | Pressure Timer | Basic | **Bomb defusal intensity** |
 | Economy | Subscription only | **Diamond à la carte + VIP** |
-| Price | $26-$129/mo | **$19.99/mo or FREE with 💎** |
+| Price | $26-$129/mo | **$20/mo or FREE with 💎** |
 | Social | Forums | **Tournaments + Leaderboards** |
 | Unique Games | None | **Pattern Recognition, Mixed Trainer** |
 | Streaks | None | **Daily streaks with multipliers** |

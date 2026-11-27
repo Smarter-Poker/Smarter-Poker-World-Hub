@@ -44,8 +44,8 @@ select has_function_privilege('authenticated',
 
 | Variable | Value |
 |---|---|
-| `STRIPE_VIP_MONTHLY_PRICE_ID` | an active **recurring** Stripe price, $19.99 / month |
-| `STRIPE_VIP_ANNUAL_PRICE_ID` | an active **recurring** Stripe price, $199.99 / year |
+| `STRIPE_VIP_MONTHLY_PRICE_ID` | an active **recurring** Stripe price, $20 / month (the $1 first month is a one-time coupon on this price, never a second price) |
+| `STRIPE_VIP_ANNUAL_PRICE_ID` | an active **recurring** Stripe price, $200 / year |
 
 Neither exists in `.env.local` today, so both paid VIP tiers currently return a clean
 `503 SUBSCRIPTIONS_NOT_CONFIGURED`. They are unbuyable until these are set. `create-checkout-session.js`

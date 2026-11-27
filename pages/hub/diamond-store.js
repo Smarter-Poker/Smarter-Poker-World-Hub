@@ -38,6 +38,7 @@ import {
 import { getVerifiedCheckoutAuthorization } from '../../src/lib/store/checkoutAuthorization';
 import { useVipIntroOffer } from '../../src/lib/store/useVipIntroOffer';
 import { VIP_INTRO_OFFER } from '../../src/lib/store/vipIntroOffer.mjs';
+import { vipCheckoutAnalytics } from '../../src/lib/store/vipCheckoutAnalytics.mjs';
 import {
   classifyVipDiamondPurchaseRefusal,
   normalizeVerifiedDiamondPackages,
@@ -2231,7 +2232,8 @@ export default function DiamondStorePage({
         route: 'vip',
         type: checkoutType,
         product: plan.id,
-        value_usd: Number(plan.price || 0),
+        // The amount due today: $1 when the $1 terms were the terms reviewed.
+        ...vipCheckoutAnalytics(plan, introReviewed),
       });
       const response = await boundedCommerceFetch('/api/store/create-checkout-session', {
         method: 'POST',

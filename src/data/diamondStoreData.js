@@ -326,6 +326,12 @@ export const DIAMOND_PACKAGES = [
 // (measured 2026-09-05: vip_subscriptions is empty, and no diamond transaction
 // carries a VIP type). The 21 human lifetime members and 11 active monthly ones
 // were granted. So this lineup changes only what a future buyer is offered.
+//
+// CURRENT PRICES (whole dollars; the $499 / 1,999 / 19,999 / 49,900 figures
+// above are history): Monthly $20 or 2,000 Diamonds, Yearly $200 or 20,000
+// Diamonds, Lifetime $500 or 50,000 Diamonds. A first-time Card subscriber
+// pays $1 for the first month (src/lib/store/vipIntroOffer.mjs); the price
+// below stays the regular recurring $20.
 export const VIP_MEMBERSHIP = {
   monthly: {
     id: 'vip-monthly',
