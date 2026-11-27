@@ -108,7 +108,7 @@ const StoreToast = dynamic(() => import('../../src/components/store/StoreToast')
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import { VIPCard } from '../../src/components/store/StoreCards';
 import { VipMasthead, VipPricePlate, vipIntroPlateProps } from '../../src/components/vip/VipKit';
-import { VIP_INTRO_VERIFY_REASON, vipCheckoutAnalytics } from '../../src/lib/store/vipIntroPrompt.mjs';
+import { VIP_INTRO_VERIFY_REASON } from '../../src/lib/store/vipIntroPrompt.mjs';
 import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
 import CheckoutStatusPanel from '../../src/components/diamond-store/CheckoutStatusPanel';
 import MarketplaceCommerceNav from '../../src/components/store/MarketplaceCommerceNav';
