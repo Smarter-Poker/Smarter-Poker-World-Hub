@@ -24,7 +24,7 @@ import {
 
 /** Smarter.Poker brand art (files in /public), assigned by page kind and position in its run. */
 export const MAGAZINE_BRAND_ART = Object.freeze({
-    house_promo_spread: ['/images/club_arena_card_art.png'],
+    house_promo_spread: ['/images/club_arena_card_art.webp'],
     editor_first_hand: ['/circuit-brain-bg.webp'],
     platform_feature: [
         '/images/training/coach-mode/strategy-chamber-hero.webp',
