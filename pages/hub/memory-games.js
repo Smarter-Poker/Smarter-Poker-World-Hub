@@ -212,6 +212,7 @@ import {
   VipSeal,
   vipIntroPlateProps,
   vipKitStyles as vipKit,
+  VipPhoneOfferGate,
 } from '../../src/components/vip/VipKit';
 import { VIP_INTRO_OFFER } from '../../src/lib/store/vipIntroOffer.mjs';
 import { leaveForCheckout } from '../../src/lib/store/leaveForCheckout.mjs';
@@ -2856,7 +2857,10 @@ export default function MemoryGamesPage() {
                   )}
 
                   {/* VIP Upsell - only for confirmed non-VIP users */}
+                  {/* Phone verification reward first (Dan, 2026-11-27); Skip
+                      shows the VIP upsell below unchanged. */}
                   {isVIP === false && (
+                    <VipPhoneOfferGate accountId={userId || null} className="preflop-vip-upgrade">
                     <section
                       className={`${vipKit.kit} ${vipKit.frame} ${vipKit.prompt} preflop-vip-upgrade`}
                       aria-labelledby="preflop-vip-title"
@@ -2912,6 +2916,7 @@ export default function MemoryGamesPage() {
                         </div>
                       )}
                     </section>
+                    </VipPhoneOfferGate>
                   )}
                 </div>
               </PullToRefresh>
