@@ -2866,7 +2866,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 <div className="section-header-row">
                   <h2 className="section-title">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
-                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7" />
+                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7" />
                       <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7" />
                       <path d="M4 22h16" />
                       <path d="M10 22V2h4v20" />

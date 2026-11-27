@@ -284,9 +284,9 @@ export default function QREExplorerPage() {
                 style={{
                   padding: 12,
                   borderRadius: 10,
-                  border: `1px solid ${activePreset === p.id ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.05)'}`,
+                  border: `1px solid ${activePreset === p.id ? 'rgba(56,189,248,0.45)' : 'rgba(255,255,255,0.05)'}`,
                   background:
-                    activePreset === p.id ? 'rgba(167,139,250,0.1)' : 'rgba(255,255,255,0.02)',
+                    activePreset === p.id ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.02)',
                   color: activePreset === p.id ? '#86daff' : 'var(--sp-fg-muted)',
                   cursor: 'pointer',
                   textAlign: 'center',
@@ -371,7 +371,7 @@ export default function QREExplorerPage() {
                   fontWeight: 700,
                   padding: '3px 8px',
                   borderRadius: 4,
-                  background: 'rgba(167,139,250,0.1)',
+                  background: 'rgba(56,189,248,0.12)',
                   color: '#86daff',
                 }}
               >
