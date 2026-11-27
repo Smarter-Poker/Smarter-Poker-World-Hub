@@ -234,9 +234,8 @@ export default function PersonalAssistantPage() {
 
   const openInternalRoute = useCallback((route) => {
     haptic('light');
-    if (!guardAction()) return;
     router.push(route);
-  }, [haptic, guardAction, router]);
+  }, [haptic, router]);
 
   const openLiveSpot = useCallback(() => {
     haptic('light');
@@ -327,7 +326,7 @@ export default function PersonalAssistantPage() {
           />
 
           <PullToRefresh onRefresh={retryAssistantData} disabled={showMenu}>
-            <main className={styles.landingMain} id="overview">
+            <div className={styles.landingMain} id="overview">
               {/* First-frame server-rendered hero header (no data-dependent values) */}
               <section className={`${styles.frame} ${styles.hero}`} aria-labelledby="assistant-title" data-tutorial="nav">
                 <div className={styles.landingHeader}>
@@ -523,7 +522,7 @@ export default function PersonalAssistantPage() {
                         <span>
                           {sessionsBusy
                             ? 'Syncing Coaching Plan…'
-                            : `${(recentSessions || []).length > 0 ? 'Goals And Weekly Focus' : 'Goals And Weekly Focus'}`}
+                            : 'Goals And Weekly Focus'}
                         </span>
                       </span>
                     </Link>
@@ -534,7 +533,7 @@ export default function PersonalAssistantPage() {
                   </div>
                 </>
               )}
-            </main>
+            </div>
           </PullToRefresh>
         </div>
       </HubPageShell>
