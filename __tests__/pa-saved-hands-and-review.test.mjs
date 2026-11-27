@@ -1140,6 +1140,8 @@ test('exports never assign an unidentified first player to Hero or reveal that p
 
 test('exports preserve positively identified heroes, revealed showdown cards and canonical manual imports', async () => {
   const canonical = savedHandsLib.buildClubArenaSavedHandRow({ userId: HERO_ID, handRow: makeCompletedHandRow() });
+  // Saved-hand IDs may contain card-like substrings without exposing card values.
+  canonical.id = '89ad3d6b-dd8c-49a2-bb62-23d2d5b6ae1c';
   const explicit = { hand_data: { players: [
     { name: 'Hidden Opponent', holeCards: ['7s', '2d'], cardsVisibility: 'hidden' },
     { name: 'Owner', isHero: true, holeCards: ['Ah', 'Kh'] },
@@ -1165,7 +1167,7 @@ test('exports preserve positively identified heroes, revealed showdown cards and
     const exported = savedHandsLib.formatSavedHandForExport(row);
     assert.deepEqual(exported.heroCards, ['Ah', 'Kh']);
     assert.ok(exported.players.some(player => player.isHero && player.holeCards.join(' ') === 'Ah Kh'));
-    assert.doesNotMatch(JSON.stringify(exported), /7s|2d/);
+    assert.doesNotMatch(JSON.stringify(exported), /"7s"|"2d"/);
     assert.match(savedHandsLib.formatSavedHandsAsText([row]), /Dealt to Hero \[Ah Kh\]/);
   }
   assert.deepEqual(savedHandsLib.formatSavedHandForExport(canonical).players.find(player => player.name === 'ShownVillain').holeCards, ['Qd', 'Qc']);
