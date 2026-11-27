@@ -55,6 +55,11 @@ import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { vipStripePriceMismatch } from '../../../src/lib/store/vipStripePrice.mjs';
+import {
+    VIP_INTRO_PLAN_SWITCH_LOCKED_MESSAGE,
+    isVipIntroSubscription,
+    vipIntroPlanSwitchDecision,
+} from '../../../src/lib/store/vipIntroOffer.mjs';
 const {
     inspectStripeRuntime,
     isProductionRuntime,
@@ -349,6 +354,42 @@ export default async function handler(req, res) {
                 nextInvoiceDate: null,
                 message: `You Are Already On The ${target.tier === 'yearly' ? 'Yearly' : 'Monthly'} Plan.`,
             });
+        }
+
+        // ── 3b. A subscription opened on the $1 first month may not change
+        //        plan until Stripe shows one full-price invoice paid. The
+        //        one-time coupon is gone after the first invoice, so a
+        //        proration would credit "unused time" at the $20 price for a
+        //        month that cost $1 (see vipIntroOffer.mjs). Read from Stripe,
+        //        never inferred; an unreadable history is unknown, not open.
+        if (isVipIntroSubscription(live)) {
+            let paidInvoices = null;
+            try {
+                paidInvoices = await stripe.invoices.list({
+                    subscription: sub.stripe_subscription_id,
+                    status: 'paid',
+                    limit: 100,
+                });
+            } catch (invoiceError) {
+                console.warn('[switch-vip-plan] invoice history read failed:', invoiceError?.message || invoiceError);
+                paidInvoices = null;
+            }
+            const switchDecision = vipIntroPlanSwitchDecision(live, paidInvoices);
+            if (switchDecision === 'locked') {
+                return res.status(409).json({
+                    success: false,
+                    code: 'VIP_INTRO_PLAN_SWITCH_LOCKED',
+                    error: VIP_INTRO_PLAN_SWITCH_LOCKED_MESSAGE,
+                });
+            }
+            if (switchDecision !== 'open') {
+                return res.status(503).json({
+                    success: false,
+                    retryable: true,
+                    code: 'VIP_SUBSCRIPTION_VERIFICATION_UNAVAILABLE',
+                    error: 'Your Billing History Could Not Be Verified. Please Try Again.',
+                });
+            }
         }
 
         // ── 4. The new price: a managed price object if one is configured,

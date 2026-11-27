@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import vm from 'node:vm';
 
+import * as vipIntroOffer from '../src/lib/store/vipIntroOffer.mjs';
+
 const ROUTE_PATH = new URL('../pages/api/store/switch-vip-plan.js', import.meta.url);
 const routeSource = await readFile(ROUTE_PATH, 'utf8');
 
@@ -78,10 +80,13 @@ async function loadHarness({
   updateBehavior = null,
   updateError = null,
   updated = undefined,
+  paidInvoices = { data: [], has_more: false },
+  paidInvoicesError = null,
 } = {}) {
   const calls = {
     auditRows: [],
     databaseReads: [],
+    invoiceLists: [],
     priceReads: [],
     retrieves: [],
     updates: [],
@@ -148,6 +153,11 @@ async function loadHarness({
       },
     },
     invoices: {
+      async list(params) {
+        calls.invoiceLists.push(structuredClone(params));
+        if (paidInvoicesError) throw paidInvoicesError;
+        return structuredClone(paidInvoices);
+      },
       async retrieveUpcoming() {
         return { total: 1500, next_payment_attempt: 1_800_000_000 };
       },
@@ -183,6 +193,7 @@ async function loadHarness({
       getServerUserWithFallback: async () => ({ user: { id: USER_ID }, error: null }),
     },
     '../../../src/lib/store/vipStripePrice.mjs': { vipStripePriceMismatch: () => null },
+    '../../../src/lib/store/vipIntroOffer.mjs': { ...vipIntroOffer },
     '../../../src/lib/supabaseServerClient': { createClient: () => supabase },
     stripe: { default: Stripe },
   };
@@ -420,4 +431,62 @@ test('same-key commitless retries send byte-equivalent provider intent and idemp
     'switch-request-stable-retry'
   );
   assert.equal('plan_switched_at' in calls.updates[0].params.metadata, false);
+});
+
+/* THE $1 FIRST MONTH (2026-11-27). A subscription sold on the offer may not
+   change plan until Stripe shows one full-price invoice paid: the one-time
+   coupon is gone after the first invoice, so a proration would credit unused
+   time at $20 for a month that cost $1. */
+function introSubscription() {
+  const base = stripeSubscription('monthly');
+  return { ...base, metadata: { ...base.metadata, vip_intro_offer: 'first_month_1usd' } };
+}
+const paidInvoice = (total) => ({
+  status: 'paid', subscription: SUBSCRIPTION_ID, currency: 'usd', total,
+});
+
+test('a member inside the one dollar month cannot switch plan, and Stripe is not changed', async () => {
+  const harness = await loadHarness({
+    live: introSubscription(),
+    paidInvoices: { data: [paidInvoice(100)], has_more: false },
+  });
+  const res = await harness.request('yearly');
+  assert.equal(res.statusCode, 409);
+  assert.equal(res.body.code, 'VIP_INTRO_PLAN_SWITCH_LOCKED');
+  assert.equal(res.body.error, 'Plan Changes Open After Your First Full-Price Renewal.');
+  assert.equal(harness.calls.updates.length, 0);
+  assert.deepEqual(harness.calls.invoiceLists, [
+    { subscription: SUBSCRIPTION_ID, status: 'paid', limit: 100 },
+  ]);
+});
+
+test('after the first full-price renewal the same member can switch', async () => {
+  const harness = await loadHarness({
+    live: introSubscription(),
+    paidInvoices: { data: [paidInvoice(2000), paidInvoice(100)], has_more: false },
+  });
+  const res = await harness.request('yearly');
+  assert.equal(res.statusCode, 200);
+  assert.equal(harness.calls.updates.length, 1);
+  // The offer marker survives the switch, so the history stays readable.
+  assert.equal(harness.calls.updates[0].params.metadata.vip_intro_offer, 'first_month_1usd');
+});
+
+test('an unreadable billing history neither opens nor locks the switch', async () => {
+  const harness = await loadHarness({
+    live: introSubscription(),
+    paidInvoicesError: new Error('stripe unavailable'),
+  });
+  const res = await harness.request('yearly');
+  assert.equal(res.statusCode, 503);
+  assert.equal(res.body.retryable, true);
+  assert.equal(res.body.code, 'VIP_SUBSCRIPTION_VERIFICATION_UNAVAILABLE');
+  assert.equal(harness.calls.updates.length, 0);
+});
+
+test('a regular-price subscription switches without any invoice lookup', async () => {
+  const harness = await loadHarness();
+  const res = await harness.request('yearly');
+  assert.equal(res.statusCode, 200);
+  assert.equal(harness.calls.invoiceLists.length, 0);
 });

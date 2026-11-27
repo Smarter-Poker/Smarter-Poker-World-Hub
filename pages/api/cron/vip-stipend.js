@@ -71,6 +71,21 @@
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+import Stripe from 'stripe';
+import { isVipIntroSubscription } from '../../../src/lib/store/vipIntroOffer.mjs';
+
+let _stripe = null;
+function getStripe() {
+    if (!_stripe && process.env.STRIPE_SECRET_KEY) {
+        _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+            apiVersion: '2023-10-16',
+            timeout: 15000,
+            maxNetworkRetries: 2,
+            telemetry: false,
+        });
+    }
+    return _stripe;
+}
 
 let _supabase = null;
 function getSupabase() {
@@ -156,6 +171,7 @@ async function handler(req, res) {
         capped:         0,   // budget_exhausted / monthly_cap
         failed:         0,   // RPC errors
         introPeriodSkipped: 0, // first-ever monthly subscribers inside the $1 period
+        introUnknownSkipped: 0, // first-period subscribers Stripe could not classify this run
         truncated:      false,
         lifetimeScanned: 0,
         lifetimeEligible: 0,
@@ -189,6 +205,7 @@ async function handler(req, res) {
             Date.now() - INTRO_PERIOD_DAYS * 24 * 60 * 60 * 1000
         ).toISOString();
         const introCandidateUserIds = new Set();
+        const introCandidateSubscriptionIds = new Map();
 
         for (let page = 0; page < MAX_PAGES; page++) {
             const from = page * PAGE_SIZE;
@@ -231,6 +248,7 @@ async function handler(req, res) {
                 eligibleUserIds.add(row.user_id);
                 if (row.tier === 'monthly' && row.created_at && row.created_at > introPeriodFloorISO) {
                     introCandidateUserIds.add(row.user_id);
+                    introCandidateSubscriptionIds.set(row.user_id, row.stripe_subscription_id);
                 }
             }
 
@@ -257,8 +275,34 @@ async function handler(req, res) {
             const returning = new Set((olderRows || []).map((row) => row.user_id));
             for (const userId of chunk) {
                 if (returning.has(userId)) continue;
+                /* A first subscription younger than one period is USUALLY the
+                   $1 month, but not always: the offer can be switched off
+                   (VIP_INTRO_OFFER_DISABLED) and that member paid the full
+                   price. Stripe stamped the truth on the subscription when it
+                   was sold (metadata vip_intro_offer / the one-time coupon),
+                   so ask it rather than infer from the age of a row. A
+                   subscription Stripe cannot show us is unknown: it is not
+                   paid THIS run, and the daily, idempotent run pays it once
+                   it can be read. */
+                let soldOnIntro = null;
+                try {
+                    const stripeClient = getStripe();
+                    if (stripeClient) {
+                        const subscription = await stripeClient.subscriptions.retrieve(
+                            introCandidateSubscriptionIds.get(userId)
+                        );
+                        if (subscription?.id === introCandidateSubscriptionIds.get(userId)) {
+                            soldOnIntro = isVipIntroSubscription(subscription);
+                        }
+                    }
+                } catch (stripeError) {
+                    console.warn('[cron/vip-stipend] intro subscription read failed:', stripeError?.message || stripeError);
+                    soldOnIntro = null;
+                }
+                if (soldOnIntro === false) continue;
                 eligibleUserIds.delete(userId);
-                stats.introPeriodSkipped += 1;
+                if (soldOnIntro === true) stats.introPeriodSkipped += 1;
+                else stats.introUnknownSkipped += 1;
             }
         }
 
