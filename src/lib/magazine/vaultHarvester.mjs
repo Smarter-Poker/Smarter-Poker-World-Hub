@@ -135,6 +135,29 @@ function decodeBasicHtml(raw) {
     );
 }
 
+/**
+ * Clips a deck or excerpt to at most `max` characters without cutting a word or a sentence in
+ * half. It ends on the last full sentence that fits, and only when no sentence fits does it end
+ * on the last whole word with an ellipsis. Printed copy must never stop mid-word (MAG LAW 25).
+ */
+export function clipAtSentence(text, max = 280) {
+    const clean = String(text || '').replace(/\s+/g, ' ').trim();
+    if (clean.length <= max) return clean;
+    const window = clean.slice(0, max + 1);
+    let end = -1;
+    const enders = /[.!?]["\u201D'\)\]]?(?=\s)/g;
+    let match;
+    while ((match = enders.exec(window)) !== null) {
+        const stop = match.index + match[0].length;
+        if (stop <= max) end = stop;
+    }
+    if (end >= Math.min(60, Math.floor(max / 3))) return clean.slice(0, end);
+    const head = clean.slice(0, max - 1);
+    const lastSpace = head.lastIndexOf(' ');
+    const words = (lastSpace > 0 ? head.slice(0, lastSpace) : head).replace(/[\s,;:]+$/, '');
+    return `${words}\u2026`;
+}
+
 export function buildCleanNonEchoingDeck({ title = '', rawSummary = '', rawExcerpt = '', paragraphs = [], sourceName = '', category = '' } = {}) {
     const cleanTitle = stripMagazineDashes(title);
     const candidates = [
@@ -146,7 +169,7 @@ export function buildCleanNonEchoingDeck({ title = '', rawSummary = '', rawExcer
     for (const cand of candidates) {
         if (!cand || cand.length < 32) continue;
         if (!isEchoingOrEmptyBlurb(cleanTitle, cand)) {
-            return cand.slice(0, 280);
+            return clipAtSentence(cand, 280);
         }
     }
 
@@ -205,7 +228,7 @@ export function parseCleanParagraphsFromHtml(html, maxParagraphs = 6) {
         const prefix = text.slice(0, 64).toLowerCase();
         if (seenPrefixes.has(prefix)) continue;
         seenPrefixes.add(prefix);
-        paragraphs.push(text.slice(0, 700));
+        paragraphs.push(clipAtSentence(text, 700));
     }
 
     return paragraphs;

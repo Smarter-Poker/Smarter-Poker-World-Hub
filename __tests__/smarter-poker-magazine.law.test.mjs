@@ -2605,3 +2605,24 @@ test('MAG LAW 24: every printed picture is real and unique, placeholder plates n
     assert.match(read('pages/_app.js'), /magazine-print\.css/, 'The print stylesheet must load globally');
     assert.doesNotMatch(rendererSrc, /Scan At The Table/, 'Generic QR badges must not return');
 });
+
+// ── MAG LAW 25: Printed Copy Never Stops Mid-Word & Pull Quotes Keep Their Gutter ──
+test('MAG LAW 25: decks and paragraphs clip on a full sentence, never mid-word, and the pull-quote mark keeps its gutter', async () => {
+    const { clipAtSentence, buildCleanNonEchoingDeck } = await import('../src/lib/magazine/vaultHarvester.mjs');
+    const long = "Only four people will ever have a Triton 10th Anniversary commemorative coin in their prize cabinets, won in the $150,000 NLH 10th Anniversary Special tournaments held at this year's Triton stops. The last one was up for grabs today at the Triton Super High Roller Series North Cyprus, where the field was the deepest of the year.";
+    const clipped = clipAtSentence(long, 280);
+    assert.ok(clipped.length <= 280, 'Clipped copy must respect the limit');
+    assert.ok(clipped.endsWith("Triton stops."), `Clipped copy must end on the last full sentence, got: ${clipped.slice(-40)}`);
+    assert.equal(clipAtSentence('Short line.', 280), 'Short line.', 'Copy under the limit is untouched');
+    const noStops = 'word '.repeat(80).trim();
+    const wordClip = clipAtSentence(noStops, 100);
+    assert.ok(wordClip.endsWith('word…'), 'Without a sentence end the clip lands on a whole word with an ellipsis');
+    assert.ok(wordClip.length <= 100, 'Word clip respects the limit');
+    const deck = buildCleanNonEchoingDeck({ title: 'Triton Anniversary Special', rawSummary: long });
+    assert.match(deck, /[.!?…]["”')\]]?$/, 'Decks end on punctuation, never mid-word');
+    const harvester = read('src/lib/magazine/vaultHarvester.mjs');
+    assert.doesNotMatch(harvester, /return cand\.slice\(0, 280\)/, 'Decks must not be sliced mid-word');
+    assert.doesNotMatch(harvester, /paragraphs\.push\(text\.slice\(0, 700\)\)/, 'Paragraphs must not be sliced mid-word');
+    const css = read('src/components/magazine/magazine-print.css');
+    assert.match(css, /\.spm-sheet \.spm-pullquote,\s*\n\.spm-pullquote \{/, 'The pull quote must out-rank the .spm-sheet blockquote reset so its quote mark never overlaps the text');
+});
