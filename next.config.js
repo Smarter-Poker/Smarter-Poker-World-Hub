@@ -1389,6 +1389,26 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: '/hub/video-library/watch/xxM8Q76ddHI/hungry-horse-s-downfall-was-expected',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/xxM8Q76ddHI',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/u_Yk0kC_4c4/most-ridiculous-fun-hand-of-all-time',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/u_Yk0kC_4c4',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
         source: '/research/plo4-plo5-plo6-equity-and-variance-study.md',
         destination: '/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study.md',
         permanent: true,

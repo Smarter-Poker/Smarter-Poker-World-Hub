@@ -123,6 +123,13 @@ import './phone-verification-uptake.test.mjs';
 import './horses-tournament-intent-storage.test.mjs';
 // API/server @vercel/nft static-page trace guard (incident 86bcafc1, 2026-11-26).
 import './api-routes-never-trace-static-pages.law.test.mjs';
+// Full-tree AST parse, duplicate-binding/export, local-import, route-collision & merge-tree guard (incident 86bcafc1, 2026-11-27).
+import './module-parse-and-bindings.law.test.mjs';
+// Extended Vercel deployability (vercel.json schema/crons + package-lock parity),
+// shared-game-links middleware contract, and alias/dynamic-import/Next.js page hardening.
+import './vercel-json-is-deployable.law.test.mjs';
+import './shared-game-links.test.mjs';
+import './vercel-build-hardening.law.test.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────
 // The 48 guards CI had never run.
@@ -787,6 +794,7 @@ const REQUIRED_TEST_FILES = [
     '__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs',
     '__tests__/smarter-poker-magazine.law.test.mjs',
     '__tests__/api-routes-never-trace-static-pages.law.test.mjs',
+    '__tests__/module-parse-and-bindings.law.test.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {
@@ -936,6 +944,7 @@ import './seo-aeo-geo-phase4-20261126.law.test.mjs';
 import './seo-aeo-geo-forensic-hardening-20261126.law.test.mjs';
 import './seo-aeo-geo-phase6-20261126.law.test.mjs';
 import './seo-aeo-geo-phase7-20261126.law.test.mjs';
+import './gsc-breadcrumbs-datasets-fix-20261127.law.test.mjs';
 import './a-request-the-database-must-refuse-is-not-sent.law.test.mjs';
 import './a-profile-post-count-asks-the-post-policy.law.test.mjs';
 import './removed-pitch-decks-stay-gone.law.test.mjs';

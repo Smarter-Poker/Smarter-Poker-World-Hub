@@ -12,6 +12,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { createHardenedSupabaseClient } from '../src/lib/realtimeTransportGuard';
 import { getGTOStrategy, GTOScenario } from './god-mode-service';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -82,7 +83,7 @@ export interface TrainingQuestion {
 // createClient is generic; referencing its ReturnType directly resolves the Database
 // generic to its default and collapses every query result to `never`.
 function makeClient(url: string, key: string) {
-    return createClient(url, key);
+    return createHardenedSupabaseClient(createClient, url.trim(), key.trim());
 }
 let _client: ReturnType<typeof makeClient> | null = null;
 let _warnedMissingEnv = false;

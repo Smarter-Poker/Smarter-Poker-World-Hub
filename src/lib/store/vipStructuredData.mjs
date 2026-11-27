@@ -1,5 +1,6 @@
 import { formatStoreUsd } from './wholeDollarPrice.mjs';
 import { breadcrumbSchema, ORGANIZATION_ID, WEBSITE_ID } from '../seo/hubPageSchema.js';
+import { readVipIntroOfferSwitch } from './vipIntroOffer.mjs';
 
 export const VIP_URL = 'https://smarter.poker/hub/vip-membership';
 export const VIP_TERMS = {
@@ -93,14 +94,17 @@ export function vipProductPath(plan, gift = false) {
   return `/hub/vip-membership/${gift ? 'gift/' : ''}${plan}`;
 }
 
-export function vipProductPageProps({ params, res }, gift = false) {
+export function vipProductPageProps({ params, res }, gift = false, env = process.env) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   if (typeof params?.plan !== 'string' || !vipProductPath(params.plan, gift)) return { notFound: true };
-  return { props: { vipProduct: { plan: params.plan, gift } } };
+  // The search copy names the $1 first month only while checkout sells it.
+  // 'unknown' never advertises a price checkout might refuse.
+  const introOffer = readVipIntroOfferSwitch(env) === 'on';
+  return { props: { vipProduct: { plan: params.plan, gift, introOffer } } };
 }
 
 /** Public search copy shares the same catalog and access terms as checkout. */
-export function vipProductContent(catalog, plan, gift = false) {
+export function vipProductContent(catalog, plan, gift = false, { introOffer = true } = {}) {
   if (!vipProductPath(plan, gift)) return null;
   const entry = catalog[plan];
   const cents = Math.round(Number(entry?.price) * 100);
@@ -115,7 +119,9 @@ export function vipProductContent(catalog, plan, gift = false) {
     yearly: `Give An Accepted Friend 365 Days Of Smarter.Poker VIP For ${price} Or ${diamonds} Diamonds. One-Time Gift; Access Starts On Redemption, With No Auto-Renewal.`,
     lifetime: `Give Lifetime Smarter.Poker VIP To An Accepted Friend For ${price} Or ${diamonds} Diamonds. One Payment, No Expiry. Your Friend Chooses When To Redeem.`,
   } : {
-    monthly: `Monthly Poker VIP: $1 First Month For New Card Subscribers, Then ${price}/Month, Or ${diamonds} Diamonds For 30 Days. Premium Training And Club Arena. Cancel Anytime.`,
+    monthly: introOffer
+      ? `Monthly Poker VIP: $1 First Month For New Card Subscribers, Then ${price}/Month, Or ${diamonds} Diamonds For 30 Days. Premium Training And Club Arena. Cancel Anytime.`
+      : `Monthly Poker VIP: ${price}/Month By Card Or ${diamonds} Diamonds For 30 Days. Premium Training And Club Arena Benefits. Card Renews Monthly; Cancel Anytime.`,
     yearly: `Yearly Poker VIP: ${price}/Year By Card Or ${diamonds} Diamonds For 365 Days. Premium Training And Club Arena Benefits. Card Renews Yearly; Cancel Anytime.`,
     lifetime: `Lifetime Poker VIP For ${price} Or ${diamonds} Diamonds. One Payment, No Expiry Or Renewal. Unlock Premium Training And Lifetime Club Arena Benefits.`,
   };

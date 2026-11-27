@@ -82,8 +82,31 @@ if [ -z "$CHANGED_FILES" ]; then
     exit 0
 fi
 
-ALL_JS_FILES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '\.(js|jsx|ts|tsx)$' | grep -v node_modules | grep -v '.next/')
-JS_FILES=$(echo "$CONTENT_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '\.(js|jsx|ts|tsx)$' | grep -v node_modules | grep -v '.next/')
+ALL_JS_FILES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '(\.(js|jsx|ts|tsx)$|^(pages|app|src|components|lib|utils)/.*\.(mjs|cjs)$)' | grep -v node_modules | grep -v '.next/')
+JS_FILES=$(echo "$CONTENT_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '(\.(js|jsx|ts|tsx)$|^(pages|app|src|components|lib|utils)/.*\.(mjs|cjs)$)' | grep -v node_modules | grep -v '.next/')
+DEPLOY_CONFIG_FILES=$(echo "$CHANGED_FILES" | grep -E '^(vercel|package|package-lock|tsconfig|jsconfig)\.json$|^config/.*\.json$|^next\.config\.(js|mjs|ts)$')
+
+# Even when no JS/TS files changed, edits to Vercel/package/config JSON can
+# immediately break Vercel deployments with zero build logs. Validate JSON
+# syntax and deployability before allowing config-only pushes.
+if [ -n "$DEPLOY_CONFIG_FILES" ]; then
+    echo "CHECK 0: Deploy & config JSON validation..."
+    for cfg in $(printf '%s\n' "$CONTENT_FILES" | grep -E '^(vercel|package|package-lock|tsconfig|jsconfig)\.json$|^config/.*\.json$'); do
+        [ -f "$cfg" ] || continue
+        if ! node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$cfg" >/dev/null 2>&1; then
+            echo -e "${RED}  ✗ FATAL: ${cfg} is not valid JSON.${NC}"
+            exit 1
+        fi
+    done
+    if [ -f "__tests__/vercel-json-is-deployable.law.test.mjs" ]; then
+        if ! node --test __tests__/vercel-json-is-deployable.law.test.mjs; then
+            echo -e "${RED}  ✗ FATAL: vercel.json / package-lock deployability law failed.${NC}"
+            exit 1
+        fi
+    fi
+    echo -e "${GREEN}  ✓ Deploy & config JSON passed validation.${NC}"
+    echo ""
+fi
 
 if [ -z "$ALL_JS_FILES" ]; then
     echo -e "${GREEN}✓ No JS/TS files changed. Push allowed.${NC}"
@@ -300,113 +323,35 @@ if [ -z "$UNAUTH_HITS" ]; then
 fi
 echo ""
 
-# ─── CHECK 5: Syntax validation (Babel for JSX files, node -c for plain .js) ──
-# CRITICAL: node -c is JSX-BLIND. It passes broken JSX syntax silently.
-# ALL .js files under pages/ or components/ contain JSX and MUST use Babel.
-# The May 12, 2026 incident (14 failed deploys) was caused by node -c passing
-# a .js page file with broken JSX — webpack rejected it, node -c did not.
-echo "CHECK 5: Syntax validation (Babel for JSX-containing .js, node -c for pure .js)..."
+# ─── CHECK 5: AST Syntax, Duplicate-Binding, Export, Route & Merge-Tree Gate ─
+# CRITICAL: node -c is JSX-BLIND and misses duplicate imports/declarations/exports
+# across .ts/.tsx/.js/.jsx/.mjs. Moreover, under strict:false branch protection,
+# two independently-green PRs can auto-merge cleanly at the line level while
+# creating a duplicate import/export SyntaxError on main (2026-11-27 208edab4).
+# Running check-module-parse-and-bindings.mjs with --merge-against origin/main
+# validates both HEAD's changed modules and the exact simulated post-merge tree.
+echo "CHECK 5: AST syntax, duplicate-binding, export, route & merge-tree validation..."
 
 if command -v node &> /dev/null; then
-    SYNTAX_ERRORS=0
-    # Locate Babel parser from the project. NOT "always available": a git
-    # worktree and a fresh clone both have .git but no node_modules, and this
-    # resolves to empty there. See the fallback in CHECK 5 below.
+    HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    MODULE_GATE="$HOOK_DIR/../ci/check-module-parse-and-bindings.mjs"
     BABEL_PARSER="$(node -e "try{require.resolve('@babel/parser');console.log(require.resolve('@babel/parser'))}catch(e){console.log('')}" 2>/dev/null)"
 
-    for file in $JS_FILES; do
-        [ -f "$file" ] || continue
-        # Skip files with import assertions (assert { type: 'json' }) — valid in webpack
-        grep -q 'assert {' "$file" 2>/dev/null && continue
+    if [ -z "$BABEL_PARSER" ]; then
+        echo "PUSH BLOCKED: Babel became unavailable during verification."
+        exit 1
+    fi
 
-        # For .tsx — always use Babel (TypeScript JSX)
-        if echo "$file" | grep -qE '\.tsx$'; then
-            if [ -n "$BABEL_PARSER" ]; then
-                PARSE_OUTPUT=$(PARSE_FILE="$file" node -e "
-const fs=require('fs');
-const {parse}=require('@babel/parser');
-try{
-  parse(fs.readFileSync(process.env.PARSE_FILE,'utf8'),{
-    sourceType:'module',
-    plugins:['jsx','typescript','decorators-legacy','classProperties','optionalChaining','nullishCoalescingOperator']
-  });
-  process.exit(0);
-}catch(e){
-  console.error(e.message+' (line '+e.loc?.line+', col '+e.loc?.column+')');
-  process.exit(1);
-}" 2>&1)
-                if [ $? -ne 0 ]; then
-                    echo -e "${RED}  ✗ TSX SYNTAX ERROR: ${file}${NC}"
-                    echo "    $PARSE_OUTPUT" | head -3
-                    echo ""
-                    SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
-                    ERRORS=$((ERRORS + 1))
-                fi
-            fi
-            continue
-        fi
+    if [ ! -f "$MODULE_GATE" ]; then
+        echo "PUSH BLOCKED: module parse gate missing at $MODULE_GATE."
+        exit 1
+    fi
 
-        # For .jsx — always use Babel
-        if echo "$file" | grep -qE '\.jsx$'; then
-            if [ -n "$BABEL_PARSER" ]; then
-                PARSE_OUTPUT=$(PARSE_FILE="$file" node -e "
-const fs=require('fs');
-const {parse}=require('@babel/parser');
-try{
-  parse(fs.readFileSync(process.env.PARSE_FILE,'utf8'),{
-    sourceType:'module',
-    plugins:['jsx','decorators-legacy','classProperties','optionalChaining','nullishCoalescingOperator']
-  });
-  process.exit(0);
-}catch(e){
-  console.error(e.message+' (line '+e.loc?.line+', col '+e.loc?.column+')');
-  process.exit(1);
-}" 2>&1)
-                if [ $? -ne 0 ]; then
-                    echo -e "${RED}  ✗ JSX SYNTAX ERROR: ${file}${NC}"
-                    echo "    $PARSE_OUTPUT" | head -3
-                    echo ""
-                    SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
-                    ERRORS=$((ERRORS + 1))
-                fi
-            fi
-            continue
-        fi
-
-        # For plain .ts — skip (TypeScript type errors need tsc, not node -c)
-        echo "$file" | grep -qE '\.ts$' && continue
-
-        if [ -n "$BABEL_PARSER" ]; then
-            # Use Babel for ALL .js files (node -c is blind to JSX and CJS/ESM mixed syntax errors)
-            PARSE_OUTPUT=$(PARSE_FILE="$file" node -e "
-const fs=require('fs');
-const {parse}=require('@babel/parser');
-try{
-  parse(fs.readFileSync(process.env.PARSE_FILE,'utf8'),{
-    sourceType:'module',
-    plugins:['jsx','decorators-legacy','classProperties','optionalChaining','nullishCoalescingOperator']
-  });
-  process.exit(0);
-}catch(e){
-  console.error(e.message+' (line '+e.loc?.line+', col '+e.loc?.column+')');
-  process.exit(1);
-}" 2>&1)
-            if [ $? -ne 0 ]; then
-                echo -e "${RED}  ✗ SYNTAX ERROR in .js file: ${file}${NC}"
-                echo "    (node -c is blind — Babel caught this; node -c would have missed it)"
-                echo "    $PARSE_OUTPUT" | head -3
-                echo ""
-                SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
-                ERRORS=$((ERRORS + 1))
-            fi
-        else
-            echo "PUSH BLOCKED: Babel became unavailable during verification."
-            exit 1
-        fi
-    done
-
-    if [ $SYNTAX_ERRORS -eq 0 ]; then
-        echo -e "${GREEN}  ✓ All files pass syntax check (Babel for JSX-containing, node -c for pure .js).${NC}"
+    if node "$MODULE_GATE" --changed-since "$PUSH_BASE" --merge-against refs/remotes/origin/main; then
+        echo -e "${GREEN}  ✓ All changed and post-merge modules pass AST syntax, binding, export & route checks.${NC}"
+    else
+        echo -e "${RED}  ✗ MODULE PARSE / BINDING / MERGE-TREE GATE FAILED.${NC}"
+        ERRORS=$((ERRORS + 1))
     fi
 
 else
