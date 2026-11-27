@@ -99,32 +99,27 @@ export default function AuthorsIndexPage() {
           <span style={styles.crumbCurrent}>Editorial &amp; Solver Methodology Team</span>
         </nav>
 
-        <header style={styles.heroPlate}>
-          <div style={styles.badgeRow}>
-            <span style={styles.cyanBadge}>4 SPECIALIZED RESEARCH &amp; AUDIT DESKS</span>
-            <span style={styles.emeraldBadge}>ZENODO DOI &amp; CFR EQUILIBRIUM PROVENANCE</span>
-          </div>
+        <div style={{ marginBottom: 20 }}>
+          <SmarterSeoMasthead
+            vertical="authors"
+            eyebrow="4 Specialized Research & Audit Desks"
+            title="Smarter.Poker Editorial, Quantitative Solver & Live Venue Verification Team"
+            lead="Every Calculator, GTO Range Matrix, Tournament Playbook & Live Room Profile Audited Under Reproducible Zenodo DOI Provenance."
+            stats={[
+              { label: 'Research Desks', value: `${EDITORIAL_AUTHORS.length} Teams` },
+              { label: 'CFR Standard', value: '<= 0.05% Pot' },
+              { label: 'Live Audits', value: '715+ Venues' },
+              { label: 'Open Access', value: 'CC BY 4.0' },
+            ]}
+            redirectPath="/authors"
+            unlockKey="masthead-authors"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/research"
+            secondaryLabel="15 Open Studies"
+          />
+        </div>
 
-          <div style={{ marginBottom: 18 }}>
-            <SmarterSeoMasthead
-              vertical="authors"
-              eyebrow="4 Specialized Research & Audit Desks"
-              title="Smarter.Poker Editorial, Quantitative Solver & Live Venue Verification Team"
-              lead="Every Calculator, GTO Range Matrix, Tournament Playbook & Live Room Profile Audited Under Reproducible Zenodo DOI Provenance."
-              stats={[
-                { label: 'Research Desks', value: `${EDITORIAL_AUTHORS.length} Teams` },
-                { label: 'CFR Standard', value: '<= 0.05% Pot' },
-                { label: 'Live Audits', value: '715+ Venues' },
-                { label: 'Open Access', value: 'CC BY 4.0' },
-              ]}
-              redirectPath="/authors"
-              unlockKey="masthead-authors"
-              primaryCtaLabel="Create Free Account"
-              secondaryHref="/research"
-              secondaryLabel="15 Open Studies"
-            />
-          </div>
-
+        <section aria-label="Editorial Desk Quick Navigation" style={styles.heroPlate}>
           <p style={styles.lead}>
             <strong>Direct Answer:</strong> Every Calculator, GTO Range Matrix, Tournament ICM Playbook, And Live Poker Room Profile On Smarter.Poker Is Authored And Audited By One Of Four Specialized Research Desks Operating Under Published Verification Standards And Open-Access Zenodo DOIs.
           </p>
@@ -143,7 +138,7 @@ export default function AuthorsIndexPage() {
               Press &amp; Media Attribution Kit
             </Link>
           </div>
-        </header>
+        </section>
 
         <GeoCitationCapsule
           title="Smarter.Poker E-E-A-T Quantitative Verification Standard"
