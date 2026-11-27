@@ -33,7 +33,7 @@ export default function VideoLearningLoop({
   onOpenLesson,
   onAskGeeves,
   quizHref,
-  sandboxHref = '/hub/personal-assistant/sandbox',
+  sandboxHref = '/hub/personal-assistant/leaks',
   trainingHref = '/hub/training',
   compact = false,
 }) {
@@ -65,7 +65,7 @@ export default function VideoLearningLoop({
         {fullVideoHref ? <Link href={fullVideoHref} rel={fullVideoHref.includes('?') ? 'nofollow' : undefined}>Open Full Lesson</Link> : null}
         <button type="button" onClick={onAskGeeves}>Ask Geeves To Explain</button>
         <Link href={quizHref || trainingHref}>Take A Quick Quiz</Link>
-        <Link href={sandboxHref}>Practice In Sandbox</Link>
+        <Link href={sandboxHref}>Audit Your Leaks</Link>
       </div>
 
       {visibleLessons.length > 0 ? (

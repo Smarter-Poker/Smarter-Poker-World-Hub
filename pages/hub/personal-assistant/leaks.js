@@ -32,7 +32,15 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
-import { useLeaks, useAssistantStats, useLeakDetection, useLeakHandExamples } from '../../../src/hooks/useAssistant';
+import {
+  useLeaks,
+  useAssistantStats,
+  useLeakDetection,
+  useLeakHandExamples,
+  readAssistantCache,
+  writeAssistantCache,
+  clearAssistantClientCache,
+} from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { getFreshAccessToken } from '../../../src/lib/authUtils';
 import {
@@ -2016,15 +2024,23 @@ export default function LeakFinderPage() {
 
   const fetchCoachingSnapshot = useCallback(async () => {
     const requestId = ++coachingSnapshotRequestIdRef.current;
-    if (authInitializing || !userId) {
+    if (authInitializing) return;
+    if (!userId) {
+      clearAssistantClientCache();
       setCoachingSnapshot(null);
       setCoachingPayload(null);
       return;
+    }
+    const cached = readAssistantCache(userId, 'coaching');
+    if (cached) {
+      setCoachingPayload(cached);
+      if (cached?.snapshot) setCoachingSnapshot(cached.snapshot);
     }
     try {
       const accessToken = await getFreshAccessToken();
       if (!accessToken) {
         if (requestId === coachingSnapshotRequestIdRef.current) {
+          clearAssistantClientCache(userId);
           setCoachingSnapshot(null);
           setCoachingPayload(null);
         }
@@ -2038,6 +2054,7 @@ export default function LeakFinderPage() {
       const json = await res.json().catch(() => null);
       if (requestId !== coachingSnapshotRequestIdRef.current) return;
       if (res.ok && json?.success) {
+        writeAssistantCache(userId, 'coaching', json);
         setCoachingPayload(json);
         if (json?.snapshot) setCoachingSnapshot(json.snapshot);
       }
@@ -2050,13 +2067,17 @@ export default function LeakFinderPage() {
   useEffect(() => {
     fetchCoachingSnapshot();
     if (typeof window === 'undefined') return undefined;
-    window.addEventListener('pa-data-updated', fetchCoachingSnapshot);
-    window.addEventListener('pa-leak-review-updated', fetchCoachingSnapshot);
-    return () => {
-      window.removeEventListener('pa-data-updated', fetchCoachingSnapshot);
-      window.removeEventListener('pa-leak-review-updated', fetchCoachingSnapshot);
+    const handleInvalidateAndRefresh = () => {
+      clearAssistantClientCache(userId);
+      fetchCoachingSnapshot();
     };
-  }, [fetchCoachingSnapshot]);
+    window.addEventListener('pa-data-updated', handleInvalidateAndRefresh);
+    window.addEventListener('pa-leak-review-updated', handleInvalidateAndRefresh);
+    return () => {
+      window.removeEventListener('pa-data-updated', handleInvalidateAndRefresh);
+      window.removeEventListener('pa-leak-review-updated', handleInvalidateAndRefresh);
+    };
+  }, [fetchCoachingSnapshot, userId]);
 
   const tableVerificationIndex = useMemo(
     () => buildTableVerificationIndex(coachingSnapshot),
@@ -4317,6 +4338,7 @@ export default function LeakFinderPage() {
                   initialLeakId={initialEvidenceLeakId}
                   sharedPayload={coachingPayload}
                   onPayloadUpdated={(nextPayload) => {
+                    if (userId && nextPayload) writeAssistantCache(userId, 'coaching', nextPayload);
                     setCoachingPayload(nextPayload);
                     if (nextPayload?.snapshot) setCoachingSnapshot(nextPayload.snapshot);
                   }}

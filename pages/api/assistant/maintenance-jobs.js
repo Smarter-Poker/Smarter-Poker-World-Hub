@@ -9,6 +9,45 @@ import { leakTypeTitle } from '../../../src/lib/personal-assistant/leakRecord';
 
 export const config = { maxDuration: 60 };
 
+let _solverCoverageExportMod = null;
+try {
+  // Static require for Next.js/Webpack bundling and compile() harnesses that mock it;
+  // older compile() harnesses that omit solverCoverageExport.mjs catch cleanly here.
+  // eslint-disable-next-line global-require
+  _solverCoverageExportMod = require('../../../src/lib/personal-assistant/solverCoverageExport.mjs');
+} catch {
+  _solverCoverageExportMod = null;
+}
+
+async function loadSolverCoverageExport() {
+  if (_solverCoverageExportMod && typeof _solverCoverageExportMod.buildSolverHarvestQueueExport === 'function') {
+    return _solverCoverageExportMod;
+  }
+  const modUrl = new URL(
+    '../../../src/lib/personal-assistant/solverCoverageExport.mjs',
+    `file://${process.cwd()}/pages/api/assistant/maintenance-jobs.js`,
+  ).href;
+  _solverCoverageExportMod = await (new Function('u', 'return import(u)'))(modUrl);
+  return _solverCoverageExportMod;
+}
+
+export function getUtcDayKey(dateInput = new Date()) {
+  const parsed = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  const valid = Number.isFinite(parsed.getTime()) ? parsed : new Date();
+  return valid.toISOString().slice(0, 10);
+}
+
+export function getUtcIsoWeekKey(dateInput = new Date()) {
+  const parsed = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  const valid = Number.isFinite(parsed.getTime()) ? parsed : new Date();
+  const target = new Date(Date.UTC(valid.getUTCFullYear(), valid.getUTCMonth(), valid.getUTCDate()));
+  const dayNum = target.getUTCDay() || 7;
+  target.setUTCDate(target.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((target - yearStart) / 86400000) + 1) / 7);
+  return `${target.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
 let _admin = null;
 export function _setAdminClientForTesting(client) {
   _admin = client;
@@ -89,10 +128,14 @@ export async function runRecoverAudits(supabase, { p_limit = 25 } = {}) {
 /**
  * 2. Due review nudges
  * Finds due reviews, dedupes users, verifies not seated & not in cooldown,
- * enforces 72h notification throttle, and sends via notify().
+ * enforces 72h notification throttle, and sends via notify() with deterministic UTC-day dedupe key.
  */
-export async function runDueNudges(supabase, { limit = 500 } = {}) {
-  const nowIso = new Date().toISOString();
+export async function runDueNudges(supabase, { limit = 500, now = new Date() } = {}) {
+  const nowDate = now instanceof Date && Number.isFinite(now.getTime()) ? now : new Date(now);
+  const validNow = Number.isFinite(nowDate.getTime()) ? nowDate : new Date();
+  const nowIso = validNow.toISOString();
+  const utcDayKey = getUtcDayKey(validNow);
+
   const { data: dueRows, error: dueError } = await supabase
     .from('leak_review_state')
     .select('user_id, leak_id, due_at')
@@ -107,7 +150,7 @@ export async function runDueNudges(supabase, { limit = 500 } = {}) {
   }
 
   const uniqueUserIds = [...new Set((dueRows || []).map(r => r.user_id).filter(Boolean))];
-  const seventyTwoHoursAgo = new Date(Date.now() - 72 * 3600 * 1000).toISOString();
+  const seventyTwoHoursAgo = new Date(validNow.getTime() - 72 * 3600 * 1000).toISOString();
 
   let sentCount = 0;
   let skippedSeated = 0;
@@ -141,13 +184,23 @@ export async function runDueNudges(supabase, { limit = 500 } = {}) {
       continue;
     }
 
-    // Send master notification
+    const dedupeKey = `pa_review_due:${userId}:${utcDayKey}`;
+
+    // Send master notification with deterministic UTC-day dedupe/idempotency key
     const res = await notify(supabase, {
       userId,
       type: 'personal_assistant_review_due',
       title: 'Spaced Repetition Review Due',
       body: 'You have leak drills ready for review. Keep your study streak alive!',
       url: '/hub/personal-assistant/leaks?tab=leaks',
+      tag: dedupeKey,
+      dedupeKey,
+      idempotencyKey: dedupeKey,
+      data: {
+        dedupeKey,
+        idempotencyKey: dedupeKey,
+        utcDayKey,
+      },
     });
 
     if (res?.ok) {
@@ -168,9 +221,14 @@ export async function runDueNudges(supabase, { limit = 500 } = {}) {
 /**
  * 3. Weekly coaching digest
  * Finds opted-in users, verifies not seated & not in cooldown,
- * enforces 7-day throttle, builds 3-line summary, and sends via notify().
+ * enforces 7-day throttle, fails closed on DB read errors, builds 3-line summary,
+ * and sends via notify() with deterministic UTC ISO-week dedupe key.
  */
-export async function runWeeklyDigest(supabase, { limit = 100 } = {}) {
+export async function runWeeklyDigest(supabase, { limit = 100, now = new Date() } = {}) {
+  const nowDate = now instanceof Date && Number.isFinite(now.getTime()) ? now : new Date(now);
+  const validNow = Number.isFinite(nowDate.getTime()) ? nowDate : new Date();
+  const isoWeekKey = getUtcIsoWeekKey(validNow);
+
   const { data: prefRows, error: prefError } = await supabase
     .from('pa_coaching_preferences')
     .select('user_id')
@@ -179,15 +237,24 @@ export async function runWeeklyDigest(supabase, { limit = 100 } = {}) {
 
   if (prefError) {
     console.warn('[maintenance-jobs] weekly digest prefs query failed:', prefError.message);
-    return { success: false, error: prefError.message, optedInFound: 0, sentCount: 0 };
+    return {
+      success: false,
+      error: prefError.message,
+      optedInFound: 0,
+      sentCount: 0,
+      skippedSeated: 0,
+      skippedThrottled: 0,
+      skippedReadError: 0,
+    };
   }
 
   const userIds = [...new Set((prefRows || []).map(r => r.user_id).filter(Boolean))];
-  const sevenDaysAgo = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+  const sevenDaysAgo = new Date(validNow.getTime() - 7 * 86400 * 1000).toISOString();
 
   let sentCount = 0;
   let skippedSeated = 0;
   let skippedThrottled = 0;
+  let skippedReadError = 0;
 
   for (const userId of userIds) {
     // RTA guard: not seated & not in cooldown
@@ -218,22 +285,40 @@ export async function runWeeklyDigest(supabase, { limit = 100 } = {}) {
     }
 
     // Read user leaks and review state for 3-line summary
-    const [leaksRes, reviewsRes] = await Promise.all([
-      supabase
-        .from('user_leaks')
-        .select('id, leak_type, status, avg_ev_loss_bb, is_active')
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false })
-        .limit(20),
-      supabase
-        .from('leak_review_state')
-        .select('leak_id, reps, remediation_baseline_at, retired')
-        .eq('user_id', userId)
-        .limit(50),
-    ]);
+    let leaksRes;
+    let reviewsRes;
+    try {
+      [leaksRes, reviewsRes] = await Promise.all([
+        supabase
+          .from('user_leaks')
+          .select('id, leak_type, status, avg_ev_loss_bb, is_active')
+          .eq('user_id', userId)
+          .order('updated_at', { ascending: false })
+          .limit(20),
+        supabase
+          .from('leak_review_state')
+          .select('leak_id, reps, remediation_baseline_at, retired')
+          .eq('user_id', userId)
+          .limit(50),
+      ]);
+    } catch (readErr) {
+      console.warn('[maintenance-jobs] weekly digest data read threw for user', userId, readErr?.message || readErr);
+      skippedReadError++;
+      continue;
+    }
 
-    const leaks = leaksRes.data || [];
-    const reviews = reviewsRes.data || [];
+    if (leaksRes?.error || reviewsRes?.error) {
+      console.warn(
+        '[maintenance-jobs] weekly digest data read failed closed for user',
+        userId,
+        leaksRes?.error?.message || reviewsRes?.error?.message,
+      );
+      skippedReadError++;
+      continue;
+    }
+
+    const leaks = leaksRes?.data || [];
+    const reviews = reviewsRes?.data || [];
 
     const activeLeaks = leaks
       .filter(l => l.status !== 'resolved' && l.is_active !== false)
@@ -246,6 +331,7 @@ export async function runWeeklyDigest(supabase, { limit = 100 } = {}) {
     const drillsMastered = reviews.filter(r => Boolean(r.remediation_baseline_at)).length;
 
     const summaryBody = `• Top Leak: ${topLeakName}\n• Drills Completed: ${totalDrills}\n• Drills Mastered (Live Tracking): ${drillsMastered}`;
+    const dedupeKey = `pa_weekly_digest:${userId}:${isoWeekKey}`;
 
     const res = await notify(supabase, {
       userId,
@@ -253,6 +339,14 @@ export async function runWeeklyDigest(supabase, { limit = 100 } = {}) {
       title: 'Your Weekly Poker Coaching Digest',
       body: summaryBody,
       url: '/hub/personal-assistant',
+      tag: dedupeKey,
+      dedupeKey,
+      idempotencyKey: dedupeKey,
+      data: {
+        dedupeKey,
+        idempotencyKey: dedupeKey,
+        isoWeekKey,
+      },
     });
 
     if (res?.ok) {
@@ -266,7 +360,80 @@ export async function runWeeklyDigest(supabase, { limit = 100 } = {}) {
     sentCount,
     skippedSeated,
     skippedThrottled,
+    skippedReadError,
   };
+}
+
+/**
+ * 4. Read-only solver coverage gap harvest summary
+ * Reads recent unpriced hand_audit_decisions (`solver_verified = false`, bounded .limit(limit))
+ * and formats structured harvest queue targets. Never touches M1/M2 solver hosts.
+ */
+export async function runSolverCoverageGapSummary(
+  supabase,
+  { limit = 1000, maxBuckets = 15, generatedAt } = {},
+) {
+  if (!supabase) {
+    return {
+      success: false,
+      error: 'Missing Supabase client',
+      schemaVersion: 1,
+      totalUnmeasuredDecisions: 0,
+      buckets: [],
+      markdown: '',
+    };
+  }
+
+  const safeLimit = Math.max(1, Math.min(5000, Math.floor(Number(limit) || 1000)));
+  const safeMaxBuckets = Math.max(1, Math.min(200, Math.floor(Number(maxBuckets) || 15)));
+
+  try {
+    let query = supabase
+      .from('hand_audit_decisions')
+      .select('game_id, street, hero_position, spot_type, stack_depth_bb, solver_verified, solver_source, classification, match_tier, audited_at')
+      .eq('solver_verified', false);
+
+    if (typeof query?.order === 'function') {
+      query = query.order('audited_at', { ascending: false });
+    }
+
+    const { data: decisionRows, error } = await query.limit(safeLimit);
+
+    if (error) {
+      console.warn('[maintenance-jobs] solver coverage gap query failed:', error.message);
+      return {
+        success: false,
+        error: error.message || 'Solver coverage gap query failed',
+        schemaVersion: 1,
+        totalUnmeasuredDecisions: 0,
+        buckets: [],
+        markdown: '',
+      };
+    }
+
+    const { buildSolverHarvestQueueExport, formatHarvestQueueMarkdown } = await loadSolverCoverageExport();
+    const report = buildSolverHarvestQueueExport(decisionRows || [], {
+      maxBuckets: safeMaxBuckets,
+      ...(generatedAt ? { generatedAt } : {}),
+    });
+    const markdown = formatHarvestQueueMarkdown(report);
+
+    return {
+      success: true,
+      ...report,
+      markdown,
+    };
+  } catch (err) {
+    console.warn('[maintenance-jobs] solver coverage gap summary failed:', err?.message || err);
+    return {
+      success: false,
+      error: err?.message || 'Solver coverage gap summary failed',
+      schemaVersion: 1,
+      totalUnmeasuredDecisions: 0,
+      buckets: [],
+      markdown: '',
+    };
+  }
 }
 
 async function maintenanceHandler(req, res) {
@@ -300,6 +467,26 @@ async function maintenanceHandler(req, res) {
   }
   if (action === 'all' || action === 'weekly_digest') {
     results.weeklyDigest = await runWeeklyDigest(admin);
+  }
+  if (action === 'coverage_gaps') {
+    results.coverageGaps = await runSolverCoverageGapSummary(admin);
+  } else if (action === 'all') {
+    const gapSummary = await runSolverCoverageGapSummary(admin, { limit: 1000, maxBuckets: 5 });
+    results.coverageGaps = gapSummary.success
+      ? {
+          success: true,
+          schemaVersion: gapSummary.schemaVersion,
+          generatedAt: gapSummary.generatedAt,
+          totalUnmeasuredDecisions: gapSummary.totalUnmeasuredDecisions,
+          buckets: gapSummary.buckets,
+        }
+      : {
+          success: false,
+          error: gapSummary.error || 'Coverage gaps summary failed',
+          schemaVersion: 1,
+          totalUnmeasuredDecisions: 0,
+          buckets: [],
+        };
   }
 
   return res.status(200).json({
