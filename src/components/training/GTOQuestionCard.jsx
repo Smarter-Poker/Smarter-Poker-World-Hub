@@ -313,6 +313,48 @@ export default function GTOQuestionCard({
         onAnswer?.(optionId);
     };
 
+    // Keyboard shortcuts for non-table multiple-choice cards (1-4 / A-D to answer,
+    // R for Practice Again, Enter/ArrowRight for Next Question).
+    useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return undefined;
+        const onKeyDown = (e) => {
+            if (e.target?.tagName === 'INPUT' || e.target?.tagName === 'TEXTAREA') return;
+            const key = e.key;
+            if (!showFeedback) {
+                const num = parseInt(key, 10);
+                if (num >= 1 && num <= shuffledOptions.length) {
+                    const opt = shuffledOptions[num - 1];
+                    if (opt) {
+                        e.preventDefault();
+                        handleSelect(opt.id);
+                    }
+                    return;
+                }
+                const upper = String(key || '').toUpperCase();
+                const letterIdx = LETTERS.indexOf(upper);
+                if (letterIdx >= 0 && letterIdx < shuffledOptions.length) {
+                    const opt = shuffledOptions[letterIdx];
+                    if (opt) {
+                        e.preventDefault();
+                        handleSelect(opt.id);
+                    }
+                }
+            } else if (showFeedback && typeof onNextHand === 'function') {
+                if (key === 'Enter' || key === 'ArrowRight') {
+                    e.preventDefault();
+                    onNextHand();
+                } else if (key === 'r' || key === 'R') {
+                    e.preventDefault();
+                    setPendingId(null);
+                    setHoveredId(null);
+                    onNextHand({ retry: true, retryQuestion: question });
+                }
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [showFeedback, shuffledOptions, onNextHand, question]);
+
     const getButtonStyle = (option, index) => {
         let style = { ...styles.answerButton };
 

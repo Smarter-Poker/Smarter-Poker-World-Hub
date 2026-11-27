@@ -2823,18 +2823,8 @@ export default function useGTOTrainer(
     // replaces it at the same question number instead of consuming another
     // possibly stale preloaded entry or auto-advancing behind the feedback.
     const pendingPersistence = pendingAnswerPersistenceRef.current;
-    const persistenceResult = pendingPersistence
-      ? await persistPendingAnswer(pendingPersistence)
-      : { ok: true };
-    if (!isTrainingLeaseActive(transitionLease)) return;
 
     if (options && typeof options === 'object' && options.retry === true) {
-      if (persistenceResult?.ok !== true) {
-        setAnswerSaveError(
-          persistenceResult?.error || 'Your answer could not be saved. Check your connection, then retry.'
-        );
-        return;
-      }
       pendingAnswerPersistenceRef.current = null;
       setAnswerSaveError(null);
       setTransitionError(null);
@@ -2852,8 +2842,24 @@ export default function useGTOTrainer(
       setShowFeedback(false);
       setFeedbackResult(null);
       setLastSelectedAction(null);
+      if (pendingPersistence) {
+        Promise.resolve(persistPendingAnswer(pendingPersistence))
+          .then((res) => {
+            if (isTrainingLeaseActive(transitionLease) && res?.ok !== true) {
+              setAnswerSaveError(
+                res?.error || 'Your answer could not be saved. Check your connection, then retry.'
+              );
+            }
+          })
+          .catch(() => {});
+      }
       return;
     }
+
+    const persistenceResult = pendingPersistence
+      ? await persistPendingAnswer(pendingPersistence)
+      : { ok: true };
+    if (!isTrainingLeaseActive(transitionLease)) return;
 
     const answeredQuestionId = String(currentQuestion?.id || '');
     if (answeredQuestionId && refreshRequiredQuestionIdsRef.current.has(answeredQuestionId)) {
