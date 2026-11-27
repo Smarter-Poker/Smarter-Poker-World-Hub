@@ -165,6 +165,7 @@ import UniversalHeader from '../src/components/ui/UniversalHeader';
 import GuestConversionBar from '../src/components/seo/GuestConversionBar';
 import SmarterQuickSignupSheet from '../src/components/seo/SmarterQuickSignupSheet';
 import SmarterEngagedConversionPrompt from '../src/components/seo/SmarterEngagedConversionPrompt';
+import SmarterUnlockedWelcomeBanner from '../src/components/seo/SmarterUnlockedWelcomeBanner';
 import WorldCopyPolicy from '../src/components/ui/WorldCopyPolicy';
 import BottomNavBar, { BottomNavSpacer } from '../src/components/ui/BottomNavBar';
 import ActivePokerSeatLink from '../src/components/ui/ActivePokerSeatLink';
@@ -1251,6 +1252,7 @@ export default function App({ Component, pageProps }) {
                                   <GuestConversionBar />
                                   <SmarterQuickSignupSheet />
                                   <SmarterEngagedConversionPrompt />
+                                  <SmarterUnlockedWelcomeBanner />
                                 </HubErrorBoundary>
                               )}
                               <PageErrorBoundary key={pageErrorBoundaryKey}>

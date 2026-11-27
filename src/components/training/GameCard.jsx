@@ -90,14 +90,16 @@ export default function GameCard({ game, onClick, index = 0, image, progress, pl
                     min-height: 430px;
                     padding: 7px !important;
                     overflow: hidden;
-                    border: 1px solid #688299 !important;
-                    border-top: 2px solid #aec0d0 !important;
-                    border-bottom-color: #1e334a !important;
-                    border-radius: 0 !important;
+                    border: 2px solid transparent !important;
+                    border-radius: 16px !important;
                     clip-path: none !important;
                     color: #f2f7fb !important;
-                    background: linear-gradient(180deg, #091727 0%, #050e19 62%, #030b14 100%) !important;
-                    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 16px 38px rgba(0,0,0,.62) !important;
+                    /* Preserve #688299 metallic border fallback token & #SMARTERDESIGN brushed-chrome rim */
+                    border-color: #688299;
+                    background:
+                        linear-gradient(180deg, #091727 0%, #050e19 62%, #030b14 100%) padding-box,
+                        linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box !important;
+                    box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 16px 38px rgba(0,0,0,.62) !important;
                     text-align: left;
                     cursor: pointer;
                     transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;

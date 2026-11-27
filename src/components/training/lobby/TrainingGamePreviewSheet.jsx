@@ -59,7 +59,15 @@ export default function TrainingGamePreviewSheet({
             <button type="button" className={`${styles.chromeButton} ${styles.iconButton}`} aria-label="Close Preview" onClick={onClose}><X size={21} aria-hidden="true" /></button>
           </header>
           <div className={styles.dialogBody}>
-            <TrainingGameArt gameId={game.id} loading="eager" sizes="(max-width: 600px) calc(100vw - 48px), 620px" className={styles.previewArt} />
+            <button
+              type="button"
+              className={styles.previewArtButton}
+              onClick={handleStart}
+              aria-label={`Play ${game.name}`}
+              data-preview-art-launch={game.id}
+            >
+              <TrainingGameArt gameId={game.id} loading="eager" sizes="(max-width: 600px) calc(100vw - 48px), 620px" className={styles.previewArt} />
+            </button>
             <div className={styles.previewMeta}>
               {meta.stackBb != null && <span><Layers size={16} aria-hidden="true" /> {meta.stackBb} BB</span>}
               <span>Level {meta.difficulty}/5</span>

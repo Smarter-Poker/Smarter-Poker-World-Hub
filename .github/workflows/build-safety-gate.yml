@@ -1612,6 +1612,7 @@ jobs:
             tests/a-required-check-does-not-reinstall-a-restored-tree.test.mjs \
             tests/the-app-does-not-fight-the-readers-scroll.test.mjs \
             tests/autopilot-merges-when-the-ruleset-is-satisfied.test.mjs \
+            tests/unfinished-work-is-never-auto-merged.test.mjs \
             __tests__/avatar-art-has-no-punched-holes.test.mjs \
             __tests__/avatar-silhouette-bounds.test.mjs \
             __tests__/a-skipped-run-is-not-a-green-run.test.mjs \
