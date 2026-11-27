@@ -172,6 +172,30 @@ export function getTrainingAdapterRuntimeState({
 
 const CARD_REGEX = /^[2-9TJQKA][shdc]$/i;
 
+const HORSE_BRAIN_SPOT_LRU_MAX = 5000;
+const HORSE_BRAIN_SPOT_LRU_CACHE = new Map();
+const HORSE_BRAIN_BRANCH_LRU_MAX = 1000;
+const HORSE_BRAIN_BRANCH_LRU_CACHE = new Map();
+let horseBrainCacheHits = 0;
+let horseBrainCacheMisses = 0;
+
+export function getHorseBrainSpotCacheStats() {
+  return {
+    size: HORSE_BRAIN_SPOT_LRU_CACHE.size,
+    branchSize: HORSE_BRAIN_BRANCH_LRU_CACHE.size,
+    maxEntries: HORSE_BRAIN_SPOT_LRU_MAX,
+    hits: horseBrainCacheHits,
+    misses: horseBrainCacheMisses,
+  };
+}
+
+export function clearHorseBrainSpotCache() {
+  HORSE_BRAIN_SPOT_LRU_CACHE.clear();
+  HORSE_BRAIN_BRANCH_LRU_CACHE.clear();
+  horseBrainCacheHits = 0;
+  horseBrainCacheMisses = 0;
+}
+
 function normalizeCardToken(card) {
   if (typeof card !== 'string') return null;
   const trimmed = card.trim();
@@ -560,6 +584,43 @@ export function evaluateTrainingSpotWithHorseBrain({
     legalBounds,
     potLimitBounds,
   } = validation;
+
+  const vStatsKey = villainStats && Number.isFinite(Number(villainStats.vpip)) && Number.isFinite(Number(villainStats.pfr))
+    ? `${Number(villainStats.vpip)}:${Number(villainStats.pfr)}:${Number(villainStats.threeBet ?? 6)}:${String(villainArchetype || '')}`
+    : '';
+  const spotCacheKey = [
+    String(gameId || 'cash-001'),
+    normVariant,
+    normStreet,
+    activeBettingStructure,
+    normFormat,
+    cleanHero.join(','),
+    cleanBoard.join(','),
+    cleanPot,
+    cleanToCall,
+    cleanStack,
+    String(heroPosition || 'BTN').toUpperCase(),
+    String(villainPosition || 'BB').toUpperCase(),
+    resolvedIsICM ? '1' : '0',
+    String(bubbleFactor ?? ''),
+    String(payoutPressure ?? ''),
+    isPKO ? '1' : '0',
+    String(bountyBb ?? ''),
+    vStatsKey,
+  ].join('|');
+
+  if (HORSE_BRAIN_SPOT_LRU_CACHE.has(spotCacheKey)) {
+    horseBrainCacheHits += 1;
+    const cached = HORSE_BRAIN_SPOT_LRU_CACHE.get(spotCacheKey);
+    HORSE_BRAIN_SPOT_LRU_CACHE.delete(spotCacheKey);
+    HORSE_BRAIN_SPOT_LRU_CACHE.set(spotCacheKey, cached);
+    return {
+      ...cached,
+      runtimeState: getTrainingAdapterRuntimeState({ statusCode: 200 }),
+      cacheHit: true,
+    };
+  }
+  horseBrainCacheMisses += 1;
 
   const parsedHero = parseCards(cleanHero);
   const parsedBoard = parseCards(cleanBoard);
@@ -1176,7 +1237,7 @@ export function evaluateTrainingSpotWithHorseBrain({
       plo8LowEvaluation,
     };
 
-    return {
+    const resultObj = {
       ok: true,
       runtimeState: getTrainingAdapterRuntimeState({ statusCode: 200 }),
       engineModule: brainEvaluation.engineModule,
@@ -1204,6 +1265,12 @@ export function evaluateTrainingSpotWithHorseBrain({
       coachingSummary: explanation,
       structuredExplanation,
     };
+    if (HORSE_BRAIN_SPOT_LRU_CACHE.size >= HORSE_BRAIN_SPOT_LRU_MAX) {
+      const oldestKey = HORSE_BRAIN_SPOT_LRU_CACHE.keys().next().value;
+      if (oldestKey !== undefined) HORSE_BRAIN_SPOT_LRU_CACHE.delete(oldestKey);
+    }
+    HORSE_BRAIN_SPOT_LRU_CACHE.set(spotCacheKey, resultObj);
+    return { ...resultObj, cacheHit: false };
   });
 }
 
@@ -1460,6 +1527,27 @@ export function evaluateFullHandLineAndBranchComparison({
     ? fullBoardCards.slice(0, 5)
     : ['Qs', '8s', '3d', 'Jh', '2c'];
 
+  const branchCacheKey = [
+    String(gameId || 'cash-005'),
+    normVariant,
+    String(bettingStructure || ''),
+    String(format || 'cash'),
+    (Array.isArray(heroCards) ? heroCards : []).join(','),
+    cleanBoard.join(','),
+    String(heroPosition || 'BTN').toUpperCase(),
+    String(villainPosition || 'BB').toUpperCase(),
+    Number(basePotBb) || 6.5,
+    Number(effectiveStackBb) || 100,
+    String(chosenBranch || 'aggressive_line'),
+  ].join('|');
+
+  if (HORSE_BRAIN_BRANCH_LRU_CACHE.has(branchCacheKey)) {
+    const cachedBranch = HORSE_BRAIN_BRANCH_LRU_CACHE.get(branchCacheKey);
+    HORSE_BRAIN_BRANCH_LRU_CACHE.delete(branchCacheKey);
+    HORSE_BRAIN_BRANCH_LRU_CACHE.set(branchCacheKey, cachedBranch);
+    return { ...cachedBranch, cacheHit: true };
+  }
+
   const streetConfigs = [
     { street: 'preflop', board: [], potBb: 2.5, toCallBb: 1.5 },
     { street: 'flop', board: cleanBoard.slice(0, 3), potBb: Number(basePotBb) || 6.5, toCallBb: 0 },
@@ -1528,7 +1616,7 @@ export function evaluateFullHandLineAndBranchComparison({
   const branches = Object.values(branchesMap);
   const activeBranch = branchesMap[chosenBranch] || branchesMap.aggressive_line;
 
-  return {
+  const branchResult = {
     ok: true,
     variant: normVariant,
     engineModule: streetEvaluations[1]?.engineModule || 'holdem-brain.js',
@@ -1538,5 +1626,11 @@ export function evaluateFullHandLineAndBranchComparison({
     activeBranch,
     optimalTotalEvBb: aggressiveLineEvBb,
   };
+  if (HORSE_BRAIN_BRANCH_LRU_CACHE.size >= HORSE_BRAIN_BRANCH_LRU_MAX) {
+    const oldestKey = HORSE_BRAIN_BRANCH_LRU_CACHE.keys().next().value;
+    if (oldestKey !== undefined) HORSE_BRAIN_BRANCH_LRU_CACHE.delete(oldestKey);
+  }
+  HORSE_BRAIN_BRANCH_LRU_CACHE.set(branchCacheKey, branchResult);
+  return { ...branchResult, cacheHit: false };
 }
 

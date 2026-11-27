@@ -534,6 +534,7 @@ export default function TrainingPage() {
             <TrainingLobbyHeader
               heroGame={heroGame}
               continueTarget={continueTarget}
+              fiveMinuteLeakFix={fiveMinuteLeakFix}
               onPlayGame={playGame}
             />
 

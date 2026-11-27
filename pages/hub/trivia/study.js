@@ -14,10 +14,27 @@ import {
     getTrainingSpotForCategory,
     TRAINING_SPOT_MAP,
 } from '../../../src/lib/trivia/trainingSpotMap.mjs';
+import {
+    buildMissDrillQuestions,
+    getLeitnerBoxLabel,
+    isItemMastered,
+    loadStudySrsState,
+    partitionStudyDeck,
+    recordStudyReview,
+    saveStudySrsState,
+} from '../../../src/lib/trivia/studySpacedRepetition.mjs';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
+const DRILL_QUESTION_LIMIT = 10;
+
+const STUDY_MODE_TABS = [
+    { id: 'due_today', label: 'Due Today' },
+    { id: 'weakest_category', label: 'Weakest Category' },
+    { id: 'all', label: 'All Misses' },
+    { id: 'mastered', label: 'Mastered' },
+];
 
 function formatDifficulty(value) {
     if (value === 'easy') return 'Easy';
@@ -39,16 +56,26 @@ export default function TriviaStudyDeck() {
 
     const [userId, setUserId] = useState(null);
     const [categoryFilter, setCategoryFilter] = useState('all');
+    const [studyMode, setStudyMode] = useState('due_today');
     const [items, setItems] = useState([]);
     const [categoryCounts, setCategoryCounts] = useState({});
     const [totalMissed, setTotalMissed] = useState(0);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [masteredIds, setMasteredIds] = useState([]);
+    const [srsState, setSrsState] = useState({});
     const [hideMastered, setHideMastered] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [reloadKey, setReloadKey] = useState(0);
+
+    // Zero-reward local practice drill state (never calls session-start or session-submit)
+    const [drillActive, setDrillActive] = useState(false);
+    const [drillQuestions, setDrillQuestions] = useState([]);
+    const [drillIndex, setDrillIndex] = useState(0);
+    const [drillSelectedOption, setDrillSelectedOption] = useState(null);
+    const [drillResults, setDrillResults] = useState([]);
+    const [drillCompleted, setDrillCompleted] = useState(false);
 
     const loadDeck = useCallback(async (category, cancelled) => {
         setLoadError('');
@@ -97,32 +124,70 @@ export default function TriviaStudyDeck() {
             setItems([]);
             setCategoryCounts({});
             setTotalMissed(0);
+            setSrsState({});
             setLoadError('');
             setIsLoading(false);
             return () => { stopped = true; };
         }
         setUserId(resolved.id);
+        setSrsState(loadStudySrsState(resolved.id));
         loadDeck(categoryFilter, cancelled);
         return () => { stopped = true; };
     }, [avatarLoading, avatarUser?.id, categoryFilter, loadDeck, reloadKey]);
 
+    const applySrsReview = useCallback((questionId, gotIt) => {
+        setSrsState((prev) => {
+            const next = recordStudyReview(prev, questionId, gotIt, Date.now());
+            if (userId) {
+                saveStudySrsState(userId, next);
+            }
+            return next;
+        });
+    }, [userId]);
+
+    const deckPartition = useMemo(
+        () => partitionStudyDeck(items, srsState),
+        [items, srsState],
+    );
+
+    const modeItems = useMemo(() => {
+        if (studyMode === 'due_today') return deckPartition.dueToday;
+        if (studyMode === 'weakest_category') return deckPartition.weakestCategoryItems;
+        if (studyMode === 'mastered') return deckPartition.mastered;
+        return items;
+    }, [deckPartition, items, studyMode]);
+
     const masteredSet = useMemo(() => new Set(masteredIds), [masteredIds]);
     const visibleItems = useMemo(() => {
-        if (!hideMastered) return items;
-        return items.filter((card) => !masteredSet.has(card.questionId));
-    }, [hideMastered, items, masteredSet]);
+        if (!hideMastered || studyMode === 'mastered') return modeItems;
+        return modeItems.filter((card) => !masteredSet.has(card.questionId) && !isItemMastered(card, srsState));
+    }, [hideMastered, masteredSet, modeItems, srsState, studyMode]);
 
     const safeIndex = visibleItems.length > 0 ? Math.min(currentIndex, visibleItems.length - 1) : 0;
     const activeCard = visibleItems[safeIndex] || null;
     const activeSpot = activeCard
         ? (activeCard.trainingSpot || getTrainingSpotForCategory(activeCard.category))
         : null;
-    const isCardMastered = activeCard ? masteredSet.has(activeCard.questionId) : false;
+    const isCardMastered = activeCard
+        ? (masteredSet.has(activeCard.questionId) || isItemMastered(activeCard, srsState))
+        : false;
+    const activeBoxLabel = activeCard
+        ? getLeitnerBoxLabel(srsState[activeCard.questionId])
+        : 'Box 1 (Due Now)';
 
     const sessionMasteredInDeck = useMemo(
-        () => items.filter((card) => masteredSet.has(card.questionId)).length,
-        [items, masteredSet],
+        () => items.filter((card) => masteredSet.has(card.questionId) || isItemMastered(card, srsState)).length,
+        [items, masteredSet, srsState],
     );
+
+    const drillCandidates = useMemo(
+        () => buildMissDrillQuestions(items, srsState, DRILL_QUESTION_LIMIT),
+        [items, srsState],
+    );
+
+    const weakestCategoryLabel = deckPartition.weakestCategory
+        ? (TRAINING_SPOT_MAP[deckPartition.weakestCategory]?.categoryLabel || deckPartition.weakestCategory)
+        : null;
 
     const categoryPills = useMemo(() => {
         const available = Object.entries(categoryCounts)
@@ -145,11 +210,21 @@ export default function TriviaStudyDeck() {
         setIsFlipped(false);
     };
 
+    const handleSelectStudyMode = (modeId) => {
+        setStudyMode(modeId);
+        setCurrentIndex(0);
+        setIsFlipped(false);
+    };
+
     const handleToggleGotIt = () => {
         if (!activeCard) return;
         const qid = activeCard.questionId;
+        const nextGotIt = !isCardMastered;
+        applySrsReview(qid, nextGotIt);
         setMasteredIds((prev) => (
-            prev.includes(qid) ? prev.filter((id) => id !== qid) : [...prev, qid]
+            nextGotIt
+                ? (prev.includes(qid) ? prev : [...prev, qid])
+                : prev.filter((id) => id !== qid)
         ));
     };
 
@@ -163,6 +238,87 @@ export default function TriviaStudyDeck() {
         if (visibleItems.length === 0) return;
         setCurrentIndex((prev) => (prev >= visibleItems.length - 1 ? 0 : prev + 1));
         setIsFlipped(false);
+    };
+
+    const handleStartMissDrill = () => {
+        const selected = buildMissDrillQuestions(items, srsState, DRILL_QUESTION_LIMIT, Date.now());
+        if (selected.length === 0) return;
+        setDrillQuestions(selected);
+        setDrillIndex(0);
+        setDrillSelectedOption(null);
+        setDrillResults([]);
+        setDrillCompleted(false);
+        setDrillActive(true);
+    };
+
+    const handleDrillAnswer = (optionIdx) => {
+        if (drillSelectedOption !== null || drillCompleted) return;
+        const question = drillQuestions[drillIndex];
+        if (!question) return;
+        const isCorrect = optionIdx === question.correctIndex;
+        setDrillSelectedOption(optionIdx);
+        applySrsReview(question.questionId, isCorrect);
+        if (isCorrect) {
+            setMasteredIds((prev) => (prev.includes(question.questionId) ? prev : [...prev, question.questionId]));
+        } else {
+            setMasteredIds((prev) => prev.filter((id) => id !== question.questionId));
+        }
+        setDrillResults((prev) => [
+            ...prev,
+            {
+                questionId: question.questionId,
+                category: question.category,
+                correct: isCorrect,
+            },
+        ]);
+    };
+
+    const handleDrillNext = () => {
+        if (drillIndex + 1 >= drillQuestions.length) {
+            setDrillCompleted(true);
+            return;
+        }
+        setDrillIndex((prev) => prev + 1);
+        setDrillSelectedOption(null);
+    };
+
+    const handleExitDrill = () => {
+        setDrillActive(false);
+        setDrillCompleted(false);
+        setDrillSelectedOption(null);
+        setCurrentIndex(0);
+        setIsFlipped(false);
+    };
+
+    const currentDrillCard = drillActive && !drillCompleted ? (drillQuestions[drillIndex] || null) : null;
+    const drillCorrectCount = useMemo(
+        () => drillResults.filter((r) => r.correct).length,
+        [drillResults],
+    );
+    const drillWeakestSpot = useMemo(() => {
+        const missesByCategory = new Map();
+        for (const r of drillResults) {
+            if (!r.correct && r.category) {
+                missesByCategory.set(r.category, (missesByCategory.get(r.category) || 0) + 1);
+            }
+        }
+        let targetCat = null;
+        let maxCount = 0;
+        for (const [cat, count] of missesByCategory.entries()) {
+            if (count > maxCount || (count === maxCount && targetCat && cat.localeCompare(targetCat) < 0)) {
+                targetCat = cat;
+                maxCount = count;
+            }
+        }
+        const resolvedCat = targetCat || deckPartition.weakestCategory || drillQuestions[0]?.category || null;
+        return resolvedCat ? getTrainingSpotForCategory(resolvedCat) : null;
+    }, [deckPartition.weakestCategory, drillQuestions, drillResults]);
+
+    const tabCountFor = (tabId) => {
+        if (tabId === 'due_today') return deckPartition.counts.dueToday;
+        if (tabId === 'weakest_category') return deckPartition.counts.weakestCategory;
+        if (tabId === 'mastered') return deckPartition.counts.mastered;
+        return deckPartition.counts.all;
     };
 
     const signedOut = !isLoading && !userId;
@@ -188,7 +344,7 @@ export default function TriviaStudyDeck() {
                                 title="Study Your Misses"
                                 titleAs="h1"
                                 titleId="trivia-study-title"
-                                subtitle="Interactive Flashcard Deck"
+                                subtitle="Spaced-Repetition Deck And Practice Drill"
                                 pill={isLoading
                                     ? 'Loading'
                                     : loadError
@@ -236,11 +392,175 @@ export default function TriviaStudyDeck() {
                                             </button>
                                         ) : null}
                                     </section>
+                                ) : drillActive ? (
+                                    <section className="study-drill" aria-label="Zero-Reward Practice Drill" data-miss-drill-active="true">
+                                        <div className="study-drill__banner" role="status">
+                                            <span className="study-badge study-badge--zero-reward">
+                                                Practice Drill - Zero Cost, Zero Rewards
+                                            </span>
+                                            <span className="study-drill__progress">
+                                                {drillCompleted
+                                                    ? `Completed ${drillQuestions.length} ${drillQuestions.length === 1 ? 'Question' : 'Questions'}`
+                                                    : `Question ${drillIndex + 1} Of ${drillQuestions.length}`}
+                                            </span>
+                                        </div>
+
+                                        {drillCompleted ? (
+                                            <article className="study-card study-drill__summary" aria-label="Practice Drill Summary">
+                                                <h2 className="study-card__question">
+                                                    Drill Complete: {formatTriviaDisplayNumber(drillCorrectCount)} / {formatTriviaDisplayNumber(drillQuestions.length)} Correct
+                                                </h2>
+                                                <p className="study-drill__subcopy">
+                                                    Your Spaced-Repetition Leitner Boxes Have Been Updated Automatically. Zero Diamonds Were Wagered Or Awarded.
+                                                </p>
+
+                                                <div className="study-card__actions">
+                                                    {drillWeakestSpot ? (
+                                                        <Link href={drillWeakestSpot.href} className="study-btn study-btn--train">
+                                                            Train This Spot: {drillWeakestSpot.label}
+                                                        </Link>
+                                                    ) : null}
+                                                    <button
+                                                        type="button"
+                                                        className="study-btn study-btn--flip"
+                                                        onClick={handleStartMissDrill}
+                                                    >
+                                                        Drill Again
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="study-btn"
+                                                        onClick={handleExitDrill}
+                                                    >
+                                                        Back To Study Deck
+                                                    </button>
+                                                </div>
+                                            </article>
+                                        ) : currentDrillCard ? (
+                                            <article className="study-card" aria-label="Active Practice Drill Question">
+                                                <header className="study-card__meta">
+                                                    <span className="study-badge study-badge--category">{currentDrillCard.categoryLabel}</span>
+                                                    <span className={`study-badge study-badge--${currentDrillCard.difficulty}`}>
+                                                        {formatDifficulty(currentDrillCard.difficulty)}
+                                                    </span>
+                                                    <span className="study-badge study-badge--srs">
+                                                        {getLeitnerBoxLabel(srsState[currentDrillCard.questionId])}
+                                                    </span>
+                                                </header>
+
+                                                <h2 className="study-card__question">{currentDrillCard.question}</h2>
+
+                                                <div className="study-drill__options" role="group" aria-label="Practice Drill Answer Choices">
+                                                    {currentDrillCard.options.map((optText, idx) => {
+                                                        const isAnswered = drillSelectedOption !== null;
+                                                        const isChosen = drillSelectedOption === idx;
+                                                        const isCorrect = idx === currentDrillCard.correctIndex;
+                                                        let stateClass = '';
+                                                        if (isAnswered && isCorrect) stateClass = ' study-drill__option--correct';
+                                                        else if (isAnswered && isChosen && !isCorrect) stateClass = ' study-drill__option--wrong';
+                                                        return (
+                                                            <button
+                                                                key={`${currentDrillCard.questionId}-drill-${idx}`}
+                                                                type="button"
+                                                                disabled={isAnswered}
+                                                                data-drill-option={idx}
+                                                                className={`study-drill__option${stateClass}`}
+                                                                onClick={() => handleDrillAnswer(idx)}
+                                                            >
+                                                                <span className="study-option__letter">{OPTION_LETTERS[idx] || String(idx + 1)}</span>
+                                                                <span className="study-option__text">{optText}</span>
+                                                                {isAnswered && isCorrect ? (
+                                                                    <span className="study-option__tag">Correct</span>
+                                                                ) : isAnswered && isChosen && !isCorrect ? (
+                                                                    <span className="study-option__tag study-option__tag--wrong">Review Again</span>
+                                                                ) : null}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {drillSelectedOption !== null ? (
+                                                    <section className="study-explanation" aria-label="Drill Answer Explanation">
+                                                        <h3 className="study-explanation__heading">
+                                                            {drillSelectedOption === currentDrillCard.correctIndex
+                                                                ? 'Got It - Leitner Box Advanced'
+                                                                : 'Review Again - Reset To Box 1'}
+                                                        </h3>
+                                                        <p className="study-explanation__body">
+                                                            {currentDrillCard.explanation || 'Review The Correct Option Above And Drill Similar Spots In Training.'}
+                                                        </p>
+                                                    </section>
+                                                ) : null}
+
+                                                <div className="study-card__actions">
+                                                    {drillSelectedOption !== null ? (
+                                                        <button
+                                                            type="button"
+                                                            className="study-btn study-btn--flip"
+                                                            onClick={handleDrillNext}
+                                                        >
+                                                            {drillIndex + 1 >= drillQuestions.length ? 'View Drill Summary' : 'Next Question'}
+                                                        </button>
+                                                    ) : null}
+                                                    <button
+                                                        type="button"
+                                                        className="study-btn"
+                                                        onClick={handleExitDrill}
+                                                    >
+                                                        Back To Study Deck
+                                                    </button>
+                                                </div>
+                                            </article>
+                                        ) : null}
+                                    </section>
                                 ) : (
                                     <div className="study-deck-wrap">
                                         <p className="study-deck-note">
-                                            Practice Review Deck. No Diamonds Are Wagered Or Awarded.
+                                            Practice Review Deck. Practice Drill - Zero Cost, Zero Rewards. No Diamonds Are Wagered Or Awarded.
                                         </p>
+
+                                        <div className="study-drill-launch-bar">
+                                            <div className="study-drill-launch-bar__info">
+                                                <span className="study-drill-launch-bar__title">
+                                                    Active Spaced-Repetition Drill
+                                                </span>
+                                                <span className="study-drill-launch-bar__meta">
+                                                    Due Today: {formatTriviaDisplayNumber(deckPartition.counts.dueToday)}
+                                                    {weakestCategoryLabel ? ` · Weakest: ${weakestCategoryLabel}` : ''}
+                                                </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                data-start-miss-drill="true"
+                                                disabled={drillCandidates.length === 0}
+                                                className="study-btn study-btn--drill-cta"
+                                                onClick={handleStartMissDrill}
+                                            >
+                                                Quiz My Misses ({drillCandidates.length >= DRILL_QUESTION_LIMIT ? '10 Questions' : `${drillCandidates.length} ${drillCandidates.length === 1 ? 'Question' : 'Questions'}`})
+                                            </button>
+                                        </div>
+
+                                        <div className="study-mode-tabs" role="tablist" aria-label="Spaced Repetition Study Modes">
+                                            {STUDY_MODE_TABS.map((tab) => {
+                                                const isActive = studyMode === tab.id;
+                                                return (
+                                                    <button
+                                                        key={tab.id}
+                                                        type="button"
+                                                        role="tab"
+                                                        aria-selected={isActive}
+                                                        data-study-mode-tab={tab.id}
+                                                        className={`study-mode-tab${isActive ? ' study-mode-tab--active' : ''}`}
+                                                        onClick={() => handleSelectStudyMode(tab.id)}
+                                                    >
+                                                        <span>{tab.label}</span>
+                                                        <span className="study-mode-tab__count">
+                                                            {formatTriviaDisplayNumber(tabCountFor(tab.id))}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
 
                                         <div className="study-session-bar" role="status" aria-live="polite">
                                             <span className="study-session-bar__count">
@@ -281,15 +601,32 @@ export default function TriviaStudyDeck() {
                                         {allFilteredMastered ? (
                                             <section className="trivia-progress-empty">
                                                 <p className="trivia-progress-empty-copy">
-                                                    Every Card In This Study Session Is Marked Got It.
+                                                    {studyMode === 'due_today'
+                                                        ? 'All Due Cards Are Caught Up For Today. Switch To All Misses Or Mastered To Review More.'
+                                                        : studyMode === 'mastered'
+                                                            ? 'No Cards Have Reached Leitner Box 4 Mastered Yet.'
+                                                            : 'Every Card In This Study Session Is Marked Got It.'}
                                                 </p>
-                                                <button
-                                                    type="button"
-                                                    className="tc-word study-inline-btn"
-                                                    onClick={() => setHideMastered(false)}
-                                                >
-                                                    Show All Cards Again
-                                                </button>
+                                                <div className="study-empty-actions">
+                                                    {hideMastered ? (
+                                                        <button
+                                                            type="button"
+                                                            className="tc-word study-inline-btn"
+                                                            onClick={() => setHideMastered(false)}
+                                                        >
+                                                            Show All Cards Again
+                                                        </button>
+                                                    ) : null}
+                                                    {studyMode !== 'all' ? (
+                                                        <button
+                                                            type="button"
+                                                            className="tc-word study-inline-btn"
+                                                            onClick={() => handleSelectStudyMode('all')}
+                                                        >
+                                                            View All Misses
+                                                        </button>
+                                                    ) : null}
+                                                </div>
                                             </section>
                                         ) : activeCard ? (
                                             <article className="study-card" aria-label="Missed Question Flashcard">
@@ -297,6 +634,9 @@ export default function TriviaStudyDeck() {
                                                     <span className="study-badge study-badge--category">{activeCard.categoryLabel}</span>
                                                     <span className={`study-badge study-badge--${activeCard.difficulty}`}>
                                                         {formatDifficulty(activeCard.difficulty)}
+                                                    </span>
+                                                    <span className="study-badge study-badge--srs">
+                                                        {activeBoxLabel}
                                                     </span>
                                                     <span className="study-card__counter">
                                                         Card {safeIndex + 1} Of {visibleItems.length}
@@ -396,6 +736,69 @@ export default function TriviaStudyDeck() {
                         color: rgba(214, 228, 248, 0.78);
                         text-align: center;
                     }
+                    .study-drill-launch-bar {
+                        display: flex;
+                        flex-wrap: wrap;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 12px;
+                        padding: 14px 16px;
+                        border-radius: 12px;
+                        background: linear-gradient(180deg, rgba(16, 36, 68, 0.94), rgba(9, 18, 34, 0.96));
+                        border: 1px solid rgba(134, 218, 255, 0.42);
+                        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+                    }
+                    .study-drill-launch-bar__info {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                    }
+                    .study-drill-launch-bar__title {
+                        font-size: 14px;
+                        font-weight: 700;
+                        color: #f2f7ff;
+                    }
+                    .study-drill-launch-bar__meta {
+                        font-size: 12px;
+                        color: #bdd0e2;
+                    }
+                    .study-mode-tabs {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                        gap: 8px;
+                    }
+                    .study-mode-tab {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 8px;
+                        min-height: 44px;
+                        padding: 10px 12px;
+                        border-radius: 10px;
+                        border: 1px solid rgba(154, 194, 242, 0.28);
+                        background: rgba(12, 22, 38, 0.88);
+                        color: #bdd0e2;
+                        font-size: 13px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        touch-action: manipulation;
+                    }
+                    .study-mode-tab--active {
+                        background: linear-gradient(180deg, rgba(25, 129, 236, 0.34), rgba(12, 85, 192, 0.44));
+                        border-color: #86daff;
+                        color: #f2f7ff;
+                    }
+                    .study-mode-tab__count {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        min-width: 24px;
+                        padding: 2px 7px;
+                        border-radius: 999px;
+                        background: rgba(255, 255, 255, 0.1);
+                        font-size: 12px;
+                        color: #e4eefc;
+                    }
                     .study-session-bar {
                         display: flex;
                         flex-wrap: wrap;
@@ -427,6 +830,67 @@ export default function TriviaStudyDeck() {
                         cursor: pointer;
                         touch-action: manipulation;
                     }
+                    .study-drill {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 14px;
+                    }
+                    .study-drill__banner {
+                        display: flex;
+                        flex-wrap: wrap;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 10px;
+                        padding: 12px 14px;
+                        border-radius: 10px;
+                        background: rgba(12, 26, 46, 0.94);
+                        border: 1px solid rgba(134, 218, 255, 0.42);
+                    }
+                    .study-drill__progress {
+                        font-size: 13px;
+                        font-weight: 700;
+                        color: #f2f7ff;
+                    }
+                    .study-drill__options {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+                    .study-drill__option {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        width: 100%;
+                        min-height: 44px;
+                        padding: 11px 14px;
+                        border-radius: 8px;
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 1px solid rgba(164, 196, 236, 0.28);
+                        color: #f2f7ff;
+                        font-size: 14px;
+                        text-align: left;
+                        cursor: pointer;
+                        touch-action: manipulation;
+                    }
+                    .study-drill__option:disabled {
+                        cursor: default;
+                    }
+                    .study-drill__option--correct {
+                        background: rgba(34, 197, 94, 0.2);
+                        border-color: rgba(74, 222, 128, 0.72);
+                        color: #ecfdf5;
+                    }
+                    .study-drill__option--wrong {
+                        background: rgba(239, 68, 68, 0.2);
+                        border-color: rgba(248, 113, 113, 0.72);
+                        color: #fef2f2;
+                    }
+                    .study-drill__subcopy {
+                        margin: 0;
+                        font-size: 14px;
+                        line-height: 1.5;
+                        color: #bdd0e2;
+                    }
                     .study-card {
                         display: flex;
                         flex-direction: column;
@@ -456,6 +920,16 @@ export default function TriviaStudyDeck() {
                         background: rgba(56, 152, 255, 0.18);
                         border: 1px solid rgba(90, 176, 255, 0.42);
                         color: #9ad2ff;
+                    }
+                    .study-badge--srs {
+                        background: rgba(134, 218, 255, 0.14);
+                        border: 1px solid rgba(134, 218, 255, 0.38);
+                        color: #cfefff;
+                    }
+                    .study-badge--zero-reward {
+                        background: rgba(12, 85, 192, 0.32);
+                        border: 1px solid rgba(134, 218, 255, 0.58);
+                        color: #f2f7ff;
                     }
                     .study-badge--easy {
                         background: rgba(46, 204, 113, 0.16);
@@ -536,6 +1010,9 @@ export default function TriviaStudyDeck() {
                         font-weight: 700;
                         color: #86efac;
                     }
+                    .study-option__tag--wrong {
+                        color: #fecaca;
+                    }
                     .study-explanation {
                         padding: 12px 14px;
                         border-radius: 8px;
@@ -574,6 +1051,16 @@ export default function TriviaStudyDeck() {
                         border: 1px solid rgba(154, 194, 242, 0.36);
                         background: rgba(30, 48, 78, 0.88);
                         color: #f3f8ff;
+                        touch-action: manipulation;
+                    }
+                    .study-btn--drill-cta {
+                        background: linear-gradient(180deg, #1981ec, #0c55c0);
+                        border-color: #86daff;
+                        color: #f2f7ff;
+                    }
+                    .study-btn--drill-cta:disabled {
+                        opacity: 0.55;
+                        cursor: not-allowed;
                     }
                     .study-btn--flip {
                         background: linear-gradient(180deg, #2563eb, #1d4ed8);
@@ -618,8 +1105,15 @@ export default function TriviaStudyDeck() {
                         font-weight: 600;
                         cursor: pointer;
                     }
+                    .study-empty-actions {
+                        display: flex;
+                        flex-wrap: wrap;
+                        justify-content: center;
+                        gap: 10px;
+                    }
                     .study-inline-btn {
                         margin-top: 10px;
+                        min-height: 44px;
                     }
                 `}</style>
             </>
