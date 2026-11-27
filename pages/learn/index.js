@@ -25,6 +25,7 @@ import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import {
   LEARN_PATH,
   LEARN_URL,
@@ -117,7 +118,25 @@ export default function LearnIndex({ count, groups }) {
             <span>Poker Strategy Lessons</span>
           </nav>
 
-          <h1 style={styles.h1}>Learn Poker Strategy</h1>
+          <div style={{ marginBottom: 22 }}>
+            <SmarterSeoMasthead
+              vertical="learn"
+              eyebrow="Smarter.Poker GTO Strategy Library"
+              title="Learn Poker Strategy"
+              lead={`${count} Free Poker Strategy Lessons, 169 Starting Hand Guides, And 107 Interactive GTO Training Games.`}
+              stats={[
+                { label: 'Strategy Lessons', value: `${count} Guides` },
+                { label: 'Starting Hands', value: '169 Charts' },
+                { label: 'GTO Drills', value: '107 Games' },
+                { label: 'Access', value: '100% Free' },
+              ]}
+              redirectPath="/learn"
+              unlockKey="masthead-learn"
+              primaryCtaLabel="Create Free Account"
+              secondaryHref="/learn/hands"
+              secondaryLabel="Browse 169 Hand Charts"
+            />
+          </div>
 
           <p style={styles.lead}>
             {count} Free Poker Strategy Lessons, Each One A Complete Answer To A Single Question With The Chart Or

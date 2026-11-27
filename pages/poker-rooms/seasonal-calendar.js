@@ -671,7 +671,7 @@ const styles = {
   tdEmerald: { padding: '12px', color: '#34d399', fontWeight: 700, lineHeight: 1.55 },
   cardGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))',
     gap: 18,
   },
   card: {

@@ -11,16 +11,16 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 55,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 415,
-    "componentFiles": 67,
+    "dependencyFiles": 416,
+    "componentFiles": 68,
     "hookFiles": 16,
-    "ctas": 550,
+    "ctas": 553,
     "dialogs": 21,
     "persistenceFiles": 97,
     "realtimeFiles": 7,
-    "tests": 201,
+    "tests": 202,
     "markerCandidates": 396,
-    "possibleUnwiredFunctions": 503,
+    "possibleUnwiredFunctions": 504,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
     "routeStateUnassignedGaps": 0,
@@ -18857,6 +18857,7 @@
         "pages/hub/training/preflop-charts.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/training/BlockerScorePanel.jsx",
@@ -18911,6 +18912,7 @@
           ],
           "tests": [
             "__tests__/page-tutorials.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
@@ -18931,6 +18933,7 @@
           ],
           "tests": [
             "__tests__/page-tutorials.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
@@ -18955,6 +18958,7 @@
           ],
           "tests": [
             "__tests__/page-tutorials.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
@@ -18970,6 +18974,7 @@
           ],
           "tests": [
             "__tests__/page-tutorials.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
@@ -18988,6 +18993,7 @@
           ],
           "tests": [
             "__tests__/page-tutorials.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
@@ -18996,6 +19002,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/vip/VipKit.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -19008,6 +19015,7 @@
           ],
           "tests": [
             "__tests__/page-tutorials.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
@@ -19023,6 +19031,7 @@
           ],
           "tests": [
             "__tests__/page-tutorials.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
@@ -19032,6 +19041,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
@@ -19040,6 +19050,7 @@
           ],
           "tests": [
             "__tests__/page-tutorials.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-reference-is-public-a.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
@@ -19048,6 +19059,7 @@
       },
       "existingTests": [
         "__tests__/page-tutorials.test.mjs",
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/training-preflop-chart-authority.test.mjs",
         "__tests__/training-reference-is-public-a.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs"
@@ -19731,6 +19743,7 @@
         "pages/hub/training/qre-explorer.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/hooks/useTrainingBus.js",
@@ -19752,6 +19765,7 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ],
           "rationale": "The Reference Curve Updates From Local Controls"
@@ -19765,6 +19779,7 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ]
         },
@@ -19776,6 +19791,7 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ]
         },
@@ -19786,6 +19802,7 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ]
         },
@@ -19796,17 +19813,20 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ]
         },
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs"
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ]
         },
@@ -19818,6 +19838,7 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ]
         },
@@ -19825,17 +19846,20 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs"
           ]
         }
       },
       "existingTests": [
         "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/training-authored-model-honesty.test.mjs"
       ],
       "uncoveredStates": []
@@ -20220,6 +20244,7 @@
         "pages/hub/training/quiz-builder.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/training/TrainerEmptyState.jsx",
@@ -20279,6 +20304,7 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -20313,6 +20339,7 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -20338,6 +20365,7 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -20356,6 +20384,7 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -20375,6 +20404,7 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -20384,6 +20414,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/quiz-builder.js",
+            "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
@@ -20398,6 +20429,7 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -20412,6 +20444,7 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -20421,6 +20454,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
@@ -20429,6 +20463,7 @@
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -20437,6 +20472,7 @@
       },
       "existingTests": [
         "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
@@ -21285,6 +21321,7 @@
         "pages/hub/training/range-builder.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/training/ConnectionToast.js",
@@ -21310,6 +21347,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-range-builder-authored-reference.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs"
@@ -21323,6 +21361,7 @@
             "src/lib/seo/hubPageSchema.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-range-builder-authored-reference.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs"
@@ -21338,6 +21377,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-range-builder-authored-reference.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs"
@@ -21351,6 +21391,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-range-builder-authored-reference.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs"
@@ -21364,6 +21405,7 @@
             "src/lib/training/practiceSession.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-range-builder-authored-reference.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs"
@@ -21372,12 +21414,14 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-range-builder-authored-reference.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs"
@@ -21391,6 +21435,7 @@
             "src/components/training/ConnectionToast.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-range-builder-authored-reference.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs"
@@ -21401,12 +21446,14 @@
           "evidence": [
             "pages/hub/training/range-builder.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-range-builder-authored-reference.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs"
@@ -21414,6 +21461,7 @@
         }
       },
       "existingTests": [
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
         "__tests__/training-range-builder-authored-reference.test.mjs",
         "__tests__/training-specialty-pages-phase-7.test.mjs"
@@ -21433,6 +21481,7 @@
         "pages/hub/training/range-explorer.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/training/BlockerScorePanel.jsx",
@@ -21559,6 +21608,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/vip/VipKit.jsx",
             "src/contexts/AvatarContext.jsx",
@@ -21589,6 +21639,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
@@ -22763,6 +22814,7 @@
         "pages/hub/training/skill-tree.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/training/ConnectionToast.js",
@@ -22793,6 +22845,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -22807,6 +22860,7 @@
             "src/lib/seo/hubPageSchema.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -22824,6 +22878,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -22839,6 +22894,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -22852,6 +22908,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -22861,12 +22918,14 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -22881,6 +22940,7 @@
             "src/components/training/ConnectionToast.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -22892,12 +22952,14 @@
           "evidence": [
             "pages/hub/training/skill-tree.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -22906,6 +22968,7 @@
         }
       },
       "existingTests": [
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
         "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -26024,6 +26087,7 @@
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/freeroll-prizes-are-chips.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -26063,6 +26127,7 @@
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/freeroll-prizes-are-chips.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -26106,6 +26171,7 @@
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/freeroll-prizes-are-chips.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -26137,6 +26203,7 @@
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/freeroll-prizes-are-chips.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -26174,6 +26241,7 @@
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/freeroll-prizes-are-chips.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -26216,6 +26284,7 @@
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/freeroll-prizes-are-chips.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -26241,6 +26310,7 @@
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/freeroll-prizes-are-chips.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -26272,6 +26342,7 @@
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
             "__tests__/freeroll-prizes-are-chips.test.mjs",
+            "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -26288,6 +26359,7 @@
       "existingTests": [
         "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/freeroll-prizes-are-chips.test.mjs",
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/poker-near-me-phase-6.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -40082,6 +40154,7 @@
       "imports": [
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/PreflopChartStats.jsx",
         "src/components/training/RangeGrid.jsx",
@@ -40103,7 +40176,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 262,
+          "line": 263,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -40113,7 +40186,7 @@
         {
           "element": "button",
           "name": "How Preflop Charts work",
-          "line": 277,
+          "line": 278,
           "handler": "() => setInfoOpen(true)",
           "destination": null,
           "type": null,
@@ -40123,7 +40196,7 @@
         {
           "element": "button",
           "name": "s.desc",
-          "line": 355,
+          "line": 356,
           "handler": "() => {\n                    if (s.value !== 'rfi' && !allowed) {\n                      showUpgradeModal();\n                      return;\n                    }\n                    selectScenario(s.value);\n                  }",
           "destination": null,
           "type": null,
@@ -40133,7 +40206,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 488,
+          "line": 489,
           "handler": "() => selectPosition(pos)",
           "destination": null,
           "type": null,
@@ -40143,7 +40216,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 513,
+          "line": 514,
           "handler": "() => {\n                if (!compareMode && !allowed) {\n                  showUpgradeModal();\n                  return;\n                }\n                setCompareMode(!compareMode);\n                if (!compareMode && comparePosition === position) {\n                  const alt = displayedPositions.find((p) => p !== position);\n                  if (alt) setComparePosition(alt);\n                }\n              }",
           "destination": null,
           "type": null,
@@ -40153,7 +40226,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 580,
+          "line": 581,
           "handler": "() => setComparePosition(pos)",
           "destination": null,
           "type": null,
@@ -40195,7 +40268,7 @@
       "functions": [
         {
           "name": "PreflopCharts",
-          "line": 67,
+          "line": 68,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -40565,6 +40638,7 @@
       "imports": [
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/hooks/useTrainingBus.js"
       ],
       "links": [
@@ -40577,7 +40651,7 @@
         {
           "element": "button",
           "name": "←",
-          "line": 163,
+          "line": 164,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -40587,7 +40661,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 324,
+          "line": 325,
           "handler": "() => setSelectedSpot(key)",
           "destination": null,
           "type": "button",
@@ -40627,7 +40701,7 @@
       "functions": [
         {
           "name": "computeQRE",
-          "line": 97,
+          "line": 98,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40635,7 +40709,7 @@
         },
         {
           "name": "QREExplorerPage",
-          "line": 112,
+          "line": 113,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -40643,7 +40717,7 @@
         },
         {
           "name": "handlePreset",
-          "line": 132,
+          "line": 133,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40777,6 +40851,7 @@
       "imports": [
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/training/TrainerEmptyState.jsx",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
@@ -40796,7 +40871,7 @@
         {
           "element": "button",
           "name": "←",
-          "line": 501,
+          "line": 502,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -40836,7 +40911,7 @@
       "functions": [
         {
           "name": "QuestionEditor",
-          "line": 61,
+          "line": 62,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40844,7 +40919,7 @@
         },
         {
           "name": "QuizBuilderPage",
-          "line": 322,
+          "line": 323,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -40852,7 +40927,7 @@
         },
         {
           "name": "update",
-          "line": 62,
+          "line": 63,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -40860,7 +40935,7 @@
         },
         {
           "name": "addQuestion",
-          "line": 417,
+          "line": 418,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40868,7 +40943,7 @@
         },
         {
           "name": "removeQuestion",
-          "line": 421,
+          "line": 422,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40876,7 +40951,7 @@
         },
         {
           "name": "updateQuestion",
-          "line": 426,
+          "line": 427,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40884,7 +40959,7 @@
         },
         {
           "name": "saveQuiz",
-          "line": 432,
+          "line": 433,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40892,7 +40967,7 @@
         },
         {
           "name": "deleteQuiz",
-          "line": 463,
+          "line": 464,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40905,7 +40980,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 231,
+          "line": 232,
           "excerpt": "placeholder=\"e.g. Hero opens BTN to 2.5x, BB 3-bets to 8x. Hero holds AKo. What is the best action?\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -40913,7 +40988,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 299,
+          "line": 300,
           "excerpt": "placeholder=\"Why is this the correct play?\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -40921,7 +40996,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 581,
+          "line": 582,
           "excerpt": "placeholder=\"e.g. BTN vs BB 3-Bet Defense\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -41146,6 +41221,7 @@
       "imports": [
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/hooks/useTrainingBus.js",
@@ -41164,7 +41240,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 401,
+          "line": 402,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -41174,7 +41250,7 @@
         {
           "element": "button",
           "name": "`Select position ${pos}`",
-          "line": 466,
+          "line": 467,
           "handler": "() => {\n                  setPosition(pos);\n                  setSelectedHands(new Set());\n                }",
           "destination": null,
           "type": null,
@@ -41184,7 +41260,7 @@
         {
           "element": "button",
           "name": "+ All Pairs",
-          "line": 572,
+          "line": 573,
           "handler": "() => selectCategory('pairs')",
           "destination": null,
           "type": null,
@@ -41194,7 +41270,7 @@
         {
           "element": "button",
           "name": "+ Broadways",
-          "line": 575,
+          "line": 576,
           "handler": "() => selectCategory('broadways')",
           "destination": null,
           "type": null,
@@ -41204,7 +41280,7 @@
         {
           "element": "button",
           "name": "+ All Suited",
-          "line": 578,
+          "line": 579,
           "handler": "() => selectCategory('suited')",
           "destination": null,
           "type": null,
@@ -41214,7 +41290,7 @@
         {
           "element": "button",
           "name": "Clear All",
-          "line": 581,
+          "line": 582,
           "handler": "clearAll",
           "destination": null,
           "type": null,
@@ -41224,7 +41300,7 @@
         {
           "element": "button",
           "name": "Try Again",
-          "line": 713,
+          "line": 714,
           "handler": "() => {\n                      setResult(null);\n                      setSelectedHands(new Set());\n                      setError('');\n                    }",
           "destination": null,
           "type": null,
@@ -41234,7 +41310,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 847,
+          "line": 848,
           "handler": "submitRange",
           "destination": null,
           "type": null,
@@ -41274,7 +41350,7 @@
       "functions": [
         {
           "name": "saveSession",
-          "line": 44,
+          "line": 45,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41282,7 +41358,7 @@
         },
         {
           "name": "isExactAuthoredReferenceResponse",
-          "line": 62,
+          "line": 63,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -41290,7 +41366,7 @@
         },
         {
           "name": "getHandNotation",
-          "line": 80,
+          "line": 81,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41298,7 +41374,7 @@
         },
         {
           "name": "getCombos",
-          "line": 86,
+          "line": 87,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41306,7 +41382,7 @@
         },
         {
           "name": "BuilderCell",
-          "line": 123,
+          "line": 124,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41314,7 +41390,7 @@
         },
         {
           "name": "RangeBuilder",
-          "line": 221,
+          "line": 222,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -41322,7 +41398,7 @@
         },
         {
           "name": "StatRow",
-          "line": 900,
+          "line": 909,
           "references": 12,
           "exported": false,
           "defaultExport": false,
@@ -41330,7 +41406,7 @@
         },
         {
           "name": "LegendItem",
-          "line": 918,
+          "line": 927,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -42678,6 +42754,7 @@
       "imports": [
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/training/ConnectionToast.js",
         "src/components/training/ErrorBanner.js",
@@ -42699,7 +42776,7 @@
         {
           "element": "button",
           "name": "Back To Training",
-          "line": 467,
+          "line": 468,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -42739,7 +42816,7 @@
       "functions": [
         {
           "name": "BranchIcon",
-          "line": 37,
+          "line": 38,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -42747,7 +42824,7 @@
         },
         {
           "name": "computeSkillData",
-          "line": 217,
+          "line": 218,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -42755,7 +42832,7 @@
         },
         {
           "name": "getNodeStatus",
-          "line": 231,
+          "line": 232,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -42763,7 +42840,7 @@
         },
         {
           "name": "SkillNode",
-          "line": 257,
+          "line": 258,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -42771,7 +42848,7 @@
         },
         {
           "name": "SkillTreePage",
-          "line": 375,
+          "line": 376,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -42779,7 +42856,7 @@
         },
         {
           "name": "handleNodeTap",
-          "line": 434,
+          "line": 435,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -47316,6 +47393,110 @@
       "markers": []
     },
     {
+      "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
+      "imports": [
+        "src/components/seo/SmarterQuickSignupSheet.jsx"
+      ],
+      "links": [
+        "/hub/training",
+        "/hub/training/range-builder",
+        "/hub/training/skill-tree"
+      ],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [
+        {
+          "element": "link",
+          "name": "<dynamic>",
+          "line": 246,
+          "handler": null,
+          "destination": "preset.unlockedHref",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "a",
+          "name": "<dynamic>",
+          "line": 305,
+          "handler": "handleOpenQuickSheet",
+          "destination": "signupHref",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Sign In To Existing Account",
+          "line": 313,
+          "handler": null,
+          "destination": "loginHref",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        }
+      ],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": true,
+        "success": false,
+        "authExpiry": true
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "hasStoredAuthSession",
+          "line": 7,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "SmarterAccountUnlockGate",
+          "line": 178,
+          "references": 1,
+          "exported": true,
+          "defaultExport": true,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "handleOpenQuickSheet",
+          "line": 217,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "SmarterAccountUnlockGate"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/components/seo/SmarterConversionCta.jsx",
       "imports": [
         "src/components/seo/SmarterQuickSignupSheet.jsx"
@@ -47426,7 +47607,7 @@
         {
           "element": "button",
           "name": "Close Quick Signup Dialog",
-          "line": 143,
+          "line": 158,
           "handler": "close",
           "destination": null,
           "type": "button",
@@ -47436,7 +47617,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 170,
+          "line": 185,
           "handler": "handleGoogleOneTap",
           "destination": null,
           "type": "button",
@@ -47446,7 +47627,7 @@
         {
           "element": "link",
           "name": "Create Free Account With Email",
-          "line": 182,
+          "line": 197,
           "handler": "close",
           "destination": "signupHref",
           "type": null,
@@ -47456,7 +47637,7 @@
         {
           "element": "link",
           "name": "Sign In",
-          "line": 194,
+          "line": 209,
           "handler": "close",
           "destination": "loginHref",
           "type": null,
@@ -47496,7 +47677,7 @@
       "functions": [
         {
           "name": "sanitizeRedirect",
-          "line": 14,
+          "line": 15,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -47504,7 +47685,7 @@
         },
         {
           "name": "openQuickSignup",
-          "line": 22,
+          "line": 23,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -47512,7 +47693,7 @@
         },
         {
           "name": "buildSignupUrl",
-          "line": 32,
+          "line": 33,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -47520,7 +47701,7 @@
         },
         {
           "name": "SmarterQuickSignupSheet",
-          "line": 41,
+          "line": 42,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -47528,7 +47709,7 @@
         },
         {
           "name": "onOpen",
-          "line": 54,
+          "line": 55,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -47536,7 +47717,7 @@
         },
         {
           "name": "onKeyDown",
-          "line": 83,
+          "line": 92,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -47544,7 +47725,7 @@
         },
         {
           "name": "handleGoogleOneTap",
-          "line": 99,
+          "line": 110,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -83508,6 +83689,10 @@
     },
     {
       "from": "pages/hub/training/preflop-charts.js",
+      "to": "src/components/seo/SmarterAccountUnlockGate.jsx"
+    },
+    {
+      "from": "pages/hub/training/preflop-charts.js",
       "to": "src/components/training/ConnectionToast.js"
     },
     {
@@ -83600,6 +83785,10 @@
     },
     {
       "from": "pages/hub/training/qre-explorer.js",
+      "to": "src/components/seo/SmarterAccountUnlockGate.jsx"
+    },
+    {
+      "from": "pages/hub/training/qre-explorer.js",
       "to": "src/hooks/useTrainingBus.js"
     },
     {
@@ -83648,6 +83837,10 @@
     },
     {
       "from": "pages/hub/training/quiz-builder.js",
+      "to": "src/components/seo/SmarterAccountUnlockGate.jsx"
+    },
+    {
+      "from": "pages/hub/training/quiz-builder.js",
       "to": "src/components/training/TrainerEmptyState.jsx"
     },
     {
@@ -83693,6 +83886,10 @@
     {
       "from": "pages/hub/training/range-builder.js",
       "to": "src/components/seo/SEOHead.js"
+    },
+    {
+      "from": "pages/hub/training/range-builder.js",
+      "to": "src/components/seo/SmarterAccountUnlockGate.jsx"
     },
     {
       "from": "pages/hub/training/range-builder.js",
@@ -83949,6 +84146,10 @@
     {
       "from": "pages/hub/training/skill-tree.js",
       "to": "src/components/seo/SEOHead.js"
+    },
+    {
+      "from": "pages/hub/training/skill-tree.js",
+      "to": "src/components/seo/SmarterAccountUnlockGate.jsx"
     },
     {
       "from": "pages/hub/training/skill-tree.js",
@@ -84489,6 +84690,10 @@
     {
       "from": "src/components/seo/SEOHead.js",
       "to": "src/lib/seo/shareImageMetadata.mjs"
+    },
+    {
+      "from": "src/components/seo/SmarterAccountUnlockGate.jsx",
+      "to": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
       "from": "src/components/seo/SmarterConversionCta.jsx",
@@ -85967,6 +86172,7 @@
     "src/components/seo/CitationBacklinkBox.js",
     "src/components/seo/HubPageSummary.js",
     "src/components/seo/SEOHead.js",
+    "src/components/seo/SmarterAccountUnlockGate.jsx",
     "src/components/seo/SmarterConversionCta.jsx",
     "src/components/seo/SmarterQuickSignupSheet.jsx",
     "src/components/store/DiamondWalletModal.jsx",
@@ -86078,6 +86284,7 @@
     "__tests__/pa-forensic-review-auth.law.test.mjs",
     "__tests__/pa-review-workstation.test.mjs",
     "__tests__/page-tutorials.test.mjs",
+    "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
     "__tests__/phase23-calculator-schema.test.mjs",
     "__tests__/phases-35-50-aeo.test.mjs",
     "__tests__/poker-near-me-phase-6.test.mjs",
@@ -89483,11 +89690,11 @@
       "effectRef": "pages/hub/training/position-mastery.js"
     },
     {
-      "id": "pages/hub/training/preflop-charts.js:262:1",
+      "id": "pages/hub/training/preflop-charts.js:263:1",
       "file": "pages/hub/training/preflop-charts.js",
       "element": "button",
       "name": "← Training",
-      "line": 262,
+      "line": 263,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -89496,11 +89703,11 @@
       "effectRef": "pages/hub/training/preflop-charts.js"
     },
     {
-      "id": "pages/hub/training/preflop-charts.js:277:2",
+      "id": "pages/hub/training/preflop-charts.js:278:2",
       "file": "pages/hub/training/preflop-charts.js",
       "element": "button",
       "name": "How Preflop Charts work",
-      "line": 277,
+      "line": 278,
       "handler": "() => setInfoOpen(true)",
       "destination": null,
       "type": null,
@@ -89509,11 +89716,11 @@
       "effectRef": "pages/hub/training/preflop-charts.js"
     },
     {
-      "id": "pages/hub/training/preflop-charts.js:355:3",
+      "id": "pages/hub/training/preflop-charts.js:356:3",
       "file": "pages/hub/training/preflop-charts.js",
       "element": "button",
       "name": "s.desc",
-      "line": 355,
+      "line": 356,
       "handler": "() => {\n                    if (s.value !== 'rfi' && !allowed) {\n                      showUpgradeModal();\n                      return;\n                    }\n                    selectScenario(s.value);\n                  }",
       "destination": null,
       "type": null,
@@ -89522,11 +89729,11 @@
       "effectRef": "pages/hub/training/preflop-charts.js"
     },
     {
-      "id": "pages/hub/training/preflop-charts.js:488:4",
+      "id": "pages/hub/training/preflop-charts.js:489:4",
       "file": "pages/hub/training/preflop-charts.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 488,
+      "line": 489,
       "handler": "() => selectPosition(pos)",
       "destination": null,
       "type": null,
@@ -89535,11 +89742,11 @@
       "effectRef": "pages/hub/training/preflop-charts.js"
     },
     {
-      "id": "pages/hub/training/preflop-charts.js:513:5",
+      "id": "pages/hub/training/preflop-charts.js:514:5",
       "file": "pages/hub/training/preflop-charts.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 513,
+      "line": 514,
       "handler": "() => {\n                if (!compareMode && !allowed) {\n                  showUpgradeModal();\n                  return;\n                }\n                setCompareMode(!compareMode);\n                if (!compareMode && comparePosition === position) {\n                  const alt = displayedPositions.find((p) => p !== position);\n                  if (alt) setComparePosition(alt);\n                }\n              }",
       "destination": null,
       "type": null,
@@ -89548,11 +89755,11 @@
       "effectRef": "pages/hub/training/preflop-charts.js"
     },
     {
-      "id": "pages/hub/training/preflop-charts.js:580:6",
+      "id": "pages/hub/training/preflop-charts.js:581:6",
       "file": "pages/hub/training/preflop-charts.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 580,
+      "line": 581,
       "handler": "() => setComparePosition(pos)",
       "destination": null,
       "type": null,
@@ -89691,11 +89898,11 @@
       "effectRef": "pages/hub/training/pvp-lobby.js"
     },
     {
-      "id": "pages/hub/training/qre-explorer.js:163:1",
+      "id": "pages/hub/training/qre-explorer.js:164:1",
       "file": "pages/hub/training/qre-explorer.js",
       "element": "button",
       "name": "←",
-      "line": 163,
+      "line": 164,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -89704,11 +89911,11 @@
       "effectRef": "pages/hub/training/qre-explorer.js"
     },
     {
-      "id": "pages/hub/training/qre-explorer.js:324:2",
+      "id": "pages/hub/training/qre-explorer.js:325:2",
       "file": "pages/hub/training/qre-explorer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 324,
+      "line": 325,
       "handler": "() => setSelectedSpot(key)",
       "destination": null,
       "type": "button",
@@ -89730,11 +89937,11 @@
       "effectRef": "pages/hub/training/quick-warmup.js"
     },
     {
-      "id": "pages/hub/training/quiz-builder.js:501:1",
+      "id": "pages/hub/training/quiz-builder.js:502:1",
       "file": "pages/hub/training/quiz-builder.js",
       "element": "button",
       "name": "←",
-      "line": 501,
+      "line": 502,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -89769,11 +89976,11 @@
       "effectRef": "pages/hub/training/rake-solutions.js"
     },
     {
-      "id": "pages/hub/training/range-builder.js:401:1",
+      "id": "pages/hub/training/range-builder.js:402:1",
       "file": "pages/hub/training/range-builder.js",
       "element": "button",
       "name": "← Training",
-      "line": 401,
+      "line": 402,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -89782,11 +89989,11 @@
       "effectRef": "pages/hub/training/range-builder.js"
     },
     {
-      "id": "pages/hub/training/range-builder.js:466:2",
+      "id": "pages/hub/training/range-builder.js:467:2",
       "file": "pages/hub/training/range-builder.js",
       "element": "button",
       "name": "`Select position ${pos}`",
-      "line": 466,
+      "line": 467,
       "handler": "() => {\n                  setPosition(pos);\n                  setSelectedHands(new Set());\n                }",
       "destination": null,
       "type": null,
@@ -89795,11 +90002,11 @@
       "effectRef": "pages/hub/training/range-builder.js"
     },
     {
-      "id": "pages/hub/training/range-builder.js:572:3",
+      "id": "pages/hub/training/range-builder.js:573:3",
       "file": "pages/hub/training/range-builder.js",
       "element": "button",
       "name": "+ All Pairs",
-      "line": 572,
+      "line": 573,
       "handler": "() => selectCategory('pairs')",
       "destination": null,
       "type": null,
@@ -89808,11 +90015,11 @@
       "effectRef": "pages/hub/training/range-builder.js"
     },
     {
-      "id": "pages/hub/training/range-builder.js:575:4",
+      "id": "pages/hub/training/range-builder.js:576:4",
       "file": "pages/hub/training/range-builder.js",
       "element": "button",
       "name": "+ Broadways",
-      "line": 575,
+      "line": 576,
       "handler": "() => selectCategory('broadways')",
       "destination": null,
       "type": null,
@@ -89821,11 +90028,11 @@
       "effectRef": "pages/hub/training/range-builder.js"
     },
     {
-      "id": "pages/hub/training/range-builder.js:578:5",
+      "id": "pages/hub/training/range-builder.js:579:5",
       "file": "pages/hub/training/range-builder.js",
       "element": "button",
       "name": "+ All Suited",
-      "line": 578,
+      "line": 579,
       "handler": "() => selectCategory('suited')",
       "destination": null,
       "type": null,
@@ -89834,11 +90041,11 @@
       "effectRef": "pages/hub/training/range-builder.js"
     },
     {
-      "id": "pages/hub/training/range-builder.js:581:6",
+      "id": "pages/hub/training/range-builder.js:582:6",
       "file": "pages/hub/training/range-builder.js",
       "element": "button",
       "name": "Clear All",
-      "line": 581,
+      "line": 582,
       "handler": "clearAll",
       "destination": null,
       "type": null,
@@ -89847,11 +90054,11 @@
       "effectRef": "pages/hub/training/range-builder.js"
     },
     {
-      "id": "pages/hub/training/range-builder.js:713:7",
+      "id": "pages/hub/training/range-builder.js:714:7",
       "file": "pages/hub/training/range-builder.js",
       "element": "button",
       "name": "Try Again",
-      "line": 713,
+      "line": 714,
       "handler": "() => {\n                      setResult(null);\n                      setSelectedHands(new Set());\n                      setError('');\n                    }",
       "destination": null,
       "type": null,
@@ -89860,11 +90067,11 @@
       "effectRef": "pages/hub/training/range-builder.js"
     },
     {
-      "id": "pages/hub/training/range-builder.js:847:8",
+      "id": "pages/hub/training/range-builder.js:848:8",
       "file": "pages/hub/training/range-builder.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 847,
+      "line": 848,
       "handler": "submitRange",
       "destination": null,
       "type": null,
@@ -90146,11 +90353,11 @@
       "effectRef": "pages/hub/training/short-deck-trainer.js"
     },
     {
-      "id": "pages/hub/training/skill-tree.js:467:1",
+      "id": "pages/hub/training/skill-tree.js:468:1",
       "file": "pages/hub/training/skill-tree.js",
       "element": "button",
       "name": "Back To Training",
-      "line": 467,
+      "line": 468,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -91381,6 +91588,45 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:246:1",
+      "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
+      "element": "link",
+      "name": "<dynamic>",
+      "line": 246,
+      "handler": null,
+      "destination": "preset.unlockedHref",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "src/components/seo/SmarterAccountUnlockGate.jsx"
+    },
+    {
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:305:2",
+      "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
+      "element": "a",
+      "name": "<dynamic>",
+      "line": 305,
+      "handler": "handleOpenQuickSheet",
+      "destination": "signupHref",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "src/components/seo/SmarterAccountUnlockGate.jsx"
+    },
+    {
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:313:3",
+      "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
+      "element": "link",
+      "name": "Sign In To Existing Account",
+      "line": 313,
+      "handler": null,
+      "destination": "loginHref",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "src/components/seo/SmarterAccountUnlockGate.jsx"
+    },
+    {
       "id": "src/components/seo/SmarterConversionCta.jsx:122:1",
       "file": "src/components/seo/SmarterConversionCta.jsx",
       "element": "a",
@@ -91407,11 +91653,11 @@
       "effectRef": "src/components/seo/SmarterConversionCta.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:143:1",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:158:1",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "Close Quick Signup Dialog",
-      "line": 143,
+      "line": 158,
       "handler": "close",
       "destination": null,
       "type": "button",
@@ -91420,11 +91666,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:170:2",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:185:2",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 170,
+      "line": 185,
       "handler": "handleGoogleOneTap",
       "destination": null,
       "type": "button",
@@ -91433,11 +91679,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:182:3",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:197:3",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "link",
       "name": "Create Free Account With Email",
-      "line": 182,
+      "line": 197,
       "handler": "close",
       "destination": "signupHref",
       "type": null,
@@ -91446,11 +91692,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:194:4",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:209:4",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "link",
       "name": "Sign In",
-      "line": 194,
+      "line": 209,
       "handler": "close",
       "destination": "loginHref",
       "type": null,
@@ -98438,6 +98684,7 @@
       "tests": [
         "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/freeroll-prizes-are-chips.test.mjs",
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/poker-near-me-phase-6.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -106031,6 +106278,7 @@
         "pages/hub/training/preflop-charts.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/training/BlockerScorePanel.jsx",
@@ -106209,6 +106457,7 @@
       ],
       "tests": [
         "__tests__/page-tutorials.test.mjs",
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/training-preflop-chart-authority.test.mjs"
       ]
     },
@@ -106903,6 +107152,7 @@
         "pages/hub/training/qre-explorer.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/hooks/useTrainingBus.js",
@@ -106933,6 +107183,7 @@
       "realtime": [],
       "tests": [
         "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/training-authored-model-honesty.test.mjs"
       ]
     },
@@ -107313,6 +107564,7 @@
         "pages/hub/training/quiz-builder.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/training/TrainerEmptyState.jsx",
@@ -107526,6 +107778,7 @@
       "realtime": [],
       "tests": [
         "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs"
@@ -107624,6 +107877,7 @@
         "pages/hub/training/range-builder.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/training/ConnectionToast.js",
@@ -107696,6 +107950,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
         "__tests__/training-range-builder-authored-reference.test.mjs",
         "__tests__/training-specialty-pages-phase-7.test.mjs"
@@ -108251,6 +108506,7 @@
         "pages/hub/training/skill-tree.js",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/training/ConnectionToast.js",
@@ -108313,6 +108569,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
         "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -110857,6 +111114,7 @@
       "tests": [
         "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/freeroll-prizes-are-chips.test.mjs",
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/poker-near-me-phase-6.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -111440,6 +111698,31 @@
       ]
     },
     {
+      "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
+      "reachableFiles": [
+        "src/components/seo/SmarterAccountUnlockGate.jsx",
+        "src/components/seo/SmarterQuickSignupSheet.jsx",
+        "src/lib/acquisition/firstTouch.mjs",
+        "src/lib/supabase.js"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/lib/acquisition/firstTouch.mjs",
+          "writes": {
+            "localStorage": 2,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/components/seo/SmarterConversionCta.jsx",
       "reachableFiles": [
         "src/components/seo/SmarterConversionCta.jsx",
@@ -111488,7 +111771,9 @@
         }
       ],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs"
+      ]
     },
     {
       "file": "src/components/store/DiamondWalletModal.jsx",
@@ -119540,6 +119825,7 @@
         "__tests__/pa-forensic-review-auth.law.test.mjs",
         "__tests__/pa-review-workstation.test.mjs",
         "__tests__/page-tutorials.test.mjs",
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/phase23-calculator-schema.test.mjs",
         "__tests__/seo-backlink-programme-invariants.law.test.mjs",
         "__tests__/smarter-poker-magazine.law.test.mjs",
@@ -119594,6 +119880,7 @@
       "realtime": [],
       "tests": [
         "__tests__/page-tutorials.test.mjs",
+        "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
         "__tests__/training-preflop-chart-authority.test.mjs"
       ]
     },
@@ -120270,7 +120557,7 @@
       {
         "file": "pages/hub/training/quiz-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 231,
+        "line": 232,
         "excerpt": "placeholder=\"e.g. Hero opens BTN to 2.5x, BB 3-bets to 8x. Hero holds AKo. What is the best action?\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -120279,7 +120566,7 @@
       {
         "file": "pages/hub/training/quiz-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 299,
+        "line": 300,
         "excerpt": "placeholder=\"Why is this the correct play?\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -120288,7 +120575,7 @@
       {
         "file": "pages/hub/training/quiz-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 581,
+        "line": 582,
         "excerpt": "placeholder=\"e.g. BTN vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -124942,7 +125229,7 @@
       {
         "file": "pages/hub/training/qre-explorer.js",
         "name": "QREExplorerPage",
-        "line": 112,
+        "line": 113,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -124968,7 +125255,7 @@
       {
         "file": "pages/hub/training/quiz-builder.js",
         "name": "QuizBuilderPage",
-        "line": 322,
+        "line": 323,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -125137,7 +125424,7 @@
       {
         "file": "pages/hub/training/skill-tree.js",
         "name": "SkillTreePage",
-        "line": 375,
+        "line": 376,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -125519,6 +125806,188 @@
         ]
       },
       {
+        "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
+        "name": "SmarterAccountUnlockGate",
+        "line": 178,
+        "references": 1,
+        "exported": true,
+        "defaultExport": true,
+        "namedFunctionExpression": false,
+        "disposition": "imported-default-entrypoint",
+        "review": "accepted",
+        "rationale": "Default export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/authors/[slug].js",
+          "pages/authors/index.js",
+          "pages/compare/[slug].js",
+          "pages/compare/decision-matrix.js",
+          "pages/compare/index.js",
+          "pages/editorial-standards.js",
+          "pages/facts.js",
+          "pages/features/index.js",
+          "pages/freerolls.js",
+          "pages/games/[variant].js",
+          "pages/games/index.js",
+          "pages/glossary/[term].js",
+          "pages/glossary/index.js",
+          "pages/hub/article.js",
+          "pages/hub/daily-tournaments.js",
+          "pages/hub/events-calendar.js",
+          "pages/hub/help.js",
+          "pages/hub/magazine/[issue].js",
+          "pages/hub/magazine/index.js",
+          "pages/hub/magazine/poker-rooms.js",
+          "pages/hub/memory-games.js",
+          "pages/hub/news.js",
+          "pages/hub/poker-near-me/[pnmTab].js",
+          "pages/hub/poker-near-me/in/[state]/[city].js",
+          "pages/hub/poker-near-me/in/[state]/index.js",
+          "pages/hub/poker-near-me/in/index.js",
+          "pages/hub/poker-series.js",
+          "pages/hub/poker-tours.js",
+          "pages/hub/series/[id].js",
+          "pages/hub/tournaments/this-weekend.js",
+          "pages/hub/training/preflop-charts.js",
+          "pages/hub/training/qre-explorer.js",
+          "pages/hub/training/quiz-builder.js",
+          "pages/hub/training/range-builder.js",
+          "pages/hub/training/skill-tree.js",
+          "pages/hub/venues/[id].js",
+          "pages/hub/video-library.js",
+          "pages/hub/video-library/channels/[channelId].js",
+          "pages/hub/video-library/channels/index.js",
+          "pages/hub/video-library/players/[playerId].js",
+          "pages/hub/video-library/players/index.js",
+          "pages/hub/video-library/playlists/[playlistId].js",
+          "pages/hub/video-library/watch/[videoId]/[[...slug]].js",
+          "pages/hub/vip-membership/compare.js",
+          "pages/hub/wire/[edition].js",
+          "pages/hub/wire/index.js",
+          "pages/learn/[topic].js",
+          "pages/learn/best-poker-players.js",
+          "pages/learn/board-textures/[slug].js",
+          "pages/learn/board-textures/index.js",
+          "pages/learn/category/[category].js",
+          "pages/learn/cheat-sheets.js",
+          "pages/learn/famous-hands/[slug].js",
+          "pages/learn/famous-hands/index.js",
+          "pages/learn/format-migration-guide.js",
+          "pages/learn/formulas/[slug].js",
+          "pages/learn/formulas/index.js",
+          "pages/learn/hands/[hand].js",
+          "pages/learn/hands/index.js",
+          "pages/learn/hud-stats/[stat].js",
+          "pages/learn/hud-stats/index.js",
+          "pages/learn/index.js",
+          "pages/learn/leaks/[slug].js",
+          "pages/learn/leaks/index.js",
+          "pages/learn/live-poker-tells.js",
+          "pages/learn/matchups/[slug].js",
+          "pages/learn/matchups/index.js",
+          "pages/learn/mental-game.js",
+          "pages/learn/online-vs-live-poker.js",
+          "pages/learn/player-types/[type].js",
+          "pages/learn/player-types/index.js",
+          "pages/learn/poker-as-a-business.js",
+          "pages/learn/poker-hand-rankings.js",
+          "pages/learn/poker-math.js",
+          "pages/learn/poker-myths-debunked.js",
+          "pages/learn/positions/[pos].js",
+          "pages/learn/positions/index.js",
+          "pages/learn/roadmaps/[track].js",
+          "pages/learn/roadmaps/index.js",
+          "pages/learn/stakes/[stake].js",
+          "pages/learn/stakes/index.js",
+          "pages/learn/tournament-stages/[stage].js",
+          "pages/learn/tournament-stages/index.js",
+          "pages/poker-rooms/by-game/[game].js",
+          "pages/poker-rooms/by-game/index.js",
+          "pages/poker-rooms/comps-and-tipping-guide.js",
+          "pages/poker-rooms/corridors/[slug].js",
+          "pages/poker-rooms/corridors/index.js",
+          "pages/poker-rooms/first-time-guide.js",
+          "pages/poker-rooms/guides/[city].js",
+          "pages/poker-rooms/guides/index.js",
+          "pages/poker-rooms/index.js",
+          "pages/poker-rooms/international/[slug].js",
+          "pages/poker-rooms/international/index.js",
+          "pages/poker-rooms/seasonal-calendar.js",
+          "pages/poker-rooms/security-and-disputes-guide.js",
+          "pages/poker-rooms/states/[state].js",
+          "pages/poker-rooms/states/index.js",
+          "pages/poker-series/guides/[slug].js",
+          "pages/poker-series/guides/index.js",
+          "pages/pokerbrain.js",
+          "pages/press.js",
+          "pages/research/[slug].js",
+          "pages/research/annual-state-of-poker-2026.js",
+          "pages/research/benchmarks.js",
+          "pages/research/index.js",
+          "pages/rules/[slug].js",
+          "pages/rules/index.js",
+          "pages/search.js",
+          "pages/sitemap.js",
+          "pages/tools/3bet-calculator.js",
+          "pages/tools/bankroll-calculator.js",
+          "pages/tools/blind-structure-calculator.js",
+          "pages/tools/blind-vs-blind-calculator.js",
+          "pages/tools/bluff-catching-calculator.js",
+          "pages/tools/board-texture-analyzer.js",
+          "pages/tools/bounty-calculator.js",
+          "pages/tools/bubble-factor-calculator.js",
+          "pages/tools/chop-calculator.js",
+          "pages/tools/embeds.js",
+          "pages/tools/format-quiz.js",
+          "pages/tools/geometric-bet-calculator.js",
+          "pages/tools/hand-converter.js",
+          "pages/tools/heads-up-push-fold-calculator.js",
+          "pages/tools/home-game-director.js",
+          "pages/tools/home-game-kit.js",
+          "pages/tools/icm-calculator.js",
+          "pages/tools/index.js",
+          "pages/tools/iso-calculator.js",
+          "pages/tools/late-reg-calculator.js",
+          "pages/tools/m-ratio-calculator.js",
+          "pages/tools/mixed-game-placards.js",
+          "pages/tools/mtt-grind-planner.js",
+          "pages/tools/multi-street-ev-calculator.js",
+          "pages/tools/multiway-all-in-calculator.js",
+          "pages/tools/mystery-bounty-tracker.js",
+          "pages/tools/outs-calculator.js",
+          "pages/tools/payout-calculator.js",
+          "pages/tools/plo-bet-calculator.js",
+          "pages/tools/plo-outs-calculator.js",
+          "pages/tools/poker-iq-test.js",
+          "pages/tools/poker-odds-calculator.js",
+          "pages/tools/poker-tax-calculator.js",
+          "pages/tools/poker-trip-planner.js",
+          "pages/tools/poker-winrate-calculator.js",
+          "pages/tools/pot-odds-calculator.js",
+          "pages/tools/preflop-ranges.js",
+          "pages/tools/preflop-ranges/[position].js",
+          "pages/tools/preflop-ranges/index.js",
+          "pages/tools/promo-ev-calculator.js",
+          "pages/tools/push-fold-calculator.js",
+          "pages/tools/rake-calculator.js",
+          "pages/tools/satellite-calculator.js",
+          "pages/tools/session-planner.js",
+          "pages/tools/shot-clock.js",
+          "pages/tools/shot-taking-calculator.js",
+          "pages/tools/side-pot-calculator.js",
+          "pages/tools/spr-calculator.js",
+          "pages/tools/staking-calculator.js",
+          "pages/tools/straddle-calculator.js",
+          "pages/tools/table-selection-calculator.js",
+          "pages/tools/variance-calculator.js",
+          "pages/tools/warmup-cooldown-routine.js",
+          "pages/tools/who-wins-calculator.js",
+          "pages/tools/winrate-confidence-calculator.js",
+          "pages/verification-methodology.js",
+          "src/components/features/FeatureLanderLayout.js",
+          "src/components/seo/TourPageSummary.js"
+        ]
+      },
+      {
         "file": "src/components/seo/SmarterConversionCta.jsx",
         "name": "SmarterConversionCta",
         "line": 34,
@@ -125624,7 +126093,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "openQuickSignup",
-        "line": 22,
+        "line": 23,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -125642,7 +126111,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "SmarterQuickSignupSheet",
-        "line": 41,
+        "line": 42,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -132142,7 +132611,7 @@
       {
         "file": "pages/hub/training/quiz-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 231,
+        "line": 232,
         "excerpt": "placeholder=\"e.g. Hero opens BTN to 2.5x, BB 3-bets to 8x. Hero holds AKo. What is the best action?\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -132151,7 +132620,7 @@
       {
         "file": "pages/hub/training/quiz-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 299,
+        "line": 300,
         "excerpt": "placeholder=\"Why is this the correct play?\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -132160,7 +132629,7 @@
       {
         "file": "pages/hub/training/quiz-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 581,
+        "line": 582,
         "excerpt": "placeholder=\"e.g. BTN vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -136814,7 +137283,7 @@
       {
         "file": "pages/hub/training/qre-explorer.js",
         "name": "QREExplorerPage",
-        "line": 112,
+        "line": 113,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -136840,7 +137309,7 @@
       {
         "file": "pages/hub/training/quiz-builder.js",
         "name": "QuizBuilderPage",
-        "line": 322,
+        "line": 323,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -137009,7 +137478,7 @@
       {
         "file": "pages/hub/training/skill-tree.js",
         "name": "SkillTreePage",
-        "line": 375,
+        "line": 376,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -137391,6 +137860,188 @@
         ]
       },
       {
+        "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
+        "name": "SmarterAccountUnlockGate",
+        "line": 178,
+        "references": 1,
+        "exported": true,
+        "defaultExport": true,
+        "namedFunctionExpression": false,
+        "disposition": "imported-default-entrypoint",
+        "review": "accepted",
+        "rationale": "Default export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/authors/[slug].js",
+          "pages/authors/index.js",
+          "pages/compare/[slug].js",
+          "pages/compare/decision-matrix.js",
+          "pages/compare/index.js",
+          "pages/editorial-standards.js",
+          "pages/facts.js",
+          "pages/features/index.js",
+          "pages/freerolls.js",
+          "pages/games/[variant].js",
+          "pages/games/index.js",
+          "pages/glossary/[term].js",
+          "pages/glossary/index.js",
+          "pages/hub/article.js",
+          "pages/hub/daily-tournaments.js",
+          "pages/hub/events-calendar.js",
+          "pages/hub/help.js",
+          "pages/hub/magazine/[issue].js",
+          "pages/hub/magazine/index.js",
+          "pages/hub/magazine/poker-rooms.js",
+          "pages/hub/memory-games.js",
+          "pages/hub/news.js",
+          "pages/hub/poker-near-me/[pnmTab].js",
+          "pages/hub/poker-near-me/in/[state]/[city].js",
+          "pages/hub/poker-near-me/in/[state]/index.js",
+          "pages/hub/poker-near-me/in/index.js",
+          "pages/hub/poker-series.js",
+          "pages/hub/poker-tours.js",
+          "pages/hub/series/[id].js",
+          "pages/hub/tournaments/this-weekend.js",
+          "pages/hub/training/preflop-charts.js",
+          "pages/hub/training/qre-explorer.js",
+          "pages/hub/training/quiz-builder.js",
+          "pages/hub/training/range-builder.js",
+          "pages/hub/training/skill-tree.js",
+          "pages/hub/venues/[id].js",
+          "pages/hub/video-library.js",
+          "pages/hub/video-library/channels/[channelId].js",
+          "pages/hub/video-library/channels/index.js",
+          "pages/hub/video-library/players/[playerId].js",
+          "pages/hub/video-library/players/index.js",
+          "pages/hub/video-library/playlists/[playlistId].js",
+          "pages/hub/video-library/watch/[videoId]/[[...slug]].js",
+          "pages/hub/vip-membership/compare.js",
+          "pages/hub/wire/[edition].js",
+          "pages/hub/wire/index.js",
+          "pages/learn/[topic].js",
+          "pages/learn/best-poker-players.js",
+          "pages/learn/board-textures/[slug].js",
+          "pages/learn/board-textures/index.js",
+          "pages/learn/category/[category].js",
+          "pages/learn/cheat-sheets.js",
+          "pages/learn/famous-hands/[slug].js",
+          "pages/learn/famous-hands/index.js",
+          "pages/learn/format-migration-guide.js",
+          "pages/learn/formulas/[slug].js",
+          "pages/learn/formulas/index.js",
+          "pages/learn/hands/[hand].js",
+          "pages/learn/hands/index.js",
+          "pages/learn/hud-stats/[stat].js",
+          "pages/learn/hud-stats/index.js",
+          "pages/learn/index.js",
+          "pages/learn/leaks/[slug].js",
+          "pages/learn/leaks/index.js",
+          "pages/learn/live-poker-tells.js",
+          "pages/learn/matchups/[slug].js",
+          "pages/learn/matchups/index.js",
+          "pages/learn/mental-game.js",
+          "pages/learn/online-vs-live-poker.js",
+          "pages/learn/player-types/[type].js",
+          "pages/learn/player-types/index.js",
+          "pages/learn/poker-as-a-business.js",
+          "pages/learn/poker-hand-rankings.js",
+          "pages/learn/poker-math.js",
+          "pages/learn/poker-myths-debunked.js",
+          "pages/learn/positions/[pos].js",
+          "pages/learn/positions/index.js",
+          "pages/learn/roadmaps/[track].js",
+          "pages/learn/roadmaps/index.js",
+          "pages/learn/stakes/[stake].js",
+          "pages/learn/stakes/index.js",
+          "pages/learn/tournament-stages/[stage].js",
+          "pages/learn/tournament-stages/index.js",
+          "pages/poker-rooms/by-game/[game].js",
+          "pages/poker-rooms/by-game/index.js",
+          "pages/poker-rooms/comps-and-tipping-guide.js",
+          "pages/poker-rooms/corridors/[slug].js",
+          "pages/poker-rooms/corridors/index.js",
+          "pages/poker-rooms/first-time-guide.js",
+          "pages/poker-rooms/guides/[city].js",
+          "pages/poker-rooms/guides/index.js",
+          "pages/poker-rooms/index.js",
+          "pages/poker-rooms/international/[slug].js",
+          "pages/poker-rooms/international/index.js",
+          "pages/poker-rooms/seasonal-calendar.js",
+          "pages/poker-rooms/security-and-disputes-guide.js",
+          "pages/poker-rooms/states/[state].js",
+          "pages/poker-rooms/states/index.js",
+          "pages/poker-series/guides/[slug].js",
+          "pages/poker-series/guides/index.js",
+          "pages/pokerbrain.js",
+          "pages/press.js",
+          "pages/research/[slug].js",
+          "pages/research/annual-state-of-poker-2026.js",
+          "pages/research/benchmarks.js",
+          "pages/research/index.js",
+          "pages/rules/[slug].js",
+          "pages/rules/index.js",
+          "pages/search.js",
+          "pages/sitemap.js",
+          "pages/tools/3bet-calculator.js",
+          "pages/tools/bankroll-calculator.js",
+          "pages/tools/blind-structure-calculator.js",
+          "pages/tools/blind-vs-blind-calculator.js",
+          "pages/tools/bluff-catching-calculator.js",
+          "pages/tools/board-texture-analyzer.js",
+          "pages/tools/bounty-calculator.js",
+          "pages/tools/bubble-factor-calculator.js",
+          "pages/tools/chop-calculator.js",
+          "pages/tools/embeds.js",
+          "pages/tools/format-quiz.js",
+          "pages/tools/geometric-bet-calculator.js",
+          "pages/tools/hand-converter.js",
+          "pages/tools/heads-up-push-fold-calculator.js",
+          "pages/tools/home-game-director.js",
+          "pages/tools/home-game-kit.js",
+          "pages/tools/icm-calculator.js",
+          "pages/tools/index.js",
+          "pages/tools/iso-calculator.js",
+          "pages/tools/late-reg-calculator.js",
+          "pages/tools/m-ratio-calculator.js",
+          "pages/tools/mixed-game-placards.js",
+          "pages/tools/mtt-grind-planner.js",
+          "pages/tools/multi-street-ev-calculator.js",
+          "pages/tools/multiway-all-in-calculator.js",
+          "pages/tools/mystery-bounty-tracker.js",
+          "pages/tools/outs-calculator.js",
+          "pages/tools/payout-calculator.js",
+          "pages/tools/plo-bet-calculator.js",
+          "pages/tools/plo-outs-calculator.js",
+          "pages/tools/poker-iq-test.js",
+          "pages/tools/poker-odds-calculator.js",
+          "pages/tools/poker-tax-calculator.js",
+          "pages/tools/poker-trip-planner.js",
+          "pages/tools/poker-winrate-calculator.js",
+          "pages/tools/pot-odds-calculator.js",
+          "pages/tools/preflop-ranges.js",
+          "pages/tools/preflop-ranges/[position].js",
+          "pages/tools/preflop-ranges/index.js",
+          "pages/tools/promo-ev-calculator.js",
+          "pages/tools/push-fold-calculator.js",
+          "pages/tools/rake-calculator.js",
+          "pages/tools/satellite-calculator.js",
+          "pages/tools/session-planner.js",
+          "pages/tools/shot-clock.js",
+          "pages/tools/shot-taking-calculator.js",
+          "pages/tools/side-pot-calculator.js",
+          "pages/tools/spr-calculator.js",
+          "pages/tools/staking-calculator.js",
+          "pages/tools/straddle-calculator.js",
+          "pages/tools/table-selection-calculator.js",
+          "pages/tools/variance-calculator.js",
+          "pages/tools/warmup-cooldown-routine.js",
+          "pages/tools/who-wins-calculator.js",
+          "pages/tools/winrate-confidence-calculator.js",
+          "pages/verification-methodology.js",
+          "src/components/features/FeatureLanderLayout.js",
+          "src/components/seo/TourPageSummary.js"
+        ]
+      },
+      {
         "file": "src/components/seo/SmarterConversionCta.jsx",
         "name": "SmarterConversionCta",
         "line": 34,
@@ -137496,7 +138147,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "openQuickSignup",
-        "line": 22,
+        "line": 23,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -137514,7 +138165,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "SmarterQuickSignupSheet",
-        "line": 41,
+        "line": 42,
         "references": 1,
         "exported": true,
         "defaultExport": true,

@@ -197,11 +197,24 @@
   .floatingWrap {
     left: 10px;
     right: 10px;
-    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(66px + env(safe-area-inset-bottom, 0px));
   }
 
   .floatingCard {
-    padding: 12px 14px;
+    padding: 9px 11px;
+  }
+
+  .floatingCard .innerRow {
+    gap: 8px;
+  }
+
+  .floatingCard .eyebrowRow {
+    margin-bottom: 2px;
+  }
+
+  .floatingCard .headline {
+    font-size: 13.5px;
+    line-height: 1.25;
   }
 
   .formRow {
@@ -209,6 +222,7 @@
     flex-wrap: wrap;
     width: 100%;
     max-width: none;
+    gap: 6px;
   }
 
   .emailInput {

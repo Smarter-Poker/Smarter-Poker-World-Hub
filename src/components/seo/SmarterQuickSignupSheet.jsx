@@ -10,6 +10,7 @@ import {
 import styles from './SmarterSeoKit.module.css';
 
 export const QUICK_SIGNUP_EVENT = 'sp:open-quick-signup';
+export const QUICK_SIGNUP_STATE_EVENT = 'sp:quick-signup-state';
 
 function sanitizeRedirect(raw) {
   const value = String(raw || '').trim();
@@ -79,12 +80,22 @@ export default function SmarterQuickSignupSheet() {
   }, [router]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    try {
+      window.dispatchEvent(
+        new CustomEvent(QUICK_SIGNUP_STATE_EVENT, { detail: { open: Boolean(payload) } })
+      );
+    } catch (_) {
+      /* ignore */
+    }
     if (!payload) return undefined;
     const onKeyDown = (e) => {
       if (e.key === 'Escape') close();
     };
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
   }, [payload, close]);
 
   if (!payload) return null;
@@ -109,7 +120,11 @@ export default function SmarterQuickSignupSheet() {
         /* non-blocking */
       }
       const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker';
-      const baseCallbackUrl = `${origin}/auth/callback?redirect=${encodeURIComponent(payload.redirectPath)}`;
+      const cbParams = new URLSearchParams();
+      cbParams.set('redirect', payload.redirectPath);
+      if (payload.unlockKey) cbParams.set('unlock', String(payload.unlockKey).slice(0, 64));
+      if (payload.source) cbParams.set('src', String(payload.source).slice(0, 64));
+      const baseCallbackUrl = `${origin}/auth/callback?${cbParams.toString()}`;
       const callbackUrl = nonce ? withAttributionNonce(baseCallbackUrl, nonce) : baseCallbackUrl;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

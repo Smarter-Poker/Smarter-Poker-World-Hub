@@ -4,6 +4,8 @@ import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const FEATURES_FAQS = [
@@ -302,28 +304,25 @@ export default function FeaturesIndexPage() {
 
       <div style={styles.page}>
       <div style={styles.container}>
-        <header style={styles.header}>
-          <div style={styles.badge}>Platform Verticals Directory</div>
-          <h1 style={styles.title}>Smarter.Poker Platform Features</h1>
-          <p style={styles.subtitle}>
-            Explore Professional Poker Tools Built For Players, Dealers, Cardroom Managers, And Coaches.
-            Every Tool Runs Directly In Your Web Browser With Zero Subscription Fees Or Paywalls.
-          </p>
-          <div style={styles.headerLinks}>
-            <Link href="/auth/signup?redirect=/hub&src=features-index" style={styles.headerCta}>
-              Create Free Account
-            </Link>
-            <Link href="/compare" style={styles.headerLink}>
-              View Competitor Comparisons
-            </Link>
-            <Link href="/freerolls" style={styles.headerLink}>
-              Daily Freerolls
-            </Link>
-            <Link href="/features.md" style={styles.headerLinkSecondary}>
-              View Plain-Text Markdown Directory
-            </Link>
-          </div>
-        </header>
+        <div style={{ marginBottom: 36 }}>
+          <SmarterSeoMasthead
+            vertical="features"
+            eyebrow="Platform Verticals Directory"
+            title="Smarter.Poker Platform Features"
+            lead="15 Professional Poker Verticals Built For Players, Dealers, Cardroom Managers & Coaches - Zero Paywalls."
+            stats={[
+              { label: 'Core Verticals', value: `${ALL_FEATURES.length} Modules` },
+              { label: 'Free Tools', value: '52 Calcs' },
+              { label: 'GTO Drills', value: '107 Games' },
+              { label: 'Live Rooms', value: '715+ Venues' },
+            ]}
+            redirectPath="/features"
+            unlockKey="masthead-features"
+            primaryCtaLabel="Create Free Account"
+            secondaryHref="/compare"
+            secondaryLabel="Competitor Matrix"
+          />
+        </div>
 
         <main style={styles.grid}>
           {ALL_FEATURES.map((feat) => (
@@ -363,7 +362,7 @@ export default function FeaturesIndexPage() {
               Direct Server-Rendered Index Of Every Public Training Utility, Solver Reference, ICM Simulator, And Personal Assistant Tool Inside The Smarter.Poker World Hub.
             </p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: 14 }}>
             {WORLD_HUB_TOOLS_DIRECTORY.map((tool) => (
               <Link
                 key={tool.href}
@@ -376,8 +375,8 @@ export default function FeaturesIndexPage() {
                   gap: 4,
                   padding: '14px 16px',
                   background: '#081121',
-                  border: '1px solid rgba(148, 184, 224, 0.28)',
-                  borderRadius: 10,
+                  border: '1px solid #2b4663',
+                  borderRadius: 0,
                   textDecoration: 'none',
                 }}
               >
@@ -407,7 +406,15 @@ export default function FeaturesIndexPage() {
           slug="smarter-poker-features-directory"
         />
 
-        <div style={{ marginTop: 40 }}>
+        <div style={{ marginTop: 32 }}>
+          <SmarterAccountUnlockGate
+            variant="calculator-pro"
+            context="features-index"
+            redirectPath="/features"
+          />
+        </div>
+
+        <div style={{ marginTop: 32 }}>
           <SmarterConversionCta
             eyebrow="Free Smarter.Poker Account"
             title="Unlock All 15 Platform Verticals Free"
@@ -468,8 +475,8 @@ const styles = {
     display: 'inline-block',
     padding: '6px 14px',
     background: 'rgba(56, 189, 248, 0.12)',
-    border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: 20,
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     color: '#38bdf8',
     fontSize: '0.85rem',
     fontWeight: 700,
@@ -504,8 +511,8 @@ const styles = {
     minHeight: 44,
     padding: '10px 22px',
     background: 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)',
-    border: '1px solid rgba(148, 184, 224, 0.36)',
-    borderRadius: 8,
+    border: '1px solid #5bc0ff',
+    borderRadius: 0,
     color: '#ffffff',
     fontSize: '0.9rem',
     fontWeight: 700,
@@ -518,8 +525,8 @@ const styles = {
     minHeight: 44,
     padding: '10px 20px',
     background: '#081121',
-    border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: 8,
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     color: '#38bdf8',
     fontSize: '0.9rem',
     fontWeight: 600,
@@ -532,8 +539,8 @@ const styles = {
     minHeight: 44,
     padding: '10px 20px',
     background: 'transparent',
-    border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: 8,
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     color: '#cbd5e1',
     fontSize: '0.9rem',
     fontWeight: 600,
@@ -541,15 +548,15 @@ const styles = {
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))',
     gap: 24,
   },
   card: {
     display: 'flex',
     flexDirection: 'column',
     background: '#081121',
-    border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: 14,
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: 24,
     boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
   },
@@ -563,8 +570,8 @@ const styles = {
     alignSelf: 'flex-start',
     padding: '4px 10px',
     background: 'rgba(56, 189, 248, 0.12)',
-    border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: 12,
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     color: '#38bdf8',
     fontSize: '0.75rem',
     fontWeight: 700,
@@ -606,8 +613,8 @@ const styles = {
     minHeight: 44,
     padding: '8px 16px',
     background: 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)',
-    border: '1px solid rgba(148, 184, 224, 0.35)',
-    borderRadius: 8,
+    border: '1px solid #5bc0ff',
+    borderRadius: 0,
     color: '#ffffff',
     fontSize: '0.85rem',
     fontWeight: 700,
@@ -620,8 +627,8 @@ const styles = {
     minHeight: 44,
     padding: '8px 14px',
     background: '#060d1a',
-    border: '1px solid rgba(148, 184, 224, 0.28)',
-    borderRadius: 8,
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     color: '#cbd5e1',
     fontSize: '0.85rem',
     fontWeight: 600,
