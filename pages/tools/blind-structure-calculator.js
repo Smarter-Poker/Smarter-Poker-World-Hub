@@ -18,6 +18,7 @@ import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const TDA_CHIP_DISTRIBUTION = [
   { denom: '100 Chip', color: 'Black', qty20k: '10 Chips', value20k: '1,000', colorUp: 'End Of Level 6 (Before 500/1,000)' },
@@ -556,6 +557,7 @@ export async function getServerSideProps({ req, res, query }) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(res);
   return {
     props: {
       initialPlayers: Number(query?.players) || 18,

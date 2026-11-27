@@ -19,6 +19,7 @@ import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const PLO_PRESETS = [
   {
@@ -708,6 +709,15 @@ export default function PloBetCalculatorPage({
             <Link href="/tools/poker-odds-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               PLO4 / PLO5 / PLO6 Equity Calculator
             </Link>
+            <Link href="/tools/plo-outs-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              PLO Wrap &amp; Nut-Out Calculator
+            </Link>
+            <Link href="/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study" style={{ padding: '8px 14px', background: '#020608', color: '#38bdf8', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              Study: PLO4 Vs PLO5 Vs PLO6 Equity &amp; Variance
+            </Link>
+            <Link href="/games/pot-limit-omaha" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              Pot-Limit Omaha Rules &amp; Strategy Guide
+            </Link>
             <Link href="/tools/spr-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               SPR &amp; Geometric Bet Calculator
             </Link>
@@ -765,6 +775,7 @@ export async function getServerSideProps({ req, res, query }) {
     return { props: {} };
   }
 
+  setPublicSeoHtmlCache(res);
   return {
     props: {
       initialPreviousPot: Number(query?.previousPot || query?.pot) || 20,

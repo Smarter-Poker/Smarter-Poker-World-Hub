@@ -433,6 +433,25 @@ export default function HomeGamesByState({
       <Head>
         <script
           type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'CollectionPage',
+              '@id': `${canonical}#collection`,
+              name: pageTitle,
+              description: pageDescription,
+              url: canonical,
+              inLanguage: 'en-US',
+              isAccessibleForFree: true,
+              speakable: {
+                '@type': 'SpeakableSpecification',
+                cssSelector: ['h1', 'p'],
+              },
+            }).replace(/</g, '\\u003c'),
+          }}
+        />
+        <script
+          type="application/ld+json"
           // F119: g.name is user-authored. See [slug].js for threat model.
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({

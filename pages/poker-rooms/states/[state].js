@@ -50,7 +50,24 @@ export async function getStaticProps({ params }) {
     };
   }
 
-  const hasLiveStateDirectory = STATES_WITH_LIVE_VENUES.has(String(stateGuide.code || '').toUpperCase());
+  const stateCodeUpper = String(stateGuide.code || '').toUpperCase();
+  const hasLiveStateDirectory = STATES_WITH_LIVE_VENUES.has(stateCodeUpper);
+
+  const topStateVenues = (venueDirectorySnapshot?.venues || [])
+    .filter((v) => v && !v.is_suppressed && String(v.state || '').trim().toUpperCase() === stateCodeUpper && v.id && v.name)
+    .sort((a, b) => {
+      if (Boolean(b.is_featured) !== Boolean(a.is_featured)) return b.is_featured ? 1 : -1;
+      const tablesDiff = (Number(b.poker_tables) || 0) - (Number(a.poker_tables) || 0);
+      if (tablesDiff !== 0) return tablesDiff;
+      return (Number(b.trust_score) || 0) - (Number(a.trust_score) || 0);
+    })
+    .slice(0, 8)
+    .map((v) => ({
+      id: v.id,
+      name: v.name,
+      city: v.city || '',
+      pokerTables: Number(v.poker_tables) || 0,
+    }));
 
   const peerStates = US_POKER_STATES.filter((s) => s.slug !== stateGuide.slug)
     .slice(0, 8)
@@ -67,11 +84,12 @@ export async function getStaticProps({ params }) {
       stateGuide,
       peerStates,
       hasLiveStateDirectory,
+      topStateVenues,
     },
   };
 }
 
-export default function USStatePokerDetailPage({ stateGuide, peerStates = [], hasLiveStateDirectory = false }) {
+export default function USStatePokerDetailPage({ stateGuide, peerStates = [], hasLiveStateDirectory = false, topStateVenues = [] }) {
   const liveRoomsHref = hasLiveStateDirectory
     ? `/hub/poker-near-me/in/${stateGuide.code.toLowerCase()}`
     : '/hub/poker-near-me/lobby';
@@ -259,6 +277,32 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
               </p>
             </div>
           </div>
+
+          {topStateVenues.length > 0 && (
+            <div style={{ marginTop: '20px', paddingTop: '18px', borderTop: '1px solid #1e293b' }}>
+              <h3 style={styles.h3}>Top Verified Live Poker Rooms In {stateGuide.name}</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
+                {topStateVenues.map((venue) => (
+                  <Link
+                    key={venue.id}
+                    href={`/hub/venues/${venue.id}`}
+                    style={{
+                      padding: '8px 12px',
+                      background: '#020608',
+                      border: '1px solid #334155',
+                      borderRadius: '4px',
+                      color: '#25c8ff',
+                      textDecoration: 'none',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {venue.name}{venue.city ? ` (${venue.city})` : ''}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Contextual Internal-Link Mesh */}

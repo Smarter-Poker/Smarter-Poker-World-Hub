@@ -1,5 +1,6 @@
 import React from 'react';
 import FeatureLanderLayout from '../../src/components/features/FeatureLanderLayout';
+import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 export default function PokerAiCoachPage() {
   const features = [
@@ -108,5 +109,6 @@ export async function getServerSideProps({ req, res, query }) {
     res.end();
     return { props: {} };
   }
+  setPublicSeoHtmlCache(res);
   return { props: {} };
 }

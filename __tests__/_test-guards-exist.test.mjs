@@ -926,6 +926,7 @@ import './newsletter-v6-forensic-hardening.law.test.mjs';
 import './seo-aeo-geo-phase4-20261126.law.test.mjs';
 import './seo-aeo-geo-forensic-hardening-20261126.law.test.mjs';
 import './seo-aeo-geo-phase6-20261126.law.test.mjs';
+import './seo-aeo-geo-phase7-20261126.law.test.mjs';
 import './a-request-the-database-must-refuse-is-not-sent.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
