@@ -37,7 +37,7 @@ function database(mode = {}) {
         },
         select(columns) { calls.push({ table, kind: 'select', columns }); return query; },
         eq(column, value) { calls.push({ table, kind: 'eq', column, value }); filters.push(row => row[column] === value); return query; },
-        in(column, values) { filters.push(row => values.includes(row[column])); return query; },
+        in(column, values) { calls.push({ table, kind: 'in', column, values: [...values] }); filters.push(row => values.includes(row[column])); return query; },
         then(resolve, reject) {
           let data = [...records.values()].filter(row => filters.every(filter => filter(row)));
           if (mode.missingReadback) data = [];
@@ -105,6 +105,39 @@ test('duplicate and concurrent imports preserve review edits and isolate owners'
   assert.equal(db.records.size, 2);
   assert.ok(db.calls.filter(call => call.kind === 'select').every(call => call.columns === 'id,hand_id,user_id'));
   assert.ok(db.calls.some(call => call.kind === 'eq' && call.column === 'user_id' && call.value === OWNER));
+});
+
+test('a full 100-hand import reads back every distinct saved identity within the query bound', async () => {
+  const input = options();
+  const hand = input.hands[0];
+  input.hands = Array.from({ length: 100 }, (_, index) => ({ ...hand, id: `bounded-import-${index}` }));
+  const db = database();
+  const result = await persistImportedSavedHands(db, input);
+  assert.equal(result.saved, true);
+  assert.equal(result.count, 100);
+  assert.equal(db.records.size, 100);
+  assert.equal(new Set(result.handIds).size, 100);
+  const stored = [...db.records.values()];
+  assert.deepEqual(new Set(stored.map(row => row.hand_data.importedHandId)), new Set(input.hands.map(row => row.id)));
+  assert.deepEqual(new Set(result.handIds), new Set(stored.map(row => row.id)));
+  const reads = db.calls.filter(call => call.kind === 'in');
+  assert.equal(reads.length, 1, 'the validated maximum fits in one bounded readback');
+  assert.equal(reads[0].table, 'hand_histories');
+  assert.equal(reads[0].column, 'hand_id');
+  assert.equal(reads[0].values.length, 100);
+  assert.deepEqual(new Set(reads[0].values), new Set(stored.map(row => row.hand_id)));
+  assert.deepEqual(db.calls.filter(call => call.kind === 'eq').map(call => [call.column, call.value]), [['user_id', OWNER]]);
+  assert.equal(db.calls.filter(call => call.kind === 'upsert').length, 1);
+});
+
+test('a 101-hand import rejects before issuing any database call', async () => {
+  const input = options();
+  const hand = input.hands[0];
+  input.hands = Array.from({ length: 101 }, (_, index) => ({ ...hand, id: `oversized-import-${index}` }));
+  const calls = [];
+  const db = { from(...args) { calls.push(args); throw new Error('Database Must Not Be Called'); } };
+  await assert.rejects(persistImportedSavedHands(db, input), /Bounded Set/);
+  assert.deepEqual(calls, [], 'rejection must precede both writes and readback');
 });
 
 test('a lost write acknowledgment is resolved by owner-scoped durable readback', async () => {

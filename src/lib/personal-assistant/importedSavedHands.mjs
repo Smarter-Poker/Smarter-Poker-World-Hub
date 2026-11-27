@@ -113,7 +113,7 @@ export async function persistImportedSavedHands(db, options) {
   const readback = await db.from('hand_histories')
     .select('id,hand_id,user_id')
     .eq('user_id', options.userId)
-    .in('hand_id', rows.map((row) => row.hand_id));
+    .in('hand_id', rows.slice(0, MAX_IMPORT_HANDS).map((row) => row.hand_id));
   if (readback.error || !Array.isArray(readback.data)) throw new Error('Review Queue Readback Failed');
   const found = new Map(readback.data.filter((row) => row.user_id === options.userId).map((row) => [row.hand_id, row.id]));
   if (rows.some((row) => !found.get(row.hand_id))) {
