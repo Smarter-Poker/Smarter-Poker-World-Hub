@@ -411,8 +411,11 @@ html.reels-lock {
      was unhittable. UniversalHeader.js also resets min-height in its own
      stylesheet; this exclusion is here so the intent is visible at the source
      of the collision rather than only at the site that has to survive it. */
-  button:not(.sp-icon-btn):not(.approved-global-header__button),
-  a,
+  /* Magazine pages (.spm-sheet) are printed sheets sized in container units, so the
+     phone resets below skip them; otherwise a phone draws every logo, headline and
+     link at full size and the page overflows its trim. */
+  button:not(.sp-icon-btn):not(.approved-global-header__button):not(.spm-sheet *),
+  a:not(.spm-sheet *),
   input,
   select,
   textarea {
@@ -420,15 +423,15 @@ html.reels-lock {
     font-size: 16px;
   }
 
-  h1 {
+  h1:not(.spm-sheet *) {
     font-size: 1.75rem !important;
   }
 
-  h2 {
+  h2:not(.spm-sheet *) {
     font-size: 1.5rem !important;
   }
 
-  h3 {
+  h3:not(.spm-sheet *) {
     font-size: 1.25rem !important;
   }
 
@@ -439,7 +442,7 @@ html.reels-lock {
     height: auto;
   }
 
-  img:not(.sp-avatar):not([style*="border-radius: 50%"]):not([style*="borderRadius"]) {
+  img:not(.sp-avatar):not([style*="border-radius: 50%"]):not([style*="borderRadius"]):not(.spm-sheet *) {
     max-width: 100%;
     height: auto;
   }

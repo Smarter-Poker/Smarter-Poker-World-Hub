@@ -2629,4 +2629,13 @@ test('MAG LAW 25: decks and paragraphs clip on a full sentence, never mid-word, 
     assert.equal(new Set(art).size, art.length, 'Each piece of brand art prints on one page only');
     const css = read('src/components/magazine/magazine-print.css');
     assert.match(css, /\.spm-sheet \.spm-pullquote,\s*\n\.spm-pullquote \{/, 'The pull quote must out-rank the .spm-sheet blockquote reset so its quote mark never overlaps the text');
+    const renderer = read('src/components/magazine/MagazineSpreadRenderer.js');
+    assert.match(renderer, /const BRAIN_MARK = '\/images\/magazine\/brain-mark\.webp'/, 'The cover brain mark must be the transparent cut, never the checkerboard icon');
+    const mark = fs.readFileSync(path.join(REPO, 'public/images/magazine/brain-mark.webp'));
+    const chunk = mark.toString('ascii', 12, 16);
+    assert.ok(chunk === 'VP8L' || (chunk === 'VP8X' && (mark[20] & 0x10) !== 0), 'The brain mark must carry a real alpha channel');
+    const phone = read('src/index.css');
+    for (const sel of ['img:not(.sp-avatar):not([style*="border-radius: 50%"]):not([style*="borderRadius"]):not(.spm-sheet *)', 'h1:not(.spm-sheet *)', 'h2:not(.spm-sheet *)', 'h3:not(.spm-sheet *)', 'a:not(.spm-sheet *)']) {
+        assert.ok(phone.includes(sel), `The phone reset must skip magazine sheets: ${sel}`);
+    }
 });

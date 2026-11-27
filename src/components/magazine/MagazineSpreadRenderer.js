@@ -29,7 +29,8 @@ import {
 export const FALLBACK_MAGAZINE_IMAGE = '/api/news/email-image?fallback=1&w=960&h=540';
 
 const LOGO_LIGHT = '/smarter-poker-logo-final.png';
-const BRAIN_MARK = '/brain-icon.webp';
+// Cut from the transparent Smarter.Poker logo; brain-icon.png has a checkerboard painted into it.
+const BRAIN_MARK = '/images/magazine/brain-mark.webp';
 const WORDMARK = '/images/brand-text-trimmed.png';
 
 /**
