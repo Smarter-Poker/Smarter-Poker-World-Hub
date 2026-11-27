@@ -436,8 +436,11 @@ const wiringEnd = webhookSource.indexOf('// DISPUTES (Diamond Accounting Standar
 assert.ok(wiringStart > -1 && wiringEnd > wiringStart, 'the invoice handlers must be extractable');
 const wiringSource = webhookSource.slice(wiringStart, webhookSource.lastIndexOf('// ----', wiringEnd));
 
-function loadWiring({ outcome, ledgerRow = null, ledgerError = null, retrieved = null, deliver } = {}) {
-  const calls = { subscriptionEvents: [], delivered: [], retrieves: [], ledgerReads: 0 };
+function loadWiring({ outcome, ledgerRow = null, ledgerError = null, retrieved = null, deliver, pinnedInvoices = null } = {}) {
+  const calls = { subscriptionEvents: [], delivered: [], retrieves: [], invoiceRetrieves: [], ledgerReads: 0 };
+  // The pinned client re-reads each event invoice. By default it returns the
+  // event object itself, which is already the pinned 2023-10-16 shape.
+  const seenInvoices = new Map();
   const context = {
     console: { info() {}, warn() {}, error() {} },
     stripeObjectId: (value) => (typeof value === 'string' ? value : value?.id || null),
@@ -477,13 +480,29 @@ function loadWiring({ outcome, ledgerRow = null, ledgerError = null, retrieved =
           return retrieved;
         },
       },
+      invoices: {
+        async retrieve(id) {
+          calls.invoiceRetrieves.push(id);
+          if (pinnedInvoices) return pinnedInvoices[id] ?? null;
+          return seenInvoices.get(id) ?? null;
+        },
+      },
     },
   };
   const handlers = vm.runInNewContext(
     `${wiringSource}\n({ handleInvoicePaymentSucceeded, handleInvoicePaymentFailed, handleInvoiceUpcoming })`,
     context
   );
-  return { calls, ...handlers };
+  const remember = (fn) => (invoice) => {
+    if (invoice?.id) seenInvoices.set(invoice.id, invoice);
+    return fn(invoice);
+  };
+  return {
+    calls,
+    handleInvoicePaymentSucceeded: remember(handlers.handleInvoicePaymentSucceeded),
+    handleInvoicePaymentFailed: remember(handlers.handleInvoicePaymentFailed),
+    handleInvoiceUpcoming: handlers.handleInvoiceUpcoming,
+  };
 }
 
 const projected = (overrides = {}) => ({
@@ -547,6 +566,59 @@ test('a failed renewal projects past_due and then tells the member', async () =>
   assert.deepEqual(harness.calls.subscriptionEvents[0].options, undefined);
   assert.equal(harness.calls.delivered.length, 1);
   assert.equal(harness.calls.delivered[0].notice.dedupeKey, 'vip_payment_failed:in_renewal');
+});
+
+/* The endpoint has no pinned API version, so Stripe signs invoice events in
+   the account default (2026-01-28.clover): no invoice.subscription, no
+   invoice.paid. Each settled invoice is re-read through the pinned client. */
+const cloverShape = (invoice) => {
+  const { subscription, paid, ...rest } = invoice;
+  return { ...rest, parent: { type: 'subscription_details', subscription_details: { subscription } } };
+};
+
+test('a clover-shaped $1 invoice event still settles the membership and confirms', async () => {
+  const pinned = firstInvoice();
+  const harness = loadWiring({ outcome: projected(), pinnedInvoices: { in_first: pinned } });
+  await harness.handleInvoicePaymentSucceeded(cloverShape(firstInvoice()));
+  assert.deepEqual(harness.calls.invoiceRetrieves, ['in_first']);
+  assert.equal(harness.calls.subscriptionEvents.length, 1);
+  assert.equal(harness.calls.subscriptionEvents[0].reference, SUBSCRIPTION_ID);
+  assert.equal(harness.calls.subscriptionEvents[0].options.triggerInvoice, pinned);
+  assert.equal(harness.calls.delivered.length, 1);
+  assert.equal(harness.calls.delivered[0].notice.type, 'vip_intro_confirmation');
+});
+
+test('a clover-shaped failed renewal still projects past_due and tells the member', async () => {
+  const harness = loadWiring({
+    outcome: projected({ status: 'past_due', subscription: introSubscription({ status: 'past_due' }) }),
+    pinnedInvoices: { in_renewal: failedInvoice() },
+  });
+  await harness.handleInvoicePaymentFailed(cloverShape(failedInvoice()));
+  assert.equal(harness.calls.subscriptionEvents.length, 1);
+  assert.equal(harness.calls.subscriptionEvents[0].reference, SUBSCRIPTION_ID);
+  assert.equal(harness.calls.delivered.length, 1);
+  assert.equal(harness.calls.delivered[0].notice.dedupeKey, 'vip_payment_failed:in_renewal');
+});
+
+test('a clover-shaped upcoming invoice still reminds the member', async () => {
+  const harness = loadWiring({
+    ledgerRow: { user_id: USER_ID, tier: 'monthly', status: 'active' },
+    retrieved: introSubscription(),
+  });
+  await harness.handleInvoiceUpcoming(cloverShape(upcomingInvoice()));
+  assert.equal(harness.calls.retrieves[0].id, SUBSCRIPTION_ID);
+  assert.equal(harness.calls.delivered.length, 1);
+  assert.equal(harness.calls.delivered[0].notice.type, 'vip_first_renewal_reminder');
+});
+
+test('an invoice the pinned client cannot return fails the event so Stripe retries', async () => {
+  const harness = loadWiring({ outcome: projected(), pinnedInvoices: {} });
+  await assert.rejects(
+    harness.handleInvoicePaymentSucceeded(cloverShape(firstInvoice())),
+    /exact event invoice/
+  );
+  assert.equal(harness.calls.subscriptionEvents.length, 0);
+  assert.equal(harness.calls.delivered.length, 0);
 });
 
 test('invoice.upcoming reminds only the ledger owner of an active $1 subscription', async () => {

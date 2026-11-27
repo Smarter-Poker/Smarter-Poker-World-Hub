@@ -1514,9 +1514,11 @@ async function handleStripeSubscriptionEvent(subscriptionReference, {
     return { projected: true, userId, tier, status, subscription };
 }
 
-async function handleInvoicePaymentSucceeded(invoice) {
-    if (stripeObjectId(invoice?.subscription)) {
-        const outcome = await handleStripeSubscriptionEvent(invoice.subscription, { triggerInvoice: invoice });
+async function handleInvoicePaymentSucceeded(eventInvoice) {
+    const subscriptionId = eventInvoiceSubscriptionId(eventInvoice);
+    if (subscriptionId) {
+        const invoice = await pinnedEventInvoice(eventInvoice);
+        const outcome = await handleStripeSubscriptionEvent(subscriptionId, { triggerInvoice: invoice });
         await sendVipLifecycleNotice(outcome, () => buildVipIntroConfirmationNotice({
             subscription: outcome.subscription,
             invoice,
@@ -1526,15 +1528,47 @@ async function handleInvoicePaymentSucceeded(invoice) {
     }
 }
 
-async function handleInvoicePaymentFailed(invoice) {
-    if (stripeObjectId(invoice?.subscription)) {
-        const outcome = await handleStripeSubscriptionEvent(invoice.subscription);
+async function handleInvoicePaymentFailed(eventInvoice) {
+    const subscriptionId = eventInvoiceSubscriptionId(eventInvoice);
+    if (subscriptionId) {
+        const invoice = await pinnedEventInvoice(eventInvoice);
+        const outcome = await handleStripeSubscriptionEvent(subscriptionId);
         await sendVipLifecycleNotice(outcome, () => buildVipPaymentFailedNotice({
             subscription: outcome.subscription,
             invoice,
             status: outcome.status,
         }));
     }
+}
+
+// -------------------------------------------------------------------------
+// INVOICE EVENTS ARRIVE IN THE ACCOUNT'S API VERSION (2026-11-27)
+//
+// The webhook endpoint has no pinned version, so Stripe signs invoice events
+// in the account default (2026-01-28.clover). From 2025-03-31 that shape has
+// no `invoice.subscription` (it moved to parent.subscription_details) and no
+// `invoice.paid`. The handlers above were written for the 2023-10-16 shape the
+// API client is pinned to, so reading `invoice.subscription` off the event
+// found nothing and all three invoice handlers silently did nothing.
+//
+// The subscription id is read from either shape, and a settled invoice is
+// re-read through the pinned client so every field downstream is the one the
+// code was written for. The subscription itself was already re-read.
+// -------------------------------------------------------------------------
+function eventInvoiceSubscriptionId(invoice) {
+    return stripeObjectId(invoice?.subscription)
+        || stripeObjectId(invoice?.parent?.subscription_details?.subscription)
+        || null;
+}
+
+async function pinnedEventInvoice(invoice) {
+    const invoiceId = stripeObjectId(invoice);
+    if (!invoiceId) throw new Error('Stripe invoice event has no invoice id');
+    const pinned = await stripe.invoices.retrieve(invoiceId);
+    if (!pinned || pinned.id !== invoiceId) {
+        throw new Error('Stripe did not return the exact event invoice');
+    }
+    return pinned;
 }
 
 // -------------------------------------------------------------------------
@@ -1566,9 +1600,13 @@ async function sendVipLifecycleNotice(outcome, buildNotice) {
     return 'done';
 }
 
-async function handleInvoiceUpcoming(invoice) {
-    const subscriptionId = stripeObjectId(invoice?.subscription);
+async function handleInvoiceUpcoming(eventInvoice) {
+    // An upcoming invoice has no id to re-read, so its one moved field is
+    // normalized in place. The builder reads only amount_due, customer and
+    // subscription, which mean the same in both shapes.
+    const subscriptionId = eventInvoiceSubscriptionId(eventInvoice);
     if (!subscriptionId) return;
+    const invoice = { ...eventInvoice, subscription: subscriptionId };
     // The ledger row is the authority that this is a VIP subscription and who
     // owns it. No row, or a row that is not active, means there is nobody to
     // remind and Stripe is not called.
