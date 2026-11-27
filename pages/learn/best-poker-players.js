@@ -241,7 +241,7 @@ export default function BestPokerPlayersPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#070b14', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title={pageTitle}
+        title="Best Poker Players Of All Time: Top 10 Legends"
         description={pageDescription}
         canonical={PAGE_PATH}
         ogType="article"

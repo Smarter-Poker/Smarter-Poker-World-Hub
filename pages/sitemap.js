@@ -176,7 +176,12 @@ export default function HtmlSitemapPage({
 
   return (
     <div style={{ minHeight: '100vh', background: '#070b14', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <SEOHead title={title} description={description} canonical={CANONICAL_PATH} jsonLd={jsonLd} />
+      <SEOHead
+        title="HTML Sitemap: Complete Smarter.Poker Directory"
+        description={description}
+        canonical={CANONICAL_PATH}
+        jsonLd={jsonLd}
+      />
 
       <UniversalHeader />
 
