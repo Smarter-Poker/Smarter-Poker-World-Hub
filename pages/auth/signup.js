@@ -514,10 +514,14 @@ export default function SignUpPage() {
       // Bind any campaign to THIS flow: a single-use nonce the callback must
       // echo back (src/lib/acquisition/firstTouch.mjs).
       const attributionNonce = beginOAuthAttribution();
+      const callbackBase =
+        typeof buildCallbackUrl === 'function'
+          ? buildCallbackUrl()
+          : `${window.location.origin}/auth/callback`;
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: withAttributionNonce(buildCallbackUrl(), attributionNonce),
+          redirectTo: withAttributionNonce(callbackBase, attributionNonce),
           skipBrowserRedirect: true,
           queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
           // Supabase's Facebook default is `email` alone - no name, no avatar,

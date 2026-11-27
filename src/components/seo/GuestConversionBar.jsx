@@ -139,6 +139,7 @@ export default function GuestConversionBar() {
           top: 0;
           z-index: 850;
           box-sizing: border-box;
+          padding-top: env(safe-area-inset-top, 0px);
           width: 100%;
           max-width: 100%;
           min-width: 0;
@@ -151,6 +152,7 @@ export default function GuestConversionBar() {
 
         .sd-guest-bar--below-header {
           top: var(--sp-header-height, calc(100vw * 168 / 1648));
+          padding-top: 0;
         }
 
         .sd-guest-bar__inner {

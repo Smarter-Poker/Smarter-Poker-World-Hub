@@ -12,8 +12,10 @@ test('CRO Law 1: SmarterConversionCta and GuestConversionBar enforce #SMARTERDES
   const barSrc = read('src/components/seo/GuestConversionBar.jsx');
   const appSrc = read('pages/_app.js');
 
+  assert.ok(!ctaSrc.includes('safe-area-inset-top'), 'SmarterConversionCta.jsx must never claim safe-area-inset-top');
+  assert.ok(barSrc.includes('env(safe-area-inset-top, 0px)'), 'GuestConversionBar.jsx must own safe-area-inset-top when topmost chrome');
+
   for (const [name, src] of [['SmarterConversionCta.jsx', ctaSrc], ['GuestConversionBar.jsx', barSrc]]) {
-    assert.ok(!src.includes('safe-area-inset-top'), `${name} must never claim safe-area-inset-top`);
     assert.ok(!src.includes('\u2014'), `${name} must never contain em dashes`);
     assert.ok(src.includes('/auth/signup'), `${name} must link directly to /auth/signup`);
     assert.doesNotMatch(
