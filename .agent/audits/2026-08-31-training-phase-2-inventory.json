@@ -112460,6 +112460,7 @@
         "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
         "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+        "__tests__/smarter-poker-magazine.law.test.mjs",
         "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs"
       ]
     },
