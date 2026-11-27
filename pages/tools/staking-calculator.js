@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -550,6 +551,16 @@ export default function StakingCalculatorPage({
             </div>
           </div>
         </section>
+
+        {!isEmbed && (
+          <div style={{ marginBottom: 32 }}>
+            <SmarterAccountUnlockGate
+              variant="calculator-pro"
+              context="tools-staking-calculator"
+              redirectPath={canonicalPath}
+            />
+          </div>
+        )}
 
         {/* Reference Matrix */}
         <section style={{ marginBottom: 36 }}>

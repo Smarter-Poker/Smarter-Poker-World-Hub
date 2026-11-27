@@ -1,0 +1,847 @@
+/*
+ * VIDEO LIBRARY SUB PAGES ON THE CONSOLE (Dan, 2026-11-27).
+ *
+ * "DO THE VIDEO LIBRARY PAGES THE SAME WAY AND SAME STYLE" as the Club Arena
+ * Player Stats page: the shared chrome mast (VideoLibraryWorkspaceHeader), every
+ * section in a bevelled gunmetal frame with the blue LED rails, larger type, and
+ * every figure and title centred inside its frame. Explanations that used to sit
+ * on these pages as grey sentences live behind the mast's chrome "?".
+ *
+ * Scope: channels, players, playlists, watch and owner pages. Every rule hangs
+ * off `.vl-console-page`, which only those pages carry, so the library index and
+ * its shared components are untouched. The frame slices are the same Club Arena
+ * console art the Player Stats page paints with (chrome-readout / chrome-row /
+ * chrome-stat from the shared mast, chrome-active for the lit control).
+ */
+.vl-console-page {
+    --vlc-readout: url('/assets/video-library/mast/chrome-readout.webp');
+    --vlc-row: url('/assets/video-library/mast/chrome-row.webp');
+    --vlc-stat: url('/assets/video-library/mast/chrome-stat.webp');
+    --vlc-active: url('/assets/video-library/console-pages/chrome-active.webp');
+    --vlc-panel:
+        radial-gradient(ellipse at 87% 0%, #19374f 0%, transparent 65%),
+        linear-gradient(154deg, #11263a, #07131e 56%, #081927);
+    --vlc-tile: linear-gradient(160deg, #1c3247, #0d2031 50%, #091625);
+    --vlc-ink: #eef7ff;
+    --vlc-muted: #b4c9da;
+    --vlc-led: #4cb8ff;
+    box-sizing: border-box;
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+    padding: 8px 6px 28px;
+    color: var(--vlc-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.vl-console-page > * {
+    min-width: 0;
+}
+
+/* Breadcrumbs sit above the mast (a Back control never goes inside it). */
+.vl-console-page .vl-breadcrumbs {
+    margin: 0 6px;
+    padding: 0;
+    font-size: 15px;
+}
+
+.vl-console-page .vl-console-mast {
+    margin: 0;
+}
+
+/* ── The gunmetal frame every section sits in ───────────────────────────── */
+.vl-console-frame {
+    position: relative;
+    box-sizing: border-box;
+    min-width: 0;
+    margin: 0;
+    padding: clamp(14px, 2.6vw, 24px);
+    border: 7px solid #647e98;
+    border-image: var(--vlc-readout) 21 / 7px stretch;
+    background: var(--vlc-panel);
+    box-shadow: 0 10px 24px #000a;
+    text-align: center;
+}
+
+.vl-console-frame::before {
+    content: '';
+    position: absolute;
+    inset: -1px 14% auto;
+    height: 2px;
+    background: radial-gradient(ellipse 50% 2px at 50% 0, #b3eaff, var(--vlc-led) 30%, #007cff85 60%, transparent);
+    pointer-events: none;
+}
+
+.vl-console-frame-title,
+.vl-console-page h2.vl-console-frame-title {
+    margin: 0 0 14px;
+    padding: 0 0 10px;
+    border-bottom: 1px solid #354f64;
+    color: var(--vlc-ink);
+    font: 800 clamp(20px, 4.2vw, 28px)/1.15 'Roboto Condensed', 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+    letter-spacing: 0.01em;
+    text-align: center;
+    text-shadow: 0 1px 0 #000, 0 0 14px #2d8cff40;
+    overflow-wrap: anywhere;
+}
+
+.vl-console-copy {
+    margin: 0 auto 12px;
+    max-width: 62ch;
+    color: var(--vlc-muted);
+    font-size: 17px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* ── Stat tiles: label over a large centred figure ─────────────────────── */
+.vl-console-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+    gap: 8px;
+    margin: 0;
+}
+
+.vl-console-stat {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 6px;
+    min-height: 92px;
+    margin: 0;
+    padding: 12px 10px;
+    border: 5px solid #3b5369;
+    border-image: var(--vlc-stat) 11 / 5px stretch;
+    background: var(--vlc-tile);
+    text-align: center;
+}
+
+.vl-console-stat dt,
+.vl-console-stat-label {
+    color: #dbe7f1;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.vl-console-stat dd,
+.vl-console-stat-value {
+    margin: 0;
+    color: #c0e7ff;
+    font: 700 clamp(26px, 6.4vw, 34px)/1.1 'Roboto Condensed', 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+    overflow-wrap: anywhere;
+}
+
+/* ── Lit chrome pills (links and buttons) ──────────────────────────────── */
+.vl-console-page .vl-pill-button,
+.vl-console-page .vl-console-pill,
+.vl-console-page .vl-show-more {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 6px 18px;
+    border: 4px solid transparent;
+    border-image: var(--vlc-row) 13 / 5px stretch;
+    border-radius: 0;
+    background: linear-gradient(180deg, #263e55, #112437 45%, #07131e);
+    color: #e6f3ff;
+    font: 700 16px/1.2 'Roboto Condensed', 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+    letter-spacing: 0.04em;
+    text-align: center;
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.vl-console-page .vl-pill-button.is-primary,
+.vl-console-page .vl-console-pill.is-primary {
+    border-image: var(--vlc-active) 11 / 6px stretch;
+    background: linear-gradient(180deg, #3d74e0, #1a46b8 52%, #0f2d84);
+    color: #fff;
+    box-shadow: 0 0 14px #2f7dff66;
+}
+
+.vl-console-page .vl-pill-button:disabled,
+.vl-console-page .vl-console-pill:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.vl-console-page .vl-pill-button:focus-visible,
+.vl-console-page .vl-console-pill:focus-visible,
+.vl-console-page .vl-show-more:focus-visible {
+    outline: 2px solid #8fd3ff;
+    outline-offset: 3px;
+}
+
+.vl-console-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 14px 0 0;
+}
+
+.vl-console-actions > * {
+    flex: 1 1 150px;
+    max-width: 320px;
+}
+
+/* ── Directories (channels, players): a centred grid of chrome plates ──── */
+.vl-console-page .vl-player-directory-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+    gap: 8px;
+    margin: 0;
+}
+
+.vl-console-page .vl-player-directory-links .vl-pill-button {
+    min-height: 58px;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 17px;
+}
+
+/* ── Identity plate (channel logo / player initials) ───────────────────── */
+.vl-console-identity {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+}
+
+.vl-console-page .vl-console-identity .vl-channel-logo,
+.vl-console-page .vl-console-identity .vl-player-logo {
+    display: grid;
+    place-items: center;
+    width: 96px;
+    height: 96px;
+    flex: 0 0 96px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 38%, #1d3a59, #050d17 72%);
+    box-shadow: 0 0 0 3px #9fb3c6, 0 0 0 5px #1b2a3a, 0 0 0 6px #5aa9ff99, 0 8px 18px #000c;
+    color: #eaf5ff;
+    font: 800 32px/1 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+}
+
+.vl-console-page .vl-console-identity .vl-channel-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.vl-console-page .vl-console-identity .vl-text-button {
+    justify-content: center;
+}
+
+/* ── Video grids: plain YouTube-style cards inside the section's one frame
+   (Dan, 2026-11-27: no framed card inside a framed section; the index grid
+   honours the 2026-10-11 YouTube-style card ruling). ─────────────────────── */
+.vl-console-page .vl-video-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    gap: 18px 14px;
+    padding: 0;
+    text-align: left;
+}
+
+.vl-console-page .vl-video-card .vl-video-thumb {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.vl-console-page .vl-video-card .vl-card-title {
+    font-size: 17px;
+    line-height: 1.3;
+}
+
+.vl-console-page .vl-video-card .vl-card-title a {
+    color: var(--vlc-ink);
+}
+
+.vl-console-page .vl-video-card .vl-card-meta {
+    margin-top: 4px;
+    color: var(--vlc-muted);
+    font-size: 14px;
+}
+
+.vl-console-page .vl-console-frame > .vl-pill-button,
+.vl-console-page .vl-console-frame > [role='alert'] {
+    margin: 14px auto 0;
+}
+
+.vl-console-page [role='alert'] {
+    color: #ffb4b4;
+    font-size: 16px;
+    text-align: center;
+}
+
+.vl-console-page [role='status'] {
+    color: var(--vlc-muted);
+    font-size: 16px;
+    text-align: center;
+}
+
+.vl-console-page .vl-empty-state {
+    padding: 24px 12px;
+}
+
+.vl-console-page .vl-empty-state h1,
+.vl-console-page .vl-empty-state h2,
+.vl-console-page .vl-empty-state h3 {
+    font-size: clamp(20px, 4.4vw, 28px);
+}
+
+.vl-console-page .vl-empty-state p {
+    font-size: 16px;
+}
+
+/* ── Playlist rows ──────────────────────────────────────────────────────── */
+.vl-console-page .vl-playlist-video-list {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.vl-console-page .vl-playlist-video-row {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 14px 0;
+    border-bottom: 1px solid #354f64;
+    text-align: center;
+}
+
+.vl-console-page .vl-playlist-video-row:last-child {
+    border-bottom: 0;
+}
+
+.vl-console-page .vl-playlist-position {
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 8px;
+    border: 4px solid transparent;
+    border-image: var(--vlc-active) 11 / 5px stretch;
+    background: linear-gradient(180deg, #3d74e0, #1a46b8 52%, #0f2d84);
+    color: #fff;
+    font: 800 20px/1 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+}
+
+.vl-console-page .vl-playlist-video-link {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    width: 100%;
+    color: var(--vlc-ink);
+    text-decoration: none;
+}
+
+.vl-console-page .vl-playlist-video-link strong {
+    font-size: 18px;
+    line-height: 1.3;
+}
+
+.vl-console-page .vl-playlist-thumb {
+    width: 100%;
+    max-width: 520px;
+    overflow: hidden;
+    border-radius: 10px;
+}
+
+.vl-console-page .vl-playlist-reorder {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.vl-console-page .vl-playlist-reorder .vl-text-button {
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 4px 16px;
+    border: 4px solid transparent;
+    border-image: var(--vlc-row) 13 / 5px stretch;
+    background: linear-gradient(180deg, #263e55, #112437 45%, #07131e);
+    color: #e6f3ff;
+    font: 700 15px/1.2 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.vl-console-page .vl-playlist-reorder .vl-text-button:disabled {
+    opacity: 0.45;
+}
+
+/* ── Owner control panel ───────────────────────────────────────────────── */
+.vl-console-page .vl-console-tools {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    gap: 10px;
+}
+
+.vl-console-page .vl-console-tool {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 56px;
+    padding: 6px 16px;
+    border: 4px solid transparent;
+    border-image: var(--vlc-row) 13 / 5px stretch;
+    background: linear-gradient(180deg, #263e55, #112437 45%, #07131e);
+    color: #e6f3ff;
+    font: 700 17px/1.2 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+    text-align: center;
+    text-decoration: none;
+}
+
+.vl-console-page .vl-console-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 8px;
+    margin: 0 0 14px;
+    padding: 0;
+    list-style: none;
+}
+
+.vl-console-page .vl-console-controls li {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    padding: 12px 10px;
+    border: 5px solid #3b5369;
+    border-image: var(--vlc-stat) 11 / 5px stretch;
+    background: var(--vlc-tile);
+    font-size: 16px;
+    text-align: center;
+}
+
+.vl-console-page .vl-console-controls strong {
+    font: 800 22px/1.1 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+}
+
+.vl-console-page .vl-console-controls strong[data-enabled='true'] {
+    color: #4ade80;
+}
+
+.vl-console-page .vl-console-controls strong[data-enabled='false'] {
+    color: #fbbf24;
+}
+
+.vl-console-updated {
+    margin: 0 0 12px;
+    color: var(--vlc-muted);
+    font-size: 15px;
+    text-align: center;
+}
+
+/* ── Watch page ─────────────────────────────────────────────────────────── */
+.vl-console-page.vl-watch-page .vl-watch-page-main,
+.vl-console-page.vl-watch-page .vl-watch-page-side {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+    align-content: start;
+}
+
+.vl-console-page.vl-watch-page .vl-watch-page-grid {
+    gap: 14px;
+}
+
+.vl-console-page.vl-watch-page .vl-player-stage {
+    border: 7px solid #647e98;
+    border-image: var(--vlc-readout) 21 / 7px stretch;
+    background: #000;
+    box-shadow: 0 10px 24px #000a;
+}
+
+.vl-console-page.vl-watch-page .vl-console-watch-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.vl-console-page.vl-watch-page .vl-console-watch-meta > span {
+    padding: 8px 14px;
+    border: 4px solid transparent;
+    border-image: var(--vlc-stat) 11 / 5px stretch;
+    background: var(--vlc-tile);
+    color: #c0e7ff;
+    font: 700 17px/1.2 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+}
+
+.vl-console-page.vl-watch-page .vl-info-channel {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin: 12px 0 0;
+}
+
+.vl-console-page.vl-watch-page .vl-info-source {
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.vl-console-page.vl-watch-page .vl-player-links {
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.vl-console-page.vl-watch-page .vl-hud {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+}
+
+.vl-console-page.vl-watch-page .vl-hud > a,
+.vl-console-page.vl-watch-page .vl-hud > button {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    padding: 6px 12px;
+    border: 4px solid transparent;
+    border-image: var(--vlc-row) 13 / 5px stretch;
+    border-radius: 0;
+    background: linear-gradient(180deg, #263e55, #112437 45%, #07131e);
+    color: #e6f3ff;
+    font: 700 15px/1.2 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+    letter-spacing: 0.04em;
+    text-align: center;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.vl-console-page.vl-watch-page .vl-hud > a.is-primary {
+    border-image: var(--vlc-active) 11 / 6px stretch;
+    background: linear-gradient(180deg, #3d74e0, #1a46b8 52%, #0f2d84);
+    color: #fff;
+}
+
+.vl-console-page.vl-watch-page .vl-hud > button:disabled {
+    opacity: 0.5;
+}
+
+.vl-console-page.vl-watch-page .vl-watch-about {
+    margin: 0;
+    padding: clamp(14px, 2.6vw, 24px);
+    border: 7px solid #647e98;
+    border-image: var(--vlc-readout) 21 / 7px stretch;
+    border-radius: 0;
+    background: var(--vlc-panel);
+}
+
+.vl-console-page.vl-watch-page .vl-watch-about h2 {
+    margin: 0 0 12px;
+    padding: 0 0 10px;
+    border-bottom: 1px solid #354f64;
+    font: 800 clamp(20px, 4.2vw, 26px)/1.15 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+    text-align: center;
+}
+
+.vl-console-page.vl-watch-page .vl-watch-about p {
+    font-size: 16px;
+    line-height: 1.55;
+    text-align: center;
+}
+
+.vl-console-page.vl-watch-page .vl-watch-about dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+    gap: 8px;
+}
+
+.vl-console-page.vl-watch-page .vl-watch-about dl > div {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 6px;
+    min-height: 84px;
+    padding: 10px 8px;
+    border: 5px solid #3b5369;
+    border-image: var(--vlc-stat) 11 / 5px stretch;
+    background: var(--vlc-tile);
+    text-align: center;
+}
+
+.vl-console-page.vl-watch-page .vl-watch-about dt {
+    color: #dbe7f1;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.vl-console-page.vl-watch-page .vl-watch-about dd {
+    margin: 0;
+    color: #c0e7ff;
+    font: 700 19px/1.2 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+    overflow-wrap: anywhere;
+}
+
+.vl-console-page.vl-watch-page .vl-watch-page-side > section,
+.vl-console-page.vl-watch-page .vl-watch-page-side > div {
+    min-width: 0;
+}
+
+.vl-console-page.vl-watch-page .vl-watch-page-side .vl-show-more {
+    width: 100%;
+}
+
+@media (min-width: 900px) {
+    .vl-console-page {
+        padding: 12px 10px 36px;
+    }
+
+    .vl-console-page .vl-playlist-video-row {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        text-align: left;
+    }
+
+    .vl-console-page .vl-playlist-video-link {
+        grid-template-columns: 220px minmax(0, 1fr);
+        align-items: center;
+        justify-items: start;
+    }
+}
+
+/* Watch side lists: each card a chrome plate inside the section frame. */
+.vl-console-page.vl-watch-page .vl-watch-list ul {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.vl-console-page.vl-watch-page .vl-watch-list .vl-up-next-card {
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.vl-console-page.vl-watch-page .vl-watch-list .vl-up-next-copy strong {
+    font-size: 16px;
+    line-height: 1.3;
+}
+
+.vl-console-page.vl-watch-page .vl-watch-list .vl-up-next-copy {
+    text-align: left;
+}
+
+.vl-console-page.vl-watch-page .vl-info-copy {
+    display: grid;
+    gap: 4px;
+}
+
+/* Follow and Live Now inside the channel console: centred like every readout. */
+.vl-console-page .vl-channel-follow {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    margin: 0 0 14px;
+    text-align: center;
+}
+
+.vl-console-page .vl-channel-notifications {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    font-size: 16px;
+}
+
+.vl-console-page .vl-live-now {
+    margin: 0;
+    padding: 14px 0 0;
+    border-top: 1px solid #354f64;
+    text-align: center;
+}
+
+.vl-console-page .vl-live-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    text-align: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.vl-console-page .vl-live-heading h2 {
+    margin: 0;
+    font: 800 clamp(20px, 4.2vw, 26px)/1.15 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+}
+
+.vl-console-page .vl-live-heading button {
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 4px 18px;
+    border: 4px solid transparent;
+    border-image: var(--vlc-row) 13 / 5px stretch;
+    border-radius: 0;
+    background: linear-gradient(180deg, #263e55, #112437 45%, #07131e);
+    color: #e6f3ff;
+    font: 700 15px/1.2 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.vl-console-page .vl-live-card {
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+}
+
+.vl-console-page .vl-live-note {
+    font-size: 14px;
+    color: var(--vlc-muted);
+    text-align: center;
+}
+
+.vl-console-page.vl-watch-page .vl-watch-about dl > div {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+/* Playback tools under the player: one chrome frame, controls centred. */
+.vl-console-page.vl-watch-page .vl-playback-tools {
+    box-sizing: border-box;
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+    margin: 0;
+    padding: clamp(14px, 2.6vw, 22px);
+    border: 7px solid #647e98;
+    border-image: var(--vlc-readout) 21 / 7px stretch;
+    background: var(--vlc-panel);
+    text-align: center;
+}
+
+.vl-console-page.vl-watch-page .vl-playback-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+}
+
+.vl-console-page.vl-watch-page .vl-playback-buttons button {
+    box-sizing: border-box;
+    min-height: 46px;
+    padding: 4px 18px;
+    border: 4px solid transparent;
+    border-image: var(--vlc-row) 13 / 5px stretch;
+    border-radius: 0;
+    background: linear-gradient(180deg, #263e55, #112437 45%, #07131e);
+    color: #e6f3ff;
+    font: 700 15px/1.2 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.vl-console-page.vl-watch-page .vl-playback-buttons label {
+    font-size: 16px;
+}
+
+.vl-console-page.vl-watch-page .vl-hand-timeline {
+    width: 100%;
+    font-size: 16px;
+}
+
+.vl-console-page.vl-watch-page .vl-hand-timeline button {
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 4px 18px;
+    border: 4px solid transparent;
+    border-image: var(--vlc-row) 13 / 5px stretch;
+    border-radius: 0;
+    background: linear-gradient(180deg, #263e55, #112437 45%, #07131e);
+    color: #e6f3ff;
+    font: 700 15px/1.2 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.vl-console-page.vl-watch-page .vl-hand-timeline p {
+    font-size: 14px;
+    color: var(--vlc-muted);
+}
+
+.vl-console-page.vl-watch-page .vl-watch-tracking {
+    margin: 0;
+    font-size: 15px;
+    color: var(--vlc-muted);
+    text-align: center;
+}
+
+/* A lone last action on the phone grid takes the whole row. */
+@media (max-width: 640px) {
+    .vl-console-page.vl-watch-page .vl-hud > :last-child:nth-child(odd),
+    .vl-console-page .vl-console-stats > :last-child:nth-child(odd):not(:first-child) {
+        grid-column: 1 / -1;
+    }
+}
+
+/* One frame per section: the About description reads as plain copy inside it. */
+.vl-console-page.vl-watch-page .vl-watch-about .vl-description {
+    margin: 0 0 14px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+}
+
+/* What Would You Do? gets its own single frame on the watch page. */
+.vl-console-page.vl-watch-page .vl-pause-quiz {
+    box-sizing: border-box;
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: clamp(14px, 2.6vw, 22px);
+    border: 7px solid #647e98;
+    border-image: var(--vlc-readout) 21 / 7px stretch;
+    background: var(--vlc-panel);
+    text-align: center;
+}
+
+.vl-console-page.vl-watch-page .vl-pause-quiz h3 {
+    margin: 0;
+    font: 800 clamp(20px, 4.2vw, 26px)/1.15 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+}
+
+.vl-console-page.vl-watch-page .vl-pause-quiz > button {
+    box-sizing: border-box;
+    min-height: 46px;
+    padding: 4px 18px;
+    border: 4px solid transparent;
+    border-image: var(--vlc-row) 13 / 5px stretch;
+    border-radius: 0;
+    background: linear-gradient(180deg, #263e55, #112437 45%, #07131e);
+    color: #e6f3ff;
+    font: 700 15px/1.2 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.vl-console-page.vl-watch-page .vl-pause-quiz label {
+    font-size: 16px;
+}
+
+/* The study readouts sit in the narrow watch column: keep each word whole. */
+.vl-console-page .vl-study-streak-value {
+    font-size: clamp(18px, 4.6vw, 24px);
+    white-space: nowrap;
+}

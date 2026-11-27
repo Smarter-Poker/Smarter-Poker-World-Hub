@@ -18,6 +18,7 @@ import GeoCitationCapsule, { geoClaimSchema } from '../../src/components/seo/Geo
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 
 export const POKER_MYTHS = [
   {
@@ -462,6 +463,13 @@ export default function PokerMythsDebunkedPage() {
         />
 
         <HubPageSummary page="learn-poker-myths-debunked" />
+        <SmarterAccountUnlockGate
+          variant="study-deck"
+          context="learn-poker-myths-debunked"
+          title="Drill Solver-Verified Lines & Eliminate Common Pool Leaks Free"
+          redirectPath={canonicalPath}
+        />
+
 
         <CitationBacklinkBox
           title="15 Poker Myths Debunked By GTO Solvers & Combinatorial Math"
@@ -508,19 +516,19 @@ export async function getServerSideProps({ req, res, query }) {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#050811',
-    color: '#e2e8f0',
+    background: '#071321',
+    color: '#f2f7ff',
     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
   },
   container: { maxWidth: 1100, margin: '0 auto', padding: '32px 20px 80px' },
-  breadcrumbs: { display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 13, color: '#94a3b8', marginBottom: 18 },
+  breadcrumbs: { display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 13, color: '#bdd0e2', marginBottom: 18 },
   crumbLink: { color: '#38bdf8', textDecoration: 'none' },
-  crumbSep: { color: '#475569' },
-  crumbCurrent: { color: '#cbd5e1', fontWeight: 600 },
+  crumbSep: { color: '#2b4663' },
+  crumbCurrent: { color: '#bdd0e2', fontWeight: 600 },
   heroPlate: {
-    background: 'linear-gradient(180deg, #0f172a 0%, #090e1a 100%)',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #0a1a2b 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px 26px',
     marginBottom: 24,
   },
@@ -530,7 +538,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.14)',
     color: '#38bdf8',
     border: '1px solid rgba(56, 189, 248, 0.35)',
@@ -540,36 +548,36 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.14)',
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.35)',
   },
-  h1: { fontSize: 'clamp(26px, 3.6vw, 36px)', fontWeight: 800, color: '#f8fafc', lineHeight: 1.2, margin: '0 0 14px 0' },
-  lead: { fontSize: 16, lineHeight: 1.68, color: '#cbd5e1', margin: '0 0 20px 0' },
+  h1: { fontSize: 'clamp(26px, 3.6vw, 36px)', fontWeight: 800, color: '#f2f7ff', lineHeight: 1.2, margin: '0 0 14px 0' },
+  lead: { fontSize: 16, lineHeight: 1.68, color: '#bdd0e2', margin: '0 0 20px 0' },
   quickCrossLinks: { display: 'flex', flexWrap: 'wrap', gap: 10 },
-  crossBtnCyan: { padding: '9px 15px', borderRadius: 8, background: '#38bdf8', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
-  crossBtnEmerald: { padding: '9px 15px', borderRadius: 8, background: '#10b981', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
-  crossBtnOutline: { padding: '9px 15px', borderRadius: 8, background: '#0f172a', color: '#38bdf8', border: '1px solid #334155', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
-  sectionPlate: { background: '#0b1120', border: '1px solid #1e293b', borderRadius: 12, padding: '24px 22px', marginBottom: 26 },
+  crossBtnCyan: { padding: '9px 15px', borderRadius: 0, background: '#38bdf8', color: '#071321', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
+  crossBtnEmerald: { padding: '9px 15px', borderRadius: 0, background: '#10b981', color: '#071321', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
+  crossBtnOutline: { padding: '9px 15px', borderRadius: 0, background: '#0d1f33', color: '#38bdf8', border: '1px solid #2b4663', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
+  sectionPlate: { background: '#0a1a2b', border: '1px solid #2b4663', borderRadius: 0, padding: '24px 22px', marginBottom: 26 },
   filterPills: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  pill: { padding: '6px 13px', borderRadius: 999, border: '1px solid #334155', background: '#0f172a', color: '#cbd5e1', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' },
-  pillActive: { padding: '6px 13px', borderRadius: 999, border: '1px solid #38bdf8', background: '#38bdf8', color: '#04131d', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' },
+  pill: { padding: '6px 13px', borderRadius: 0, border: '1px solid #2b4663', background: '#0d1f33', color: '#bdd0e2', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' },
+  pillActive: { padding: '6px 13px', borderRadius: 0, border: '1px solid #38bdf8', background: '#38bdf8', color: '#071321', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' },
   mythList: { display: 'grid', gap: 16 },
-  mythCard: { background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, padding: '20px 22px' },
+  mythCard: { background: '#0d1f33', border: '1px solid #2b4663', borderRadius: 0, padding: '20px 22px' },
   mythTopRow: { display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 10 },
   mythCatBadge: { fontSize: 11, fontWeight: 800, color: '#38bdf8', letterSpacing: '0.05em' },
   verdictBadge: {
     fontSize: 11,
     fontWeight: 800,
     padding: '3px 9px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(248, 113, 113, 0.16)',
     color: '#f87171',
     border: '1px solid rgba(248, 113, 113, 0.4)',
   },
-  mythClaim: { fontSize: 19, fontWeight: 800, color: '#f8fafc', margin: '0 0 12px 0', lineHeight: 1.35 },
-  proofText: { fontSize: 14.5, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 12px 0' },
-  ruleBox: { background: '#050811', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: 8, padding: '11px 14px', fontSize: 13.5, lineHeight: 1.58, color: '#d1fae5' },
-  toolBtn: { display: 'inline-block', padding: '7px 13px', borderRadius: 7, background: '#38bdf8', color: '#04131d', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' },
+  mythClaim: { fontSize: 19, fontWeight: 800, color: '#f2f7ff', margin: '0 0 12px 0', lineHeight: 1.35 },
+  proofText: { fontSize: 14.5, lineHeight: 1.65, color: '#bdd0e2', margin: '0 0 12px 0' },
+  ruleBox: { background: '#071321', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: 0, padding: '11px 14px', fontSize: 13.5, lineHeight: 1.58, color: '#d1fae5' },
+  toolBtn: { display: 'inline-block', padding: '7px 13px', borderRadius: 0, background: '#38bdf8', color: '#071321', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' },
 };

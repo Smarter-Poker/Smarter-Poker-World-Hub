@@ -15,6 +15,7 @@ import SEOHead from '../src/components/seo/SEOHead';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
 
 const INDUSTRY_FAST_FACTS = [
   {
@@ -439,6 +440,14 @@ export default function PressKitMediaPage() {
           slug="smarter-poker-press-kit"
         />
 
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="dataset-export"
+            context="press-kit"
+            redirectPath="/press"
+          />
+        </div>
+
         <AiPromptLauncher
           title="Smarter.Poker Official Press Kit & 2026 Poker Industry Fast Facts"
           canonicalUrl={canonicalUrl}
@@ -485,8 +494,8 @@ const styles = {
   },
   heroPlate: {
     backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px',
     marginBottom: '24px',
   },
@@ -503,7 +512,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   emeraldBadge: {
@@ -513,7 +522,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   h1: {
@@ -540,7 +549,7 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
@@ -549,23 +558,23 @@ const styles = {
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnOutline: {
     backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
+    border: '1px solid #2b4663',
     color: '#e2e8f0',
     fontWeight: 600,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   sectionPlate: {
     backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px',
     marginBottom: '24px',
   },
@@ -616,7 +625,7 @@ const styles = {
     fontSize: '12px',
   },
   trBody: {
-    borderBottom: '1px solid #1e293b',
+    borderBottom: '1px solid #2b4663',
   },
   tdMetric: {
     padding: '12px',
@@ -651,8 +660,8 @@ const styles = {
   },
   boilerplateCard: {
     backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '18px',
   },
   boilerplateTop: {
@@ -675,7 +684,7 @@ const styles = {
     fontSize: '12px',
     fontWeight: 700,
     padding: '6px 14px',
-    borderRadius: '4px',
+    borderRadius: 0,
     cursor: 'pointer',
   },
   copyBtnCopied: {
@@ -685,7 +694,7 @@ const styles = {
     fontSize: '12px',
     fontWeight: 700,
     padding: '6px 14px',
-    borderRadius: '4px',
+    borderRadius: 0,
     cursor: 'pointer',
   },
   boilerplateText: {
@@ -700,8 +709,8 @@ const styles = {
   },
   snippetCard: {
     backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   snippetTitle: {
@@ -711,8 +720,8 @@ const styles = {
   },
   codeBlock: {
     backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '4px',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '12px',
     color: '#00d4ff',
     fontSize: '12px',
@@ -726,8 +735,8 @@ const styles = {
   },
   faqItem: {
     backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   faqQ: {

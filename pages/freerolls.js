@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead from '../src/components/seo/SEOHead';
+import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import { freerollEventSchema } from '../src/lib/seo/hubPageSchema';
 import { FREE_BUY_SCHEDULE, FREE_BUY_GAME, FREE_BUY_SUMMARY, freeBuyPrizeLabel } from '../src/lib/freerolls/freeBuySchedule.mjs';
@@ -123,7 +124,7 @@ function NextFreerollCountdown() {
         padding: '16px 24px',
         backgroundColor: '#101924',
         border: '1px solid #1E2D3D',
-        borderRadius: '12px',
+        borderRadius: 0,
         display: 'inline-flex',
         alignItems: 'center',
         gap: '12px',
@@ -142,7 +143,7 @@ function NextFreerollCountdown() {
       padding: '18px 24px',
       backgroundColor: countdown.isRegOpen ? 'rgba(0, 230, 118, 0.08)' : '#101924',
       border: countdown.isRegOpen ? '1px solid rgba(0, 230, 118, 0.4)' : '1px solid #1E2D3D',
-      borderRadius: '12px',
+      borderRadius: 0,
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -156,7 +157,7 @@ function NextFreerollCountdown() {
           display: 'inline-block',
           width: '10px',
           height: '10px',
-          borderRadius: '50%',
+          borderRadius: 0,
           backgroundColor: countdown.isRegOpen ? '#00E676' : '#4E9CFF',
           boxShadow: countdown.isRegOpen ? '0 0 10px #00E676' : '0 0 6px #4E9CFF',
         }} />
@@ -175,7 +176,7 @@ function NextFreerollCountdown() {
         gap: '4px',
         backgroundColor: '#0D1620',
         padding: '6px 14px',
-        borderRadius: '8px',
+        borderRadius: 0,
         border: '1px solid #1E2D3D',
         fontFamily: 'monospace',
         fontSize: '16px',
@@ -196,7 +197,7 @@ function NextFreerollCountdown() {
           alignItems: 'center',
           gap: '6px',
           padding: '8px 16px',
-          borderRadius: '8px',
+          borderRadius: 0,
           backgroundColor: countdown.isRegOpen ? '#00E676' : '#1877F2',
           color: countdown.isRegOpen ? '#0B1118' : '#FFFFFF',
           fontSize: '13px',
@@ -274,10 +275,10 @@ export default function FreerollsPage() {
             alignItems: 'center', 
             gap: '8px', 
             padding: '6px 16px', 
-            borderRadius: '999px', 
-            backgroundColor: 'rgba(255, 215, 0, 0.12)', 
-            border: '1px solid rgba(255, 215, 0, 0.3)', 
-            color: '#FFD700', 
+            borderRadius: 0, 
+            backgroundColor: 'rgba(56, 189, 248, 0.12)', 
+            border: '1px solid rgba(56, 189, 248, 0.3)', 
+            color: '#38bdf8', 
             fontSize: '13px', 
             fontWeight: 700, 
             letterSpacing: '0.04em',
@@ -316,7 +317,7 @@ export default function FreerollsPage() {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '14px 28px',
-                borderRadius: '10px',
+                borderRadius: 0,
                 backgroundColor: '#1877F2',
                 color: '#FFFFFF',
                 fontWeight: 700,
@@ -337,7 +338,7 @@ export default function FreerollsPage() {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '14px 24px',
-                borderRadius: '10px',
+                borderRadius: 0,
                 backgroundColor: 'rgba(255, 255, 255, 0.06)',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
                 color: '#E0E8F0',
@@ -357,7 +358,7 @@ export default function FreerollsPage() {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '14px 24px',
-                borderRadius: '10px',
+                borderRadius: 0,
                 backgroundColor: 'rgba(0, 230, 118, 0.1)',
                 border: '1px solid rgba(0, 230, 118, 0.35)',
                 color: '#00E676',
@@ -377,7 +378,7 @@ export default function FreerollsPage() {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '14px 24px',
-                borderRadius: '10px',
+                borderRadius: 0,
                 backgroundColor: 'rgba(56, 189, 248, 0.1)',
                 border: '1px solid rgba(56, 189, 248, 0.35)',
                 color: '#38bdf8',
@@ -401,7 +402,7 @@ export default function FreerollsPage() {
           style={{
             backgroundColor: 'rgba(78, 156, 255, 0.06)',
             border: '1px solid rgba(78, 156, 255, 0.25)',
-            borderRadius: '14px',
+            borderRadius: 0,
             padding: '24px',
             marginBottom: '48px',
           }}
@@ -462,13 +463,13 @@ export default function FreerollsPage() {
             <div style={{ 
               backgroundColor: '#101924', 
               border: '1px solid #1E2D3D', 
-              borderRadius: '12px', 
+              borderRadius: 0, 
               padding: '24px' 
             }}>
               <div style={{ 
                 width: '42px', 
                 height: '42px', 
-                borderRadius: '8px', 
+                borderRadius: 0, 
                 backgroundColor: 'rgba(0, 230, 118, 0.12)', 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -489,19 +490,19 @@ export default function FreerollsPage() {
             <div style={{ 
               backgroundColor: '#101924', 
               border: '1px solid #1E2D3D', 
-              borderRadius: '12px', 
+              borderRadius: 0, 
               padding: '24px' 
             }}>
               <div style={{ 
                 width: '42px', 
                 height: '42px', 
-                borderRadius: '8px', 
-                backgroundColor: 'rgba(255, 215, 0, 0.12)', 
+                borderRadius: 0, 
+                backgroundColor: 'rgba(56, 189, 248, 0.12)', 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center',
                 marginBottom: '16px',
-                color: '#FFD700'
+                color: '#38bdf8'
               }}>
                 <Sparkles size={22} />
               </div>
@@ -516,13 +517,13 @@ export default function FreerollsPage() {
             <div style={{ 
               backgroundColor: '#101924', 
               border: '1px solid #1E2D3D', 
-              borderRadius: '12px', 
+              borderRadius: 0, 
               padding: '24px' 
             }}>
               <div style={{ 
                 width: '42px', 
                 height: '42px', 
-                borderRadius: '8px', 
+                borderRadius: 0, 
                 backgroundColor: 'rgba(78, 156, 255, 0.12)', 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -543,13 +544,13 @@ export default function FreerollsPage() {
             <div style={{ 
               backgroundColor: '#101924', 
               border: '1px solid #1E2D3D', 
-              borderRadius: '12px', 
+              borderRadius: 0, 
               padding: '24px' 
             }}>
               <div style={{ 
                 width: '42px', 
                 height: '42px', 
-                borderRadius: '8px', 
+                borderRadius: 0, 
                 backgroundColor: 'rgba(0, 229, 255, 0.12)', 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -591,7 +592,7 @@ export default function FreerollsPage() {
                   alignItems: 'center',
                   gap: '6px',
                   padding: '8px 14px',
-                  borderRadius: '8px',
+                  borderRadius: 0,
                   backgroundColor: 'rgba(0, 230, 118, 0.08)',
                   border: '1px solid rgba(0, 230, 118, 0.25)',
                   color: '#00E676',
@@ -612,7 +613,7 @@ export default function FreerollsPage() {
                   alignItems: 'center',
                   gap: '6px',
                   padding: '8px 14px',
-                  borderRadius: '8px',
+                  borderRadius: 0,
                   backgroundColor: 'rgba(255, 255, 255, 0.06)',
                   border: '1px solid rgba(255, 255, 255, 0.14)',
                   color: '#E0E8F0',
@@ -632,7 +633,7 @@ export default function FreerollsPage() {
                   alignItems: 'center',
                   gap: '6px',
                   padding: '8px 14px',
-                  borderRadius: '8px',
+                  borderRadius: 0,
                   backgroundColor: '#1877F2',
                   color: '#FFFFFF',
                   textDecoration: 'none',
@@ -648,7 +649,7 @@ export default function FreerollsPage() {
 
           <div style={{ 
             backgroundColor: '#101924', 
-            borderRadius: '14px', 
+            borderRadius: 0, 
             border: '1px solid #1E2D3D', 
             overflow: 'hidden' 
           }}>
@@ -670,7 +671,7 @@ export default function FreerollsPage() {
                       key={idx}
                       style={{ 
                         borderBottom: idx === DAILY_SCHEDULE.length - 1 ? 'none' : '1px solid #1B2939',
-                        backgroundColor: item.title.includes('Diamond') ? 'rgba(255, 215, 0, 0.04)' : 'transparent'
+                        backgroundColor: item.title.includes('Diamond') ? 'rgba(56, 189, 248, 0.04)' : 'transparent'
                       }}
                     >
                       <td style={{ padding: '16px 18px', fontSize: '14px', fontWeight: 600, color: '#EBF3FC' }}>
@@ -691,7 +692,7 @@ export default function FreerollsPage() {
                         <span style={{ 
                           fontSize: '14px', 
                           fontWeight: 700, 
-                          color: item.title.includes('Diamond') ? '#FFD700' : '#00E676' 
+                          color: item.title.includes('Diamond') ? '#38bdf8' : '#00E676' 
                         }}>
                           {item.prize}
                         </span>
@@ -706,10 +707,10 @@ export default function FreerollsPage() {
                             display: 'inline-flex',
                             alignItems: 'center',
                             padding: '6px 14px',
-                            borderRadius: '6px',
-                            backgroundColor: item.title.includes('Diamond') ? 'rgba(255, 215, 0, 0.15)' : 'rgba(24, 119, 242, 0.15)',
-                            border: item.title.includes('Diamond') ? '1px solid rgba(255, 215, 0, 0.4)' : '1px solid rgba(24, 119, 242, 0.3)',
-                            color: item.title.includes('Diamond') ? '#FFD700' : '#4E9CFF',
+                            borderRadius: 0,
+                            backgroundColor: item.title.includes('Diamond') ? 'rgba(56, 189, 248, 0.15)' : 'rgba(24, 119, 242, 0.15)',
+                            border: item.title.includes('Diamond') ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(24, 119, 242, 0.3)',
+                            color: item.title.includes('Diamond') ? '#38bdf8' : '#4E9CFF',
                             fontSize: '13px',
                             fontWeight: 600,
                             textDecoration: 'none'
@@ -742,7 +743,7 @@ export default function FreerollsPage() {
             <div style={{ 
               backgroundColor: '#101924', 
               border: '1px solid #1E2D3D', 
-              borderRadius: '14px', 
+              borderRadius: 0, 
               padding: '32px 28px',
               display: 'flex',
               flexDirection: 'column',
@@ -786,7 +787,7 @@ export default function FreerollsPage() {
                   display: 'block',
                   textAlign: 'center',
                   padding: '12px 20px',
-                  borderRadius: '8px',
+                  borderRadius: 0,
                   backgroundColor: '#1877F2',
                   color: '#FFFFFF',
                   fontWeight: 700,
@@ -805,7 +806,7 @@ export default function FreerollsPage() {
         <section style={{ 
           backgroundColor: '#101924', 
           border: '1px solid #1E2D3D', 
-          borderRadius: '14px', 
+          borderRadius: 0, 
           padding: '40px 32px', 
           marginBottom: '56px' 
         }}>
@@ -827,7 +828,7 @@ export default function FreerollsPage() {
               <div style={{ 
                 width: '40px', 
                 height: '40px', 
-                borderRadius: '50%', 
+                borderRadius: 0, 
                 backgroundColor: '#1877F2', 
                 color: '#FFFFFF', 
                 display: 'flex', 
@@ -853,7 +854,7 @@ export default function FreerollsPage() {
               <div style={{ 
                 width: '40px', 
                 height: '40px', 
-                borderRadius: '50%', 
+                borderRadius: 0, 
                 backgroundColor: '#1877F2', 
                 color: '#FFFFFF', 
                 display: 'flex', 
@@ -879,7 +880,7 @@ export default function FreerollsPage() {
               <div style={{ 
                 width: '40px', 
                 height: '40px', 
-                borderRadius: '50%', 
+                borderRadius: 0, 
                 backgroundColor: '#1877F2', 
                 color: '#FFFFFF', 
                 display: 'flex', 
@@ -916,7 +917,7 @@ export default function FreerollsPage() {
 
           <div style={{ 
             backgroundColor: '#101924', 
-            borderRadius: '14px', 
+            borderRadius: 0, 
             border: '1px solid #1E2D3D', 
             overflow: 'hidden' 
           }}>
@@ -979,7 +980,7 @@ export default function FreerollsPage() {
                 style={{
                   backgroundColor: '#101924',
                   border: '1px solid #1E2D3D',
-                  borderRadius: '10px',
+                  borderRadius: 0,
                   overflow: 'hidden',
                 }}
               >
@@ -1022,7 +1023,7 @@ export default function FreerollsPage() {
         <section style={{
           backgroundColor: 'linear-gradient(180deg, #162436 0%, #101924 100%)',
           border: '1px solid rgba(78, 156, 255, 0.3)',
-          borderRadius: '16px',
+          borderRadius: 0,
           padding: '48px 32px',
           textAlign: 'center',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)'
@@ -1041,7 +1042,7 @@ export default function FreerollsPage() {
               alignItems: 'center',
               gap: '8px',
               padding: '16px 36px',
-              borderRadius: '10px',
+              borderRadius: 0,
               backgroundColor: '#00E676',
               color: '#0B1118',
               fontWeight: 800,
@@ -1054,6 +1055,14 @@ export default function FreerollsPage() {
             <span>Play Daily Freerolls Now</span>
           </Link>
         </section>
+
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="dataset-export"
+            context="freerolls-page"
+            redirectPath="/freerolls"
+          />
+        </div>
 
       </main>
     </div>

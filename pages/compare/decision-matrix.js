@@ -14,6 +14,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import GeoCitationCapsule, { geoClaimSchema } from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
@@ -523,6 +524,14 @@ export default function PokerDecisionMatrixPage() {
 
         <HubPageSummary page="compare-decision-matrix" />
 
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="dataset-export"
+            context="compare-decision-matrix"
+            redirectPath="/compare/decision-matrix"
+          />
+        </div>
+
         <CitationBacklinkBox
           title="Smarter.Poker 20-Scenario Poker Decision & Recommendation Matrix"
           canonicalUrl={canonicalUrl}
@@ -579,9 +588,9 @@ const styles = {
   crumbSep: { color: '#475569' },
   crumbCurrent: { color: '#cbd5e1', fontWeight: 600 },
   heroPlate: {
-    background: 'linear-gradient(180deg, #0f172a 0%, #090e1a 100%)',
-    border: '1px solid #1e293b',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #090e1a 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px 26px',
     marginBottom: 24,
   },
@@ -591,7 +600,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(56, 189, 248, 0.14)',
     color: '#38bdf8',
     border: '1px solid rgba(56, 189, 248, 0.35)',
@@ -601,7 +610,7 @@ const styles = {
     fontWeight: 800,
     letterSpacing: '0.06em',
     padding: '4px 10px',
-    borderRadius: 6,
+    borderRadius: 0,
     background: 'rgba(16, 185, 129, 0.14)',
     color: '#34d399',
     border: '1px solid rgba(16, 185, 129, 0.35)',
@@ -609,31 +618,31 @@ const styles = {
   h1: { fontSize: 'clamp(26px, 3.6vw, 36px)', fontWeight: 800, color: '#f8fafc', lineHeight: 1.2, margin: '0 0 14px 0' },
   lead: { fontSize: 16, lineHeight: 1.68, color: '#cbd5e1', margin: '0 0 20px 0' },
   quickCrossLinks: { display: 'flex', flexWrap: 'wrap', gap: 10 },
-  crossBtnCyan: { padding: '9px 15px', borderRadius: 8, background: '#38bdf8', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
-  crossBtnEmerald: { padding: '9px 15px', borderRadius: 8, background: '#10b981', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
-  crossBtnOutline: { padding: '9px 15px', borderRadius: 8, background: '#0f172a', color: '#38bdf8', border: '1px solid #334155', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
-  sectionPlate: { background: '#0b1120', border: '1px solid #1e293b', borderRadius: 12, padding: '24px 22px', marginBottom: 26 },
+  crossBtnCyan: { padding: '9px 15px', borderRadius: 0, background: '#38bdf8', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
+  crossBtnEmerald: { padding: '9px 15px', borderRadius: 0, background: '#10b981', color: '#04131d', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
+  crossBtnOutline: { padding: '9px 15px', borderRadius: 0, background: '#0d1f33', color: '#38bdf8', border: '1px solid #304d6b', fontWeight: 700, fontSize: 13, textDecoration: 'none' },
+  sectionPlate: { background: '#071321', border: '1px solid #2b4663', borderRadius: 0, padding: '24px 22px', marginBottom: 26 },
   h2: { fontSize: 21, fontWeight: 800, color: '#f8fafc', margin: '0 0 16px 0' },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
-  trHead: { borderBottom: '1px solid #1e293b', textAlign: 'left', color: '#38bdf8' },
+  trHead: { borderBottom: '1px solid #2b4663', textAlign: 'left', color: '#38bdf8' },
   th: { padding: '10px 12px', fontWeight: 700 },
-  trBody: { borderBottom: '1px solid #1e293b' },
+  trBody: { borderBottom: '1px solid #2b4663' },
   tdTitle: { padding: '11px 12px', fontWeight: 700, color: '#f8fafc' },
   td: { padding: '11px 12px', color: '#cbd5e1' },
   tdCyan: { padding: '11px 12px', color: '#38bdf8', fontWeight: 700 },
   smallActionLink: { color: '#34d399', textDecoration: 'none', fontWeight: 700 },
   filterPills: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  pill: { padding: '6px 13px', borderRadius: 999, border: '1px solid #334155', background: '#0f172a', color: '#cbd5e1', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' },
-  pillActive: { padding: '6px 13px', borderRadius: 999, border: '1px solid #38bdf8', background: '#38bdf8', color: '#04131d', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' },
+  pill: { padding: '6px 13px', borderRadius: 0, border: '1px solid #304d6b', background: '#0d1f33', color: '#cbd5e1', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' },
+  pillActive: { padding: '6px 13px', borderRadius: 0, border: '1px solid #38bdf8', background: '#38bdf8', color: '#04131d', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' },
   cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 18 },
-  card: { background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' },
+  card: { background: '#0d1f33', border: '1px solid #2b4663', borderRadius: 0, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' },
   cardHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  cardCodeBadge: { fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 5, background: 'rgba(56, 189, 248, 0.16)', color: '#38bdf8' },
+  cardCodeBadge: { fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 0, background: 'rgba(56, 189, 248, 0.16)', color: '#38bdf8' },
   cardCatBadge: { fontSize: 11, fontWeight: 700, color: '#94a3b8' },
   cardTitle: { fontSize: 17.5, fontWeight: 800, color: '#f8fafc', margin: '0 0 10px 0', lineHeight: 1.35 },
-  winnerBox: { background: '#050811', border: '1px solid rgba(16, 185, 129, 0.4)', borderRadius: 8, padding: '10px 12px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 4 },
+  winnerBox: { background: '#050811', border: '1px solid rgba(16, 185, 129, 0.4)', borderRadius: 0, padding: '10px 12px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 4 },
   winnerLabel: { fontSize: 10.5, fontWeight: 800, color: '#34d399', letterSpacing: '0.06em' },
   winnerLink: { fontSize: 14.5, fontWeight: 800, color: '#f8fafc', textDecoration: 'none' },
   lineText: { fontSize: 13.5, lineHeight: 1.58, color: '#cbd5e1', margin: '0 0 8px 0' },
-  cardCtaBtn: { display: 'inline-block', padding: '8px 14px', borderRadius: 7, background: '#38bdf8', color: '#04131d', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' },
+  cardCtaBtn: { display: 'inline-block', padding: '8px 14px', borderRadius: 0, background: '#38bdf8', color: '#04131d', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' },
 };

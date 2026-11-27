@@ -7,6 +7,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { faqSchema, breadcrumbSchema } from '../../src/lib/seo/hubPageSchema';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
@@ -132,7 +133,7 @@ export default function CompareHubPage() {
             alignItems: 'center', 
             gap: '8px', 
             padding: '6px 16px', 
-            borderRadius: '999px', 
+            borderRadius: 0, 
             backgroundColor: 'rgba(78, 156, 255, 0.12)', 
             border: '1px solid rgba(78, 156, 255, 0.3)', 
             color: '#4E9CFF', 
@@ -177,7 +178,7 @@ export default function CompareHubPage() {
           style={{
             backgroundColor: 'rgba(78, 156, 255, 0.06)',
             border: '1px solid rgba(78, 156, 255, 0.25)',
-            borderRadius: '14px',
+            borderRadius: 0,
             padding: '24px',
             marginBottom: '48px',
           }}
@@ -238,7 +239,7 @@ export default function CompareHubPage() {
             onClick={() => setActiveTab('freerolls')}
             style={{
               padding: '12px 20px',
-              borderRadius: '8px',
+              borderRadius: 0,
               border: activeTab === 'freerolls' ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
               backgroundColor: activeTab === 'freerolls' ? '#1877F2' : '#101924',
               color: '#FFFFFF',
@@ -259,7 +260,7 @@ export default function CompareHubPage() {
             onClick={() => setActiveTab('icm')}
             style={{
               padding: '12px 20px',
-              borderRadius: '8px',
+              borderRadius: 0,
               border: activeTab === 'icm' ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
               backgroundColor: activeTab === 'icm' ? '#1877F2' : '#101924',
               color: '#FFFFFF',
@@ -280,7 +281,7 @@ export default function CompareHubPage() {
             onClick={() => setActiveTab('odds')}
             style={{
               padding: '12px 20px',
-              borderRadius: '8px',
+              borderRadius: 0,
               border: activeTab === 'odds' ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
               backgroundColor: activeTab === 'odds' ? '#1877F2' : '#101924',
               color: '#FFFFFF',
@@ -301,7 +302,7 @@ export default function CompareHubPage() {
             onClick={() => setActiveTab('directory')}
             style={{
               padding: '12px 20px',
-              borderRadius: '8px',
+              borderRadius: 0,
               border: activeTab === 'directory' ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
               backgroundColor: activeTab === 'directory' ? '#1877F2' : '#101924',
               color: '#FFFFFF',
@@ -322,7 +323,7 @@ export default function CompareHubPage() {
             onClick={() => setActiveTab('bankroll')}
             style={{
               padding: '12px 20px',
-              borderRadius: '8px',
+              borderRadius: 0,
               border: activeTab === 'bankroll' ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
               backgroundColor: activeTab === 'bankroll' ? '#1877F2' : '#101924',
               color: '#FFFFFF',
@@ -343,7 +344,7 @@ export default function CompareHubPage() {
             onClick={() => setActiveTab('toke')}
             style={{
               padding: '12px 20px',
-              borderRadius: '8px',
+              borderRadius: 0,
               border: activeTab === 'toke' ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
               backgroundColor: activeTab === 'toke' ? '#1877F2' : '#101924',
               color: '#FFFFFF',
@@ -364,7 +365,7 @@ export default function CompareHubPage() {
             onClick={() => setActiveTab('coach')}
             style={{
               padding: '12px 20px',
-              borderRadius: '8px',
+              borderRadius: 0,
               border: activeTab === 'coach' ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
               backgroundColor: activeTab === 'coach' ? '#1877F2' : '#101924',
               color: '#FFFFFF',
@@ -385,7 +386,7 @@ export default function CompareHubPage() {
             onClick={() => setActiveTab('all')}
             style={{
               padding: '12px 20px',
-              borderRadius: '8px',
+              borderRadius: 0,
               border: activeTab === 'all' ? '1px solid #4E9CFF' : '1px solid #1E2D3D',
               backgroundColor: activeTab === 'all' ? '#1877F2' : '#101924',
               color: '#FFFFFF',
@@ -409,7 +410,7 @@ export default function CompareHubPage() {
           style={{ 
             display: isVisible('freerolls') ? 'block' : 'none',
             backgroundColor: '#101924', 
-            borderRadius: '14px', 
+            borderRadius: 0, 
             border: '1px solid #1E2D3D', 
             overflow: 'hidden',
             marginBottom: '48px'
@@ -491,7 +492,7 @@ export default function CompareHubPage() {
           style={{ 
             display: isVisible('icm') ? 'block' : 'none',
             backgroundColor: '#101924', 
-            borderRadius: '14px', 
+            borderRadius: 0, 
             border: '1px solid #1E2D3D', 
             overflow: 'hidden',
             marginBottom: '48px'
@@ -573,7 +574,7 @@ export default function CompareHubPage() {
           style={{ 
             display: isVisible('odds') ? 'block' : 'none',
             backgroundColor: '#101924', 
-            borderRadius: '14px', 
+            borderRadius: 0, 
             border: '1px solid #1E2D3D', 
             overflow: 'hidden',
             marginBottom: '48px'
@@ -655,7 +656,7 @@ export default function CompareHubPage() {
           style={{ 
             display: isVisible('directory') ? 'block' : 'none',
             backgroundColor: '#101924', 
-            borderRadius: '14px', 
+            borderRadius: 0, 
             border: '1px solid #1E2D3D', 
             overflow: 'hidden',
             marginBottom: '48px'
@@ -737,7 +738,7 @@ export default function CompareHubPage() {
           style={{ 
             display: isVisible('bankroll') ? 'block' : 'none',
             backgroundColor: '#101924', 
-            borderRadius: '14px', 
+            borderRadius: 0, 
             border: '1px solid #1E2D3D', 
             overflow: 'hidden',
             marginBottom: '48px'
@@ -819,7 +820,7 @@ export default function CompareHubPage() {
           style={{ 
             display: isVisible('toke') ? 'block' : 'none',
             backgroundColor: '#101924', 
-            borderRadius: '14px', 
+            borderRadius: 0, 
             border: '1px solid #1E2D3D', 
             overflow: 'hidden',
             marginBottom: '48px'
@@ -901,7 +902,7 @@ export default function CompareHubPage() {
           style={{ 
             display: isVisible('coach') ? 'block' : 'none',
             backgroundColor: '#101924', 
-            borderRadius: '14px', 
+            borderRadius: 0, 
             border: '1px solid #1E2D3D', 
             overflow: 'hidden',
             marginBottom: '48px'
@@ -1003,7 +1004,7 @@ export default function CompareHubPage() {
                   padding: '18px 20px',
                   backgroundColor: '#101924',
                   border: '1px solid #1E2D3D',
-                  borderRadius: '10px',
+                  borderRadius: 0,
                   textDecoration: 'none',
                   color: '#FFFFFF',
                 }}
@@ -1054,7 +1055,7 @@ export default function CompareHubPage() {
                 style={{
                   backgroundColor: '#101924',
                   border: '1px solid #1E2D3D',
-                  borderRadius: '10px',
+                  borderRadius: 0,
                   overflow: 'hidden',
                 }}
               >
@@ -1146,6 +1147,14 @@ export default function CompareHubPage() {
           publishedYear="2026"
           slug="smarter-poker-comparison-index"
         />
+
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="dataset-export"
+            context="compare-index"
+            redirectPath="/compare"
+          />
+        </div>
 
         <AiPromptLauncher
           title="Smarter.Poker Verified Poker Software & Cardroom Comparisons"

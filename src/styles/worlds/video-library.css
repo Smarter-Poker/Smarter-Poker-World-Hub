@@ -2155,8 +2155,6 @@
     --vl-control-shadow: inset 0 1px 0 #ffffff18, 0 2px 4px #0008;
 }
 .vl-library-heading { padding: 18px 12px 12px; }
-.vl-library-heading h1 { margin: 0; font-size: clamp(24px, 3vw, 32px); font-weight: 750; letter-spacing: -.035em; line-height: 1.15; }
-.vl-library-heading p { margin: 6px 0 0; color: var(--vl-muted); font-size: 13px; line-height: 1.5; }
 .vl-search-wrap { background: linear-gradient(180deg, #080b10, #141a22); border-color: #465260; box-shadow: inset 0 2px 5px #0009, 0 1px 0 #ffffff0d; }
 .vl-search-submit { background: var(--vl-control); box-shadow: inset 0 1px 0 #ffffff12; font-weight: 650; }
 .vl-filter-button { padding-inline: 14px; line-height: 1.4; }
@@ -2235,14 +2233,11 @@
 }
 @media (min-width: 1100px) {
     .vl-yt { padding: 0 20px 16px; column-gap: 24px; }
-    .vl-topbar > .vl-library-heading { grid-column: 2; grid-row: 1; padding: 20px 0 14px; }
     .vl-topbar > .vl-chip-rail { margin-top: 20px; background: transparent; border-right: 1px solid #29333f; border-radius: 0; padding: 0 14px 0 0; }
     .vl-yt .vl-video-grid { padding-inline: 12px; }
 }
 @media (max-width: 1099px) {
     .vl-library-heading { padding: 10px 12px 6px; }
-    .vl-library-heading h1 { font-size: 21px; }
-    .vl-library-heading p { margin-top: 3px; font-size: 12px; }
     .vl-topbar { padding-bottom: 4px; border-bottom: 1px solid #29333f; }
 }
 @media (max-width: 599px) {
@@ -2264,3 +2259,116 @@
     html body .video-library-page .vl-filter-button { font-size: 14px; }
     html body .video-library-page :is(.vl-pill-button, .vl-text-button, .vl-show-more, .vl-live-heading button) { font-size: 13px; }
 }
+
+/* ── THE PLAYER STATS TREATMENT (Dan, 2026-11-27) ──────────────────────────
+   "DO THE VIDEO LIBRARY PAGES THE SAME WAY AND SAME STYLE" as the Club Arena
+   Player Stats page: the chrome mast (VideoLibraryWorkspaceHeader), bevelled
+   chrome controls with depth, larger type, everything centred in its frame,
+   and the grey explanation lines moved behind the mast's "?". The video feed
+   itself stays the frameless YouTube grid of the 2026-10-11 ruling; only the
+   controls and readouts above it wear the chrome. The chrome rails are the
+   same art Club Arena paints Player Stats with (public/assets/video-library/mast). */
+.video-library-page {
+    --vl-chrome-row: url('/assets/video-library/mast/chrome-row.webp');
+    --vl-chrome-active: url('/assets/video-library/mast/chrome-active.webp');
+    --vl-chrome-stat: url('/assets/video-library/mast/chrome-stat.webp');
+    --vl-chrome-panel: url('/assets/video-library/mast/chrome-readout.webp');
+    --vl-chrome-fill: linear-gradient(180deg, #263e55, #112437 45%, #07131e);
+    --vl-chrome-fill-active: linear-gradient(180deg, #2b6fc0, #14478c 48%, #0b2d63);
+    --vl-chrome-panel-fill: radial-gradient(ellipse at 87% 0%, #19374f 0%, transparent 65%), linear-gradient(154deg, #11263a, #07131e 56%, #081927);
+}
+.vl-library-heading.vl-library-mast { padding: 0; }
+
+/* Controls: one bevelled chrome rail, centred bold labels. */
+.video-library-page :is(.vl-pill-button, .vl-show-more, .vl-show-all-sources, .vl-learning-navigation a, .vl-member-clips a,
+    .vl-live-heading button, .vl-browse-filter-fields button, .vl-search-submit) {
+    display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+    min-height: 46px; padding: 8px 14px; border: 3px solid transparent; border-radius: 0;
+    border-image: var(--vl-chrome-row) 13 / 5px stretch; background: var(--vl-chrome-fill);
+    box-shadow: 0 3px 8px #000a; color: #eef7ff; text-align: center; text-shadow: 0 1px 1px #000;
+    font: 700 14px/1.2 'Roboto Condensed', Inter, Arial, sans-serif; letter-spacing: .06em; text-transform: uppercase;
+}
+.video-library-page :is(.vl-member-clips a, .vl-pill-button.is-primary) {
+    border-image: var(--vl-chrome-active) 13 / 5px stretch; background: var(--vl-chrome-fill-active);
+    box-shadow: 0 0 12px #2f8cff66, 0 3px 8px #000a;
+}
+
+/* Chips: the same rail on every chip, the active chip lit. */
+.vl-filter-button { font-weight: 700; letter-spacing: .04em; }
+.vl-filter-button::before {
+    border: 3px solid transparent; border-radius: 0; border-image: var(--vl-chrome-row) 13 / 5px stretch;
+    background: var(--vl-chrome-fill); box-shadow: 0 2px 6px #0009;
+}
+.vl-filter-button.is-active::before {
+    border-image: var(--vl-chrome-active) 13 / 5px stretch; background: var(--vl-chrome-fill-active);
+    box-shadow: 0 0 10px #2f8cff66, 0 2px 6px #0009;
+}
+
+/* Search: a recessed chrome well. */
+.vl-search-wrap { border: 3px solid transparent; border-radius: 0; border-image: var(--vl-chrome-row) 13 / 5px stretch; background: linear-gradient(180deg, #050a12, #0c1622); box-shadow: inset 0 2px 6px #000c; }
+.vl-search-wrap input { font-size: 16px; }
+
+/* Filters: one chrome panel, centred labels over chrome selects. */
+.vl-browse-filters {
+    position: relative; box-sizing: border-box; margin: 10px 12px; padding: 14px 12px 12px;
+    border: 10px solid transparent; border-image: var(--vl-chrome-panel) 21 / 10px stretch; background: var(--vl-chrome-panel-fill);
+}
+.vl-browse-filter-fields { justify-content: center; align-items: end; }
+.vl-browse-filter-fields label {
+    text-align: center; color: #a2dfff; font: 700 13px/1.4 'Roboto Condensed', Inter, Arial, sans-serif;
+    letter-spacing: .12em; text-transform: uppercase;
+}
+.vl-browse-filter-fields select {
+    height: 48px; min-height: 48px; margin-top: 6px; border: 3px solid transparent; border-radius: 0;
+    border-image: var(--vl-chrome-row) 13 / 5px stretch; background: var(--vl-chrome-fill);
+    color: #f1f7ff; font-size: 16px; font-weight: 700; text-align: center; text-align-last: center;
+}
+
+/* Poker Players, Refresh Library, Upload Poker Clip: one centred row. */
+.vl-library-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 8px 12px 12px; }
+.vl-library-actions > .vl-learning-navigation, .vl-library-actions > .vl-member-clips { display: contents; }
+.vl-library-actions :is(a, button) { width: 100%; min-width: 0; }
+
+/* Channels: centred names under centred logos, Show All centred under them. */
+.video-library-page .vl-yt .vl-show-all-sources { display: flex; width: fit-content; max-width: calc(100% - 24px); margin: 14px auto 4px; justify-self: center; }
+.vl-live-note { text-align: center; }
+.vl-source-button { justify-content: center; text-align: center; }
+.vl-source-name { text-align: center; font-size: 13px; font-weight: 600; color: #dbe7f1; }
+.vl-source-button.is-active { border: 3px solid transparent; border-image: var(--vl-chrome-active) 13 / 5px stretch; background: #0c2340; }
+
+/* Diamond Study Streak: a chrome panel of three centred readouts. */
+.vl-study-status {
+    position: relative; box-sizing: border-box; margin: 14px 12px; padding: 14px 12px; text-align: center;
+    border: 10px solid transparent; border-radius: 0; border-image: var(--vl-chrome-panel) 21 / 10px stretch;
+    background: var(--vl-chrome-panel-fill);
+}
+.vl-study-status h2 { margin: 0 0 10px; font: 700 clamp(18px, 4.6vw, 22px)/1.15 'Roboto Condensed', Inter, Arial, sans-serif; color: #eef7ff; letter-spacing: .04em; text-transform: uppercase; }
+.vl-study-status p { max-width: none; text-align: center; font-size: 15px; color: #dbe7f1; }
+.vl-study-readouts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.vl-study-readout {
+    display: grid; align-content: center; justify-items: center; gap: 4px; min-height: 84px; padding: 10px 6px;
+    border: 3px solid transparent; border-image: var(--vl-chrome-stat) 11 / 5px stretch;
+    background: linear-gradient(160deg, #1c3247, #0d2031 50%, #091625);
+}
+.vl-study-readout > span { color: #dbe7f1; font: 600 14px/1.2 Inter, Arial, sans-serif; }
+.vl-study-status .vl-study-readout .vl-study-streak-value { margin: 0; color: #c0e7ff; font: 700 clamp(22px, 6vw, 30px)/1.1 Inter, Arial, sans-serif; }
+.vl-study-readout.is-done .vl-study-streak-value { color: #4ade80; }
+
+/* Section titles. */
+.vl-live-heading h2, .vl-shelf-header h2 { font: 700 clamp(20px, 5vw, 24px)/1.15 'Roboto Condensed', Inter, Arial, sans-serif; letter-spacing: .02em; text-transform: uppercase; }
+
+@media (min-width: 1100px) {
+    .vl-yt > .vl-library-mast { grid-column: 2; grid-row: 1; padding-top: 14px; }
+    .vl-browse-filters, .vl-library-actions, .vl-study-status { margin-inline: 0; }
+}
+@media (max-width: 599px) {
+    .vl-source-pills { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .vl-source-button { flex-direction: column; min-height: 0; gap: 6px; padding: 6px 2px; }
+    .vl-source-name { flex: 0 0 auto; width: 100%; text-align: center; font-size: 12px; }
+    .vl-library-actions :is(a, button) { padding-inline: 6px; font-size: 12.5px; letter-spacing: .03em; }
+}
+/* The phone rule in index.css sets every button to 16px; the chrome controls keep their own size. */
+@media (max-width: 768px) {
+    html body .video-library-page :is(.vl-pill-button, .vl-live-heading button, .vl-search-submit, .vl-browse-filter-fields button) { font-size: 13px; }
+}
+

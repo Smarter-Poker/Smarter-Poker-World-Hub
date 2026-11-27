@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -512,6 +513,14 @@ export default function TableSelectionCalculatorPage() {
             </div>
           </div>
         </section>
+
+        <div style={{ marginBottom: 32 }}>
+          <SmarterAccountUnlockGate
+            variant="calculator-pro"
+            context="tools-table-selection-calculator"
+            redirectPath={canonicalPath}
+          />
+        </div>
 
         <SmarterConversionCta
           compact

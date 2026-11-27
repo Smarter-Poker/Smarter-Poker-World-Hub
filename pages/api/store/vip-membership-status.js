@@ -15,6 +15,7 @@ import { vipIntroOfferPublicTerms } from '../../../src/lib/store/vipIntroOffer.m
 import { resolveVipIntroOffer } from '../../../src/lib/store/vipIntroEligibility';
 import { VIP_COMEBACK_OFFER } from '../../../src/lib/store/vipComebackOffer.mjs';
 import { resolveVipComebackOffer } from '../../../src/lib/store/vipComebackEligibility';
+import { resolvePhoneWelcomeOffer } from '../../../src/lib/store/phoneWelcomeOffer';
 
 let _supabase = null;
 function getSupabase() {
@@ -60,7 +61,7 @@ export default async function handler(req, res) {
     const [profileResult, subscriptionResult] = await Promise.all([
       getSupabase()
         .from('profiles')
-        .select('is_vip, vip_tier, vip_expires_at')
+        .select('is_vip, vip_tier, vip_expires_at, phone_verified, created_at')
         .eq('id', user.id)
         .maybeSingle(),
       getSupabase()
@@ -119,8 +120,21 @@ export default async function handler(req, res) {
         ? profile.vip_expires_at
         : null;
 
+    /* The phone verification welcome offer (free VIP month + welcome
+       diamonds), shown BEFORE any VIP or Diamond prompt to an account that
+       has not claimed it (Dan, 2026-11-27). Mirrors what verify-otp pays.
+       Fails closed: unknown is `eligible: false`, so the existing prompt
+       shows and nothing stands in front of a purchase. Additive field. */
+    let phoneOffer;
+    try {
+      phoneOffer = await resolvePhoneWelcomeOffer(getSupabase(), user, profile);
+    } catch (_phoneOfferError) {
+      phoneOffer = { eligible: false, reason: 'unknown' };
+    }
+
     return res.status(200).json({
       success: true,
+      phoneOffer,
       introOffer: {
         ...vipIntroOfferPublicTerms(),
         eligible: introDecision.eligible,

@@ -16,6 +16,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import {
   HAND_MATCHUPS,
@@ -220,15 +221,15 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
               />
             </div>
 
-            <div style={{ marginTop: '10px', fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.5 }}>
-              <strong style={{ color: '#cbd5e1' }}>Card &amp; Suit Assumptions:</strong> {combinatorialAssumptions}. Suit Dominance (Shared Vs. Unshared Flush Suits) Can Shift Specific Suit-Pairings By Up To ±1.8%.
+            <div style={{ marginTop: '10px', fontSize: '11.5px', color: '#bdd0e2', lineHeight: 1.5 }}>
+              <strong style={{ color: '#bdd0e2' }}>Card &amp; Suit Assumptions:</strong> {combinatorialAssumptions}. Suit Dominance (Shared Vs. Unshared Flush Suits) Can Shift Specific Suit-Pairings By Up To ±1.8%.
             </div>
 
             <div
               style={{
                 marginTop: '14px',
                 paddingTop: '12px',
-                borderTop: '1px solid #1e293b',
+                borderTop: '1px solid #2b4663',
                 display: 'flex',
                 flexWrap: 'wrap',
                 alignItems: 'center',
@@ -236,7 +237,7 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
                 gap: '8px',
               }}
             >
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#bdd0e2' }}>
                 Share Exact Preflop Equity Card:
               </span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -248,9 +249,9 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
                     fontSize: '12px',
                     fontWeight: 700,
                     background: copiedCardType === 'discord' ? '#10b981' : '#38bdf8',
-                    color: '#04131d',
+                    color: '#071321',
                     border: 'none',
-                    borderRadius: '4px',
+                    borderRadius: 0,
                     cursor: 'pointer',
                   }}
                 >
@@ -265,10 +266,10 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
                     padding: '6px 12px',
                     fontSize: '12px',
                     fontWeight: 700,
-                    background: copiedCardType === 'reddit' ? '#10b981' : '#0b1324',
-                    color: copiedCardType === 'reddit' ? '#04131d' : '#38bdf8',
+                    background: copiedCardType === 'reddit' ? '#10b981' : '#0a1a2b',
+                    color: copiedCardType === 'reddit' ? '#071321' : '#38bdf8',
                     border: '1px solid #38bdf8',
-                    borderRadius: '4px',
+                    borderRadius: 0,
                     cursor: 'pointer',
                   }}
                 >
@@ -312,7 +313,7 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
           <h2 style={styles.h2}>
             {matchup.handA} Vs {matchup.handB} Preflop Win, Tie &amp; Combinatoric Breakdown
           </h2>
-          <div style={{ overflowX: 'auto', marginTop: '14px' }}>
+          <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch', marginTop: '14px' }}>
             <table style={styles.table}>
               <thead>
                 <tr style={styles.trHead}>
@@ -355,7 +356,7 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
             Preflop Equities Shift Dramatically Once Three Community Cards Hit The Felt. Review How {matchup.handA} And {matchup.handB} Navigate The Three Primary Flop Archetypes:
           </p>
 
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
             <table style={styles.table}>
               <thead>
                 <tr style={styles.trHead}>
@@ -435,6 +436,13 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
             </div>
           </section>
         )}
+        <SmarterAccountUnlockGate
+          variant="solver-matrix"
+          context={`learn-matchup-${matchup.slug}`}
+          title={`Unlock Full ${matchup.handA} Vs ${matchup.handB} Multi-Position Solver Frequencies Free`}
+          redirectPath={`/learn/matchups/${matchup.slug}`}
+        />
+
 
         {/* FAQ Section */}
         <section aria-label="Frequently Asked Questions" style={styles.sectionPlate}>
@@ -477,8 +485,8 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
 const styles = {
   page: {
     minHeight: '100vh',
-    backgroundColor: '#0a0f18',
-    color: '#e2e8f0',
+    backgroundColor: '#071321',
+    color: '#f2f7ff',
     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
   },
   container: {
@@ -492,25 +500,25 @@ const styles = {
     flexWrap: 'wrap',
     gap: '8px',
     fontSize: '13px',
-    color: '#94a3b8',
+    color: '#bdd0e2',
     marginBottom: '20px',
   },
   crumbLink: {
-    color: '#00d4ff',
+    color: '#38bdf8',
     textDecoration: 'none',
     fontWeight: 600,
   },
   crumbSep: {
-    color: '#475569',
+    color: '#2b4663',
   },
   crumbCurrent: {
-    color: '#e2e8f0',
+    color: '#f2f7ff',
     fontWeight: 600,
   },
   heroPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    backgroundColor: '#0a1a2b',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '28px',
     marginBottom: '24px',
   },
@@ -522,12 +530,12 @@ const styles = {
   },
   cyanBadge: {
     backgroundColor: 'rgba(0, 212, 255, 0.12)',
-    border: '1px solid #00d4ff',
-    color: '#00d4ff',
+    border: '1px solid #38bdf8',
+    color: '#38bdf8',
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   emeraldBadge: {
@@ -537,26 +545,26 @@ const styles = {
     fontSize: '11px',
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: 0,
     letterSpacing: '0.06em',
   },
   h1: {
     fontSize: '30px',
     fontWeight: 800,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     margin: '0 0 14px',
     lineHeight: 1.2,
   },
   lead: {
     fontSize: '15.5px',
     lineHeight: 1.65,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: '0 0 22px',
   },
   equityCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '20px',
     marginBottom: '22px',
   },
@@ -571,12 +579,12 @@ const styles = {
   handCodeCyan: {
     fontSize: '26px',
     fontWeight: 800,
-    color: '#00d4ff',
+    color: '#38bdf8',
   },
   equityNumberCyan: {
     fontSize: '18px',
     fontWeight: 700,
-    color: '#f8fafc',
+    color: '#f2f7ff',
   },
   handCodeEmerald: {
     fontSize: '26px',
@@ -586,32 +594,32 @@ const styles = {
   equityNumberEmerald: {
     fontSize: '18px',
     fontWeight: 700,
-    color: '#f8fafc',
+    color: '#f2f7ff',
   },
   winSubText: {
     fontSize: '12.5px',
-    color: '#94a3b8',
+    color: '#bdd0e2',
     marginTop: '4px',
   },
   vsBadge: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    color: '#e2e8f0',
+    backgroundColor: '#0a1a2b',
+    border: '1px solid #2b4663',
+    color: '#f2f7ff',
     fontWeight: 700,
     fontSize: '13px',
     padding: '6px 14px',
-    borderRadius: '20px',
+    borderRadius: 0,
   },
   equityBarTrack: {
     display: 'flex',
     height: '16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     overflow: 'hidden',
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
+    backgroundColor: '#0a1a2b',
+    border: '1px solid #2b4663',
   },
   equityBarFillA: {
-    backgroundColor: '#00d4ff',
+    backgroundColor: '#38bdf8',
     height: '100%',
   },
   equityBarFillB: {
@@ -624,49 +632,49 @@ const styles = {
     gap: '10px',
   },
   crossBtnCyan: {
-    backgroundColor: '#00d4ff',
-    color: '#0a0f18',
+    backgroundColor: '#38bdf8',
+    color: '#071321',
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnEmerald: {
     backgroundColor: '#10b981',
-    color: '#0a0f18',
+    color: '#071321',
     fontWeight: 700,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   crossBtnOutline: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    color: '#e2e8f0',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    color: '#f2f7ff',
     fontWeight: 600,
     fontSize: '13px',
     padding: '9px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     textDecoration: 'none',
   },
   sectionPlate: {
-    backgroundColor: '#111a2a',
-    border: '1px solid #1e293b',
-    borderRadius: '8px',
+    backgroundColor: '#0a1a2b',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '24px',
     marginBottom: '24px',
   },
   h2: {
     fontSize: '21px',
     fontWeight: 800,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     margin: '0 0 10px',
   },
   sectionSub: {
     fontSize: '14px',
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     lineHeight: 1.6,
     margin: '0 0 14px',
   },
@@ -676,22 +684,22 @@ const styles = {
     fontSize: '13.5px',
   },
   trHead: {
-    backgroundColor: '#0a0f18',
-    borderBottom: '2px solid #00d4ff',
+    backgroundColor: '#071321',
+    borderBottom: '2px solid #38bdf8',
     textAlign: 'left',
   },
   th: {
     padding: '11px 12px',
-    color: '#00d4ff',
+    color: '#38bdf8',
     fontWeight: 700,
     fontSize: '12px',
   },
   trBody: {
-    borderBottom: '1px solid #1e293b',
+    borderBottom: '1px solid #2b4663',
   },
   tdHandA: {
     padding: '12px',
-    color: '#00d4ff',
+    color: '#38bdf8',
     fontWeight: 700,
   },
   tdHandB: {
@@ -701,7 +709,7 @@ const styles = {
   },
   tdTexture: {
     padding: '12px',
-    color: '#f8fafc',
+    color: '#f2f7ff',
     fontWeight: 700,
     minWidth: '200px',
   },
@@ -713,7 +721,7 @@ const styles = {
   },
   tdCell: {
     padding: '12px',
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     lineHeight: 1.5,
   },
   evGrid: {
@@ -723,16 +731,16 @@ const styles = {
     marginTop: '14px',
   },
   evCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '18px',
   },
   evCardBadgeCyan: {
     display: 'inline-block',
     fontSize: '11px',
     fontWeight: 700,
-    color: '#00d4ff',
+    color: '#38bdf8',
     marginBottom: '6px',
     letterSpacing: '0.05em',
   },
@@ -747,13 +755,13 @@ const styles = {
   h3: {
     fontSize: '16px',
     fontWeight: 700,
-    color: '#f8fafc',
+    color: '#f2f7ff',
     margin: '0 0 8px',
   },
   evBody: {
     fontSize: '13.5px',
     lineHeight: 1.6,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: 0,
   },
   peerGrid: {
@@ -763,9 +771,9 @@ const styles = {
     marginTop: '14px',
   },
   peerCard: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '14px',
     textDecoration: 'none',
     display: 'flex',
@@ -780,7 +788,7 @@ const styles = {
   peerTitle: {
     fontSize: '14px',
     fontWeight: 700,
-    color: '#00d4ff',
+    color: '#38bdf8',
   },
   faqList: {
     display: 'grid',
@@ -788,21 +796,21 @@ const styles = {
     marginTop: '14px',
   },
   faqItem: {
-    backgroundColor: '#0a0f18',
-    border: '1px solid #1e293b',
-    borderRadius: '6px',
+    backgroundColor: '#071321',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px',
   },
   faqQ: {
     fontSize: '15.5px',
     fontWeight: 700,
-    color: '#00d4ff',
+    color: '#38bdf8',
     margin: '0 0 8px',
   },
   faqA: {
     fontSize: '14px',
     lineHeight: 1.6,
-    color: '#cbd5e1',
+    color: '#bdd0e2',
     margin: 0,
   },
 };

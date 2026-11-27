@@ -6,6 +6,7 @@
  */
 
 import PreflopRangeMatrixHub from './index';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import { setPublicSeoHtmlCache } from '../../../src/lib/seo/edgeCacheHeaders.mjs';
 
 const VALID_POSITIONS = new Set(['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB']);
@@ -57,6 +58,13 @@ export default function PositionalPreflopRangeMatrixPage({
       initialPosition={initialPosition}
       canonicalPath={canonicalPath}
       markdownPath={markdownPath}
+      unlockGateSlot={
+        <SmarterAccountUnlockGate
+          variant="solver-matrix"
+          context={`tools-preflop-ranges-${String(initialPosition).toLowerCase()}`}
+          redirectPath={canonicalPath}
+        />
+      }
     />
   );
 }

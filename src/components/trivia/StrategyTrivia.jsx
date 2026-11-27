@@ -37,6 +37,7 @@ import TriviaSkeleton from './TriviaSkeleton';
 import { triggerTriviaHaptic } from '../../lib/trivia/triviaHaptics';
 import TriviaConsole from './console/TriviaConsole';
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
+import { VipUpgradePrompt } from '../vip/VipKit';
 import ResponsiveModeArt from './console/ResponsiveModeArt';
 import { TRIVIA_INTRO_ART_CASH, TRIVIA_INTRO_ART_GTO, TRIVIA_INTRO_ART_ICM, TRIVIA_INTRO_ART_MTT } from '../../config/triviaIntroArt.mjs';
 import {
@@ -1093,6 +1094,17 @@ export default function StrategyTrivia({ mode }) {
                                 <span className="tc-row__value">{entryCost} Diamonds</span>
                             </li>
                         </ul>
+                    ) : null}
+                    {/* A non-VIP account that has not claimed the phone
+                        verification reward sees that offer here first; Skip
+                        shows the VIP price (Dan, 2026-11-27). */}
+                    {userId && isVip === false && !vipInitializing ? (
+                        <VipUpgradePrompt
+                            accountId={userId}
+                            enabled={showOutOfDiamonds}
+                            title="Play Unlimited With VIP"
+                            copy="VIP Members Play Every Trivia Mode Free."
+                        />
                     ) : null}
                 </TriviaConsoleDialog>
 

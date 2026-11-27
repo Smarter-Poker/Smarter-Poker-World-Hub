@@ -22,6 +22,7 @@ import '../src/styles/worlds/training.css';
 import '../src/styles/worlds/marketplace.css';
 import '../src/styles/worlds/news.css';
 import '../src/styles/worlds/video-library.css';
+import '../src/styles/worlds/video-library-pages.css';
 import '../src/styles/worlds/poker-near-me.css';
 import '../src/styles/worlds/poker-near-me-lobby.css';
 import '../src/styles/worlds/memory-games.css';
@@ -162,6 +163,7 @@ import ServiceWorkerUpdater from '../src/components/ui/ServiceWorkerUpdater';
 import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import GuestConversionBar from '../src/components/seo/GuestConversionBar';
+import SmarterQuickSignupSheet from '../src/components/seo/SmarterQuickSignupSheet';
 import WorldCopyPolicy from '../src/components/ui/WorldCopyPolicy';
 import BottomNavBar, { BottomNavSpacer } from '../src/components/ui/BottomNavBar';
 import ActivePokerSeatLink from '../src/components/ui/ActivePokerSeatLink';
@@ -1245,6 +1247,7 @@ export default function App({ Component, pageProps }) {
                               {!isEmbedded && !isPrintProofRoute && !isOperatorConsole && !isClubArenaRoute && (
                                 <HubErrorBoundary name="Guest Conversion Bar" fallback={<></>}>
                                   <GuestConversionBar />
+                                  <SmarterQuickSignupSheet />
                                 </HubErrorBoundary>
                               )}
                               <PageErrorBoundary key={pageErrorBoundaryKey}>

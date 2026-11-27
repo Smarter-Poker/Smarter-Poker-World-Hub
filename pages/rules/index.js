@@ -19,6 +19,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import {
   POKER_RULES,
   RULE_CATEGORIES,
@@ -236,7 +237,7 @@ export default function PokerRulesIndexPage() {
               marginTop: '14px',
               padding: '10px 14px',
               background: '#081118',
-              border: '1px solid #1e293b',
+              border: '1px solid #2b4663',
               borderRadius: '2px',
               display: 'flex',
               flexWrap: 'wrap',
@@ -278,7 +279,7 @@ export default function PokerRulesIndexPage() {
             }
             body, main, div, article, section, header, table, th, td {
               background: #ffffff !important;
-              color: #0f172a !important;
+              color: #0d1f33 !important;
               border-color: #cbd5e1 !important;
             }
           }
@@ -489,6 +490,14 @@ export default function PokerRulesIndexPage() {
           slug="official-poker-rules-encyclopedia"
           doi="10.5281/zenodo.24115454"
         />
+
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="study-deck"
+            context="rules-index"
+            redirectPath="/rules"
+          />
+        </div>
 
         <AiPromptLauncher
           title="Official Poker Rules & Tournament TDA Floor Rulings Encyclopedia"

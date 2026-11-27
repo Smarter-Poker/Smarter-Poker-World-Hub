@@ -1,4 +1,6 @@
 import PokerNearMeLocationPage from '../../../../src/components/poker-near-me/PokerNearMeLocationPage';
+import SmarterAccountUnlockGate from '../../../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterConversionCta from '../../../../src/components/seo/SmarterConversionCta';
 import { aggregateVenueStates, fetchPokerVenueLocation, venueLocationCanonical, venuesWithoutAState } from '../../../../src/lib/poker-near-me/locationPages';
 
 export async function getServerSideProps({ req, res, query }) {
@@ -51,6 +53,26 @@ export default function PokerLocationsIndex(props) {
       title="Live Poker Rooms By State And City"
       description="Browse verified casino poker rooms and cardrooms by state, then move into city-level venue profiles, schedules, and live player signals."
       canonical={venueLocationCanonical()}
+      conversionCta={(
+        <div style={{ display: 'grid', gap: 18 }}>
+          <SmarterAccountUnlockGate
+            variant="live-venue-intel"
+            context="pnm-locations-index"
+            title="See Live Waitlists, Peak Hours & Room Alerts Across All 50 States"
+            redirectPath="/hub/poker-near-me/in"
+          />
+          <SmarterConversionCta
+            eyebrow="Free US Poker Directory Account"
+            title="Find Live Poker Rooms & Track Sessions Nationwide Free"
+            description="Create A Free Smarter.Poker Account To Save Favorite Cardrooms, Check In Live, And Track Your Cash Game Profit."
+            primaryLabel="Create Free Account"
+            primaryHref="/auth/signup?redirect=%2Fhub%2Fpoker-near-me%2Fin&src=pnm-locations-index"
+            secondaryLabel="Sign In"
+            secondaryHref="/auth/login?redirect=%2Fhub%2Fpoker-near-me%2Fin"
+            highlights={['100% Free Account', '715+ Live Rooms', 'Bankroll Tracker']}
+          />
+        </div>
+      )}
     />
   );
 }

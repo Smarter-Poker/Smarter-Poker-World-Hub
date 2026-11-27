@@ -20,6 +20,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import {
   GAME_CATEGORIES,
   GAMES_AS_OF,
@@ -387,6 +388,14 @@ export default function PokerGamesIndexPage() {
           summary="Complete rulebooks, hand ranking systems, and starting hand strategy tiers for 15 poker variants published by Smarter.Poker."
           slug="poker-variants-encyclopedia"
         />
+
+        <div style={{ margin: '28px 0' }}>
+          <SmarterAccountUnlockGate
+            variant="study-deck"
+            context="games-index"
+            redirectPath="/games"
+          />
+        </div>
 
         <AiPromptLauncher
           title="Poker Variants & Mixed Games Encyclopedia (15 Complete Rulebooks)"

@@ -1683,9 +1683,10 @@ const defaultStyles = {
     padding: 0,
   },
   item: {
-    background: 'rgba(255, 255, 255, 0.04)',
-    border: '1px solid rgba(0, 198, 255, 0.18)',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
+    boxShadow: 'inset 0 1px 0 rgba(134, 218, 255, 0.16)',
     padding: '16px 16px 14px',
   },
   link: {
