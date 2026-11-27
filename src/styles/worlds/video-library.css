@@ -2286,7 +2286,7 @@
     min-height: 46px; padding: 8px 14px; border: 3px solid transparent; border-radius: 0;
     border-image: var(--vl-chrome-row) 13 / 5px stretch; background: var(--vl-chrome-fill);
     box-shadow: 0 3px 8px #000a; color: #eef7ff; text-align: center; text-shadow: 0 1px 1px #000;
-    font: 700 14px/1.2 'Roboto Condensed', Inter, Arial, sans-serif; letter-spacing: .06em; text-transform: uppercase;
+    font: 700 14px/1.2 'Roboto Condensed', Inter, Arial, sans-serif; letter-spacing: .06em;
 }
 .video-library-page :is(.vl-member-clips a, .vl-pill-button.is-primary) {
     border-image: var(--vl-chrome-active) 13 / 5px stretch; background: var(--vl-chrome-fill-active);
@@ -2316,7 +2316,7 @@
 .vl-browse-filter-fields { justify-content: center; align-items: end; }
 .vl-browse-filter-fields label {
     text-align: center; color: #a2dfff; font: 700 13px/1.4 'Roboto Condensed', Inter, Arial, sans-serif;
-    letter-spacing: .12em; text-transform: uppercase;
+    letter-spacing: .12em;
 }
 .vl-browse-filter-fields select {
     height: 48px; min-height: 48px; margin-top: 6px; border: 3px solid transparent; border-radius: 0;
@@ -2342,7 +2342,7 @@
     border: 10px solid transparent; border-radius: 0; border-image: var(--vl-chrome-panel) 21 / 10px stretch;
     background: var(--vl-chrome-panel-fill);
 }
-.vl-study-status h2 { margin: 0 0 10px; font: 700 clamp(18px, 4.6vw, 22px)/1.15 'Roboto Condensed', Inter, Arial, sans-serif; color: #eef7ff; letter-spacing: .04em; text-transform: uppercase; }
+.vl-study-status h2 { margin: 0 0 10px; font: 700 clamp(18px, 4.6vw, 22px)/1.15 'Roboto Condensed', Inter, Arial, sans-serif; color: #eef7ff; letter-spacing: .04em; }
 .vl-study-status p { max-width: none; text-align: center; font-size: 15px; color: #dbe7f1; }
 .vl-study-readouts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .vl-study-readout {
@@ -2355,7 +2355,7 @@
 .vl-study-readout.is-done .vl-study-streak-value { color: #4ade80; }
 
 /* Section titles. */
-.vl-live-heading h2, .vl-shelf-header h2 { font: 700 clamp(20px, 5vw, 24px)/1.15 'Roboto Condensed', Inter, Arial, sans-serif; letter-spacing: .02em; text-transform: uppercase; }
+.vl-live-heading h2, .vl-shelf-header h2 { font: 700 clamp(20px, 5vw, 24px)/1.15 'Roboto Condensed', Inter, Arial, sans-serif; letter-spacing: .02em; }
 
 @media (min-width: 1100px) {
     .vl-yt > .vl-library-mast { grid-column: 2; grid-row: 1; padding-top: 14px; }

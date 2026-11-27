@@ -185,7 +185,6 @@
   font: 750 clamp(10px, 1.1cqi, 12px)/1.2 'Barlow Condensed', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   color: #a2dfff;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 .title {
   width: fit-content;
