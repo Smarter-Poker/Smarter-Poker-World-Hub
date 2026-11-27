@@ -76,6 +76,148 @@ const C = {
 // data already sitting in localStorage. Inside this window we trust the cache.
 const HEADER_CACHE_FRESH_MS = 60 * 1000;
 
+// ── Module-level singleflight fetch deduplication (~10s TTL) ──────────────
+// Collapses duplicate bootstrap reads across concurrent header mounts and
+// hydrations (ensure-profile, vip/check-status, get-header-stats,
+// get-conversations) keyed by authenticated user identity.
+const HEADER_SINGLEFLIGHT_TTL_MS = 10_000;
+const HEADER_SINGLEFLIGHT_PATHS = new Set([
+  '/api/auth/ensure-profile',
+  '/api/vip/check-status',
+  '/api/user/get-header-stats',
+  '/api/messenger/get-conversations',
+]);
+const HEADER_SINGLEFLIGHT_SYMBOL = Symbol.for('smarterPoker.headerFetchSingleflight');
+const headerSingleflightInflight = new Map();
+const headerSingleflightCache = new Map();
+let headerSingleflightLastUserId = null;
+
+function readSingleflightUserId() {
+  if (typeof window === 'undefined') return 'anon';
+  try {
+    const explicit = localStorage.getItem('smarter-poker-auth');
+    if (explicit) {
+      const uid = JSON.parse(explicit)?.user?.id;
+      if (uid) return String(uid);
+    }
+    const sbKey = Object.keys(localStorage || {}).find(
+      (k) => k.startsWith('sb-') && k.endsWith('-auth-token')
+    );
+    if (sbKey) {
+      const uid = JSON.parse(localStorage.getItem(sbKey) || '{}')?.user?.id;
+      if (uid) return String(uid);
+    }
+  } catch (_) {}
+  return 'anon';
+}
+
+function extractSingleflightPath(input) {
+  try {
+    const rawUrl = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.href
+        : typeof input?.url === 'string'
+          ? input.url
+          : '';
+    if (!rawUrl) return null;
+    const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker';
+    const parsed = new URL(rawUrl, baseOrigin);
+    if (typeof window !== 'undefined' && parsed.origin !== window.location.origin) return null;
+    return HEADER_SINGLEFLIGHT_PATHS.has(parsed.pathname) ? parsed.pathname : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function buildSingleflightKey(pathname, input, init, userId) {
+  const method = String(
+    init?.method || (typeof input === 'object' && input?.method) || 'GET'
+  ).toUpperCase();
+  // ensure-profile payloads represent the same user's bootstrap profile sync;
+  // key by user + method + path so slight metadata key-order differences still coalesce.
+  const bodyPart = pathname === '/api/auth/ensure-profile'
+    ? ''
+    : typeof init?.body === 'string'
+      ? init.body
+      : '';
+  return `${userId}::${method}::${pathname}::${bodyPart}`;
+}
+
+function clearHeaderSingleflightPath(pathname) {
+  const marker = `::${pathname}::`;
+  for (const key of headerSingleflightCache.keys()) {
+    if (key.includes(marker)) headerSingleflightCache.delete(key);
+  }
+  for (const key of headerSingleflightInflight.keys()) {
+    if (key.includes(marker)) headerSingleflightInflight.delete(key);
+  }
+}
+
+function installHeaderFetchSingleflight() {
+  if (typeof window === 'undefined' || typeof window.fetch !== 'function') return;
+  if (window.fetch[HEADER_SINGLEFLIGHT_SYMBOL]) return;
+
+  const nativeFetch = window.fetch.bind(window);
+  const wrappedFetch = function headerSingleflightFetch(input, init) {
+    const pathname = extractSingleflightPath(input);
+    if (!pathname) return nativeFetch(input, init);
+
+    const userId = readSingleflightUserId();
+    if (headerSingleflightLastUserId !== null && headerSingleflightLastUserId !== userId) {
+      headerSingleflightInflight.clear();
+      headerSingleflightCache.clear();
+    }
+    headerSingleflightLastUserId = userId;
+
+    const key = buildSingleflightKey(pathname, input, init, userId);
+    const now = Date.now();
+    const cachedEntry = headerSingleflightCache.get(key);
+    if (cachedEntry && now - cachedEntry.ts < HEADER_SINGLEFLIGHT_TTL_MS) {
+      return Promise.resolve(cachedEntry.response.clone());
+    }
+    if (cachedEntry) {
+      headerSingleflightCache.delete(key);
+    }
+
+    const existingInflight = headerSingleflightInflight.get(key);
+    if (existingInflight) {
+      return existingInflight.then((res) => res.clone());
+    }
+
+    const sharedInit = init && typeof init === 'object' && 'signal' in init
+      ? (() => {
+          const { signal: _ignoredSignal, ...rest } = init;
+          return rest;
+        })()
+      : init;
+
+    const promise = nativeFetch(input, sharedInit)
+      .then((res) => {
+        headerSingleflightInflight.delete(key);
+        if (res && res.ok) {
+          headerSingleflightCache.set(key, {
+            ts: Date.now(),
+            response: res.clone(),
+          });
+        }
+        return res;
+      })
+      .catch((err) => {
+        headerSingleflightInflight.delete(key);
+        throw err;
+      });
+
+    headerSingleflightInflight.set(key, promise);
+    return promise.then((res) => res.clone());
+  };
+
+  wrappedFetch[HEADER_SINGLEFLIGHT_SYMBOL] = true;
+  window.fetch = wrappedFetch;
+}
+
+installHeaderFetchSingleflight();
+
 // The overlay's page->url->title table moved to src/stores/pageOverlayStore.js
 // on 2026-09-02, along with the open flag itself. Dan: "IT SHOULD CREATE A
 // 'FULL SCREEN POP UP' SO YOU STAY ON THE PAGE YOU WERE ON... INSIDE THE WORLD
@@ -659,6 +801,7 @@ export default function UniversalHeader({
               // force: this only runs from the cross-tab "notifications were
               // read elsewhere" broadcast, which exists precisely to pick up a
               // change the cached payload predates.
+              clearHeaderSingleflightPath('/api/user/get-header-stats');
               const result = await getHeaderStats({ userId: authUser.id, force: true });
               if (result?.success && typeof result.notificationCount === 'number' && mounted) {
                 setNotificationCount(result.notificationCount);
@@ -752,6 +895,8 @@ export default function UniversalHeader({
   useEffect(() => {
     const handleVipChange = (e) => {
       console.debug('[UniversalHeader] 🚌 VIP status change event received:', e.detail);
+      clearHeaderSingleflightPath('/api/vip/check-status');
+      clearHeaderSingleflightPath('/api/user/get-header-stats');
       if (e.detail?.vipGranted) {
         setIsVip(true);
       }
@@ -761,6 +906,7 @@ export default function UniversalHeader({
       // Re-fetch header stats to pick up all profile changes
       if (!user?.id) return;
       try {
+        clearHeaderSingleflightPath('/api/user/get-header-stats');
         const result = await getHeaderStats({ userId: user.id, force: true });
         if (result.success && result.profile) {
           const vipActive = resolveActiveVip(

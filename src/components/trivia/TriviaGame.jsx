@@ -19,9 +19,11 @@ import { busEmit } from '../../engine/EventBus';
 import HintButtons, { applyHint } from './HintButtons';
 import GhostOpponent from './GhostOpponent';
 import TriviaAnswerOption from './TriviaAnswerOption';
+import TriviaNetworkBanner from './TriviaNetworkBanner';
 import ReportQuestionButton from './ReportQuestionButton';
 import { toTitleCase } from '../../lib/trivia/titleCase';
 import * as audio from '../../lib/trivia/triviaAudio';
+import { triggerTriviaHaptic } from '../../lib/trivia/triviaHaptics';
 import useVIP from '../../hooks/useVIP';
 import useTriviaTimer from '../../hooks/useTriviaTimer';
 
@@ -376,6 +378,7 @@ export default function TriviaGame({
         if (correct) {
             // ── CORRECT ──
             audio.correctChime();
+            triggerTriviaHaptic('correct');
             setShowCorrectFlash(true);
             safeSetTimeout(() => setShowCorrectFlash(false), 500);
             busEmit.decisionCorrect(streak + 1);
@@ -422,6 +425,7 @@ export default function TriviaGame({
         } else {
             // ── WRONG ──
             audio.wrongBuzz();
+            triggerTriviaHaptic('wrong');
             setShowWrongShake(true);
             safeSetTimeout(() => setShowWrongShake(false), 400);
             busEmit.decisionIncorrect(streak);
@@ -499,6 +503,17 @@ export default function TriviaGame({
         }
     }, [currentIndex, isArcadeMode, recoveredIndex]);
 
+    const retryPendingAnswer = () => {
+        const pending = pendingAnswerRef.current;
+        if (!serverGrader || !pending || answerRequestRef.current || !isGameActive || completedRef.current) return;
+        if (verdictsRef.current[pending.questionIndex]) {
+            pendingAnswerRef.current = null;
+            return;
+        }
+        if (typeof onRetry === 'function') onRetry('answer');
+        submitServerAnswer(pending);
+    };
+
     const selectAnswer = (index) => {
         if (
             answerLockRef.current
@@ -509,6 +524,7 @@ export default function TriviaGame({
 
         answerLockRef.current = true;
         audio.chipClick();
+        triggerTriviaHaptic('tap');
         setSelectedAnswer(index);
         setIsLocked(true);
 
@@ -792,6 +808,13 @@ export default function TriviaGame({
             <div className="trivia-sr-only" role="status" aria-live="polite">
                 {`Question ${currentIndex + 1} of ${questions.length}. ${correctCount} correct so far.`}
             </div>
+
+            <TriviaNetworkBanner
+                hasPendingRetry={Boolean(serverGrader && answerError && pendingAnswerRef.current && !verdicts[currentIndex])}
+                isRetrying={isAnswerPending}
+                onRetryNow={retryPendingAnswer}
+                onReconnect={retryPendingAnswer}
+            />
 
             {/* ════ Progress, clock and stakes: rows on the glass ════ */}
             <ul className="tc-rows trivia-game__rows">

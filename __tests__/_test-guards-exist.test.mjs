@@ -919,6 +919,7 @@ import './trivia-pass2-fortress-laws.test.mjs';
 import './trivia-wave4-lobby-push-laws.test.mjs';
 import './trivia-wave4-pvp-rematch-laws.test.mjs';
 import './trivia-wave4-study-pool-laws.test.mjs';
+import './trivia-wave5-resilience-haptics-laws.test.mjs';
 import './trivia-visual-polish-laws.test.mjs';
 import './newsletter-zero-broken-links-and-images.law.test.mjs';
 import './smarter-poker-magazine.law.test.mjs';

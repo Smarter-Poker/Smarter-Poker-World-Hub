@@ -15,8 +15,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { busEmit } from '../../engine/EventBus';
 import { DAILY_DIAMOND_CAPS } from '../../lib/trivia/triviaEngine';
 import TriviaAnswerOption from './TriviaAnswerOption';
+import TriviaNetworkBanner from './TriviaNetworkBanner';
 import ReportQuestionButton from './ReportQuestionButton';
 import { getAccessToken } from '../../lib/authUtils';
+import { triggerTriviaHaptic } from '../../lib/trivia/triviaHaptics';
 import usePhase9ReducedMotion from './phase9/usePhase9ReducedMotion';
 
 const GAME_DURATION = 30; // seconds
@@ -62,6 +64,9 @@ export default function TimeAttackGame({
     // Synchronous ref lock prevents same-frame double-taps from firing
     // duplicate serverGrader calls or double-advancing currentIndex.
     const answerLockRef = useRef(false);
+    // Stores the failed in-flight answer intent so reconnect can idempotently
+    // replay the exact same choice while respecting answerLockRef & timeLeft.
+    const pendingAnswerRef = useRef(null);
     // Brief tap cooldown after auto-advance prevents a late tap from landing
     // on the newly rendered question's option.
     const postAdvanceGuardUntilRef = useRef(0);
@@ -137,6 +142,7 @@ export default function TimeAttackGame({
     useEffect(() => {
         answerStartTime.current = Date.now();
         answerLockRef.current = false;
+        pendingAnswerRef.current = null;
         if (currentIndex > 0) {
             postAdvanceGuardUntilRef.current = Date.now() + POST_ADVANCE_TAP_GUARD_MS;
         }
@@ -162,6 +168,7 @@ export default function TimeAttackGame({
         ) return;
 
         answerLockRef.current = true;
+        triggerTriviaHaptic('tap');
         const answerTime = (Date.now() - answerStartTime.current) / 1000;
         setAnswerError(null);
         setSelectedAnswer(answerIndex);
@@ -178,6 +185,11 @@ export default function TimeAttackGame({
             return;
         }
 
+        pendingAnswerRef.current = {
+            questionId: currentQuestion.id,
+            displayIndex: answerIndex,
+        };
+
         // The tap locks synchronously; every side effect waits for the server
         // verdict. The first answer per question is binding server-side, so a
         // failed call is safe to re-tap - a retry replays the stored verdict
@@ -185,7 +197,9 @@ export default function TimeAttackGame({
         serverGrader({ questionId: currentQuestion.id, displayIndex: answerIndex })
             .then((v) => {
                 if (!_isMountedRef.current) return;
+                pendingAnswerRef.current = null;
                 setVerdict(v);
+                triggerTriviaHaptic(v?.wasCorrect === true ? 'correct' : 'wrong');
                 resolveAnswer(v?.wasCorrect === true, answerTime);
             })
             .catch((err) => {
@@ -196,6 +210,20 @@ export default function TimeAttackGame({
                 setIsRevealing(false);
                 setAnswerError('Could Not Submit That Answer. Tap The Same Answer Again.');
             });
+    };
+
+    const retryPendingAnswer = () => {
+        if (
+            !serverGrader
+            || gameOver
+            || timeLeft <= 0
+            || answerLockRef.current
+            || isRevealing
+            || !currentQuestion
+        ) return;
+        const pending = pendingAnswerRef.current;
+        if (!pending || pending.questionId !== currentQuestion.id) return;
+        handleAnswer(pending.displayIndex);
     };
 
     // Side effects + advance for a settled verdict. The reveal itself is
@@ -315,6 +343,13 @@ export default function TimeAttackGame({
             </dl>
 
             {answerError && <p className="trivia-challenge-alert" role="alert">{answerError}</p>}
+
+            <TriviaNetworkBanner
+                hasPendingRetry={Boolean(answerError && pendingAnswerRef.current && !gameOver && timeLeft > 0)}
+                isRetrying={isPendingAnswer}
+                onRetryNow={retryPendingAnswer}
+                onReconnect={retryPendingAnswer}
+            />
 
             {/* Question */}
             {!gameOver && currentQuestion && (
