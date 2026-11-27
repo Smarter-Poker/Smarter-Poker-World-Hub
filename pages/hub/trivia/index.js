@@ -36,6 +36,12 @@ import {
 } from '../../../src/lib/trivia/lobbyAccountIsolation.mjs';
 
 const GAME_SETTINGS_KEY = 'trivia_settings';
+const FREE_PREFETCH_ROUTES = Object.freeze([
+    '/hub/trivia/daily',
+    '/hub/trivia/history',
+    '/hub/trivia/rules',
+    '/hub/trivia/pro',
+]);
 
 function mirrorGamePreference(key, value) {
     if (typeof window === 'undefined') return;
@@ -195,6 +201,30 @@ export default function TriviaHubPage({ modeAvailability }) {
     const inFlightFetchKeyRef = useRef(null);
     const lastCompletedFetchKeyRef = useRef(null);
     const deepLinkHandledRef = useRef('');
+
+    // Prefetch free Trivia routes on mount/idle for fast 1-tap launch.
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        let cancelled = false;
+        const runPrefetch = () => {
+            if (cancelled) return;
+            FREE_PREFETCH_ROUTES.forEach((route) => {
+                router.prefetch(route).catch(() => {});
+            });
+        };
+        if (typeof window.requestIdleCallback === 'function') {
+            const idleId = window.requestIdleCallback(runPrefetch, { timeout: 1200 });
+            return () => {
+                cancelled = true;
+                window.cancelIdleCallback?.(idleId);
+            };
+        }
+        const timerId = window.setTimeout(runPrefetch, 250);
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timerId);
+        };
+    }, [router]);
 
     // Deep-link support: honor ?mode=<slug> cleanly once router is ready.
     useEffect(() => {
