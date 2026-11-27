@@ -1,0 +1,74 @@
+TAP version 13
+# (node:926) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/user/Smarter-Poker-World-Hub/src/lib/sharedGameLink.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /home/user/Smarter-Poker-World-Hub/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: ids are lower-cased uuids; malformed values are rejected
+ok 1 - ids are lower-cased uuids; malformed values are rejected
+  ---
+  duration_ms: 0.678746
+  type: 'test'
+  ...
+# Subtest: share query params sanitize i, cluster, and invite while rejecting injection/garbage
+ok 2 - share query params sanitize i, cluster, and invite while rejecting injection/garbage
+  ---
+  duration_ms: 0.637851
+  type: 'test'
+  ...
+# Subtest: target and signup path builders preserve safe params and refuse open redirects
+ok 3 - target and signup path builders preserve safe params and refuse open redirects
+  ---
+  duration_ms: 0.457661
+  type: 'test'
+  ...
+# Subtest: cleanGamePreview strips unknown/PII fields and formats stakes & buy-ins with zero $ and zero em-dash
+ok 4 - cleanGamePreview strips unknown/PII fields and formats stakes & buy-ins with zero $ and zero em-dash
+  ---
+  duration_ms: 10.911695
+  type: 'test'
+  ...
+# Subtest: readSharedTable and readSharedLightning use anon key only and degrade gracefully on errors
+ok 5 - readSharedTable and readSharedLightning use anon key only and degrade gracefully on errors
+  ---
+  duration_ms: 1.493005
+  type: 'test'
+  ...
+# Subtest: hasSignedInSession recognizes only a real shared Supabase session
+ok 6 - hasSignedInSession recognizes only a real shared Supabase session
+  ---
+  duration_ms: 0.179828
+  type: 'test'
+  ...
+# Subtest: both /g/[id] and /l/[id] replace all application preview defaults through shared Head keys
+ok 7 - both /g/[id] and /l/[id] replace all application preview defaults through shared Head keys
+  ---
+  duration_ms: 1.60639
+  type: 'test'
+  ...
+# Subtest: /g/[id] and /l/[id] redirect signed-in visitors, preserve attribution, never redirect crawlers, and use zero em-dashes
+ok 8 - /g/[id] and /l/[id] redirect signed-in visitors, preserve attribution, never redirect crawlers, and use zero em-dashes
+  ---
+  duration_ms: 0.395178
+  type: 'test'
+  ...
+# Subtest: pages/api/og/club-game.js obeys edge runtime, server-only facts, zero $ / em-dash, safe OG typography, and Satori display:flex on every element
+ok 9 - pages/api/og/club-game.js obeys edge runtime, server-only facts, zero $ / em-dash, safe OG typography, and Satori display:flex on every element
+  ---
+  duration_ms: 0.638675
+  type: 'test'
+  ...
+# Subtest: next.config.js, vercel.json, and middleware.ts do not intercept /g/*, /l/*, or /api/og/club-game
+ok 10 - next.config.js, vercel.json, and middleware.ts do not intercept /g/*, /l/*, or /api/og/club-game
+  ---
+  duration_ms: 1.359091
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 63.384766

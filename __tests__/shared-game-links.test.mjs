@@ -450,5 +450,18 @@ test('next.config.js, vercel.json, and middleware.ts do not intercept /g/*, /l/*
     assert.doesNotMatch(vercelCfg, /"source":\s*"\/(?:g|l)(?:\/|:)/);
     assert.doesNotMatch(vercelCfg, /"source":\s*"\/api\/og\/club-game/);
     // /api/og/club-game must not be in middleware's auth-required or explicit API matchers.
-    assert.doesNotMatch(middleware, /\/api\/og/);
+    // The matcher is what decides whether middleware runs on a path at all, so it must
+    // never name /api/og: a crawler fetching a share card then meets no edge gate.
+    const configStart = middleware.indexOf('export const config');
+    assert.ok(configStart > 0, 'middleware.ts must export its matcher config');
+    assert.doesNotMatch(middleware.slice(configStart), /\/api\/og/);
+    // The only other place middleware.ts may name /api/og is the always-allow list
+    // (MAG LAW 22 pins '/api/og/' there); an always-allow entry lets a request
+    // through and can never require auth for it. Any other mention is a gate.
+    const mentions = [...middleware.matchAll(/^.*\/api\/og.*$/gm)].map((m) => m[0].trim());
+    assert.deepEqual(mentions, ["'/api/og/',"], `unexpected /api/og reference in middleware.ts: ${mentions.join(' | ')}`);
+    const allowStart = middleware.indexOf('const AUTH_ALWAYS_ALLOW = [');
+    const allowEnd = middleware.indexOf('];', allowStart);
+    assert.ok(allowStart > 0 && allowEnd > allowStart, 'AUTH_ALWAYS_ALLOW must exist');
+    assert.match(middleware.slice(allowStart, allowEnd), /'\/api\/og\/'/);
 });
