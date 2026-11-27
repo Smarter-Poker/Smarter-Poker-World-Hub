@@ -16,6 +16,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { busEmit } from '../../engine/EventBus';
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
 import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
+import { triggerTriviaHaptic } from '../../lib/trivia/triviaHaptics';
 import styles from './PrizeWheel.module.css';
 
 const SPIN_DURATION_MS = 4000;
@@ -50,11 +51,6 @@ function prefersReducedMotion() {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
     try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
     catch { return false; }
-}
-
-function vibrate(pattern) {
-    if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
-    try { navigator.vibrate(pattern); } catch { /* unsupported */ }
 }
 
 export default function PrizeWheel({
@@ -120,11 +116,11 @@ export default function PrizeWheel({
         setRotation(finalRotation);
 
         // Haptic ticks that decay like the cubic-bezier easing (skipped when
-        // the user asked for reduced motion).
+        // reduced motion, muted, or haptics disabled).
         if (!reduceMotion) {
             const offsets = [0, 400, 850, 1350, 1900, 2450, 2950, 3400, 3750, 3950];
             for (const offset of offsets) {
-                const id = setTimeout(() => { if (isMountedRef.current) vibrate(8); }, offset);
+                const id = setTimeout(() => { if (isMountedRef.current) triggerTriviaHaptic('tap'); }, offset);
                 tickTimeoutsRef.current.push(id);
             }
         }
@@ -149,7 +145,7 @@ export default function PrizeWheel({
             }
 
             setResult({ prize, reward: finalReward });
-            vibrate([12, 40, 25]);
+            triggerTriviaHaptic('wheel');
             // Celebrate the moment the wheel lands, not two taps later.
             try { busEmit.celebration('confetti'); } catch (e) { console.warn('[PrizeWheel] celebration emit failed:', e?.message || e); }
         };

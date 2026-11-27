@@ -17,6 +17,12 @@ import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaD
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import {
+    DEFAULT_TRAINING_SPOT,
+    buildThirtyDayStreakCalendar,
+    deriveWeakestCategorySpotlight,
+    shiftChicagoDate,
+} from '../../../src/lib/trivia/streakCalendarModel.mjs';
+import {
     TRIVIA_PERIOD_FILTERS,
     TRIVIA_STATS_MODE_FILTERS,
     filterTriviaScores,
@@ -133,6 +139,9 @@ export default function TriviaStats() {
     const [scores, setScores] = useState([]);
     const [streak, setStreak] = useState(null);
     const [categoryMastery, setCategoryMastery] = useState([]);
+    const [dailyPlayDates, setDailyPlayDates] = useState([]);
+    const [freezeSavedDates, setFreezeSavedDates] = useState([]);
+    const [streakShieldCount, setStreakShieldCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [partialReasons, setPartialReasons] = useState([]);
@@ -149,7 +158,16 @@ export default function TriviaStats() {
             setScores(scoreResult.rows);
             if (scoreResult.partial) partial.push('Some Verified Score History Is Outside The Current Read Window.');
 
-            const [{ data: streakData, error: streakError }, { data: masteryData, error: masteryError }] = await Promise.all([
+            const todayAnchor = getTodayCST();
+            const calendarWindowStart = shiftChicagoDate(todayAnchor, 29);
+
+            const [
+                { data: streakData, error: streakError },
+                { data: masteryData, error: masteryError },
+                { data: dailyPlaysData, error: dailyPlaysError },
+                { data: freezeData, error: freezeError },
+                { data: shieldItemData },
+            ] = await Promise.all([
                 supabase
                     .from('trivia_streaks')
                     .select('current_streak, best_streak, last_play_date, updated_at')
@@ -160,12 +178,38 @@ export default function TriviaStats() {
                     .select('category, total_answered, correct_count, mastery_level, updated_at')
                     .eq('user_id', user.id)
                     .order('total_answered', { ascending: false }),
+                supabase
+                    .from('daily_trivia_plays')
+                    .select('played_date')
+                    .eq('user_id', user.id)
+                    .gte('played_date', calendarWindowStart)
+                    .order('played_date', { ascending: false })
+                    .limit(120),
+                supabase
+                    .from('trivia_streak_freeze_consumptions')
+                    .select('missed_date')
+                    .eq('user_id', user.id)
+                    .gte('missed_date', calendarWindowStart)
+                    .order('missed_date', { ascending: false })
+                    .limit(60),
+                supabase
+                    .from('trivia_user_items')
+                    .select('quantity')
+                    .eq('user_id', user.id)
+                    .eq('item_type', 'streak_shield')
+                    .maybeSingle(),
             ]);
             if (cancelled()) return;
             if (streakError) partial.push('Streak Data Could Not Be Refreshed.');
             else setStreak(streakData || null);
             if (masteryError) partial.push('Category Mastery Could Not Be Refreshed.');
             else setCategoryMastery(masteryData || []);
+            if (dailyPlaysError) partial.push('Daily Streak Calendar History Could Not Be Refreshed.');
+            else setDailyPlayDates((dailyPlaysData || []).map((row) => row?.played_date).filter(Boolean));
+            if (!freezeError) {
+                setFreezeSavedDates((freezeData || []).map((row) => row?.missed_date).filter(Boolean));
+            }
+            setStreakShieldCount(Math.max(0, Number(shieldItemData?.quantity) || 0));
             setPartialReasons(partial);
             setLoadedAt(new Date());
         } catch (error) {
@@ -187,6 +231,9 @@ export default function TriviaStats() {
             setScores([]);
             setStreak(null);
             setCategoryMastery([]);
+            setDailyPlayDates([]);
+            setFreezeSavedDates([]);
+            setStreakShieldCount(0);
             setPartialReasons([]);
             setLoadError('');
             setIsLoading(false);
@@ -198,6 +245,9 @@ export default function TriviaStats() {
         setScores([]);
         setStreak(null);
         setCategoryMastery([]);
+        setDailyPlayDates([]);
+        setFreezeSavedDates([]);
+        setStreakShieldCount(0);
         setPartialReasons([]);
         setLoadedAt(null);
         setConnectionState('connecting');
@@ -241,6 +291,27 @@ export default function TriviaStats() {
     );
     const recentTrend = useMemo(() => buildTrend(trendScores, today), [trendScores, today]);
     const currentStreak = currentStreakForToday(streak, today);
+    const bestStreak = Math.max(0, Number(streak?.best_streak) || 0);
+    const mergedDailyPlayedDates = useMemo(() => {
+        const scoreDailyDates = scores
+            .filter((row) => row?.mode === 'daily' && row?.play_date)
+            .map((row) => row.play_date);
+        return [...dailyPlayDates, ...scoreDailyDates];
+    }, [dailyPlayDates, scores]);
+    const streakCalendar = useMemo(
+        () => buildThirtyDayStreakCalendar({
+            todayChicago: today,
+            playedDates: mergedDailyPlayedDates,
+            freezeDates: freezeSavedDates,
+            currentStreak,
+            bestStreak,
+        }),
+        [today, mergedDailyPlayedDates, freezeSavedDates, currentStreak, bestStreak],
+    );
+    const weakestSpot = useMemo(
+        () => deriveWeakestCategorySpotlight(categoryMastery),
+        [categoryMastery],
+    );
     const signedOut = !isLoading && !userId;
     const noGames = !isLoading && !loadError && userId && summary.gamesPlayed === 0;
     const activeDays = recentTrend.filter((item) => item.games > 0).length;
@@ -325,6 +396,155 @@ export default function TriviaStats() {
                                                 <ul>{partialReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
                                             </section>
                                         ) : null}
+
+                                        <section
+                                            className="trivia-progress-section trivia-streak-calendar-panel"
+                                            data-streak-calendar="true"
+                                            aria-labelledby="trivia-stats-streak-calendar"
+                                        >
+                                            <div className="trivia-streak-calendar-head">
+                                                <div>
+                                                    <h2 id="trivia-stats-streak-calendar" className="trivia-progress-heading">
+                                                        30-Day Streak Calendar (Chicago Time)
+                                                    </h2>
+                                                    <p className="trivia-progress-summary">
+                                                        {formatTriviaDisplayNumber(streakCalendar.activeDaysIn30)} Played {streakCalendar.activeDaysIn30 === 1 ? 'Day' : 'Days'} In The Last 30 Days
+                                                        {streakCalendar.freezeSavedDaysIn30 > 0
+                                                            ? ` · ${formatTriviaDisplayNumber(streakCalendar.freezeSavedDaysIn30)} Freeze Saved`
+                                                            : ''}
+                                                        {streakShieldCount > 0
+                                                            ? ` · ${formatTriviaDisplayNumber(streakShieldCount)} ${streakShieldCount === 1 ? 'Shield' : 'Shields'} Ready`
+                                                            : ''}
+                                                    </p>
+                                                </div>
+                                                <div className="trivia-streak-calendar-stat" aria-label={`Current Daily Streak ${streakCalendar.currentStreak} Days`}>
+                                                    <span className="trivia-streak-calendar-stat__num">{formatTriviaDisplayNumber(streakCalendar.currentStreak)}</span>
+                                                    <span className="trivia-streak-calendar-stat__lbl">Day Streak</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="trivia-streak-milestone-box" data-next-milestone-countdown="true">
+                                                <div className="trivia-streak-milestone-copy">
+                                                    <span className="trivia-streak-milestone-title">
+                                                        {streakCalendar.nextMilestone.allMilestonesReached
+                                                            ? `All Streak Milestones Reached: ${formatTriviaDisplayNumber(streakCalendar.nextMilestone.targetDays)}-Day Streak Mastered`
+                                                            : `Next Milestone: ${formatTriviaDisplayNumber(streakCalendar.nextMilestone.targetDays)}-Day Streak - +${formatTriviaDisplayNumber(streakCalendar.nextMilestone.rewardDiamonds)} Diamonds · ${formatTriviaDisplayNumber(streakCalendar.nextMilestone.daysRemaining)} ${streakCalendar.nextMilestone.daysRemaining === 1 ? 'Day' : 'Days'} Left`}
+                                                    </span>
+                                                    <span className="trivia-streak-milestone-pct">
+                                                        {streakCalendar.nextMilestone.progressPct}%
+                                                    </span>
+                                                </div>
+                                                <div
+                                                    className="trivia-streak-milestone-track"
+                                                    role="progressbar"
+                                                    aria-label="Next Streak Milestone Progress"
+                                                    aria-valuenow={streakCalendar.nextMilestone.progressPct}
+                                                    aria-valuemin={0}
+                                                    aria-valuemax={100}
+                                                >
+                                                    <div
+                                                        className="trivia-streak-milestone-fill"
+                                                        data-complete={streakCalendar.nextMilestone.allMilestonesReached ? 'true' : 'false'}
+                                                        style={{ width: `${streakCalendar.nextMilestone.progressPct}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div
+                                                className="trivia-streak-calendar-grid"
+                                                role="list"
+                                                aria-label="30-Day Daily Trivia Streak Calendar In Chicago Time"
+                                            >
+                                                {streakCalendar.days.map((day) => {
+                                                    const statusText = day.status === 'played'
+                                                        ? 'Played'
+                                                        : day.status === 'freeze_saved'
+                                                            ? 'Freeze Saved'
+                                                            : day.status === 'today_pending'
+                                                                ? 'Today Pending'
+                                                                : 'Missed';
+                                                    return (
+                                                        <div
+                                                            key={day.date}
+                                                            role="listitem"
+                                                            className={`trivia-streak-cell trivia-streak-cell--${day.status}${day.isToday ? ' trivia-streak-cell--today' : ''}`}
+                                                            data-calendar-day={day.date}
+                                                            data-calendar-status={day.status}
+                                                            data-is-today={day.isToday ? 'true' : 'false'}
+                                                            aria-label={`${day.shortLabel} (${day.date}): ${statusText}`}
+                                                            title={`${day.shortLabel}: ${statusText}`}
+                                                        >
+                                                            <span className="trivia-streak-cell__day">{day.dayOfMonth}</span>
+                                                            <span className="trivia-streak-cell__tag" aria-hidden="true">
+                                                                {day.isToday ? 'Now' : day.status === 'played' ? 'OK' : day.status === 'freeze_saved' ? 'Ice' : '-'}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            <ul className="trivia-streak-legend" aria-label="Streak Calendar Legend">
+                                                <li className="trivia-streak-legend__item">
+                                                    <span className="trivia-streak-legend__swatch trivia-streak-legend__swatch--played" aria-hidden="true" />
+                                                    <span>Played</span>
+                                                </li>
+                                                <li className="trivia-streak-legend__item">
+                                                    <span className="trivia-streak-legend__swatch trivia-streak-legend__swatch--freeze" aria-hidden="true" />
+                                                    <span>Freeze Saved</span>
+                                                </li>
+                                                <li className="trivia-streak-legend__item">
+                                                    <span className="trivia-streak-legend__swatch trivia-streak-legend__swatch--today" aria-hidden="true" />
+                                                    <span>Today</span>
+                                                </li>
+                                                <li className="trivia-streak-legend__item">
+                                                    <span className="trivia-streak-legend__swatch trivia-streak-legend__swatch--missed" aria-hidden="true" />
+                                                    <span>Missed</span>
+                                                </li>
+                                            </ul>
+                                        </section>
+
+                                        <section
+                                            className="trivia-progress-section trivia-weakest-spot-panel"
+                                            data-weakest-spot-spotlight="true"
+                                            aria-labelledby="trivia-stats-weakest-spot"
+                                        >
+                                            <h2 id="trivia-stats-weakest-spot" className="trivia-progress-heading">
+                                                Weakest Spot Of The Week
+                                            </h2>
+                                            {weakestSpot ? (
+                                                <div className="trivia-weakest-spot-body">
+                                                    <div className="trivia-weakest-spot-metric">
+                                                        <span className="trivia-weakest-spot-category">{weakestSpot.label}</span>
+                                                        <span className="trivia-weakest-spot-score">
+                                                            {formatTriviaDisplayNumber(weakestSpot.correct)} / {formatTriviaDisplayNumber(weakestSpot.total)} ({weakestSpot.accuracyPct}%)
+                                                        </span>
+                                                    </div>
+                                                    <p className="trivia-progress-summary">
+                                                        Focus Drill: {weakestSpot.trainingLabel} - {weakestSpot.specialty}.
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <p className="trivia-progress-summary">
+                                                    Complete A Verified Trivia Round To Pinpoint Your Lowest-Accuracy Category And Unlock A Targeted Training Drill.
+                                                </p>
+                                            )}
+                                            <div className="trivia-weakest-spot-actions">
+                                                <button
+                                                    type="button"
+                                                    className="sd-button sd-primary trivia-weakest-spot-cta"
+                                                    onClick={() => router.push('/hub/trivia/study')}
+                                                >
+                                                    Quiz My Misses
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="sd-button trivia-weakest-spot-cta"
+                                                    onClick={() => router.push(weakestSpot ? weakestSpot.trainingHref : DEFAULT_TRAINING_SPOT.href)}
+                                                >
+                                                    Train This Spot
+                                                </button>
+                                            </div>
+                                        </section>
 
                                         {noGames ? (
                                             <section className="trivia-progress-empty"><p className="trivia-progress-empty-copy">No Verified Games Match These Filters Yet.</p></section>
@@ -415,6 +635,207 @@ export default function TriviaStats() {
                         </main>
                     </div>
                 </PageTransition>
+                <style jsx>{`
+                    .trivia-streak-calendar-panel,
+                    .trivia-weakest-spot-panel {
+                        min-width: 0;
+                    }
+                    .trivia-streak-calendar-head {
+                        display: flex;
+                        align-items: flex-start;
+                        justify-content: space-between;
+                        gap: 12px;
+                        flex-wrap: wrap;
+                        margin-bottom: 12px;
+                    }
+                    .trivia-streak-calendar-stat {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-end;
+                        padding: 6px 12px;
+                        border: 1px solid #445e77;
+                        border-radius: 8px;
+                        background: #0a1829;
+                    }
+                    .trivia-streak-calendar-stat__num {
+                        font-size: 1.35rem;
+                        font-weight: 700;
+                        line-height: 1.1;
+                        color: #86daff;
+                    }
+                    .trivia-streak-calendar-stat__lbl {
+                        font-size: 0.78rem;
+                        color: #bdd0e2;
+                    }
+                    .trivia-streak-milestone-box {
+                        margin-bottom: 14px;
+                        padding: 10px 12px;
+                        border: 1px solid #445e77;
+                        border-radius: 8px;
+                        background: #040d18;
+                    }
+                    .trivia-streak-milestone-copy {
+                        display: flex;
+                        align-items: baseline;
+                        justify-content: space-between;
+                        gap: 8px;
+                        flex-wrap: wrap;
+                        margin-bottom: 8px;
+                    }
+                    .trivia-streak-milestone-title {
+                        font-size: 0.92rem;
+                        font-weight: 600;
+                        color: #f2f7ff;
+                    }
+                    .trivia-streak-milestone-pct {
+                        font-size: 0.85rem;
+                        font-weight: 700;
+                        color: #86daff;
+                    }
+                    .trivia-streak-milestone-track {
+                        width: 100%;
+                        height: 10px;
+                        border-radius: 999px;
+                        background: #0a1829;
+                        border: 1px solid #445e77;
+                        overflow: hidden;
+                    }
+                    .trivia-streak-milestone-fill {
+                        height: 100%;
+                        background: #1981ec;
+                        border-radius: 999px;
+                    }
+                    .trivia-streak-milestone-fill[data-complete='true'] {
+                        background: #4ade80;
+                    }
+                    .trivia-streak-calendar-grid {
+                        display: grid;
+                        grid-template-columns: repeat(6, minmax(0, 1fr));
+                        gap: 6px;
+                        width: 100%;
+                        min-width: 0;
+                    }
+                    @media (min-width: 640px) {
+                        .trivia-streak-calendar-grid {
+                            grid-template-columns: repeat(10, minmax(0, 1fr));
+                        }
+                    }
+                    .trivia-streak-cell {
+                        box-sizing: border-box;
+                        min-width: 0;
+                        min-height: 44px;
+                        padding: 4px 2px;
+                        border-radius: 8px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 2px;
+                        border: 1px solid #445e77;
+                        background: rgba(10, 24, 41, 0.72);
+                        color: #9ab0c7;
+                    }
+                    .trivia-streak-cell--played {
+                        border-color: #4ade80;
+                        background: rgba(74, 222, 128, 0.2);
+                        color: #f2f7ff;
+                    }
+                    .trivia-streak-cell--freeze_saved {
+                        border-color: #86daff;
+                        background: rgba(134, 218, 255, 0.2);
+                        color: #f2f7ff;
+                    }
+                    .trivia-streak-cell--today_pending {
+                        border: 2px solid #1981ec;
+                        background: rgba(25, 129, 236, 0.24);
+                        color: #f2f7ff;
+                    }
+                    .trivia-streak-cell--today.trivia-streak-cell--played {
+                        border: 2px solid #1981ec;
+                    }
+                    .trivia-streak-cell__day {
+                        font-size: 0.85rem;
+                        font-weight: 700;
+                        line-height: 1.1;
+                    }
+                    .trivia-streak-cell__tag {
+                        font-size: 0.68rem;
+                        line-height: 1;
+                        color: #bdd0e2;
+                    }
+                    .trivia-streak-legend {
+                        list-style: none;
+                        margin: 12px 0 0;
+                        padding: 0;
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 10px 16px;
+                        font-size: 0.8rem;
+                        color: #bdd0e2;
+                    }
+                    .trivia-streak-legend__item {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                    }
+                    .trivia-streak-legend__swatch {
+                        width: 12px;
+                        height: 12px;
+                        border-radius: 3px;
+                        display: inline-block;
+                        border: 1px solid #445e77;
+                    }
+                    .trivia-streak-legend__swatch--played {
+                        background: #4ade80;
+                        border-color: #4ade80;
+                    }
+                    .trivia-streak-legend__swatch--freeze {
+                        background: #86daff;
+                        border-color: #86daff;
+                    }
+                    .trivia-streak-legend__swatch--today {
+                        background: #1981ec;
+                        border-color: #1981ec;
+                    }
+                    .trivia-streak-legend__swatch--missed {
+                        background: #0a1829;
+                        border-color: #445e77;
+                    }
+                    .trivia-weakest-spot-body {
+                        margin-bottom: 12px;
+                    }
+                    .trivia-weakest-spot-metric {
+                        display: flex;
+                        align-items: baseline;
+                        justify-content: space-between;
+                        gap: 10px;
+                        flex-wrap: wrap;
+                        padding: 10px 12px;
+                        margin-bottom: 8px;
+                        border: 1px solid #445e77;
+                        border-radius: 8px;
+                        background: #040d18;
+                    }
+                    .trivia-weakest-spot-category {
+                        font-size: 1rem;
+                        font-weight: 700;
+                        color: #f2f7ff;
+                    }
+                    .trivia-weakest-spot-score {
+                        font-size: 0.95rem;
+                        font-weight: 700;
+                        color: #86daff;
+                    }
+                    .trivia-weakest-spot-actions {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 10px;
+                    }
+                    .trivia-weakest-spot-cta {
+                        flex: 1 1 160px;
+                        min-height: 44px;
+                    }
+                `}</style>
             </>
         </TriviaErrorBoundary>
     );

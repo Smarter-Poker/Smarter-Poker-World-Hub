@@ -919,6 +919,7 @@ import './trivia-pass2-fortress-laws.test.mjs';
 import './trivia-wave4-lobby-push-laws.test.mjs';
 import './trivia-wave4-pvp-rematch-laws.test.mjs';
 import './trivia-wave4-study-pool-laws.test.mjs';
+import './trivia-wave5-resilience-haptics-laws.test.mjs';
 import './trivia-visual-polish-laws.test.mjs';
 import './newsletter-zero-broken-links-and-images.law.test.mjs';
 import './smarter-poker-magazine.law.test.mjs';
@@ -932,9 +933,11 @@ import './seo-aeo-geo-forensic-hardening-20261126.law.test.mjs';
 import './seo-aeo-geo-phase6-20261126.law.test.mjs';
 import './seo-aeo-geo-phase7-20261126.law.test.mjs';
 import './a-request-the-database-must-refuse-is-not-sent.law.test.mjs';
+import './a-profile-post-count-asks-the-post-policy.law.test.mjs';
 import './removed-pitch-decks-stay-gone.law.test.mjs';
 import './trivia-ops-perf-timeout-laws.test.mjs';
 import './trivia-wave5-spectator-club-laws.test.mjs';
+import './trivia-wave5-stats-calendar-laws.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
