@@ -35,7 +35,9 @@ Hero: bets $7`;
 
 /** The parser auto-detects internally; mirror its checks so we can report it. */
 function detectSite(text) {
+    if (/Club\s*Arena|Smarter\.?Poker\s*Club/i.test(text)) return 'Club Arena';
     if (/PokerStars/i.test(text)) return 'PokerStars';
+    if (/ClubGG|Club GG/i.test(text)) return 'ClubGG';
     if (/GGPoker|GG Network|Poker Hand #/i.test(text)) return 'GGPoker';
     if (/888poker|Pacific Poker/i.test(text)) return '888poker';
     if (/Ignition|Bovada|Bodog/i.test(text)) return 'Ignition (generic layout)';
@@ -119,7 +121,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
             onClose={onClose}
             title="Import hand history"
             titleIcon={<Download size={18} strokeWidth={2} color={T.accent} />}
-            subtitle="Paste from PokerStars, GGPoker, 888 or Ignition."
+            subtitle="Paste from PokerStars, GGPoker, Club Arena, 888, or generic text."
             ariaLabel="Import hand history"
             closeLabel="Close import"
             footer={parsed ? (
@@ -155,9 +157,11 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                                 ['Hero hand', parsed.heroHand ? `${parsed.heroHand.card1 || ''} ${parsed.heroHand.card2 || ''}`.trim() : 'Not Available'],
                                 ['Position', parsed.heroPosition || 'not detected'],
                                 ['Stack', parsed.heroStack != null ? `${parsed.heroStack} BB` : 'defaulting to 100 BB'],
+                                ['Starting Pot', parsed.potBase != null ? `${parsed.potBase} BB${parsed.ante > 0 ? ` (Ante ${parsed.ante} BB)` : ''}${parsed.straddle > 0 ? ` (Straddle ${parsed.straddle} BB)` : ''}` : '1.5 BB'],
+                                ['Final Pot', parsed.pot != null ? `${parsed.pot} BB` : 'Not Available'],
                                 ['Board', boardPreview || 'preflop'],
                                 ['Villains', parsed.villains?.length ? `${parsed.villains.length} seat${parsed.villains.length === 1 ? '' : 's'}` : 'one default seat'],
-                                ['Actions', parsed.actionHistory?.length ? `${parsed.actionHistory.length} logged` : 'none detected'],
+                                ['Actions', parsed.actionHistory?.length ? `${parsed.actionHistory.length} logged${parsed.wagerSizesExact ? ' (exact sizes)' : ' (estimated sizes)'}` : 'none detected'],
                             ].map(([label, value]) => (
                                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: S.md, fontSize: F.bodySm }}>
                                     <span style={{ color: T.textMuted }}>{label}</span>
@@ -169,7 +173,9 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                             Loading Replaces The Current Table Setup. The Sandbox Keeps An Undo Step, So You Can Back Out.
                         </p>
                         <p style={{ fontSize: F.caption, color: T.accent, margin: 0, lineHeight: 1.45 }}>
-                            Legacy Hand-History Parsing Does Not Preserve Precise Historical Wager Sizes.
+                            {parsed.wagerSizesExact
+                                ? 'Exact Historical Wager Sizes Preserved For Blinds, Antes, Straddles, And Street Actions.'
+                                : 'Exact Historical Wager Sizes Are Parsed For Supported PokerStars, GGPoker, And Club Arena Formats; Malformed Or Unrecognized Lines Fall Back To Estimates.'}
                         </p>
                     </>
                 ) : (
@@ -213,7 +219,7 @@ export default function ImportHHModal({ isVisible, onClose, onImport }) {
                             padding: S.sm, borderRadius: R.sm,
                             background: T.surface2, border: `1px solid ${T.border}`,
                         }}>
-                            Note: Legacy Hand-History Parsing Does Not Preserve Precise Historical Wager Sizes.
+                            Exact Historical Wager Sizes Are Parsed For Supported PokerStars, GGPoker, And Club Arena Formats; Malformed Or Unrecognized Formats Fall Back To Estimated Sizes.
                         </div>
 
                         {detected && (

@@ -449,6 +449,18 @@ test('next.config.js, vercel.json, and middleware.ts do not intercept /g/*, /l/*
     assert.doesNotMatch(nextCfg, /source:\s*['"]\/api\/og\/club-game/);
     assert.doesNotMatch(vercelCfg, /"source":\s*"\/(?:g|l)(?:\/|:)/);
     assert.doesNotMatch(vercelCfg, /"source":\s*"\/api\/og\/club-game/);
-    // /api/og/club-game must not be in middleware's auth-required or explicit API matchers.
-    assert.doesNotMatch(middleware, /\/api\/og/);
+    // /api/og/club-game may appear in geo-allowlist (AUTH_ALWAYS_ALLOW), but MUST NOT be matched
+    // by DESTRUCTIVE_POKER_ROUTES, isAdminRoute, requiresAuthPrefix, or config.matcher.
+    const destructiveBlock = middleware.match(/const DESTRUCTIVE_POKER_ROUTES\s*=\s*\[[\s\S]*?\];/)?.[0] || '';
+    const adminRouteBlock = middleware.match(/const isAdminRoute\s*=[\s\S]*?;/)?.[0] || '';
+    const requiresAuthBlock = middleware.match(/const requiresAuthPrefix\s*=\s*\[[\s\S]*?\];/)?.[0] || '';
+    const matcherBlock = middleware.match(/export const config\s*=\s*\{[\s\S]*?\};/)?.[0] || '';
+    assert.ok(destructiveBlock.length > 0, 'DESTRUCTIVE_POKER_ROUTES block must exist in middleware.ts');
+    assert.ok(adminRouteBlock.length > 0, 'isAdminRoute expression must exist in middleware.ts');
+    assert.ok(requiresAuthBlock.length > 0, 'requiresAuthPrefix block must exist in middleware.ts');
+    assert.ok(matcherBlock.length > 0, 'config.matcher block must exist in middleware.ts');
+    assert.doesNotMatch(destructiveBlock, /\/api\/og/);
+    assert.doesNotMatch(adminRouteBlock, /\/api\/og/);
+    assert.doesNotMatch(requiresAuthBlock, /\/api\/og/);
+    assert.doesNotMatch(matcherBlock, /\/api\/og/);
 });
