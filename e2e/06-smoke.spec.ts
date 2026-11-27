@@ -110,8 +110,10 @@ test.describe('Smoke Tests — Error Pages', () => {
     expect(response?.status()).toBeLessThan(500);
   });
 
-  test('investor page loads', async ({ page }) => {
-    const response = await page.goto('/investor');
-    expect(response?.status()).toBeLessThan(500);
+  test('removed pitch decks return 404', async ({ page }) => {
+    for (const removedPath of ['/USRobots', '/leaflocator', '/investor']) {
+      const response = await page.goto(removedPath);
+      expect(response?.status()).toBe(404);
+    }
   });
 });

@@ -90,17 +90,6 @@ const CONTRACTS = [
     must: [`paddingTop: 'env(${INSET}, 0px)'`],
   },
   {
-    file: 'pages/USRobots.js',
-    bar: 'pitch deck top bar + scroll progress bar',
-    why: '--topbar carries the inset so every consumer below it offsets too',
-    must: [
-      `--topbar: calc(54px + env(${INSET}, 0px))`,
-      `--topbar:calc(48px + env(${INSET}, 0px))`,
-      `padding-top:env(${INSET}, 0px)`,
-      `top:env(${INSET}, 0px)`,
-    ],
-  },
-  {
     file: 'pages/horses/horses.module.css',
     bar: 'Stable Admin console header',
     why: 'topmost chrome on that page — it renders no global header',
