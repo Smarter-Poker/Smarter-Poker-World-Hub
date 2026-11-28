@@ -62,10 +62,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # Installed into its own folder: "npm install <pkg>" inside the
+      # checkout reinstalls the whole project tree, and the browser it then
+      # downloaded belonged to a different Playwright copy than the one the
+      # script loaded (first run, 2026-11-28). One folder, one copy.
       - name: Install Playwright at the locked version
         run: |
           PW_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/playwright'].version")
-          npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund "playwright@${PW_VERSION}"
-          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null
+          npm install --ignore-scripts --no-audit --no-fund "playwright@${PW_VERSION}"
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then ./node_modules/.bin/playwright install chromium; else ./node_modules/.bin/playwright install --with-deps chromium; fi
       - name: Render Preflop Charts and hold its fonts
+        env:
+          PLAYWRIGHT_DIR: ${{ runner.temp }}/pw
         run: node scripts/ci/check-live-preflop-fonts.mjs --sha "${{ github.event.deployment.sha || '' }}"

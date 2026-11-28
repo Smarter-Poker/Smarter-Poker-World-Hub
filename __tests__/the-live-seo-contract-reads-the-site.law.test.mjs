@@ -170,6 +170,10 @@ test('after every Production deploy, Preflop Charts is rendered and held to its 
   assert.match(job, /contains\(github\.event\.deployment_status\.environment, 'Production'\)/);
   assert.match(job, /node scripts\/ci\/check-live-preflop-fonts\.mjs --sha/);
   assert.match(job, /packages\['node_modules\/playwright'\]\.version/, 'Playwright at the locked version');
+  // One copy: installed outside the checkout and loaded from there.
+  assert.match(job, /cd "\$RUNNER_TEMP\/pw"/);
+  assert.match(job, /\.\/node_modules\/\.bin\/playwright install/);
+  assert.match(job, /PLAYWRIGHT_DIR: \$\{\{ runner\.temp \}\}\/pw/);
   const { fontViolation, PREFLOP_PAGES } = await import('../scripts/ci/check-live-preflop-fonts.mjs');
   assert.deepEqual(PREFLOP_PAGES, [
     '/hub/preflop-charts',
