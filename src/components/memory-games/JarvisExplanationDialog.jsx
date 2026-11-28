@@ -100,7 +100,7 @@ export default function JarvisExplanationDialog({ modal, onClose }) {
         <header className={styles.header}>
           <div className={styles.identity}>
             <span className={styles.mark} aria-hidden="true"><BrainCircuit size={22} /></span>
-            <div><small>LOCAL PRACTICE // RANGE KEY</small><h2 id="jarvis-dialog-title">Range-Key Notice</h2></div>
+            <div><small>Local Practice: Range Key</small><h2 id="jarvis-dialog-title">Range-Key Notice</h2></div>
           </div>
           <button type="button" className={`${styles.close} sp-icon-btn`} onClick={onClose} aria-label="Close local range-key notice">
             <X size={19} aria-hidden="true" />
@@ -126,7 +126,7 @@ export default function JarvisExplanationDialog({ modal, onClose }) {
           ) : (
             <div className={styles.body}>
               <div className={styles.readout}>
-                <div><small>HAND SIGNAL</small><strong>{modal.hand || '-'}</strong></div>
+                <div><small>Hand</small><strong>{modal.hand || '-'}</strong></div>
                 <span style={{ '--jarvis-action': actionColor }}>{action.toUpperCase()}</span>
               </div>
               <dl className={styles.compare}>
@@ -134,7 +134,7 @@ export default function JarvisExplanationDialog({ modal, onClose }) {
                 <div><dt>Local Range Key</dt><dd>{action}</dd></div>
               </dl>
               <div className={styles.explanation}>
-                <small>AUTHORITY NOTICE</small>
+                <small>Authority Notice</small>
                 <p id="jarvis-dialog-description">{modal.explanation || 'No Local Practice Note Is Available For This Hand. Close This Panel And Choose Another Hand.'}</p>
               </div>
             </div>

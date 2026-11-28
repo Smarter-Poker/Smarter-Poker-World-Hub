@@ -13,6 +13,7 @@ import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness } from '../utils/weaknessTracker';
 import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
 import PowerUpBar from '../components/training/PowerUpBar';
+import { resolveArenaCardUrl } from '../lib/clubArenaTheme';
 import { CheckCircle2, Swords, XCircle } from 'lucide-react';
 import { GameFrame, GameTopBar, GameIntro, GameResult, GameActions, GameShare, GameCoachTip, GameNextButton } from '../components/memory-games/PreflopGameKit';
 // confetti loaded lazily on first use
@@ -183,54 +184,37 @@ const SIMULATED_COACHES = [
 const getSimulatedOpponent = (runNumber) =>
     SIMULATED_COACHES[runNumber % SIMULATED_COACHES.length];
 
-// Card display component
+// Card display component. #SMARTERDESIGN parity: a hand or board shown in a
+// Preflop Charts game uses the authentic Club Arena 4-color deck
+// (resolveArenaCardUrl), the same art as every Poker Arena table, not
+// CSS-drawn white tiles. Text stays as the alt and as the fallback.
+const CARD_SUIT = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
+const CARD_RANK = { A: 'a', K: 'k', Q: 'q', J: 'j', T: '10' };
+const CARD_SUIT_LABEL = { s: 'Spades', h: 'Hearts', d: 'Diamonds', c: 'Clubs' };
+
 const CardDisplay = ({ cards, size = 'medium' }) => {
-    const sizeStyles = {
-        small: { width: 28, height: 40, fontSize: 12 },
-        medium: { width: 40, height: 56, fontSize: 16 },
-        large: { width: 52, height: 72, fontSize: 20 },
-    };
-    const style = sizeStyles[size];
-
-    const getSuitColor = (suit) => {
-        if (suit === 'h' || suit === 'd') return '#ff4444';
-        return '#111';
-    };
-
-    const getSuitSymbol = (suit) => {
-        const symbols = { h: '♥', d: '♦', c: '♣', s: '♠' };
-        return symbols[suit] || suit;
-    };
+    const sizes = { small: 30, medium: 44, large: 56 };
+    const width = sizes[size] || sizes.medium;
 
     if (!cards || cards.length === 0) return null;
 
     return (
-        <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
             {cards.map((card, idx) => {
-                const rank = card.slice(0, -1);
-                const suit = card.slice(-1);
+                const rank = card.slice(0, -1).toUpperCase();
+                const suit = card.slice(-1).toLowerCase();
+                const src = resolveArenaCardUrl(CARD_SUIT[suit], CARD_RANK[rank] || rank.toLowerCase());
                 return (
-                    <div
+                    <img
                         key={idx}
-                        style={{
-                            width: style.width,
-                            height: style.height,
-                            background: 'linear-gradient(135deg, #fff, #f0f0f0)',
-                            borderRadius: 6,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: style.fontSize,
-                            fontWeight: 700,
-                            color: getSuitColor(suit),
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                            border: '1px solid rgba(0,0,0,0.1)',
-                        }}
-                    >
-                        <span>{rank}</span>
-                        <span style={{ fontSize: style.fontSize * 0.8 }}>{getSuitSymbol(suit)}</span>
-                    </div>
+                        src={src || '/cards/back.webp'}
+                        alt={`${rank} of ${CARD_SUIT_LABEL[suit] || suit}`}
+                        width={width}
+                        height={Math.round(width * 1.4)}
+                        loading="lazy"
+                        decoding="async"
+                        style={{ width, height: 'auto', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.45)' }}
+                    />
                 );
             })}
         </div>

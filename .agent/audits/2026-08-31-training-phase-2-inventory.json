@@ -132673,7 +132673,8 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "src/components/sandbox/SandboxPokerTable.jsx"
+          "src/components/sandbox/SandboxPokerTable.jsx",
+          "src/games/TournamentModeGame.jsx"
         ]
       },
       {
@@ -145017,7 +145018,8 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "src/components/sandbox/SandboxPokerTable.jsx"
+          "src/components/sandbox/SandboxPokerTable.jsx",
+          "src/games/TournamentModeGame.jsx"
         ]
       },
       {
