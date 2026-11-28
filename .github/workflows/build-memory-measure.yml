@@ -1,0 +1,129 @@
+# BUILD MEMORY MEASUREMENT (2026-11-28) - a measurement, never a gate.
+#
+# Runs the exact production build command (`npm run build:vercel`, the
+# vercel.json buildCommand) under /usr/bin/time -v and
+# scripts/ci/measure-build-memory.py, which samples the RSS and PSS of every
+# process the build holds and reports the peak SUM per build phase. Vercel's
+# Standard Build Machine (4 cores, 8 GB) kills on that sum (exit 137), which
+# the Vercel Build Parity job cannot see: it passes on a 16 GB runner.
+#
+# It changes nothing and blocks nothing. It runs only when asked:
+#   - workflow_dispatch, optionally with warm_from=<sha> to first build that
+#     commit and so measure the target the way Vercel builds it, from the
+#     build cache of the previous production deployment;
+#   - a push to a bookmark/build-measure-* branch (bookmark/ is never opened
+#     as a PR or merged by automation), with an optional
+#     "warm-from: <sha>" line in the head commit message.
+name: Build Memory Measurement
+
+on:
+  workflow_dispatch:
+    inputs:
+      warm_from:
+        description: 'Optional commit to build first, so the measured build starts from its .next/cache (as on Vercel)'
+        required: false
+        default: ''
+  push:
+    branches: ['bookmark/build-measure-**']
+
+concurrency:
+  group: build-memory-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  measure:
+    name: Measure build:vercel memory
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+
+      - name: Restore node_modules
+        id: nm-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm ci --ignore-scripts
+
+      - name: Work out the warm-cache commit
+        id: warm
+        env:
+          INPUT_WARM_FROM: ${{ github.event.inputs.warm_from }}
+          HEAD_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          WARM="$INPUT_WARM_FROM"
+          if [ -z "$WARM" ]; then
+            WARM=$(printf '%s\n' "$HEAD_MESSAGE" | sed -n 's/^warm-from: *\([0-9a-f]\{7,40\}\).*/\1/p' | head -1)
+          fi
+          echo "sha=$WARM" >> "$GITHUB_OUTPUT"
+          echo "warm-from: ${WARM:-none (cold build)}"
+          [ -x /usr/bin/time ] || sudo apt-get install -y time
+          free -m
+          nproc
+
+      - name: Build the warm-cache commit first
+        if: steps.warm.outputs.sha != ''
+        env:
+          NODE_ENV: production
+          PWA_ENABLED: '1'
+          VERCEL: '1'
+          VERCEL_GIT_COMMIT_SHA: ${{ steps.warm.outputs.sha }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
+        run: |
+          cp scripts/ci/measure-build-memory.py /tmp/measure-build-memory.py
+          TARGET=$(git rev-parse HEAD)
+          echo "TARGET_SHA=$TARGET" >> "$GITHUB_ENV"
+          git checkout --quiet "${{ steps.warm.outputs.sha }}"
+          python3 /tmp/measure-build-memory.py --label warm-source --out /tmp/build-memory -- npm run build:vercel
+          git checkout --quiet -- . && git clean -fdq -e node_modules -e .next
+          git checkout --quiet "$TARGET"
+          # The warm-source build mutated node_modules (prune-platform-bins,
+          # patch-next) exactly as Vercel's previous deployment did; keep it.
+          rm -rf .next/server .next/static .next/standalone
+
+      - name: Measure build:vercel
+        env:
+          NODE_ENV: production
+          PWA_ENABLED: '1'
+          VERCEL: '1'
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
+        run: |
+          cp scripts/ci/measure-build-memory.py /tmp/measure-build-memory.py 2>/dev/null || true
+          LABEL=$([ -n "${{ steps.warm.outputs.sha }}" ] && echo warm || echo cold)
+          git log --oneline -1
+          python3 /tmp/measure-build-memory.py --label "$LABEL" --out /tmp/build-memory -- npm run build:vercel
+
+      - name: Keep the samples
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-memory-${{ github.sha }}
+          path: /tmp/build-memory/
+          retention-days: 14
