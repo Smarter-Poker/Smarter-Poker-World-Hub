@@ -839,7 +839,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                                 ref={searchInputRef}
                                 type="text"
                                 className="tours-search-bar-input outline-none focus:outline-none focus:ring-0"
-                                placeholder="Search Series, Venues, Cities, States... (Ctrl+K)"
+                                placeholder="Search Series, Venues Or Cities"
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
                                 onFocus={() => setSearchFocused(true)}
