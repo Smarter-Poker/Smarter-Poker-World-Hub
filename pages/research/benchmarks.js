@@ -147,7 +147,7 @@ export default function PokerIndustryBenchmarksPage() {
         <header style={styles.heroPlate}>
           <h1 style={styles.h1}>{PAGE_TITLE}</h1>
           <p style={styles.lead}>
-            <strong>Direct Answer:</strong> Rake And State Income Tax Both Come Out Of A Winning Player&apos;s Results. Texas Clubs Take Nothing From The Pot And Charge Seat Time, California Rooms Charge A Flat Fee Per Hand, And Most Casinos Take A Percentage To A Cap. Texas, Nevada, Florida, Washington And New Hampshire Tax No Gambling Winnings At The State Level.
+            <strong>Direct Answer:</strong> Rake And State Income Tax Both Come Out Of The Winnings Of Every Winning Player. Texas Clubs Take Nothing From The Pot And Charge Seat Time, California Rooms Charge A Flat Fee Per Hand, And Most Casinos Take A Percentage To A Cap. Texas, Nevada, Florida, Washington And New Hampshire Tax No Gambling Winnings At The State Level.
           </p>
           <div style={styles.quickCrossLinks}>
             <Link href="/tools/rake-calculator" style={styles.crossBtnEmerald}>
