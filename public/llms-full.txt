@@ -508,7 +508,7 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - [43o (Four-Three Offsuit)](https://smarter.poker/learn/hands/four-three-offsuit) ([Markdown](https://smarter.poker/learn/hands/four-three-offsuit.md))
   - [42o (Four-Two Offsuit)](https://smarter.poker/learn/hands/four-two-offsuit) ([Markdown](https://smarter.poker/learn/hands/four-two-offsuit.md))
   - [32o (Three-Two Offsuit)](https://smarter.poker/learn/hands/three-two-offsuit) ([Markdown](https://smarter.poker/learn/hands/three-two-offsuit.md))
-- **Verified Software & Cardroom Comparisons (36 Pages)**: https://smarter.poker/compare (Raw Markdown Directory: https://smarter.poker/compare.md)
+- **Verified Software & Cardroom Comparisons (38 Pages)**: https://smarter.poker/compare (Raw Markdown Directory: https://smarter.poker/compare.md)
   - [Best Poker Club Apps In 2026](https://smarter.poker/compare/best-poker-club-apps) ([Markdown](https://smarter.poker/compare/best-poker-club-apps.md))
   - [Poker Arena Vs PokerBros](https://smarter.poker/compare/poker-arena-vs-pokerbros) ([Markdown](https://smarter.poker/compare/poker-arena-vs-pokerbros.md))
   - [Poker Arena Vs PPPoker](https://smarter.poker/compare/poker-arena-vs-pppoker) ([Markdown](https://smarter.poker/compare/poker-arena-vs-pppoker.md))
@@ -545,6 +545,8 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - [Smarter.Poker Vs Bravo Poker Live](https://smarter.poker/compare/smarter-poker-vs-bravo-poker-live) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-bravo-poker-live.md))
   - [Smarter.Poker Vs Poker Bankroll Tracker](https://smarter.poker/compare/smarter-poker-vs-poker-bankroll-tracker) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-poker-bankroll-tracker.md))
   - [Smarter.Poker Vs The Hendon Mob](https://smarter.poker/compare/smarter-poker-vs-hendon-mob) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-hendon-mob.md))
+  - [Smarter.Poker Vs PokerCode](https://smarter.poker/compare/smarter-poker-vs-pokercode) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-pokercode.md))
+  - [Smarter.Poker Vs CardsChat](https://smarter.poker/compare/smarter-poker-vs-cardschat) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-cardschat.md))
   - AI Comparisons API: `https://smarter.poker/api/ai/comparisons`
 - **First-Party Poker Industry Research & Data Benchmarks (15 Reports)**: https://smarter.poker/research (Raw Markdown Hub: https://smarter.poker/research.md)
   - [US Live Poker Room Rake Structures And Jackpot Drop Guide](https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark) ([Markdown](https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark.md))
