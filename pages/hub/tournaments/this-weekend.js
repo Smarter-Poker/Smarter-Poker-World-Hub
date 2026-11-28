@@ -97,7 +97,15 @@ function formatMoney(amount) {
   return `$${amount.toLocaleString()}`;
 }
 
-export default function TournamentsThisWeekendPage({ initialTournaments = [] }) {
+export async function getServerSideProps() {
+  return {
+    props: {
+      initialWeekendInfo: getWeekendDates(new Date()),
+    },
+  };
+}
+
+export default function TournamentsThisWeekendPage({ initialTournaments = [], initialWeekendInfo = null }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuConfig = useMemo(() => getMenuConfig('hub'), []);
@@ -108,7 +116,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
   const [selectedBuyin, setSelectedBuyin] = useState(BUYIN_RANGES[0]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const weekendInfo = useMemo(() => getWeekendDates(), []);
+  const weekendInfo = useMemo(() => initialWeekendInfo || getWeekendDates(), [initialWeekendInfo]);
 
   // Multi-day SWR fetch for Friday, Saturday, Sunday
   const fetcher = (url) => fetch(url).then((r) => r.json());
@@ -172,7 +180,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
   const structuredData = useMemo(() => {
     return buildDailyTournamentSchema(
       filteredTournaments.slice(0, 50),
-      new Date().toISOString(),
+      `${weekendInfo.friday}T00:00:00Z`,
       {
         canonical: 'https://smarter.poker/hub/tournaments/this-weekend',
         pageName: 'Poker Tournaments This Weekend',
