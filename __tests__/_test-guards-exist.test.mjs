@@ -168,6 +168,8 @@ import './pg17-parallel-and-build-parity.law.test.mjs';
 import './api-routes-exist.test.mjs';
 import './bankroll-export-download.test.mjs';
 import './bankroll-analytics-view.test.mjs';
+import './toke-tracker-pages.test.mjs';
+import './bankroll-live-suite.test.mjs';
 import './bankroll-staking-math.test.mjs';
 import './bankroll-toke-report.test.mjs';
 import './bankroll-ledger-math.test.mjs';
@@ -176,6 +178,7 @@ import './bankroll-trip-math.test.mjs';
 import './bankroll-tournament-schedule.test.mjs';
 import './bankroll-reports-audit.test.mjs';
 import './bankroll-local-dates.test.mjs';
+import './bankroll-api-routes.test.mjs';
 import './bankroll-deleted-entry-frees-receipts.test.mjs';
 import './bankroll-jarvis-session-insights.test.mjs';
 import './toke-dealer-reference.test.mjs';
@@ -878,6 +881,8 @@ import './messenger-one-row-per-issuer.law.test.mjs';
 import './messenger-calls-device-safety.test.mjs';
 import './messenger-typed-text-is-white.law.test.mjs';
 import './digest-figures-carry-separators.test.mjs';
+// 2026-11-28: the Poker News header has no seal and sets its title first.
+import './news-header-title-first.test.mjs';
 // 2026-11-28: News video cards wear one frame, the thin chrome rim.
 import './news-video-cards-wear-one-frame.test.mjs';
 // GSC Series 4 And Series 5 Technical SEO Test Guards
@@ -980,6 +985,7 @@ import './unlock-gate-shows-no-fabricated-data.law.test.mjs';
 import './the-room-count-is-real.law.test.mjs';
 import './the-venue-claims-are-real.law.test.mjs';
 import './the-room-counts-maintain-themselves.law.test.mjs';
+import './the-research-figures-are-real.law.test.mjs';
 import './phase3-conversion-funnel-fortress-20261127.law.test.mjs';
 import './phase4-seo-ctr-and-activation-fortress-20261127.law.test.mjs';
 import './forensic-hardening-fortress-20261127.law.test.mjs';
@@ -1004,6 +1010,11 @@ import './otc-tier1-overlay-attribution-onetap-20261127.law.test.mjs';
 import './otc-tier2-leak-finder-and-activation-20261127.law.test.mjs';
 import './otc-tier2-bofu-compare-and-matchups-20261127.law.test.mjs';
 import './otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs';
+import './otc-tier4-live-funnel-telemetry-20261127.law.test.mjs';
+import './otc-tier4-reminder-sync-and-viral-loop-20261127.law.test.mjs';
+import './otc-tier4-local-geo-conversion-20261127.law.test.mjs';
+import './otc-tier4-100-matchups-and-live-drip-20261127.law.test.mjs';
+import './site-wide-payload-budget.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

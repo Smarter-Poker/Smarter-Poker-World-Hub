@@ -131,7 +131,7 @@ const styles = {
 
     answerButtonSelected: {
         background: 'linear-gradient(180deg, #51c9ff 0%, #0873ff 48%, #0648e2 100%)',
-        border: '1px solid #fde68a',
+        border: '1px solid rgba(134, 218, 255, 0.45)',
     },
 
     answerLetter: {

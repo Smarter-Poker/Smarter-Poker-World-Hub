@@ -9,6 +9,9 @@
  * House style: Title Case, zero em dashes.
  */
 
+import { listedVenueLabel } from '../../lib/venueCount.mjs';
+import { tablesLabel } from '../../lib/research/venueTablesOnFile.mjs';
+
 export const MARKET_GUIDES_AS_OF = '2026-11-09';
 
 export function marketGuidePath(slug) {
@@ -23,8 +26,8 @@ export const POKER_MARKET_GUIDES = [
     title: 'Las Vegas Live Poker Market Guide: Strip Casinos, Rake & Action',
     h1: 'Las Vegas, Nevada Live Poker Room & Cash Game Strategy Guide',
     summary:
-      'Las Vegas Hosts Over 20 Active Casino Card Rooms Led By Wynn, Bellagio, Aria, Venetian, And Resorts World, Featuring 10% Up To $5 - $6 Cap Rake And Year-Round International Convention And WSOP Traffic.',
-    activeRoomsEstimate: '21 Active Casino Poker Rooms (280+ Active Tables)',
+      `Las Vegas Hosts Casino Poker Rooms Led By Wynn, Bellagio, Aria, Venetian, And Resorts World, Featuring 10% Up To $5 - $6 Cap Rake And Year-Round International Convention And WSOP Traffic. The Smarter.Poker Directory Lists ${listedVenueLabel('NV')} In Nevada.`,
+    activeRoomsEstimate: `${listedVenueLabel('NV')} In NV (Smarter.Poker Directory)`,
     typicalRakeModel: '10% Pot Drop Up To $5 - $6 Cap (Zero Promo Drop At Premier Strip Rooms)',
     signatureStakes: '$1/$3 NLH ($300 - $500 Cap), $2/$5 NLH ($1,000 - $1,500 Cap), $5/$10+ Uncapped & PLO',
     peakSeasonAndSeries: 'May - July (WSOP & Wynn Summer Classic) And December (WPT World Championship)',
@@ -32,24 +35,22 @@ export const POKER_MARKET_GUIDES = [
       {
         name: 'Wynn / Encore Poker Room',
         city: 'Las Vegas, NV',
-        tables: '28 Tables',
         knownFor: '$1,500 Cap $2/$5 NLH, Deep $5/$10 Games, And Wynn Millions Tournament Series',
       },
       {
         name: 'Bellagio Poker Room',
         city: 'Las Vegas, NV',
-        tables: '37 Tables',
+        tables: tablesLabel('Bellagio Poker Room'),
         knownFor: 'Iconic $2/$5 And $5/$10 Cash Games, Bobby\'s Room High-Stakes Heritage, Zero Jackpot Drop',
       },
       {
         name: 'Aria Resort & Casino Poker Room',
         city: 'Las Vegas, NV',
-        tables: '24 Tables',
         knownFor: 'Premier Pot-Limit Omaha Action, Daily High-Roller Series, And $1/$3 To $10/$25 Cash',
       },
     ],
     playerStrategyTips: [
-      'Target Strip Properties Without Promotional Jackpot Drops (Wynn, Aria, Bellagio) When Grinding $2/$5+ To Save $3,500+ Per 1,000 Hours.',
+      'Target Strip Properties Without Promotional Jackpot Drops (Wynn, Aria, Bellagio) When Grinding $2/$5+, Because Every Dollar Not Dropped Stays In The Pot.',
       'Adjust Preflop 3-Bet Sizing Upward During Convention Weeks And WSOP Summer Months When Recreational Multiway Calling Frequencies Spike.',
       'Check Live Waitlists And Register Early Via Mobile Apps Before Peak 6:00 PM Dinner-Break Table Waves.',
     ],
@@ -73,7 +74,7 @@ export const POKER_MARKET_GUIDES = [
     h1: 'Los Angeles, California Card Room & Flat-Drop Strategy Guide',
     summary:
       'Los Angeles Is The Largest Brick-And-Mortar Card Room Market In The World By Table Count, Anchored By Commerce Casino, The Bicycle Hotel, Gardens Casino, And Hustler Casino Under California\'s Flat Per-Hand Drop Model.',
-    activeRoomsEstimate: '12 Major Commercial & Tribal Card Rooms (550+ Active Tables)',
+    activeRoomsEstimate: `${listedVenueLabel('CA')} In CA (Smarter.Poker Directory)`,
     typicalRakeModel: 'Flat $6 - $7 Per-Flop Drop + $1 Jackpot Drop (Zero Percentage Calculation)',
     signatureStakes: '$2/$3 NLH ($100 - $200 Buy-In), $5/$5 NLH ($300 - $600), $5/$10 ($1,000 - $1,500)',
     peakSeasonAndSeries: 'January - March (LAPC), May - June (Legends Of Poker), And Year-Round Cash Action',
@@ -81,19 +82,17 @@ export const POKER_MARKET_GUIDES = [
       {
         name: 'Commerce Casino',
         city: 'Commerce, CA',
-        tables: '150+ Tables',
         knownFor: 'World\'s Largest Card Room Floor, Non-Stop $5/$5 And $5/$10 NLH, LA Poker Classic',
       },
       {
         name: 'Parkwest Bicycle Casino (The Bike)',
         city: 'Bell Gardens, CA',
-        tables: '120+ Tables',
+        tables: tablesLabel('The Bicycle Casino'),
         knownFor: 'Deepstack Tournament Festivals, Legends Of Poker, And Multi-Tiered Cash Games',
       },
       {
         name: 'Hustler Casino & The Gardens Casino',
         city: 'Gardena & Hawaiian Gardens, CA',
-        tables: '140+ Combined Tables',
         knownFor: 'High-Stakes Live Stream Cash Games, Modern Luxury Floors, And Action $5/$5 Pools',
       },
     ],
@@ -121,7 +120,7 @@ export const POKER_MARKET_GUIDES = [
     h1: 'South Florida (Miami, Hollywood & Fort Lauderdale) Live Poker Market Guide',
     summary:
       'South Florida Combines Massive Championship Tournament Fields At Seminole Hard Rock Hollywood With High-Velocity Cash Game And PLO Action Across Broward And Miami-Dade County Card Rooms.',
-    activeRoomsEstimate: '9 Major Pari-Mutuel & Tribal Card Rooms (240+ Active Tables)',
+    activeRoomsEstimate: `${listedVenueLabel('FL')} In FL (Smarter.Poker Directory)`,
     typicalRakeModel: '10% Pot Drop Up To $5 - $7 Cap + $2 Promotional High-Hand / Bad Beat Drop',
     signatureStakes: '$1/$2 & $1/$3 NLH, $2/$5 NLH ($1,000 Cap), And $2/$2 To $5/$10 Pot-Limit Omaha',
     peakSeasonAndSeries: 'January (Lucky Hearts), April (Showdown), August (SHRPO), And November (RRPO)',
@@ -129,19 +128,16 @@ export const POKER_MARKET_GUIDES = [
       {
         name: 'Seminole Hard Rock Hotel & Casino Hollywood',
         city: 'Hollywood, FL',
-        tables: '45 Tables',
         knownFor: 'Flagship WPT Televised Championships, Multi-Million Guaranteed Series, 24/7 $2/$5 & PLO',
       },
       {
         name: 'Harrah\'s Pompano Beach Poker',
         city: 'Pompano Beach, FL',
-        tables: '42 Tables',
         knownFor: 'WSOP Circuit Stops, Aggressive High-Hand Promotions, And Action Cash Games',
       },
       {
         name: 'Magic City Casino & Hialeah Park Poker',
         city: 'Miami & Hialeah, FL',
-        tables: '50+ Combined Tables',
         knownFor: 'Deep Action Pot-Limit Omaha, High-Hand Promo Schedules, And Local Miami Action',
       },
     ],
@@ -169,7 +165,7 @@ export const POKER_MARKET_GUIDES = [
     h1: 'Houston, Texas Membership Card Club & Time-Rake Strategy Guide',
     summary:
       'Houston Is The Epicenter Of The Texas Private Membership Card Club Model, Featuring Zero Percentage Pot Rake, $10 - $13 Hourly Seat Rentals, Deep Match-The-Stack Buy-Ins, And Mandatory Double-Board PLO Bomb Pots.',
-    activeRoomsEstimate: '15+ Private Membership Poker Clubs (180+ Active Tables)',
+    activeRoomsEstimate: `${listedVenueLabel('TX')} In TX (Smarter.Poker Directory)`,
     typicalRakeModel: '$0 Pot Rake · Daily/Monthly Club Membership + $10 - $13/Hr Seat Time Charge',
     signatureStakes: '$1/$2 & $1/$3 NLH (Plays Like $2/$5), $2/$5 Match-The-Stack, And $5/$5+ PLO5',
     peakSeasonAndSeries: 'Year-Round High-Guarantee Club Festivals And Millions-Guaranteed Series',
@@ -177,19 +173,17 @@ export const POKER_MARKET_GUIDES = [
       {
         name: 'Champions Club Texas',
         city: 'Houston, TX',
-        tables: '30+ Tables',
         knownFor: 'Full-Service Hotel & Card Club Venue, Major Televised Tournament Series, And Deep Cash',
       },
       {
         name: 'Texas Card House (TCH) Houston / Spring',
         city: 'Houston / Spring, TX',
-        tables: '32 Tables',
+        tables: tablesLabel('Texas Card House Spring'),
         knownFor: 'High-Volume $1/$3 And $2/$5 Cash Tables, PLO Action, And Live-Streamed Feature Tables',
       },
       {
         name: 'Spade Poker Club & Katy Highway Card Rooms',
         city: 'Houston Metro, TX',
-        tables: '45+ Combined Tables',
         knownFor: 'Deepstack $1/$3 Match-The-Stack, Frequent Double-Board Bomb Pots, And Low Seat Time',
       },
     ],
@@ -217,7 +211,7 @@ export const POKER_MARKET_GUIDES = [
     h1: 'Dallas-Fort Worth (DFW) & North Texas Poker Market Strategy Guide',
     summary:
       'The Dallas-Fort Worth Metroplex Blends High-Action Texas Time-Charge Card Clubs With Massive Resort Casino Poker Rooms Just 60 Minutes North Across The Oklahoma Border At Choctaw Durant And WinStar.',
-    activeRoomsEstimate: '10+ DFW Card Clubs & Border Resort Rooms (210+ Active Tables)',
+    activeRoomsEstimate: `${listedVenueLabel('TX')} In TX (Smarter.Poker Directory)`,
     typicalRakeModel: '$12 - $14/Hr Seat Time In Texas Clubs · 10% Up To $5 - $6 Cap At OK Border Casinos',
     signatureStakes: '$1/$2 & $1/$3 Deepstack NLH, $2/$5 NLH, And $5/$5+ Big-O / PLO',
     peakSeasonAndSeries: 'January & July (WSOP Circuit Choctaw Durant) Plus Major Quarterly DFW Club Series',
@@ -225,19 +219,17 @@ export const POKER_MARKET_GUIDES = [
       {
         name: 'Texas Card House (TCH) Dallas / Las Colinas',
         city: 'Dallas / Irving, TX',
-        tables: '35+ Tables',
         knownFor: 'Flagship DFW Time-Charge Cash Action, Deep $2/$5 & PLO, And High-Guarantee MTTs',
       },
       {
         name: 'Choctaw Casino & Resort Durant',
         city: 'Durant, OK (North Of DFW)',
-        tables: '30+ Tables (80+ During WSOPC)',
+        tables: tablesLabel('Choctaw Casino Resort'),
         knownFor: 'Premier WSOP Circuit Stop Serving The DFW Metroplex With Resort Amenities',
       },
       {
         name: 'WinStar World Casino & Shuffle 214',
         city: 'Thackerville, OK & Dallas, TX',
-        tables: '55+ Combined Tables',
         knownFor: 'Massive Weekend Recreational Traffic, $1/$3 To $5/$10 NLH, And Omaha Split Games',
       },
     ],
@@ -265,7 +257,7 @@ export const POKER_MARKET_GUIDES = [
     h1: 'Austin & San Antonio, Texas Live Poker & Card Club Strategy Guide',
     summary:
       'Central Texas Is Home To The Largest Private Poker Club In North America (The Lodge Card Club In Round Rock/Austin) Alongside Thriving San Antonio Membership Rooms Known For Deep Stacks And Zero Pot Rake.',
-    activeRoomsEstimate: '12+ Central Texas Membership Card Clubs (190+ Active Tables)',
+    activeRoomsEstimate: `${listedVenueLabel('TX')} In TX (Smarter.Poker Directory)`,
     typicalRakeModel: '$0 Pot Rake · Membership + $11 - $13/Hr Seat Time Rental',
     signatureStakes: '$1/$2 NLH ($300 - $500 Cap), $1/$3 NLH ($1,000 Cap), $2/$5+, And PLO',
     peakSeasonAndSeries: 'May & Fall Championship Series At The Lodge Plus Weekly Deepstack Guarantees',
@@ -273,19 +265,16 @@ export const POKER_MARKET_GUIDES = [
       {
         name: 'The Lodge Card Club (Austin / Round Rock & San Antonio)',
         city: 'Round Rock & San Antonio, TX',
-        tables: '80+ Combined Tables',
         knownFor: 'Largest Card Club In Texas, High-Stakes Live Streams, Multi-Million Tournament Series',
       },
       {
         name: 'Texas Card House (TCH) Austin',
         city: 'Austin, TX',
-        tables: '25+ Tables',
         knownFor: 'Action-Packed $1/$2 And $2/$5 Cash Games, Tech-Corridor Player Pool, And PLO',
       },
       {
         name: 'Alamo Card House & San Antonio Card Clubs',
         city: 'San Antonio, TX',
-        tables: '35+ Combined Tables',
         knownFor: 'Friendly Recreational Cash Tables, Bomb Pot Rotations, And Daily Deepstack MTTs',
       },
     ],
@@ -313,7 +302,7 @@ export const POKER_MARKET_GUIDES = [
     h1: 'Tampa Bay & Central Florida Live Poker Room Strategy Guide',
     summary:
       'Central Florida Anchors The Gulf Coast And I-4 Corridor With Seminole Hard Rock Tampa, Tampa Bay Downs (TGT), Derby Lane, And Orange City Racing & Card Club, Serving Both Year-Round Locals And Orlando Tourists.',
-    activeRoomsEstimate: '8 Major Card Rooms Across Tampa Bay, St. Pete & I-4 (210+ Active Tables)',
+    activeRoomsEstimate: `${listedVenueLabel('FL')} In FL (Smarter.Poker Directory)`,
     typicalRakeModel: '10% Pot Drop Up To $5 - $6 Cap + $2 High-Hand / Bad Beat Promotional Drop',
     signatureStakes: '$1/$2 & $1/$3 NLH, $2/$5 NLH ($500 - $1,000 Cap), And $2/$2 - $5/$5 PLO',
     peakSeasonAndSeries: 'February, May & September (Seminole Hard Rock Tampa Series & WPT Events)',
@@ -321,19 +310,17 @@ export const POKER_MARKET_GUIDES = [
       {
         name: 'Seminole Hard Rock Hotel & Casino Tampa',
         city: 'Tampa, FL',
-        tables: '46 Tables',
+        tables: tablesLabel('Seminole Hard Rock Tampa'),
         knownFor: '24/7 Non-Smoking Luxury Room, WPT Tampa Championships, And Deep $2/$5 & PLO',
       },
       {
         name: 'Silks Poker Room At Tampa Bay Downs & TGT Poker',
         city: 'Tampa, FL',
-        tables: '55+ Combined Tables',
         knownFor: 'High-Value Daily Tournaments, Generous High-Hand Promotions, And Local Action',
       },
       {
         name: 'Derby Lane (St. Petersburg) & Orange City Card Club',
         city: 'St. Petersburg & Orange City, FL',
-        tables: '70+ Combined Tables',
         knownFor: 'Serving Pinellas County And Greater Orlando With Non-Stop Cash And Promo Pools',
       },
     ],
@@ -361,7 +348,7 @@ export const POKER_MARKET_GUIDES = [
     h1: 'Atlantic City, New Jersey Live Poker Room & Tournament Strategy Guide',
     summary:
       'Atlantic City Remains The Historic Boardwalk And Marina Poker Hub Of The Northeast, Dominated By The 52-Table Borgata Poker Room Alongside Harrah\'s And Tropicana.',
-    activeRoomsEstimate: '3 Active Casino Poker Rooms (85+ Active Tables)',
+    activeRoomsEstimate: `${listedVenueLabel('NJ')} In NJ (Smarter.Poker Directory)`,
     typicalRakeModel: '10% Pot Drop Up To $5 - $6 Cap + $2 Bad Beat / High-Hand Promotional Drop',
     signatureStakes: '$1/$3 NLH ($300 - $400 Cap), $2/$5 NLH ($1,000 Cap), $5/$10+ NLH & Mixed Games',
     peakSeasonAndSeries: 'January (Winter Open), June - August Summer Shore Season, And Fall Borgata Series',
@@ -369,19 +356,17 @@ export const POKER_MARKET_GUIDES = [
       {
         name: 'Borgata Hotel Casino & Spa Poker Room',
         city: 'Atlantic City, NJ',
-        tables: '52 Tables',
+        tables: tablesLabel('Borgata Hotel Casino'),
         knownFor: 'Undisputed Flagship Room Of New Jersey, $1/$3 To $10/$25 Cash, And Major Open Series',
       },
       {
         name: 'Harrah\'s Resort Atlantic City Poker Room',
         city: 'Atlantic City, NJ',
-        tables: '20+ Tables',
         knownFor: 'Marina District Action, Caesars Rewards Integration, And Weekend $1/$2 & $1/$3 Games',
       },
       {
         name: 'Tropicana Atlantic City Poker Room',
         city: 'Atlantic City, NJ',
-        tables: '16+ Tables',
         knownFor: 'Boardwalk Tourist Traffic, Low-Limit Hold\'em, And Bad Beat Jackpot Promotions',
       },
     ],
@@ -393,7 +378,7 @@ export const POKER_MARKET_GUIDES = [
     faqs: [
       {
         q: 'Which Atlantic City Casino Has The Largest Poker Room?',
-        a: 'Borgata Hotel Casino & Spa In The Marina District Commands Over 65% Of Atlantic City\'s Live Poker Market Share With 52 Tables Running 24/7 Cash Games And Daily Tournaments.',
+        a: `Borgata Hotel Casino & Spa In The Marina District Runs The Largest Poker Room In Atlantic City (${tablesLabel('Borgata Hotel Casino')} In The Smarter.Poker Directory) With 24/7 Cash Games And Daily Tournaments.`,
       },
       {
         q: 'Can Visitors Play Regulated Online Poker While Visiting Atlantic City?',
@@ -409,7 +394,7 @@ export const POKER_MARKET_GUIDES = [
     h1: 'Philadelphia & Eastern Pennsylvania Live Poker Market Strategy Guide',
     summary:
       'Greater Philadelphia Boasts One Of The Highest-Density Casino Poker Markets On The East Coast, Led By Parx Casino In Bensalem, Live! Casino South Philadelphia, And Rivers Casino Philadelphia.',
-    activeRoomsEstimate: '5 Major Casino Poker Rooms In Metro Corridor (145+ Active Tables)',
+    activeRoomsEstimate: `${listedVenueLabel('PA')} In PA (Smarter.Poker Directory)`,
     typicalRakeModel: '10% Pot Drop Up To $5 - $6 Cap + $2 Bad Beat / High-Hand Promotional Drop',
     signatureStakes: '$1/$2 & $1/$3 NLH, $2/$5 NLH ($1,000 Cap), $10/$10+ NLH, And Deep PLO',
     peakSeasonAndSeries: 'February, May, August & November (Parx Big Stax Series) Plus Stadium Event Weekends',
@@ -417,19 +402,18 @@ export const POKER_MARKET_GUIDES = [
       {
         name: 'Parx Casino Poker Room',
         city: 'Bensalem, PA (North Philly)',
-        tables: '48 Tables',
+        tables: tablesLabel('Parx Casino'),
         knownFor: 'Famous Big Stax Deepstack Series, Tuesday $10/$10+ High-Stakes Action, Deep $2/$5',
       },
       {
         name: 'Live! Casino & Hotel Philadelphia',
         city: 'South Philadelphia, PA',
-        tables: '29 Tables',
+        tables: tablesLabel('Live! Casino Philadelphia'),
         knownFor: 'Located In The Stadium District, Massive Post-Game Sports Fan Action, Modern Floor',
       },
       {
         name: 'Rivers Casino Philadelphia & Wind Creek Bethlehem',
         city: 'Philadelphia & Bethlehem, PA',
-        tables: '54+ Combined Tables',
         knownFor: 'Strong High-Hand Promotions, Bad Beat Jackpots, And Accessible $1/$3 Cash Games',
       },
     ],
@@ -457,7 +441,7 @@ export const POKER_MARKET_GUIDES = [
     h1: 'Phoenix & Scottsdale, Arizona Live Poker Market Strategy Guide',
     summary:
       'The Phoenix-Scottsdale Metro Area Is Anchored By The 47-Table Arena Poker Room At Talking Stick Resort And Desert Diamond West Valley, Featuring Famous Spread-Limit And No-Limit Cash Games And Winter Snowbird Booms.',
-    activeRoomsEstimate: '4 Major Tribal Resort Poker Rooms (105+ Active Tables)',
+    activeRoomsEstimate: `${listedVenueLabel('AZ')} In AZ (Smarter.Poker Directory)`,
     typicalRakeModel: '10% Pot Drop Up To $5 - $6 Cap + $2 Bad Beat / High-Hand Promotional Drop',
     signatureStakes: '$1/$2 & $2/$3 NLH, $3/$5 NLH, And Arizona Classic Spread-Limit / Omaha Games',
     peakSeasonAndSeries: 'January - April (Spring Training, Waste Management Open & Arizona State Championship)',
@@ -465,19 +449,17 @@ export const POKER_MARKET_GUIDES = [
       {
         name: 'The Arena Poker Room At Talking Stick Resort',
         city: 'Scottsdale, AZ',
-        tables: '47 Tables',
+        tables: tablesLabel('Talking Stick Resort'),
         knownFor: 'Arizona State Poker Championship, Non-Stop Cash Action, And Luxury Scottsdale Resort',
       },
       {
         name: 'Desert Diamond Casino West Valley',
         city: 'Glendale, AZ',
-        tables: '36 Tables',
         knownFor: 'West Valley Flagship Room Near State Farm Stadium, Deep Tournaments, And Promo Pools',
       },
       {
         name: 'Gila River Resorts & Casinos (Lone Butte)',
         city: 'Chandler, AZ',
-        tables: '25+ Tables',
         knownFor: 'East Valley & South Phoenix Hub With 24/7 Cash Tables And Bad Beat Jackpot Action',
       },
     ],
@@ -505,7 +487,7 @@ export const POKER_MARKET_GUIDES = [
     h1: 'Chicagoland & Northwest Indiana Live Poker Market Strategy Guide',
     summary:
       'The Greater Chicago Poker Ecosystem Spans High-Demand Illinois Casino Rooms (Rivers Des Plaines, Grand Victoria Elgin, Wind Creek) And Northwest Indiana Resort Hubs Led By Horseshoe Hammond.',
-    activeRoomsEstimate: '7 Casino & Charitable Card Venues Across IL/IN (130+ Active Tables)',
+    activeRoomsEstimate: `${listedVenueLabel('IL')} In IL (Smarter.Poker Directory)`,
     typicalRakeModel: '10% Pot Drop Up To $6 - $7 Cap + $2 Promotional / Bad Beat Drop',
     signatureStakes: '$1/$3 NLH ($300 - $500 Cap), $2/$5 NLH ($1,000 Cap), And $2/$2 - $5/$5 PLO',
     peakSeasonAndSeries: 'Spring & Fall WSOP Circuit Stops At Horseshoe Hammond & Grand Victoria Elgin',
@@ -513,19 +495,17 @@ export const POKER_MARKET_GUIDES = [
       {
         name: 'Rivers Casino Des Plaines Poker Room',
         city: 'Des Plaines, IL (Near O\'Hare)',
-        tables: '22 Tables',
         knownFor: 'Highest-Demand Cash Room In Illinois Minutes From O\'Hare Airport, Deep $2/$5 & PLO',
       },
       {
         name: 'Horseshoe Hammond Poker Room',
         city: 'Hammond, IN (20 Mins From Downtown Chicago)',
-        tables: '28+ Tables',
+        tables: tablesLabel('Horseshoe Hammond'),
         knownFor: 'Legendary Midwest WSOP Circuit Venue, High-Limit PLO, And Easy Skyway Access',
       },
       {
         name: 'Grand Victoria Casino Elgin & Wind Creek Chicago Southland',
         city: 'Elgin & East Hazel Crest, IL',
-        tables: '40+ Combined Tables',
         knownFor: 'WSOP Circuit Elgin Stops, Suburban Cash Action, And Modern Southland Amenities',
       },
     ],
@@ -553,7 +533,7 @@ export const POKER_MARKET_GUIDES = [
     h1: 'New England (Boston, Connecticut & New Hampshire) Live Poker Strategy Guide',
     summary:
       'New England\'s Live Poker Landscape Spans Luxury Resort Rooms At Encore Boston Harbor And MGM Springfield, Historic Connecticut Tribal Mega-Resorts (Mohegan Sun & Foxwoods), And Low-Rake New Hampshire Charitable Card Rooms.',
-    activeRoomsEstimate: '10+ Resort Casinos & NH Charitable Rooms (195+ Active Tables)',
+    activeRoomsEstimate: `${listedVenueLabel('MA')} In MA (Smarter.Poker Directory)`,
     typicalRakeModel: '10% Pot Drop Up To $5 - $8 Cap + $2 Promo Drop ($10/Hr Time At High Stakes)',
     signatureStakes: '$1/$3 NLH ($300 - $500 Cap), $2/$5 NLH ($1,000 Cap), $5/$10+ NLH & 7-Card Stud/O8',
     peakSeasonAndSeries: 'Spring & Fall Mega Stack Challenges In CT Plus NH Poker Cup Series',
@@ -561,19 +541,16 @@ export const POKER_MARKET_GUIDES = [
       {
         name: 'Mohegan Sun & Foxwoods Resort Casino',
         city: 'Uncasville & Mashantucket, CT',
-        tables: '65+ Combined Tables',
         knownFor: 'Historic Northeast Tribal Mega-Resorts, Daily Tournaments, Stud/Omaha Hi-Lo & NLH',
       },
       {
         name: 'Encore Boston Harbor & MGM Springfield',
         city: 'Everett & Springfield, MA',
-        tables: '40+ Combined Tables',
         knownFor: 'Greater Boston Luxury Cash Action, Deep $2/$5 And $5/$10 Pools',
       },
       {
         name: 'Gate City Casino (Nashua) & The Brook (Seabrook)',
         city: 'Nashua & Seabrook, NH',
-        tables: '55+ Combined Tables',
         knownFor: 'Southern New Hampshire Border Hubs Offering Lower Rake Caps And Deep Tournament Series',
       },
     ],

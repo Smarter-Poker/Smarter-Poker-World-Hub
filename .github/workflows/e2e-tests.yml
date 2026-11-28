@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-draft-autosave-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live, messenger-calls-live, messenger-calls-webkit, messenger-calls-device, messenger-calls-ring, messenger-calls-notify, messenger-calls-upgrade, messenger-calls-clubarena]
+        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-draft-autosave-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live, messenger-calls-live, messenger-calls-webkit, messenger-calls-device, messenger-calls-ring, messenger-calls-notify, messenger-calls-upgrade, messenger-calls-clubarena, bankroll-live]
         default: full
       reels_qa_setup_run:
         description: Exact private Reels QA setup run (successful for live checks, retained partial receipt for setup recovery)
@@ -1453,6 +1453,62 @@ jobs:
         with:
           name: social-feed-normal-live-receipt
           path: test-results/social-feed-normal
+          if-no-files-found: error
+          retention-days: 7
+
+  # READ-ONLY signed-in verification of the published Bankroll Manager
+  # (e2e/bankroll-live.spec.ts, playwright.bankroll-live.config.ts). Signs in
+  # as the platform service account (TEST_USER_EMAIL repository variable,
+  # never Dan's account), pins the deployment through expected_sha against
+  # /api/health before and after, and walks every section by URL at 375px and
+  # on desktop. Every non-GET to Supabase REST/RPC/Storage/Functions or to
+  # /api/ is aborted in the browser and fails the run. The receipt holds
+  # method + path only: no tokens, query strings or bodies, and never the
+  # saved sign-in state (playwright/.auth is not uploaded).
+  bankroll-live:
+    name: Published Bankroll Manager Read-Only Verification
+    if: ${{ inputs.suite == 'bankroll-live' }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - name: Require the full deployed SHA
+        env:
+          DEPLOYED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          echo "$DEPLOYED_SHA" | grep -Eq '^[0-9a-f]{40}$' || { echo "expected_sha must be the full 40-character deployed commit SHA from /api/health"; exit 1; }
+      - name: Verify bankroll-live read-only guard
+        run: node --test __tests__/bankroll-live-suite.test.mjs
+      - name: Restore locked dependencies
+        id: bankroll-live-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.bankroll-live-nm-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+      - name: Install verification browser
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+      - name: Verify every published Bankroll Manager section with the designated test account
+        run: npx playwright test --config=playwright.bankroll-live.config.ts
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          BANKROLL_LIVE_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Retain sanitized Bankroll Manager receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bankroll-live-receipt
+          path: test-results/bankroll-live/
           if-no-files-found: error
           retention-days: 7
 

@@ -110,6 +110,13 @@ export default async function handler(req, res) {
                       .limit(100)
               ]);
 
+              if (tournamentResult.error?.code === '22P02' || entriesResult.error?.code === '22P02') {
+                  return res.status(404).json({
+                      success: false,
+                      error: 'Tournament not found',
+                      code: 'TOURNAMENT_NOT_FOUND',
+                  });
+              }
               if (tournamentResult.error) {
                   return failTournamentRead(res, 'tournament-detail', tournamentResult.error);
               }

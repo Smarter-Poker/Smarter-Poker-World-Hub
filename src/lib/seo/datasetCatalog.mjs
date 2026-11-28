@@ -247,7 +247,7 @@ export const AUTHORITY_HUB_DATASETS = [
     keyFindings: [
       'European Flagship Rooms In London, Barcelona, And Rozvadov Charge 4% To 5% Pot Rake With Higher Caps (£10-£12 Or €10-€20) Compared To US 10% $5-$7 Cap Rooms.',
       'United Kingdom, Monaco, Canada, Australia, Macau, And The Bahamas Levy 0% Casino Cage Withholding Tax On Recreational Poker Winnings.',
-      'King\'s Resort Rozvadov (160+ Tables) Operates 100% In Euros (€) While Macau Poker Rooms Operate Exclusively In Hong Kong Dollars (HKD).',
+      'King\'s Resort Rozvadov Operates 100% In Euros (€) While Macau Poker Rooms Operate Exclusively In Hong Kong Dollars (HKD).',
     ],
     doi: '10.5281/zenodo.24115647',
     doiUrl: 'https://doi.org/10.5281/zenodo.24115647',
@@ -293,9 +293,9 @@ export const WIKIPEDIA_CITATION_TARGETS = [
     canonicalSourceUrl: 'https://smarter.poker/research/tournament-icm-bubble-factor-and-risk-premium-study',
     calculatorUrl: 'https://smarter.poker/tools/icm-calculator',
     citeWebTemplate:
-      '{{cite web |title=Tournament ICM Bubble Factor And Risk Premium Study |url=https://smarter.poker/research/tournament-icm-bubble-factor-and-risk-premium-study |website=Smarter.Poker |publisher=Smarter Software Inc. |year=2026 |access-date=2026-11-09}}',
+      '{{cite web |title=Tournament ICM Bubble Factor And Required Calling Equity Math |url=https://smarter.poker/research/tournament-icm-bubble-factor-and-risk-premium-study |website=Smarter.Poker |publisher=Smarter Software Inc. |year=2026 |access-date=2026-11-09}}',
     citeTechreportTemplate:
-      '{{cite techreport |title=Tournament ICM Bubble Factor And Risk Premium Study |author=Smarter.Poker Research Division |institution=Smarter Software Inc. |year=2026 |url=https://smarter.poker/research/tournament-icm-bubble-factor-and-risk-premium-study}}',
+      '{{cite techreport |title=Tournament ICM Bubble Factor And Required Calling Equity Math |author=Smarter.Poker Research Division |institution=Smarter Software Inc. |year=2026 |url=https://smarter.poker/research/tournament-icm-bubble-factor-and-risk-premium-study}}',
   },
   {
     id: 'wiki-pot-odds',
@@ -319,7 +319,7 @@ export const WIKIPEDIA_CITATION_TARGETS = [
     citeWebTemplate:
       '{{cite web |title=169 Starting Hands Strategy Encyclopedia & GTO Preflop Frequencies |url=https://smarter.poker/learn/hands |website=Smarter.Poker |publisher=Smarter Software Inc. |year=2026 |access-date=2026-11-09}}',
     citeTechreportTemplate:
-      '{{cite techreport |title=GTO Solver Equilibrium Vs. Population Leak Frequency Study |author=Smarter.Poker Research Division |institution=Smarter Software Inc. |year=2026 |url=https://smarter.poker/research/gto-vs-population-preflop-and-postflop-leak-study}}',
+      '{{cite techreport |title=GTO Bet-Sizing Math And Common Population Leaks Guide |author=Smarter.Poker Research Division |institution=Smarter Software Inc. |year=2026 |url=https://smarter.poker/research/gto-vs-population-preflop-and-postflop-leak-study}}',
   },
   {
     id: 'wiki-cardroom',
@@ -329,7 +329,7 @@ export const WIKIPEDIA_CITATION_TARGETS = [
     canonicalSourceUrl: 'https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark',
     calculatorUrl: 'https://smarter.poker/hub/poker-near-me',
     citeWebTemplate:
-      '{{cite web |title=US Live Poker Room Rake Caps And Bad Beat Jackpot Benchmark Report |url=https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark |website=Smarter.Poker |publisher=Smarter Software Inc. |year=2026 |access-date=2026-11-09}}',
+      '{{cite web |title=US Live Poker Room Rake Structures And Jackpot Drop Guide |url=https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark |website=Smarter.Poker |publisher=Smarter Software Inc. |year=2026 |access-date=2026-11-09}}',
     citeTechreportTemplate:
       '{{cite techreport |title=Cardroom Waitlist Turnover And Table Utilization Benchmark |author=Smarter.Poker Research Division |institution=Smarter Software Inc. |year=2026 |url=https://smarter.poker/research/cardroom-waitlist-turnover-and-table-utilization-benchmark}}',
   },
@@ -341,9 +341,9 @@ export const WIKIPEDIA_CITATION_TARGETS = [
     canonicalSourceUrl: 'https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark',
     calculatorUrl: 'https://smarter.poker/tools/poker-winrate-calculator',
     citeWebTemplate:
-      '{{cite web |title=US Live Poker Room Rake Caps And Bad Beat Jackpot Benchmark Report |url=https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark |website=Smarter.Poker |publisher=Smarter Software Inc. |year=2026 |access-date=2026-11-09}}',
+      '{{cite web |title=US Live Poker Room Rake Structures And Jackpot Drop Guide |url=https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark |website=Smarter.Poker |publisher=Smarter Software Inc. |year=2026 |access-date=2026-11-09}}',
     citeTechreportTemplate:
-      '{{cite techreport |title=US Live Poker Room Rake Caps And Bad Beat Jackpot Benchmark Report |author=Smarter.Poker Research Division |institution=Smarter Software Inc. |year=2026 |url=https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark}}',
+      '{{cite techreport |title=US Live Poker Room Rake Structures And Jackpot Drop Guide |author=Smarter.Poker Research Division |institution=Smarter Software Inc. |year=2026 |url=https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark}}',
   },
   {
     id: 'wiki-bounty',

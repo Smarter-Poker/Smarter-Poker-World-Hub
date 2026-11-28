@@ -7,10 +7,35 @@
  * House style: #SMARTERDESIGN, Title Case, zero em dashes.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { openQuickSignup } from './SmarterQuickSignupSheet';
 import { trackSeoFunnelEvent } from '../../lib/seo/seoFunnelTelemetry';
 import styles from './SmarterSeoKit.module.css';
+
+export function buildAttributedCalcSpotUrl({
+  redirectPath = '/tools',
+  siteUrl = 'https://smarter.poker',
+  currentUrl = '',
+} = {}) {
+  const base = String(siteUrl || 'https://smarter.poker').trim().replace(/\/+$/, '') || 'https://smarter.poker';
+  const rawTarget = String(currentUrl || redirectPath || '/tools').trim();
+  let urlObj;
+  try {
+    if (/^https?:\/\//i.test(rawTarget)) {
+      const parsed = new URL(rawTarget);
+      urlObj = new URL(`${parsed.pathname}${parsed.search}`, base);
+    } else {
+      const normalizedPath = rawTarget.startsWith('/') ? rawTarget : `/${rawTarget}`;
+      urlObj = new URL(normalizedPath, base);
+    }
+  } catch (_) {
+    urlObj = new URL('/tools', base);
+  }
+  urlObj.searchParams.set('utm_source', 'player_share');
+  urlObj.searchParams.set('utm_medium', 'referral');
+  urlObj.searchParams.set('utm_campaign', 'calc_spot');
+  return urlObj.toString();
+}
 
 function hasStoredAuthSession() {
   if (typeof window === 'undefined') return false;
@@ -36,9 +61,14 @@ export default function SmarterCalculatorSaveBar({
   unlockKey = '',
 }) {
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [copiedSpot, setCopiedSpot] = useState(false);
+  const copyTimerRef = useRef(null);
 
   useEffect(() => {
     setIsSignedIn(hasStoredAuthSession());
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
   }, []);
 
   if (isSignedIn) return null;
@@ -76,6 +106,32 @@ export default function SmarterCalculatorSaveBar({
     });
   };
 
+  const handleShareSpot = async () => {
+    const activePath =
+      typeof window !== 'undefined' && window.location?.pathname && window.location.pathname !== '/'
+        ? `${window.location.pathname}${window.location.search || ''}`
+        : redirectPath;
+    const shareUrl = buildAttributedCalcSpotUrl({
+      redirectPath,
+      currentUrl: activePath,
+    });
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopiedSpot(true);
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => setCopiedSpot(false), 2400);
+      }
+      trackSeoFunnelEvent('seo_calculator_share_click', {
+        tool_slug: toolSlug,
+        unlock_key: resolvedUnlockKey,
+        redirect_path: redirectPath,
+      });
+    } catch (_) {
+      /* ignore clipboard refusal */
+    }
+  };
+
   return (
     <div
       className={`${styles.kit} ${styles.frameActive} ${styles.calcSaveBar} no-print`}
@@ -96,6 +152,14 @@ export default function SmarterCalculatorSaveBar({
           onClick={handleSaveClick}
         >
           {ctaLabel}
+        </button>
+        <button
+          type="button"
+          className={styles.ctaSecondary}
+          data-testid={`calculator-share-cta-${toolSlug}`}
+          onClick={handleShareSpot}
+        >
+          {copiedSpot ? 'Spot Link Copied' : 'Share Spot'}
         </button>
       </div>
     </div>

@@ -25,7 +25,7 @@ export function buildFreshnessLedger(venueStats = SNAPSHOT_VENUE_STATS) {
     verifiedAt: '2026-11-24',
     entity: 'Smarter.Poker',
     url: 'https://smarter.poker',
-    primaryDoi: '10.5281/zenodo.15129481',
+    primaryDoi: '10.5281/zenodo.24115647',
     collectionDoi: '10.5281/zenodo.24115647',
     counts: {
       calculatorsCount: 52,
@@ -59,7 +59,7 @@ export function buildFreshnessLedger(venueStats = SNAPSHOT_VENUE_STATS) {
     solverAndDatasetHashes: [
       {
         datasetId: 'core-open-quantitative-poker-datasets-v2026.11',
-        doi: '10.5281/zenodo.15129481',
+        doi: '10.5281/zenodo.24115647',
         archiveDoi: '10.5281/zenodo.24115647',
         swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
         sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
@@ -94,7 +94,7 @@ export function buildFreshnessLedger(venueStats = SNAPSHOT_VENUE_STATS) {
       publishedDate: r.publishedDate,
       modifiedDate: '2026-11-24',
       verifiedAt: '2026-11-24',
-      doi: r.doi || '10.5281/zenodo.15129481',
+      doi: r.doi || '10.5281/zenodo.24115647',
       canonicalUrl: `https://smarter.poker/research/${r.slug}`,
     })),
   };

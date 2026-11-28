@@ -221,7 +221,7 @@ export default function BlockerScorePanel({ board, gridData, actions, heldCards 
     }
 
     const compositeColor = analysis.compositeScore >= 70 ? '#22c55e'
-        : analysis.compositeScore >= 40 ? '#eab308' : '#ef4444';
+        : analysis.compositeScore >= 40 ? '#38bdf8' : '#ef4444';
 
     return (
         <motion.div

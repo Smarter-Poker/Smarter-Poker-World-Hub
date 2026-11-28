@@ -13,12 +13,13 @@
 // TRAIN-CSS-TOKENS-BATCH5-33 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-26 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomSheet from '../../../src/components/ui/BottomSheet';
+const BottomSheet = dynamic(() => import('../../../src/components/ui/BottomSheet'), { ssr: false });
 
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 import s from '../../../src/styles/training/training-play.module.css';

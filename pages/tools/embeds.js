@@ -2315,7 +2315,7 @@ export default function WebmasterEmbedPortal() {
                   textDecoration: 'none',
                 }}
               >
-                15 Empirical Poker Studies
+                15 Poker Research Pages
               </Link>
               <Link
                 href="/tools/poker-odds-calculator"

@@ -1,6 +1,6 @@
 /**
  * DAILY TOURNAMENTS - Find poker tournaments happening today
- * Live data from venue_daily_tournaments — VENUE_COUNT_LABEL venues, 4,500+ records
+ * Live data from venue_daily_tournaments — VENUE_COUNT_LABEL venues, several thousand served rows
  */
 
 import SEOHead, { normalizeJsonLdGraph } from '../../src/components/seo/SEOHead';
@@ -32,7 +32,7 @@ import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 const DAILY_TOURNAMENTS_FAQS = [
     {
         question: 'How Many Daily Poker Tournaments Are Tracked On Smarter.Poker?',
-        answer: `Smarter.Poker Tracks Over 4,500 Recurring Weekly Live Poker Tournaments Across ${VENUE_COUNT_LABEL} Casino Poker Rooms And Licensed Cardrooms In The United States.`,
+        answer: `Smarter.Poker Tracks 800+ Live Poker Tournaments A Week Across ${VENUE_COUNT_LABEL} Casino Poker Rooms And Licensed Cardrooms In The United States.`,
     },
     {
         question: 'Can I Filter Daily Poker Tournaments By Day Of Week And Buy-In?',
