@@ -15,7 +15,9 @@ test('dynamic discovery routes publish their own heading, title, description, an
   assert.match(page, /const requestedCanonicalSlug = normalizeRouteSlug\(router\.query\.pnmTab\)/);
   assert.match(page, /title=\{routeMeta\.title\}/);
   assert.match(page, /description=\{routeMeta\.description\}/);
-  assert.match(page, /<h1 className="pnm-title">\{routeMeta\.heading\}<\/h1>/);
+  // #SMARTERDESIGN (2026-11-27): each route opens on its own image header,
+  // whose h1 and page-specific seal and scene come from PnmImageHeader.
+  assert.match(page, /<PnmImageHeader route=\{canonicalSlug\} \/>/);
   assert.match(page, /name: routeMeta\.breadcrumb/);
 });
 

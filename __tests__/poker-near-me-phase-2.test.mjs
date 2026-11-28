@@ -116,7 +116,10 @@ test('discovery status rail distinguishes live, modeled, and offline data', () =
   const page = read('pages/hub/poker-near-me/[pnmTab].js');
   assert.match(page, /<DiscoveryStatusRail/);
   assert.match(page, /liveDataAgeMinutes=\{liveDataAgeMinutes\}/);
-  assert.match(page, /liveDataMode == null \|\| liveDataMode === 'none'/);
+  // The rail is the one place the table count prints (#SMARTERDESIGN,
+  // 2026-11-27, retired the subtitle that repeated it): an unknown or offline
+  // feed reads Pending or Unavailable there, never a zero.
+  assert.match(rail, /liveDataMode == null\s*\? 'Pending'\s*: liveDataMode === 'none'\s*\? 'Unavailable'/);
   assert.doesNotMatch(page, /liveDataMode === 'none'\s*\? '0'/);
 });
 

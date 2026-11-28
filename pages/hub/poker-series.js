@@ -2194,10 +2194,6 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         align-items: center;
                         justify-content: center;
                         padding: 0 18px;
-                        border: 0;
-                        border-radius: 0;
-                        background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / 100% 100% no-repeat;
-                        box-shadow: none;
                         color: #e4e7ec;
                         font-size: 12px;
                         font-weight: 800;
@@ -2205,11 +2201,22 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         text-decoration: none;
                         text-shadow: 0 1px 0 #050607, 0 2px 4px rgba(0,0,0,0.85);
                         text-transform: uppercase;
+                        border: 3px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+                        background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box;
+                        border-radius: 0;
+                        box-shadow: none;
+                        color: #f2f7ff;
                     }
                     .tour-action-btn.primary {
-                        background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
                         color: #f4f7fb;
                         text-shadow: 0 0 8px rgba(140,210,255,0.85), 0 2px 4px rgba(0,0,0,0.7);
+                        border: 3px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch;
+                        background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box;
+                        border-radius: 0;
+                        box-shadow: none;
+                        color: #ffffff;
                     }
                     .tour-action-btn:active {
                         filter: brightness(1.2);

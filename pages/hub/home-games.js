@@ -46,6 +46,7 @@ import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getAccessToken } from '../../src/lib/authUtils';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PnmImageHeader from '../../src/components/poker-near-me/PnmImageHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
@@ -726,8 +727,11 @@ export default function HomeGamesPage() {
                 />
 
                 <main className="hgd-directory pnm-map-directory" data-pnm-secondary-foundation="interaction-v1">
+                    <div className="smarterdesign pnm-sd-top">
+                        <PnmImageHeader route="home-games" titleId="home-games-directory-title" />
+                    </div>
                     <header className="pnm-map-directory-header">
-                        <div><h1 id="home-games-directory-title">Home Games</h1>
+                        <div>
                         <p>{loading ? 'Searching' : sortedVenues.length + ' Published Games'} · Exact Addresses Stay Private</p></div>
                             <form className="hgd-search-well" role="search" onSubmit={handleSearch}>
                                 <PokerNearMeConsoleIcon name="search" />

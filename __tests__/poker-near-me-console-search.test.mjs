@@ -373,7 +373,7 @@ test('the Search plate flows under the well on phones and is a real 44px target'
   assert.match(css, /\.gso-console-submit \{[^}]*height: 44px;[^}]*min-height: 44px;/);
   // Rendered in DOM order after the field; disabled (steel plate) for an empty query.
   assert.match(src, /<\/form>\s*\{\/\*[\s\S]*?\*\/\}\s*<button type="button" className="gso-console-submit" onClick=\{handleSubmit\} disabled=\{!localQuery\.trim\(\) && !savedSearchRef\.current\}>/);
-  assert.match(css, /\.gso-console-submit:disabled \{[^}]*button-secondary\.png/);
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   // Clear keeps its 44px target inside the well.
   assert.match(css, /\.gso-console-form \.gso-clear \{[^}]*width: 44px !important;[^}]*height: 44px !important;/);
 });
@@ -410,9 +410,9 @@ test('global search keeps every behaviour it had', () => {
 
 test('search stylesheet is scoped, painted, hover-free and beats the legacy command layer', () => {
   const css = read(SEARCH_CSS);
-  assert.doesNotMatch(css, /(?:linear|radial|conic)-gradient\(|:hover|backdrop-filter:\s*blur/);
-  assert.doesNotMatch(css, /border-radius:\s*[1-9]/);
-  for (const art of ['search-well.webp', 'button-primary.png', 'button-secondary.png', 'utility-well.webp']) {
+  assert.doesNotMatch(css, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
+  assert.doesNotMatch(css, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
+  for (const art of ['chrome-row.webp', 'chrome-active-v2.webp', 'utility-well.webp']) {
     assert.match(css, new RegExp(art.replace('.', '\\.')));
   }
   // Every rule targets the overlay through its dialog scope (0,3,1 or more).
@@ -421,7 +421,7 @@ test('search stylesheet is scoped, painted, hover-free and beats the legacy comm
   const unscoped = selectors.filter((s) => !s.includes(".gso-console-overlay[role='dialog']") && s !== '.gso-visually-hidden');
   assert.deepEqual(unscoped, []);
   // The well keeps the art's own ratio and prints on the painted face.
-  assert.match(css, /\.gso-console-search-well \{[^}]*aspect-ratio: 1829 \/ 313;[^}]*padding: 2\.41cqw 6\.73cqw 4\.98cqw 6\.78cqw;/);
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   // The detail sits on black: a transparent console body never shows art through.
   assert.match(css, /\.gso-detail-console \{[^}]*background: #010306 !important;/);
 });
@@ -433,23 +433,27 @@ test('lobby: no voice option, no duplicate eyebrow, no delayed fade, honest coun
   // The eyebrow was CSS generated content; no rule may print it again.
   assert.doesNotMatch(stripComments(css), /DISCOVERY DECK/i);
   assert.doesNotMatch(css, /\.lobby-topbar::before/);
-  assert.doesNotMatch(css, /(?:linear|radial|conic)-gradient\(|:hover/);
+  assert.doesNotMatch(css, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.doesNotMatch(css, /\.lobby-search-form \{[^}]*opacity: 0/);
   assert.match(css, /\.lobby-command-row \.lobby-gps-btn \{[^}]*background: none !important;/);
   assert.match(css, /\.lobby-card-scroll picture img \{[^}]*filter: none;/);
   assert.match(css, /\.pnm-lobby-page \.lobby-hotspot:focus-visible \{[^}]*outline: 2px solid #8fd4ff;/);
+  assert.match(read('src/styles/worlds/poker-near-me-smarterdesign.css'), /\.pnm-lobby-page \.pnm-sd-tile:focus-visible \{[^}]*outline: 2px solid #9ee3ff !important;/);
   // Pins held by the phase 11 and mobile contracts.
   assert.match(css, /min-width: 44px !important/);
   assert.match(css, /min-height: 44px !important/);
   assert.match(css, /\.pnm-lobby-page \{[^}]*touch-action: pan-y;/s);
 
   assert.doesNotMatch(overlay, /onVoiceClick|lobby-voice-btn|aria-label="Voice search"/);
-  // CLS reservation and the eager, high-priority grid stay; the attribute is the DOM spelling.
-  assert.match(overlay, /src="\/images\/lobby-pods\/poker-near-me-grid\.webp"[\s\S]*?loading="eager"[\s\S]*?fetchpriority="high"[\s\S]*?width=\{1024\}[\s\S]*?height=\{1024\}/);
+  // #SMARTERDESIGN (2026-11-27): twelve live tiles replace the one painted
+  // bitmap. Each icon reserves its 256x256 box (no layout shift) and the
+  // first two rows load eagerly.
+  assert.match(overlay, /src=\{`\/images\/smarterdesign\/pnm\/tile-\$\{hotspot\.id\}\.webp`\}[\s\S]*?width=\{256\}[\s\S]*?height=\{256\}[\s\S]*?loading=\{index < 8 \? 'eager' : 'lazy'\}/);
   assert.doesNotMatch(overlay, /fetchPriority=/);
   // Unknown or unanswered counts are words in muted ink, never 0 and never coloured.
   assert.doesNotMatch(overlay, /liveGameCount \|\| 0|dailyCount \|\| 0|style=\{\{ color: stat\.color \}\}/);
   assert.match(overlay, /stat\.value == null \? 'Loading' : String\(stat\.value\)/);
+  assert.match(overlay, /word === 'Unknown' \? 'Not Reported' : word/);
   assert.match(overlay, /pnc-ink--\$\{isCount \? stat\.ink : 'muted'\}/);
   assert.doesNotMatch(overlay, /text-transform: uppercase;\s*\}\s*`\}<\/style>/);
 

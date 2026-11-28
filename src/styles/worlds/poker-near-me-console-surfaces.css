@@ -142,16 +142,16 @@ body.world-poker-near-me .lobby-search-wrap {
   width: 100%;
   min-width: 0;
   min-height: 54px;
-  aspect-ratio: 1829 / 313;
   align-items: center;
   gap: 4px;
   padding: 0 clamp(12px, 3.6%, 24px);
   overflow: hidden;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
-  box-shadow: none !important;
   backdrop-filter: none !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: #06111d padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 body.world-poker-near-me .lobby-search-wrap::before,
@@ -160,8 +160,10 @@ body.world-poker-near-me .lobby-search-wrap::after {
 }
 
 body.world-poker-near-me .lobby-search-wrap:focus-within {
-  border: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: #06111d padding-box !important;
+  border-radius: 0 !important;
   box-shadow: none !important;
 }
 
@@ -232,20 +234,20 @@ body.world-poker-near-me .lobby-location-prompt {
   width: min(100%, 520px);
   min-width: 0;
   min-height: 60px;
-  aspect-ratio: 1829 / 313;
   align-items: center;
   gap: 8px;
   padding: 0 clamp(14px, 4.6%, 26px);
   overflow: hidden;
   color: #eef5fb;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
-  box-shadow: none !important;
   font-family: var(--font-inter), Inter, sans-serif;
   text-align: left;
   white-space: nowrap;
   pointer-events: auto;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: #06111d padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 body.world-poker-near-me .lobby-location-status {
@@ -402,21 +404,28 @@ body.world-poker-near-me :is(.pnm-top-tab, .pnm-sub-tab, .day-btn, .daily-filter
   place-items: center;
   overflow: hidden;
   color: #b5c0cb !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat !important;
-  box-shadow: none !important;
   font: 700 12px/1.05 var(--font-rajdhani), Rajdhani, Inter, sans-serif !important;
   letter-spacing: .05em;
   text-align: center;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #f2f7ff !important;
 }
 
 body.world-poker-near-me :is(.pnm-top-tab, .pnm-sub-tab, .day-btn, .daily-filter-chip):is(.active, [aria-current='true'], [aria-current='page'], [aria-pressed='true']) {
   color: #fff !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
 }
 
 body.world-poker-near-me :is(.pnm-top-tab, .pnm-sub-tab, .day-btn, .daily-filter-chip):focus-visible {
@@ -440,15 +449,13 @@ body.world-poker-near-me :is(.pnm-filter-select, .sort-select) {
   min-height: 44px;
   padding: 0 18px !important;
   color: #eef5fb !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-size: contain !important;
-  box-shadow: none !important;
   font: 700 13px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #f2f7ff !important;
 }
 
 body.world-poker-near-me .daily-filter-input--gtd {
@@ -567,11 +574,12 @@ body.world-poker-near-me :is(.pnm-empty-state, .empty-state, .pnm-error-state, .
   padding: clamp(54px, 11vw, 112px) 8% clamp(42px, 7.2vw, 72px) !important;
   overflow: hidden;
   color: #dce4ec;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: #020507 url('/images/pnm-console/painted-panels-v1/panel-mid.png') center / 100% auto repeat-y !important;
-  box-shadow: none !important;
   text-align: center;
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 body.world-poker-near-me :is(.pnm-empty-state, .empty-state, .pnm-error-state, .error-state)::before,
@@ -588,14 +596,14 @@ body.world-poker-near-me :is(.pnm-empty-state, .empty-state, .pnm-error-state, .
 
 body.world-poker-near-me :is(.pnm-empty-state, .empty-state, .pnm-error-state, .error-state)::before {
   top: 0;
-  aspect-ratio: 1000 / 112;
-  background: url('/images/pnm-console/painted-panels-v1/panel-head.png') top center / 100% auto no-repeat;
+  background: none;
+  display: none;
 }
 
 body.world-poker-near-me :is(.pnm-empty-state, .empty-state, .pnm-error-state, .error-state)::after {
   bottom: 0;
-  aspect-ratio: 1000 / 72;
-  background: url('/images/pnm-console/painted-panels-v1/panel-foot.png') bottom center / 100% auto no-repeat;
+  background: none;
+  display: none;
 }
 
 body.world-poker-near-me :is(.load-more-btn, .pnm-empty-state button, .empty-state button, .pnm-directory-source button) {
@@ -604,13 +612,15 @@ body.world-poker-near-me :is(.load-more-btn, .pnm-empty-state button, .empty-sta
   min-height: 44px;
   padding: 0 20px !important;
   color: #eef5fb !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/button-primary.png') center / contain no-repeat !important;
-  box-shadow: none !important;
   font: 800 13px/1.05 var(--font-rajdhani), Rajdhani, Inter, sans-serif !important;
   letter-spacing: .05em;
   text-transform: uppercase;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
 }
 
 /* A fixed footer consumes a third of a short landscape viewport. The duplicate
@@ -728,32 +738,32 @@ body.world-poker-near-me .sort-results-select.sort-results-select {
   min-width: 140px;
   height: auto !important;
   min-height: 44px !important;
-  aspect-ratio: 348 / 114;
   margin: 0;
   padding: 0 clamp(10px, 4.6%, 20px) !important;
   color: #eef5fb !important;
-  border: 0 !important;
-  border-radius: 0 !important;
   outline-offset: -5px;
-  background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-size: contain !important;
-  box-shadow: none !important;
   font-family: var(--font-rajdhani), Rajdhani, Inter, sans-serif !important;
   font-size: clamp(16px, 1.05vw, 18px) !important;
   font-weight: 700 !important;
   line-height: 1.1 !important;
   text-align: left;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #f2f7ff !important;
 }
 
 body.world-poker-near-me .tc-input.tc-input,
 body.world-poker-near-me .dt-search-input.dt-search-input,
 body.world-poker-near-me .lgf-search-input.lgf-search-input {
   min-width: 0;
-  aspect-ratio: 1829 / 313;
-  background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: #06111d padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 body.world-poker-near-me .dt-search-input.dt-search-input,
@@ -837,15 +847,7 @@ body.world-poker-near-me .pnm-console-cta.pnm-console-cta {
   padding: 0 14px !important;
   overflow: hidden;
   color: #c2d0dc !important;
-  border: 0 !important;
-  border-radius: 0 !important;
   outline-offset: -5px;
-  background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-size: contain !important;
-  box-shadow: none !important;
   font-family: var(--font-rajdhani), Rajdhani, Inter, sans-serif !important;
   font-size: 13px !important;
   font-weight: 800 !important;
@@ -855,6 +857,12 @@ body.world-poker-near-me .pnm-console-cta.pnm-console-cta {
   text-transform: uppercase;
   white-space: nowrap;
   animation: none !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #f2f7ff !important;
 }
 
 body.world-poker-near-me .ec-day-tab.ec-day-tab,
@@ -871,7 +879,12 @@ body.world-poker-near-me .view-btn.view-btn.active,
 body.world-poker-near-me .pnm-live-map-toggle.pnm-live-map-toggle[aria-expanded='true'],
 body.world-poker-near-me .pnm-console-cta.pnm-console-cta--primary {
   color: #f5fbff !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
 }
 
 body.world-poker-near-me .ec-day-tab.ec-day-tab.today:not(.active) {
@@ -948,9 +961,10 @@ body.world-poker-near-me .ec-search-wrap.ec-search-wrap {
   width: min(100%, 260px) !important;
   min-height: 48px;
   padding: 0 clamp(12px, 3.6%, 22px) !important;
-  border: 0 !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: #06111d padding-box !important;
   border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
   box-shadow: none !important;
 }
 
@@ -1103,20 +1117,18 @@ body.world-poker-near-me .pnm-gps-btn.pnm-gps-btn {
   gap: 6px;
   padding: 0 14px !important;
   color: #c2d0dc !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-size: contain !important;
-  box-shadow: none !important;
   font-family: var(--font-rajdhani), Rajdhani, Inter, sans-serif !important;
   font-size: 13px !important;
   font-weight: 800 !important;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #f2f7ff !important;
 }
 
 body.world-poker-near-me .pnm-gps-btn.pnm-gps-btn:focus-visible {
@@ -1171,14 +1183,12 @@ body.world-poker-near-me .day-tab.day-tab.active,
 body.world-poker-near-me .day-btn.day-btn.active,
 body.world-poker-near-me .daily-filter-chip.daily-filter-chip.active {
   color: #f5fbff !important;
-  border: 0 !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box !important;
   border-radius: 0 !important;
-  background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-size: contain !important;
   box-shadow: none !important;
+  color: #ffffff !important;
 }
 
 /* The search pictogram sits in its own painted holder inside the well's glass,
@@ -1237,20 +1247,16 @@ body.world-poker-near-me .vga-field.vga-field {
   width: 100%;
   min-height: 44px !important;
   height: auto !important;
-  aspect-ratio: 1829 / 313;
   padding: 0 7% !important;
   color: #eef5fb !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-size: contain !important;
-  box-shadow: none !important;
   font-family: var(--font-inter), Inter, system-ui, sans-serif !important;
   font-size: clamp(16px, 1.05vw, 18px) !important;
   font-weight: 600 !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: #06111d padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 body.world-poker-near-me .vga-field.vga-field:focus-visible {

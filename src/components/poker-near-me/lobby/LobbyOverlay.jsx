@@ -15,11 +15,8 @@
  * "More Tools" are accessible via the hamburger menu.
  */
 
-import React, { useMemo, useState } from 'react';
-import {
-  PokerNearMeConsoleIcon,
-  PokerNearMePanelShell,
-} from '../PokerNearMeConsole';
+import React, { useMemo } from 'react';
+import { PokerNearMeConsoleIcon } from '../PokerNearMeConsole';
 
 // Spotlight targets for src/tutorials/poker-near-me.js, keyed by hotspot id.
 const TUTORIAL_TARGETS = {
@@ -58,6 +55,12 @@ const GRID_HOTSPOTS = [
 ];
 
 
+// A feed that cannot report a figure says so plainly. "Unknown" read like a
+// fault on the lobby; the value is still a word in muted ink, never a zero.
+function displayWord(word) {
+  return word === 'Unknown' ? 'Not Reported' : word;
+}
+
 /**
  * LobbyOverlay — the full UI layer.
  */
@@ -90,7 +93,6 @@ export default function LobbyOverlay({
 
   // If the grid bitmap 404s or is blocked, the twelve hotspots would otherwise
   // sit over empty space with nothing visible to click.
-  const [gridImageFailed, setGridImageFailed] = useState(false);
 
 
 
@@ -227,88 +229,51 @@ export default function LobbyOverlay({
         </div>
       )}
 
-      {/* ═══ SINGLE DYNAMIC IMAGE with clickable hotspot overlay ═══
-          Mobile phase 3: plain flow, no inner scroller. The page scrolls. */}
+      {/* ═══ DESTINATION GRID (#SMARTERDESIGN, Dan 2026-11-27) ═══
+          Twelve real tiles. Each one is a single link: its painted icon, sized
+          from public/images/smarterdesign/pnm/tile-<id>.webp (256x256, cut
+          from the approved grid art without the old bulky outer frame), and
+          its live Title Case label. The whole tile is the click target. It
+          used to be one 1024px bitmap with the labels painted in, under
+          transparent hotspots, which printed "TOURNAMENT ALERTS" in capitals,
+          could not wrap a label, and put a second heavy frame round the grid. */}
       <div className="lobby-card-scroll">
-        <div className="lobby-grid-stage">
-          {/* Grid image — WebP with PNG fallback for broad compatibility */}
-          <picture>
-            <source srcSet="/images/lobby-pods/poker-near-me-grid.webp" type="image/webp" />
-            <img
-              src="/images/lobby-pods/poker-near-me-grid.webp"
-              alt="Poker Near Me Feature Grid"
-              loading="eager"
-              // Lower-case on purpose: React 18 does not know fetchPriority and
-              // warned on every lobby load; the DOM attribute is fetchpriority.
-              fetchpriority="high"
-              // THE GRID RESERVES ITS OWN SPACE (2026-09-17). With width:100%
-              // and height:auto but no intrinsic size, the browser gave this a
-              // zero-height box until the bytes arrived, and the hotspot grid
-              // absolutely positioned over it went from 2px to 350px while
-              // everything below dropped 364px: measured on production, CLS
-              // 0.267 on every single load at phone width. The file is square,
-              // 1024x1024, so declaring it makes the box exact before the
-              // first byte.
-              width={1024}
-              height={1024}
-              onError={() => setGridImageFailed(true)}
-              className={gridImageFailed ? 'lobby-grid-image is-hidden' : 'lobby-grid-image'}
-            />
-          </picture>
-
-          {/* Transparent clickable hotspot grid overlaid on top of the image */}
-          <div style={{
-            // Inset only applies while the grid is absolutely positioned over the
-            // bitmap. In the image-failure fallback the grid becomes the flow
-            // content itself, where `left`/`top` would just nudge it off-centre
-            // (and `right`/`bottom` are ignored for a relatively positioned box).
-            top: gridImageFailed ? undefined : '2.5%',
-            left: gridImageFailed ? undefined : '2%',
-            right: gridImageFailed ? undefined : '2%',
-            bottom: gridImageFailed ? undefined : '2%',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gridTemplateRows: 'repeat(3, 1fr)',
-            gap: gridImageFailed ? 8 : 0,
-            overflow: 'visible',
-            pointerEvents: 'auto',
-            minHeight: gridImageFailed ? 260 : undefined,
-            position: gridImageFailed ? 'relative' : 'absolute',
-          }}
-          className={gridImageFailed ? 'lobby-hotspots lobby-hotspots-fallback' : 'lobby-hotspots'}
-          data-tutorial="nav"
-          >
-            {GRID_HOTSPOTS.map((hotspot) => (
+        <nav className="lobby-grid-stage pnm-sd-grid" aria-label="Poker Near Me Destinations">
+          <div className="lobby-hotspots pnm-sd-grid__tiles" data-tutorial="nav">
+            {GRID_HOTSPOTS.map((hotspot, index) => (
               <a
                 key={hotspot.id}
                 href={hotspot.href}
                 data-tutorial-id={`pod-${hotspot.id}`}
                 data-tutorial={TUTORIAL_TARGETS[hotspot.id] || undefined}
-                className="lobby-hotspot"
+                className="lobby-hotspot pnm-sd-tile"
                 onClick={(e) => {
-                  // Let modified clicks (new tab / new window) behave natively.
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
                   e.preventDefault();
                   try { navigator.vibrate?.([10, 30, 10]); } catch (err) { console.warn('[App] Handled exception:', err); }
                   onPodSelect?.(hotspot.id);
                 }}
-                aria-label={`Open ${hotspot.label}`}
               >
-                {/* Text label. Icon names live only inside the bitmap, so they
-                    are not translatable, selectable or zoomable and there is no
-                    fallback when the image 404s. This label is always in the DOM
-                    (readable by assistive tech and crawlers) and fades in on
-                    hover/focus so the visual design is unchanged at rest. */}
-                <span className="lobby-hotspot-label">{hotspot.label}</span>
+                <img
+                  className="pnm-sd-tile__icon"
+                  src={`/images/smarterdesign/pnm/tile-${hotspot.id}.webp`}
+                  alt=""
+                  width={256}
+                  height={256}
+                  loading={index < 8 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  draggable={false}
+                />
+                <span className="lobby-hotspot-label pnm-sd-tile__label">{hotspot.label}</span>
               </a>
             ))}
           </div>
-        </div>
+        </nav>
 
         {/* ═══ LIVE STATS BAR — below the grid ═══
             A value the page has not received yet prints Loading and one it could
             not get prints Unknown, both in muted ink. Neither is ever a zero. */}
-        <PokerNearMePanelShell as="section" className="lobby-stats-panel" aria-label="Poker Near Me directory status">
+        <section className="lobby-stats-panel pnm-sd-stats" aria-label="Poker Near Me Directory Status">
           {[
             { key: 'venues', value: venueStatValue, label: 'Public Venues', ink: 'blue' },
             // Label comes from /api/poker/live-tables metadata.data_mode via the
@@ -320,58 +285,19 @@ export default function LobbyOverlay({
           ].map((stat) => {
             const isCount = typeof stat.value === 'number' && Number.isFinite(stat.value);
             return (
-              <div key={stat.key} className="lobby-stat" aria-busy={stat.value == null ? 'true' : undefined}>
+              <div key={stat.key} className="lobby-stat sd-metric" aria-busy={stat.value == null ? 'true' : undefined}>
                 <div className={`lobby-stat__value pnc-ink--${isCount ? stat.ink : 'muted'}`}>
-                  <span>{isCount ? stat.value.toLocaleString() : (stat.value == null ? 'Loading' : String(stat.value))}</span>
+                  <span>{isCount ? stat.value.toLocaleString() : displayWord(stat.value == null ? 'Loading' : String(stat.value))}</span>
                 </div>
                 <div className="lobby-stat__label">{stat.label}</div>
               </div>
             );
           })}
-        </PokerNearMePanelShell>
+        </section>
 
 
       </div>
     </div>
-
-    <style dangerouslySetInnerHTML={{ __html: `
-      /* Bitmap labels are static painted art; this DOM copy remains available
-         to assistive technology and becomes visible only in the image fallback. */
-      .lobby-hotspot-label {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-      }
-      /* [AUDIT] outline:none used to be set inline on every hotspot, so keyboard
-         users tabbing through twelve transparent buttons got no indication of
-         where they were. */
-      .lobby-hotspot:focus-visible {
-        outline: 2px solid #8fd4ff;
-        outline-offset: -3px;
-      }
-      /* Image-failure fallback: show real tiles instead of invisible buttons. */
-      .lobby-hotspots-fallback .lobby-hotspot {
-        border: 0 !important;
-        background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat !important;
-        min-height: 64px;
-      }
-      .lobby-hotspots-fallback .lobby-hotspot-label {
-        opacity: 1;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: auto;
-        height: auto;
-        overflow: visible;
-        clip-path: none;
-        color: #eef5fb;
-        font: 700 12px/1.1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
-        text-align: center;
-      }
-    ` }} />
     </>
   );
 }

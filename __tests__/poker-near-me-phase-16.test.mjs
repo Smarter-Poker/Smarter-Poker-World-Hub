@@ -51,7 +51,7 @@ test('phase 4 route pages delegate controller and recovery responsibilities', as
   assert.match(lobby, /useLobbyDialogController/);
   assert.match(
     lobby,
-    /className="lobby-panel-page"[\s\S]{0,700}zIndex:\s*10100/,
+    /className="lobby-panel-page[^"]*"[\s\S]{0,700}zIndex:\s*10100/,
     'the aria-modal pod panel must remain above the fixed global header'
   );
   assert.match(lobbyInteractions, /export function useLobbyDialogController/);

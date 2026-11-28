@@ -17,6 +17,7 @@ import { sourceVerificationTime } from '../../src/lib/poker-near-me/scheduleTemp
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PnmImageHeader from '../../src/components/poker-near-me/PnmImageHeader';
 import { PokerNearMeConsoleIcon } from '../../src/components/poker-near-me/PokerNearMeConsole';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -461,10 +462,12 @@ export default function DailyTournaments() {
 
                 {/* Page Header — Title left, Search right */}
                 <main aria-labelledby="daily-tournaments-heading">
+                <div className="smarterdesign pnm-sd-top">
+                    <PnmImageHeader route="daily-tournaments" titleId="daily-tournaments-heading" />
+                </div>
                 <div className="dt-header">
                     <div className="dt-header-left">
-                        <h1 id="daily-tournaments-heading"><span className="white">DAILY</span> <span className="gold">TOURNAMENTS</span></h1>
-                        <span className="subtitle">{stats.total || 0} TOURNAMENTS AT {stats.venueCount || new Set((swrData?.tournaments || []).map(t => t.venue_name)).size || '...'} VENUES</span>
+                        <span className="subtitle">{stats.total || 0} Tournaments At {stats.venueCount || new Set((swrData?.tournaments || []).map(t => t.venue_name)).size || '...'} Venues</span>
                         <div className={`dt-source-state dt-source-state--${scheduleState}`} role="status" aria-live="polite" data-source-state={scheduleState}>
                             <span className="dt-source-state__signal" aria-hidden="true" />
                             <span>{scheduleStatusLabel}</span>
@@ -819,7 +822,7 @@ export default function DailyTournaments() {
                         inset: 0;
                         background:
                             radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-                            radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                            radial-gradient(ellipse at 80% 80%, rgba(79,156,255, 0.1) 0%, transparent 50%),
                             radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.08) 0%, transparent 60%),
                             linear-gradient(180deg, #030712 0%, #0a1628 30%, #0f172a 50%, #0a1628 70%, #030712 100%);
                         z-index: -2;
@@ -918,8 +921,8 @@ export default function DailyTournaments() {
                     }
                     .dt-source-state--degraded .dt-source-state__signal,
                     .dt-source-state--error .dt-source-state__signal {
-                        background: #f4b942;
-                        box-shadow: 0 0 10px rgba(244, 185, 66, 0.62);
+                        background: #46b7f0;
+                        box-shadow: 0 0 10px rgba(70, 183, 240, 0.62);
                     }
                     .dt-source-state time {
                         color: #aeb9c8;
@@ -1243,14 +1246,14 @@ export default function DailyTournaments() {
                         color: #3b82f6;
                     }
                     .time-icon.afternoon {
-                        background: rgba(245,158,11,0.2);
-                        border-color: rgba(245,158,11,0.4);
+                        background: rgba(159,216,255,0.2);
+                        border-color: rgba(159,216,255,0.4);
                         color: #38bdf8;
                     }
                     .time-icon.evening {
-                        background: rgba(139,92,246,0.2);
-                        border-color: rgba(139,92,246,0.4);
-                        color: #8b5cf6;
+                        background: rgba(79,156,255,0.2);
+                        border-color: rgba(79,156,255,0.4);
+                        color: #4f9cff;
                     }
                     .time-count {
                         margin-left: auto;
@@ -1466,8 +1469,8 @@ function TournamentCard({ tournament }) {
                     color: #f87171;
                 }
                 .tag.format {
-                    background: rgba(139, 92, 246, 0.2);
-                    color: #a78bfa;
+                    background: rgba(79,156,255, 0.2);
+                    color: #9fd3ff;
                 }
                 .tag.guaranteed {
                     background: rgba(34, 197, 94, 0.2);
