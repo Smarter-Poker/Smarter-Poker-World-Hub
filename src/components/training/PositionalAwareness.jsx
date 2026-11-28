@@ -61,7 +61,7 @@ export default function PositionalAwareness() {
           <div style={{ fontSize: 16, fontWeight: 800, color: pos.color }}>{pos.pos}</div>
           <div style={{ fontSize: 12, color: '#64748b' }}>{pos.seats}</div>
         </div>
-        <div style={{ background: `${pos.color}08`, borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'monospace' }}>
+        <div style={{ background: `${pos.color}08`, borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Open Range</div>
           <div style={{ fontSize: 12, color: pos.color }}>{pos.openRange}</div>
         </div>

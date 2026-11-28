@@ -28,7 +28,7 @@
   background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) !important;
   color: #f2f7ff !important;
   font:
-    800 11px/1 var(--font-roboto-condensed),
+    800 12px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -40,7 +40,7 @@
 .removeLabel {
   color: #ff5b6e;
   font:
-    800 11px/1 var(--font-roboto-condensed),
+    800 12px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,

@@ -12,7 +12,7 @@ import { User, Clock, DollarSign, MapPin, Calendar, TrendingUp, Award, Star, Che
 import { supabase } from '../../../../src/lib/supabase';
 import { getAuthUser, getAccessToken, useRequireAuth } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import { openPageOverlay } from '../../../../src/stores/pageOverlayStore';
 
 function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
@@ -27,8 +27,8 @@ function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
         </div>
         <div>
           <p className="text-2xl font-bold text-white">{value}</p>
-          <p className="text-sm text-[#64748B]">{label}</p>
-          {subtext && <p className="text-xs text-[#64748B]">{subtext}</p>}
+          <p className="text-sm text-[#9FB3C8]">{label}</p>
+          {subtext && <p className="text-xs text-[#9FB3C8]">{subtext}</p>}
         </div>
       </div>
     </div>
@@ -39,18 +39,18 @@ function AchievementBadge({ achievement }) {
   const isUnlocked = achievement.unlocked;
 
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-lg ${isUnlocked ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/30' : 'bg-[#0F1C32] border border-[#4A5E78]'}`}>
-      <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${isUnlocked ? 'bg-[#F59E0B] border-[#F59E0B]' : 'bg-[#132240] border-[#4A5E78]'}`}>
-        <Award className={`w-6 h-6 ${isUnlocked ? 'text-white' : 'text-[#64748B]'}`} />
+    <div className={`flex items-center gap-3 p-3 rounded-lg ${isUnlocked ? 'bg-[#22D3EE]/10 border border-[#22D3EE]/30' : 'bg-[#0F1C32] border border-[#445E77]'}`}>
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${isUnlocked ? 'bg-[#22D3EE] border-[#22D3EE]' : 'bg-[#132240] border-[#445E77]'}`}>
+        <Award className={`w-6 h-6 ${isUnlocked ? 'text-white' : 'text-[#9FB3C8]'}`} />
       </div>
       <div className="flex-1">
-        <p className={`font-medium ${isUnlocked ? 'text-white' : 'text-[#64748B]'}`}>
+        <p className={`font-medium ${isUnlocked ? 'text-white' : 'text-[#9FB3C8]'}`}>
           {achievement.name}
         </p>
-        <p className="text-sm text-[#64748B]">{achievement.description}</p>
+        <p className="text-sm text-[#9FB3C8]">{achievement.description}</p>
       </div>
       {isUnlocked && (
-        <Star className="w-5 h-5 text-[#F59E0B] fill-[#F59E0B]" />
+        <Star className="w-5 h-5 text-[#22D3EE] fill-[#22D3EE]" />
       )}
     </div>
   );
@@ -66,13 +66,13 @@ function FavoriteVenue({ venue, rank }) {
         <p className="font-medium text-white">{venue.name}</p>
         {/* 2026-07-25 audit fix: favorite_venues rows carry id/name/city/state
             only - show location instead of undefined session counts. */}
-        <p className="text-sm text-[#64748B]">
+        <p className="text-sm text-[#9FB3C8]">
           {venue.sessions != null
             ? `${venue.sessions} sessions`
             : [venue.city, venue.state].filter(Boolean).join(', ') || 'Recent venue'}
         </p>
       </div>
-      {venue.hours != null && <p className="text-sm text-[#64748B]">{venue.hours}h</p>}
+      {venue.hours != null && <p className="text-sm text-[#9FB3C8]">{venue.hours}h</p>}
     </div>
   );
 }
@@ -218,14 +218,14 @@ export default function PlayerProfilePage() {
                 </div>
                 <div>
                   <h1 className="text-xl font-extrabold text-white tracking-wider">{profile?.display_name || 'Player'}</h1>
-                  <p className="text-[#64748B] text-sm font-medium">
+                  <p className="text-[#9FB3C8] text-sm font-medium">
                     {stats?.memberLevel || 'Member'} Since {memberSince?.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) || 'N/A'}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => router.push('/hub/commander/profile/edit')}
-                className="p-2 bg-[#132240] border-2 border-[#4A5E78] rounded-lg hover:border-[#22D3EE] transition-colors"
+                className="p-2 bg-[#132240] border-2 border-[#445E77] rounded-lg hover:border-[#22D3EE] transition-colors"
               >
                 <Edit2 className="w-5 h-5 text-[#22D3EE]" />
               </button>
@@ -234,7 +234,7 @@ export default function PlayerProfilePage() {
             {/* Member Level Badge */}
             {stats?.memberLevel && (
               <div className="flex items-center gap-2 cmd-badge cmd-badge-warning w-fit">
-                <Star className="w-5 h-5 text-[#F59E0B] fill-[#F59E0B]" />
+                <Star className="w-5 h-5 text-[#22D3EE] fill-[#22D3EE]" />
                 <span>{stats.memberLevel} Member</span>
                 {stats.compBalance > 0 && (
                   <span className="ml-2 px-2 py-0.5 bg-[#10B981] text-white text-xs rounded font-bold">
@@ -267,26 +267,26 @@ export default function PlayerProfilePage() {
                 icon={DollarSign}
                 label="Total Buy-Ins"
                 value={`$${(stats?.totalBuyins || 0).toLocaleString()}`}
-                color="#F59E0B"
+                color="#22D3EE"
               />
               <StatCard
                 icon={TrendingUp}
                 label="Avg Session"
                 value={`${stats?.avgSession || 0}h`}
-                color="#8B5CF6"
+                color="#5AA9FF"
               />
             </div>
           </section>
 
           {/* Streak */}
           {stats?.currentStreak > 0 && (
-            <div className="cmd-panel p-4" style={{ borderColor: '#F59E0B', boxShadow: '0 0 20px rgba(245,158,11,0.2)' }}>
+            <div className="cmd-panel p-4" style={{ borderColor: '#22D3EE', boxShadow: '0 0 20px rgba(34, 211, 238,0.2)' }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[#F59E0B] text-sm font-bold uppercase tracking-wide">Current Streak</p>
+                  <p className="text-[#22D3EE] text-sm font-bold uppercase tracking-wide">Current Streak</p>
                   <p className="text-2xl font-bold text-white">{stats.currentStreak} Days</p>
                 </div>
-                <TrendingUp className="w-10 h-10 text-[#F59E0B] opacity-50" />
+                <TrendingUp className="w-10 h-10 text-[#22D3EE] opacity-50" />
               </div>
             </div>
           )}
@@ -325,9 +325,9 @@ export default function PlayerProfilePage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium text-white">{rec.title || rec.game_type}</p>
-                        <p className="text-sm text-[#64748B]">{rec.reason || rec.description}</p>
+                        <p className="text-sm text-[#9FB3C8]">{rec.reason || rec.description}</p>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-[#64748B]" />
+                      <ChevronRight className="w-5 h-5 text-[#9FB3C8]" />
                     </div>
                   </button>
                 ))}
@@ -339,7 +339,7 @@ export default function PlayerProfilePage() {
           <section>
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-bold text-white uppercase tracking-wide text-sm">Achievements</h2>
-              <span className="text-sm text-[#64748B] font-bold">
+              <span className="text-sm text-[#9FB3C8] font-bold">
                 {unlockedCount}/{achievements.length} Unlocked
               </span>
             </div>
@@ -366,14 +366,14 @@ export default function PlayerProfilePage() {
                 <button
                   key={href}
                   onClick={() => (overlay ? openPageOverlay(overlay) : router.push(href))}
-                  className={`w-full flex items-center justify-between p-4 hover:bg-[#0F1C32] transition-colors ${index < menuItems.length - 1 ? 'border-b border-[#4A5E78]' : ''
+                  className={`w-full flex items-center justify-between p-4 hover:bg-[#0F1C32] transition-colors ${index < menuItems.length - 1 ? 'border-b border-[#445E77]' : ''
                     }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className="w-5 h-5 text-[#64748B]" />
+                    <Icon className="w-5 h-5 text-[#9FB3C8]" />
                     <span className="font-medium text-white">{label}</span>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-[#64748B]" />
+                  <ChevronRight className="w-5 h-5 text-[#9FB3C8]" />
                 </button>
               ))}
             </div>
@@ -393,3 +393,5 @@ export default function PlayerProfilePage() {
     </CommanderPageShell>
   );
 }
+
+PlayerProfilePage.getLayout = commanderPageLayout;

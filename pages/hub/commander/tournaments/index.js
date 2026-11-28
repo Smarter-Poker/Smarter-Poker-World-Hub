@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken, ensureAuthReady } from '../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 function TournamentCard({ tournament, onRegister, isRegistered, isAlternate }) {
   const router = useRouter();
@@ -52,7 +52,7 @@ function TournamentCard({ tournament, onRegister, isRegistered, isAlternate }) {
         <div className="flex items-start justify-between mb-3">
           <div>
             <h3 className="font-bold text-white text-lg">{tournament.name}</h3>
-            <div className="flex items-center gap-1 mt-1 text-sm text-[#64748B]">
+            <div className="flex items-center gap-1 mt-1 text-sm text-[#9FB3C8]">
               <MapPin size={14} />
               {tournament.venue_name || 'Poker Room'}
             </div>
@@ -69,19 +69,19 @@ function TournamentCard({ tournament, onRegister, isRegistered, isAlternate }) {
 
         <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
           <div className="flex items-center gap-2 text-[#CBD5E1]">
-            <Calendar size={16} className="text-[#64748B]" />
+            <Calendar size={16} className="text-[#9FB3C8]" />
             <span>{startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
           </div>
           <div className="flex items-center gap-2 text-[#CBD5E1]">
-            <Clock size={16} className="text-[#64748B]" />
+            <Clock size={16} className="text-[#9FB3C8]" />
             <span>{startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
           </div>
           <div className="flex items-center gap-2 text-[#CBD5E1]">
-            <DollarSign size={16} className="text-[#64748B]" />
+            <DollarSign size={16} className="text-[#9FB3C8]" />
             <span>${(tournament.buyin_amount ?? 0).toLocaleString()} + ${(tournament.buyin_fee ?? 0).toLocaleString()}</span>
           </div>
           <div className="flex items-center gap-2 text-[#CBD5E1]">
-            <Users size={16} className="text-[#64748B]" />
+            <Users size={16} className="text-[#9FB3C8]" />
             <span>{entryCount.toLocaleString()} / {tournament.max_entries ? tournament.max_entries.toLocaleString() : 'Unlimited'}</span>
           </div>
         </div>
@@ -89,7 +89,7 @@ function TournamentCard({ tournament, onRegister, isRegistered, isAlternate }) {
         {/* Prize pool */}
         <div className="cmd-divider" style={{ margin: '12px 0' }} />
         <div className="flex items-center justify-between py-2 mb-4">
-          <span className="text-sm text-[#64748B] uppercase tracking-wide font-bold">Prize Pool</span>
+          <span className="text-sm text-[#9FB3C8] uppercase tracking-wide font-bold">Prize Pool</span>
           <span className="text-lg font-bold text-[#10B981]">
             ${(tournament.actual_prizepool || tournament.guaranteed_prizepool || 0).toLocaleString()}
             {tournament.guaranteed_prizepool && !tournament.actual_prizepool && ' GTD'}
@@ -263,7 +263,7 @@ export default function PlayerTournamentsHub() {
             message.type === 'success'
               ? 'bg-[#10B981]/20 border-b-2 border-[#10B981] text-[#10B981]'
               : message.type === 'info'
-                ? 'bg-[#F59E0B]/20 border-b-2 border-[#F59E0B] text-[#F59E0B]'
+                ? 'bg-[#22D3EE]/20 border-b-2 border-[#22D3EE] text-[#22D3EE]'
                 : 'bg-[#EF4444]/20 border-b-2 border-[#EF4444] text-[#EF4444]'
           }`}>
             {message.text}
@@ -278,8 +278,7 @@ export default function PlayerTournamentsHub() {
                 <Trophy className="w-7 h-7" />
               </div>
               <div>
-                <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">TOURNAMENTS</h1>
-                <p className="text-sm text-[#64748B] font-medium tracking-wide">Find And Register For Poker Tournaments</p>
+                <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">Tournaments</h1>
               </div>
               {/* Rivets */}
               <div className="ml-auto flex gap-2">
@@ -292,7 +291,7 @@ export default function PlayerTournamentsHub() {
         </header>
 
         {/* Filters */}
-        <div className="border-b-2 border-[#4A5E78] bg-[#0F1C32]">
+        <div className="border-b-2 border-[#445E77] bg-[#0F1C32]">
           <div className="max-w-6xl mx-auto px-4 py-3">
             <div className="flex gap-2">
               {[
@@ -306,8 +305,8 @@ export default function PlayerTournamentsHub() {
                   onClick={() => setFilter(f.id)}
                   className={`px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wide transition-colors border-2 ${
                     filter === f.id
-                      ? 'bg-[#132240] text-[#22D3EE] border-[#22D3EE]'
-                      : 'bg-[#0F1C32] text-[#64748B] border-[#4A5E78] hover:border-[#7A8EA8]'
+                      ? 'cmd-tab cmd-tab--active'
+                      : 'cmd-tab'
                   }`}
                 >
                   {f.label}
@@ -334,7 +333,7 @@ export default function PlayerTournamentsHub() {
                 <Trophy className="w-8 h-8" />
               </div>
               <h3 className="text-lg font-bold text-white">No Tournaments Found</h3>
-              <p className="text-[#64748B] mt-1">
+              <p className="text-[#9FB3C8] mt-1">
                 {filter === 'registered'
                   ? 'You Haven\'t Registered For Any Tournaments Yet'
                   : 'Check Back Later For Upcoming Tournaments'
@@ -364,3 +363,5 @@ export default function PlayerTournamentsHub() {
     </CommanderPageShell>
   );
 }
+
+PlayerTournamentsHub.getLayout = commanderPageLayout;

@@ -39,7 +39,7 @@
       "routePrefixes": ["/hub/training", "/hub/gto-trainer", "/hub/poker-brain", "/pokerbrain"],
       "items": [
         { "href": "/hub/training", "label": "Library", "title": "Training Library", "icon": "graduation" },
-        { "href": "/hub/training/play-mode", "label": "Play", "title": "Play Training Games", "icon": "play" },
+        { "href": "/hub/training/arena/cash-001?level=1", "label": "Play", "title": "Play Training Games", "icon": "play" },
         { "href": "/hub/training/daily-challenge", "label": "Daily", "title": "Daily Challenge", "icon": "zap" },
         { "href": "/hub/training/progress", "label": "Progress", "title": "My Progress", "icon": "chart" },
         { "href": "/hub/training/challenges", "label": "Goals", "title": "Training Challenges", "icon": "target" },

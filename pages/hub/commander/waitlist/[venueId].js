@@ -7,11 +7,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import { Users, MapPin, Loader2, ChevronDown, ChevronUp, X, Globe, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Users, MapPin, Loader2, ChevronDown, ChevronUp, X, Globe, CheckCircle } from 'lucide-react';
 import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 // Capitalize first letter of every word
 function titleCase(str) {
@@ -347,8 +347,8 @@ export default function PlayerWaitlistPage() {
     return (
       <div style={S.page}>
         <div style={S.loadingBox}>
-          <Loader2 style={{ width: 32, height: 32, color: '#D4AF37', animation: 'spin 1s linear infinite' }} />
-          <p style={{ color: '#888', marginTop: 12 }}>Loading Waitlist...</p>
+          <Loader2 style={{ width: 32, height: 32, color: '#86DAFF', animation: 'spin 1s linear infinite' }} />
+          <p style={{ color: '#9FB3C8', marginTop: 12 }}>Loading Waitlist...</p>
         </div>
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
@@ -359,8 +359,8 @@ export default function PlayerWaitlistPage() {
     return (
       <div style={S.page}>
         <div style={S.loadingBox}>
-          <MapPin style={{ width: 32, height: 32, color: '#888' }} />
-          <h1 style={{ color: '#E0E0E0', fontSize: 20, marginTop: 12 }}>Venue Not Found</h1>
+          <MapPin style={{ width: 32, height: 32, color: '#9FB3C8' }} />
+          <h1 style={{ color: '#F2F7FF', fontSize: 20, marginTop: 12 }}>Venue Not Found</h1>
         </div>
       </div>
     );
@@ -375,33 +375,23 @@ export default function PlayerWaitlistPage() {
         noindex={true}
       />
 
-      <div style={S.page}>
-        {/* ═══ HEADER - matches desk ═══ */}
-        <header style={S.header}>
+      <div className="cmd-page" style={S.page}>
+        <div className="cmd-back-row">
+          <button type="button" className="cmd-back-link" onClick={() => router.back()} aria-label={`Back To ${venue.name}`}>
+            <ArrowLeft className="w-5 h-5" aria-hidden="true" />
+            <span>Back</span>
+          </button>
+        </div>
+        {/* #SMARTERDESIGN page image header (scene + painted help from CommanderPageShell) */}
+        <header className="cmd-header-full">
           <div style={S.headerTop}>
             <div style={S.headerLeft}>
-              <button
-                onClick={() => router.back()}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px 0',
-                  WebkitTapHighlightColor: 'transparent',
-                }}
-                aria-label={`Back to ${venue.name}`}
-              >
-                <span style={S.backArrow}>←</span>
-                <span style={S.clubName}>{venue.name?.toUpperCase()}</span>
-              </button>
+              <span style={S.clubName}>{venue.name}</span>
             </div>
-            <h1 style={S.headerTitle}>POKER WAITING LIST</h1>
+            <h1 style={S.headerTitle}>Poker Waiting List</h1>
             <div style={S.headerRight}>
-              <span style={S.poweredBy}>POWERED BY</span>
-              <span style={S.poweredBrand}>CLUB COMMANDER</span>
+              <span style={S.poweredBy}>Powered By</span>
+              <span style={S.poweredBrand}>Club Commander</span>
             </div>
           </div>
           <div style={S.headerStats}>
@@ -410,7 +400,7 @@ export default function PlayerWaitlistPage() {
             </span>
             <span style={S.liveBadge}>
               <span style={S.liveDot} />
-              LIVE
+              Live
             </span>
           </div>
         </header>
@@ -450,10 +440,10 @@ export default function PlayerWaitlistPage() {
                     ...S.myEntryChip,
                     ...(entry.status === 'called' ? S.myEntryChipCalled : {})
                   }}>
-                    <span style={{ fontWeight: 700, color: entry.status === 'called' ? '#D4AF37' : '#E0E0E0' }}>
+                    <span style={{ fontWeight: 700, color: entry.status === 'called' ? '#86DAFF' : '#F2F7FF' }}>
                       {GAME_LABELS[entry.game_type] || entry.game_type} {entry.stakes}
                     </span>
-                    <span style={{ fontSize: 11, color: entry.status === 'called' ? '#D4AF37' : '#888' }}>
+                    <span style={{ fontSize: 11, color: entry.status === 'called' ? '#86DAFF' : '#9FB3C8' }}>
                       {entry.status === 'called' ? 'CALLED' : `#${entry.position || '?'}`}
                     </span>
                   </div>
@@ -497,8 +487,8 @@ export default function PlayerWaitlistPage() {
         {/* ═══ GAME COLUMNS - mirrors desk view ═══ */}
         {waitlistColumns.length === 0 ? (
           <div style={S.emptyState}>
-            <Users style={{ width: 40, height: 40, color: '#333', opacity: 0.5 }} />
-            <p style={{ color: '#666', fontSize: 16, marginTop: 12 }}>No Games Running</p>
+            <Users style={{ width: 40, height: 40, color: '#2A4560', opacity: 0.5 }} />
+            <p style={{ color: '#5A7590', fontSize: 16, marginTop: 12 }}>No Games Running</p>
           </div>
         ) : (
           <div style={S.columnsArea}>
@@ -537,7 +527,7 @@ export default function PlayerWaitlistPage() {
                                 )}
                                 <span style={{
                                   ...S.playerName,
-                                  color: isCalled ? '#D4AF37' : isMe ? '#D4AF37' : '#E0E0E0',
+                                  color: isCalled ? '#86DAFF' : isMe ? '#86DAFF' : '#F2F7FF',
                                 }}>
                                   {titleCase(player.player_name)}
                                 </span>
@@ -639,7 +629,7 @@ export default function PlayerWaitlistPage() {
 const S = {
   page: {
     minHeight: '100vh',
-    background: '#000',
+    background: '#040D18',
     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
     display: 'flex',
     flexDirection: 'column',
@@ -654,8 +644,8 @@ const S = {
 
   // ── Header ──
   header: {
-    background: '#050505',
-    borderBottom: '2px solid #666',
+    background: '#071420',
+    borderBottom: '2px solid #5A7590',
   },
   headerTop: {
     display: 'flex',
@@ -670,13 +660,8 @@ const S = {
     minWidth: 0,
     flex: '0 1 auto',
   },
-  backArrow: {
-    color: '#D4AF37',
-    fontSize: 18,
-    fontWeight: 700,
-  },
   clubName: {
-    color: '#D4AF37',
+    color: '#86DAFF',
     fontSize: 13,
     fontWeight: 700,
     letterSpacing: '0.5px',
@@ -685,10 +670,9 @@ const S = {
     textOverflow: 'ellipsis',
   },
   headerTitle: {
-    color: '#E0E0E0',
+    color: '#F2F7FF',
     fontSize: 18,
     fontWeight: 800,
-    letterSpacing: '2px',
     textAlign: 'center',
     margin: 0,
     flex: 1,
@@ -702,13 +686,13 @@ const S = {
   },
   poweredBy: {
     fontSize: 8,
-    color: '#888',
+    color: '#9FB3C8',
     letterSpacing: '1px',
     fontWeight: 600,
   },
   poweredBrand: {
     fontSize: 10,
-    color: '#D4AF37',
+    color: '#86DAFF',
     fontWeight: 800,
     letterSpacing: '1px',
   },
@@ -717,11 +701,11 @@ const S = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '6px 16px',
-    borderTop: '1px solid #222',
+    borderTop: '1px solid #1D3550',
   },
   statText: {
     fontSize: 12,
-    color: '#888',
+    color: '#9FB3C8',
     fontWeight: 600,
   },
   liveBadge: {
@@ -780,12 +764,12 @@ const S = {
   column: {
     flex: 1,
     minWidth: 0,
-    border: '3px solid #666',
+    border: '3px solid #5A7590',
     borderRadius: 4,
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    background: '#000',
+    background: '#0A1829',
   },
   columnHeader: {
     padding: '14px 10px',
@@ -795,34 +779,34 @@ const S = {
     color: '#fff',
     textTransform: 'uppercase',
     letterSpacing: '1px',
-    background: 'linear-gradient(180deg, #C5962E 0%, #B8860B 40%, #8B6508 100%)',
+    background: 'linear-gradient(180deg, #5AA9FF 0%, #3A8FC0 40%, #0C55C0 100%)',
     textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-    borderBottom: '2px solid #D4AF37',
+    borderBottom: '2px solid #86DAFF',
     flexShrink: 0,
   },
   columnBody: {
     flex: 1,
-    background: '#000',
+    background: '#0A1829',
   },
   noPlayers: {
     padding: '16px 12px',
     textAlign: 'center',
     fontSize: 13,
-    color: '#555',
+    color: '#445E77',
     fontStyle: 'italic',
   },
   playerRow: {
     padding: '8px 12px',
-    borderBottom: '1px solid #1a1a1a',
+    borderBottom: '1px solid #1D3550',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   playerRowCalled: {
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    backgroundColor: 'rgba(134, 218, 255, 0.1)',
   },
   playerRowMe: {
-    backgroundColor: 'rgba(212, 175, 55, 0.06)',
+    backgroundColor: 'rgba(134, 218, 255, 0.06)',
   },
   playerNameWrap: {
     display: 'flex',
@@ -843,7 +827,7 @@ const S = {
     fontSize: 9,
     fontWeight: 800,
     color: '#000',
-    background: '#D4AF37',
+    background: '#86DAFF',
     padding: '1px 5px',
     borderRadius: 3,
     letterSpacing: '0.5px',
@@ -853,7 +837,7 @@ const S = {
     fontSize: 12,
     fontWeight: 800,
     color: '#000',
-    background: '#D4AF37',
+    background: '#86DAFF',
     padding: '2px 6px',
     borderRadius: 3,
     letterSpacing: '0.5px',
@@ -864,17 +848,17 @@ const S = {
   // ── Column footer - Join button ──
   columnFooter: {
     padding: '8px',
-    borderTop: '1px solid #333',
-    background: '#050505',
+    borderTop: '1px solid #2A4560',
+    background: '#071420',
     flexShrink: 0,
   },
   joinBtn: {
     width: '100%',
     padding: '10px 12px',
     borderRadius: 6,
-    border: '2px solid #D4AF37',
-    background: 'linear-gradient(180deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))',
-    color: '#D4AF37',
+    border: '2px solid #86DAFF',
+    background: 'linear-gradient(180deg, rgba(134, 218, 255,0.15), rgba(134, 218, 255,0.05))',
+    color: '#86DAFF',
     fontSize: 14,
     fontWeight: 800,
     letterSpacing: '1px',
@@ -929,7 +913,7 @@ const S = {
     padding: '10px 0',
     background: 'none',
     border: 'none',
-    color: '#666',
+    color: '#5A7590',
     fontSize: 11,
     fontWeight: 700,
     letterSpacing: '1.5px',
@@ -938,8 +922,8 @@ const S = {
   },
   howItWorksContent: {
     borderRadius: 10,
-    border: '1px solid #333',
-    background: '#050505',
+    border: '1px solid #2A4560',
+    background: '#071420',
     padding: '12px 16px',
     marginTop: 4,
   },
@@ -953,9 +937,9 @@ const S = {
     width: 24,
     height: 24,
     borderRadius: '50%',
-    background: 'linear-gradient(135deg, #1a1a0a, #2a2510)',
-    border: '1.5px solid #D4AF37',
-    color: '#D4AF37',
+    background: 'linear-gradient(135deg, #0A1829, #132A42)',
+    border: '1.5px solid #86DAFF',
+    color: '#86DAFF',
     fontSize: 11,
     fontWeight: 800,
     display: 'flex',
@@ -964,7 +948,7 @@ const S = {
     flexShrink: 0,
   },
   stepText: {
-    color: '#B0B0B0',
+    color: '#BDD0E2',
     fontSize: 13,
     margin: 0,
   },
@@ -975,12 +959,12 @@ const S = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '10px 16px',
-    background: '#050505',
-    borderTop: '2px solid #666',
+    background: '#071420',
+    borderTop: '2px solid #5A7590',
     flexShrink: 0,
   },
   tickerText: {
-    color: '#D4AF37',
+    color: '#86DAFF',
     fontSize: 13,
     fontWeight: 700,
     letterSpacing: '0.5px',
@@ -991,8 +975,8 @@ const S = {
     margin: '0 16px 8px',
     padding: '12px 14px',
     borderRadius: 8,
-    background: 'rgba(212, 175, 55, 0.06)',
-    border: '1px solid rgba(212, 175, 55, 0.2)',
+    background: 'rgba(134, 218, 255, 0.06)',
+    border: '1px solid rgba(134, 218, 255, 0.2)',
   },
   myEntriesHeader: {
     display: 'flex',
@@ -1003,14 +987,14 @@ const S = {
   myEntriesTitle: {
     fontSize: 13,
     fontWeight: 800,
-    color: '#D4AF37',
+    color: '#86DAFF',
     letterSpacing: '0.5px',
     textTransform: 'uppercase',
   },
   myEntriesCount: {
     fontSize: 11,
     fontWeight: 600,
-    color: '#888',
+    color: '#9FB3C8',
   },
   myEntriesList: {
     display: 'flex',
@@ -1025,12 +1009,12 @@ const S = {
     padding: '6px 10px',
     borderRadius: 6,
     background: 'rgba(255,255,255,0.04)',
-    border: '1px solid #333',
+    border: '1px solid #2A4560',
     fontSize: 13,
   },
   myEntryChipCalled: {
-    background: 'rgba(212, 175, 55, 0.1)',
-    border: '1px solid rgba(212, 175, 55, 0.4)',
+    background: 'rgba(134, 218, 255, 0.1)',
+    border: '1px solid rgba(134, 218, 255, 0.4)',
   },
   arrivedBtn: {
     width: '100%',
@@ -1070,9 +1054,9 @@ const S = {
     width: '100%',
     padding: '12px 16px',
     borderRadius: 8,
-    border: '2px solid #D4AF37',
-    background: 'linear-gradient(180deg, rgba(212,175,55,0.2), rgba(212,175,55,0.08))',
-    color: '#D4AF37',
+    border: '2px solid #86DAFF',
+    background: 'linear-gradient(180deg, rgba(134, 218, 255,0.2), rgba(134, 218, 255,0.08))',
+    color: '#86DAFF',
     fontSize: 15,
     fontWeight: 800,
     letterSpacing: '1.5px',
@@ -1083,6 +1067,8 @@ const S = {
     justifyContent: 'center',
     gap: 8,
     transition: 'all 0.15s ease',
-    boxShadow: '0 2px 12px rgba(212, 175, 55, 0.15)',
+    boxShadow: '0 2px 12px rgba(134, 218, 255, 0.15)',
   },
 };
+
+PlayerWaitlistPage.getLayout = commanderPageLayout;

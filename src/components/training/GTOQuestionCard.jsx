@@ -14,17 +14,21 @@ import { useTrainingSettings } from '../../contexts/TrainingSettingsContext';
 import { formatScenario } from '../../utils/formatScenario';
 import TrainingQuestionReport from './TrainingQuestionReport';
 
+const SD_DISPLAY_FONT = "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)";
+const SD_BODY_FONT = "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
 const styles = {
     container: {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        minHeight: '500px',
-        background: 'radial-gradient(circle at 50% 24%, rgba(56,146,177,.24), transparent 36%), linear-gradient(135deg, #122732 0%, #071019 47%, #102833 100%)',
-        borderRadius: 12,
+        minHeight: '540px',
+        background: 'linear-gradient(155deg, rgba(16, 36, 56, 0.92) 0%, rgba(8, 20, 34, 0.95) 55%, rgba(4, 13, 24, 0.97) 100%)',
         overflow: 'hidden',
-        border: '1px solid rgba(120,205,238,.48)',
-        boxShadow: 'inset 0 1px rgba(255,255,255,.18), inset 0 -18px 38px rgba(0,0,0,.42), 0 18px 42px rgba(0,0,0,.55)',
+        border: '1px solid rgba(134, 218, 255, 0.34)',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.14), 0 14px 36px rgba(0,0,0,.48)',
+        fontFamily: SD_BODY_FONT,
+        fontVariantNumeric: 'tabular-nums',
     },
 
     // Scenario/Question area (top 60%)
@@ -34,89 +38,86 @@ const styles = {
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 'clamp(18px, 4vw, 32px) clamp(14px, 3vw, 24px)',
+        padding: 'clamp(16px, 3.5vw, 28px) clamp(14px, 3vw, 24px)',
     },
 
     levelBadge: {
-        background: 'linear-gradient(180deg, rgba(86,216,255,0.22), rgba(6,72,226,0.28))',
-        border: '1px solid rgba(86, 216, 255,0.55)',
+        background: 'rgba(10, 24, 41, 0.85)',
+        border: '1px solid rgba(134, 218, 255, 0.45)',
         color: '#86daff',
-        padding: '6px 16px',
-        borderRadius: 999,
-        fontSize: '13px',
-        fontWeight: '800',
-        letterSpacing: '1px',
+        padding: '5px 14px',
+        fontSize: '12px',
+        fontWeight: '700',
+        letterSpacing: '0.06em',
         textTransform: 'uppercase',
-        marginBottom: '16px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.45)',
+        marginBottom: '14px',
+        fontFamily: SD_BODY_FONT,
     },
 
     questionBox: {
-        background: 'linear-gradient(180deg, rgba(18,34,46,0.96) 0%, rgba(6,13,20,0.98) 100%)',
-        border: '1px solid rgba(112,230,255,0.48)',
-        borderRadius: 12,
-        padding: 'clamp(18px, 3.5vw, 26px) clamp(16px, 4vw, 32px)',
+        background: 'linear-gradient(180deg, rgba(14, 31, 48, 0.94) 0%, rgba(5, 14, 24, 0.97) 100%)',
+        border: '1px solid rgba(134, 218, 255, 0.36)',
+        padding: 'clamp(16px, 3vw, 24px) clamp(16px, 3.5vw, 28px)',
         maxWidth: '680px',
         width: '100%',
         textAlign: 'center',
-        boxShadow: '0 14px 36px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.16), 0 0 22px rgba(0,212,255,0.14)',
+        boxShadow: '0 10px 28px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12)',
     },
 
     scenarioText: {
-        color: '#8ed8eb',
+        color: '#bdd0e2',
         fontSize: '14px',
-        fontWeight: '700',
-        letterSpacing: '0.4px',
-        marginBottom: '12px',
+        fontWeight: '600',
+        marginBottom: '10px',
         lineHeight: '1.5',
     },
 
     questionText: {
-        color: '#f8fafc',
-        fontSize: 'clamp(17px, 2.6vw, 21px)',
-        fontWeight: '800',
-        lineHeight: '1.4',
-        textShadow: '0 2px 4px rgba(0,0,0,0.65)',
+        color: '#f2f7ff',
+        fontSize: 'clamp(18px, 2.5vw, 22px)',
+        fontWeight: '700',
+        lineHeight: '1.35',
+        fontFamily: SD_DISPLAY_FONT,
+        letterSpacing: '0.01em',
     },
 
     // Answer buttons (bottom 40%)
     answersArea: {
         flex: '0 0 auto',
-        padding: 'clamp(14px, 3vw, 24px)',
-        background: 'linear-gradient(180deg, rgba(12,24,38,0.88) 0%, rgba(4,9,16,0.96) 100%)',
-        borderTop: '1px solid rgba(56,189,248,0.28)',
+        padding: 'clamp(14px, 3vw, 22px)',
+        background: 'linear-gradient(180deg, rgba(10, 24, 41, 0.88) 0%, rgba(4, 13, 24, 0.96) 100%)',
+        borderTop: '1px solid rgba(134, 218, 255, 0.24)',
     },
 
     answersGrid: {
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        gap: '12px',
+        gap: '10px',
         maxWidth: '680px',
         margin: '0 auto',
     },
 
     answerButton: {
-        background: 'linear-gradient(180deg, #1b3b52 0%, #0d2334 56%, #071420 100%)',
-        border: '1px solid rgba(112,230,255,0.38)',
-        borderRadius: 12,
-        padding: '15px 18px',
-        color: '#f8fafc',
-        fontSize: '15px',
-        fontWeight: '700',
+        background: 'linear-gradient(180deg, #263f58 0%, #112338 39%, #071420 77%, #12283c 100%)',
+        border: '1px solid rgba(134, 218, 255, 0.36)',
+        padding: '14px 16px',
+        minHeight: '48px',
+        color: '#f2f7ff',
+        fontSize: '14px',
+        fontWeight: '600',
+        fontFamily: SD_BODY_FONT,
         cursor: 'pointer',
-        transition: 'all 0.18s ease',
+        transition: 'background 0.15s ease, border-color 0.15s ease',
         textAlign: 'left',
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        boxShadow: 'inset 0 2px rgba(255,255,255,0.18), inset 0 -4px rgba(0,0,0,0.35), 0 8px 15px rgba(0,0,0,0.48)',
-        textShadow: '0 1px 2px rgba(0,0,0,0.75)',
+        boxShadow: 'inset 0 1px rgba(255,255,255,0.16), 0 4px 10px rgba(0,0,0,0.38)',
     },
 
     answerButtonHover: {
-        background: 'linear-gradient(180deg, #1aa2ff 0%, #0879ef 56%, #004aa8 100%)',
+        background: 'linear-gradient(180deg, #1981ec 0%, #0c55c0 26%, #07377e 76%, #125bba 100%)',
         border: '1px solid rgba(186,230,253,0.75)',
-        transform: 'translateY(-1px) scale(1.01)',
     },
 
     answerButtonCorrect: {
@@ -130,22 +131,22 @@ const styles = {
     },
 
     answerButtonSelected: {
-        background: 'linear-gradient(180deg, #51c9ff 0%, #0873ff 48%, #0648e2 100%)',
-        border: '1px solid rgba(134, 218, 255, 0.45)',
+        background: 'linear-gradient(180deg, #1981ec 0%, #0c55c0 26%, #07377e 76%, #125bba 100%)',
+        border: '1px solid rgba(134, 218, 255, 0.65)',
     },
 
     answerLetter: {
         width: '28px',
         height: '28px',
-        borderRadius: '8px',
-        background: 'rgba(0,0,0,0.42)',
-        border: '1px solid rgba(255,255,255,0.22)',
-        color: '#70e6ff',
+        background: 'rgba(4, 13, 24, 0.65)',
+        border: '1px solid rgba(134, 218, 255, 0.34)',
+        color: '#86daff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontWeight: '900',
+        fontWeight: '800',
         fontSize: '13px',
+        fontFamily: SD_DISPLAY_FONT,
         flexShrink: 0,
     },
 
@@ -170,40 +171,41 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'flex-start',
+        justifyContent: 'center',
         overflowY: 'auto',
-        padding: 'clamp(18px, 5vw, 44px) clamp(14px, 5vw, 36px)',
+        padding: 'clamp(16px, 3vw, 26px) clamp(14px, 4vw, 28px)',
         background: 'radial-gradient(circle at 50% 8%, rgba(41,116,148,.32), transparent 36%), linear-gradient(145deg, rgba(19,32,44,.985), rgba(2,6,12,.99) 56%, rgba(0,2,5,.995))',
         zIndex: 10,
     },
 
     feedbackIcon: {
-        width: 78,
-        height: 78,
+        width: 56,
+        height: 56,
         display: 'grid',
         placeItems: 'center',
-        fontSize: '52px',
+        fontSize: '34px',
         lineHeight: 1,
-        marginBottom: '12px',
+        marginBottom: '8px',
+        flexShrink: 0,
     },
 
     feedbackText: {
         color: '#fff',
-        fontSize: 'clamp(30px, 7vw, 48px)',
+        fontSize: 'clamp(24px, 5vw, 36px)',
         fontWeight: '700',
-        letterSpacing: 3,
+        letterSpacing: 2,
         lineHeight: 1,
-        marginBottom: '14px',
+        marginBottom: '10px',
         textTransform: 'uppercase',
-        fontFamily: "var(--font-rajdhani), 'Rajdhani', 'Inter', sans-serif",
+        fontFamily: SD_DISPLAY_FONT,
     },
 
     explanationText: {
         color: '#94a3b8',
-        fontSize: '16px',
+        fontSize: '15px',
         textAlign: 'center',
         maxWidth: '620px',
-        lineHeight: '1.5',
+        lineHeight: '1.45',
     },
 
     nextButton: {
@@ -419,7 +421,9 @@ export default function GTOQuestionCard({
                     {shuffledOptions.map((option, index) => (
                         <button
                             key={option.id}
+                            type="button"
                             data-training-answer-option="true"
+                            aria-pressed={selectedId === option.id}
                             style={getButtonStyle(option, index)}
                             onClick={() => handleSelect(option.id)}
                             onMouseEnter={() => setHoveredId(option.id)}
@@ -501,15 +505,12 @@ export default function GTOQuestionCard({
                             >
                                 {question.explanation || explanation || `The answer for this drill is ${correctText}.`}
                             </div>
-                            <div style={{ color: '#9db0bb', fontSize: 12, fontWeight: 700, marginTop: 13, textAlign: 'center' }}>
-                                This Result Will Stay Open Until You Click Next.
-                            </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 14 }}>
                                 {onNextHand && (
                                     <button style={{
                                         ...styles.nextButton,
-                                        minHeight: 52,
-                                        marginTop: 20,
+                                        minHeight: 48,
+                                        marginTop: 0,
                                         background: 'linear-gradient(180deg, #4c7387 0%, #173849 12%, #071722 56%, #02080d 100%)',
                                         boxShadow: 'inset 0 2px rgba(255,255,255,.35), inset 0 -6px rgba(0,0,0,.42), 0 9px 22px rgba(0,0,0,.5), 0 0 18px rgba(34,211,238,.18)',
                                     }} className="sd-button sd-primary" data-training-next-decision onClick={onNextHand}>
@@ -523,8 +524,8 @@ export default function GTOQuestionCard({
                                         className="sd-button"
                                         onClick={() => onNextHand({ retry: true, retryQuestion: question })}
                                         style={{
-                                            minHeight: 52,
-                                            marginTop: 20,
+                                            minHeight: 48,
+                                            marginTop: 0,
                                             padding: '0 18px',
                                             color: '#86daff',
                                         }}
@@ -532,7 +533,7 @@ export default function GTOQuestionCard({
                                         Practice Again
                                     </button>
                                 )}
-                                <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6 }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6 }}>
                                     <TrainingQuestionReport gameId={gameId} question={question} />
                                 </div>
                             </div>

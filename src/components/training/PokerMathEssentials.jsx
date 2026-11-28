@@ -58,7 +58,7 @@ export default function PokerMathEssentials() {
       <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: m.color, marginBottom: 8 }}>{m.icon} {m.title}</div>
-        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: 'monospace', borderLeft: `3px solid ${m.color}` }}>
+        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', borderLeft: `3px solid ${m.color}` }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>FORMULA</div>
           <div style={{ fontSize: 13, color: m.color, fontWeight: 700 }}>{m.formula}</div>
         </div>
@@ -68,7 +68,7 @@ export default function PokerMathEssentials() {
             <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>SHORTCUT</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{m.shortcut}</div>
           </div>
-          <div style={{ background: `${m.color}06`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${m.color}`, fontFamily: 'monospace' }}>
+          <div style={{ background: `${m.color}06`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${m.color}`, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: m.color }}>PRACTICE</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{m.practice}</div>
           </div>

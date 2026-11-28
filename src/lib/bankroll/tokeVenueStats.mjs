@@ -37,8 +37,6 @@ export function gigTokesAndHours(gig, now = Date.now()) {
   return { totalTokes, paidHours: computeTotalHours(downs, now) };
 }
 
-export const VENUE_SORTS = ['toke_hr', 'total', 'events'];
-
 /** Venues ranked by hourly tokes, total tokes or event count. */
 export function rankVenues(gigs = [], sort = 'toke_hr', now = Date.now()) {
   const map = new Map();

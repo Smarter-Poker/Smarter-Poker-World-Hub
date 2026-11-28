@@ -23,7 +23,7 @@ const BANKROLL_MANAGER_FAQS = [
   {
     question: 'How does Smarter.Poker Bankroll Manager track sessions?',
     answer:
-      'Smarter.Poker Bankroll Manager tracks cash games, tournaments, casino play, and home games with an immutable ledger. It calculates your hourly win rate, BB/100, ROI, total profit/loss, and variance analysis.',
+      'Smarter.Poker Bankroll Manager records poker cash games and tournaments, casino table games, slots and sports bets in one ledger. It calculates your net results, hourly win rate, winning-session percentage, trip ROI and variance.',
   },
   {
     question: 'Is the Smarter.Poker Bankroll Manager free to use?',
@@ -99,6 +99,7 @@ import { duplicateOf } from '../../src/lib/bankroll/receiptHash.mjs';
 import toast from '../../src/stores/toastStore';
 import { removeBankrollObject } from '../../src/lib/bankroll/receiptStorage';
 import { capture, FunnelEvents } from '../../src/lib/analytics';
+import { noteBankrollOpened, noteReceiptFiled } from '../../src/lib/bankroll/funnelSteps.mjs';
 
 /** Colour of the tag on each Receipt Saved choice, by receiptActions() tone. */
 const RECEIPT_TONE_COLORS = {
@@ -130,6 +131,7 @@ const SectionSkeleton = () => <div className="bankroll-skel" style={{ height: 30
 const lazySection = (loader) => dynamic(loader, { ssr: false, loading: SectionSkeleton });
 
 const LogEntryModal = dynamic(() => import('../../src/components/bankroll/LogEntryModal'), { ssr: false });
+const ClubArenaSessionsPrompt = dynamic(() => import('../../src/components/bankroll/ClubArenaSessions').then((m) => m.ClubArenaSessionsPrompt), { ssr: false });
 const BankrollExportFormats = lazySection(() => import('../../src/components/bankroll/BankrollExportFormats'));
 const LedgerTimeline = lazySection(() => import('../../src/components/bankroll/LedgerTimeline'));
 const LocationAnalytics = lazySection(() => import('../../src/components/bankroll/LocationAnalytics'));
@@ -352,6 +354,9 @@ export default function BankrollManagerPage() {
     isMountedRef.current = true;
     return () => { isMountedRef.current = false; };
   }, []);
+  // Funnel: the Bankroll Manager was opened, once per browser session, by a
+  // signed-in player (src/lib/bankroll/funnelSteps.mjs).
+  useEffect(() => { if (userId) noteBankrollOpened({ signedIn: true }); }, [userId]);
 
   // ═══ ACTION GATE: Users can explore dashboard, but logging/pro tools are gated ═══
   const { guardAction, UpgradePopup, loading: featureAccessLoading, isVip: isGloballyVip, hasAccess: hasProAccess, expiresAt: proExpiresAt } = useFeatureGate('bankroll_pro');
@@ -1018,6 +1023,8 @@ export default function BankrollManagerPage() {
         .eq('id', receiptId)
         .eq('user_id', userId);
       if (error) throw error;
+      // Funnel: the account's first filed receipt (fire-and-forget).
+      void noteReceiptFiled(supabase, userId, { kind });
     } catch (err) {
       console.warn('[bankroll] receipt assignment failed:', err?.message || err);
       toast.error('Filed, But The Receipt Could Not Be Marked. It May Still Show Under Receipts Waiting.');
@@ -1909,6 +1916,9 @@ export default function BankrollManagerPage() {
                     </div>
                   )}
 
+                  {/* Finished Club Arena sessions not yet in the ledger. */}
+                  {userId && <ClubArenaSessionsPrompt userId={userId} />}
+
                   {/* === Unified Dashboard Frame === */}
                   {!(isLoading && !hasLoadedOnce) && (
                   <div className={`sd-panel ${layout.dashboard}`}>
@@ -2400,7 +2410,7 @@ export default function BankrollManagerPage() {
           </div>
           {isDashboard && (
             <div data-tutorial="insights" className={layout.jarvisFooter}>
-              <JarvisLeakInsights userId={userId} onRefresh={loadData} />
+              <JarvisLeakInsights userId={userId} displayEUR={preferences.currencyEUR} onRefresh={loadData} />
             </div>
           )}
           <div style={{ maxWidth: 1120, margin: '24px auto 0', padding: '0 16px 28px' }}>

@@ -593,8 +593,10 @@ test('Commander Home Games inherits the PNM body theme without changing footer o
   const registry = readJson('src/config/world-footer-navigation.json');
 
   assert.match(provider, /'\/hub\/commander\/home-games':\s*'poker-near-me'/);
-  assert.match(shell, /className="commander-page-shell__menu-trigger"/);
-  assert.match(style, /body\.world-poker-near-me \.commander-page-shell__menu-trigger[\s\S]*?width:\s*44px[\s\S]*?height:\s*44px[\s\S]*?border-radius:\s*3px[\s\S]*?background:\s*#060b10[\s\S]*?backdrop-filter:\s*none/);
+  // The shell mounts the approved global header (2026-11-28); its hamburger
+  // is the header's own, so there is no shell trigger left to theme.
+  assert.match(shell, /<UniversalHeader \/>/);
+  assert.doesNotMatch(style, /commander-page-shell__menu-trigger/);
   const hamburger = read('src/components/ui/HamburgerMenu.jsx');
   assert.match(hamburger, /data-direction=\{direction\}/);
   assert.match(hamburger, /borderRight:\s*direction === 'left'/);

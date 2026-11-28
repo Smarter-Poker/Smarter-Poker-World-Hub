@@ -16,11 +16,11 @@ import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken, getAuthUser } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 const REWARD_CATEGORIES = [
-  { id: 'food', label: 'Food & Beverage', icon: Utensils, color: '#F59E0B' },
-  { id: 'merchandise', label: 'Merchandise', icon: Gift, color: '#8B5CF6' },
+  { id: 'food', label: 'Food & Beverage', icon: Utensils, color: '#22D3EE' },
+  { id: 'merchandise', label: 'Merchandise', icon: Gift, color: '#5AA9FF' },
   { id: 'freeplay', label: 'Free Play', icon: CreditCard, color: '#10B981' },
   { id: 'tournament', label: 'Tournament Entry', icon: Star, color: '#22D3EE' }
 ];
@@ -37,8 +37,8 @@ function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
         </div>
         <div>
           <p className="text-2xl font-bold text-white">{value}</p>
-          <p className="text-sm text-[#64748B]">{label}</p>
-          {subtext && <p className="text-xs text-[#64748B] mt-1">{subtext}</p>}
+          <p className="text-sm text-[#9FB3C8]">{label}</p>
+          {subtext && <p className="text-xs text-[#9FB3C8] mt-1">{subtext}</p>}
         </div>
       </div>
     </div>
@@ -50,7 +50,7 @@ function TransactionRow({ transaction }) {
   const date = new Date(transaction.created_at);
 
   return (
-    <div className="flex items-center justify-between p-4 border-b border-[#4A5E78] last:border-b-0">
+    <div className="flex items-center justify-between p-4 border-b border-[#445E77] last:border-b-0">
       <div className="flex items-center gap-3">
         <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${isEarn ? 'bg-[#10B981]/10 border-[#10B981]/30' : 'bg-[#22D3EE]/10 border-[#22D3EE]/30'
           }`}>
@@ -62,7 +62,7 @@ function TransactionRow({ transaction }) {
         </div>
         <div>
           <p className="font-medium text-white">{transaction.description}</p>
-          <p className="text-sm text-[#64748B]">
+          <p className="text-sm text-[#9FB3C8]">
             {date.toLocaleDateString()} At {date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
           </p>
         </div>
@@ -233,7 +233,7 @@ export default function PlayerRewardsPage() {
               <div className="cmd-icon-box cmd-icon-box-glow w-14 h-14">
                 <Gift className="w-7 h-7" />
               </div>
-              <h1 className="text-2xl font-extrabold text-white tracking-wider cmd-text-glow">MY REWARDS</h1>
+              <h1 className="text-2xl font-extrabold text-white tracking-wider cmd-text-glow">My Rewards</h1>
             </div>
 
             {/* Balance Card */}
@@ -262,7 +262,7 @@ export default function PlayerRewardsPage() {
               label="Hours Played"
               value={hoursPlayed}
               subtext="all time"
-              color="#8B5CF6"
+              color="#5AA9FF"
             />
           </div>
 
@@ -276,7 +276,7 @@ export default function PlayerRewardsPage() {
                 return (
                   <div
                     key={category.id}
-                    className={index < REWARD_CATEGORIES.length - 1 ? 'border-b border-[#4A5E78]' : ''}
+                    className={index < REWARD_CATEGORIES.length - 1 ? 'border-b border-[#445E77]' : ''}
                   >
                     <button
                       onClick={() => handleRedeemClick(category)}
@@ -291,11 +291,11 @@ export default function PlayerRewardsPage() {
                         </div>
                         <span className="font-medium text-white">{category.label}</span>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-[#64748B]" />
+                      <ChevronRight className="w-5 h-5 text-[#9FB3C8]" />
                     </button>
                     {isActive && (
                       <div className="px-4 pb-4">
-                        <label className="block text-sm text-[#64748B] mb-2">
+                        <label className="block text-sm text-[#9FB3C8] mb-2">
                           Enter Amount To Redeem (Max ${balance})
                         </label>
                         <div className="flex items-center gap-2">
@@ -320,7 +320,7 @@ export default function PlayerRewardsPage() {
                           </button>
                           <button
                             onClick={handleRedeemCancel}
-                            className="cmd-btn h-10 px-4 border border-[#4A5E78] text-[#64748B] hover:text-white"
+                            className="cmd-btn h-10 px-4 border border-[#445E77] text-[#9FB3C8] hover:text-white"
                           >
                             Cancel
                           </button>
@@ -336,7 +336,7 @@ export default function PlayerRewardsPage() {
           {/* Recent Transactions */}
           <div>
             <h2 className="font-bold text-white mb-3 flex items-center gap-2 uppercase tracking-wide text-sm">
-              <History className="w-5 h-5 text-[#64748B]" />
+              <History className="w-5 h-5 text-[#9FB3C8]" />
               Recent Activity
             </h2>
             <CompTransactionList
@@ -365,3 +365,5 @@ export default function PlayerRewardsPage() {
     </CommanderPageShell>
   );
 }
+
+PlayerRewardsPage.getLayout = commanderPageLayout;

@@ -215,13 +215,13 @@ export default function SizingTrainer() {
         <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
           <div>
             <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Your Hand</div>
-            <div style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 800, fontFamily: 'monospace', letterSpacing: 2 }}>
+            <div style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', letterSpacing: 2 }}>
               {scenario.hand}
             </div>
           </div>
           <div>
             <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Board</div>
-            <div style={{ color: '#cbd5e1', fontSize: 18, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1 }}>
+            <div style={{ color: '#cbd5e1', fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', letterSpacing: 1 }}>
               {scenario.board}
             </div>
           </div>

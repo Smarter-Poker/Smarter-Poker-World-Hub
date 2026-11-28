@@ -12,12 +12,17 @@
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
+/* The intro (kicker, title, ledger sentence, Ledger Verified badge) is one
+   readout panel, so the sentence never floats on the bare page. */
 .consoleHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 22px;
-  padding-inline: clamp(2px, 2vw, 22px);
+  padding: 18px clamp(14px, 2vw, 24px);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
 }
 
 .consoleHeader h2 {
@@ -33,7 +38,10 @@
 
 .consoleHeader p {
   max-width: 650px;
-  margin: 8px 0 0;
+  margin: 10px 0 0;
+  color: #bdd0e2;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .kicker,
@@ -327,6 +335,7 @@
 
   .consoleHeader {
     display: block;
+    padding: 14px;
   }
 
   .integrityBadge {

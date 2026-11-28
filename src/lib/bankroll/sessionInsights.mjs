@@ -1,4 +1,4 @@
-/** Personal session results are stored in USD. Compare whole ledger days, not timestamps. */
+/** Personal session results are stored in USD; the client converts them for display. Compare whole ledger days, not timestamps. */
 export const INSIGHT_WINDOWS = [7, 30, 90];
 const CATEGORY_NAMES = {
   poker_cash: 'Cash Games', poker_mtt: 'Tournaments', casino_table: 'Casino Tables',
@@ -6,7 +6,33 @@ const CATEGORY_NAMES = {
 };
 export const INSIGHT_CATEGORIES = Object.freeze(Object.keys(CATEGORY_NAMES));
 const MIN_COMPARISON_SESSIONS = 5;
-const money = cents => (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+const usd = dollars => dollars.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+/**
+ * A finding is carried as a sentence template plus its values, so the client
+ * can show the amounts in the player's display currency (Display EUR) instead
+ * of the US dollars the ledger stores. `money` names the values that are US
+ * dollar amounts; every other value is shown as it is.
+ *
+ * `evidence` and `action` are still sent as finished US dollar sentences, for
+ * a client loaded before this shape existed. Remove them once no such client
+ * can be open.
+ */
+export function renderFindingPart(finding, part, formatMoney = usd) {
+  const template = finding?.template?.[part];
+  if (typeof template !== 'string') return typeof finding?.[part] === 'string' ? finding[part] : '';
+  const values = finding.values || {};
+  const money = new Set(finding.money || []);
+  return template.replace(/\{(\w+)\}/g, (whole, key) => {
+    if (!Object.hasOwn(values, key)) return whole;
+    return money.has(key) ? formatMoney(values[key]) : String(values[key]);
+  });
+}
+
+function finding(title, template, values, money) {
+  const shaped = { title, template, values, money };
+  return { ...shaped, evidence: renderFindingPart(shaped, 'evidence'), action: renderFindingPart(shaped, 'action') };
+}
 const isoDay = ms => new Date(ms).toISOString().slice(0, 10);
 const DAY = 86400000;
 
@@ -76,25 +102,25 @@ export function analyzeSessionRecords(rows, window) {
   const findings = [];
   if (count) {
     const bestCandidate = current.formats.find(f => f.net < 0 && f.count >= MIN_COMPARISON_SESSIONS);
-    if (bestCandidate) findings.push({
-      title: bestCandidate.name + ' Results',
-      evidence: bestCandidate.count + ' sessions totaled ' + money(bestCandidate.net) + ', the lowest net among formats with at least ' + MIN_COMPARISON_SESSIONS + ' recorded results.',
+    if (bestCandidate) findings.push(finding(bestCandidate.name + ' Results', {
+      evidence: '{sessions} sessions totaled {net}, the lowest net among formats with at least {minimum} recorded results.',
       action: 'Review these entries and their stakes in the ledger.',
-    });
+    }, { sessions: bestCandidate.count, net: bestCandidate.net / 100, minimum: MIN_COMPARISON_SESSIONS }, ['net']));
     if (!missing && !prior.missing && count >= MIN_COMPARISON_SESSIONS && prior.measured >= MIN_COMPARISON_SESSIONS) {
       const average = Math.round(current.net / count), before = Math.round(prior.net / prior.measured);
       const difference = average - before;
-      findings.push({
-        title: 'Change Per Session',
-        evidence: money(average) + ' across ' + count + ' sessions this period, versus ' + money(before) + ' across ' + prior.measured + ' from ' + window.previousStart + ' through ' + window.previousEnd + '.',
-        action: difference === 0 ? 'The two recorded averages are equal.' : 'Review the change of ' + money(Math.abs(difference)) + (difference > 0 ? ' more' : ' less') + ' per session alongside the formats you played.',
-      });
+      findings.push(finding('Change Per Session', {
+        evidence: '{average} across {sessions} sessions this period, versus {before} across {priorSessions} from {priorStart} through {priorEnd}.',
+        action: difference === 0 ? 'The two recorded averages are equal.' : 'Review the change of {difference} ' + (difference > 0 ? 'more' : 'less') + ' per session alongside the formats you played.',
+      }, {
+        average: average / 100, sessions: count, before: before / 100, priorSessions: prior.measured,
+        priorStart: window.previousStart, priorEnd: window.previousEnd, difference: Math.abs(difference) / 100,
+      }, ['average', 'before', 'difference']));
     }
-    if (current.timed < count) findings.push({
-      title: 'Time Coverage',
-      evidence: current.timed + ' of ' + count + ' measured sessions have a valid start and end time.',
+    if (current.timed < count) findings.push(finding('Time Coverage', {
+      evidence: '{timed} of {sessions} measured sessions have a valid start and end time.',
       action: 'Add missing session times in the ledger to improve hourly coverage.',
-    });
+    }, { timed: current.timed, sessions: count }, []));
   }
   return {
     window, state, sample: { eligible: total, measured: count, missing, minimumComparison: MIN_COMPARISON_SESSIONS },

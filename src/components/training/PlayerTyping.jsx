@@ -61,7 +61,7 @@ export default function PlayerTyping() {
           <span style={{ fontSize: 24 }}>{ptype.icon}</span>
           <span style={{ fontSize: 16, fontWeight: 800, color: ptype.color }}>{ptype.type}</span>
         </div>
-        <div style={{ background: `${ptype.color}08`, borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'monospace' }}>
+        <div style={{ background: `${ptype.color}08`, borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: ptype.color }}>{ptype.stats}</div>
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 10 }}>{ptype.style}</p>

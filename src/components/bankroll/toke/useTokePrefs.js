@@ -7,7 +7,7 @@ import {
   mergePrefs,
   prefsFromAccount,
   readStoredPrefs,
-  withTokePrefs,
+  saveTokePrefsToAccount,
   writeStoredPrefs,
 } from '../../../lib/bankroll/tokePrefs.mjs';
 
@@ -80,12 +80,7 @@ export function useTokePrefs(userId) {
     window.dispatchEvent(new CustomEvent(TOKE_PREFS_EVENT, { detail: next }));
     if (!userId) return;
     try {
-      const { data: profile, error: readError } = await supabase
-        .from('profiles').select('settings').eq('id', userId).maybeSingle();
-      if (readError) throw readError;
-      const { error } = await supabase
-        .from('profiles').update({ settings: withTokePrefs(profile?.settings, next) }).eq('id', userId);
-      if (error) throw error;
+      await saveTokePrefsToAccount(supabase, userId, next);
     } catch (err) {
       console.warn('[TokeTracker] Preference could not be saved to the account:', err?.message || err);
     }

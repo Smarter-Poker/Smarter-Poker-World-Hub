@@ -81,27 +81,27 @@ function generateCardSVG({ gameName, level, gtowScore, totalQuestions, correctCo
 
         <!-- Big score circle -->
         <circle cx="${CARD_WIDTH / 2}" cy="120" r="52" fill="rgba(0,0,0,0.4)" stroke="${scoreColor}" stroke-width="3" filter="url(#glow)"/>
-        <text x="${CARD_WIDTH / 2}" y="115" text-anchor="middle" font-family="Inter, monospace" font-size="36" font-weight="900" fill="${scoreColor}">${formatSignedScore(gtowScore)}</text>
+        <text x="${CARD_WIDTH / 2}" y="115" text-anchor="middle" font-family="Inter, sans-serif" font-size="36" font-weight="900" fill="${scoreColor}">${formatSignedScore(gtowScore)}</text>
         <text x="${CARD_WIDTH / 2}" y="135" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#94a3b8">GTOW SCORE</text>
 
         <!-- Grade badge -->
         <rect x="${CARD_WIDTH / 2 + 46}" y="80" width="28" height="28" rx="6" fill="${scoreColor}20" stroke="${scoreColor}" stroke-width="1.5"/>
-        <text x="${CARD_WIDTH / 2 + 60}" y="100" text-anchor="middle" font-family="Inter, monospace" font-size="16" font-weight="900" fill="${scoreColor}">${grade}</text>
+        <text x="${CARD_WIDTH / 2 + 60}" y="100" text-anchor="middle" font-family="Inter, sans-serif" font-size="16" font-weight="900" fill="${scoreColor}">${grade}</text>
 
         <!-- Stats row -->
-        <text x="80" y="200" text-anchor="middle" font-family="Inter, monospace" font-size="20" font-weight="800" fill="#e2e8f0">${accuracy}%</text>
+        <text x="80" y="200" text-anchor="middle" font-family="Inter, sans-serif" font-size="20" font-weight="800" fill="#e2e8f0">${accuracy}%</text>
         <text x="80" y="215" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#64748b">ACCURACY</text>
 
-        <text x="200" y="200" text-anchor="middle" font-family="Inter, monospace" font-size="20" font-weight="800" fill="#00d4ff">${totalQuestions}</text>
+        <text x="200" y="200" text-anchor="middle" font-family="Inter, sans-serif" font-size="20" font-weight="800" fill="#00d4ff">${totalQuestions}</text>
         <text x="200" y="215" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#64748b">HANDS</text>
 
-        <text x="320" y="200" text-anchor="middle" font-family="Inter, monospace" font-size="20" font-weight="800" fill="#8de6ff">${bestStreak || 0}</text>
+        <text x="320" y="200" text-anchor="middle" font-family="Inter, sans-serif" font-size="20" font-weight="800" fill="#8de6ff">${bestStreak || 0}</text>
         <text x="320" y="215" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#64748b">BEST STREAK</text>
 
-        <text x="440" y="200" text-anchor="middle" font-family="Inter, monospace" font-size="20" font-weight="800" fill="${hasMeasuredEV ? (totalEVLoss > 5 ? '#ef4444' : '#22c55e') : '#64748b'}">${evPerDecision}</text>
+        <text x="440" y="200" text-anchor="middle" font-family="Inter, sans-serif" font-size="20" font-weight="800" fill="${hasMeasuredEV ? (totalEVLoss > 5 ? '#ef4444' : '#22c55e') : '#64748b'}">${evPerDecision}</text>
         <text x="440" y="215" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#64748b">MEASURED EV/DECISION</text>
 
-        <text x="540" y="200" text-anchor="middle" font-family="Inter, monospace" font-size="20" font-weight="800" fill="${sessionMistakes > 5 ? '#ef4444' : '#22c55e'}">${sessionMistakes || 0}</text>
+        <text x="540" y="200" text-anchor="middle" font-family="Inter, sans-serif" font-size="20" font-weight="800" fill="${sessionMistakes > 5 ? '#ef4444' : '#22c55e'}">${sessionMistakes || 0}</text>
         <text x="540" y="215" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#64748b">MISTAKES</text>
 
         <!-- Classification bar -->

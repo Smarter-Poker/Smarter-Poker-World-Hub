@@ -83,7 +83,7 @@ export default function DeepStackSolutions() {
             { label: 'SPR (3BP)', val: depth.spr_3bp },
           ].map((s, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: depth.color, fontFamily: 'monospace' }}>{s.val}</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: depth.color, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{s.val}</div>
               <div style={{ fontSize: 12, color: '#64748b' }}>{s.label}</div>
             </div>
           ))}

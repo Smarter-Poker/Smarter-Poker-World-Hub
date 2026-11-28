@@ -298,7 +298,6 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/admin/autofix',
   '/hub/admin/daily-content',
   '/hub/admin/diamond-liability',
-  '/hub/commander',
   '/hub/email-preferences',
   '/hub/godmode',
   '/hub/gto-trainer',
@@ -913,6 +912,27 @@ function PresenceHeartbeat() {
   return null;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// JARVIS MOUNTS ON FIRST OPEN (2026-11-27)
+//
+// next/dynamic kept JarvisPanel out of the _app chunk, but it was rendered
+// unconditionally, so its chunk (~33 KB compressed) was still fetched on
+// every page right after hydration, counted against every route's mobile JS
+// budget (e2e/mobile-budget.spec.ts). JarvisPanel returns null while closed
+// and does no work then (its only effect starts a conversation when isOpen
+// turns true), so it mounts on the first open and STAYS mounted - closing and
+// reopening keeps the conversation exactly as before. (GlobalPiPManager no
+// longer imports LiveStreamService, #3259, so it stays rendered as it is.)
+// ═══════════════════════════════════════════════════════════════════════════
+function DeferredJarvisPanel({ isOpen, onClose }) {
+  const [opened, setOpened] = useState(isOpen);
+  useEffect(() => {
+    if (isOpen) setOpened(true);
+  }, [isOpen]);
+  if (!opened && !isOpen) return null;
+  return <JarvisPanel isOpen={isOpen} onClose={onClose} />;
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // MARKETPLACE ROUTES THAT OWN THEIR FOOTER
 // ═════════════════════════════════════════════════════════════════════════════
@@ -974,6 +994,10 @@ export default function App({ Component, pageProps }) {
   // training library has consistent navigation without duplicating headers.
   const trainingPageOwnsHeader = TRAINING_ROUTES_WITH_HEADER.has(router.pathname);
   const hubPageNeedsHeader = HUB_ROUTES_WITHOUT_SHARED_HEADER.has(router.pathname);
+  // A page may declare `Page.getLayout = (page) => <Shell>{page}</Shell>` so
+  // that every state it renders (loading, not-found, error, content) sits in
+  // the same frame. Club Commander player pages use it for CommanderPageShell.
+  const renderWithPageLayout = typeof Component.getLayout === 'function' ? Component.getLayout : (page) => page;
   // `/hub/club-arena` is served by the embedded Club Arena SPA, but Next can
   // classify it as the dynamic `/hub/[orbId]` page before the static rewrite
   // takes over. Resolve ownership from the real URL first so the generic orb
@@ -1284,7 +1308,7 @@ export default function App({ Component, pageProps }) {
                                 ) : (
                                   <>
                                     {hubPageNeedsHeader && <UniversalHeader />}
-                                    <Component {...pageProps} />
+                                    {renderWithPageLayout(<Component {...pageProps} />)}
                                   </>
                                 )}
                               </PageErrorBoundary>
@@ -1368,7 +1392,7 @@ export default function App({ Component, pageProps }) {
                                   />
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Jarvis Panel" fallback={<></>}>
-                                  <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
+                                  <DeferredJarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Global PiP Manager" fallback={<></>}>
                                   <GlobalPiPManager />

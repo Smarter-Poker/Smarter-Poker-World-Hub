@@ -98,7 +98,7 @@ export default function SimplifiedSolutions() {
       {modeIdx > 0 && (
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 8, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#86daff' }}>EV Loss From Simplification:</span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: '#86daff', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: '#86daff', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
             -{(modeIdx === 1 ? spot.evLoss.simplified : spot.evLoss.single).toFixed(2)} BB/Hand
           </span>
         </div>
@@ -132,8 +132,8 @@ export default function SimplifiedSolutions() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ fontSize: 14, fontWeight: 800, color: d.size === 'Check' ? '#94a3b8' : '#3b82f6' }}>{d.size}</span>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: 'monospace' }}>{d.freq}%</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: d.ev >= 0 ? '#22c55e' : '#ef4444', fontFamily: 'monospace' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{d.freq}%</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: d.ev >= 0 ? '#22c55e' : '#ef4444', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
                     {d.ev >= 0 ? '+' : ''}{d.ev.toFixed(2)}bb
                   </span>
                 </div>

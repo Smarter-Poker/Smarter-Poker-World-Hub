@@ -461,12 +461,44 @@ test('LAW 2B: curateWeeklyWireEdition verifies upstream image_url and heals 404 
         return { ok: false, status: 404, headers: new Map() };
     };
 
+    // Hermetic DNS (2026-11-28): the engine refuses any host that resolves to a
+    // private address before it fetches. That check used the machine's real
+    // resolver, so this law only passed where smarter.poker resolved; in a
+    // sandbox without DNS every lookup failed, every image read as dead and the
+    // heal never happened. The stub answers with a public address and records
+    // each host, so the private-address refusal still runs on every hop.
+    const lookedUpHosts = [];
+    const mockLookup = async (hostname) => {
+        lookedUpHosts.push(hostname);
+        return [{ address: '76.76.21.21', family: 4 }];
+    };
+
     const curated = await curateWeeklyWireEdition(mockSb, {
         days: 7,
         articleLimit: 3,
         enrichMetaDescriptions: true,
         fetchImpl: mockFetch,
+        lookupImpl: mockLookup,
     });
+
+    // dead image, article page, healed image: three hops, each resolved first.
+    assert.equal(lookedUpHosts.length, 3);
+
+    // The same story, with the host resolving to a private address, is never
+    // fetched and never healed: the SSRF refusal still governs the heal.
+    const privateFetches = [];
+    const refused = await curateWeeklyWireEdition(mockSb, {
+        days: 7,
+        articleLimit: 3,
+        enrichMetaDescriptions: true,
+        fetchImpl: async (url, opts) => {
+            privateFetches.push(String(url));
+            return mockFetch(url, opts);
+        },
+        lookupImpl: async () => [{ address: '10.0.0.7', family: 4 }],
+    });
+    assert.equal(privateFetches.length, 0);
+    assert.equal(refused.articles[0].image_url, '');
 
     assert.equal(curated.articles.length, 1);
     assert.equal(curated.articles[0].image_url, 'https://smarter.poker/healed-og-hero.jpg');

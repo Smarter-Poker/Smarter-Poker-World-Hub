@@ -10,23 +10,23 @@ import { fetchVenue, venueTitle, venueDescription, venueEntityPath, isPublicVenu
 import { commanderBreadcrumbs } from '../../../../src/lib/seo/commanderBreadcrumbs';
 import { ArrowLeft, MapPin, Clock, Users, Phone, Star, Gift, Loader2, MessageSquare, Zap, ExternalLink } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 function GameRow({ game, onJoinWaitlist }) {
   const isFull = (game.player_count || 0) >= (game.max_players || 9);
   const waitlistCount = game.waitlist_count || 0;
 
   return (
-    <div className="flex items-center justify-between p-4 border-b border-[#4A5E78] last:border-b-0">
+    <div className="flex items-center justify-between p-4 border-b border-[#445E77] last:border-b-0">
       <div>
         <p className="font-medium text-white">
           {game.stakes} {game.game_type?.toUpperCase() || 'NLHE'}
         </p>
-        <div className="flex items-center gap-3 text-sm text-[#64748B]">
+        <div className="flex items-center gap-3 text-sm text-[#9FB3C8]">
           <span>Table {game.table_number}</span>
           <span>{game.player_count || 0}/{game.max_players || 9} Players</span>
           {waitlistCount > 0 && (
-            <span className="text-[#F59E0B]">{waitlistCount} Waiting</span>
+            <span className="text-[#22D3EE]">{waitlistCount} Waiting</span>
           )}
         </div>
       </div>
@@ -34,7 +34,7 @@ function GameRow({ game, onJoinWaitlist }) {
         onClick={() => onJoinWaitlist?.(game)}
         className={
           isFull
-            ? 'bg-[#F59E0B] text-white hover:bg-[#D97706] px-4 py-2 rounded-lg text-sm font-medium transition-colors'
+            ? 'bg-[#22D3EE] text-white hover:bg-[#0EA5C6] px-4 py-2 rounded-lg text-sm font-medium transition-colors'
             : 'cmd-btn cmd-btn-primary px-4 py-2 text-sm transition-colors'
         }
       >
@@ -227,8 +227,8 @@ export default function VenueDetailPage({ seoVenue = null }) {
         <VenueHead venue={null} />
         <div className="cmd-page flex items-center justify-center p-4">
           <div className="text-center">
-            <MapPin className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-            <h1 className="text-[#64748B]">Venue Not Found</h1>
+            <MapPin className="w-12 h-12 text-[#8FA6BE] mx-auto mb-3" />
+            <h1 className="text-[#9FB3C8]">Venue Not Found</h1>
           </div>
         </div>
       </>
@@ -244,15 +244,16 @@ export default function VenueDetailPage({ seoVenue = null }) {
 
       <div className="cmd-page">
         {/* Header */}
+        <div className="cmd-back-row">
+          <button type="button" className="cmd-back-link"
+            onClick={() => router.back()}
+            >
+            <ArrowLeft className="w-5 h-5" aria-hidden="true" />
+            Back
+          </button>
+        </div>
         <header className="cmd-header-full text-white">
           <div className="max-w-lg mx-auto px-4 py-4">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center gap-2 text-white/80 hover:text-white mb-4"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Back
-            </button>
 
             <h1 className="text-2xl font-bold">{venue.name}</h1>
             <p className="text-white/80 flex items-center gap-1 mt-1">
@@ -262,7 +263,7 @@ export default function VenueDetailPage({ seoVenue = null }) {
 
             {venue.rating && (
               <div className="flex items-center gap-1 mt-2">
-                <Star className="w-5 h-5 text-[#F59E0B] fill-[#F59E0B]" />
+                <Star className="w-5 h-5 text-[#22D3EE] fill-[#22D3EE]" />
                 <span className="font-medium">{venue.rating.toFixed(1)}</span>
               </div>
             )}
@@ -282,11 +283,11 @@ export default function VenueDetailPage({ seoVenue = null }) {
           {/* Today's Tournaments - taps into the public live clock */}
           {venueTournaments.length > 0 && (
             <div className="cmd-panel overflow-hidden">
-              <div className="p-4 border-b border-[#4A5E78] flex items-center gap-2">
+              <div className="p-4 border-b border-[#445E77] flex items-center gap-2">
                 <Zap className="w-5 h-5 text-[#22D3EE]" />
                 <h2 className="font-semibold text-white">Today's Tournaments</h2>
               </div>
-              <div className="divide-y divide-[#4A5E78]">
+              <div className="divide-y divide-[#445E77]">
                 {venueTournaments.map((t) => {
                   const isLive = ['running', 'paused', 'final_table'].includes(t.status);
                   return (
@@ -297,14 +298,14 @@ export default function VenueDetailPage({ seoVenue = null }) {
                     >
                       <div>
                         <p className="font-medium text-white">{t.name}</p>
-                        <p className="text-sm text-[#64748B]">
+                        <p className="text-sm text-[#9FB3C8]">
                           ${t.buyin_amount || 0}{t.buyin_fee ? ` + $${t.buyin_fee}` : ''} {t.tournament_type ? String(t.tournament_type).toUpperCase() : ''}
                         </p>
                       </div>
                       {isLive ? (
                         <span className="text-xs font-semibold text-[#10B981] border border-[#10B981] rounded px-2 py-1">LIVE</span>
                       ) : (
-                        <span className="text-xs text-[#64748B]">
+                        <span className="text-xs text-[#9FB3C8]">
                           {t.scheduled_start ? new Date(t.scheduled_start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}
                         </span>
                       )}
@@ -329,31 +330,31 @@ export default function VenueDetailPage({ seoVenue = null }) {
 
           {/* Venue Info */}
           <div className="cmd-panel overflow-hidden">
-            <div className="p-4 border-b border-[#4A5E78]">
+            <div className="p-4 border-b border-[#445E77]">
               <h2 className="font-semibold text-white">Info</h2>
             </div>
-            <div className="divide-y divide-[#4A5E78]">
+            <div className="divide-y divide-[#445E77]">
               {venue.address && (
                 <div className="flex items-center gap-3 p-4">
-                  <MapPin className="w-5 h-5 text-[#64748B]" />
+                  <MapPin className="w-5 h-5 text-[#9FB3C8]" />
                   <span className="text-white">{venue.address}</span>
                 </div>
               )}
               {venue.phone && (
                 <a href={`tel:${venue.phone}`} className="flex items-center gap-3 p-4 hover:bg-[#132240]">
-                  <Phone className="w-5 h-5 text-[#64748B]" />
+                  <Phone className="w-5 h-5 text-[#9FB3C8]" />
                   <span className="text-[#22D3EE]">{venue.phone}</span>
                 </a>
               )}
               {venue.hours && (
                 <div className="flex items-center gap-3 p-4">
-                  <Clock className="w-5 h-5 text-[#64748B]" />
+                  <Clock className="w-5 h-5 text-[#9FB3C8]" />
                   <span className="text-white">{venue.hours}</span>
                 </div>
               )}
               {venue.total_tables && (
                 <div className="flex items-center gap-3 p-4">
-                  <Users className="w-5 h-5 text-[#64748B]" />
+                  <Users className="w-5 h-5 text-[#9FB3C8]" />
                   <span className="text-white">{venue.total_tables} Tables</span>
                 </div>
               )}
@@ -362,14 +363,14 @@ export default function VenueDetailPage({ seoVenue = null }) {
 
           {/* Live Games */}
           <div className="cmd-panel overflow-hidden">
-            <div className="p-4 border-b border-[#4A5E78] flex items-center justify-between">
+            <div className="p-4 border-b border-[#445E77] flex items-center justify-between">
               <h2 className="font-semibold text-white">Live Games</h2>
-              <span className="text-sm text-[#64748B]">{activeGames.length} Running</span>
+              <span className="text-sm text-[#9FB3C8]">{activeGames.length} Running</span>
             </div>
             {activeGames.length === 0 ? (
               <div className="p-8 text-center">
-                <Users className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                <p className="text-[#64748B]">No Games Running</p>
+                <Users className="w-12 h-12 text-[#8FA6BE] mx-auto mb-3" />
+                <p className="text-[#9FB3C8]">No Games Running</p>
               </div>
             ) : (
               <div>
@@ -387,18 +388,18 @@ export default function VenueDetailPage({ seoVenue = null }) {
           {/* Promotions */}
           {promotions.length > 0 && (
             <div className="cmd-panel overflow-hidden">
-              <div className="p-4 border-b border-[#4A5E78]">
+              <div className="p-4 border-b border-[#445E77]">
                 <h2 className="font-semibold text-white flex items-center gap-2">
-                  <Gift className="w-5 h-5 text-[#F59E0B]" />
+                  <Gift className="w-5 h-5 text-[#22D3EE]" />
                   Active Promotions
                 </h2>
               </div>
-              <div className="divide-y divide-[#4A5E78]">
+              <div className="divide-y divide-[#445E77]">
                 {promotions.map((promo) => (
                   <div key={promo.id} className="p-4 flex items-center justify-between">
                     <div>
                       <p className="font-medium text-white">{promo.name}</p>
-                      <p className="text-sm text-[#64748B]">{promo.frequency}</p>
+                      <p className="text-sm text-[#9FB3C8]">{promo.frequency}</p>
                     </div>
                     <span className="text-lg font-bold text-[#10B981]">
                       ${promo.prize_amount?.toLocaleString()}
@@ -412,7 +413,7 @@ export default function VenueDetailPage({ seoVenue = null }) {
           {/* Live Games (from /api/commander/games/live) */}
           {liveGames.length > 0 && (
             <div className="cmd-panel overflow-hidden">
-              <div className="p-4 border-b border-[#4A5E78] flex items-center justify-between">
+              <div className="p-4 border-b border-[#445E77] flex items-center justify-between">
                 <h2 className="font-semibold text-white flex items-center gap-2">
                   <Zap className="w-5 h-5 text-[#22D3EE]" />
                   Live Games Now
@@ -421,20 +422,20 @@ export default function VenueDetailPage({ seoVenue = null }) {
               </div>
               <div>
                 {liveGames.map((game) => (
-                  <div key={game.id} className="flex items-center justify-between p-4 border-b border-[#4A5E78] last:border-b-0">
+                  <div key={game.id} className="flex items-center justify-between p-4 border-b border-[#445E77] last:border-b-0">
                     <div>
                       <p className="font-medium text-white">
                         {game.stakes} {game.game_type?.toUpperCase() || 'NLHE'}
                       </p>
-                      <div className="flex items-center gap-3 text-sm text-[#64748B]">
+                      <div className="flex items-center gap-3 text-sm text-[#9FB3C8]">
                         {game.commander_tables?.table_number && (
                           <span>Table {game.commander_tables.table_number}</span>
                         )}
                         <span>{game.player_count || 0}/{game.max_players || 9} Players</span>
                         {game.waitlist_count > 0 && (
-                          <span className="text-[#F59E0B]">{game.waitlist_count} Waiting</span>
+                          <span className="text-[#22D3EE]">{game.waitlist_count} Waiting</span>
                         )}
-                        <span className={`text-xs font-medium ${game.status === 'running' ? 'text-[#10B981]' : 'text-[#F59E0B]'}`}>
+                        <span className={`text-xs font-medium ${game.status === 'running' ? 'text-[#10B981]' : 'text-[#22D3EE]'}`}>
                           {game.status === 'running' ? 'Running' : 'Starting'}
                         </span>
                       </div>
@@ -453,22 +454,22 @@ export default function VenueDetailPage({ seoVenue = null }) {
 
           {/* Reviews */}
           <div className="cmd-panel overflow-hidden">
-            <div className="p-4 border-b border-[#4A5E78]">
+            <div className="p-4 border-b border-[#445E77]">
               <h2 className="font-semibold text-white flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-[#22D3EE]" />
                 Reviews
                 {reviewsTotal > 0 && (
-                  <span className="text-sm text-[#64748B] font-normal">({reviewsTotal})</span>
+                  <span className="text-sm text-[#9FB3C8] font-normal">({reviewsTotal})</span>
                 )}
               </h2>
             </div>
             {reviews.length === 0 ? (
               <div className="p-8 text-center">
-                <MessageSquare className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                <p className="text-[#64748B]">No Reviews Yet</p>
+                <MessageSquare className="w-12 h-12 text-[#8FA6BE] mx-auto mb-3" />
+                <p className="text-[#9FB3C8]">No Reviews Yet</p>
               </div>
             ) : (
-              <div className="divide-y divide-[#4A5E78]">
+              <div className="divide-y divide-[#445E77]">
                 {reviews.map((review) => (
                   <div key={review.id} className="p-4">
                     <div className="flex items-center justify-between mb-2">
@@ -488,7 +489,7 @@ export default function VenueDetailPage({ seoVenue = null }) {
                         {[1, 2, 3, 4, 5].map((s) => (
                           <Star
                             key={s}
-                            className={`w-4 h-4 ${s <= review.overall_rating ? 'text-[#F59E0B] fill-[#F59E0B]' : 'text-[#4A5E78]'}`}
+                            className={`w-4 h-4 ${s <= review.overall_rating ? 'text-[#22D3EE] fill-[#22D3EE]' : 'text-[#8FA6BE]'}`}
                           />
                         ))}
                       </div>
@@ -499,7 +500,7 @@ export default function VenueDetailPage({ seoVenue = null }) {
                     {review.content && (
                       <p className="text-sm text-[#CBD5E1]">{review.content}</p>
                     )}
-                    <p className="text-xs text-[#64748B] mt-2">
+                    <p className="text-xs text-[#9FB3C8] mt-2">
                       {new Date(review.created_at).toLocaleDateString()}
                     </p>
                   </div>
@@ -512,7 +513,7 @@ export default function VenueDetailPage({ seoVenue = null }) {
           {venue.description && (
             <div className="cmd-panel p-4">
               <h2 className="font-semibold text-white mb-2">About</h2>
-              <p className="text-[#64748B]">{venue.description}</p>
+              <p className="text-[#9FB3C8]">{venue.description}</p>
             </div>
           )}
         </main>
@@ -521,3 +522,5 @@ export default function VenueDetailPage({ seoVenue = null }) {
     </CommanderPageShell>
   );
 }
+
+VenueDetailPage.getLayout = commanderPageLayout;

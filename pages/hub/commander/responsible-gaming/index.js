@@ -24,7 +24,7 @@ import {
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import ResponsibleGamingInfo, { HELPLINE } from '../../../../src/components/commander/ResponsibleGamingInfo';
 
 function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
@@ -36,7 +36,7 @@ function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
         </div>
         <div>
           <p className="font-medium text-white">{label}</p>
-          <p className="text-sm text-[#64748B]">
+          <p className="text-sm text-[#9FB3C8]">
             {value ? `${unit}${value.toLocaleString()}` : 'No limit set'}
           </p>
         </div>
@@ -48,9 +48,9 @@ function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
         step={max / 20}
         value={value || 0}
         onChange={(e) => onChange(parseInt(e.target.value) || null)}
-        className="w-full h-2 bg-[#1A2E4A] rounded-lg appearance-none cursor-pointer accent-[#1877F2]"
+        className="w-full h-2 bg-[#1A2E4A] rounded-lg appearance-none cursor-pointer accent-[#86DAFF]"
       />
-      <div className="flex justify-between text-xs text-[#64748B] mt-1">
+      <div className="flex justify-between text-xs text-[#9FB3C8] mt-1">
         <span>No Limit</span>
         <span>{unit}{max.toLocaleString()}</span>
       </div>
@@ -71,7 +71,7 @@ function ExclusionOption({ duration, label, description, selected, onSelect }) {
       <div className="flex items-center justify-between p-4">
         <div>
           <p className="font-medium text-white">{label}</p>
-          <p className="text-sm text-[#64748B]">{description}</p>
+          <p className="text-sm text-[#9FB3C8]">{description}</p>
         </div>
         {selected && <Check className="w-5 h-5 text-[#EF4444]" />}
       </div>
@@ -243,21 +243,22 @@ export default function ResponsibleGamingPage() {
         )}
 
         {/* Header */}
+        <div className="cmd-back-row">
+          <button type="button" className="cmd-back-link"
+            onClick={() => router.back()}
+            >
+            <ChevronLeft className="w-5 h-5 text-[#9FB3C8]" aria-hidden="true" />
+            <span>Back</span>
+          </button>
+        </div>
         <header className="cmd-header-full sticky top-0 z-40">
           <div className="max-w-lg mx-auto px-4 py-4">
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.back()}
-                className="p-2 hover:bg-[#1A2E4A] rounded-lg transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 text-[#64748B]" />
-              </button>
               <div>
                 <h1 className="text-xl font-bold text-white flex items-center gap-2">
                   <Shield className="w-6 h-6 text-[#22D3EE]" />
                   Responsible Gaming
                 </h1>
-                <p className="text-sm text-[#64748B]">Manage Your Limits And Controls</p>
               </div>
             </div>
           </div>
@@ -271,13 +272,13 @@ export default function ResponsibleGamingPage() {
                 <Lock className="w-6 h-6 text-[#EF4444] flex-shrink-0" />
                 <div>
                   <p className="font-semibold text-[#EF4444]">Self-Exclusion Active</p>
-                  <p className="text-sm text-[#64748B] mt-1">
+                  <p className="text-sm text-[#9FB3C8] mt-1">
                     {activeExclusion.type === 'permanent'
                       ? 'You have permanently self-excluded from all poker activities.'
                       : `Your exclusion expires on ${new Date(activeExclusion.expires_at).toLocaleDateString()}`
                     }
                   </p>
-                  <p className="text-xs text-[#64748B] mt-2">
+                  <p className="text-xs text-[#9FB3C8] mt-2">
                     This Cannot Be Reversed Early. Contact Support For Assistance.
                   </p>
                 </div>
@@ -288,19 +289,19 @@ export default function ResponsibleGamingPage() {
           {/* Risk Status Alert */}
           {riskStatus && riskStatus !== 'low' && (
             <div className={`cmd-panel p-4 ${
-              riskStatus === 'high' ? 'border-[#EF4444]' : 'border-[#F59E0B]'
+              riskStatus === 'high' ? 'border-[#EF4444]' : 'border-[#22D3EE]'
             }`}>
               <div className="flex items-start gap-3">
                 <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${
-                  riskStatus === 'high' ? 'text-[#EF4444]' : 'text-[#F59E0B]'
+                  riskStatus === 'high' ? 'text-[#EF4444]' : 'text-[#22D3EE]'
                 }`} />
                 <div>
                   <p className={`font-medium ${
-                    riskStatus === 'high' ? 'text-[#EF4444]' : 'text-[#F59E0B]'
+                    riskStatus === 'high' ? 'text-[#EF4444]' : 'text-[#22D3EE]'
                   }`}>
                     {riskStatus === 'high' ? 'High Risk Detected' : 'Moderate Risk Detected'}
                   </p>
-                  <p className="text-sm text-[#64748B] mt-1">
+                  <p className="text-sm text-[#9FB3C8] mt-1">
                     {riskStatus === 'high'
                       ? 'Your recent activity suggests you may be at risk. Consider setting lower limits or taking a break.'
                       : 'Your spending patterns have increased recently. Review your limits below.'}
@@ -351,7 +352,7 @@ export default function ResponsibleGamingPage() {
                 unit=""
               />
               {limits.session_duration_limit && (
-                <p className="text-sm text-[#64748B] px-1">
+                <p className="text-sm text-[#9FB3C8] px-1">
                   You Will Receive An Alert After {limits.session_duration_limit} Minutes Of Play
                 </p>
               )}
@@ -369,10 +370,10 @@ export default function ResponsibleGamingPage() {
           <div className="cmd-panel p-4">
             <label className="flex items-center justify-between cursor-pointer">
               <div className="flex items-center gap-3">
-                <Bell className="w-5 h-5 text-[#64748B]" />
+                <Bell className="w-5 h-5 text-[#9FB3C8]" />
                 <div>
                   <p className="font-medium text-white">Enable Alerts</p>
-                  <p className="text-sm text-[#64748B]">Get Notified When Approaching Limits</p>
+                  <p className="text-sm text-[#9FB3C8]">Get Notified When Approaching Limits</p>
                 </div>
               </div>
               <input
@@ -400,7 +401,7 @@ export default function ResponsibleGamingPage() {
                 <AlertTriangle className="w-5 h-5 text-[#EF4444]" />
                 Self-Exclusion
               </h2>
-              <p className="text-sm text-[#64748B] mb-4">
+              <p className="text-sm text-[#9FB3C8] mb-4">
                 If You Need A Break From Poker, You Can Temporarily Or Permanently Exclude Yourself From All Club Commander Venues.
               </p>
               <div className="space-y-2">
@@ -458,7 +459,7 @@ export default function ResponsibleGamingPage() {
               29 January 2026 and this page still printed the old one. */}
           <section className="cmd-panel p-4">
             <h3 className="font-semibold text-white mb-2">Need Help?</h3>
-            <p className="text-sm text-[#64748B] mb-3">
+            <p className="text-sm text-[#9FB3C8] mb-3">
               If You Or Someone You Know Has A Gambling Problem, Help Is Available.
             </p>
             <div className="space-y-2 text-sm">
@@ -466,7 +467,7 @@ export default function ResponsibleGamingPage() {
               <p className="text-white">
                 {HELPLINE.phone} ({HELPLINE.phoneDigits}), 24/7
               </p>
-              <p className="text-[#64748B]">
+              <p className="text-[#9FB3C8]">
                 Also Reachable On {HELPLINE.alternate}, Or By Chat At {HELPLINE.chatLabel}
               </p>
             </div>
@@ -496,7 +497,7 @@ export default function ResponsibleGamingPage() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">Confirm Self-Exclusion</h2>
-                  <p className="text-sm text-[#64748B]">This Action Cannot Be Undone Early</p>
+                  <p className="text-sm text-[#9FB3C8]">This Action Cannot Be Undone Early</p>
                 </div>
               </div>
 
@@ -512,7 +513,7 @@ export default function ResponsibleGamingPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowExclusionConfirm(false)}
-                  className="flex-1 h-12 border border-[#1A2E4A] text-[#64748B] font-semibold rounded-lg hover:bg-[#1A2E4A] transition-colors"
+                  className="flex-1 h-12 border border-[#1A2E4A] text-[#9FB3C8] font-semibold rounded-lg hover:bg-[#1A2E4A] transition-colors"
                 >
                   Cancel
                 </button>
@@ -532,3 +533,5 @@ export default function ResponsibleGamingPage() {
     </CommanderPageShell>
   );
 }
+
+ResponsibleGamingPage.getLayout = commanderPageLayout;

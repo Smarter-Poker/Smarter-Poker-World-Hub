@@ -32,7 +32,8 @@ const GAME_TYPE_MAP = {
     'mtt-004': 'mtt', 'mtt-005': 'mtt', 'mtt-006': 'mtt',
     'mtt-007': 'mtt', 'mtt-008': 'mtt', 'mtt-009': 'mtt',
     'mtt-010': 'mtt', 'mtt-011': 'mtt', 'mtt-012': 'mtt',
-    'mtt-013': 'mtt', 'mtt-014': 'mtt',
+    'mtt-013': 'mtt',
+    'mtt-014': 'spins', // 3-Max Blitz (3-Max Tournament per GAME_CONFIGS)
     'mtt-015': 'heads-up', // Heads Up Duel (2-max)
     'mtt-016': 'mtt', 'mtt-017': 'mtt', 'mtt-018': 'mtt',
     'mtt-019': 'mtt', 'mtt-020': 'mtt',
@@ -47,10 +48,17 @@ const GAME_TYPE_MAP = {
     'spins-007': 'spins', 'spins-008': 'spins', 'spins-009': 'spins',
     'spins-010': 'spins',
 
-    // Advanced Games (6-Max default, with exceptions) — 20 + 5 special
+    // Psychology / Mental Game (6-Max Cash table stage) — 20 games
+    'psy-001': '6max', 'psy-002': '6max', 'psy-003': '6max', 'psy-004': '6max',
+    'psy-005': '6max', 'psy-006': '6max', 'psy-007': '6max', 'psy-008': '6max',
+    'psy-009': '6max', 'psy-010': '6max', 'psy-011': '6max', 'psy-012': '6max',
+    'psy-013': '6max', 'psy-014': '6max', 'psy-015': '6max', 'psy-016': '6max',
+    'psy-017': '6max', 'psy-018': '6max', 'psy-019': '6max', 'psy-020': '6max',
+
+    // Advanced Games (6-Max Cash) — 20 + 5 special
     'adv-001': '6max', 'adv-002': '6max', 'adv-003': '6max',
     'adv-004': '6max', 'adv-005': '6max', 'adv-006': '6max',
-    'adv-007': 'heads-up', // Indifference Theory (2-max)
+    'adv-007': '6max', // Indifference Theory (6-Max Cash per GAME_CONFIGS)
     'adv-008': '6max', 'adv-009': '6max',
     'adv-010': '6max', 'adv-011': '6max', 'adv-012': '6max',
     'adv-013': '6max', 'adv-014': '6max', 'adv-015': '6max',
@@ -149,11 +157,12 @@ export default function GameUIRouter({
     const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
     const gameType = GAME_TYPE_MAP[gameId] || '6max'; // Default to 6-max
 
-    // Psychology games use specialized UI with no poker table
+    // Psychology games render on the 1:1 Club Arena poker table stage with scenario decisions
     if (isPsychologyGame) {
         return (
             <PsychologyTiltControlUI
                 gameId={gameId}
+                gameName={gameName}
                 question={question}
                 level={level}
                 questionNumber={questionNumber}

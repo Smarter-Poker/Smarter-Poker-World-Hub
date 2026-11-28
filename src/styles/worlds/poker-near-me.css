@@ -1149,29 +1149,65 @@ body.world-poker-near-me .pnm-deep-deck__content {
     box-sizing: border-box;
 }
 
+/* ONE TIDY LINE OF CRUMBS (2026-11-28). The trail used to wrap as a row of
+   inline-flex items 7px apart in 0.14em tracked capitals, each carrying its
+   "/" as an ::after: at 393px "Lodge Poker Club" wrapped inside its own item
+   and the separators of the items before it dropped onto the line below the
+   words. Now the separator leads the item it introduces, so a wrap carries
+   "/ Lodge Poker Club" down as one piece and never strands a separator; the
+   items sit 12px apart in readable silver Title Case, every link is a 44px
+   target, and an item longer than the whole line ends in an ellipsis. At 393px
+   the venue trail is two clean lines: Hub / Poker Near Me / TX / Austin, then
+   / Lodge Poker Club. */
+body.world-poker-near-me .pnm-deep-deck__breadcrumbs {
+    min-width: 0;
+    margin: 0 0 20px;
+}
+
 body.world-poker-near-me .pnm-deep-deck__breadcrumbs ol {
     display: flex;
-    align-items: center;
     flex-wrap: wrap;
-    gap: 7px;
+    align-items: center;
+    min-width: 0;
+    gap: 0;
     padding: 0;
-    margin: 0 0 32px;
+    margin: 0;
     list-style: none;
 }
 
 body.world-poker-near-me .pnm-deep-deck__breadcrumbs li {
-    display: inline-flex;
+    display: flex;
+    flex: 0 1 auto;
     align-items: center;
-    gap: 7px;
-    color: #718193;
-    font: 700 12px/1 var(--font-premium-body);
-    letter-spacing: 0.14em;
+    min-width: 0;
+    max-width: 100%;
+    color: #e6eef6;
+    font: 600 14px/1.2 var(--font-inter, Inter), system-ui, sans-serif;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
 }
 
-body.world-poker-near-me .pnm-deep-deck__breadcrumbs li:not(:last-child)::after { content: '/'; color: #43505d; }
-body.world-poker-near-me .pnm-deep-deck__breadcrumbs a { color: #8d9cac; text-decoration: none; }
-body.world-poker-near-me .pnm-deep-deck__breadcrumbs a:hover,
-body.world-poker-near-me .pnm-deep-deck__breadcrumbs a:active { color: var(--pnm-blue); }
+body.world-poker-near-me .pnm-deep-deck__breadcrumbs li + li::before {
+    content: '/';
+    flex: 0 0 auto;
+    padding: 0 6px;
+    color: #7f96aa;
+}
+
+body.world-poker-near-me .pnm-deep-deck__breadcrumbs :is(a, [aria-current='page']) {
+    display: block;
+    min-width: 0;
+    min-height: 44px;
+    overflow: hidden;
+    line-height: 44px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.world-poker-near-me .pnm-deep-deck__breadcrumbs a { color: #bdd0e2; text-decoration: none; }
+body.world-poker-near-me .pnm-deep-deck__breadcrumbs a:active { color: #86daff; }
+body.world-poker-near-me .pnm-deep-deck__breadcrumbs a:focus-visible { outline: 2px solid #8fd4ff; outline-offset: -2px; }
 
 body.world-poker-near-me .pnm-deep-deck__eyebrow,
 body.world-poker-near-me .pnm-recent-rail__intro p {
@@ -1408,7 +1444,7 @@ body.world-poker-near-me .pnm-location-listing__state small { color: var(--pnm-m
     body.world-poker-near-me .pnm-deep-deck__visual::after { background: linear-gradient(0deg, #030507 0%, rgba(3, 5, 7, 0.76) 62%, rgba(3, 5, 7, 0.34) 100%); }
     body.world-poker-near-me .pnm-deep-deck__visual img { object-position: 58% center; }
     body.world-poker-near-me .pnm-deep-deck__content { width: 100%; padding: 24px 20px 28px; }
-    body.world-poker-near-me .pnm-deep-deck__breadcrumbs ol { margin-bottom: 22px; }
+    body.world-poker-near-me .pnm-deep-deck__breadcrumbs { margin-bottom: 12px; }
     body.world-poker-near-me .pnm-deep-deck__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     body.world-poker-near-me .pnm-deep-deck__metrics > div:nth-child(2n) { border-right: 0; }
     body.world-poker-near-me .pnm-deep-deck__metrics > div:nth-child(n + 3) { border-top: 1px solid rgba(154, 177, 197, 0.13); }

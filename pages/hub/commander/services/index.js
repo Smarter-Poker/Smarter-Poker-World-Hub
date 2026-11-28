@@ -13,7 +13,7 @@ import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import {
   Coffee,
   Coins,
@@ -34,7 +34,7 @@ const SERVICE_TYPES = [
     label: 'Food & Drinks',
     description: 'Order From the Menu',
     icon: Coffee,
-    color: '#F59E0B'
+    color: '#22D3EE'
   },
   {
     type: 'chips',
@@ -48,7 +48,7 @@ const SERVICE_TYPES = [
     label: 'Table Change',
     description: 'Request to Move Tables',
     icon: ArrowRightLeft,
-    color: '#8B5CF6'
+    color: '#5AA9FF'
   },
   {
     type: 'cashout',
@@ -84,9 +84,9 @@ function ServiceTypeCard({ service, onSelect, disabled }) {
         </div>
         <div className="flex-1">
           <p className="font-medium text-white">{service.label}</p>
-          <p className="text-sm text-[#64748B]">{service.description}</p>
+          <p className="text-sm text-[#9FB3C8]">{service.description}</p>
         </div>
-        <ChevronRight className="w-5 h-5 text-[#64748B]" />
+        <ChevronRight className="w-5 h-5 text-[#9FB3C8]" />
       </div>
     </button>
   );
@@ -115,7 +115,7 @@ function ActiveRequestCard({ request, onCancel }) {
           </div>
           <div>
             <p className="font-medium text-white">{serviceType?.label || 'Request'}</p>
-            <p className="text-sm text-[#64748B]">Table {request.table_number}, Seat {request.seat_number}</p>
+            <p className="text-sm text-[#9FB3C8]">Table {request.table_number}, Seat {request.seat_number}</p>
           </div>
         </div>
         <span className={`${statusBadge[request.status] || 'cmd-badge cmd-badge-chrome'}`}>
@@ -124,11 +124,11 @@ function ActiveRequestCard({ request, onCancel }) {
       </div>
 
       {request.details && (
-        <p className="text-sm text-[#64748B] mb-3">{request.details}</p>
+        <p className="text-sm text-[#9FB3C8] mb-3">{request.details}</p>
       )}
 
       <div className="flex items-center justify-between">
-        <span className="text-sm text-[#64748B] flex items-center gap-1">
+        <span className="text-sm text-[#9FB3C8] flex items-center gap-1">
           <Clock className="w-4 h-4" />
           {new Date(request.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
         </span>
@@ -173,14 +173,14 @@ function RequestModal({ type, session, onSubmit, onClose }) {
             onClick={onClose}
             className="p-2 hover:bg-[#0A1525] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#64748B]" />
+            <X className="w-5 h-5 text-[#9FB3C8]" />
           </button>
         </div>
 
         <div className="space-y-4">
           {/* Current Location */}
           <div className="cmd-inset rounded-xl p-4">
-            <p className="text-sm text-[#64748B]">Your Location</p>
+            <p className="text-sm text-[#9FB3C8]">Your Location</p>
             <p className="font-medium text-white">
               Table {session.table_number}, Seat {session.seat_number}
             </p>
@@ -199,7 +199,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
                     onClick={() => setChipAmount(amt)}
                     className={`py-3 rounded-lg border-2 text-sm font-medium transition-colors ${chipAmount === amt
                       ? 'border-[#22D3EE] bg-[#22D3EE]/5 text-[#22D3EE]'
-                      : 'border-[#4A5E78] text-[#64748B] hover:border-[#22D3EE]'
+                      : 'border-[#445E77] text-[#9FB3C8] hover:border-[#22D3EE]'
                       }`}
                   >
                     ${amt}
@@ -226,7 +226,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
                 onChange={(e) => setDetails(e.target.value)}
                 placeholder="e.g., Coffee, Black. Burger With Fries."
                 rows={3}
-                className="w-full px-4 py-3 bg-[#0A1525] border-2 border-[#4A5E78] rounded-xl text-white placeholder-[#64748B] focus:outline-none focus:border-[#22D3EE] resize-none transition-colors"
+                className="w-full px-4 py-3 bg-[#0A1525] border-2 border-[#445E77] rounded-xl text-white placeholder-[#9FB3C8] focus:outline-none focus:border-[#22D3EE] resize-none transition-colors"
               />
             </div>
           )}
@@ -241,7 +241,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
                 onChange={(e) => setDetails(e.target.value)}
                 placeholder="e.g., Prefer Table Near Window, Quieter Table"
                 rows={2}
-                className="w-full px-4 py-3 bg-[#0A1525] border-2 border-[#4A5E78] rounded-xl text-white placeholder-[#64748B] focus:outline-none focus:border-[#22D3EE] resize-none transition-colors"
+                className="w-full px-4 py-3 bg-[#0A1525] border-2 border-[#445E77] rounded-xl text-white placeholder-[#9FB3C8] focus:outline-none focus:border-[#22D3EE] resize-none transition-colors"
               />
             </div>
           )}
@@ -256,7 +256,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
                 onChange={(e) => setDetails(e.target.value)}
                 placeholder="Briefly Describe The Issue"
                 rows={3}
-                className="w-full px-4 py-3 bg-[#0A1525] border-2 border-[#4A5E78] rounded-xl text-white placeholder-[#64748B] focus:outline-none focus:border-[#22D3EE] resize-none transition-colors"
+                className="w-full px-4 py-3 bg-[#0A1525] border-2 border-[#445E77] rounded-xl text-white placeholder-[#9FB3C8] focus:outline-none focus:border-[#22D3EE] resize-none transition-colors"
               />
             </div>
           )}
@@ -264,7 +264,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
           {type === 'cashout' && (
             <div className="cmd-inset rounded-xl p-4">
               <p className="text-[#10B981] font-medium">Ready To Cash Out?</p>
-              <p className="text-sm text-[#64748B] mt-1">
+              <p className="text-sm text-[#9FB3C8] mt-1">
                 A Chip Runner Will Come To Collect Your Chips And Bring Your Cash.
               </p>
             </div>
@@ -398,10 +398,10 @@ export default function ServicesPage() {
         <div className="cmd-page flex items-center justify-center px-4">
           <div className="text-center">
             <div className="cmd-icon-box mx-auto mb-4">
-              <AlertCircle className="w-7 h-7 text-[#F59E0B]" />
+              <AlertCircle className="w-7 h-7 text-[#22D3EE]" />
             </div>
             <h1 className="text-xl font-bold text-white mb-2">Not Currently Seated</h1>
-            <p className="text-[#64748B] mb-6">
+            <p className="text-[#9FB3C8] mb-6">
               You Need To Be Seated At A Table To Request Services.
             </p>
             <button
@@ -477,7 +477,7 @@ export default function ServicesPage() {
 
           {/* Info */}
           <div className="cmd-inset rounded-xl p-4">
-            <p className="text-sm text-[#64748B]">
+            <p className="text-sm text-[#9FB3C8]">
               Your Requests Will Be Sent To The Poker Room Staff. Average Response Time Is 3-5 Minutes.
             </p>
           </div>
@@ -497,3 +497,5 @@ export default function ServicesPage() {
     </CommanderPageShell>
   );
 }
+
+ServicesPage.getLayout = commanderPageLayout;

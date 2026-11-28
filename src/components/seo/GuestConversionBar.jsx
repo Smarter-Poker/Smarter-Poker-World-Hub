@@ -10,6 +10,10 @@ const SmarterGoogleOneTap = dynamic(() => import('./SmarterGoogleOneTap'), {
   ssr: false,
 });
 
+const ReturningGuestSyncPill = dynamic(() => import('./ReturningGuestSyncPill'), {
+  ssr: false,
+});
+
 export const GUEST_BAR_DISMISSED_KEY = 'sp_guest_conversion_bar_dismissed_v1';
 
 function guestBarCopyForPath(path) {
@@ -244,6 +248,7 @@ export default function GuestConversionBar() {
         </div>
       </div>
 
+      <ReturningGuestSyncPill currentPath={currentPath} signedIn={signedIn} />
       <SmarterGoogleOneTap currentPath={currentPath} signedIn={signedIn} />
       <style jsx>{`
         .sd-guest-bar {

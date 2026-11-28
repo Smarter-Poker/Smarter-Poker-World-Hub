@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -496,6 +497,16 @@ export default function WarmupCooldownRoutinePage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="warmup-cooldown-routine"
+              toolName="Poker Warmup & Cooldown Routine Builder"
+              eyebrow="Free Mindset Cloud Sync"
+              title="Save This Poker Warmup & Cooldown Routine Free"
+              description="Keep Pre-Session Mindset Checklists, Tilt Breakers & Post-Session Review Steps Synced Free."
+              ctaLabel="Save Routine Free"
+              summaryText={summaryText}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-warmup-cooldown-routine"

@@ -53,6 +53,9 @@ const files = {
 const paintedMarketplaceScope = [
   'src/components/diamond-store/DiamondStoreShell.module.css',
   'src/components/store/DiamondWalletModal.module.css',
+  'src/components/store/DiamondWalletModal.jsx',
+  'pages/hub/merch-store/fulfillment.module.css',
+  'pages/hub/merch-store/fulfillment.js',
   'src/components/store/StoreCards.module.css',
   'src/components/store/MerchPurchaseDialog.module.css',
   'src/components/diamond-store/SmarterStoreShowcase.module.css',
@@ -76,7 +79,27 @@ const paintedMarketplaceScope = [
   'src/components/store/StoreCards.js',
   'src/components/store/MarketplaceDetailExperience.jsx',
   'src/components/diamond-store/diamondStoreStyles.js',
+  // The VIP area (/hub/vip-membership, its plan and gift pages, Compare and
+  // the Command Center) on the same #SMARTERDESIGN materials.
+  'src/components/vip/VipKit.module.css',
+  'src/components/vip/VipKit.jsx',
+  'src/components/vip/VipManage.module.css',
+  'src/components/store/VipMembershipPage.module.css',
+  'src/components/store/VipMembershipConsole.module.css',
+  'src/components/store/VipMembershipCard.module.css',
+  'src/components/store/VipGifts.module.css',
+  'src/components/store/VipGifts.jsx',
+  'pages/hub/vip-membership.js',
+  'pages/hub/vip-membership/[plan].js',
+  'pages/hub/vip-membership/gift/[plan].js',
+  'pages/hub/vip-membership/compare.js',
+  'pages/hub/vip-membership/compare.module.css',
+  'pages/hub/vip-membership/manage.js',
 ];
+
+const vipCssScope = paintedMarketplaceScope.filter(
+  (file) => /vip/i.test(file) && file.endsWith('.css')
+);
 
 test('transaction notices use content-driven #SMARTERDESIGN status surfaces', () => {
   const checkout = read(files.checkout);
@@ -150,20 +173,13 @@ test('reward and VIP live data use content-driven rows without duplicate outer c
   }
   assert.deepEqual(offStandardPaint(telemetry), []);
 
-  // The VIP membership console was not part of the store redesign; it keeps
-  // its restrained content-sized rows.
+  // The VIP membership console is on #SMARTERDESIGN: each readout and plan is
+  // one content-sized chrome-stat well over the standard navy fill.
   for (const [label, rule] of [
     ['VIP status', vip.match(/\.statusLine div\s*\{[\s\S]*?\n\}/)?.[0] || ''],
     ['VIP plan', vip.match(/\.plan\s*\{[\s\S]*?\n\}/)?.[0] || ''],
   ]) {
-    assert.ok(rule, `expected ${label} rule`);
-    assert.match(rule, /border:\s*1px solid/);
-    assert.match(rule, /background:\s*#/);
-    assert.doesNotMatch(
-      rule,
-      /url\(|aspect-ratio|padding:\s*\d+(?:\.\d+)?%|(?:linear|radial|conic)-gradient/,
-      label
-    );
+    assertSdSurface(rule, 'well', label);
   }
 
   // The confirmation dialog is the one place that housing could not stay. Its
@@ -183,9 +199,57 @@ test('reward and VIP live data use content-driven rows without duplicate outer c
   assert.match(dialog, /overflow-y:\s*auto/);
   const dialogActions = vip.match(/\.dialogActions \{[\s\S]*?\n\}/)?.[0] || '';
   assert.match(dialogActions, /margin-top:\s*auto/, 'the actions must stay at the end of the flow');
+  assertSdSurface(dialog, 'panel', 'VIP confirmation dialog');
   const vipPanel = vip.match(/\.panel\s*\{[\s\S]*?\n\}/)?.[0] || '';
-  assert.match(vipPanel, /background:\s*#07131b/);
-  assert.doesNotMatch(vipPanel, /url\(|(?:linear|radial|conic)-gradient/);
+  assertSdSurface(vipPanel, 'panel', 'VIP console panel');
+  assert.deepEqual(offStandardPaint(vip), []);
+});
+
+test('the VIP area is on #SMARTERDESIGN chrome: no painted plates, chamfers or hover', () => {
+  const kit = read('src/components/vip/VipKit.module.css');
+  const page = read('src/components/store/VipMembershipPage.module.css');
+  const card = read('src/components/store/VipMembershipCard.module.css');
+  const manage = read('src/components/vip/VipManage.module.css');
+  const gifts = read('src/components/store/VipGifts.module.css');
+  const rule = (css, selector) =>
+    css.match(new RegExp(`(?:^|\\n)${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{[\\s\\S]*?\\n\\}`))?.[0] || '';
+
+  // Every VIP stylesheet: standard paint only, square corners, no hover-only
+  // states, no clipped chamfers, no text under 12px.
+  for (const file of vipCssScope) {
+    const css = withoutComments(read(file));
+    assert.doesNotMatch(css, /:hover/, `${file} has a hover-only state`);
+    assert.doesNotMatch(css, /clip-path:\s*polygon/, `${file} clips a chamfer`);
+    assert.doesNotMatch(css, /vip-button-primary\.png|button-secondary\.png/, `${file} paints a retired plate`);
+    assert.doesNotMatch(css, /border-radius:(?!\s*(?:0(?:px)?|50%)\s*(?:!important\s*)?;)/, `${file} rounds a corner`);
+    for (const [, size] of css.matchAll(/font(?:-size)?:[^;]*?\b(\d+(?:\.\d+)?)px/g)) {
+      assert.ok(Number(size) >= 12, `${file} declares ${size}px text`);
+    }
+  }
+
+  // The kit: one chrome-readout surface, chrome-stat price well, cobalt
+  // primary, chrome-row secondary and close. The masthead keeps its 6px frame
+  // and the shared "?" (see image-header-help-icon.law).
+  assertSdSurface(rule(kit, '.price'), 'well', 'VIP price well');
+  const cta = rule(kit, '.cta');
+  assert.match(cta, SD_FRAME.active, 'the VIP primary action is chrome-active');
+  assert.match(cta, new RegExp(SMARTERDESIGN_GRADIENTS.cobalt.replace(/[()]/g, '\\$&')));
+  assert.match(rule(kit, '.cta,\n.ghost'), SD_FRAME.control, 'VIP actions are chrome-row controls');
+  assertSdSurface(rule(kit, '.close'), 'control', 'VIP dialog close');
+  assert.match(rule(kit, '.close'), /min-width: 44px;[\s\S]*min-height: 44px;/);
+
+  // The storefront: chrome-row actions, cobalt primary, chrome-readout surfaces.
+  assert.match(rule(page, '.primaryAction'), SD_FRAME.active);
+  assert.match(page, SD_FRAME.panel);
+  // The plan card: a chrome-stat well, chrome-active over cobalt when selected.
+  assertSdSurface(rule(card, '.vipCard'), 'well', 'VIP plan card');
+  assert.match(rule(card, '.vipCardSelected'), SD_FRAME.active);
+  // The Command Center: readouts and notices are wells, fields are controls.
+  assertSdSurface(rule(manage, '.readouts > div'), 'well', 'VIP readout');
+  assertSdSurface(rule(manage, '.notice'), 'well', 'VIP notice');
+  assertSdSurface(rule(manage, '.field'), 'control', 'VIP field');
+  // Gifts: one panel, wells inside it.
+  assertSdSurface(gifts.match(/^\.section \{[^}]*\}/m)?.[0] || '', 'panel', 'VIP gifts section');
 });
 
 test('VIP benefit rows are readable cards, and FAQ rows keep their #SMARTERDESIGN wells', () => {
@@ -287,7 +351,9 @@ test('merch and fulfillment keep variable-height cards honest while upgrading co
 
   const fulfillmentStatus = fulfillment.match(/\.status\s*\{[\s\S]*?\n\}/)?.[0] || '';
   assert.ok(fulfillmentStatus, 'the fulfillment status rule is gone');
-  assert.doesNotMatch(fulfillmentStatus, /url\(|aspect-ratio|padding:\s*calc\(/);
+  // The status is a #SMARTERDESIGN chrome-stat well; no painted plate image.
+  assert.doesNotMatch(fulfillmentStatus, /aspect-ratio|padding:\s*calc\(/);
+  assert.deepEqual(offStandardPaint(fulfillmentStatus), []);
   assert.match(fulfillmentStatus, /min-height:\s*44px/);
   // The fulfillment dialog carried the VIP dialog's fault: `padding: 16%`
   // against the fixed backdrop rather than the 620px dialog, which is 223px a
@@ -367,10 +433,8 @@ test('the full painted Marketplace scope uses only #SMARTERDESIGN paint and no d
     assert.doesNotMatch(source, decorativeLeftEdge, file);
     assert.deepEqual(offStandardPaint(source), [], file);
     assert.doesNotMatch(source, REJECTED_PAINTED_ART, file);
-    // The global Diamond Wallet modal (UniversalHeader) was not part of the
-    // store redesign and still sets var(--vault-gold) text; it is tracked
-    // outside this store scope.
-    if (file.endsWith('DiamondWalletModal.module.css')) continue;
+    // The global Diamond Wallet modal (UniversalHeader) is on #SMARTERDESIGN
+    // since 2026-11-27, so the text-colour rule is enforced here too.
     assert.doesNotMatch(source, BANNED_TEXT_COLOUR, `${file} paints banned text colours`);
   }
 });
@@ -434,18 +498,110 @@ test('no commerce surface renders text below 12px', () => {
   assert.deepEqual(offenders, []);
 });
 
+// The whole Diamond Store scope (2026-11-27 polish): every store CSS module and
+// every store page or component with inline styles, VIP files and the wallet
+// modal excepted (their owners guard them). Unlike fontSizesIn this also reads
+// the `font:` shorthand, multi-line or not, at its first length (a clamp()
+// floor included), which is where the 9-11px labels used to hide.
+const STORE_TEXT_SCOPE = [
+  'src/components/diamond-store/CheckoutStatusPanel.jsx',
+  'src/components/diamond-store/CheckoutStatusPanel.module.css',
+  'src/components/diamond-store/DiamondStoreShell.module.css',
+  'src/components/diamond-store/SmarterStoreShowcase.jsx',
+  'src/components/diamond-store/SmarterStoreShowcase.module.css',
+  'src/components/diamond-store/StoreImageHeader.jsx',
+  'src/components/diamond-store/StoreImageHeader.module.css',
+  'src/components/diamond-store/diamondStoreStyles.js',
+  'src/components/store/ClubShopItemEditor.jsx',
+  'src/components/store/ClubShopPurchaseLedger.jsx',
+  'src/components/store/ClubShopSalesAnalytics.jsx',
+  'src/components/store/MarketplaceCommerceNav.jsx',
+  'src/components/store/MarketplaceCommerceNav.module.css',
+  'src/components/store/MarketplaceDetailExperience.jsx',
+  'src/components/store/MarketplaceDetailExperience.module.css',
+  'src/components/store/MarketplaceSubpageShell.jsx',
+  'src/components/store/MarketplaceSubpageShell.module.css',
+  'src/components/store/MerchPurchaseDialog.jsx',
+  'src/components/store/MerchPurchaseDialog.module.css',
+  'src/components/store/MerchStore.jsx',
+  'src/components/store/MerchStore.module.css',
+  'src/components/store/RewardTelemetryConsole.jsx',
+  'src/components/store/RewardTelemetryConsole.module.css',
+  'src/components/store/ShoppingCart.jsx',
+  'src/components/store/ShoppingCart.module.css',
+  'src/components/store/StoreCards.js',
+  'src/components/store/StoreCards.module.css',
+  'src/components/store/StoreToast.jsx',
+  'src/components/store/StoreToast.module.css',
+  'pages/hub/diamond-store.js',
+  'pages/hub/diamond-store/cart.js',
+  'pages/hub/diamond-store/cart.module.css',
+  'pages/hub/diamond-store/marketplace-account-controls.module.css',
+  'pages/hub/diamond-store/orders.js',
+  'pages/hub/diamond-store/orders/[orderId].js',
+  'pages/hub/diamond-store/wishlist.js',
+  'pages/hub/merch-store.js',
+  'pages/hub/merch-store/[productId].js',
+  'pages/hub/club-shop.js',
+  'pages/hub/club-shop/[itemId].js',
+  'pages/hub/smarter-rewards.js',
+  'pages/hub/smarter-rewards/[rewardId].js',
+];
+
+const lengthPx = (digits, unit) =>
+  unit === 'px' || unit === '' ? Number(digits) : unit === 'rem' || unit === 'em' ? Number(digits) * 16 : null;
+
+const storeTextBelow12 = (file, source) => {
+  const src = withoutComments(source);
+  const found = [];
+  for (const [, raw] of src.matchAll(
+    /(?:(?<![-\w])font-size\s*:\s*|\bfontSize\s*:\s*)('[^']*'|"[^"]*"|[^;,\n}]+)/g
+  )) {
+    const value = raw.trim().replace(/^['"]|['"]$/g, '');
+    for (const [, digits, unit] of value.matchAll(/(-?\d*\.?\d+)\s*(px|rem|em|)(?![\w%])/g)) {
+      const px = lengthPx(digits, unit);
+      if (px !== null && px < 12) found.push(`${file}: font-size ${value}`);
+    }
+  }
+  const shorthand = file.endsWith('.css')
+    ? /(?<![-\w])font\s*:\s*([^;}]+)/g
+    : /(?<![-\w])font\s*:\s*['"`]([^'"`]*)['"`]/g;
+  for (const [, value] of src.matchAll(shorthand)) {
+    const first = value.match(/(\d*\.?\d+)(px|rem|em)\b/);
+    if (first && lengthPx(first[1], first[2]) < 12) {
+      found.push(`${file}: font ${value.replace(/\s+/g, ' ').slice(0, 48)}`);
+    }
+  }
+  return found;
+};
+
+test('no commerce text below 12px anywhere in the Diamond Store scope', () => {
+  // Measured before: CheckoutStatusPanel labels 9-11px, MerchStore
+  // .catalogAlert 10px and eleven more 9-11px merch labels, StoreToast and
+  // MerchPurchaseDialog 10-11px phone buttons, the cart close/remove 11px.
+  const offenders = STORE_TEXT_SCOPE.flatMap((file) => storeTextBelow12(file, read(file)));
+  assert.deepEqual(offenders, []);
+  // The sweep itself reads both forms, so it cannot pass vacuously.
+  assert.equal(storeTextBelow12('x.css', '.a { font: 700 9px Inter; }').length, 1);
+  assert.equal(storeTextBelow12('x.css', '.a {\n  font:\n    800 clamp(11px, 1vw, 15px) / 1 Inter;\n}').length, 1);
+  assert.equal(storeTextBelow12('x.js', "const a = { fontSize: 11, font: '700 10px Inter' };").length, 2);
+  assert.equal(storeTextBelow12('x.css', '.a { font-size: 0.7rem; }').length, 1);
+  assert.equal(storeTextBelow12('x.css', '.a { font: 800 12px/1 Inter; font-size: 12px; }').length, 0);
+});
+
 test('the fulfillment status is content-sized without an ornamental plate', () => {
   const fulfillmentCss = read(commerceFiles.fulfillmentCss);
   const statusRule = fulfillmentCss.match(/\.status \{[\s\S]*?\n\}/)?.[0] || '';
   assert.ok(statusRule, 'expected the .status rule');
   const statusDeclarations = withoutComments(statusRule);
-  assert.doesNotMatch(statusRule, /url\(|aspect-ratio|wallet-row-shell/);
+  assert.doesNotMatch(statusRule, /aspect-ratio|wallet-row-shell/);
+  assert.deepEqual(offStandardPaint(statusRule), [], 'only the chrome kit may paint the status');
   assert.doesNotMatch(statusDeclarations, /padding:\s*calc\(|padding:[^;]*\d+(?:\.\d+)?%/);
   assert.match(statusRule, /width: min\(1180px, 100%\);/);
   assert.match(statusRule, /min-height: 44px;/);
   assert.match(statusRule, /padding: 12px 16px;/);
-  assert.match(statusRule, /border: 1px solid #314957;/);
-  assert.match(statusRule, /background: #071017;/);
+  // #SMARTERDESIGN: the status line is one chrome-stat well on the navy fill.
+  assertSdSurface(statusRule, 'well', 'fulfillment status');
   assert.doesNotMatch(statusDeclarations, /padding:[^;]*\d+(?:\.\d+)?%/);
   assert.doesNotMatch(statusDeclarations, /container-type|cqw/);
 });

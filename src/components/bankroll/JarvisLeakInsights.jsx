@@ -8,20 +8,27 @@ import VIPGateModal from '../ui/VIPGateModal';
 import view from './JarvisLeakInsights.module.css';
 import BankrollImageHeader from './BankrollImageHeader';
 import { localDay } from '../../lib/bankroll/localDates.mjs';
+import { formatCurrency } from '../../lib/bankroll/currencyUtils';
+import { renderFindingPart } from '../../lib/bankroll/sessionInsights.mjs';
 
-const money = value => value == null ? 'Not Measured' : value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+// Amounts arrive in US dollars, as the ledger stores them, and are shown in
+// the display currency (Display EUR) like every other bankroll figure.
+const moneyIn = displayEUR => value => value == null ? 'Not Measured' : formatCurrency(value, displayEUR, { cents: true });
 const date = iso => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso + 'T00:00:00Z'));
 
 function Metric({ label, value, detail }) {
   return <div className={'sd-metric ' + view.metric}><dt>{label}</dt><dd>{value}</dd><small>{detail}</small></div>;
 }
 
-function Results({ report }) {
+function Results({ report, displayEUR }) {
   const { sample, window, metrics, formats, findings } = report;
+  const money = moneyIn(displayEUR);
+  // A finding from before structured amounts is a finished sentence in USD.
+  const text = (item, part) => renderFindingPart(item, part, money);
   return <>
     <div className={view.source}>
       <strong>{date(window.start)} To {date(window.end)}</strong>
-      <span>{sample.measured} Measured {sample.measured === 1 ? 'session' : 'sessions'} · USD</span>
+      <span>{sample.measured} Measured {sample.measured === 1 ? 'session' : 'sessions'}</span>
     </div>
     {report.state === 'empty' ? <p role="status">No Gaming Sessions Were Logged For These Dates. Choose A Longer Period Or Log A Session In Bankroll.</p> : <>
       {report.state === 'incomplete' && <p className={view.notice}>{sample.missing} Of {sample.eligible} Entries Have No Usable Result. Totals Below Cover The {sample.measured} Measured Sessions.</p>}
@@ -40,19 +47,20 @@ function Results({ report }) {
       </section>}
       {findings.length > 0 && <section className={view.section}><h3>What To Review</h3>
         <ul className={view.findings}>{findings.map(item => <li key={item.title}>
-          <strong>{item.title}</strong><p>{item.evidence}</p><p>{item.action}</p>
+          <strong>{item.title}</strong><p>{text(item, 'evidence')}</p><p>{text(item, 'action')}</p>
         </li>)}</ul>
       </section>}
     </>}
     <details className={view.method}><summary>How These Figures Are Calculated</summary>
       <p>The Analysis Uses Your Cash Game, Tournament, Casino Table, Slot And Sports Entries Dated Within The Selected Calendar Days, Ending Today On Your Own Calendar. It Excludes Deposits, Withdrawals, Expenses And Superseded Entries.</p>
       <p>Winning Percentage Counts Profitable Sessions Divided By Sessions With A Recorded Result. Hourly Results Use Earnings And Time From The Same Timed Sessions. Drawdown Starts At Zero And Follows Each Day’s Closing Net.</p>
+      <p>Results Are Recorded In US Dollars.{displayEUR ? ' With Display EUR On, Amounts Are Shown In Euros At The Reference Rate In Settings.' : ''}</p>
       <p>Period Comparisons Require At Least {sample.minimumComparison} Measured Sessions In Both This Window And The Preceding {window.days} Days, With Complete Results In Both.</p>
     </details>
   </>;
 }
 
-function OwnerInsights({ userId }) {
+function OwnerInsights({ userId, displayEUR }) {
   const { allowed, loading: checkingAccess, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('bankroll-manager');
   const [open, setOpen] = useState(false);
   const [days, setDays] = useState(90);
@@ -127,7 +135,7 @@ function OwnerInsights({ userId }) {
             {[7, 30, 90].map(period => <button key={period} type="button" aria-pressed={days === period} onClick={() => setDays(period)}>{period} Days</button>)}
           </div>
           {current?.error ? <div role="alert" className={view.notice}><p>{current.error}</p><button type="button" className="sd-button" onClick={refresh}>Retry</button></div>
-            : current?.report ? <Results report={current.report} /> : <p role="status">Reading Your Session Ledger…</p>}
+            : current?.report ? <Results report={current.report} displayEUR={displayEUR} /> : <p role="status">Reading Your Session Ledger…</p>}
           {current?.report && <button type="button" className="sd-button" onClick={refresh}>Refresh Analysis</button>}
         </div>
     </dialog>, document.body)}
@@ -135,6 +143,6 @@ function OwnerInsights({ userId }) {
 }
 
 // Remount the entire private view when the verified account changes.
-export default function JarvisLeakInsights({ userId }) {
-  return userId ? <OwnerInsights key={userId} userId={userId} /> : null;
+export default function JarvisLeakInsights({ userId, displayEUR = false }) {
+  return userId ? <OwnerInsights key={userId} userId={userId} displayEUR={displayEUR} /> : null;
 }

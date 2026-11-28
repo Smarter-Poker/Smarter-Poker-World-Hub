@@ -152,7 +152,7 @@ const styles = {
         letterSpacing: '0.14em',
         textTransform: 'uppercase',
         color: '#86daff',
-        fontFamily: 'var(--font-orbitron), Orbitron, sans-serif'
+        fontFamily: 'var(--sd-type, var(--font-rajdhani, "Arial Narrow"), sans-serif)'
     },
     title: {
         fontSize: '18px',
@@ -201,7 +201,7 @@ const styles = {
         color: '#25c8ff',
         fontSize: '13px',
         fontWeight: 800,
-        fontFamily: 'var(--font-orbitron), Orbitron, sans-serif'
+        fontFamily: 'var(--sd-type, var(--font-rajdhani, "Arial Narrow"), sans-serif)'
     },
     challengeInfo: {
         flex: 1
@@ -219,7 +219,7 @@ const styles = {
         alignItems: 'center',
         gap: '8px',
         marginBottom: '6px',
-        fontFamily: 'ui-monospace, SFMono-Regular, monospace'
+        fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
     },
     challengeType: {
         fontSize: '10px',

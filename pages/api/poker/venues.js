@@ -31,6 +31,7 @@ import { isVenueWithinPokerMapBounds, parsePokerMapBounds } from '../../../src/l
 import { applyVenueIntegrity } from '../../../src/lib/poker-near-me/venueIntegrityServer';
 import { fetchVenueDirectoryResilient } from '../../../src/lib/poker-near-me/venueDirectoryServer';
 import { groupVenueDailyTournamentRows, qualifyVenueTournamentRows, dailyTournamentDedupKey, isRecurringScheduleRow, readVenueTournamentRows } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
+import { describeVenueScheduleFreshness } from '../../../src/lib/poker-near-me/venueScheduleFreshness.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -1911,6 +1912,7 @@ export default async function handler(req, res) {
 
               // === LIVE DB FIRST: Query Supabase venue_daily_tournaments ===
               let usedLiveData = false;
+              let freshnessRows = [];
               try {
                   const { rows: liveTourn, error: ltErr, truncated } = await readVenueTournamentRows(getSupabase(), numericVenueId);
                   venue.schedule_read_error = Boolean(ltErr || truncated);
@@ -1927,6 +1929,7 @@ export default async function handler(req, res) {
                       venue.last_scraped = safeTourn[0].last_scraped || null;
                       usedLiveData = true;
                   }
+                  if (!ltErr) freshnessRows = safeTourn;
               } catch (dbErr) {
                   venue.schedule_read_error = true;
                   console.warn('[venues] Live tournament DB query failed, using static fallback:', dbErr.message);
@@ -1941,6 +1944,10 @@ export default async function handler(req, res) {
                   venue.daily_tournaments_source = null;
                   venue.schedule_unavailable = true;
               }
+              // Same derivation as the venue page's getServerSideProps: the
+              // badge and empty state read this, not the legacy last_scraped
+              // column the collector no longer writes.
+              venue.schedule_freshness = describeVenueScheduleFreshness(venue, freshnessRows);
 
               // === VENUE NEWS from Supabase ===
               try {

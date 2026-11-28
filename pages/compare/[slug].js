@@ -23,6 +23,8 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterHandPasteTeaser from '../../src/components/seo/SmarterHandPasteTeaser';
+import { resolveCompareLinkMesh } from '../../src/lib/seo/internalLinkMesh.mjs';
 import { COMPARE_CSS } from '../../src/components/compare/CompareStyles';
 import {
   CHECKED_LABEL,
@@ -66,6 +68,7 @@ export default function ComparePage({ slug }) {
   const page = getComparePage(slug);
   const sources = pageSources(page);
   const related = page.related.map((relatedSlug) => getComparePage(relatedSlug)).filter(Boolean);
+  const linkMesh = resolveCompareLinkMesh(page.slug);
 
   return (
     <>
@@ -199,6 +202,109 @@ export default function ComparePage({ slug }) {
             secondaryLabel="Browse Free Poker Tools"
             secondaryHref="/tools"
           />
+
+          <SmarterHandPasteTeaser
+            context={`compare-${page.slug}`}
+            redirectPath={comparePath(page.slug)}
+          />
+
+          <section
+            data-testid="internal-link-mesh"
+            aria-label="Recommended Free Poker Tools And Training"
+            style={{
+              boxSizing: 'border-box',
+              width: '100%',
+              maxWidth: '100%',
+              margin: '24px 0',
+              padding: 20,
+              background: '#0b1120',
+              border: '1px solid #1e3a5f',
+              borderRadius: 0,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: '#38bdf8',
+                marginBottom: 6,
+              }}
+            >
+              Matched Smarter.Poker Tools
+            </div>
+            <h2
+              style={{
+                margin: '0 0 14px',
+                fontSize: 19,
+                fontWeight: 800,
+                color: '#f2f7ff',
+              }}
+            >
+              Continue With Free Calculators & GTO Training
+            </h2>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: 12,
+              }}
+            >
+              {linkMesh.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    minHeight: 44,
+                    padding: '14px 16px',
+                    background: '#060c18',
+                    border: '1px solid #1e3a5f',
+                    borderLeft: '3px solid #2563eb',
+                    borderRadius: 0,
+                    textDecoration: 'none',
+                    color: '#f2f7ff',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase',
+                      color: '#38bdf8',
+                    }}
+                  >
+                    {item.eyebrow}
+                  </span>
+                  <span
+                    style={{
+                      marginTop: 6,
+                      fontSize: 15,
+                      fontWeight: 800,
+                      color: '#f2f7ff',
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                  <span
+                    style={{
+                      marginTop: 6,
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                      color: '#bdd0e2',
+                    }}
+                  >
+                    {item.description}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
 
           {page.glossary.length > 0 && (
             <>

@@ -31,6 +31,7 @@ import {
     summarizeSignupAttribution,
 } from '../../../src/lib/acquisition/attributionSummary.mjs';
 import { loadSeoFunnelRollup } from '../../../src/lib/acquisition/seoFunnelRollup.mjs';
+import { evaluateAuthDoors } from '../../../src/lib/acquisition/authDoorProbe.mjs';
 
 function unavailableSeoFunnel(reason = 'fetch_error', windowDays = 7) {
     return {
@@ -141,6 +142,9 @@ export default async function handler(req, res) {
                 ...summarizeSignupAttribution([]),
             },
             seoFunnel: seoFunnelRes || unavailableSeoFunnel('fetch_error', 7),
+            authDoors: typeof evaluateAuthDoors === 'function'
+                ? evaluateAuthDoors({ env: process.env, attribution: attributionRes })
+                : null,
             latency_ms: Date.now() - start,
             version: (process.env.VERCEL_GIT_COMMIT_SHA || process.env.BUILD_COMMIT_SHA || 'local').substring(0, 8),
         });

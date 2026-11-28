@@ -26,6 +26,10 @@ import GrowthScorecard from '../../src/components/admin/GrowthScorecard';
 import { loadGrowthScorecard } from '../../src/lib/acquisition/growthScorecard.mjs';
 import { loadRecentSignupAttribution } from '../../src/lib/acquisition/attributionSummary.mjs';
 import { loadSeoFunnelRollup } from '../../src/lib/acquisition/seoFunnelRollup.mjs';
+import {
+    computeVariantSignificance,
+    evaluateAuthProviderReadiness,
+} from '../../src/lib/acquisition/abSignificance.mjs';
 
 /**
  * [2026-07-25] REACHABILITY FIX — same as /admin/auth-health: browsers never
@@ -38,16 +42,20 @@ export async function getServerSideProps({ req, res }) {
     const adminSecret = req.headers['x-admin-secret'];
     const envSecret = process.env.ADMIN_ROUTE_SECRET;
     const hasAdminSecret = envSecret && adminSecret === envSecret;
+    const googleOneTapConfigured = Boolean(
+        typeof process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID === 'string' &&
+        process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID.trim().length > 0
+    );
 
     if (!hasAdminSecret) {
-        return { props: { clientMode: true } };
+        return { props: { clientMode: true, googleOneTapConfigured } };
     }
 
     // ── Fetch the dashboard data ──
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const srKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !srKey) {
-        return { props: { error: 'Server misconfigured' } };
+        return { props: { error: 'Server misconfigured', googleOneTapConfigured } };
     }
     const adm = createClient(url, srKey, { auth: { persistSession: false } });
 
@@ -58,7 +66,7 @@ export async function getServerSideProps({ req, res }) {
         loadGrowthScorecard(adm),
         loadRecentSignupAttribution(adm),
         (typeof loadSeoFunnelRollup === 'function'
-            ? Promise.resolve().then(() => loadSeoFunnelRollup({ windowDays: 7, timeoutMs: 3000 }))
+            ? Promise.resolve().then(() => loadSeoFunnelRollup({ windowDays: 7, timeoutMs: 6500 }))
             : Promise.resolve({ available: false, reason: 'unconfigured', window_days: 7, events: {}, stages: null, rates: null }))
             .catch(() => ({ available: false, reason: 'fetch_error', window_days: 7, events: {}, stages: null, rates: null })),
     ]);
@@ -73,6 +81,7 @@ export async function getServerSideProps({ req, res }) {
             growth,
             attribution,
             seoFunnel,
+            googleOneTapConfigured,
         },
     };
 }
@@ -215,7 +224,11 @@ export default function SignupHealthDashboard(props) {
 
             <GrowthScorecard report={state.growth} />
 
-            <AttributionScorecard attribution={state.attribution} />
+            <AttributionScorecard
+                attribution={state.attribution}
+                seoFunnel={state.seoFunnel}
+                googleOneTapConfigured={props.googleOneTapConfigured}
+            />
 
             <LiveOrganicFunnelScorecard seoFunnel={state.seoFunnel} />
 
@@ -313,7 +326,69 @@ function pctOf(count, total) {
     return `${Math.round((Number(count || 0) / total) * 100)}%`;
 }
 
-function AttributionScorecard({ attribution }) {
+function formatLiftPct(liftPct) {
+    if (typeof liftPct !== 'number' || !Number.isFinite(liftPct)) return 'N/A';
+    const prefix = liftPct > 0 ? '+' : '';
+    return `${prefix}${liftPct}%`;
+}
+
+function OAuthReadinessCard({ readiness }) {
+    if (!readiness) return null;
+    const oauthShareDisplay = typeof readiness.oauthSharePct === 'number' && Number.isFinite(readiness.oauthSharePct)
+        ? `${readiness.oauthSharePct}%`
+        : 'N/A';
+    const oneTapLabel = readiness.googleOneTapConfigured ? 'Configured' : 'Pending Env Var';
+    const magicLinkLabel = readiness.magicLinkReady ? 'Active' : 'Unavailable';
+
+    return (
+        <div
+            data-testid="oauth-readiness-card"
+            data-google-one-tap={readiness.googleOneTapConfigured ? 'configured' : 'pending'}
+            style={S.readinessCard}
+        >
+            <div style={S.readinessHeader}>
+                <div style={S.readinessTitle}>OAuth &amp; One Tap Readiness</div>
+                <span
+                    style={{
+                        ...S.attrBadge,
+                        borderColor: readiness.googleOneTapConfigured ? '#65e8aa' : '#38bdf8',
+                        color: readiness.googleOneTapConfigured ? '#65e8aa' : '#86daff',
+                    }}
+                >
+                    {oneTapLabel}
+                </span>
+            </div>
+            <div style={S.readinessGrid}>
+                <div className={consoleStyles.metric} style={{ ...S.attrCard, borderLeft: '3px solid #38bdf8' }}>
+                    <div style={S.attrLabel}>Live OAuth Share</div>
+                    <div style={S.attrValue}>{oauthShareDisplay}</div>
+                    <div style={S.attrMeta}>
+                        {readiness.oauthCount} OAuth / {readiness.emailCount} Email
+                    </div>
+                </div>
+                <div
+                    className={consoleStyles.metric}
+                    style={{
+                        ...S.attrCard,
+                        borderLeft: `3px solid ${readiness.googleOneTapConfigured ? '#65e8aa' : '#86daff'}`,
+                    }}
+                >
+                    <div style={S.attrLabel}>Google One Tap</div>
+                    <div style={S.readinessStatusValue}>{oneTapLabel}</div>
+                    <div style={S.attrMeta}>NEXT_PUBLIC_GOOGLE_CLIENT_ID</div>
+                </div>
+                <div className={consoleStyles.metric} style={{ ...S.attrCard, borderLeft: '3px solid #65e8aa' }}>
+                    <div style={S.attrLabel}>Magic Link Readiness</div>
+                    <div style={S.readinessStatusValue}>{magicLinkLabel}</div>
+                    <div style={S.attrMeta}>Passwordless Email OTP</div>
+                </div>
+            </div>
+            <p style={S.readinessNote}>{readiness.recommendation}</p>
+        </div>
+    );
+}
+
+function AttributionScorecard({ attribution, seoFunnel, googleOneTapConfigured }) {
     const channels = attribution?.channels || null;
     const providers = attribution?.providers || null;
     const aiEngines = attribution?.aiEngines && typeof attribution.aiEngines === 'object' ? attribution.aiEngines : {};
@@ -359,6 +434,65 @@ function AttributionScorecard({ attribution }) {
         (sum, item) => sum + Number(experimentVariants[item.key] || 0),
         0,
     );
+
+    const controlSignups = Number(experimentVariants['control-gto'] || 0);
+    const variantSignups = Number(experimentVariants['welcome-vip-500'] || 0);
+    const explicitExposures = attribution?.experimentExposures && typeof attribution.experimentExposures === 'object'
+        ? attribution.experimentExposures
+        : null;
+    const sheetOpened = seoFunnel?.available === true ? Number(seoFunnel?.stages?.sheetOpened || 0) : 0;
+    const { controlTotal, variantTotal } = (() => {
+        if (
+            explicitExposures &&
+            Number(explicitExposures['control-gto']) > 0 &&
+            Number(explicitExposures['welcome-vip-500']) > 0
+        ) {
+            return {
+                controlTotal: Number(explicitExposures['control-gto']),
+                variantTotal: Number(explicitExposures['welcome-vip-500']),
+            };
+        }
+        if (sheetOpened >= controlSignups + variantSignups && sheetOpened > 0) {
+            const halfSheet = Math.floor(sheetOpened / 2);
+            return {
+                controlTotal: Math.max(halfSheet, controlSignups),
+                variantTotal: Math.max(sheetOpened - halfSheet, variantSignups),
+            };
+        }
+        const cohortTotal = controlSignups + variantSignups;
+        return { controlTotal: cohortTotal, variantTotal: cohortTotal };
+    })();
+
+    const abStats = typeof computeVariantSignificance === 'function'
+        ? computeVariantSignificance({
+            controlCount: controlSignups,
+            controlTotal,
+            variantCount: variantSignups,
+            variantTotal,
+        })
+        : {
+            controlTotal,
+            variantTotal,
+            minSamplePerVariant: 30,
+            liftPct: null,
+            sampleReady: false,
+            significant: false,
+            winner: 'insufficient_sample',
+            confidenceLabel: 'Collecting Sample',
+        };
+
+    const readinessEnv = typeof googleOneTapConfigured === 'boolean'
+        ? (googleOneTapConfigured ? { NEXT_PUBLIC_GOOGLE_CLIENT_ID: '1' } : {})
+        : {
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID:
+                (typeof process !== 'undefined' && process?.env?.NEXT_PUBLIC_GOOGLE_CLIENT_ID) || '',
+        };
+    const authReadiness = typeof evaluateAuthProviderReadiness === 'function'
+        ? evaluateAuthProviderReadiness({
+            attribution: isAvailable ? attribution : null,
+            env: readinessEnv,
+        })
+        : null;
 
     const aiEngineLabels = {
         chatgpt: 'ChatGPT',
@@ -407,9 +541,12 @@ function AttributionScorecard({ attribution }) {
             </div>
 
             {!isAvailable ? (
-                <p style={{ ...S.p, color: '#bdd0e2', marginTop: 12 }} role="status">
-                    Organic Attribution Data Is Unavailable. Reload To Retry.
-                </p>
+                <>
+                    <p style={{ ...S.p, color: '#bdd0e2', marginTop: 12 }} role="status">
+                        Organic Attribution Data Is Unavailable. Reload To Retry.
+                    </p>
+                    <OAuthReadinessCard readiness={authReadiness} />
+                </>
             ) : (
                 <>
                     <h3 style={S.attrSubhead}>Acquisition Channels</h3>
@@ -451,7 +588,30 @@ function AttributionScorecard({ attribution }) {
                         ))}
                     </div>
 
-                    <h3 style={S.attrSubhead}>A/B Offer Experiment Breakdown (Control-GTO Vs Welcome-VIP-500)</h3>
+                    <OAuthReadinessCard readiness={authReadiness} />
+
+                    <div style={S.sectionSubheaderRow}>
+                        <h3 style={{ ...S.attrSubhead, margin: 0 }}>A/B Offer Experiment Breakdown (Control-GTO Vs Welcome-VIP-500)</h3>
+                        <span
+                            data-testid="ab-significance-badge"
+                            data-significant={abStats.significant ? 'true' : 'false'}
+                            data-sample-ready={abStats.sampleReady ? 'true' : 'false'}
+                            data-winner={abStats.winner}
+                            style={{
+                                ...S.attrBadge,
+                                borderColor: abStats.significant ? '#65e8aa' : '#2b4663',
+                                color: abStats.significant ? '#65e8aa' : '#86daff',
+                            }}
+                        >
+                            {abStats.confidenceLabel}
+                            {' | '}
+                            {abStats.sampleReady
+                                ? 'Sample Ready'
+                                : `Sample ${Math.min(abStats.controlTotal, abStats.variantTotal)}/${abStats.minSamplePerVariant}`}
+                            {' | '}
+                            Lift: {formatLiftPct(abStats.liftPct)}
+                        </span>
+                    </div>
                     <div style={S.attrChannelGrid} data-section="experiment-variants">
                         {experimentCards.map((item) => {
                             const count = Number(experimentVariants[item.key] || 0);
@@ -565,6 +725,7 @@ function formatFunnelRate(rate) {
 
 function LiveOrganicFunnelScorecard({ seoFunnel }) {
     const isAvailable = Boolean(seoFunnel && seoFunnel.available === true && seoFunnel.stages);
+    const isStale = Boolean(isAvailable && seoFunnel?.stale === true);
     const windowDays = Number.isInteger(seoFunnel?.window_days) && seoFunnel.window_days > 0
         ? seoFunnel.window_days
         : 7;
@@ -660,9 +821,16 @@ function LiveOrganicFunnelScorecard({ seoFunnel }) {
                         Rolling {windowDays}-Day PostHog Aggregate Event Telemetry With Zero PII.
                     </p>
                 </div>
-                <span style={S.attrBadge}>
-                    {isAvailable ? 'Live PostHog Telemetry' : 'PostHog Telemetry Unavailable'}
-                </span>
+                <div style={S.badgeGroup}>
+                    {isStale && (
+                        <span data-testid="seo-funnel-stale-pill" style={S.stalePill}>
+                            Cached Snapshot
+                        </span>
+                    )}
+                    <span style={S.attrBadge}>
+                        {isAvailable ? 'Live PostHog Telemetry' : 'PostHog Telemetry Unavailable'}
+                    </span>
+                </div>
             </div>
 
             {!isAvailable ? (
@@ -821,4 +989,13 @@ const S = {
     funnelBarTrack: { width: '100%', height: 10, background: '#071321', border: '1px solid #1e3a57', borderRadius: 0, overflow: 'hidden' },
     funnelBarFill: { height: '100%', borderRadius: 0, transition: 'width 200ms ease' },
     funnelRateSummaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginTop: 16 },
+    sectionSubheaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, margin: '18px 0 10px' },
+    badgeGroup: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+    stalePill: { display: 'inline-block', padding: '4px 10px', borderRadius: 0, border: '1px solid #38bdf8', background: '#071321', color: '#38bdf8', fontSize: 12, fontWeight: 600, letterSpacing: 0.4, textTransform: 'uppercase' },
+    readinessCard: { background: '#071321', border: '1px solid #2b4663', borderRadius: 0, padding: 16, marginTop: 16 },
+    readinessHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 },
+    readinessTitle: { fontSize: 14, fontWeight: 700, color: '#f2f7ff', letterSpacing: 0.3, textTransform: 'uppercase' },
+    readinessGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 },
+    readinessStatusValue: { fontSize: 18, fontWeight: 700, color: '#f2f7ff', marginTop: 6 },
+    readinessNote: { fontSize: 12, color: '#bdd0e2', margin: '12px 0 0' },
 };

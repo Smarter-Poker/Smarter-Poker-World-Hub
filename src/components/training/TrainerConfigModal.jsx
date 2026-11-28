@@ -257,7 +257,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
             >
                 <motion.div
                     ref={modalRef}
-                    className="sp-trainer-config-modal sp-training-modal-surface"
+                    className="smarterdesign sp-trainer-config-modal sp-training-modal-surface"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="sp-trainer-config-title"

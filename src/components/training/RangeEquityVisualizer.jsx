@@ -333,7 +333,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                     {stats && (
                         <div style={{
                             fontSize: 12, fontWeight: 700, color: stats.avgEquity >= 0.55 ? '#22c55e' : stats.avgEquity >= 0.45 ? '#86daff' : '#ef4444',
-                            fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                            fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                         }}>
                             Avg: {(stats.avgEquity * 100).toFixed(1)}%
                         </div>
@@ -351,7 +351,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                             flex: 1, padding: '6px 10px', fontSize: 12,
                             background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(100,116,139,0.2)',
                             borderRadius: 5, color: '#e2e8f0', outline: 'none',
-                            fontFamily: "'Fira Code', monospace",
+                            fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                         }}
                     />
                     {boardCards.length >= 3 && (
@@ -496,7 +496,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                                             fontSize: 20, fontWeight: 700, marginTop: 4,
                                             color: selectedDetail.equity >= 0.55 ? '#22c55e'
                                                 : selectedDetail.equity >= 0.45 ? '#f59e0b' : '#ef4444',
-                                            fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                                            fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                                         }}>
                                             {(selectedDetail.equity * 100).toFixed(1)}%
                                         </div>

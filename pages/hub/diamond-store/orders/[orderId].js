@@ -7,6 +7,7 @@ import detailStyles from '../../../../src/components/store/MarketplaceDetailExpe
 import { marketplaceCarrierName, marketplaceCopy } from '../../../../src/lib/store/marketplaceCopy';
 import { authedFetch, getAuthUser, useRequireAuth } from '../../../../src/lib/authUtils';
 import { useAvatar } from '../../../../src/contexts/AvatarContext';
+import { formatUsdCents } from '../../../../src/lib/store/formatStoreMoney.mjs';
 import accountControls from '../marketplace-account-controls.module.css';
 
 const MARKETPLACE_RECEIPT_TIMEOUT_MS = 20000;
@@ -34,7 +35,7 @@ function formatDate(value) {
 function formatAmount(amount, currency) {
   if (currency === 'diamonds') return `${(Number(amount) || 0).toLocaleString()} Diamonds`;
   if (currency === 'chips') return `${(Number(amount) || 0).toLocaleString()} Legacy Chips`;
-  return `$${((Number(amount) || 0) / 100).toFixed(2)}`;
+  return formatUsdCents(amount);
 }
 
 export default function MarketplaceReceiptPage({ routeOrderId = null }) {

@@ -67,7 +67,7 @@
 .rangeText {
   margin: 0;
   color: #bdd0e2;
-  font: 500 0.82rem / 1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 500 0.82rem / 1.55 var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   overflow-wrap: anywhere;
 }
 

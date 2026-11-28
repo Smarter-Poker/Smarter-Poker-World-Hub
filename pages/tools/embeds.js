@@ -12,6 +12,7 @@ import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnl
 import { Code, Copy, Check, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
+import { trackSeoFunnelEvent } from '../../src/lib/seo/seoFunnelTelemetry';
 
 const WIDGETS = [
   {
@@ -537,6 +538,69 @@ const WIDGETS = [
 ];
 
 export const EMBEDDABLE_TOOLS = WIDGETS;
+
+export const FEATURED_EMBED_WIDGETS = [
+  {
+    widgetSlug: 'pot-odds-calculator',
+    title: 'Pot Odds Calculator',
+    tagline: 'Instant Break-Even Equity, Implied Odds & Minimum Defense Frequency',
+    height: 560,
+  },
+  {
+    widgetSlug: 'preflop-ranges',
+    title: '13x13 Preflop Range Matrix',
+    tagline: 'Interactive 169-Hand GTO Opening And 3-Bet Range Grid Across Positions',
+    height: 640,
+  },
+  {
+    widgetSlug: 'mtt-grind-planner',
+    title: 'Live Poker Room Schedule / Tournament Hub',
+    tagline: 'Interactive Tournament Schedule Planner, ABI Exposure & Session Tracker',
+    height: 600,
+  },
+];
+
+function escapeEmbedHtmlAttr(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+export function buildAttributedEmbedSnippet({
+  widgetSlug,
+  title,
+  height = 560,
+  siteUrl = 'https://smarter.poker',
+} = {}) {
+  const rawOrigin = String(siteUrl || 'https://smarter.poker').trim().replace(/\/+$/, '');
+  const origin = /^https?:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(rawOrigin)
+    ? rawOrigin
+    : 'https://smarter.poker';
+  const slug =
+    String(widgetSlug || 'pot-odds-calculator')
+      .trim()
+      .toLowerCase()
+      .replace(/^\/+|\/+$/g, '')
+      .replace(/^tools\//, '')
+      .replace(/[^a-z0-9/_-]+/g, '')
+      .replace(/^\/+|\/+$/g, '') || 'pot-odds-calculator';
+  const parsedHeight = Number(height);
+  const safeHeight = Number.isFinite(parsedHeight)
+    ? Math.min(1600, Math.max(320, Math.round(parsedHeight)))
+    : 560;
+  const safeTitle = escapeEmbedHtmlAttr(
+    String(title || 'Smarter.Poker Interactive Poker Widget').trim() ||
+      'Smarter.Poker Interactive Poker Widget'
+  );
+  const iframeSrc = `${origin}/tools/${slug}?embed=1&utm_source=embed&utm_medium=widget&utm_campaign=${slug}`;
+  const backlinkHref = `${origin}/tools/${slug}?utm_source=embed&utm_medium=backlink&utm_campaign=${slug}`;
+  return [
+    `<iframe src="${iframeSrc}" width="100%" height="${safeHeight}" frameborder="0" loading="lazy" style="border:0;border-radius:0;overflow:hidden;max-width:100%;" title="${safeTitle}"></iframe>`,
+    `<p style="font-size:12px;text-align:center;color:#94a3b8;margin-top:8px;"><a href="${backlinkHref}" target="_blank" rel="noopener" style="color:#38bdf8;text-decoration:none;font-weight:600;">Powered By Smarter.Poker - Open Full GTO Solver Free</a></p>`,
+  ].join('\n');
+}
 
 export const PARTNER_BADGES = [
   {
@@ -1239,6 +1303,33 @@ export default function WebmasterEmbedPortal() {
   const [partnerDomain, setPartnerDomain] = useState('');
   const [botPlatform, setBotPlatform] = useState('nightbot');
   const [previewWidgetId, setPreviewWidgetId] = useState(null);
+  const [featuredSlug, setFeaturedSlug] = useState(FEATURED_EMBED_WIDGETS[0].widgetSlug);
+  const [featuredHeight, setFeaturedHeight] = useState(FEATURED_EMBED_WIDGETS[0].height);
+  const [featuredCopied, setFeaturedCopied] = useState(false);
+
+  const activeFeaturedWidget =
+    FEATURED_EMBED_WIDGETS.find((w) => w.widgetSlug === featuredSlug) || FEATURED_EMBED_WIDGETS[0];
+  const featuredSnippet = buildAttributedEmbedSnippet({
+    widgetSlug: activeFeaturedWidget.widgetSlug,
+    title: activeFeaturedWidget.title,
+    height: featuredHeight,
+  });
+
+  const handleCopyFeaturedSnippet = () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        navigator.clipboard.writeText(featuredSnippet);
+      }
+    } catch (_) {
+      /* ignore clipboard permission issues */
+    }
+    setFeaturedCopied(true);
+    setTimeout(() => setFeaturedCopied(false), 2500);
+    trackSeoFunnelEvent('seo_calculator_share_click', {
+      toolSlug: 'embeds',
+      widget: activeFeaturedWidget.widgetSlug,
+    });
+  };
 
   const cleanPartner = String(partnerDomain || '')
     .trim()
@@ -1296,6 +1387,10 @@ export default function WebmasterEmbedPortal() {
       setCopiedId(widget.id);
       setTimeout(() => setCopiedId(null), 2500);
     }
+    trackSeoFunnelEvent('seo_calculator_share_click', {
+      toolSlug: 'embeds',
+      widget: widget.id,
+    });
   };
 
   const EMBEDS_FAQS = [
@@ -1416,6 +1511,164 @@ export default function WebmasterEmbedPortal() {
               </p>
             </div>
           </div>
+
+          {/* Featured 1-Click Embeddable Poker Widget Builder */}
+          <section
+            aria-labelledby="featured-widget-builder-heading"
+            data-testid="featured-embed-widget-builder"
+            style={{
+              background: '#0b1120',
+              border: '1px solid #1e3a5f',
+              borderRadius: '0px',
+              padding: '24px',
+              marginBottom: '40px',
+              boxSizing: 'border-box',
+              maxWidth: '100%',
+            }}
+          >
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                  1-Click Webmaster Embed Builder
+                </div>
+                <h2 id="featured-widget-builder-heading" style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
+                  Featured 1-Click Widget Builder
+                </h2>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }} role="group" aria-label="Select Embed Height">
+                {[560, 680, 800].map((px) => (
+                  <button
+                    key={px}
+                    type="button"
+                    onClick={() => setFeaturedHeight(px)}
+                    style={{
+                      minHeight: '44px',
+                      padding: '8px 12px',
+                      borderRadius: '0px',
+                      border: featuredHeight === px ? '1px solid #38bdf8' : '1px solid #1e3a5f',
+                      background: featuredHeight === px ? 'rgba(56, 189, 248, 0.18)' : '#07101f',
+                      color: featuredHeight === px ? '#86daff' : '#cbd5e1',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {`${px}px Height`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <p style={{ margin: '0 0 18px 0', fontSize: '0.94rem', color: '#cbd5e1', lineHeight: 1.55 }}>
+              Pick One Of Our Top Three Embeddable Poker Widgets Below And Copy The Attribution-Ready Responsive HTML Iframe Snippet In One Click.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+              {FEATURED_EMBED_WIDGETS.map((item) => {
+                const isSelected = activeFeaturedWidget.widgetSlug === item.widgetSlug;
+                return (
+                  <button
+                    key={item.widgetSlug}
+                    type="button"
+                    onClick={() => {
+                      setFeaturedSlug(item.widgetSlug);
+                      setFeaturedHeight(item.height);
+                      setFeaturedCopied(false);
+                    }}
+                    aria-pressed={isSelected}
+                    style={{
+                      textAlign: 'left',
+                      minHeight: '44px',
+                      padding: '14px',
+                      borderRadius: '0px',
+                      border: isSelected ? '1px solid #38bdf8' : '1px solid #1e3a5f',
+                      background: isSelected ? 'rgba(37, 99, 235, 0.2)' : '#07101f',
+                      color: '#f8fafc',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.95rem', fontWeight: 700, color: isSelected ? '#86daff' : '#f8fafc' }}>
+                      {item.title}
+                    </span>
+                    <span style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                      {item.tagline}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <textarea
+              readOnly
+              value={featuredSnippet}
+              aria-label={`Copy-Ready HTML Embed Snippet For ${activeFeaturedWidget.title}`}
+              style={{
+                width: '100%',
+                minHeight: '108px',
+                background: '#050a14',
+                border: '1px solid #1e3a5f',
+                borderRadius: '0px',
+                padding: '12px',
+                color: '#86daff',
+                fontFamily: 'monospace',
+                fontSize: '0.82rem',
+                lineHeight: 1.5,
+                resize: 'vertical',
+                boxSizing: 'border-box',
+                marginBottom: '12px',
+              }}
+            />
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <button
+                type="button"
+                data-testid="copy-embed-snippet-btn"
+                onClick={handleCopyFeaturedSnippet}
+                style={{
+                  minHeight: '44px',
+                  padding: '10px 18px',
+                  borderRadius: '0px',
+                  border: featuredCopied ? '1px solid #10b981' : '1px solid #38bdf8',
+                  background: featuredCopied ? '#059669' : '#2563eb',
+                  color: '#ffffff',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                {featuredCopied ? (
+                  <>
+                    <Check size={15} /> Copied HTML Embed Code!
+                  </>
+                ) : (
+                  <>
+                    <Copy size={15} /> Copy HTML Embed Code
+                  </>
+                )}
+              </button>
+              <Link
+                href={`/tools/${activeFeaturedWidget.widgetSlug}`}
+                style={{
+                  minHeight: '44px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.86rem',
+                  fontWeight: 600,
+                  color: '#38bdf8',
+                  textDecoration: 'none',
+                }}
+              >
+                Preview Full Tool Page <ExternalLink size={14} />
+              </Link>
+            </div>
+          </section>
 
           <section aria-labelledby="available-widgets-heading">
             <h2 id="available-widgets-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '16px' }}>

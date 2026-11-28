@@ -58,7 +58,7 @@ export default function BoardCoverageMap() {
       <motion.div key={boardIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: board.color, fontFamily: 'monospace' }}>{board.board}</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: board.color, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{board.board}</div>
           <div style={{ background: `${board.color}20`, borderRadius: 6, padding: '3px 10px' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: board.color }}>{board.type}</span>
           </div>

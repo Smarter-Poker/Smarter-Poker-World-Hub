@@ -8,7 +8,7 @@ import { useState } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { commanderBreadcrumbs } from '../../../src/lib/seo/commanderBreadcrumbs';
 import Link from 'next/link';
-import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../src/components/commander/CommanderPageShell';
 import {
   ChevronLeft,
   ChevronDown,
@@ -407,19 +407,22 @@ export default function PlayerFAQPage() {
 
       <div className="cmd-page min-h-screen">
         {/* Header */}
+        <div className="cmd-back-row">
+          <Link className="cmd-back-link" href="/hub/commander" aria-label="Back To Live Poker">
+            <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+            <span>Back</span>
+          </Link>
+        </div>
         <header className="cmd-header-bar sticky top-0 z-20">
-          <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="max-w-4xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-4">
-              <Link href="/hub/commander" className="text-[#64748B] hover:text-white">
-                <ChevronLeft className="w-5 h-5" />
-              </Link>
               <div className="flex items-center gap-2">
                 <HelpCircle className="w-6 h-6 text-[#22D3EE]" />
                 <h1 className="text-xl font-bold text-white">FAQ</h1>
               </div>
             </div>
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9FB3C8]" />
               <input
                 type="text"
                 placeholder="Search Questions..."
@@ -446,8 +449,8 @@ export default function PlayerFAQPage() {
                     }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
                       activeCategory === cat.id
-                        ? 'bg-[#22D3EE] text-[#0F172A]'
-                        : 'bg-[#1E293B] text-[#94A3B8] hover:text-white'
+                        ? 'cmd-tab cmd-tab--active'
+                        : 'cmd-tab'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -461,7 +464,7 @@ export default function PlayerFAQPage() {
           {/* Search Results Header */}
           {searchTerm && (
             <div className="mb-6">
-              <p className="text-[#64748B]">
+              <p className="text-[#9FB3C8]">
                 {filteredCategories.reduce((sum, cat) => sum + cat.faqs.length, 0)} Results For "
                 {searchTerm}"
               </p>
@@ -508,7 +511,7 @@ export default function PlayerFAQPage() {
                         >
                           <span className="font-medium text-white pr-4">{faq.question}</span>
                           <ChevronDown
-                            className={`w-5 h-5 text-[#64748B] flex-shrink-0 transition-transform ${
+                            className={`w-5 h-5 text-[#9FB3C8] flex-shrink-0 transition-transform ${
                               open ? 'rotate-180' : ''
                             }`}
                           />
@@ -519,7 +522,7 @@ export default function PlayerFAQPage() {
                           style={open ? undefined : { display: 'none' }}
                         >
                           <div className="border-t border-[#374151] pt-4">
-                            <div className="text-[#94A3B8] whitespace-pre-line text-sm leading-relaxed">
+                            <div className="text-[#A9BDD1] whitespace-pre-line text-sm leading-relaxed">
                               {faq.answer}
                             </div>
                           </div>
@@ -535,8 +538,8 @@ export default function PlayerFAQPage() {
           {/* No Results */}
           {searchTerm && filteredCategories.length === 0 && (
             <div className="text-center py-12">
-              <HelpCircle className="w-12 h-12 text-[#4A5E78] mx-auto mb-4" />
-              <p className="text-[#64748B]">No Questions Found Matching "{searchTerm}"</p>
+              <HelpCircle className="w-12 h-12 text-[#8FA6BE] mx-auto mb-4" />
+              <p className="text-[#9FB3C8]">No Questions Found Matching "{searchTerm}"</p>
               <button
                 onClick={() => setSearchTerm('')}
                 className="text-[#22D3EE] hover:underline mt-2"
@@ -549,7 +552,7 @@ export default function PlayerFAQPage() {
           {/* Contact Support */}
           <div className="mt-8 cmd-panel p-6 text-center">
             <h3 className="font-semibold text-white mb-2">Still Have Questions?</h3>
-            <p className="text-[#64748B] mb-4">
+            <p className="text-[#9FB3C8] mb-4">
               Contact The Poker Room Staff Or Reach Out To Our Support Team.
             </p>
             <a
@@ -565,3 +568,5 @@ export default function PlayerFAQPage() {
     </CommanderPageShell>
   );
 }
+
+PlayerFAQPage.getLayout = commanderPageLayout;

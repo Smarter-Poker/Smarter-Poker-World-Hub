@@ -4,7 +4,7 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Users, Shield, ShieldAlert, BadgeInfo, MessageSquare, Megaphone, Loader2, UserX } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 import { toast } from 'react-hot-toast';
-import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../../src/components/commander/CommanderPageShell';
 import CasinoActionDialog from '../../../../../src/components/poker-near-me/CasinoActionDialog';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -62,7 +62,7 @@ function AnnounceModal({ isOpen, onClose, onSend, sending }) {
         maxLength={2000}
         placeholder="Game time, table, or location update..."
       />
-      <div className="mt-2 text-right text-xs text-[#64748B]">{message.length} / 2000</div>
+      <div className="mt-2 text-right text-xs text-[#9FB3C8]">{message.length} / 2000</div>
     </CasinoActionDialog>
   );
 }
@@ -250,15 +250,18 @@ export default function HomeGameRosterPage() {
     <>
       <SEOHead title="Roster | Commander" noindex={true} />
       <div className="cmd-page" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
+        <div className="cmd-back-row">
+          <button type="button" className="cmd-back-link" onClick={() => router.push(`/hub/commander/home-games/${id}/manage`)}>
+            <ArrowLeft className="w-5 h-5 text-[#9FB3C8]" aria-hidden="true" />
+            <span>Back</span>
+          </button>
+        </div>
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => router.push(`/hub/commander/home-games/${id}/manage`)} className="p-2 hover:bg-[#132240] rounded-lg transition-colors">
-                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
-              </button>
               <div>
                 <h1 className="font-bold text-white">Database Of Players</h1>
-                <p className="text-sm text-[#64748B]">{group?.name}</p>
+                <p className="text-sm text-[#9FB3C8]">{group?.name}</p>
               </div>
             </div>
             <button
@@ -275,7 +278,7 @@ export default function HomeGameRosterPage() {
           <div className="cmd-panel overflow-x-auto">
             <table className="w-full min-w-[800px] text-left border-collapse">
               <thead>
-                <tr className="border-b border-[#4A5E78] text-sm text-[#64748B]">
+                <tr className="border-b border-[#445E77] text-sm text-[#9FB3C8]">
                   <th className="p-4 font-medium">Player</th>
                   <th className="p-4 font-medium">Badge</th>
                   <th className="p-4 font-medium">Status</th>
@@ -284,7 +287,7 @@ export default function HomeGameRosterPage() {
                   <th className="p-4 font-medium text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#4A5E78]">
+              <tbody className="divide-y divide-[#445E77]">
                 {roster.map(p => (
                   <tr key={p.user_id || p.member_id} className={`hover:bg-[#132240]/50 transition-colors ${p.status === 'banned' ? 'opacity-50' : ''}`}>
                     <td className="p-4">
@@ -293,7 +296,7 @@ export default function HomeGameRosterPage() {
                           {p.avatar_url ? (
                             <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            <Users className="w-5 h-5 text-[#64748B]" />
+                            <Users className="w-5 h-5 text-[#9FB3C8]" />
                           )}
                         </div>
                         <span className="font-medium text-white whitespace-nowrap">{p.display_name || 'Member'}</span>
@@ -301,9 +304,9 @@ export default function HomeGameRosterPage() {
                     </td>
                     <td className="p-4">
                       {['owner', 'host'].includes(p.role?.toLowerCase()) && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-[#22D3EE]/10 text-[#22D3EE]"><Shield className="w-3 h-3" /> Host</span>}
-                      {p.role?.toLowerCase() === 'admin' && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-[#F59E0B]/10 text-[#F59E0B]"><ShieldAlert className="w-3 h-3" /> Admin</span>}
-                      {p.role?.toLowerCase() === 'core' && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-[#8B5CF6]/10 text-[#8B5CF6]">Core</span>}
-                      {['member', 'follower'].includes(p.role?.toLowerCase()) && <span className="text-sm text-[#64748B] capitalize">{p.role}</span>}
+                      {p.role?.toLowerCase() === 'admin' && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-[#22D3EE]/10 text-[#22D3EE]"><ShieldAlert className="w-3 h-3" /> Admin</span>}
+                      {p.role?.toLowerCase() === 'core' && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-[#5AA9FF]/10 text-[#5AA9FF]">Core</span>}
+                      {['member', 'follower'].includes(p.role?.toLowerCase()) && <span className="text-sm text-[#9FB3C8] capitalize">{p.role}</span>}
                     </td>
                     <td className="p-4 capitalize">
                       {p.status === 'banned' ? <span className="text-[#EF4444] font-medium border border-[#EF4444]/30 px-2 py-1 rounded">Banned</span> : <span className="text-[#10B981]">{p.status}</span>}
@@ -334,7 +337,7 @@ export default function HomeGameRosterPage() {
                 ))}
                 {roster.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-[#64748B]">No Players In Roster</td>
+                    <td colSpan={6} className="p-8 text-center text-[#9FB3C8]">No Players In Roster</td>
                   </tr>
                 )}
               </tbody>
@@ -377,3 +380,5 @@ export default function HomeGameRosterPage() {
 export async function getServerSideProps() {
   return { props: {} };
 }
+
+HomeGameRosterPage.getLayout = commanderPageLayout;

@@ -69,11 +69,11 @@ export default function EVCalculatorGuide() {
         <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 8, padding: 8, marginBottom: 8 }}>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{ex.setup}</div>
         </div>
-        <div style={{ background: `${ex.color}08`, borderRadius: 8, padding: 8, marginBottom: 8, fontFamily: 'monospace' }}>
+        <div style={{ background: `${ex.color}08`, borderRadius: 8, padding: 8, marginBottom: 8, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Formula</div>
           <div style={{ fontSize: 12, color: ex.color }}>{ex.formula}</div>
         </div>
-        <div style={{ background: 'rgba(59,130,246,0.05)', borderRadius: 8, padding: 8, marginBottom: 8, fontFamily: 'monospace' }}>
+        <div style={{ background: 'rgba(59,130,246,0.05)', borderRadius: 8, padding: 8, marginBottom: 8, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Calculation</div>
           <div style={{ fontSize: 12, color: '#3b82f6' }}>{ex.calc}</div>
         </div>

@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -664,6 +665,16 @@ export default function PloBetCalculatorPage({
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="plo-bet-calculator"
+            toolName="PLO Max Bet & Pot-Limit Raise Calculator"
+            eyebrow="Free PLO Math Cloud Sync"
+            title="Save This PLO Pot-Limit Bet Sizing Spot Free"
+            description="Sync Exact 3x-Plus-Trail Pot-Limit Raises, Bomb Pot Pools & PLO Sizing Rules Across Devices."
+            ctaLabel="Save PLO Bet Spot Free"
+            summaryText={`PLO Pot-Limit Raise: Previous Pot ${betMetrics.safePrevPot} BB + Last Bet ${betMetrics.safeLastBet} BB + Trail ${betMetrics.safeTrail} BB -> Max Total Bet = ${betMetrics.maxTotalBetToLine} BB (Raise On Top: +${betMetrics.maxRaiseOnTop} BB)`}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-plo-bet-calculator"

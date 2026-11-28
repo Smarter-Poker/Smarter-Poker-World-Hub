@@ -2,7 +2,7 @@
  * SocialLayer.jsx — Feature #4: Social Layer: See Friends At Venues
  * Shows friends checked in at venues with geofence integration.
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import { useModalHistory } from '../../hooks/useModalHistory';
 import { useScrimDismiss } from '../../hooks/useScrimDismiss';
@@ -37,7 +37,9 @@ function getInitials(name) {
 }
 
 export default function SocialLayer({ userId, userLocation, venues = [], authToken, requireOnline }) {
-    const [friendCheckins, setFriendCheckins] = useState([]);
+    // Raw recent friend check-ins; the per-venue grouping is derived at render
+    // time (friendCheckins below) so a new venue list never costs a re-fetch.
+    const [recentFriendCheckins, setRecentFriendCheckins] = useState([]);
     const [friendsList, setFriendsList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [inviteModal, setInviteModal] = useState(null);
@@ -55,19 +57,26 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
     // token on both the friends branch and the user_id branch. Fall back to the client's
     // own session token (getFreshAccessToken) when the prop is absent.
     const [resolvedToken, setResolvedToken] = useState(authToken || null);
+    // REQUEST FLOOD FIX (2026-11-28): the friends list used to be requested
+    // once WITHOUT a token (a guaranteed 401) and again when the token arrived.
+    // The fetch now waits until token resolution has finished either way.
+    const [tokenSettled, setTokenSettled] = useState(!!authToken);
     useEffect(() => {
         let cancelled = false;
         if (authToken) {
             setResolvedToken(authToken);
+            setTokenSettled(true);
             return () => { cancelled = true; };
         }
-        if (!userId) return undefined;
+        if (!userId) { setTokenSettled(true); return undefined; }
         (async () => {
             try {
                 const token = await getFreshAccessToken();
                 if (!cancelled && token) setResolvedToken(token);
             } catch (err) {
                 console.warn('[SocialLayer] Could not resolve access token:', err?.message || err);
+            } finally {
+                if (!cancelled) setTokenSettled(true);
             }
         })();
         return () => { cancelled = true; };
@@ -98,6 +107,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             setLoading(false);
             return;
         }
+        if (!tokenSettled) return;
         try {
             const headers = authHeaders();
             // WIRING FIX: '/api/friends/list' has no handler (verified against the full
@@ -124,7 +134,13 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             console.warn('Failed to fetch friends:', err);
             setLoading(false);
         }
-    }, [userId, authHeaders]);
+    }, [userId, authHeaders, tokenSettled]);
+
+    // The check-in fan-out is keyed on WHO the friends are, not on the identity
+    // of the friends array, so an identical list never re-requests.
+    const friendsListRef = useRef(friendsList);
+    friendsListRef.current = friendsList;
+    const friendKey = useMemo(() => friendsList.map(f => String(f.friend_id || f.id)).join(','), [friendsList]);
 
     // Fetch recent check-ins from friends
     const fetchFriendCheckins = useCallback(async () => {
@@ -134,9 +150,10 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
         checkinsAbortRef.current = checkinsController;
         try {
             // Get all recent checkins and filter to friends
+            const friendsList = friendsListRef.current;
             const friendIds = friendsList.map(f => f.friend_id || f.id);
             if (friendIds.length === 0) {
-                setFriendCheckins([]);
+                setRecentFriendCheckins([]);
                 setLoading(false);
                 return;
             }
@@ -189,25 +206,8 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             // Sort by most recent
             allCheckins.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-            // Aggregate by venue
-            const venueMap = {};
-            allCheckins.forEach(c => {
-                const vid = c.venue_id;
-                if (!venueMap[vid]) {
-                    const venue = venues.find(v => String(v.id) === String(vid));
-                    venueMap[vid] = {
-                        venue_id: vid,
-                        venue_name: venue?.name || `Venue #${vid}`,
-                        venue_city: venue?.city || '',
-                        venue_state: venue?.state || '',
-                        checkins: [],
-                    };
-                }
-                venueMap[vid].checkins.push(c);
-            });
-
             if (!isMounted.current || checkinsController.signal.aborted) return;
-            setFriendCheckins(Object.values(venueMap || {}));
+            setRecentFriendCheckins(allCheckins);
         } catch (err) {
             if (!isMounted.current) return;
             console.warn('Failed to fetch friend checkins:', err);
@@ -217,19 +217,41 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                 setRefreshing(false);
             }
         }
-    }, [userId, friendsList, venues, authHeaders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId, friendKey, authHeaders]);
+
+    // Aggregate by venue. Venue names come from the current list, so a venue
+    // refresh relabels the groups without touching the network.
+    const friendCheckins = useMemo(() => {
+        const venueMap = {};
+        recentFriendCheckins.forEach(c => {
+            const vid = c.venue_id;
+            if (!venueMap[vid]) {
+                const venue = (venues || []).find(v => String(v.id) === String(vid));
+                venueMap[vid] = {
+                    venue_id: vid,
+                    venue_name: venue?.name || `Venue #${vid}`,
+                    venue_city: venue?.city || '',
+                    venue_state: venue?.state || '',
+                    checkins: [],
+                };
+            }
+            venueMap[vid].checkins.push(c);
+        });
+        return Object.values(venueMap);
+    }, [recentFriendCheckins, venues]);
 
     useEffect(() => {
         fetchFriends();
     }, [fetchFriends]);
 
     useEffect(() => {
-        if (friendsList.length > 0) {
+        if (friendKey) {
             fetchFriendCheckins();
         }
         // Auto-refresh stays disabled per product decision; the header Refresh button
         // below replaces it (the old setInterval/clearInterval pair was dead code).
-    }, [friendsList, fetchFriendCheckins]);
+    }, [friendKey, fetchFriendCheckins]);
 
     // A11Y: the invite modal had no dialog role, no Escape handler and no focus move,
     // so keyboard and screen-reader users tabbed straight past it into the page behind.

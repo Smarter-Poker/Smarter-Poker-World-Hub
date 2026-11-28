@@ -21,8 +21,10 @@
  * the chrome-row / chrome-active-v2 / chrome-readout rim itself);
  * __tests__/poker-near-me-smarterdesign.law.test.mjs refuses one coming back.
  * This file holds the structural pieces: the page header band, the lobby grid
- * and readouts, the feature sheet, the status rail, and the painted chassis
- * (.pnc) turned into one flowing steel-rimmed surface.
+ * and readouts, the feature sheet and the status rail. The chassis (.pnc) is
+ * one steel-rimmed surface at source, in poker-near-me-console.css (2026-11-28):
+ * nothing here re-skins it, and no Poker Near Me stylesheet paints its head,
+ * rail, foot or plate strip.
  */
 
 
@@ -340,135 +342,6 @@ body.world-poker-near-me .pnm-status-rail__item dd {
 body.world-poker-near-me .pnm-status-rail__item--live dd { color: #8ff0a4 !important; }
 body.world-poker-near-me .pnm-status-rail__item--offline dd { color: #ff8a96 !important; }
 
-/* The painted chassis (.pnc) becomes ONE steel-rimmed surface whose head is
-   live, flowing type: no raster head, crest, mid rail, foot or plate strip,
-   and no absolutely positioned "zones" that clip a long title. */
-body.world-poker-near-me .pnc,
-.pnc[data-pnm-console='painted-chassis-v1'] {
-  box-sizing: border-box;
-  gap: 0;
-  padding: clamp(12px, 3vw, 22px) !important;
-  border: 5px solid transparent !important;
-  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
-  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) padding-box !important;
-  color: #f2f7ff;
-  font-family: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-.pnc[data-pnm-console='painted-chassis-v1'] > .pnc__head {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 4px 12px;
-  aspect-ratio: auto !important;
-  min-height: 0 !important;
-  margin: 0 0 12px !important;
-  background: none !important;
-}
-
-.pnc[data-pnm-console='painted-chassis-v1'] > .pnc__head > .pnc-zone {
-  position: static !important;
-  inset: auto !important;
-  width: auto !important;
-  height: auto !important;
-  overflow: visible !important;
-  white-space: normal !important;
-  text-wrap: pretty !important;
-  grid-column: 1;
-}
-
-.pnc[data-pnm-console='painted-chassis-v1'] > .pnc__head > .pnc-zone > span {
-  font-size: inherit !important;
-  white-space: normal;
-}
-
-.pnc[data-pnm-console='painted-chassis-v1'] .pnc__eyebrow {
-  color: #86daff !important;
-  font: 700 13px/1.2 var(--font-inter, Inter), sans-serif !important;
-  letter-spacing: 0.02em !important;
-  text-transform: none !important;
-}
-
-.pnc[data-pnm-console='painted-chassis-v1'] .pnc__title {
-  margin: 0 !important;
-  color: #f2f7ff !important;
-  -webkit-text-fill-color: #f2f7ff !important;
-  font: 800 clamp(22px, 5.6vw, 32px)/1.06 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif !important;
-  letter-spacing: -0.01em !important;
-  text-transform: none !important;
-  overflow-wrap: anywhere;
-}
-
-.pnc[data-pnm-console='painted-chassis-v1'] .pnc__subtitle {
-  color: #bdd0e2 !important;
-  font: 500 14px/1.35 var(--font-inter, Inter), sans-serif !important;
-  letter-spacing: 0 !important;
-}
-
-.pnc[data-pnm-console='painted-chassis-v1'] .pnc__pill {
-  grid-column: 2 !important;
-  grid-row: 1 / span 2;
-  align-self: start;
-  padding: 6px 10px !important;
-  border: 3px solid transparent !important;
-  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
-  background: #06111d padding-box !important;
-  font: 700 13px/1.1 var(--font-rajdhani, 'Arial Narrow'), sans-serif !important;
-  white-space: nowrap !important;
-}
-
-.pnc[data-pnm-console='painted-chassis-v1'] > .pnc__body {
-  padding: 0 !important;
-  gap: 12px !important;
-  background: none !important;
-}
-
-.pnc[data-pnm-console='painted-chassis-v1'] > .pnc__foot {
-  display: flex !important;
-  flex-wrap: wrap;
-  gap: 8px;
-  aspect-ratio: auto !important;
-  min-height: 0 !important;
-  margin-top: 12px;
-  background: none !important;
-}
-
-.pnc[data-pnm-console='painted-chassis-v1'] > .pnc__foot:empty {
-  display: none !important;
-}
-
-.pnc[data-pnm-console='painted-chassis-v1'] .pnc-plate {
-  position: static !important;
-  inset: auto !important;
-  flex: 1 1 140px;
-  width: auto !important;
-  height: auto !important;
-  min-height: 46px;
-  padding: 6px 12px !important;
-  border: 3px solid transparent !important;
-  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
-  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
-  color: #f2f7ff !important;
-  cursor: pointer;
-}
-
-.pnc[data-pnm-console='painted-chassis-v1'] .pnc-plate:last-child {
-  border-image-source: url('/images/smarterdesign/chrome-active-v2.webp') !important;
-  border-image-slice: 11 !important;
-  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box !important;
-}
-
-.pnc[data-pnm-console='painted-chassis-v1'] .pnc-plate__face,
-.pnc[data-pnm-console='painted-chassis-v1'] .pnc-plate__text {
-  position: static !important;
-  display: block;
-  width: auto !important;
-  height: auto !important;
-  color: inherit !important;
-  font: 700 16px/1.15 var(--font-rajdhani, 'Arial Narrow'), sans-serif !important;
-  white-space: normal !important;
-}
-
 /* Painted three-slice panel (.pnc-panel): the body carries the one rim. */
 body.world-poker-near-me .pnc-panel > .pnc-panel__body {
   padding: clamp(10px, 2.6vw, 18px) !important;
@@ -637,13 +510,6 @@ body.world-poker-near-me :is(.dt-search-input, .ec-search-input, .tours-search-b
 body.world-poker-near-me .pnm-sd-top .pnm-sd-header,
 body.world-poker-near-me .pnm-sd-titlebar .pnm-sd-header {
   width: 100%;
-}
-
-/* Plate labels read white on chrome and cobalt (the old blue ink was meant
-   for painted silver plates and vanished on the cobalt primary). */
-body.world-poker-near-me .pnc[data-pnm-console='painted-chassis-v1'] .pnc-plate .pnc-plate__text[class*='pnc-ink--'] {
-  color: #ffffff !important;
-  text-shadow: 0 1px 1px #0008 !important;
 }
 
 /* Discovery tools (2026-11-28): every control inside the More tools, their

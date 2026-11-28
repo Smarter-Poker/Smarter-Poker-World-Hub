@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import StoreImageHeader from '../../../src/components/diamond-store/StoreImageHeader';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { ensureAuthReady, getAccessToken } from '../../../src/lib/authUtils';
@@ -13,8 +14,24 @@ import {
   marketplaceFulfillmentStatus,
 } from '../../../src/lib/store/marketplaceCopy';
 import { boundedCommerceFetch } from '../../../src/lib/store/boundedCommerceFetch';
+import { formatUsd } from '../../../src/lib/store/formatStoreMoney.mjs';
 
 const FULFILLMENT_AUTH_TIMEOUT_MS = 20000;
+
+// What the operator console does, behind the header's chrome "?".
+const FULFILLMENT_HELP = {
+  steps: [
+    'Review Every Paid Merchandise Order That Needs Attention: Its Items, Payment, Shipping Address And Fulfillment Status. Refresh Queue Reloads The Protected Queue, And Load Older Exceptions Pages Further Back.',
+    'For Manually Fulfilled Orders, Start Processing, Then Mark Shipped With The Carrier Tracking Number Once The Package Is Handed Off, And Mark Delivered When It Arrives. Diamond Orders That Have Not Shipped Can Be Refunded.',
+    'Marketplace Operations Shows Verified 30-Day Commerce Signals. Orders Run By A Connected Provider, Or Quarantined For Reconciliation, Cannot Be Shipped Or Refunded Here.',
+  ],
+};
+
+// Operations counts read like every other store number: 18,000, not 18000.
+function formatCount(value) {
+  const n = Number(value);
+  return (Number.isFinite(n) ? n : 0).toLocaleString('en-US');
+}
 
 function itemLabel(order) {
   const items = Array.isArray(order?.items) ? order.items : [];
@@ -377,28 +394,31 @@ export default function MerchandiseFulfillmentConsole() {
       />
       <UniversalHeader pageDepth={2} />
       <main
-        className={styles.page}
+        className={`smarterdesign ${styles.page}`}
         data-marketplace-route="/hub/merch-store/fulfillment"
         data-title-case-strategy="css"
       >
-        <header className={styles.hero}>
-          <div className={styles.eyebrow}>Protected Store Operations</div>
-          <h1>Merchandise Fulfillment</h1>
-          <p>Review Paid Orders, Manual Handoffs, Tracking, Delivery, And Diamond Refunds.</p>
-          <div className={styles.actions}>
-            <button
-              type="button"
-              onClick={() => {
-                void loadOrders();
-                void loadOperationsSummary();
-              }}
-              disabled={state.kind === 'loading' || signedOut}
-            >
-              Refresh Queue
-            </button>
-            <Link href="/hub/merch-store">Return To Merch Store</Link>
-          </div>
-        </header>
+        <StoreImageHeader
+          art="store-orders"
+          title="Merch Fulfillment"
+          parent="Smarter.Poker Marketplace"
+          heading="h1"
+          className={styles.header}
+          help={FULFILLMENT_HELP}
+        />
+        <div className={`${styles.actions} ${styles.toolbar}`}>
+          <button
+            type="button"
+            onClick={() => {
+              void loadOrders();
+              void loadOperationsSummary();
+            }}
+            disabled={state.kind === 'loading' || signedOut}
+          >
+            Refresh Queue
+          </button>
+          <Link href="/hub/merch-store">Return To Merch Store</Link>
+        </div>
 
         <div className={styles.status} role="status" aria-live="polite">
           {marketplaceCopy(state.message)}
@@ -410,7 +430,20 @@ export default function MerchandiseFulfillmentConsole() {
                 <span className={styles.eyebrow}>Verified Commerce Signals</span>
                 <h2 id="store-operations-title">Marketplace Operations</h2>
               </div>
-              <span className={styles.operationsState} role="status" aria-live="polite">
+              <span
+                className={styles.operationsState}
+                role="status"
+                aria-live="polite"
+                data-state={
+                  summaryState === 'loading'
+                    ? 'loading'
+                    : summaryState === 'error'
+                      ? 'error'
+                      : operationsSummary?.readiness?.ready
+                        ? 'ready'
+                        : 'attention'
+                }
+              >
                 {summaryState === 'loading'
                   ? 'Refreshing'
                   : summaryState === 'error'
@@ -423,20 +456,20 @@ export default function MerchandiseFulfillmentConsole() {
             {operationsSummary && (
               <div className={styles.metricGrid}>
                 <div>
-                  <strong>{operationsSummary.summary?.orders?.created || 0}</strong>
+                  <strong>{formatCount(operationsSummary.summary?.orders?.created)}</strong>
                   <span>Orders In 30 Days</span>
                 </div>
                 <div>
-                  <strong>{operationsSummary.summary?.orders?.awaitingAttention || 0}</strong>
+                  <strong>{formatCount(operationsSummary.summary?.orders?.awaitingAttention)}</strong>
                   <span>Need Fulfillment Attention</span>
                 </div>
                 <div>
-                  <strong>{operationsSummary.summary?.orders?.providerReview || 0}</strong>
+                  <strong>{formatCount(operationsSummary.summary?.orders?.providerReview)}</strong>
                   <span>Provider Reviews</span>
                 </div>
                 <div>
                   <strong>
-                    {operationsSummary.summary?.lifetimeVip?.monthlyDiamondsIssued || 0}
+                    {formatCount(operationsSummary.summary?.lifetimeVip?.monthlyDiamondsIssued)}
                   </strong>
                   <span>Lifetime Diamonds Issued</span>
                 </div>
@@ -445,7 +478,7 @@ export default function MerchandiseFulfillmentConsole() {
                   <span>Fulfillment Mode</span>
                 </div>
                 <div>
-                  <strong>{operationsSummary.summary?.funnel?.store_checkout_complete || 0}</strong>
+                  <strong>{formatCount(operationsSummary.summary?.funnel?.store_checkout_complete)}</strong>
                   <span>Verified Checkout Returns</span>
                 </div>
               </div>
@@ -487,7 +520,7 @@ export default function MerchandiseFulfillmentConsole() {
                 <p className={styles.money}>
                   {order.payment_method === 'diamonds'
                     ? `${Number(order.diamonds_spent || 0).toLocaleString()} Diamonds`
-                    : `$${Number(order.total_usd || 0).toFixed(2)}`}
+                    : formatUsd(order.total_usd)}
                 </p>
                 <address data-user-content="true" data-preserve-case="true">
                   {address.name || 'Recipient'}

@@ -9,7 +9,7 @@ import { Users, Loader2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../../src/components/commander/CommanderPageShell';
 
 export default function SquadJoinPage() {
   const router = useRouter();
@@ -102,11 +102,14 @@ export default function SquadJoinPage() {
     <>
       {pageHead}
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="cmd-back-row">
+          <button type="button" className="cmd-back-link" onClick={() => router.push('/hub/commander/squads')}>
+            <ArrowLeft size={20} className="text-[#9FB3C8]" aria-hidden="true" />
+            <span>Back</span>
+          </button>
+        </div>
         <header className="cmd-header-bar">
           <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-4">
-            <button onClick={() => router.push('/hub/commander/squads')} className="p-2 rounded-lg hover:bg-[#132240]">
-              <ArrowLeft size={20} className="text-[#64748B]" />
-            </button>
             <h1 className="text-lg font-bold text-white">Join Squad</h1>
           </div>
         </header>
@@ -116,7 +119,7 @@ export default function SquadJoinPage() {
             {status === 'loading' && (
               <>
                 <Loader2 size={48} className="mx-auto text-[#22D3EE] animate-spin mb-4" />
-                <p className="text-[#64748B]">Looking Up Invite Code...</p>
+                <p className="text-[#9FB3C8]">Looking Up Invite Code...</p>
               </>
             )}
 
@@ -127,9 +130,9 @@ export default function SquadJoinPage() {
                 </div>
                 <h2 className="text-xl font-bold text-white">{squad.name}</h2>
                 {squad.description && (
-                  <p className="text-sm text-[#64748B] mt-2">{squad.description}</p>
+                  <p className="text-sm text-[#9FB3C8] mt-2">{squad.description}</p>
                 )}
-                <div className="text-sm text-[#64748B] mt-3">
+                <div className="text-sm text-[#9FB3C8] mt-3">
                   {squad.member_count || 0} Members
                 </div>
                 <button
@@ -146,7 +149,7 @@ export default function SquadJoinPage() {
               <>
                 <CheckCircle size={48} className="mx-auto text-[#10B981] mb-4" />
                 <h2 className="text-xl font-bold text-white">Joined</h2>
-                <p className="text-sm text-[#64748B] mt-2">Redirecting To Your Squad...</p>
+                <p className="text-sm text-[#9FB3C8] mt-2">Redirecting To Your Squad...</p>
               </>
             )}
 
@@ -170,3 +173,5 @@ export default function SquadJoinPage() {
     </CommanderPageShell>
   );
 }
+
+SquadJoinPage.getLayout = commanderPageLayout;

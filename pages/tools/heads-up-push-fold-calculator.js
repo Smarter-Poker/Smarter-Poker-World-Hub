@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -457,6 +458,16 @@ export default function HeadsUpPushFoldCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="heads-up-push-fold-calculator"
+              toolName="Heads-Up Push/Fold Nash Solver"
+              eyebrow="Free Heads-Up Cloud Sync"
+              title="Save This Heads-Up Nash Push/Fold Spot Free"
+              description="Sync Heads-Up Shove Ranges, BB Calling Thresholds & Short-Stack Endgame Charts Across Devices."
+              ctaLabel="Save Heads-Up Spot Free"
+              summaryText={summaryText}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-heads-up-push-fold-calculator"

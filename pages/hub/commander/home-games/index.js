@@ -15,7 +15,7 @@ import GameCalendar from '../../../../src/components/commander/home-games/GameCa
 import { supabase } from '../../../../src/lib/supabase';
 import { usePersistedFilters } from '../../../../src/hooks/usePersistedFilters';
 import { getAccessToken, ensureAuthReady } from '../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import useAccessibleDialog from '../../../../src/hooks/useAccessibleDialog';
 
 /* Inline HomeGameCard replaced by shared GroupCard component */
@@ -287,8 +287,7 @@ export default function PlayerHomeGamesHub() {
                   <Home className="w-7 h-7" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">HOME GAMES</h1>
-                  <p className="text-sm text-[#64748B] font-medium tracking-wide">Find Or Host Private Poker Games</p>
+                  <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">Home Games</h1>
                 </div>
               </div>
               <div className="cmd-home-games-header-actions flex items-center gap-2">
@@ -315,11 +314,11 @@ export default function PlayerHomeGamesHub() {
 
         <main data-pnm-secondary-foundation="interaction-v1">
         {/* Search */}
-        <div className="border-b-2 border-[#4A5E78] bg-[#0F1C32]">
+        <div className="border-b-2 border-[#445E77] bg-[#0F1C32]">
           <div className="max-w-6xl mx-auto px-4 py-3">
             <div className="cmd-home-games-search-row flex gap-3">
               <div className="flex-1 relative">
-                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B]" />
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9FB3C8]" />
                 <input
                   type="text"
                   placeholder="Search By City, Game Type, Or Host..."
@@ -344,14 +343,14 @@ export default function PlayerHomeGamesHub() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b-2 border-[#4A5E78] bg-[#0F1C32]">
+        <div className="border-b-2 border-[#445E77] bg-[#0F1C32]">
           <div className="cmd-home-games-tabs max-w-6xl mx-auto px-4 flex gap-1">
             <button
               onClick={() => setActiveTab('my-games')}
               className={`px-4 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors ${
                 activeTab === 'my-games'
                   ? 'border-[#22D3EE] text-[#22D3EE]'
-                  : 'border-transparent text-[#64748B] hover:text-white'
+                  : 'border-transparent text-[#9FB3C8] hover:text-white'
               }`}
             >
               My Games
@@ -361,7 +360,7 @@ export default function PlayerHomeGamesHub() {
               className={`px-4 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors flex items-center gap-2 ${
                 activeTab === 'discover'
                   ? 'border-[#22D3EE] text-[#22D3EE]'
-                  : 'border-transparent text-[#64748B] hover:text-white'
+                  : 'border-transparent text-[#9FB3C8] hover:text-white'
               }`}
             >
               <Globe size={16} />
@@ -372,7 +371,7 @@ export default function PlayerHomeGamesHub() {
               className={`px-4 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors flex items-center gap-2 ${
                 activeTab === 'calendar'
                   ? 'border-[#22D3EE] text-[#22D3EE]'
-                  : 'border-transparent text-[#64748B] hover:text-white'
+                  : 'border-transparent text-[#9FB3C8] hover:text-white'
               }`}
             >
               <Calendar size={16} />
@@ -414,7 +413,7 @@ export default function PlayerHomeGamesHub() {
                   <Globe className="w-8 h-8" />
                 </div>
                 <h3 className="text-lg font-bold text-white">No Public Games Found</h3>
-                <p className="text-[#64748B] mt-1">Check Back Later Or Host Your Own Game</p>
+                <p className="text-[#9FB3C8] mt-1">Check Back Later Or Host Your Own Game</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -450,7 +449,7 @@ export default function PlayerHomeGamesHub() {
               <h3 className="text-lg font-bold text-white">
                 {searchQuery || filters.gameType !== 'all' ? 'No Matching Games Found' : 'No Home Games Found'}
               </h3>
-              <p className="text-[#64748B] mt-1">
+              <p className="text-[#9FB3C8] mt-1">
                 {searchQuery || filters.gameType !== 'all'
                   ? 'Try Adjusting Your Search Or Filters'
                   : 'Be The First To Host A Game In Your Area'
@@ -515,7 +514,7 @@ export default function PlayerHomeGamesHub() {
               <span className="cmd-light cmd-light-tl" />
               <span className="cmd-light cmd-light-br" />
               <h3 id="home-games-join-title" className="text-lg font-bold text-white mb-4 uppercase tracking-wide">Join By Invite Code</h3>
-              <p id="home-games-join-description" className="text-sm text-[#64748B] mb-4">
+              <p id="home-games-join-description" className="text-sm text-[#9FB3C8] mb-4">
                 Enter The Invite Code Or Club Code Shared By The Host
               </p>
               <label htmlFor="home-games-join-code" className="sr-only">Invite Or Club Code</label>
@@ -649,3 +648,5 @@ export default function PlayerHomeGamesHub() {
     </CommanderPageShell>
   );
 }
+
+PlayerHomeGamesHub.getLayout = commanderPageLayout;

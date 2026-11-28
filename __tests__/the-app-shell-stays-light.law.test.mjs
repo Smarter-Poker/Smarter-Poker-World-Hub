@@ -216,3 +216,22 @@ test('both streaming components are still declared with dynamic() on those pages
     );
   }
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 2026-11-27: dynamic() is not enough if the shell renders it on every page.
+//
+// _app rendered <JarvisPanel> unconditionally, so its chunk was fetched on
+// every page right after hydration. Jarvis now mounts on first open.
+// ═══════════════════════════════════════════════════════════════════════════
+
+test('Jarvis is only rendered through its first-open gate', () => {
+  const app = readFileSync(join(ROOT, 'pages/_app.js'), 'utf8');
+  const jarvisUses = [...app.matchAll(/<JarvisPanel\b/g)].length;
+  assert.equal(jarvisUses, 1, 'JarvisPanel must be rendered exactly once, inside DeferredJarvisPanel');
+  const jarvisGate = app.match(/function DeferredJarvisPanel\([^)]*\) \{[\s\S]*?\n\}/);
+  assert.ok(jarvisGate && /<JarvisPanel\b/.test(jarvisGate[0]),
+    'the one JarvisPanel render is not inside DeferredJarvisPanel');
+  assert.match(jarvisGate[0], /if \(!opened && !isOpen\) return null;/,
+    'DeferredJarvisPanel no longer waits for the first open');
+  assert.match(app, /<DeferredJarvisPanel isOpen=\{isJarvisOpen\}/);
+});

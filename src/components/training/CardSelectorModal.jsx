@@ -55,7 +55,7 @@ export default function CardSelectorModal({ isOpen, onClose, onSelectCard, deadC
                         role="dialog"
                         aria-modal="true"
                         aria-label={title}
-                        className="sp-training-modal-surface"
+                        className="smarterdesign sp-training-modal-surface"
                         initial={{ scale: 0.85, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.85, opacity: 0 }}

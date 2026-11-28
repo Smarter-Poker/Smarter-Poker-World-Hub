@@ -110,6 +110,7 @@ import { VIPCard } from '../../src/components/store/StoreCards';
 import { VipMasthead, VipPricePlate, vipIntroPlateProps, VipPhoneOfferGate, VipSeal } from '../../src/components/vip/VipKit';
 import { VIP_INTRO_VERIFY_REASON } from '../../src/lib/store/vipIntroPrompt.mjs';
 import SmarterStoreShowcase, { SECTION_HEADERS } from '../../src/components/diamond-store/SmarterStoreShowcase';
+import { hasPhoneHeaderScene } from '../../src/components/diamond-store/StoreImageHeader';
 import CheckoutStatusPanel from '../../src/components/diamond-store/CheckoutStatusPanel';
 import MarketplaceCommerceNav from '../../src/components/store/MarketplaceCommerceNav';
 import {
@@ -3674,7 +3675,18 @@ export default function DiamondStorePage({
           href={`/images/smarterdesign/headers/${SECTION_HEADERS[activeTab].art}-scene.webp`}
           type="image/webp"
           fetchPriority="high"
+          media={hasPhoneHeaderScene(SECTION_HEADERS[activeTab].art) ? '(min-width: 601px)' : undefined}
         />
+        {hasPhoneHeaderScene(SECTION_HEADERS[activeTab].art) && (
+          <link
+            rel="preload"
+            as="image"
+            href={`/images/smarterdesign/headers/${SECTION_HEADERS[activeTab].art}-scene-phone.webp`}
+            type="image/webp"
+            fetchPriority="high"
+            media="(max-width: 600px)"
+          />
+        )}
 
         <style dangerouslySetInnerHTML={{ __html: `
                     /* <details> in the VIP FAQ: Safari/WebKit paints its OWN
@@ -4207,7 +4219,7 @@ export default function DiamondStorePage({
                       className={shellStyles.subPanel}
                       style={styles.rewardsOverview}
                     >
-                      <p style={styles.introText}>
+                      <p className={shellStyles.introWell}>
                         Welcome To The Smarter Rewards System! Earn Diamonds By Playing, Training,
                         And Engaging With The Community.
                       </p>
@@ -4876,10 +4888,11 @@ export default function DiamondStorePage({
                     </div>
                   )}
 
-                  <div style={styles.intro}>
-                    {/* The Club Shop title lives in the image header above; this
-                        row keeps only the live balance readout. */}
-                    <p style={{ margin: '0 0 8px', display: 'flex', justifyContent: 'center' }}>
+                  {/* The Club Shop title lives in the image header above; this
+                      compact readout panel carries the live balance and the
+                      one-line description. */}
+                  <div className={shellStyles.storeIntroPanel}>
+                    <p className={shellStyles.storeIntroBalance}>
                       <span style={styles.clubBalanceStatus}>
                         {visibleClubDiamondBalance !== null
                           ? `${visibleClubDiamondBalance.toLocaleString()} Diamonds`
@@ -4890,7 +4903,7 @@ export default function DiamondStorePage({
                               : 'Sign In To View Balance'}
                       </span>
                     </p>
-                    <p style={styles.introText}>
+                    <p className={shellStyles.storeIntroText}>
                       Purchase Verified In-Game Access For Your Club With Diamonds: Time Banks And
                       The Platform All Throwables Pack.
                     </p>

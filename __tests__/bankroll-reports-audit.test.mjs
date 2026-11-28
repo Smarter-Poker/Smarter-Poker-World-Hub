@@ -215,11 +215,19 @@ test('Jarvis Insights ends its window on the player’s own day', () => {
   assert.match(read('pages/api/jarvis/bankroll-analysis.js'), /analysisWindow\(days, now, req\.body\?\.today\)/);
 });
 
-test('leak and rule checks use gaming categories and the local day', () => {
+test('leak checks use gaming categories; rule checks judge the saved entry on its own day', () => {
   const src = read('src/lib/bankroll/leakDetection.ts');
-  assert.match(src, /const today = localDay\(\);/);
+  assert.match(src, /\.in\('category', GAMING_CATEGORIES\)/);
   assert.doesNotMatch(src, /toISOString\(\)\.split/);
   assert.match(src, /severityOf\(/);
+  // The live rule check (the page calls it after every save) measures the
+  // entry's own calendar day, never the UTC date of "now". The older
+  // checkRuleViolations in leakDetection.ts had no caller and was removed.
+  assert.doesNotMatch(src, /checkRuleViolations|logRuleViolation/);
+  const rules = read('src/lib/bankroll/ruleViolations.mjs');
+  assert.match(rules, /const day = String\(entry\.entry_date\)\.slice\(0, 10\);/);
+  assert.doesNotMatch(rules, /toISOString\(\)/);
+  assert.match(read('pages/hub/bankroll-manager.js'), /evaluateRuleViolations\(\{/);
 });
 
 test('badges are measured from recorded sessions, hours, trips and W-2G forms', () => {

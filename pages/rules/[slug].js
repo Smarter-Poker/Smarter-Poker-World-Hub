@@ -31,6 +31,7 @@ import {
   rulePath,
 } from '../../src/content/rules/rules';
 import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
+import { readGlossaryTerms, glossaryLinksFor } from '../../src/lib/learn/glossaryLinks.js';
 
 export async function getStaticPaths() {
   return {
@@ -47,15 +48,22 @@ export async function getStaticProps({ params }) {
     (r) => r.category === rule.category && r.slug !== rule.slug
   ).slice(0, 5);
 
+  // A ruling links a glossary term only when /glossary/<slug> exists. The
+  // rules named terms the glossary never defined (club-arena, side-pot,
+  // all-in, push-fold) and every one printed a link to a 404 (live SEO
+  // contract, 2026-11-28). Same resolver the lessons use.
+  const glossaryTerms = glossaryLinksFor(rule.relatedTerms, readGlossaryTerms()).map((t) => t.slug);
+
   return {
     props: {
       rule,
       peerRules,
+      glossaryTerms,
     },
   };
 }
 
-export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
+export default function PokerRuleDetailPage({ rule, peerRules = [], glossaryTerms = [] }) {
   const [rulingCopiedKey, setRulingCopiedKey] = useState('');
   const canonicalPath = rulePath(rule.slug);
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
@@ -578,7 +586,7 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
                 Review Official Definitions For Core Terms Referenced In This Floor Ruling:
               </p>
               <div style={styles.chipWrap}>
-                {(rule.relatedTerms || []).map((termSlug) => (
+                {glossaryTerms.map((termSlug) => (
                   <Link key={termSlug} href={`/glossary/${termSlug}`} style={styles.glossaryChip}>
                     {`/glossary/${termSlug}`}
                   </Link>

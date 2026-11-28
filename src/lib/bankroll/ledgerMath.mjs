@@ -110,10 +110,3 @@ export function formatCents(cents) {
   const value = Math.round(cents);
   return (value < 0 ? '-' : '') + usd.format(Math.abs(value) / 100);
 }
-
-/** "+$1,234.50" / "-$1,234.50" / "$0.00". Accepts cents. */
-export function formatSignedCents(cents) {
-  const value = Math.round(cents);
-  if (value === 0) return usd.format(0);
-  return (value > 0 ? '+' : '-') + usd.format(Math.abs(value) / 100);
-}

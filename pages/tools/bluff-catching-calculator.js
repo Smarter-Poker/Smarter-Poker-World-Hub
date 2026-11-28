@@ -20,6 +20,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -386,6 +387,16 @@ export default function BluffCatchingCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="bluff-catching-calculator"
+              toolName="River Bluff-Catching Solver"
+              eyebrow="Free River Math Cloud Sync"
+              title="Save This River Bluff-Catching Spot Free"
+              description="Sync Break-Even Calling Thresholds, Blocker Effects & MDF River Spots Across Phone & Desktop."
+              ctaLabel="Save Bluff-Catch Spot Free"
+              summaryText={summaryText}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-bluff-catching-calculator"

@@ -28,6 +28,7 @@ import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import { openQuickSignup } from '../../../src/components/seo/SmarterQuickSignupSheet';
 import { SAVED_SPOTS_STORAGE_KEY } from '../../../src/components/seo/SmarterUnlockedWelcomeBanner';
 import { trackSeoFunnelEvent } from '../../../src/lib/seo/seoFunnelTelemetry';
+import { setPublicSeoHtmlCache } from '../../../src/lib/seo/edgeCacheHeaders.mjs';
 import {
   GTO_LEAK_FINDER_SPOTS,
   scoreGtoLeakFinder,
@@ -38,6 +39,100 @@ const CANONICAL_PATH = '/tools/gto-leak-finder';
 const OG_IMAGE_URL =
   '/api/og/tool-card?tool=gto&title=60-Second%20GTO%20Leak%20Finder&subtitle=5-Hand%20Solver%20Diagnostic';
 const ANSWERS_STORAGE_KEY = 'sp_gto_leak_finder_answers_v1';
+
+function readStoredPlayerNumber() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const rawAuth = window.localStorage.getItem('smarter-poker-auth');
+    if (rawAuth) {
+      const parsed = JSON.parse(rawAuth);
+      const user = parsed?.user || null;
+      const authNum =
+        user?.user_metadata?.player_number ??
+        user?.player_number ??
+        parsed?.player_number ??
+        null;
+      if (authNum != null && String(authNum).trim() !== '') {
+        return String(authNum).trim();
+      }
+    }
+    const rawHeader = window.localStorage.getItem('sp-cached-header-user');
+    if (rawHeader) {
+      const cached = JSON.parse(rawHeader);
+      const cachedNum = cached?.player_number ?? cached?.playerNumber ?? null;
+      if (cachedNum != null && String(cachedNum).trim() !== '') {
+        return String(cachedNum).trim();
+      }
+    }
+  } catch (_) {
+    /* ignore storage restrictions */
+  }
+  return null;
+}
+
+export function buildLeakFinderShareUrl({
+  score = 0,
+  leakSlug = 'zero-leaks',
+  bb100 = null,
+  playerNumber = null,
+  siteUrl = 'https://smarter.poker',
+} = {}) {
+  const base = String(siteUrl || 'https://smarter.poker').trim().replace(/\/+$/, '') || 'https://smarter.poker';
+  const safeScore = Math.max(0, Math.min(100, Math.round(Number(score) || 0)));
+  const safeLeak =
+    String(leakSlug || 'zero-leaks')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'zero-leaks';
+  const params = new URLSearchParams();
+  params.set('score', String(safeScore));
+  params.set('leak', safeLeak);
+  if (bb100 !== null && bb100 !== undefined && Number.isFinite(Number(bb100))) {
+    params.set('bb100', Math.max(0, Math.min(99.9, Math.abs(Number(bb100)))).toFixed(1));
+  }
+  params.set('utm_source', 'leak_share');
+  params.set('utm_medium', 'social');
+  params.set('utm_campaign', 'gto_leak_finder');
+  const cleanRef = playerNumber != null ? String(playerNumber).trim().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32) : '';
+  if (cleanRef) {
+    params.set('ref', cleanRef);
+  }
+  return `${base}${CANONICAL_PATH}?${params.toString()}`;
+}
+
+export function buildLeakFinderOgImageUrl(query = {}) {
+  if (!query || typeof query !== 'object') return OG_IMAGE_URL;
+  const pick = (k) => {
+    const v = query[k];
+    return Array.isArray(v) ? v[0] : v;
+  };
+  const rawScore = pick('score');
+  const rawLeak = pick('leak');
+  const rawBb100 = pick('bb100');
+  const hasAny =
+    (rawScore !== undefined && String(rawScore).trim() !== '') ||
+    (rawLeak !== undefined && String(rawLeak).trim() !== '') ||
+    (rawBb100 !== undefined && String(rawBb100).trim() !== '');
+  if (!hasAny) return OG_IMAGE_URL;
+
+  const params = new URLSearchParams();
+  params.set('tool', 'leak-finder');
+  if (rawScore !== undefined && String(rawScore).trim() !== '') {
+    const n = Number(rawScore);
+    if (Number.isFinite(n)) params.set('score', String(Math.max(0, Math.min(100, Math.round(n)))));
+  }
+  if (rawLeak !== undefined && String(rawLeak).trim() !== '') {
+    const safeLeak = String(rawLeak).trim().replace(/[^\w\s-]/g, '').slice(0, 40);
+    if (safeLeak) params.set('leak', safeLeak);
+  }
+  if (rawBb100 !== undefined && String(rawBb100).trim() !== '') {
+    const b = Number(rawBb100);
+    if (Number.isFinite(b)) params.set('bb100', Math.min(99.9, Math.abs(b)).toFixed(1));
+  }
+  return `/api/og/tool-card?${params.toString()}`;
+}
 
 const SUIT_META = {
   s: { glyph: '♠', color: '#f2f7ff', name: 'Spades' },
@@ -157,7 +252,7 @@ function CardTile({ rank, suit }) {
   );
 }
 
-export default function GtoLeakFinderPage() {
+export default function GtoLeakFinderPage({ initialOgImage = OG_IMAGE_URL }) {
   const router = useRouter();
   const [signedIn, setSignedIn] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -165,6 +260,15 @@ export default function GtoLeakFinderPage() {
   const [showReport, setShowReport] = useState(false);
   const [hasDispatchedEngaged, setHasDispatchedEngaged] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
+
+  const dynamicOgImage = useMemo(() => {
+    const q = router?.query || {};
+    if (q.score !== undefined || q.leak !== undefined || q.bb100 !== undefined) {
+      return buildLeakFinderOgImageUrl(q);
+    }
+    return initialOgImage || OG_IMAGE_URL;
+  }, [router?.query, initialOgImage]);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -285,6 +389,7 @@ export default function GtoLeakFinderPage() {
     setCurrentIndex(0);
     setShowReport(false);
     setCopiedShare(false);
+    setCopiedShareLink(false);
   };
 
   const handleUnlockFullReport = () => {
@@ -311,14 +416,41 @@ export default function GtoLeakFinderPage() {
   };
 
   const shareCardUrl = useMemo(() => {
-    const subtitle = encodeURIComponent(
-      `${score.accuracyPct}% GTO Accuracy | -${score.estimatedLeakBb100.toFixed(1)} BB/100 Leak | ${score.playerGrade}`,
-    );
-    return `https://smarter.poker/api/og/tool-card?tool=gto&title=60-Second%20GTO%20Leak%20Finder&subtitle=${subtitle}`;
-  }, [score.accuracyPct, score.estimatedLeakBb100, score.playerGrade]);
+    const leakParam = encodeURIComponent(score.primaryLeak?.category || 'Zero Major Leaks');
+    const bbParam = encodeURIComponent(score.estimatedLeakBb100.toFixed(1));
+    return `https://smarter.poker/api/og/tool-card?tool=leak-finder&score=${score.accuracyPct}&leak=${leakParam}&bb100=${bbParam}`;
+  }, [score.accuracyPct, score.estimatedLeakBb100, score.primaryLeak]);
+
+  const handleShareScorecardLink = async () => {
+    const shareUrl = buildLeakFinderShareUrl({
+      score: score.accuracyPct,
+      leakSlug: score.primaryLeak?.spotId || 'zero-leaks',
+      bb100: score.estimatedLeakBb100,
+      playerNumber: readStoredPlayerNumber(),
+    });
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      }
+      setCopiedShareLink(true);
+      setTimeout(() => setCopiedShareLink(false), 3000);
+    } catch (_) {
+      setCopiedShareLink(true);
+    }
+    trackSeoFunnelEvent('seo_calculator_share_click', {
+      toolSlug: 'gto-leak-finder',
+      score: score.accuracyPct,
+    });
+  };
 
   const handleCopyShareCard = async () => {
-    const shareText = `My 60-Second GTO Poker Leak Finder Score: ${score.accuracyPct}% Accuracy (${score.optimalCount}/5) | Est. Leak: -${score.estimatedLeakBb100.toFixed(1)} BB/100 | Grade: ${score.playerGrade}. Test Your Game Free: https://smarter.poker/tools/gto-leak-finder | Score Card: ${shareCardUrl}`;
+    const shareUrl = buildLeakFinderShareUrl({
+      score: score.accuracyPct,
+      leakSlug: score.primaryLeak?.spotId || 'zero-leaks',
+      bb100: score.estimatedLeakBb100,
+      playerNumber: readStoredPlayerNumber(),
+    });
+    const shareText = `My 60-Second GTO Poker Leak Finder Score: ${score.accuracyPct}% Accuracy (${score.optimalCount}/5) | Est. Leak: -${score.estimatedLeakBb100.toFixed(1)} BB/100 | Grade: ${score.playerGrade}. Test Your Game Free: ${shareUrl} | Score Card: ${shareCardUrl}`;
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(shareText);
@@ -328,6 +460,10 @@ export default function GtoLeakFinderPage() {
     } catch (_) {
       setCopiedShare(true);
     }
+    trackSeoFunnelEvent('seo_calculator_share_click', {
+      toolSlug: 'gto-leak-finder',
+      score: score.accuracyPct,
+    });
   };
 
   const progressPct = showReport
@@ -340,7 +476,7 @@ export default function GtoLeakFinderPage() {
         title="60-Second GTO Poker Leak Finder Free | Smarter.Poker"
         description="Play 5 solver-graded 100BB poker spots in 60 seconds to uncover your top GTO leaks, estimated BB/100 loss rate, and custom drill plan free."
         canonical={CANONICAL_PATH}
-        ogImage={OG_IMAGE_URL}
+        ogImage={dynamicOgImage}
         jsonLd={[schemas.organization, ...schemaNodes]}
       />
 
@@ -804,6 +940,14 @@ export default function GtoLeakFinderPage() {
                 >
                   <button
                     type="button"
+                    className={styles.btnSharpPrimary}
+                    data-testid="leak-finder-share-card-btn"
+                    onClick={handleShareScorecardLink}
+                  >
+                    {copiedShareLink ? 'Copied Share Link!' : 'Share My Leak Scorecard'}
+                  </button>
+                  <button
+                    type="button"
                     className={styles.btnSharpSecondary}
                     data-testid="leak-finder-copy-share"
                     onClick={handleCopyShareCard}
@@ -1004,4 +1148,13 @@ export default function GtoLeakFinderPage() {
       </main>
     </>
   );
+}
+
+export async function getServerSideProps({ res, query }) {
+  setPublicSeoHtmlCache(res);
+  return {
+    props: {
+      initialOgImage: buildLeakFinderOgImageUrl(query),
+    },
+  };
 }

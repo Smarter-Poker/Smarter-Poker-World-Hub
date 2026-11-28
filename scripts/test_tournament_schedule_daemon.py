@@ -1302,5 +1302,63 @@ class HeartbeatTruthTests(unittest.TestCase):
         self.assertEqual(payload["venue_exceptions"], 2)
 
 
+class ConfirmedEmptyPersistenceTests(unittest.TestCase):
+    """A source-confirmed empty schedule is a current read, not silence.
+
+    Regression for venue 1828 (Lodge Austin): PokerAtlas returned its explicit
+    "does not currently run any poker tournaments" marker every day from
+    2026-09-13 to 2026-11-27, the daemon recognised it, and nothing was
+    written, so the public page kept the 2026-09-06 freshness stamp.
+    """
+
+    PA_URL = "https://www.pokeratlas.com/poker-room/lodge-card-club-austin-round-rock/tournaments"
+
+    def _empty(self, **extra):
+        result = {"name": "Lodge Poker Club", "vid": 1828, "found": False,
+                  "records": [], "valid_empty": True,
+                  "primary_url": self.PA_URL, "source": "pokeratlas"}
+        result.update(extra)
+        return result
+
+    def test_valid_empty_venue_is_stamped_even_when_chunk_has_no_rows(self):
+        with mock.patch.object(DAEMON, "sb_patch_venue", return_value=True) as patch_venue, \
+                mock.patch.object(DAEMON, "deactivate_stale_rows", return_value=True) as retire, \
+                mock.patch.object(DAEMON, "sb_upsert") as upsert:
+            outcome = DAEMON.flush_chunk([self._empty()], "batch-1")
+
+        upsert.assert_not_called()
+        self.assertEqual(outcome["confirmed_empty_venues"], 1)
+        self.assertEqual(outcome["persisted"], 0)
+        vid, patch = patch_venue.call_args.args
+        self.assertEqual(vid, 1828)
+        self.assertEqual(patch["scrape_status"], "no_tournaments")
+        self.assertEqual(patch["schedule_scrape_url"], self.PA_URL)
+        self.assertEqual(patch["scrape_source"], "pokeratlas")
+        self.assertEqual(patch["schedule_last_scraped_at"], patch["last_scraped_at"])
+        self.assertNotIn("has_tournaments", patch)
+        retire.assert_called_once_with(1828, "batch-1")
+
+    def test_failed_read_is_never_stamped_or_retired(self):
+        failed = self._empty(valid_empty=False, primary_url="", source="")
+        with mock.patch.object(DAEMON, "sb_patch_venue", return_value=True) as patch_venue, \
+                mock.patch.object(DAEMON, "deactivate_stale_rows", return_value=True) as retire:
+            outcome = DAEMON.flush_chunk([failed], "batch-1")
+
+        patch_venue.assert_not_called()
+        retire.assert_not_called()
+        self.assertEqual(outcome["confirmed_empty_venues"], 0)
+
+    def test_venue_with_rows_is_not_treated_as_empty(self):
+        found = self._empty(found=True, valid_empty=False,
+                            records=[{"venue_id": 1828}])
+        self.assertEqual(DAEMON.persist_confirmed_empty_schedules([found], "b"), 0)
+
+    def test_rejected_patch_does_not_retire_rows(self):
+        with mock.patch.object(DAEMON, "sb_patch_venue", return_value=False), \
+                mock.patch.object(DAEMON, "deactivate_stale_rows") as retire:
+            self.assertEqual(DAEMON.persist_confirmed_empty_schedules([self._empty()], "b"), 0)
+        retire.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
