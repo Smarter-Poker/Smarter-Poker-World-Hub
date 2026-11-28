@@ -12,6 +12,13 @@ import {
   BANKROLL_SEGMENT_CREATE_ONLY,
 } from './naturalKeys.mjs';
 import { localDay, localDayOffset } from './localDates.mjs';
+import {
+  linkableStakingEntries,
+  replayStakingDeal,
+  splitStakingSession,
+  stakingRowsToRewrite,
+} from './stakingMath.mjs';
+import { bankrollBalanceCents, centsToDollars, toCents } from './ledgerMath.mjs';
 
 export interface LedgerEntry {
   id: string;
@@ -229,6 +236,9 @@ function categoryToSegment(category: string): string {
       return 'sports';
     case 'expense':
       return 'poker'; // expenses deduct from poker segment
+    case 'deposit':
+    case 'withdrawal':
+      return 'poker'; // Adjust Bankroll moves money in and out of the poker segment
     default:
       return 'poker';
   }
@@ -243,7 +253,8 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
   let categories: string[] = [];
   switch (segmentType) {
     case 'poker':
-      categories = ['poker_cash', 'poker_mtt', 'expense'];
+      // Adjust Bankroll deposits and withdrawals land on the poker segment.
+      categories = ['poker_cash', 'poker_mtt', 'expense', 'deposit', 'withdrawal'];
       break;
     case 'casino':
       categories = ['casino_table', 'slots'];
@@ -263,14 +274,7 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
     .eq('is_revision', false)
     .in('category', categories);
 
-  let segmentTotal = 0;
-  entries?.forEach((e: any) => {
-    if (e.category === 'expense') {
-      segmentTotal -= Math.abs(e.gross_in || 0);
-    } else {
-      segmentTotal += (e.gross_out || 0) - (e.gross_in || 0);
-    }
-  });
+  const segmentCents = bankrollBalanceCents(entries || [], []);
 
   // Make sure the segment row exists without racing a concurrent creator: a
   // select-then-insert pair lost that race and hit the (user_id, segment_type)
@@ -291,7 +295,7 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
     .maybeSingle();
 
   // Add initial deposit (from Adjust Bankroll modal) to the ledger-derived total
-  const totalWithDeposits = segmentTotal + (existing?.initial_deposit || 0);
+  const totalWithDeposits = centsToDollars(segmentCents + toCents(existing?.initial_deposit));
   const { error: err_bankroll_segments_03601 } = await supabase
     .from('bankroll_segments')
     .update({
@@ -317,7 +321,7 @@ export async function createLedgerEntry(
       category: entry.category,
       location_id: entry.location_id,
       trip_id: entry.trip_id,
-      entry_date: entry.entry_date || new Date().toISOString().split('T')[0],
+      entry_date: entry.entry_date || localDay(),
       start_time: entry.start_time,
       end_time: entry.end_time,
       gross_in: entry.gross_in || 0,
@@ -430,13 +434,23 @@ export async function deleteLedgerEntry(
   userId: string,
   entryId: string
 ): Promise<void> {
-  const { error } = await supabase
+  // A delete that matched nothing (already gone, or not this player's) used to
+  // report "Entry Deleted". Ask for the removed row back and say so if none.
+  const { data, error } = await supabase
     .from('bankroll_ledger')
     .delete()
     .eq('id', entryId)
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .select('id, category');
 
   if (error) throw error;
+  if (!data || data.length === 0) throw new Error('Entry Not Found');
+
+  try {
+    await recalculateSegmentBalance(userId, categoryToSegment(data[0].category || 'poker_cash'));
+  } catch (segError) {
+    console.warn('[Bankroll] Failed to update segment balance:', segError);
+  }
 }
 
 /**
@@ -611,7 +625,7 @@ export async function completeTrip(userId: string, tripId: string): Promise<Trip
     .from('bankroll_trips')
     .update({
       status: 'completed',
-      end_date: new Date().toISOString().split('T')[0],
+      end_date: localDay(),
     })
     .eq('user_id', userId)
     .eq('id', tripId)
@@ -883,7 +897,7 @@ export async function completeSeries(userId: string, seriesId: string): Promise<
     .from('bankroll_trips')
     .update({
       status: 'completed',
-      end_date: new Date().toISOString().split('T')[0],
+      end_date: localDay(),
     })
     .eq('user_id', userId)
     .eq('id', seriesId)
@@ -1148,25 +1162,23 @@ export async function setStartingBankroll(userId: string, amount: number): Promi
     .eq('segment_type', 'poker');
   if (err_bankroll_segments_wwjic) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_wwjic.message);
 
-  // Log as a ledger entry for audit trail
-  const { error: err_bankroll_ledger_7o3ix } = await supabase.from('bankroll_ledger').insert({
-    user_id: userId,
-    category: 'deposit',
-    entry_date: new Date().toISOString().split('T')[0],
-    gross_in: amount,
-    gross_out: 0,
-    net_result: amount,
-    // CHECK 13 (2026-08-14): is_adjustment is not a column — its presence made
-    // the whole insert 42703 (warn swallowed), so the "Starting bankroll"
-    // audit-trail entry was never written. category 'deposit' already marks it.
-    notes: 'Starting bankroll',
-  });
-  if (err_bankroll_ledger_7o3ix) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_7o3ix.message);
+  // No ledger row: the starting bankroll is initial_deposit, and the Bankroll
+  // Balance adds every deposit row to it, so a "Starting bankroll" deposit row
+  // would count the same money twice. (The insert that used to sit here named
+  // the generated net_result column and was refused on every call, so no such
+  // row was ever written; the balance never depended on one.)
 }
 
 /**
- * Adjust bankroll — deposit or withdraw from external sources
- * type: 'deposit' (adding money in) or 'withdrawal' (taking money out)
+ * Adjust bankroll: deposit or withdraw money from outside the game.
+ *
+ * The ledger row IS the adjustment. The Bankroll Balance tile adds every
+ * deposit and subtracts every withdrawal (calculateTotalBankroll), and the
+ * poker segment's stored balance is recomputed from the same rows. Until
+ * 2026-11-27 this read-modify-wrote current_balance (which nothing displays and
+ * the next logged session overwrote) while the balance tile skipped deposit
+ * and withdrawal rows, so an adjustment changed nothing the player could see.
+ * The row is dated on the player's own calendar day, not the UTC one.
  */
 export async function adjustBankroll(
   userId: string,
@@ -1174,64 +1186,32 @@ export async function adjustBankroll(
   type: 'deposit' | 'withdrawal',
   reason?: string
 ): Promise<void> {
-  const signedAmount = type === 'deposit' ? amount : -amount;
+  if (type !== 'deposit' && type !== 'withdrawal') throw new Error('Choose Deposit Or Withdraw');
+  const cents = toCents(amount);
+  if (!(cents > 0)) throw new Error('Enter An Amount Greater Than $0');
+  const value = centsToDollars(cents);
 
-  // Update the poker segment balance
-  const { data: current, error: fetchErr } = await supabase
-    .from('bankroll_segments')
-    .select('current_balance')
-    .eq('user_id', userId)
-    .eq('segment_type', 'poker')
-    .maybeSingle();
-
-  if (fetchErr) {
-    console.warn('[adjustBankroll] Failed to fetch segment:', fetchErr);
-    throw new Error('Failed to read current balance');
-  }
-
-  const newBalance = (current?.current_balance || 0) + signedAmount;
-
-  const { error: updateErr } = await supabase
-    .from('bankroll_segments')
-    .update({
-      current_balance: newBalance,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userId)
-    .eq('segment_type', 'poker');
-
-  if (updateErr) {
-    console.warn('[adjustBankroll] Failed to update segment:', updateErr);
-    throw new Error('Failed to update balance');
-  }
-
-  // Log as ledger entry for audit trail
-  // gross_in = money put on table (buy-in), gross_out = money taken off (cashout)
-  // deposit: money added to bankroll → gross_out (like cashing out from an ATM into your roll)
-  // withdrawal: money removed from bankroll → gross_in (like buying in / spending)
-  // NOTE: net_result is a generated column (gross_out - gross_in), do NOT insert it explicitly
+  // gross_out = money into the roll, gross_in = money out of it, so the
+  // generated net_result (gross_out - gross_in) carries the sign. net_result
+  // is a generated column and must never be inserted.
   const { error: insertErr } = await supabase.from('bankroll_ledger').insert({
     user_id: userId,
     category: type,
-    entry_date: new Date().toISOString().split('T')[0],
-    gross_in: type === 'withdrawal' ? amount : 0,
-    gross_out: type === 'deposit' ? amount : 0,
-    notes: reason || (type === 'deposit' ? 'Bankroll deposit' : 'Bankroll withdrawal'),
+    entry_date: localDay(),
+    gross_in: type === 'withdrawal' ? value : 0,
+    gross_out: type === 'deposit' ? value : 0,
+    notes: (reason || '').trim() || (type === 'deposit' ? 'Bankroll deposit' : 'Bankroll withdrawal'),
   });
 
   if (insertErr) {
     console.warn('[adjustBankroll] Failed to insert ledger entry:', insertErr);
-    // Try to rollback the segment update
-    const { error: err_bankroll_segments_m2q4f } = await supabase
-      .from('bankroll_segments')
-      .update({
-        current_balance: current?.current_balance || 0,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
-      .eq('segment_type', 'poker');
-    if (err_bankroll_segments_m2q4f) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_m2q4f.message);
-    throw new Error('Failed to record adjustment');
+    throw new Error('Failed To Record Adjustment');
+  }
+
+  try {
+    await recalculateSegmentBalance(userId, 'poker');
+  } catch (segError) {
+    console.warn('[Bankroll] Failed to update segment balance:', segError);
   }
 }
 
@@ -1324,11 +1304,11 @@ export async function createStakingArrangement(
       backer_name: arrangement.backer_name,
       backer_email: arrangement.backer_email || null,
       backer_phone: arrangement.backer_phone || null,
-      split_percentage: arrangement.split_percentage || 50,
+      split_percentage: arrangement.split_percentage ?? 50,
       markup_percentage: arrangement.markup_percentage || 0,
       starting_makeup: arrangement.starting_makeup || 0,
       current_makeup: arrangement.starting_makeup || 0,
-      start_date: arrangement.start_date || new Date().toISOString().split('T')[0],
+      start_date: arrangement.start_date || localDay(),
       end_date: arrangement.end_date || null,
       is_active: true,
       notes: arrangement.notes || null,
@@ -1392,92 +1372,158 @@ export async function fetchStakingSessions(arrangementId: string): Promise<Staki
   return (data || []) as StakingSession[];
 }
 
-/** Create a staking session (link a ledger entry to an arrangement with calculated splits) */
-export async function createStakingSession(
-  session: {
-    arrangement_id: string;
-    ledger_entry_id: string;
-    gross_result: number;
-    split_percentage: number;
-    current_makeup?: number;
-  }
-): Promise<StakingSession> {
-  const { arrangement_id, ledger_entry_id, gross_result, split_percentage, current_makeup = 0 } = session;
-
-  // Calculate shares
-  const playerPct = split_percentage / 100;
-  const backerPct = 1 - playerPct;
-
-  let playerShare: number;
-  let backerShare: number;
-  const makeupBefore = current_makeup;
-  let makeupAfter = current_makeup;
-
-  if (gross_result > 0) {
-    // Winning session — pay off makeup first, then split profits
-    if (current_makeup > 0) {
-      // Player is in makeup — profits go to reduce it
-      const makeupPayoff = Math.min(gross_result, current_makeup);
-      const remaining = gross_result - makeupPayoff;
-      playerShare = remaining * playerPct;
-      backerShare = remaining * backerPct + makeupPayoff;
-      makeupAfter = current_makeup - makeupPayoff;
-    } else {
-      playerShare = gross_result * playerPct;
-      backerShare = gross_result * backerPct;
-    }
-  } else {
-    // Losing session — backer covers it, adds to makeup
-    playerShare = 0;
-    backerShare = gross_result; // backer absorbs the loss
-    makeupAfter = current_makeup + Math.abs(gross_result);
-  }
-
+/** Ledger entry ids already linked to ANY of the user's deals (a session is staked once). */
+async function fetchLinkedLedgerIds(arrangementIds: string[]): Promise<Set<string>> {
+  if (!arrangementIds.length) return new Set();
   const { data, error } = await supabase
     .from('staking_sessions')
-    .insert({
-      arrangement_id,
-      ledger_entry_id,
-      gross_result,
-      player_share: Math.round(playerShare * 100) / 100,
-      backer_share: Math.round(backerShare * 100) / 100,
-      makeup_before: Math.round(makeupBefore * 100) / 100,
-      makeup_after: Math.round(makeupAfter * 100) / 100,
-    })
-    .select()
-    .maybeSingle();
-
-  if (error || !data) throw error || new Error('Failed to record staking session');
-
-  // Update the arrangement's current_makeup
-  const { error: err_staking_arrangements_fheez } = await supabase
-    .from('staking_arrangements')
-    .update({ current_makeup: Math.round(makeupAfter * 100) / 100, updated_at: new Date().toISOString() })
-    .eq('id', arrangement_id);
-  if (err_staking_arrangements_fheez) console.warn('[Supabase] Silent mutation failed in staking_arrangements:', err_staking_arrangements_fheez.message);
-
-  return data as StakingSession;
+    .select('ledger_entry_id')
+    // in-list: bounded by one player's own staking deals
+    .in('arrangement_id', arrangementIds);
+  if (error) throw error;
+  return new Set((data || []).map((row: any) => row.ledger_entry_id));
 }
 
-/** Get aggregated staking stats for an arrangement */
+/** The ledger rows behind a deal's linked sessions (date, game, current result). */
+async function fetchLedgerRowsById(userId: string, ids: string[]): Promise<Map<string, any>> {
+  const byId = new Map<string, any>();
+  if (!ids.length) return byId;
+  for (let start = 0; start < ids.length; start += 100) {
+    const { data, error } = await supabase
+      .from('bankroll_ledger')
+      .select('id, entry_date, start_time, category, net_result, gross_in, gross_out, stakes, tournament_name')
+      .eq('user_id', userId)
+      .in('id', ids.slice(start, start + 100));
+    if (error) throw error;
+    for (const row of data || []) byId.set(row.id, row);
+  }
+  return byId;
+}
+
+export interface StakingDeal {
+  sessions: (StakingSession & { entry_date?: string; category?: string })[];
+  totals: { totalGrossResult: number; playerShare: number; backerShare: number; sessionCount: number };
+  currentMakeup: number;
+  linkable: LedgerEntry[];
+  syncFailed: boolean;
+}
+
+/**
+ * Load a deal and replay it in the order the sessions were played, using each
+ * ledger entry's CURRENT result (an edited session updates the deal). Stored
+ * rows and the arrangement's current_makeup that disagree with the replay are
+ * rewritten so every reader of the tables sees the same numbers.
+ */
+export async function loadStakingDeal(
+  userId: string,
+  arrangement: StakingArrangement,
+  allArrangementIds: string[] = [arrangement.id]
+): Promise<StakingDeal> {
+  const stored = await fetchStakingSessions(arrangement.id);
+  const [entriesById, linkedAnywhere, candidates] = await Promise.all([
+    fetchLedgerRowsById(userId, stored.map((s) => s.ledger_entry_id)),
+    fetchLinkedLedgerIds(allArrangementIds),
+    fetchLedgerEntries(userId, {
+      startDate: arrangement.start_date || undefined,
+      endDate: arrangement.end_date || undefined,
+      limit: 200,
+    }),
+  ]);
+
+  const replay = replayStakingDeal({
+    startingMakeup: arrangement.starting_makeup,
+    splitPercentage: arrangement.split_percentage,
+    sessions: stored.map((s) => {
+      const entry = entriesById.get(s.ledger_entry_id);
+      return {
+        ...s,
+        entry_date: entry?.entry_date,
+        start_time: entry?.start_time,
+        category: entry?.category,
+        gross_result: entry ? entry.net_result ?? (entry.gross_out || 0) - (entry.gross_in || 0) : s.gross_result,
+      };
+    }),
+  });
+
+  let syncFailed = false;
+  try {
+    for (const row of stakingRowsToRewrite(stored, replay.sessions)) {
+      const { error } = await supabase
+        .from('staking_sessions')
+        .update({
+          gross_result: row.gross_result,
+          player_share: row.player_share,
+          backer_share: row.backer_share,
+          makeup_before: row.makeup_before,
+          makeup_after: row.makeup_after,
+        })
+        .eq('id', row.id);
+      if (error) throw error;
+    }
+    if (Math.round(Number(arrangement.current_makeup || 0) * 100) !== Math.round(replay.currentMakeup * 100)) {
+      const { error } = await supabase
+        .from('staking_arrangements')
+        .update({ current_makeup: replay.currentMakeup, updated_at: new Date().toISOString() })
+        .eq('id', arrangement.id);
+      if (error) throw error;
+    }
+  } catch (err) {
+    // The replay shown is still correct; the next load retries the write.
+    syncFailed = true;
+    console.warn('[Staking] Could not store the replayed deal:', err?.message || err);
+  }
+
+  return {
+    sessions: [...replay.sessions].reverse(),
+    totals: replay.totals,
+    currentMakeup: replay.currentMakeup,
+    linkable: linkableStakingEntries(candidates, {
+      startDate: arrangement.start_date,
+      endDate: arrangement.end_date,
+      linkedIds: linkedAnywhere,
+    }),
+    syncFailed,
+  };
+}
+
+/**
+ * Link a ledger entry to a deal. The split stored here is provisional: the
+ * caller reloads the deal, which replays every session in played order.
+ */
+export async function linkStakingSession(arrangement: StakingArrangement, entry: LedgerEntry): Promise<void> {
+  const split = splitStakingSession({
+    grossResult: entry.net_result ?? (entry.gross_out || 0) - (entry.gross_in || 0),
+    splitPercentage: arrangement.split_percentage,
+    makeupBefore: arrangement.current_makeup || 0,
+  });
+  const { error } = await supabase
+    .from('staking_sessions')
+    .insert({ arrangement_id: arrangement.id, ledger_entry_id: entry.id, ...split });
+  if (error) {
+    if (error.code === '23505') throw new Error('That Session Is Already Linked To This Deal.');
+    throw error;
+  }
+}
+
+/** Remove a session from a deal (the ledger entry itself is untouched). */
+export async function unlinkStakingSession(sessionId: string): Promise<void> {
+  const { error } = await supabase.from('staking_sessions').delete().eq('id', sessionId);
+  if (error) throw error;
+}
+
+/** @deprecated kept for callers outside the tracker: totals now come from loadStakingDeal. */
 export async function getStakingStats(arrangementId: string): Promise<{
   totalGrossResult: number;
   playerShare: number;
   backerShare: number;
   sessionCount: number;
 }> {
-  const { data, error } = await supabase
-    .from('staking_sessions')
-    .select('gross_result, player_share, backer_share')
-    .eq('arrangement_id', arrangementId);
-
-  if (error) throw error;
-
-  const sessions = data || [];
+  const sessions = await fetchStakingSessions(arrangementId);
+  const cents = (key: string) => sessions.reduce((sum, s: any) => sum + Math.round(Number(s[key] || 0) * 100), 0) / 100;
   return {
-    totalGrossResult: sessions.reduce((sum, s) => sum + (s.gross_result || 0), 0),
-    playerShare: sessions.reduce((sum, s) => sum + (s.player_share || 0), 0),
-    backerShare: sessions.reduce((sum, s) => sum + (s.backer_share || 0), 0),
+    totalGrossResult: cents('gross_result'),
+    playerShare: cents('player_share'),
+    backerShare: cents('backer_share'),
     sessionCount: sessions.length,
   };
 }

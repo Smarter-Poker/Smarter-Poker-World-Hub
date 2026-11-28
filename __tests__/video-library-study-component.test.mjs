@@ -32,7 +32,7 @@ test('real study component exposes verified earnings and never invents a streak 
     const h = harness(); assert.ok(h.requests[0].url.includes('ownerId=owner-a')); assert.equal(h.requests[0].options.cache, 'no-store');
     await h.reply(0, result()); assert.match(text(h), /Diamonds Today"\]\},\{"type":"p","props":\{"className":"vl-study-streak-value"\},"children":\["3"\]/); assert.doesNotMatch(text(h), /Bonus/i);
     // How the streak is counted ("No Extra Streak Bonus") lives behind the library's "?" help since Dan's 2026-11-27 ruling.
-    assert.match(readFileSync(new URL('../pages/hub/video-library.js', import.meta.url), 'utf8'), /No Extra Streak Bonus/); assert.equal(h.requests.length, 1); h.close();
+    assert.match(readFileSync(new URL('../src/lib/videoLibraryHelpSteps.mjs', import.meta.url), 'utf8'), /No Extra Streak Bonus/); assert.equal(h.requests.length, 1); h.close();
 });
 test('A to B to A rejects delayed data from both prior account generations', async () => {
     const h = harness(); await h.owner('owner-b'); await h.owner('owner-a'); await h.reply(2, result('owner-a', 1, 4)); await h.reply(0, result('owner-a', 9, 99)); await h.reply(1, result('owner-b', 8, 88));

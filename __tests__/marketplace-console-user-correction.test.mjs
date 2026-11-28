@@ -4,6 +4,13 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import {
+  BANNED_TEXT_COLOUR,
+  SD_FILL,
+  SD_FRAME,
+  offStandardPaint,
+} from './smarterdesign-standard.test.mjs';
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (relativePath) => readFile(path.join(root, relativePath), 'utf8');
 
@@ -27,15 +34,26 @@ test('store image zones have no separate opaque background behind preserved artw
       const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const body = css.match(new RegExp(`^${escaped}\\s*\\{([^}]+)\\}`, 'm'))?.[1];
       assert.ok(body, `${file}: ${selector} exists`);
-      assert.match(body, /background(?:-color)?:\s*transparent(?:\s*!important)?\s*;/,
-        `${file}: ${selector} must let the page show around its image`);
+      // #SMARTERDESIGN: an image zone either lets the page show around its
+      // image, or sits on a standard material (navy base, standard fill, the
+      // round seal ring, or a chrome control for thumbnail buttons). It never
+      // carries an off-standard opaque plate or rejected painted art.
+      const transparent = /background(?:-color)?:\s*transparent(?:\s*!important)?\s*;/.test(body);
+      const standardBase =
+        SD_FILL.test(body) ||
+        /background-color:\s*#050e18\s*;/.test(body) ||
+        (/border-radius:\s*50%/.test(body) && /conic-gradient/.test(body));
+      assert.ok(transparent || standardBase,
+        `${file}: ${selector} must let the page show around its image or use a standard material`);
+      assert.deepEqual(offStandardPaint(body), [], `${file}: ${selector}`);
     }
   }
   const showcase = await read('src/components/diamond-store/SmarterStoreShowcase.module.css');
   assert.match(showcase, /diamond-packages-sheet\.webp/);
-  assert.match(showcase, /button-secondary\.png/);
+  assert.doesNotMatch(showcase, /button-secondary\.png|marketplace-console-v1/);
   const details = await read('src/components/store/MarketplaceDetailExperience.module.css');
-  assert.match(details, /\.mediaDialog\s*\{[^}]*background-color:\s*#000/);
+  // The full-screen viewer stays an opaque near-black stage (#SMARTERDESIGN navy).
+  assert.match(details, /\.mediaDialog\s*\{[^}]*background-color:\s*#(?:000|040d18|050e18)\b/);
   const cards = await read('src/components/store/StoreCards.js');
   assert.match(cards, /className=\{styles\.vipCardCrown\} aria-hidden="true"/);
 });
@@ -119,7 +137,8 @@ test('Marketplace keeps its existing route navigation instead of standalone obje
       read(paths.commerceNavCss),
     ]);
 
-  assert.match(showcase, /<nav className=\{styles\.tabs\}/);
+  // #SMARTERDESIGN: the route rail is the global sd-tabs control set.
+  assert.match(showcase, /<nav className=\{`sd-tabs \$\{styles\.tabs\}`\}/);
   assert.match(showcase, /<Link[\s\S]*?href=\{storeTabHref\(id, clubId\)\}/);
   assert.match(showcase, /const route = TAB_ROUTES\[tabId\]/);
   assert.match(showcase, /aria-current=\{id === activeTab \? 'page' : undefined\}/);
@@ -130,8 +149,9 @@ test('Marketplace keeps its existing route navigation instead of standalone obje
     assert.ok(start >= 0 && end > start, `Missing CSS Rule: ${selector}`);
     return source.slice(start, end + 1);
   };
-  const diamondTab = cssRule(showcaseStyles, '.diamonds .tab {');
-  assert.doesNotMatch(diamondTab, /url\(|\.png|\.webp/);
+  // The module's tab rule is layout only; paint comes from .sd-tabs.
+  const storeTab = cssRule(showcaseStyles, '\n.tab {');
+  assert.doesNotMatch(storeTab, /url\(|\.png|\.webp|background|border(?:-image)?\s*:/);
   assert.doesNotMatch(showcaseStyles, /\.tab\s*\{[\s\S]*?navigation\/nav-shell\.(?:png|webp)/);
   for (const label of ['Marketplace', 'Cart', 'Orders', 'Wishlist']) {
     assert.match(commerceNav, new RegExp(`>\\s*${label}\\s*<`));
@@ -144,9 +164,11 @@ test('Marketplace keeps its existing route navigation instead of standalone obje
   assert.match(commerceNav, /data-footer-layout=/);
   assert.match(commerceNavStyles, /\.pageFooter\s*\{/);
   assert.match(commerceNavStyles, /\.pageFooter \.link\s*\{/);
-  assert.match(cssRule(commerceNavStyles, '.link {'), /border:/);
-  assert.match(cssRule(commerceNavStyles, '.link {'), /background:/);
-  assert.doesNotMatch(cssRule(commerceNavStyles, '.link {'), /url\(|\.png|\.webp/);
+  // Each footer link is a #SMARTERDESIGN chrome-row control.
+  assert.match(cssRule(commerceNavStyles, '.link {'), SD_FRAME.control);
+  assert.match(cssRule(commerceNavStyles, '.link {'), SD_FILL);
+  assert.deepEqual(offStandardPaint(commerceNavStyles), []);
+  assert.doesNotMatch(commerceNavStyles, BANNED_TEXT_COLOUR);
   assert.doesNotMatch(cssRule(commerceNavStyles, '.pageFooter .link {'), /url\(|\.png|\.webp/);
   assert.doesNotMatch(commerceNavStyles, /navigation\/nav-shell|shark-panel\/bay/);
   assert.doesNotMatch(commerceNavStyles, /:hover/);
@@ -334,9 +356,10 @@ test('live Marketplace frames are content-driven and retain no hover-only treatm
     '.clubShopSurface :is(input, select, textarea) {',
   ]) {
     const block = cssBlock(shellCss, selector);
-    assert.match(block, /border:/);
-    assert.match(block, /background:/);
-    assert.doesNotMatch(block, /url\(|\.png|\.webp/);
+    // #SMARTERDESIGN: one chrome nine-slice over a standard fill.
+    assert.match(block, SD_FRAME.any);
+    assert.match(block, SD_FILL);
+    assert.deepEqual(offStandardPaint(block), [], selector);
   }
   // diamondStoreStyles.js remains locked Page 1 compatibility and is
   // intentionally outside this assertion.
@@ -344,7 +367,7 @@ test('live Marketplace frames are content-driven and retain no hover-only treatm
   assert.match(cart, /className=\{cartStyles\.summaryFrame\}/);
   // Phase 7 (2026-09-19): the cart line and the summary are restrained chrome,
   // not a three-slice painted housing with two empty aria-hidden slices.
-  assert.match(cartCss, /\.cartItemFrame,\s*\.summaryFrame \{[\s\S]*?border: 1px solid #23394a;/);
+  assert.match(cartCss, /\.cartItemFrame,\s*\.summaryFrame \{[^}]*border: 5px solid transparent;[^}]*chrome-readout\.webp/);
   assert.match(cartCss, /\.cartItemFrameBody,\s*\.summaryFrameBody \{[\s\S]*?padding: 16px 20px;/);
   assert.doesNotMatch(
     cartCss.replace(/\/\*[\s\S]*?\*\//g, ''),
@@ -360,25 +383,25 @@ test('diamond calls to action and toast dismissal use restrained content-driven 
     read(paths.toastCss),
   ]);
 
-  const starterButton = showcaseStyles.slice(
-    showcaseStyles.indexOf('.starterPack button {'),
-    showcaseStyles.indexOf('.starterPack button:disabled')
-  );
-  const packageButton = showcaseStyles.slice(
-    showcaseStyles.indexOf('.packageCard button {'),
-    showcaseStyles.indexOf('.packageCard button:disabled')
-  );
+  const starterButton = /\n\.starterPack button \{[^}]*\}/.exec(showcaseStyles)?.[0] || '';
+  const packageButton = /\n\.packageCard button \{[^}]*\}/.exec(showcaseStyles)?.[0] || '';
+  assert.ok(starterButton && packageButton, 'both buy button layout rules exist');
+  // The disabled state comes with the global control.
+  assert.match(await read('styles/smarterdesign.css'), /\.sd-button:disabled\s*\{/);
 
-  assert.match(starterButton, /border:/);
-  assert.match(starterButton, /background:/);
-  assert.match(packageButton, /border:/);
-  assert.match(packageButton, /background:/);
-  assert.doesNotMatch(`${starterButton}\n${packageButton}`, /url\(|\.png|\.webp/);
+  // #SMARTERDESIGN: both buy buttons are the global cobalt primary control
+  // (className "sd-button sd-primary"), so the module rules are layout only.
+  const showcase = await read(paths.showcase);
+  assert.ok((showcase.match(/className="sd-button sd-primary"/g) || []).length >= 2);
+  for (const button of [starterButton, packageButton]) {
+    assert.match(button, /min-height:\s*4[4-9]px/);
+    assert.doesNotMatch(button, /url\(|\.png|\.webp|background|border(?:-image)?\s*:/);
+  }
   const dismiss = /\.dismiss\s*\{[\s\S]*?\}/.exec(toastStyles)?.[0] || '';
   assert.match(dismiss, /min-height:\s*44px/);
-  assert.match(dismiss, /border:/);
-  assert.match(dismiss, /background:/);
-  assert.doesNotMatch(dismiss, /url\(|\.png|\.webp/);
+  assert.match(dismiss, SD_FRAME.control);
+  assert.match(dismiss, SD_FILL);
+  assert.deepEqual(offStandardPaint(dismiss), []);
 });
 
 test('Diamond package cards expose a readable commerce hierarchy without ornamental housings', async () => {
@@ -563,10 +586,15 @@ test('cart controls keep accessible commerce wiring in restrained readable contr
 
   assert.doesNotMatch(styles, /marketplace-console-v1|shark-panel|spade-console/);
   assert.match(styles, /\.paymentChoice\s*\{[\s\S]*?min-height:\s*76px/);
+  // #SMARTERDESIGN: the selected payment choice is the cobalt chrome-active
+  // control; the unselected one is the steel chrome-row control.
   assert.match(
     styles,
-    /\.paymentChoice\[aria-checked='true'\]\s*\{[\s\S]*?border-color:\s*#9bedfb/
+    /\.paymentChoice\[aria-checked='true'\]\s*\{[^}]*chrome-active\.webp[^}]*#1981ec/
   );
+  assert.match(/\n\.paymentChoice\s*\{[^}]*\}/.exec(styles)?.[0] || '', SD_FRAME.control);
+  assert.deepEqual(offStandardPaint(styles), []);
+  assert.doesNotMatch(styles, BANNED_TEXT_COLOUR);
   assert.match(styles, /\.checkoutButton\s*\{[\s\S]*?min-height:\s*52px/);
   assert.match(
     styles,

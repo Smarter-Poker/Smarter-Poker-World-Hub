@@ -326,8 +326,11 @@
     min-width: 44px;
     height: 44px;
     padding: 0 8px;
-    border: 4px solid transparent;
-    border-image: var(--vlc-active) 11 / 5px stretch;
+    /* #SmarterDesign: the playlist section carries the one chrome frame; the
+       position number is a plain badge, never a framed tile inside it
+       (e2e/029-video-library-one-frame.spec.ts). */
+    border: 0;
+    border-radius: 6px;
     background: linear-gradient(180deg, #3d74e0, #1a46b8 52%, #0f2d84);
     color: #fff;
     font: 800 20px/1 'Roboto Condensed', 'Barlow Condensed', Arial, sans-serif;

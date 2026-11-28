@@ -160,10 +160,23 @@ test('the page performs that redirect rather than dropping the query', () => {
 // 2. The club rides the tab rail
 // ───────────────────────────────────────────────────────────────────────────
 
+// The showcase now opens on the shared #SMARTERDESIGN StoreImageHeader.
+const storeImageHeaderModule = compileModule(
+  'src/components/diamond-store/StoreImageHeader.jsx',
+  (name) => {
+    if (name.endsWith('.module.css')) return {};
+    if (name === '../smarterdesign/headerHelp') {
+      return { SD_HEADER_HELP_ICON: '/images/smarterdesign/header-help.webp' };
+    }
+    return require(name);
+  }
+);
+
 const showcaseModule = compileModule(
   'src/components/diamond-store/SmarterStoreShowcase.jsx',
   (name) => {
     if (name.endsWith('.module.css')) return {};
+    if (name === './StoreImageHeader') return storeImageHeaderModule;
     if (name.endsWith('wholeDollarPrice.mjs')) return { formatStoreUsd };
     if (name.endsWith('/storeAnalytics')) return { captureStoreEvent: () => {} };
     if (name.endsWith('/marketplaceCopy')) return { marketplaceCopy };

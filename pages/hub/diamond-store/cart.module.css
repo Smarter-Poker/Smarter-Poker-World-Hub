@@ -1,20 +1,24 @@
+/* #SMARTERDESIGN cart: chrome-readout panels, chrome-stat wells, chrome-row
+   controls and cobalt chrome-active for the selected / primary control. */
 .loadingPanel {
   width: min(100%, 900px);
   padding: 24px;
 }
 
-/* Cart records reserve space for product information and actions inside a
-   restrained chrome frame without decorative structural slices. */
 .cartItemFrame,
 .summaryFrame {
   display: flex;
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
   flex-direction: column;
   overflow: visible;
-  border: 1px solid #23394a;
-  background: #070e15;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
+  color: #f2f7ff;
+  background: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%);
+  box-shadow: 0 8px 20px #01060f99;
 }
 
 .cartItemFrameBody,
@@ -44,7 +48,7 @@
 
 .paymentLabel {
   margin: 0 0 10px;
-  color: #aab9c3;
+  color: #bdd0e2;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-size: 13px;
   font-weight: 700;
@@ -54,26 +58,20 @@
 .paymentChoice {
   position: relative;
   display: flex;
+  box-sizing: border-box;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   min-height: 76px;
   padding: 14px 18px;
-  border: 1px solid #627c8d;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
   border-radius: 0;
-  background-color: #07121a;
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 48%);
-  box-shadow:
-    inset 0 1px 0 rgba(239, 251, 255, 0.46),
-    inset 0 -4px 7px rgba(0, 0, 0, 0.86),
-    0 4px 9px rgba(0, 0, 0, 0.42);
-  color: #f5fbff;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
   text-align: left;
   cursor: pointer;
-  transition:
-    border-color 140ms ease,
-    filter 140ms ease,
-    transform 140ms ease;
+  touch-action: manipulation;
 }
 
 .paymentChoice + .paymentChoice {
@@ -81,23 +79,13 @@
 }
 
 .paymentChoice[aria-checked='true'] {
-  border-color: #9bedfb;
-  background-color: #06344a;
-  background-image: linear-gradient(180deg, rgba(120, 231, 250, 0.2), transparent 48%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.62),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.82),
-    0 0 0 1px rgba(121, 225, 245, 0.28),
-    0 5px 12px rgba(0, 0, 0, 0.5);
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  color: #fff;
 }
 
 .paymentChoice:active {
-  transform: translateY(1px);
-}
-
-.paymentChoice:focus-visible {
-  outline: 2px solid #a7f2ff !important;
-  outline-offset: 3px !important;
+  filter: brightness(0.89);
 }
 
 .paymentCopy {
@@ -109,7 +97,7 @@
 
 .paymentName {
   display: block;
-  color: #ffffff;
+  color: #f2f7ff;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-size: 15px;
   font-weight: 800;
@@ -126,13 +114,18 @@
 }
 
 .paymentMeta {
-  color: #a7effb;
+  color: #86daff;
 }
 
 .paymentMetaMuted {
-  color: #b2c0c9;
+  color: #bdd0e2;
 }
 
+.paymentChoice[aria-checked='true'] :is(.paymentMeta, .paymentMetaMuted) {
+  color: #e3f1ff;
+}
+
+/* Real error: the wallet cannot cover the order. */
 .paymentMetaWarning {
   color: #ff8f87;
 }
@@ -146,15 +139,16 @@
 
 .paymentPrice {
   display: block;
-  color: #f4fbff;
+  color: #f2f7ff;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-size: 17px;
   font-weight: 800;
   letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .paymentChoice[aria-checked='true'] .paymentPrice {
-  color: #c8f8ff;
+  color: #fff;
 }
 
 .selectionSeam {
@@ -162,17 +156,39 @@
   width: 54px;
   height: 4px;
   margin: 7px 0 0 auto;
-  border: 1px solid #536c7b;
-  background: #14232d;
-  box-shadow: inset 0 1px 2px #000000;
+  background: #2a425a;
 }
 
 .paymentChoice[aria-checked='true'] .selectionSeam {
-  border-color: #b6f6ff;
-  background: #8eefff;
-  box-shadow:
-    inset 0 1px 0 #effdff,
-    0 0 8px rgba(87, 219, 241, 0.72);
+  background: #9ee3ff;
+}
+
+.checkoutButton,
+.continueShoppingLink,
+.emptyBrowseButton,
+.quantityButton,
+.removeButton,
+.clearCartButton {
+  box-sizing: border-box;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.checkoutButton,
+.emptyBrowseButton {
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  color: #fff;
 }
 
 .checkoutButton {
@@ -180,79 +196,32 @@
   min-height: 52px;
   margin-bottom: 16px;
   padding: 14px 20px;
-  border: 1px solid #a2effb;
-  border-radius: 0;
-  background-color: #06344a;
-  background-image: linear-gradient(180deg, rgba(120, 231, 250, 0.22), transparent 48%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.58),
-    inset 0 -4px 7px rgba(0, 0, 0, 0.88),
-    0 5px 11px rgba(0, 0, 0, 0.5);
-  color: #ffffff;
-  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-size: 16px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition:
-    filter 140ms ease,
-    transform 140ms ease;
-}
-
-.checkoutButton:active:not(:disabled) {
-  transform: translateY(1px);
 }
 
 .checkoutButton:disabled {
   cursor: not-allowed;
-  filter: saturate(0.55) brightness(0.72);
-  opacity: 0.62;
-}
-
-.continueShoppingLink,
-.emptyBrowseButton {
-  min-height: 46px;
-  border: 1px solid #748d9d;
-  border-radius: 0;
-  box-shadow:
-    inset 0 1px 0 rgba(245, 252, 255, 0.42),
-    inset 0 -3px 6px rgba(0, 0, 0, 0.84),
-    0 4px 9px rgba(0, 0, 0, 0.42);
-  color: #edfaff;
-  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.025em;
-  text-align: center;
-  text-decoration: none;
-  transition:
-    border-color 140ms ease,
-    filter 140ms ease,
-    transform 140ms ease;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: #13202c;
+  color: #a7b7c8;
 }
 
 .continueShoppingLink {
   display: grid;
   place-items: center;
   width: 100%;
+  min-height: 46px;
   padding: 8px 18px;
-  background-color: #0a141d;
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 48%);
+  font-size: 14px;
 }
 
 .emptyBrowseButton {
   display: inline-grid;
   place-items: center;
   min-width: 210px;
+  min-height: 46px;
   padding: 8px 28px;
-  border-color: #a2effb;
-  background-color: #06344a;
-  background-image: linear-gradient(180deg, rgba(120, 231, 250, 0.22), transparent 48%);
-}
-
-.continueShoppingLink:active,
-.emptyBrowseButton:active {
-  transform: translateY(1px);
+  font-size: 14px;
 }
 
 .continueShoppingLink:focus-visible,
@@ -260,41 +229,16 @@
 .quantityButton:focus-visible,
 .removeButton:focus-visible,
 .clearCartButton:focus-visible,
-.checkoutButton:focus-visible {
-  outline: 2px solid #a7f2ff !important;
-  outline-offset: 3px !important;
+.checkoutButton:focus-visible,
+.paymentChoice:focus-visible {
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }
 
 .quantityControl {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px;
-  border: 1px solid #536d7d;
-  border-radius: 0;
-  background: #02070b;
-  box-shadow:
-    inset 0 1px 0 rgba(231, 248, 255, 0.3),
-    inset 0 -3px 6px rgba(0, 0, 0, 0.88);
-}
-
-.quantityButton,
-.removeButton,
-.clearCartButton {
-  border-radius: 0;
-  background-color: #0a141d;
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 48%);
-  box-shadow:
-    inset 0 1px 0 rgba(245, 252, 255, 0.4),
-    inset 0 -3px 5px rgba(0, 0, 0, 0.88),
-    0 3px 7px rgba(0, 0, 0, 0.38);
-  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
-  font-weight: 800;
-  cursor: pointer;
-  transition:
-    border-color 140ms ease,
-    filter 140ms ease,
-    transform 140ms ease;
 }
 
 .quantityButton {
@@ -302,25 +246,23 @@
   min-width: 68px;
   height: 45px;
   min-height: 45px;
-  border: 1px solid #718999;
-  color: #edfaff;
   font-size: 12px;
 }
 
 .quantity {
   display: grid;
+  box-sizing: border-box;
   place-items: center;
-  min-width: 40px;
+  min-width: 44px;
   min-height: 45px;
-  border: 1px solid #526b7a;
-  background: #071019;
-  box-shadow:
-    inset 0 2px 5px #000000,
-    inset 0 -1px 0 rgba(197, 238, 247, 0.18);
-  color: #d9f8ff;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: #f2f7ff;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-size: 16px;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
   text-align: center;
 }
 
@@ -328,8 +270,6 @@
   min-width: 112px;
   min-height: 44px;
   padding: 7px 16px;
-  border: 1px solid #a65f5d;
-  color: #ffaaa3;
   font-size: 14px;
 }
 
@@ -338,15 +278,16 @@
   min-height: 46px;
   margin-top: 16px;
   padding: 10px 24px;
-  border: 1px solid #a65f5d;
-  color: #ffaaa3;
   font-size: 14px;
 }
 
+.checkoutButton:active:not(:disabled),
+.continueShoppingLink:active,
+.emptyBrowseButton:active,
 .quantityButton:active,
 .removeButton:active,
 .clearCartButton:active {
-  transform: translateY(1px);
+  filter: brightness(0.89);
 }
 
 @media (max-width: 420px) {
@@ -368,17 +309,5 @@
   .removeButton {
     min-width: 94px;
     padding-inline: 12px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .paymentChoice,
-  .checkoutButton,
-  .continueShoppingLink,
-  .emptyBrowseButton,
-  .quantityButton,
-  .removeButton,
-  .clearCartButton {
-    transition: none;
   }
 }

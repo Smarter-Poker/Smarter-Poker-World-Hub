@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import SEOHead from '../../../../src/components/video-library/VideoLibrarySEOHead';
 import HubPageShell from '../../../../src/components/ui/HubPageShell';
 import VideoLibraryWorkspaceHeader from '../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
+import { VIDEO_LIBRARY_HELP_STEPS } from '../../../../src/lib/videoLibraryHelpSteps.mjs';
 import ChannelFollow from '../../../../src/components/video-library/ChannelFollow';
 import LiveNow from '../../../../src/components/video-library/LiveNow';
 import { getMenuConfig } from '../../../../src/config/hamburgerMenus';
@@ -33,12 +34,8 @@ export async function getServerSideProps({ params, res }) {
     }
 }
 
-// Page explanations live behind the mast's chrome "?" (Dan, 2026-11-27).
-const CHANNEL_HELP_STEPS = Object.freeze([
-    { id: 'channel', title: 'Verified Channel', body: 'Every Video Here Comes From This Channel And Passed The Verified Library Checks.', target: 'channel-identity' },
-    { id: 'follow', title: 'Follow And Live', body: 'Follow Channels And Choose New Video Notifications. Notifications Appear In Your Smarter.Poker Inbox. Live Now Shows When The Channel Is Streaming, And Checked Shows When That Was Last Confirmed. Live Videos Open On YouTube.', target: 'channel-follow' },
-    { id: 'videos', title: 'Newest Videos', body: 'The Newest Verified Videos From This Channel. Load More Brings In The Next Set.', target: 'channel-videos' },
-]);
+// Help steps live in the shared Video Library help standard (src/lib/videoLibraryHelpSteps.mjs).
+const CHANNEL_HELP_STEPS = VIDEO_LIBRARY_HELP_STEPS.channel;
 
 export default function VideoChannelPage({ initial, unavailable }) {
     const channel = initial?.channel;

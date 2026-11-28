@@ -73,6 +73,6 @@ test('player page distinguishes unknown identity, unavailable catalog and native
     assert.match(page, /payload\.player\?\.id !== id/);
     assert.match(page, /payload\.data\.some\(video => !matchesVideoPlayer\(video, id\)\)/);
     assert.match(page, /href=\{watchPath\(video\)\}/);
-    assert.match(page, /Videos Whose Published Titles Or Tags Name This Player/);
+    assert.match(readFileSync(new URL('../src/lib/videoLibraryHelpSteps.mjs', import.meta.url), 'utf8'), /Videos Whose Published Titles Or Tags Name This Player/);
     assert.doesNotMatch(page, /\.from\(['"]profiles|Career Earnings|Win Rate|Biography|avatar_url|is_horse/);
 });

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
 import { trackSeoFunnelEvent } from '../../lib/seo/seoFunnelTelemetry';
+import { getSeoOfferExperiment, getAiWelcomeContext } from '../../lib/seo/seoExperiment';
 import { recordPendingSeoUnlock } from './SmarterUnlockedWelcomeBanner';
 import {
   recordFirstTouch,
@@ -10,6 +11,69 @@ import {
   withAttributionNonce,
 } from '../../lib/acquisition/firstTouch.mjs';
 import styles from './SmarterSeoKit.module.css';
+
+const PLATFORM_COUNTS_TTL_MS = 5 * 60 * 1000;
+const STATIC_SOCIAL_PROOF = Object.freeze({
+  verifiedRooms: 473,
+  liveTables: null,
+  gtoGames: 107,
+});
+
+let cachedPlatformProof = null;
+let cachedPlatformProofAt = 0;
+let inflightPlatformProof = null;
+
+function parsePlatformCountsResponse(data) {
+  const publicPlayable = Number(data?.directory?.public_playable || 0);
+  const catalogActive = Number(data?.directory?.catalog_active || 0);
+  const verifiedRooms = publicPlayable > 0
+    ? publicPlayable
+    : catalogActive > 0
+      ? catalogActive
+      : STATIC_SOCIAL_PROOF.verifiedRooms;
+
+  const livePublished = Number(data?.current_tables?.published || 0);
+  const liveTables = data?.current_tables?.live_count_known && livePublished > 0
+    ? livePublished
+    : null;
+
+  return {
+    verifiedRooms,
+    liveTables,
+    gtoGames: STATIC_SOCIAL_PROOF.gtoGames,
+  };
+}
+
+function fetchCachedPlatformProof() {
+  if (typeof window === 'undefined' || typeof fetch !== 'function') {
+    return Promise.resolve(STATIC_SOCIAL_PROOF);
+  }
+  const now = Date.now();
+  if (cachedPlatformProof && now - cachedPlatformProofAt < PLATFORM_COUNTS_TTL_MS) {
+    return Promise.resolve(cachedPlatformProof);
+  }
+  if (inflightPlatformProof) return inflightPlatformProof;
+
+  inflightPlatformProof = fetch('/api/poker/platform-counts', {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  })
+    .then((res) => (res.ok ? res.json() : null))
+    .then((data) => {
+      if (data && data.success) {
+        cachedPlatformProof = parsePlatformCountsResponse(data);
+        cachedPlatformProofAt = Date.now();
+        return cachedPlatformProof;
+      }
+      return cachedPlatformProof || STATIC_SOCIAL_PROOF;
+    })
+    .catch(() => cachedPlatformProof || STATIC_SOCIAL_PROOF)
+    .finally(() => {
+      inflightPlatformProof = null;
+    });
+
+  return inflightPlatformProof;
+}
 
 function trackFunnelEvent(event, props) {
   trackSeoFunnelEvent(event, props);
@@ -57,6 +121,9 @@ export default function SmarterQuickSignupSheet() {
   const [oauthProviderBusy, setOauthProviderBusy] = useState('');
   const [oauthError, setOauthError] = useState('');
   const [inlineEmail, setInlineEmail] = useState('');
+  const [experimentVariant, setExperimentVariant] = useState('control-gto');
+  const [aiWelcome, setAiWelcome] = useState(null);
+  const [socialProof, setSocialProof] = useState(STATIC_SOCIAL_PROOF);
 
   const close = useCallback(() => {
     setPayload(null);
@@ -68,6 +135,10 @@ export default function SmarterQuickSignupSheet() {
   useEffect(() => {
     const onOpen = (event) => {
       const detail = event?.detail || {};
+      const activeVariant = getSeoOfferExperiment();
+      const activeAi = getAiWelcomeContext();
+      setExperimentVariant(activeVariant);
+      setAiWelcome(activeAi);
       setOauthError('');
       setOauthProviderBusy('');
       setInlineEmail('');
@@ -94,6 +165,8 @@ export default function SmarterQuickSignupSheet() {
           unlock_key: nextPayload.unlockKey,
           source: nextPayload.source,
           redirect_path: nextPayload.redirectPath,
+          experiment_variant: activeVariant,
+          ...(activeAi ? { ai_engine: activeAi.engine } : {}),
         });
       } catch (_) {
         /* non-blocking */
@@ -114,17 +187,25 @@ export default function SmarterQuickSignupSheet() {
       /* ignore */
     }
     if (!payload) return undefined;
+
+    let cancelled = false;
+    fetchCachedPlatformProof().then((counts) => {
+      if (!cancelled && counts) setSocialProof(counts);
+    });
+
     const onKeyDown = (e) => {
       if (e.key === 'Escape') close();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
+      cancelled = true;
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [payload, close]);
 
   if (!payload) return null;
 
+  const isVipOfferVariant = experimentVariant === 'welcome-vip-500';
   const signupHref = buildSignupUrl({
     redirectPath: payload.redirectPath,
     unlockKey: payload.unlockKey,
@@ -144,6 +225,8 @@ export default function SmarterQuickSignupSheet() {
           unlock_key: payload.unlockKey,
           source: payload.source,
           redirect_path: payload.redirectPath,
+          experiment_variant: experimentVariant,
+          ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),
         });
       } catch (_) {
         /* non-blocking */
@@ -203,6 +286,8 @@ export default function SmarterQuickSignupSheet() {
         unlock_key: payload.unlockKey,
         source: payload.source,
         redirect_path: payload.redirectPath,
+        experiment_variant: experimentVariant,
+        ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),
       });
     } catch (_) {
       /* non-blocking */
@@ -217,6 +302,17 @@ export default function SmarterQuickSignupSheet() {
     router.push(target);
   };
 
+  const googleButtonLabel =
+    oauthProviderBusy === 'google'
+      ? 'Connecting To Google...'
+      : isVipOfferVariant
+        ? 'Unlock Free + 30-Day VIP With Google (1-Tap)'
+        : 'Continue With Google (1-Tap Free)';
+
+  const welcomeOfferCopy = isVipOfferVariant
+    ? 'Welcome Bonus: Includes Free 30-Day VIP + 500 Diamonds On Phone Verify'
+    : 'Includes Free 30-Day VIP + 500 Diamonds On Phone Verify';
+
   return (
     <div
       className={`${styles.kit} ${styles.sheetBackdrop}`}
@@ -224,6 +320,7 @@ export default function SmarterQuickSignupSheet() {
       aria-modal="true"
       aria-labelledby="sp-quick-signup-title"
       data-testid="quick-signup-sheet"
+      data-experiment-variant={experimentVariant}
       onClick={(e) => {
         if (e.target === e.currentTarget) close();
       }}
@@ -238,11 +335,51 @@ export default function SmarterQuickSignupSheet() {
           ×
         </button>
 
+        {aiWelcome ? (
+          <div
+            data-testid="quick-signup-ai-welcome"
+            style={{
+              margin: '0 44px 8px 0',
+              padding: '6px 10px',
+              borderRadius: 0,
+              border: '1px solid #38bdf8',
+              background: 'linear-gradient(90deg, rgba(16, 62, 110, 0.92) 0%, rgba(7, 25, 46, 0.92) 100%)',
+              color: '#86daff',
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: '0.03em',
+              lineHeight: 1.35,
+            }}
+          >
+            {aiWelcome.eyebrow}
+          </div>
+        ) : null}
+
         <span className={styles.eyebrowTag}>{payload.eyebrow}</span>
         <h2 id="sp-quick-signup-title" className={styles.sheetTitle}>
           {payload.title}
         </h2>
         <p className={styles.sheetSubtitle}>{payload.subtitle}</p>
+
+        <div
+          data-testid="quick-signup-welcome-offer"
+          style={{
+            margin: '0 0 12px',
+            padding: '8px 12px',
+            borderRadius: 0,
+            border: '1px solid #3a7fbd',
+            background: 'linear-gradient(180deg, #10355d 0%, #071b33 100%)',
+            boxShadow: 'inset 0 1px 0 rgba(134, 218, 255, 0.32)',
+            color: '#f2f7ff',
+            fontSize: 12.5,
+            fontWeight: 700,
+            letterSpacing: '0.02em',
+            lineHeight: 1.35,
+          }}
+        >
+          <span style={{ color: '#86daff', marginRight: 6 }} aria-hidden="true">▸</span>
+          <span>{welcomeOfferCopy}</span>
+        </div>
 
         <ul className={styles.unlockBenefits} style={{ gridTemplateColumns: '1fr' }}>
           {payload.benefits.map((item) => (
@@ -263,11 +400,7 @@ export default function SmarterQuickSignupSheet() {
             disabled={Boolean(oauthProviderBusy)}
             data-testid="quick-signup-google-btn"
           >
-            <span>
-              {oauthProviderBusy === 'google'
-                ? 'Connecting To Google...'
-                : 'Continue With Google (1-Tap Free)'}
-            </span>
+            <span>{googleButtonLabel}</span>
           </button>
 
           <button
@@ -320,6 +453,8 @@ export default function SmarterQuickSignupSheet() {
                   unlock_key: payload.unlockKey,
                   source: payload.source,
                   redirect_path: payload.redirectPath,
+                  experiment_variant: experimentVariant,
+                  ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),
                 });
               } catch (_) {
                 /* non-blocking */
@@ -331,6 +466,19 @@ export default function SmarterQuickSignupSheet() {
           >
             Open Full Registration Form Directly
           </Link>
+        </div>
+
+        <div
+          className={styles.sheetTrustStrip}
+          aria-label="Live Platform Social Proof"
+          data-testid="quick-signup-live-proof"
+          style={{ borderColor: '#2c5278', color: '#86daff' }}
+        >
+          <span>{`${socialProof.verifiedRooms.toLocaleString()} Verified Poker Rooms`}</span>
+          {socialProof.liveTables ? (
+            <span>{`${socialProof.liveTables.toLocaleString()} Live Tables Running`}</span>
+          ) : null}
+          <span>{`${socialProof.gtoGames} GTO Training Games`}</span>
         </div>
 
         <div className={styles.sheetTrustStrip} aria-label="Account Guarantees">

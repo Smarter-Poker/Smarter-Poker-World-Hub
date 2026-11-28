@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 55,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 423,
+    "dependencyFiles": 424,
     "componentFiles": 70,
     "hookFiles": 16,
     "ctas": 562,
@@ -20,7 +20,7 @@
     "realtimeFiles": 7,
     "tests": 205,
     "markerCandidates": 408,
-    "possibleUnwiredFunctions": 511,
+    "possibleUnwiredFunctions": 513,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
     "routeStateUnassignedGaps": 0,
@@ -5130,6 +5130,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -5162,6 +5163,7 @@
           "evidence": [
             "pages/hub/training/hand-history-upload.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/engines/HandHistoryParser.js",
             "src/lib/acquisition/firstTouch.mjs",
@@ -5214,6 +5216,7 @@
           "evidence": [
             "pages/hub/training/analyzer.js",
             "pages/hub/training/hand-history-upload.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/authUtils.js",
             "src/lib/training/practiceSession.js"
@@ -5234,6 +5237,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -5879,6 +5883,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -5958,6 +5963,7 @@
             "pages/hub/training/autopilot.js",
             "src/components/gates/FeatureGatePopup.jsx",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -6105,6 +6111,7 @@
           "evidence": [
             "pages/hub/training/autopilot.js",
             "src/components/gates/FeatureGatePopup.jsx",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -6156,6 +6163,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -6466,6 +6474,7 @@
         "src/lib/pushMenuState.mjs",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
@@ -6554,6 +6563,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/BlockerScorePanel.jsx",
@@ -6719,6 +6729,7 @@
           "evidence": [
             "pages/hub/training/blind-defense.js",
             "src/components/sandbox/paTokens.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/LeaderboardPanel.jsx",
@@ -6786,6 +6797,7 @@
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -6934,6 +6946,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -6998,6 +7011,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -7115,6 +7129,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/bluff-catcher.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -7152,6 +7167,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -7281,6 +7297,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -7345,6 +7362,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -7462,6 +7480,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/bounty-trainer.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -7499,6 +7518,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -7949,6 +7969,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -8006,6 +8027,7 @@
           "evidence": [
             "pages/hub/training/challenges.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
@@ -8112,6 +8134,7 @@
           "evidence": [
             "pages/hub/training/challenges.js",
             "src/components/sandbox/paTokens.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
@@ -8162,6 +8185,7 @@
             "src/lib/mediaStreamSingleton.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -8496,6 +8520,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -8524,6 +8549,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/training/trainingPresets.mjs"
@@ -8573,6 +8599,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/coach-mode.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/hooks/useTrainingFeedback.js"
           ],
           "tests": [
@@ -8591,6 +8618,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/hooks/useTrainingFeedback.js",
             "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/training/trainingPresets.mjs"
           ],
@@ -8671,6 +8699,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -8698,6 +8727,7 @@
           "evidence": [
             "pages/hub/training/community-leaderboard.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -8735,6 +8765,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/community-leaderboard.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js"
           ],
           "tests": [
@@ -8748,6 +8779,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -8807,6 +8839,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -8832,6 +8865,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -8870,7 +8904,8 @@
         "success": {
           "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/custom-rake.js"
+            "pages/hub/training/custom-rake.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
@@ -8885,6 +8920,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": [
@@ -8970,6 +9006,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -9014,6 +9051,7 @@
           "evidence": [
             "pages/hub/training/custom-solve.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/poker-engine/ChipBridge.js",
             "src/lib/poker-engine/HandEvaluator.js",
@@ -9094,6 +9132,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/custom-solve.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
             "src/lib/poker-engine/ChipBridge.js",
             "src/lib/poker-engine/SupabaseResilience.js",
@@ -9120,6 +9159,7 @@
             "src/lib/poker-engine/brain/holdem-brain.js",
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -9212,6 +9252,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/solvedSpotEngine.js",
@@ -9247,6 +9288,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -9308,6 +9350,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/daily-challenge.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/hooks/useTrainingFeedback.js",
             "src/lib/authUtils.js"
           ],
@@ -9331,6 +9374,7 @@
             "src/hooks/useTrainingFeedback.js",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs"
@@ -9559,6 +9603,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -9587,6 +9632,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/training/trainingPresets.mjs"
@@ -9632,7 +9678,8 @@
         "success": {
           "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/drill-builder.js"
+            "pages/hub/training/drill-builder.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": [
             "__tests__/a-refused-websocket-never-crashes-the-app.law.test.mjs",
@@ -9648,6 +9695,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/training/trainingPresets.mjs"
           ],
@@ -10134,6 +10182,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -10198,6 +10247,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -10315,6 +10365,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/ev-trainer.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -10352,6 +10403,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -10416,6 +10468,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -10440,6 +10493,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -10475,7 +10529,8 @@
         "success": {
           "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/famous-finals.js"
+            "pages/hub/training/famous-finals.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
@@ -10489,6 +10544,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": [
@@ -10618,6 +10674,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -10685,6 +10742,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -10811,6 +10869,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/final-table-sim.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -10851,6 +10910,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -10947,6 +11007,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -10986,6 +11047,7 @@
           "evidence": [
             "pages/hub/training/flashcards.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/poker-engine/ChipBridge.js",
@@ -11055,6 +11117,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/flashcards.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/authUtils.js",
             "src/lib/poker-engine/ChipBridge.js",
@@ -11079,6 +11142,7 @@
             "src/lib/poker-engine/brain/holdem-brain.js",
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -11146,6 +11210,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -11170,6 +11235,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -11207,6 +11273,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/focus-timer.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js"
           ],
           "tests": [
@@ -11222,6 +11289,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -11349,6 +11417,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -11413,6 +11482,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -11530,6 +11600,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/frequency-locking.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -11567,6 +11638,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -11793,6 +11865,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -11819,6 +11892,7 @@
           "evidence": [
             "pages/hub/training/gto-news.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
@@ -11859,6 +11933,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/gto-news.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/authUtils.js"
           ],
@@ -11875,6 +11950,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -11940,6 +12016,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -11970,6 +12047,7 @@
           "evidence": [
             "pages/hub/training/gto-preloader.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/engines/DifficultyEngine.js",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js",
@@ -12018,6 +12096,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/gto-preloader.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js"
           ],
           "tests": [
@@ -12034,6 +12113,7 @@
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
             "src/lib/idbCacheStore.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -12443,6 +12523,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -12507,6 +12588,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -12624,6 +12706,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/gto-vs-exploitative.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -12661,6 +12744,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -12725,6 +12809,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -12744,6 +12829,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -12769,7 +12855,8 @@
         "success": {
           "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/hand-comparison.js"
+            "pages/hub/training/hand-comparison.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": []
         },
@@ -12780,6 +12867,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": []
@@ -12830,6 +12918,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -12865,6 +12954,7 @@
           "evidence": [
             "pages/hub/training/hand-history-upload.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/engines/HandHistoryParser.js",
             "src/lib/acquisition/firstTouch.mjs",
@@ -12928,6 +13018,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/hand-history-upload.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/authUtils.js",
             "src/lib/training/practiceSession.js"
@@ -12952,6 +13043,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -13087,6 +13179,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -13142,6 +13235,7 @@
           "evidence": [
             "pages/hub/training/hand-lab.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/GeevesMenuWidget.jsx",
@@ -13244,6 +13338,7 @@
           "evidence": [
             "pages/hub/training/hand-lab.js",
             "src/components/sandbox/paTokens.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -13297,6 +13392,7 @@
             "src/lib/mediaStreamSingleton.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -13687,6 +13783,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -13753,6 +13850,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -13876,6 +13974,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/icm-final-table.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -13915,6 +14014,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -14005,6 +14105,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -14045,6 +14146,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/poker-engine/ChipBridge.js",
             "src/lib/poker-engine/HandEvaluator.js",
@@ -14119,6 +14221,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/icm-simulator.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
             "src/lib/poker-engine/ChipBridge.js",
             "src/lib/poker-engine/SupabaseResilience.js",
@@ -14143,6 +14246,7 @@
             "src/lib/poker-engine/brain/holdem-brain.js",
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -14257,6 +14361,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -14312,6 +14417,7 @@
           "evidence": [
             "pages/hub/training/jarvis.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
@@ -14405,6 +14511,7 @@
           "evidence": [
             "pages/hub/training/jarvis.js",
             "src/components/sandbox/paTokens.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
@@ -14451,6 +14558,7 @@
             "src/lib/mediaStreamSingleton.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -14578,6 +14686,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -14640,6 +14749,7 @@
           "evidence": [
             "pages/hub/training/leaderboard.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
@@ -14755,6 +14865,7 @@
           "evidence": [
             "pages/hub/training/leaderboard.js",
             "src/components/sandbox/paTokens.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
@@ -14811,6 +14922,7 @@
             "src/lib/mediaStreamSingleton.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -15474,6 +15586,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -15538,6 +15651,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -15655,6 +15769,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/mixed-strategy-lab.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -15692,6 +15807,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -15819,6 +15935,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -15891,6 +16008,7 @@
           "evidence": [
             "pages/hub/training/multi-table.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -16023,6 +16141,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/multi-table.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -16067,6 +16186,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -16220,6 +16340,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -16284,6 +16405,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -16401,6 +16523,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/multiway-postflop.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -16438,6 +16561,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -16502,6 +16626,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -16526,6 +16651,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -16561,7 +16687,8 @@
         "success": {
           "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/multiway-preflop.js"
+            "pages/hub/training/multiway-preflop.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
@@ -16575,6 +16702,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": [
@@ -16814,6 +16942,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -16878,6 +17007,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -16995,6 +17125,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/nodelocking.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -17032,6 +17163,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -18059,6 +18191,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -18125,6 +18258,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -18248,6 +18382,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/player-profiles.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -18287,6 +18422,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -18361,6 +18497,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -18388,6 +18525,7 @@
           "evidence": [
             "pages/hub/training/position-mastery.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -18430,6 +18568,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/position-mastery.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js"
           ],
           "tests": [
@@ -18445,6 +18584,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -18578,6 +18718,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -18642,6 +18783,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -18759,6 +18901,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/pot-geometry.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -18796,6 +18939,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -18925,6 +19069,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -18989,6 +19134,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -19106,6 +19252,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/preflop-advisor.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -19143,6 +19290,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -19228,6 +19376,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -19267,6 +19416,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/RangeGrid.jsx",
             "src/components/vip/VipKit.jsx",
@@ -19332,6 +19482,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/preflop-charts.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
@@ -19360,6 +19511,7 @@
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
@@ -20109,6 +20261,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -20134,6 +20287,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -20172,7 +20326,8 @@
         "success": {
           "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/qre-explorer.js"
+            "pages/hub/training/qre-explorer.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
@@ -20188,6 +20343,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": [
@@ -20320,6 +20476,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -20389,6 +20546,7 @@
           "evidence": [
             "pages/hub/training/quick-warmup.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -20514,6 +20672,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/quick-warmup.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -20553,6 +20712,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -20650,6 +20810,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -20694,6 +20855,7 @@
           "evidence": [
             "pages/hub/training/quiz-builder.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/poker-engine/ChipBridge.js",
@@ -20776,6 +20938,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/quiz-builder.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/authUtils.js",
             "src/lib/poker-engine/ChipBridge.js",
@@ -20805,6 +20968,7 @@
             "src/lib/poker-engine/brain/holdem-brain.js",
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -21265,6 +21429,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -21288,6 +21453,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -21320,7 +21486,8 @@
         "success": {
           "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/rake-solutions.js"
+            "pages/hub/training/rake-solutions.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
@@ -21333,6 +21500,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": [
@@ -21457,6 +21625,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -21521,6 +21690,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -21638,6 +21808,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/range-advisor.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -21675,6 +21846,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -21741,6 +21913,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -21768,6 +21941,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -21812,6 +21986,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/range-builder.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
             "src/lib/training/practiceSession.js"
           ],
@@ -21830,6 +22005,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -21925,6 +22101,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -21960,6 +22137,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/RangeGrid.jsx",
             "src/components/vip/VipKit.jsx",
@@ -22011,6 +22189,7 @@
           "evidence": [
             "pages/hub/training/preflop-charts.js",
             "pages/hub/training/range-explorer.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
@@ -22034,6 +22213,7 @@
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js"
@@ -22460,6 +22640,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -22482,6 +22663,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -22516,7 +22698,8 @@
         "success": {
           "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/risk-analyzer.js"
+            "pages/hub/training/risk-analyzer.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
@@ -22530,6 +22713,7 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": [
@@ -22595,6 +22779,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -22620,6 +22805,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -22655,6 +22841,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/scenario-demo.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/hooks/useTrainingFeedback.js",
             "src/lib/authUtils.js",
             "src/lib/training/practiceSession.js"
@@ -22671,6 +22858,7 @@
             "src/hooks/useTrainingFeedback.js",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -23004,6 +23192,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -23027,6 +23216,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -23061,6 +23251,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/session-warmup.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js"
           ],
           "tests": [
@@ -23075,6 +23266,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -23138,6 +23330,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -23164,6 +23357,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -23202,6 +23396,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/short-deck-trainer.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/hooks/useTrainingFeedback.js",
             "src/lib/authUtils.js",
             "src/lib/training/practiceSession.js"
@@ -23219,6 +23414,7 @@
             "src/hooks/useTrainingFeedback.js",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -23286,6 +23482,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -23316,6 +23513,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -23365,6 +23563,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/skill-tree.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js"
           ],
           "tests": [
@@ -23383,6 +23582,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -23470,6 +23670,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -23509,6 +23710,7 @@
           "evidence": [
             "pages/hub/training/solutions.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/RangeGrid.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -23583,6 +23785,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/solutions.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js"
           ],
           "tests": [
@@ -23607,6 +23810,7 @@
             "src/hooks/usePersistedFilters.js",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -23707,6 +23911,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -23742,6 +23947,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -23805,6 +24011,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/spot-trainer.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js"
           ],
           "tests": [
@@ -23826,6 +24033,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs"
@@ -23982,6 +24190,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -24048,6 +24257,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -24171,6 +24381,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/spr-trainer.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -24210,6 +24421,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -24876,6 +25088,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -24904,6 +25117,7 @@
           "evidence": [
             "pages/hub/training/study-group-finder.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
@@ -24949,6 +25163,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/study-group-finder.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/authUtils.js"
           ],
@@ -24965,6 +25180,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -25481,6 +25697,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -25545,6 +25762,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -25662,6 +25880,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/three-way-postflop.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -25699,6 +25918,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -25767,6 +25987,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -25793,6 +26014,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
           ],
@@ -25830,6 +26052,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/tilt-guard.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js"
           ],
           "tests": [
@@ -25843,6 +26066,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -25938,6 +26162,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -25985,6 +26210,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/GeevesMenuWidget.jsx",
@@ -26068,6 +26294,7 @@
           "evidence": [
             "pages/hub/training/tournament-prep.js",
             "src/components/sandbox/paTokens.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -26111,6 +26338,7 @@
             "src/lib/mediaStreamSingleton.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -26575,6 +26803,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -26636,6 +26865,7 @@
           "evidence": [
             "pages/hub/training/tournaments.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
@@ -26755,6 +26985,7 @@
           "evidence": [
             "pages/hub/training/tournaments.js",
             "src/components/sandbox/paTokens.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/TrainerEmptyState.jsx",
@@ -26811,6 +27042,7 @@
             "src/lib/mediaStreamSingleton.js",
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
@@ -27061,6 +27293,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -27091,6 +27324,7 @@
           "evidence": [
             "pages/hub/training/training-feed.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
@@ -27139,6 +27373,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/training-feed.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/authUtils.js"
           ],
@@ -27156,6 +27391,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -27293,6 +27529,7 @@
         "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/scrollLock.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/sessionAnalytics.js",
@@ -27357,6 +27594,7 @@
         "empty": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/BlockerScorePanel.jsx",
             "src/components/training/EVGraph.jsx",
             "src/components/training/GodModeArena.jsx",
@@ -27474,6 +27712,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/villain-range.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/LeaderboardPanel.jsx",
             "src/components/training/PerformanceTrends.jsx",
             "src/components/training/SessionHistoryList.jsx",
@@ -27511,6 +27750,7 @@
             "src/lib/poker-engine/brain/live-observer.js",
             "src/lib/poker-engine/brain/session-analytics.js",
             "src/lib/scrollLock.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
@@ -27581,6 +27821,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -27612,6 +27853,7 @@
           "evidence": [
             "pages/hub/training/weakness-scanner.js",
             "src/components/seo/HubPageSummary.js",
+            "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js"
@@ -27654,6 +27896,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/weakness-scanner.js",
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/authUtils.js"
           ],
@@ -27669,6 +27912,7 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/authUtils.js",
+            "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js"
           ],
@@ -47998,7 +48242,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 253,
+          "line": 276,
           "handler": "handleOpenQuickSheet",
           "destination": "signupHref",
           "type": null,
@@ -48008,7 +48252,7 @@
         {
           "element": "link",
           "name": "Sign In To Existing Account",
-          "line": 261,
+          "line": 284,
           "handler": null,
           "destination": "loginHref",
           "type": null,
@@ -48180,17 +48424,20 @@
       "imports": [
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "src/lib/acquisition/firstTouch.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/supabase.js"
       ],
       "links": [],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts"
+      ],
       "apiReferencePrefixes": [],
       "ctas": [
         {
           "element": "button",
           "name": "Close Quick Signup Dialog",
-          "line": 232,
+          "line": 329,
           "handler": "close",
           "destination": null,
           "type": "button",
@@ -48200,7 +48447,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 259,
+          "line": 396,
           "handler": "() => handleOAuthOneTap('google')",
           "destination": null,
           "type": "button",
@@ -48210,7 +48457,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 273,
+          "line": 406,
           "handler": "() => handleOAuthOneTap('facebook')",
           "destination": null,
           "type": "button",
@@ -48220,7 +48467,7 @@
         {
           "element": "button",
           "name": "Create Free Account With Email",
-          "line": 304,
+          "line": 437,
           "handler": null,
           "destination": null,
           "type": "submit",
@@ -48230,8 +48477,8 @@
         {
           "element": "link",
           "name": "Open Full Registration Form Directly",
-          "line": 314,
-          "handler": "() => {\n              try {\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
+          "line": 447,
+          "handler": "() => {\n              try {\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                  experiment_variant: experimentVariant,\n                  ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
           "destination": "signupHref",
           "type": null,
           "disabled": null,
@@ -48240,7 +48487,7 @@
         {
           "element": "link",
           "name": "Sign In",
-          "line": 344,
+          "line": 492,
           "handler": "close",
           "destination": "loginHref",
           "type": null,
@@ -48260,7 +48507,7 @@
         "retry": false,
         "offline": true,
         "stale": false,
-        "success": false,
+        "success": true,
         "authExpiry": true
       },
       "persistenceWrites": {
@@ -48279,8 +48526,24 @@
       },
       "functions": [
         {
+          "name": "parsePlatformCountsResponse",
+          "line": 26,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "fetchCachedPlatformProof",
+          "line": 47,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "trackFunnelEvent",
-          "line": 14,
+          "line": 78,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -48288,7 +48551,7 @@
         },
         {
           "name": "sanitizeRedirect",
-          "line": 23,
+          "line": 87,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48296,7 +48559,7 @@
         },
         {
           "name": "openQuickSignup",
-          "line": 31,
+          "line": 95,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -48304,7 +48567,7 @@
         },
         {
           "name": "buildSignupUrl",
-          "line": 41,
+          "line": 105,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -48312,7 +48575,7 @@
         },
         {
           "name": "SmarterQuickSignupSheet",
-          "line": 54,
+          "line": 118,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -48320,22 +48583,6 @@
         },
         {
           "name": "onOpen",
-          "line": 69,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "onKeyDown",
-          "line": 117,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "handleOAuthOneTap",
           "line": 136,
           "references": 3,
           "exported": false,
@@ -48343,8 +48590,24 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "onKeyDown",
+          "line": 196,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "handleOAuthOneTap",
+          "line": 217,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "handleEmailFormSubmit",
-          "line": 188,
+          "line": 271,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48358,7 +48621,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 298,
+          "line": 431,
           "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -48374,13 +48637,15 @@
       "links": [
         "/hub/training"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/training/tool-records"
+      ],
       "apiReferencePrefixes": [],
       "ctas": [
         {
           "element": "link",
           "name": "Claim 30-Day VIP + 500 Diamonds",
-          "line": 173,
+          "line": 282,
           "handler": "() => dismiss('claim-vip')",
           "destination": "/hub/verify-phone?welcome=1",
           "type": null,
@@ -48390,7 +48655,7 @@
         {
           "element": "link",
           "name": "Launch 107 GTO Games",
-          "line": 181,
+          "line": 290,
           "handler": "() => dismiss('launch-training')",
           "destination": "/hub/training",
           "type": null,
@@ -48400,7 +48665,7 @@
         {
           "element": "button",
           "name": "Dismiss Account Unlocked Banner",
-          "line": 189,
+          "line": 298,
           "handler": "() => dismiss('dismiss')",
           "destination": null,
           "type": "button",
@@ -48415,7 +48680,7 @@
       },
       "states": {
         "loading": false,
-        "empty": false,
+        "empty": true,
         "error": false,
         "retry": false,
         "offline": false,
@@ -48439,8 +48704,32 @@
       },
       "functions": [
         {
+          "name": "readStoredAccessToken",
+          "line": 25,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "sanitizeGuestSpots",
+          "line": 37,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "syncGuestSavedSpotsToCloud",
+          "line": 63,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "hasStoredAuthSession",
-          "line": 34,
+          "line": 140,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48448,7 +48737,7 @@
         },
         {
           "name": "recordPendingSeoUnlock",
-          "line": 46,
+          "line": 152,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -48456,7 +48745,7 @@
         },
         {
           "name": "promotePendingSeoUnlock",
-          "line": 61,
+          "line": 167,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -48464,7 +48753,7 @@
         },
         {
           "name": "resolveWelcomeBody",
-          "line": 86,
+          "line": 192,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48472,7 +48761,7 @@
         },
         {
           "name": "SmarterUnlockedWelcomeBanner",
-          "line": 97,
+          "line": 203,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -48480,7 +48769,7 @@
         },
         {
           "name": "dismiss",
-          "line": 134,
+          "line": 243,
           "references": 8,
           "exported": false,
           "defaultExport": false,
@@ -70876,6 +71165,106 @@
       "markers": []
     },
     {
+      "file": "src/lib/seo/seoExperiment.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": true,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "isValidVariant",
+          "line": 41,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getEngineByKey",
+          "line": 45,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "buildAiWelcomePayload",
+          "line": 50,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "parseReferrerHost",
+          "line": 60,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "detectAiWelcomeEngine",
+          "line": 74,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getSeoOfferExperiment",
+          "line": 111,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "getAiWelcomeContext",
+          "line": 174,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "getSeoOfferExperiment",
+        "getAiWelcomeContext"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/seo/seoFunnelTelemetry.js",
       "imports": [],
       "links": [],
@@ -86586,6 +86975,10 @@
     },
     {
       "from": "src/components/seo/SmarterQuickSignupSheet.jsx",
+      "to": "src/lib/seo/seoExperiment.js"
+    },
+    {
+      "from": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "to": "src/lib/seo/seoFunnelTelemetry.js"
     },
     {
@@ -93557,11 +93950,11 @@
       "effectRef": "src/components/seo/SmarterAccountUnlockGate.jsx"
     },
     {
-      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:253:2",
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:276:2",
       "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 253,
+      "line": 276,
       "handler": "handleOpenQuickSheet",
       "destination": "signupHref",
       "type": null,
@@ -93570,11 +93963,11 @@
       "effectRef": "src/components/seo/SmarterAccountUnlockGate.jsx"
     },
     {
-      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:261:3",
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:284:3",
       "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
       "element": "link",
       "name": "Sign In To Existing Account",
-      "line": 261,
+      "line": 284,
       "handler": null,
       "destination": "loginHref",
       "type": null,
@@ -93609,11 +94002,11 @@
       "effectRef": "src/components/seo/SmarterConversionCta.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:232:1",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:329:1",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "Close Quick Signup Dialog",
-      "line": 232,
+      "line": 329,
       "handler": "close",
       "destination": null,
       "type": "button",
@@ -93622,11 +94015,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:259:2",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:396:2",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 259,
+      "line": 396,
       "handler": "() => handleOAuthOneTap('google')",
       "destination": null,
       "type": "button",
@@ -93635,11 +94028,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:273:3",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:406:3",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 273,
+      "line": 406,
       "handler": "() => handleOAuthOneTap('facebook')",
       "destination": null,
       "type": "button",
@@ -93648,11 +94041,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:304:4",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:437:4",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "Create Free Account With Email",
-      "line": 304,
+      "line": 437,
       "handler": null,
       "destination": null,
       "type": "submit",
@@ -93661,12 +94054,12 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:314:5",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:447:5",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "link",
       "name": "Open Full Registration Form Directly",
-      "line": 314,
-      "handler": "() => {\n              try {\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
+      "line": 447,
+      "handler": "() => {\n              try {\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                  experiment_variant: experimentVariant,\n                  ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
       "destination": "signupHref",
       "type": null,
       "disabled": null,
@@ -93674,11 +94067,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:344:6",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:492:6",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "link",
       "name": "Sign In",
-      "line": 344,
+      "line": 492,
       "handler": "close",
       "destination": "loginHref",
       "type": null,
@@ -93687,11 +94080,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:173:1",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:282:1",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "Claim 30-Day VIP + 500 Diamonds",
-      "line": 173,
+      "line": 282,
       "handler": "() => dismiss('claim-vip')",
       "destination": "/hub/verify-phone?welcome=1",
       "type": null,
@@ -93700,11 +94093,11 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:181:2",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:290:2",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "Launch 107 GTO Games",
-      "line": 181,
+      "line": 290,
       "handler": "() => dismiss('launch-training')",
       "destination": "/hub/training",
       "type": null,
@@ -93713,11 +94106,11 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:189:3",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:298:3",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "button",
       "name": "Dismiss Account Unlocked Banner",
-      "line": 189,
+      "line": 298,
       "handler": "() => dismiss('dismiss')",
       "destination": null,
       "type": "button",
@@ -101698,6 +102091,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -101745,6 +102139,7 @@
         "/api/auth/ensure-profile",
         "/api/avatar/generate-from-photo",
         "/api/avatar/generate-from-text",
+        "/api/poker/platform-counts",
         "/api/training/analytics",
         "/api/training/batch-preload",
         "/api/training/challenges",
@@ -101758,6 +102153,7 @@
         "/api/training/report-question",
         "/api/training/save-progress",
         "/api/training/save-session",
+        "/api/training/tool-records",
         "/api/user/get-header-stats",
         "/api/vip/check-status"
       ],
@@ -102161,6 +102557,7 @@
         "src/lib/push/enrollment-nudge.mjs",
         "src/lib/pushMenuState.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/server/fetchJsonWithDeadline.js",
@@ -102193,6 +102590,7 @@
         "/api/live-help/report-bug",
         "/api/messenger/get-conversations",
         "/api/notifications/mark-read",
+        "/api/poker/platform-counts",
         "/api/push/subscribe",
         "/api/push/test",
         "/api/push/vapid-public-key",
@@ -102201,6 +102599,7 @@
         "/api/store/diamond-transfer",
         "/api/training/challenges",
         "/api/training/save-session",
+        "/api/training/tool-records",
         "/api/user/get-header-stats",
         "/api/vip/check-status"
       ],
@@ -102503,12 +102902,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -102562,12 +102965,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -103079,6 +103486,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -103113,6 +103521,7 @@
         "/api/live-help/report-bug",
         "/api/messenger/get-conversations",
         "/api/notifications/mark-read",
+        "/api/poker/platform-counts",
         "/api/push/subscribe",
         "/api/push/test",
         "/api/push/vapid-public-key",
@@ -103121,6 +103530,7 @@
         "/api/store/diamond-transfer",
         "/api/training/challenges",
         "/api/training/save-session",
+        "/api/training/tool-records",
         "/api/user/get-header-stats",
         "/api/vip/check-status"
       ],
@@ -103766,6 +104176,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -103774,7 +104185,10 @@
         "src/lib/training/trainingPresets.mjs",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -103862,6 +104276,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -103872,9 +104287,11 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/leaderboard",
-        "/api/training/save-session"
+        "/api/training/save-session",
+        "/api/training/tool-records"
       ],
       "persistence": [
         {
@@ -103953,6 +104370,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -103960,7 +104378,10 @@
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -104037,6 +104458,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -104059,10 +104481,12 @@
         "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/preflop-ranges",
         "/api/training/save-session",
-        "/api/training/solver-api"
+        "/api/training/solver-api",
+        "/api/training/tool-records"
       ],
       "persistence": [
         {
@@ -104255,6 +104679,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/solvedSpotEngine.js",
@@ -104268,12 +104693,14 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/seo/referral-stats",
         "/api/training/challenges",
         "/api/training/hand-of-the-day",
         "/api/training/record-question",
         "/api/training/save-progress",
-        "/api/training/save-session"
+        "/api/training/save-session",
+        "/api/training/tool-records"
       ],
       "persistence": [
         {
@@ -104426,6 +104853,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -104436,7 +104864,10 @@
         "src/lib/training/trainingPresets.mjs",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "pages/hub/training/drill-builder.js",
@@ -104739,12 +105170,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -104799,6 +105234,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -104806,7 +105242,10 @@
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -104863,12 +105302,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -104945,6 +105388,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -104967,6 +105411,7 @@
         "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/save-session",
         "/api/training/tool-records"
@@ -105160,6 +105605,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -105170,6 +105616,7 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/save-session",
         "/api/training/tool-records"
@@ -105263,12 +105710,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -105390,6 +105841,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -105401,6 +105853,7 @@
       ],
       "apiReferences": [
         "/api/news/articles",
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/save-session",
         "/api/training/tool-records"
@@ -105498,6 +105951,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -105512,10 +105966,12 @@
         "src/utils/actionGrouper.js"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/batch-preload",
         "/api/training/challenges",
         "/api/training/progress",
-        "/api/training/save-session"
+        "/api/training/save-session",
+        "/api/training/tool-records"
       ],
       "persistence": [
         {
@@ -105683,12 +106139,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -105743,6 +106203,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -105750,7 +106211,10 @@
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -105808,6 +106272,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -105820,6 +106285,7 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/audit-hand-history",
         "/api/training/challenges",
         "/api/training/save-session",
@@ -105965,6 +106431,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -106000,6 +106467,7 @@
         "/api/messenger/get-conversations",
         "/api/news/spot-vote",
         "/api/notifications/mark-read",
+        "/api/poker/platform-counts",
         "/api/push/subscribe",
         "/api/push/test",
         "/api/push/vapid-public-key",
@@ -106371,12 +106839,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -106451,6 +106923,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -106473,6 +106946,7 @@
         "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/icm-calc",
         "/api/training/save-session",
@@ -106694,6 +107168,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -106732,6 +107207,7 @@
         "/api/live-help/report-bug",
         "/api/messenger/get-conversations",
         "/api/notifications/mark-read",
+        "/api/poker/platform-counts",
         "/api/push/subscribe",
         "/api/push/test",
         "/api/push/vapid-public-key",
@@ -106741,6 +107217,7 @@
         "/api/training/challenges",
         "/api/training/get-sessions",
         "/api/training/save-session",
+        "/api/training/tool-records",
         "/api/user/get-header-stats",
         "/api/vip/check-status"
       ],
@@ -107088,6 +107565,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -107123,6 +107601,7 @@
         "/api/live-help/report-bug",
         "/api/messenger/get-conversations",
         "/api/notifications/mark-read",
+        "/api/poker/platform-counts",
         "/api/push/subscribe",
         "/api/push/test",
         "/api/push/vapid-public-key",
@@ -107132,6 +107611,7 @@
         "/api/training/challenges",
         "/api/training/leaderboard",
         "/api/training/save-session",
+        "/api/training/tool-records",
         "/api/user/get-header-stats",
         "/api/vip/check-status"
       ],
@@ -107895,12 +108375,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -108018,6 +108502,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -108060,6 +108545,7 @@
         "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/analytics",
         "/api/training/batch-preload",
         "/api/training/challenges",
@@ -108365,12 +108851,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -108425,6 +108915,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -108432,7 +108923,10 @@
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -108547,12 +109041,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -109024,12 +109522,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -109086,6 +109588,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -109096,9 +109599,11 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/get-progress",
-        "/api/training/save-session"
+        "/api/training/save-session",
+        "/api/training/tool-records"
       ],
       "persistence": [
         {
@@ -109178,12 +109683,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -109237,12 +109746,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -109318,6 +109831,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -109340,10 +109854,12 @@
         "/api/avatar/generate-from-photo",
         "/api/avatar/generate-from-text",
         "/api/club-arena/store-catalog",
+        "/api/poker/platform-counts",
         "/api/store/vip-membership-status",
         "/api/training/challenges",
         "/api/training/preflop-ranges",
         "/api/training/save-session",
+        "/api/training/tool-records",
         "/api/user/get-header-stats",
         "/api/vip/check-status"
       ],
@@ -110199,6 +110715,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -110206,7 +110723,10 @@
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -110330,6 +110850,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -110371,6 +110892,7 @@
         "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/analytics",
         "/api/training/batch-preload",
         "/api/training/challenges",
@@ -110383,7 +110905,8 @@
         "/api/training/reissue-questions",
         "/api/training/report-question",
         "/api/training/save-progress",
-        "/api/training/save-session"
+        "/api/training/save-session",
+        "/api/training/tool-records"
       ],
       "persistence": [
         {
@@ -110683,6 +111206,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -110706,6 +111230,7 @@
         "src/utils/v2Matrix.js"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/save-session",
         "/api/training/tool-records"
@@ -110928,6 +111453,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -110935,7 +111461,10 @@
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -110992,12 +111521,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -111054,6 +111587,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -111065,6 +111599,7 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/grade-range",
         "/api/training/save-session",
@@ -111296,6 +111831,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -111303,7 +111839,10 @@
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -111365,6 +111904,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -111376,6 +111916,7 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/save-session",
         "/api/training/tool-records"
@@ -111594,6 +112135,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -111604,6 +112146,7 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/save-session",
         "/api/training/tool-records"
@@ -111702,6 +112245,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -111713,6 +112257,7 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/equity",
         "/api/training/save-session",
@@ -111813,6 +112358,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -111823,9 +112369,11 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/get-sessions",
-        "/api/training/save-session"
+        "/api/training/save-session",
+        "/api/training/tool-records"
       ],
       "persistence": [
         {
@@ -111919,6 +112467,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -111930,10 +112479,12 @@
         "src/utils/pokerHandEvaluator.js"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/bookmark-solution",
         "/api/training/browse-solutions",
         "/api/training/challenges",
-        "/api/training/save-session"
+        "/api/training/save-session",
+        "/api/training/tool-records"
       ],
       "persistence": [
         {
@@ -112043,6 +112594,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -112055,9 +112607,11 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/save-session",
-        "/api/training/spot-drill"
+        "/api/training/spot-drill",
+        "/api/training/tool-records"
       ],
       "persistence": [
         {
@@ -112141,12 +112695,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -112548,6 +113106,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -112558,10 +113117,12 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/save-session",
         "/api/training/study-groups",
-        "/api/training/study-groups/"
+        "/api/training/study-groups/",
+        "/api/training/tool-records"
       ],
       "persistence": [
         {
@@ -113370,12 +113931,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -113434,6 +113999,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -113444,9 +114010,11 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/get-sessions",
-        "/api/training/save-session"
+        "/api/training/save-session",
+        "/api/training/tool-records"
       ],
       "persistence": [
         {
@@ -113562,6 +114130,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -113596,6 +114165,7 @@
         "/api/live-help/report-bug",
         "/api/messenger/get-conversations",
         "/api/notifications/mark-read",
+        "/api/poker/platform-counts",
         "/api/push/subscribe",
         "/api/push/test",
         "/api/push/vapid-public-key",
@@ -114298,6 +114868,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -114332,6 +114903,7 @@
         "/api/live-help/report-bug",
         "/api/messenger/get-conversations",
         "/api/notifications/mark-read",
+        "/api/poker/platform-counts",
         "/api/push/subscribe",
         "/api/push/test",
         "/api/push/vapid-public-key",
@@ -114340,6 +114912,7 @@
         "/api/store/diamond-transfer",
         "/api/training/challenges",
         "/api/training/save-session",
+        "/api/training/tool-records",
         "/api/training/tournaments",
         "/api/user/get-header-stats",
         "/api/vip/check-status"
@@ -114719,6 +115292,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -114730,9 +115304,11 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/get-sessions",
-        "/api/training/save-session"
+        "/api/training/save-session",
+        "/api/training/tool-records"
       ],
       "persistence": [
         {
@@ -114814,12 +115390,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -114880,6 +115460,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
@@ -114893,9 +115474,11 @@
         "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
+        "/api/poker/platform-counts",
         "/api/training/challenges",
         "/api/training/get-sessions",
-        "/api/training/save-session"
+        "/api/training/save-session",
+        "/api/training/tool-records"
       ],
       "persistence": [
         {
@@ -115247,13 +115830,17 @@
         "src/lib/freerolls/freeBuySchedule.mjs",
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/quizStructuredData.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -115330,10 +115917,14 @@
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "src/lib/acquisition/firstTouch.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/supabase.js"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -115381,11 +115972,15 @@
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "src/lib/acquisition/firstTouch.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -115432,10 +116027,14 @@
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "src/lib/acquisition/firstTouch.mjs",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/supabase.js"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -115482,7 +116081,9 @@
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "src/lib/seo/seoFunnelTelemetry.js"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -116851,12 +117452,16 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/seoExperiment.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/venueCount.mjs"
       ],
-      "apiReferences": [],
+      "apiReferences": [
+        "/api/poker/platform-counts",
+        "/api/training/tool-records"
+      ],
       "persistence": [
         {
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -121701,6 +122306,16 @@
       "tests": []
     },
     {
+      "file": "src/lib/seo/seoExperiment.js",
+      "reachableFiles": [
+        "src/lib/seo/seoExperiment.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/lib/seo/seoFunnelTelemetry.js",
       "reachableFiles": [
         "src/lib/seo/seoFunnelTelemetry.js"
@@ -124790,7 +125405,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "kind": "PLACEHOLDER",
-        "line": 298,
+        "line": 431,
         "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -129621,7 +130236,6 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/hub/personal-assistant/leaks.js",
-          "pages/hub/personal-assistant/sandbox.js",
           "src/components/sandbox/SandboxComponents.jsx",
           "src/components/sandbox/paKit.jsx"
         ]
@@ -129956,6 +130570,7 @@
           "pages/tools/multi-street-ev-calculator.js",
           "pages/tools/multiway-all-in-calculator.js",
           "pages/tools/mystery-bounty-tracker.js",
+          "pages/tools/odds/[matchup].js",
           "pages/tools/outs-calculator.js",
           "pages/tools/payout-calculator.js",
           "pages/tools/plo-bet-calculator.js",
@@ -130097,7 +130712,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "openQuickSignup",
-        "line": 31,
+        "line": 95,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -130113,6 +130728,7 @@
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterConversionCta.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
+          "src/components/seo/SmarterMiniGtoDrill.jsx",
           "src/components/seo/SmarterSeoMasthead.jsx",
           "src/components/tools/CalculatorShareAndPresets.js"
         ]
@@ -130120,7 +130736,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "SmarterQuickSignupSheet",
-        "line": 54,
+        "line": 118,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -130135,7 +130751,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "recordPendingSeoUnlock",
-        "line": 46,
+        "line": 152,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -130150,7 +130766,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "promotePendingSeoUnlock",
-        "line": 61,
+        "line": 167,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -130166,7 +130782,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "SmarterUnlockedWelcomeBanner",
-        "line": 97,
+        "line": 203,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -132639,6 +133255,7 @@
         "externalReferenceFiles": [
           "__tests__/aeo-tool-schemas.test.mjs",
           "__tests__/aeo-video-library-schema.test.mjs",
+          "__tests__/growth-wave3-programmatic-seo-fortress-20261127.law.test.mjs",
           "__tests__/gsc-breadcrumbs-datasets-fix-20261127.law.test.mjs",
           "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/gsc-series4-phase3.test.mjs",
@@ -132680,6 +133297,7 @@
           "pages/tools/multi-street-ev-calculator.js",
           "pages/tools/multiway-all-in-calculator.js",
           "pages/tools/mystery-bounty-tracker.js",
+          "pages/tools/odds/[matchup].js",
           "pages/tools/outs-calculator.js",
           "pages/tools/payout-calculator.js",
           "pages/tools/plo-bet-calculator.js",
@@ -132786,6 +133404,37 @@
         ]
       },
       {
+        "file": "src/lib/seo/seoExperiment.js",
+        "name": "getSeoOfferExperiment",
+        "line": 111,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/seo/SmarterQuickSignupSheet.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/seo/seoExperiment.js",
+        "name": "getAiWelcomeContext",
+        "line": 174,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/seo/GuestConversionBar.jsx",
+          "src/components/seo/SmarterQuickSignupSheet.jsx"
+        ]
+      },
+      {
         "file": "src/lib/seo/seoFunnelTelemetry.js",
         "name": "trackSeoFunnelEvent",
         "line": 27,
@@ -132799,6 +133448,7 @@
         "externalReferenceFiles": [
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
+          "src/components/seo/SmarterMiniGtoDrill.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx",
           "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
         ]
@@ -137079,7 +137729,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "kind": "PLACEHOLDER",
-        "line": 298,
+        "line": 431,
         "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -141910,7 +142560,6 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/hub/personal-assistant/leaks.js",
-          "pages/hub/personal-assistant/sandbox.js",
           "src/components/sandbox/SandboxComponents.jsx",
           "src/components/sandbox/paKit.jsx"
         ]
@@ -142245,6 +142894,7 @@
           "pages/tools/multi-street-ev-calculator.js",
           "pages/tools/multiway-all-in-calculator.js",
           "pages/tools/mystery-bounty-tracker.js",
+          "pages/tools/odds/[matchup].js",
           "pages/tools/outs-calculator.js",
           "pages/tools/payout-calculator.js",
           "pages/tools/plo-bet-calculator.js",
@@ -142386,7 +143036,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "openQuickSignup",
-        "line": 31,
+        "line": 95,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -142402,6 +143052,7 @@
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterConversionCta.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
+          "src/components/seo/SmarterMiniGtoDrill.jsx",
           "src/components/seo/SmarterSeoMasthead.jsx",
           "src/components/tools/CalculatorShareAndPresets.js"
         ]
@@ -142409,7 +143060,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "SmarterQuickSignupSheet",
-        "line": 54,
+        "line": 118,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -142424,7 +143075,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "recordPendingSeoUnlock",
-        "line": 46,
+        "line": 152,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -142439,7 +143090,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "promotePendingSeoUnlock",
-        "line": 61,
+        "line": 167,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -142455,7 +143106,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "SmarterUnlockedWelcomeBanner",
-        "line": 97,
+        "line": 203,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -144928,6 +145579,7 @@
         "externalReferenceFiles": [
           "__tests__/aeo-tool-schemas.test.mjs",
           "__tests__/aeo-video-library-schema.test.mjs",
+          "__tests__/growth-wave3-programmatic-seo-fortress-20261127.law.test.mjs",
           "__tests__/gsc-breadcrumbs-datasets-fix-20261127.law.test.mjs",
           "__tests__/gsc-series3-phase1.test.mjs",
           "__tests__/gsc-series4-phase3.test.mjs",
@@ -144969,6 +145621,7 @@
           "pages/tools/multi-street-ev-calculator.js",
           "pages/tools/multiway-all-in-calculator.js",
           "pages/tools/mystery-bounty-tracker.js",
+          "pages/tools/odds/[matchup].js",
           "pages/tools/outs-calculator.js",
           "pages/tools/payout-calculator.js",
           "pages/tools/plo-bet-calculator.js",
@@ -145075,6 +145728,37 @@
         ]
       },
       {
+        "file": "src/lib/seo/seoExperiment.js",
+        "name": "getSeoOfferExperiment",
+        "line": 111,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/seo/SmarterQuickSignupSheet.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/seo/seoExperiment.js",
+        "name": "getAiWelcomeContext",
+        "line": 174,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/seo/GuestConversionBar.jsx",
+          "src/components/seo/SmarterQuickSignupSheet.jsx"
+        ]
+      },
+      {
         "file": "src/lib/seo/seoFunnelTelemetry.js",
         "name": "trackSeoFunnelEvent",
         "line": 27,
@@ -145088,6 +145772,7 @@
         "externalReferenceFiles": [
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
+          "src/components/seo/SmarterMiniGtoDrill.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx",
           "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
         ]

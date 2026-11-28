@@ -162,40 +162,65 @@ export function videoThumbnailUrl(video) {
 }
 
 /**
- * Parse explicit timestamp chapters ("0:00 Intro\n3:15 Hand 1") into Schema.org
- * Clip entities when at least 2 monotonically increasing timestamps exist.
+ * Pure parser for MM:SS and HH:MM:SS key-moment chapter lines in video
+ * descriptions. Returns an array of { name, startOffset, endOffset? } entries
+ * only when at least 2 valid strictly increasing timestamps fall within
+ * durationSec (when positive); otherwise returns [].
  */
-export function parseVideoChapters(text, baseUrl, totalDurationSeconds = 0) {
-    if (typeof text !== 'string' || !text.trim() || !baseUrl) return [];
-    const lines = text.split(/\r?\n/);
+export function extractVideoKeyMoments(description, durationSec = 0) {
+    if (typeof description !== 'string' || !description.trim()) return [];
+    const maxSec = Number.isFinite(Number(durationSec)) && Number(durationSec) > 0
+        ? Math.round(Number(durationSec))
+        : 0;
+    const lines = description.split(/\r?\n/);
     const raw = [];
-    const tsRe = /^(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\s+[-\u2013\u2014:]?\s*(.+)$/;
+    const tsRe = /^(?:[-*\u2022]\s*)?(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:\s*[-:|]\s*|\s+)(.+)$/;
     for (const line of lines) {
-        const m = line.trim().match(tsRe);
+        const cleanedLine = line.trim();
+        if (!cleanedLine) continue;
+        const m = cleanedLine.match(tsRe);
         if (!m) continue;
-        const hrs = m[1] ? Number(m[1]) : 0;
+        const hasHours = m[1] !== undefined;
+        const hrs = hasHours ? Number(m[1]) : 0;
         const mins = Number(m[2]);
         const secs = Number(m[3]);
+        if (!Number.isInteger(hrs) || !Number.isInteger(mins) || !Number.isInteger(secs)) continue;
+        if (secs < 0 || secs >= 60 || mins < 0 || (hasHours && mins >= 60) || hrs < 0) continue;
         const startOffset = hrs * 3600 + mins * 60 + secs;
-        const name = m[4].trim();
+        const name = m[4].replace(/^[\u2013\u2014\-:|]+\s*/, '').trim();
         if (!name || !Number.isFinite(startOffset) || startOffset < 0) continue;
-        if (totalDurationSeconds > 0 && startOffset >= totalDurationSeconds) continue;
+        if (maxSec > 0 && startOffset >= maxSec) continue;
         if (raw.length > 0 && startOffset <= raw[raw.length - 1].startOffset) continue;
         raw.push({ name, startOffset });
     }
     if (raw.length < 2) return [];
     return raw.map((clip, idx) => {
         const nextStart = raw[idx + 1]?.startOffset;
-        const endOffset = nextStart ?? (totalDurationSeconds > clip.startOffset ? totalDurationSeconds : undefined);
+        const endOffset = nextStart ?? (maxSec > clip.startOffset ? maxSec : undefined);
         return {
-            '@type': 'Clip',
-            '@id': `${baseUrl}#clip-${clip.startOffset}`,
             name: clip.name,
             startOffset: clip.startOffset,
             ...(Number.isFinite(endOffset) && endOffset > clip.startOffset ? { endOffset } : {}),
-            url: `${baseUrl}?t=${clip.startOffset}`,
         };
     });
+}
+
+/**
+ * Parse explicit timestamp chapters ("0:00 Intro\n3:15 Hand 1") into Schema.org
+ * Clip entities when at least 2 monotonically increasing timestamps exist.
+ */
+export function parseVideoChapters(text, baseUrl, totalDurationSeconds = 0) {
+    if (!baseUrl) return [];
+    const moments = extractVideoKeyMoments(text, totalDurationSeconds);
+    if (moments.length < 2) return [];
+    return moments.map(clip => ({
+        '@type': 'Clip',
+        '@id': `${baseUrl}#clip-${clip.startOffset}`,
+        name: clip.name,
+        startOffset: clip.startOffset,
+        ...(Number.isFinite(clip.endOffset) && clip.endOffset > clip.startOffset ? { endOffset: clip.endOffset } : {}),
+        url: `${baseUrl}?t=${clip.startOffset}`,
+    }));
 }
 
 /** Only emit Google's video entity when its required publication fact exists. */
@@ -209,7 +234,12 @@ export function buildVideoObject(video, { channelName, channelHref, description,
     // registry. Raw source keys and row attribution do not prove identity.
     const authorUrl = typeof channelHref === 'string' && /^\/hub\/video-library\/channels\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(channelHref)
         ? `${SITE_URL}${channelHref}` : null;
-    const clips = parseVideoChapters(chaptersText, url, seconds);
+    const chapterSource = typeof chaptersText === 'string' && chaptersText.trim()
+        ? chaptersText
+        : (typeof video?.description === 'string' && video.description.trim()
+            ? video.description
+            : description);
+    const clips = parseVideoChapters(chapterSource, url, seconds);
     const videoObject = {
         '@type': 'VideoObject',
         '@id': `${url}#video`,

@@ -13,6 +13,13 @@ import { supabase } from '../supabase';
 
 // ─── Retry Utility — imported from shared module ────────
 import { withRetry } from './retryUtils';
+import { localDay } from './localDates.mjs';
+import {
+    computeTotalHours as paidHours,
+    decorateGigDay,
+    gigReportStats,
+    isDealingDown,
+} from './tokeReport.mjs';
 
 // ─── Direct Fetch Helpers (bypass Supabase client AbortError) ────────
 function getPostgrestConfig() {
@@ -136,40 +143,18 @@ export interface TokeExpense {
 // ─── Helper: compute total hours from a list of downs ───────────────
 
 function computeTotalHours(downs: TokeDown[]): number {
-    let ms = 0;
-    for (const d of downs) {
-        if (!d.started_at) continue;
-        const start = new Date(d.started_at).getTime();
-        if (isNaN(start)) continue;
-
-        const end = d.ended_at ? new Date(d.ended_at).getTime() : Date.now();
-        const validEnd = isNaN(end) ? Date.now() : end;
-
-        const durationMs = validEnd - start;
-        // Ensure multiplier is always a valid number to prevent NaN cascades causing total earnings to fail
-        const rawMulti = d.down_multiplier;
-        const multiplier = typeof rawMulti === 'number' ? rawMulti : (parseFloat(rawMulti as any) || 1.0);
-
-        ms += (durationMs * multiplier);
-    }
-    return ms / (1000 * 60 * 60);
+    return paidHours(downs);
 }
+
+const sumTokes = (downs: TokeDown[]) =>
+    Math.round(downs.filter(isDealingDown).reduce((s, d) => s + (Number(d.toke_amount) || 0), 0) * 100) / 100;
+const sumAmounts = (rows: { amount: number }[]) =>
+    Math.round(rows.reduce((s, e) => s + (Number(e.amount) || 0), 0) * 100) / 100;
 
 // ─── Helper: decorate a day with computed fields ─────────────────────
 
 function decorateDay(day: TokeGigDay, downs: TokeDown[], expenses: TokeExpense[]): TokeGigDay {
-    const dayDowns = downs.filter(d => d.day_id === day.id);
-    const dayExpenses = expenses.filter(e => e.day_id === day.id);
-    const dealingDowns = dayDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
-    return {
-        ...day,
-        downs: dayDowns,
-        expenses: dayExpenses,
-        totalTokes: dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0),
-        totalDowns: dealingDowns.length,
-        totalHoursWorked: computeTotalHours(dayDowns),
-        totalExpenses: dayExpenses.reduce((s, e) => s + (e.amount || 0), 0),
-    };
+    return decorateGigDay(day, downs, expenses);
 }
 
 // ─── GIG CRUD ────────────────────────────────────────────────────────
@@ -209,13 +194,12 @@ export async function fetchGigs(userId: string): Promise<TokeGig[]> {
         return gigs.map(gig => {
             const allDowns = downsByGig.get(gig.id) || [];
             const allExps = expsByGig.get(gig.id) || [];
-            const dealingDowns = allDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
             return {
                 ...gig,
-                totalTokes: dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0),
-                totalDowns: dealingDowns.length,
+                totalTokes: sumTokes(allDowns),
+                totalDowns: allDowns.filter(isDealingDown).length,
                 totalHoursWorked: computeTotalHours(allDowns),
-                totalExpenses: allExps.reduce((s, e) => s + (e.amount || 0), 0),
+                totalExpenses: sumAmounts(allExps),
                 downs: allDowns,
                 expenses: allExps,
             };
@@ -257,15 +241,13 @@ export async function getActiveGig(userId: string): Promise<TokeGig | null> {
             decorateDay(day as TokeGigDay, allDowns, allExpenses)
         );
 
-        const dealingDowns = allDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
-
         return {
             ...data,
             days,
-            totalTokes: dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0),
-            totalDowns: dealingDowns.length,
+            totalTokes: sumTokes(allDowns),
+            totalDowns: allDowns.filter(isDealingDown).length,
             totalHoursWorked: computeTotalHours(allDowns),
-            totalExpenses: allExpenses.reduce((s, e) => s + (e.amount || 0), 0),
+            totalExpenses: sumAmounts(allExpenses),
         };
     });
 }
@@ -334,7 +316,7 @@ export async function createGig(userId: string, gig: Partial<TokeGig>): Promise<
         poker_venue_id: safePokerVenueId,
         latitude: gig.latitude || null,
         longitude: gig.longitude || null,
-        start_date: gig.start_date || new Date().toISOString().split('T')[0],
+        start_date: gig.start_date || localDay(),
         hourly_rate: gig.hourly_rate || 0,
         notes: gig.notes || null,
         status: 'active',
@@ -432,7 +414,7 @@ export async function completeGig(userId: string, gigId: string, mileage = 0): P
         .from('toke_gigs')
         .update({
             status: 'completed',
-            end_date: new Date().toISOString().split('T')[0],
+            end_date: localDay(),
             mileage: mileage || 0,
             updated_at: new Date().toISOString(),
         })
@@ -482,7 +464,7 @@ export async function createDay(userId: string, gigId: string, dayNumber: number
         gig_id: gigId,
         user_id: userId,
         day_number: dayNumber,
-        date: new Date().toISOString().split('T')[0],
+        date: localDay(),
         started_at: new Date().toISOString(),
     };
 
@@ -709,23 +691,19 @@ export async function getGigReport(userId: string, gigId: string) {
 
     if (gigError) throw gigError;
 
-    const { data: daysRaw } = await supabase
-        .from('toke_gig_days')
-        .select('*')
-        .eq('gig_id', gigId)
-        .order('day_number', { ascending: true });
+    if (!gig) throw new Error('This Event Could Not Be Found.');
 
-    const { data: downsRaw } = await supabase
-        .from('toke_downs')
-        .select('*')
-        .eq('gig_id', gigId)
-        .order('started_at', { ascending: true });
-
-    const { data: expensesRaw } = await supabase
-        .from('toke_expenses')
-        .select('*')
-        .eq('gig_id', gigId)
-        .order('created_at', { ascending: false });
+    const [
+        { data: daysRaw, error: dayError },
+        { data: downsRaw, error: downError },
+        { data: expensesRaw, error: expenseError },
+    ] = await Promise.all([
+        supabase.from('toke_gig_days').select('*').eq('gig_id', gigId).order('day_number', { ascending: true }),
+        supabase.from('toke_downs').select('*').eq('gig_id', gigId).order('started_at', { ascending: true }),
+        supabase.from('toke_expenses').select('*').eq('gig_id', gigId).order('created_at', { ascending: false }),
+    ]);
+    // A failed read used to report the event as $0 with no downs.
+    if (dayError || downError || expenseError) throw dayError || downError || expenseError;
 
     const allDowns = (downsRaw || []) as TokeDown[];
     const allExpenses = (expensesRaw || []) as TokeExpense[];
@@ -735,46 +713,12 @@ export async function getGigReport(userId: string, gigId: string) {
         decorateDay(day as TokeGigDay, allDowns, allExpenses)
     );
 
-    const dealingDowns = allDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
-    const cashDowns = allDowns.filter(d => d.down_type === 'cash');
-    const tournamentDowns = allDowns.filter(d => d.down_type === 'tournament');
-    const brushDowns = allDowns.filter(d => d.down_type === 'brush');
-    const breakDowns = allDowns.filter(d => d.down_type === 'break');
-    const doubleDowns = allDowns.filter(d => d.is_double_down);
-
-    const totalTokes = dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0);
-    const totalHoursWorked = computeTotalHours(allDowns);
-    const totalExpenses = allExpenses.reduce((s, e) => s + (e.amount || 0), 0);
-    const hourlyRate = gig.hourly_rate || 0;
-    const hourlyPay = totalHoursWorked * hourlyRate;
-    const totalEarnings = hourlyPay + totalTokes - totalExpenses;
-
-    const startDate = new Date(gig.start_date);
-    const endDate = gig.end_date ? new Date(gig.end_date) : new Date();
-    const durationDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-
     return {
         gig,
         days,
         downs: allDowns,
         expenses: allExpenses,
-        stats: {
-            totalTokes,
-            totalDowns: dealingDowns.length,
-            totalHoursWorked: Math.round(totalHoursWorked * 100) / 100,
-            hourlyRate,
-            hourlyPay: Math.round(hourlyPay * 100) / 100,
-            totalEarnings: Math.round(totalEarnings * 100) / 100,
-            totalExpenses: Math.round(totalExpenses * 100) / 100,
-            cashDownCount: cashDowns.length,
-            tournamentDownCount: tournamentDowns.length,
-            brushDownCount: brushDowns.length,
-            breakCount: breakDowns.length,
-            doubleDownCount: doubleDowns.length,
-            avgTokePerDown: dealingDowns.length > 0 ? Math.round((totalTokes / dealingDowns.length) * 100) / 100 : 0,
-            durationDays,
-            perDay: durationDays > 0 ? Math.round(totalEarnings / durationDays) : 0,
-        },
+        stats: gigReportStats({ gig, days, downs: allDowns, expenses: allExpenses }),
     };
 }
 
@@ -789,6 +733,7 @@ export interface TokeAnalytics {
     totalEvents: number;
     totalHours: number;
     totalExpenses: number;
+    tokesPerHour: number;
     avgTokePerDown: number;
     avgHoursPerEvent: number;
     bestEvent: { venueName: string; tokes: number; date: string } | null;
@@ -820,7 +765,7 @@ export async function getTokeAnalytics(userId: string, startDate?: string, endDa
         if (gigErr) throw gigErr;
         if (!gigs || gigs.length === 0) {
             return {
-                careerTokes: 0, totalEvents: 0, totalHours: 0, totalExpenses: 0,
+                careerTokes: 0, totalEvents: 0, totalHours: 0, totalExpenses: 0, tokesPerHour: 0,
                 avgTokePerDown: 0, avgHoursPerEvent: 0, bestEvent: null,
                 eventTrend: [], downTypes: { cash: 0, tournament: 0, brush: 0, break: 0 },
                 monthlyTrend: [],
@@ -867,8 +812,8 @@ export async function getTokeAnalytics(userId: string, startDate?: string, endDa
 
         for (const gig of completedGigs) {
             const gigDowns = downsByGig.get(gig.id) || [];
-            const gigDealing = gigDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
-            const gigTokes = gigDealing.reduce((s, d) => s + (d.toke_amount || 0), 0);
+            const gigDealing = gigDowns.filter(isDealingDown);
+            const gigTokes = sumTokes(gigDowns);
             const gigHours = computeTotalHours(gigDowns);
             const gigExpenses = expsByGig.get(gig.id) || 0;
 
@@ -888,7 +833,7 @@ export async function getTokeAnalytics(userId: string, startDate?: string, endDa
                 bestEvent = { venueName: gig.venue_name, tokes: gigTokes, date: gig.start_date };
             }
 
-            cumulative += gigTokes;
+            cumulative = Math.round((cumulative + gigTokes) * 100) / 100;
             eventTrend.push({
                 date: gig.start_date,
                 tokes: gigTokes,
@@ -900,7 +845,7 @@ export async function getTokeAnalytics(userId: string, startDate?: string, endDa
             // Monthly bucket (YYYY-MM)
             const monthKey = gig.start_date.slice(0, 7);
             const existing = monthlyMap.get(monthKey) || { tokes: 0, events: 0 };
-            monthlyMap.set(monthKey, { tokes: existing.tokes + gigTokes, events: existing.events + 1 });
+            monthlyMap.set(monthKey, { tokes: Math.round((existing.tokes + gigTokes) * 100) / 100, events: existing.events + 1 });
         }
 
         // Build last 12 calendar months array (even if no data)
@@ -910,14 +855,16 @@ export async function getTokeAnalytics(userId: string, startDate?: string, endDa
             const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             if (startDate && key < startDate.slice(0, 7)) continue;
+            if (endDate && key > endDate.slice(0, 7)) continue;
             const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
             const val = monthlyMap.get(key) || { tokes: 0, events: 0 };
             monthlyTrend.push({ month: label, ...val });
         }
 
         return {
-            careerTokes,
+            careerTokes: Math.round(careerTokes * 100) / 100,
             totalEvents: completedGigs.length,
+            tokesPerHour: totalHours > 0 ? Math.round((careerTokes / totalHours) * 100) / 100 : 0,
             totalHours: Math.round(totalHours * 10) / 10,
             totalExpenses: Math.round(totalExpenses * 100) / 100,
             avgTokePerDown: totalDealingDowns > 0 ? Math.round((careerTokes / totalDealingDowns) * 100) / 100 : 0,

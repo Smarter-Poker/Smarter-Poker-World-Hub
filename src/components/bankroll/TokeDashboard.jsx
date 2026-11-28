@@ -14,6 +14,7 @@ import dynamic from 'next/dynamic';
 import ResponsiveTable from '../ui/ResponsiveTable';
 import { getTokeAnalytics } from '../../lib/bankroll/tokeSelectors';
 import { localDay } from '../../lib/bankroll/localDates.mjs';
+import { buildTokeAnalyticsCsv, downloadCsv } from '../../lib/bankroll/tokeReport.mjs';
 
 const TokeEarningsChart = dynamic(() => import('./toke/TokeEarningsChart'), { ssr: false });
 
@@ -167,7 +168,8 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                     <dl className={desk.metrics}>
                         <KpiTile primary label={scopeTitle} value={fmt(analytics?.careerTokes)} icon={Coins} />
                         <KpiTile label="Total Events" value={analytics?.totalEvents || 0} icon={CalendarDays} />
-                        <KpiTile label="Hours Worked" value={`${analytics?.totalHours || 0}h`} icon={Clock3} />
+                        <KpiTile label="Hours Worked" value={`${analytics?.totalHours || 0}h`}
+                            sub={analytics?.totalHours > 0 ? fmt(analytics.tokesPerHour) + ' Tokes Per Hour' : null} icon={Clock3} />
                         <KpiTile label="Avg / Down" value={fmt(analytics?.avgTokePerDown)} icon={BarChart3} />
                         <KpiTile label="Best Event" value={analytics?.bestEvent ? fmt(analytics.bestEvent.tokes) : '-'}
                             sub={analytics?.bestEvent?.venueName} icon={Trophy} />
@@ -211,6 +213,7 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                                         `${scopeTitle}:   ${fmt(a.careerTokes)}`,
                                         `Total Events:   ${a.totalEvents}`,
                                         `Hours Worked:   ${a.totalHours}h`,
+                                        `Tokes/Hour:     ${fmt(a.tokesPerHour)}`,
                                         `Avg Toke/Down:  ${fmt(a.avgTokePerDown)}`,
                                         `Best Event:     ${a.bestEvent ? `${fmt(a.bestEvent.tokes)} at ${a.bestEvent.venueName}` : '-'}`,
                                         ``,
@@ -235,40 +238,13 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                             <button
                                 className="sd-button"
                                 onClick={() => {
-                                    const a = analytics;
-                                    const rows = [
-                                        ['Metric', 'Value'],
-                                        [scopeTitle, a.careerTokes || 0],
-                                        ['Total Events', a.totalEvents || 0],
-                                        ['Hours Worked', a.totalHours || 0],
-                                        ['Avg Toke/Down', a.avgTokePerDown || 0],
-                                        ['Best Event Tokes', a.bestEvent?.tokes || 0],
-                                        ['Best Event Venue', a.bestEvent?.venueName || ''],
-                                        ['Cash Downs', a.downTypes?.cash || 0],
-                                        ['Tournament Downs', a.downTypes?.tournament || 0],
-                                        ['Brush Downs', a.downTypes?.brush || 0],
-                                        ['Break Downs', a.downTypes?.break || 0],
-                                    ];
-                                    if (a.eventTrend?.length) {
-                                        rows.push([], ['Event Date', 'Venue', 'Tokes', 'Hours', 'Cumulative']);
-                                        for (const e of a.eventTrend) {
-                                            rows.push([e.date, e.venue, e.tokes, e.hours, e.cumulative]);
-                                        }
+                                    try {
+                                        downloadCsv(buildTokeAnalyticsCsv(analytics, scopeTitle), `toke-analytics-${localDay()}.csv`);
+                                    } catch (err) {
+                                        console.warn('TokeDashboard CSV export failed:', err);
+                                        setFeedback('The Earnings CSV Could Not Be Created.');
+                                        return;
                                     }
-                                    if (a.monthlyTrend?.length) {
-                                        rows.push([], ['Month', 'Tokes', 'Events']);
-                                        for (const m of a.monthlyTrend) {
-                                            rows.push([m.month, m.tokes, m.events]);
-                                        }
-                                    }
-                                    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-                                    const blob = new Blob([csv], { type: 'text/csv' });
-                                    const url = URL.createObjectURL(blob);
-                                    const link = document.createElement('a');
-                                    link.href = url;
-                                    link.download = `toke-analytics-${localDay()}.csv`;
-                                    link.click();
-                                    URL.revokeObjectURL(url);
                                     setFeedback('Earnings CSV Download Requested.');
                                 }}
                             >

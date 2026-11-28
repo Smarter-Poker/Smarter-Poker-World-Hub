@@ -3,6 +3,14 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import {
+  REJECTED_PAINTED_ART,
+  ROUNDED_CORNER,
+  SD_FRAME,
+  offStandardPaint,
+  withoutComments,
+} from './smarterdesign-standard.test.mjs';
+
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 
@@ -120,11 +128,15 @@ test('VIP and reward console controls use restrained content-driven surfaces', (
   const compare = read('pages/hub/vip-membership/compare.js');
   const manage = read('pages/hub/vip-membership/manage.js');
   const rewards = read('src/components/store/RewardTelemetryConsole.jsx');
-  const controlStyles = [
+  // The VIP membership surfaces were not part of the store redesign and keep
+  // their restrained content-driven controls.
+  const vipControlStyles = [
     read('pages/hub/vip-membership/compare.module.css'),
     read('src/components/store/VipMembershipConsole.module.css'),
-    read('src/components/store/RewardTelemetryConsole.module.css'),
   ].join('\n');
+  // The reward telemetry console was moved onto #SMARTERDESIGN materials.
+  const rewardStyles = read('src/components/store/RewardTelemetryConsole.module.css');
+  const controlStyles = `${vipControlStyles}\n${rewardStyles}`;
 
   assert.doesNotMatch(
     `${compare}\n${manage}\n${rewards}`,
@@ -132,12 +144,18 @@ test('VIP and reward console controls use restrained content-driven surfaces', (
   );
   assert.match(compare, /compare\.module\.css/);
   assert.match(controlStyles, /min-height:\s*(?:4[4-9]|[5-9]\d|\d{3,})px/);
-  assert.match(controlStyles, /border:\s*1px solid/);
-  assert.match(controlStyles, /background:\s*#[0-9a-f]{3,8}\b/i);
+  assert.match(vipControlStyles, /border:\s*1px solid/);
+  assert.match(vipControlStyles, /background:\s*#[0-9a-f]{3,8}\b/i);
   assert.doesNotMatch(
-    controlStyles,
+    withoutComments(vipControlStyles),
     /url\(|marketplace-console-v1|shark-panel|navigation\/nav-shell|(?:linear|radial|conic)-gradient/i
   );
+  assert.match(rewardStyles, SD_FRAME.panel);
+  assert.deepEqual(offStandardPaint(rewardStyles), []);
+  assert.doesNotMatch(rewardStyles, REJECTED_PAINTED_ART);
   assert.match(controlStyles, /Roboto Condensed/);
-  assert.doesNotMatch(controlStyles, /Rajdhani|border-radius|\bgreen\b|\bpurple\b/i);
+  assert.doesNotMatch(controlStyles, /Rajdhani|\bgreen\b|\bpurple\b/i);
+  assert.doesNotMatch(vipControlStyles, /border-radius/);
+  assert.doesNotMatch(rewardStyles, ROUNDED_CORNER);
+  assert.doesNotMatch(controlStyles, /:hover/);
 });

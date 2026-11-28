@@ -5,6 +5,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { entryCents, formatSignedCents, isMovementRow, sessionHours, toCents } from '../../lib/bankroll/ledgerMath.mjs';
 
 const CATEGORY_COLORS = {
   poker_cash: '#22c55e',
@@ -13,6 +14,8 @@ const CATEGORY_COLORS = {
   slots: '#a1bbd5',
   sports: '#a1bbd5',
   expense: '#6b7280',
+  deposit: '#22c55e',
+  withdrawal: '#a1bbd5',
   trip_summary: '#3b82f6',
 };
 
@@ -23,6 +26,8 @@ const CATEGORY_LABELS = {
   slots: 'Slots',
   sports: 'Sports Bet',
   expense: 'Expense',
+  deposit: 'Deposit',
+  withdrawal: 'Withdrawal',
   trip_summary: 'Trip',
 };
 
@@ -71,6 +76,18 @@ function CategoryIcon({ category }) {
         <path d="M9 12L11 14L15 10" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
       </svg>
     ),
+    deposit: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill={color} />
+        <path d="M12 7V17M7 12H17" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+    withdrawal: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill={color} />
+        <path d="M7 12H17" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
     trip_summary: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <rect x="4" y="8" width="16" height="10" rx="2" fill={color} />
@@ -101,14 +118,30 @@ function formatDate(dateStr) {
 }
 
 function formatDuration(startTime, endTime) {
-  if (!startTime || !endTime) return null;
-  const start = new Date(startTime).getTime();
-  const end = new Date(endTime).getTime();
-  const hours = (end - start) / (1000 * 60 * 60);
-  return `${hours.toFixed(1)} hrs`;
+  // sessionHours treats an end before the start as past midnight, so a 9 PM
+  // to 3 AM session reads 6.0 hrs rather than -18.0 hrs.
+  const hours = sessionHours(startTime, endTime);
+  return hours > 0 ? `${hours.toFixed(1)} hrs` : null;
 }
 
-function EntryRow({ entry, index, onEdit, onDelete }) {
+// A trip summary row is built by the page from many entries and has no row of
+// its own: editing it opened an empty form and deleting it asked the database
+// to delete the id "trip-summary-...", which failed. A deposit or withdrawal is
+// not a session, so the session form cannot edit it; it can only be deleted.
+function rowActions(entry, onEdit, onDelete) {
+  if (entry._isTripSummary || entry.category === 'trip_summary') return { edit: null, remove: null };
+  if (isMovementRow(entry)) return { edit: null, remove: onDelete };
+  return { edit: onEdit, remove: onDelete };
+}
+
+function rowCents(entry) {
+  if (entry._isTripSummary) return toCents(entry.net_result);
+  return entryCents(entry);
+}
+
+function EntryRow({ entry, index, onEdit: editHandler, onDelete: deleteHandler }) {
+  const { edit: onEdit, remove: onDelete } = rowActions(entry, editHandler, deleteHandler);
+  const cents = rowCents(entry);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -149,7 +182,7 @@ function EntryRow({ entry, index, onEdit, onDelete }) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.03 }}
+      transition={{ delay: Math.min(index, 10) * 0.03 }}
       style={{ ...styles.entryRow, cursor: onEdit ? 'pointer' : 'default' }}
       onClick={() => onEdit?.(entry)}
     >
@@ -164,10 +197,10 @@ function EntryRow({ entry, index, onEdit, onDelete }) {
         <span
           style={{
             ...styles.entryAmount,
-            color: entry.net_result >= 0 ? '#22c55e' : '#ef4444',
+            color: cents >= 0 ? '#22c55e' : '#ef4444',
           }}
         >
-          {entry.net_result >= 0 ? '+' : '-'}${Math.abs(entry.net_result).toLocaleString()}
+          {formatSignedCents(cents)}
         </span>
         {entry._isTripSummary && (
           <span style={styles.entryDuration}>({entry._sessionCount} Sessions)</span>
@@ -223,7 +256,7 @@ function EntryRow({ entry, index, onEdit, onDelete }) {
                     style={styles.actionItem}
                     onClick={() => { onEdit(entry); setMenuOpen(false); }}
                   >
-                    ✏️ Edit
+                    Edit
                   </button>
                 )}
                 {onDelete && (
@@ -231,7 +264,7 @@ function EntryRow({ entry, index, onEdit, onDelete }) {
                     style={{ ...styles.actionItem, color: confirmDelete ? '#fff' : '#ef4444', background: confirmDelete ? '#ef4444' : 'transparent' }}
                     onClick={handleDelete}
                   >
-                    {confirmDelete ? '⚠️ Confirm Delete' : '🗑️ Delete'}
+                    {confirmDelete ? 'Confirm Delete' : 'Delete'}
                   </button>
                 )}
               </motion.div>
