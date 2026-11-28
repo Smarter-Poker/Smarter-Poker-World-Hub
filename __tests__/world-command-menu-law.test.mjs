@@ -274,3 +274,12 @@ test('the exhaustive audit inventory covers every owned physical route', () => {
     assert.ok(route.uiStateContracts, `${route.route} has no state contract inventory`);
   }
 });
+
+test('the 2026-08-31 menu audit stays frozen: its generator cannot overwrite it', () => {
+  // The audit above is pinned at 14 worlds / 203 routes as history. A plain
+  // run of the generator used to rewrite it from today's tree (2026-11-28).
+  const generator = readFileSync(join(ROOT, 'scripts/generate-world-menu-audit.mjs'), 'utf8');
+  assert.match(generator, /if \(OUTPUT === FROZEN_AUDIT\) \{/);
+  assert.match(generator, /process\.argv\.indexOf\('--out'\)/);
+  assert.doesNotMatch(generator, /^const OUTPUT = join\(ROOT, '\.agent\/audits\/2026-08-31/m);
+});

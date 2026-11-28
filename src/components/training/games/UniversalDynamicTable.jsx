@@ -795,6 +795,40 @@ function getCardPath(card) {
     return `/hub/club-arena/cards/2color/${suitName}_${rank}.webp`;
 }
 
+// Club Arena 1:1 concise Villain action chip formatter — turns prose like
+// "Button raises to 2.5 BB." into crisp "RAISE 2.5 BB" tokens that never
+// truncate mid-word inside the seat bubble.
+function formatShortClubAction(rawAction, amount) {
+    const base = String(rawAction || '').trim();
+    if (!base) return '';
+    const rawAmt = amount !== null && amount !== undefined && String(amount).trim() !== ''
+        ? String(amount).trim()
+        : '';
+    const amtStr = rawAmt && /^\d+(?:\.\d+)?$/.test(rawAmt) ? `${rawAmt} BB` : rawAmt;
+    if (
+        base.length <= 14
+        && !/\.$/.test(base)
+        && !/\b(button|cutoff|hijack|villain|hero|opens|raises|calls|checks|bets|shoves?|jams?|push(?:es)?|limps?)\b/i.test(base)
+    ) {
+        return amtStr ? `${base.toUpperCase()} ${amtStr}` : base.toUpperCase();
+    }
+    const sizeMatch = base.match(/(?:to|for|of)?\s*(\d+(?:\.\d+)?(?:\s*(?:bb|x|%|chips))?)\b/i);
+    const matchedRaw = sizeMatch ? sizeMatch[1].replace(/\s+/g, ' ').toUpperCase() : '';
+    const extractedAmt = amtStr || (matchedRaw && /^\d+(?:\.\d+)?$/.test(matchedRaw) ? `${matchedRaw} BB` : matchedRaw);
+    if (/\b(?:all[\s-]?in|shoves?|jams?|push(?:es)?)\b/i.test(base)) {
+        return extractedAmt ? `ALL-IN ${extractedAmt}` : 'ALL-IN';
+    }
+    if (/\b4[\s-]?bets?\b/i.test(base)) return extractedAmt ? `4-BET ${extractedAmt}` : '4-BET';
+    if (/\b3[\s-]?bets?\b/i.test(base)) return extractedAmt ? `3-BET ${extractedAmt}` : '3-BET';
+    if (/\b(?:raises?|opens?|iso)\b/i.test(base)) return extractedAmt ? `RAISE ${extractedAmt}` : 'RAISE';
+    if (/\b(?:c[\s-]?bets?|bets?|donks?|leads?)\b/i.test(base)) return extractedAmt ? `BET ${extractedAmt}` : 'BET';
+    if (/\b(?:calls?|flats?)\b/i.test(base)) return extractedAmt ? `CALL ${extractedAmt}` : 'CALL';
+    if (/\b(?:checks?)\b/i.test(base)) return 'CHECK';
+    if (/\b(?:limps?)\b/i.test(base)) return 'LIMP';
+    if (/\b(?:folds?)\b/i.test(base)) return 'FOLD';
+    return base.replace(/\.$/, '').slice(0, 14).toUpperCase();
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // PHASE 5: HAND STRENGTH EVALUATOR
 // ═══════════════════════════════════════════════════════════════════════════
@@ -5150,25 +5184,26 @@ function UniversalDynamicTable({
     // the clearance holds no matter what rows the pill grows later.
     const potPlacement = useMemo(() => {
         const h = Math.max(1, feltBox.h);
+        // When community board cards (flop/turn/river) are dealt, anchor the Pot + SPR/Odds
+        // pill cleanly BELOW the board cards so the multi-line telemetry overlay can never
+        // cover the flop/turn/river cards on desktop or mobile.
+        if (visibleBoard.length > 0) {
+            const boardBottom = 0.38 * h + ui(70) / 2;
+            return { topPct: (boardBottom / h) * 100, belowBoard: true };
+        }
         const villainBoxH = ui(52) + ui(34) - ui(8) + ui(3) + ui(35);
         const topRowBottom = 0.15 * h + villainBoxH / 2;
         const boardTop = 0.38 * h - ui(70) / 2;
         const potH = Math.max(11, ui(15)) + ui(4) + ui(5) + 6;
         const lo = topRowBottom + potH / 2 + 3;
         const hi = boardTop - potH / 2 - 3;
-        // #48: "split the overlap" was the wrong call. Half a pill of overlap on
-        // each side is still overlap, and at 375px it landed the POT/SPR badge
-        // squarely on the BTN nameplate's stack line — the villain's "100 bb"
-        // was unreadable, which is a number the player has to act on. When the
-        // gap above the board genuinely cannot hold the pill, move the pill
-        // BELOW the board instead, where the felt is empty on every table size.
         if (lo > hi) {
             const boardBottom = 0.38 * h + ui(70) / 2;
             return { topPct: (boardBottom / h) * 100, belowBoard: true };
         }
         const centre = Math.min(Math.max(0.29 * h, lo), hi);
         return { topPct: (centre / h) * 100, belowBoard: false };
-    }, [feltBox.h, ui]);
+    }, [feltBox.h, ui, visibleBoard.length]);
 
     // Pot shown on the felt. Single source of truth with the per-seat chip
     // stacks below (see potMath.js): the pill and the chips are the same money.
@@ -5296,8 +5331,8 @@ function UniversalDynamicTable({
                         box-shadow: 0 0 70px rgba(0,0,0,0.62), inset 0 0 60px rgba(27,154,196,0.035) !important;
                     }
                     .gto-trainer-container .sp-club-gto-table-area {
-                        flex: 1 0 495px !important;
-                        min-height: 495px !important;
+                        flex: 1 0 406px !important;
+                        min-height: 406px !important;
                     }
                 }
                 .gto-trainer-container {
@@ -5448,11 +5483,10 @@ function UniversalDynamicTable({
                     box-shadow: inset 0 0 0 1px rgba(4,12,20,.2), 0 5px 11px rgba(0,0,0,.66) !important;
                 }
                 .sp-club-gto-actions [data-action] {
-                    border: 0 !important;
-                    border-radius: 13px !important;
+                    border-radius: 12px !important;
                     height: auto !important;
                     min-height: 64px !important;
-                    box-shadow: inset 0 2px rgba(255,255,255,.24), inset 0 -5px rgba(0,0,0,.28), 0 8px 15px rgba(0,0,0,.5) !important;
+                    box-shadow: inset 0 2px rgba(255,255,255,.24), inset 0 -4px rgba(0,0,0,.32), 0 8px 15px rgba(0,0,0,.5) !important;
                     text-shadow: 0 2px 2px rgba(0,0,0,.75) !important;
                 }
                 .sp-club-gto-actions [data-action]:not(:disabled) {
@@ -6115,6 +6149,7 @@ function UniversalDynamicTable({
 
                             <button
                                 type="button"
+                                data-allow-small="true"
                                 data-pot-display-mode-toggle="true"
                                 data-display-toggle-source="toolbar"
                                 data-unit-toggle-entry="toolbar"
@@ -7592,12 +7627,15 @@ function UniversalDynamicTable({
                         {/* TABLE AREA - Center */}
             <div className="sp-club-gto-table-area" style={{
                 ...styles.tableArea,
+                // Reserve head clearance so top-row seats (MP / HJ / SB / BB) never clip
+                // against the upper table edge on either desktop or mobile.
+                paddingTop: isMobile ? 34 : 24,
                 // On a phone the felt fills the table area edge to edge and the
                 // gutters beside the oval are too narrow to hold the countdown
                 // and the question pill without them reaching into hero's hole
                 // cards. Reserve a strip UNDER the felt for them instead, and
                 // let the oval shrink into what is left.
-                paddingBottom: isMobile ? clubArenaHeroClearPx(viewportWidth) : 24,
+                paddingBottom: isMobile ? clubArenaHeroClearPx(viewportWidth) : 12,
             }}>
 
                 <aside className="sp-club-gto-desktop-rail is-left" aria-label="Current Training Decision">
@@ -7953,18 +7991,27 @@ function UniversalDynamicTable({
                                             : '0 5px 12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
                                     }}
                                 >
-                                    <div style={{
-                                        fontSize: Math.max(12, ui(11)),
-                                        fontWeight: 800,
-                                        letterSpacing: 0.4,
-                                        textTransform: 'uppercase',
-                                        color: '#ffffff',
-                                        whiteSpace: 'nowrap',
-                                    }}>
+                                    <div
+                                        title={seatLabel}
+                                        style={{
+                                            fontSize: Math.max(12, ui(11)),
+                                            fontWeight: 800,
+                                            letterSpacing: 0.4,
+                                            textTransform: 'uppercase',
+                                            color: '#ffffff',
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            maxWidth: '100%',
+                                        }}
+                                    >
                                         {seatLabel}
                                     </div>
                                     <div
                                         data-seat-stack-display="true"
+                                        data-training-raw-control="true"
+                                        data-allow-small="true"
+                                        data-compact="true"
                                         data-display-toggle-source="seat-stack"
                                         data-unit-toggle-entry="seat-stack"
                                         data-display-unit={displayInChips ? 'CHIPS' : 'BB'}
@@ -8203,15 +8250,16 @@ function UniversalDynamicTable({
                                                 padding: `${ui(3)}px ${ui(7)}px`,
                                                 fontSize: Math.max(12, ui(11)),
                                                 minWidth: ui(54),
-                                                maxWidth: plateW + ui(14),
+                                                maxWidth: Math.max(108, plateW + ui(48)),
                                                 boxSizing: 'border-box',
                                                 overflow: 'hidden',
                                                 textOverflow: 'ellipsis',
                                                 whiteSpace: 'nowrap',
                                                 borderRadius: ui(9),
                                             }}
+                                            title={`${villainSeatAction.action}${(villainSeatAction.amount ?? villainSeatAction.size) ? ` ${villainSeatAction.amount ?? villainSeatAction.size}` : ''}`}
                                         >
-                                            {villainSeatAction.action}{(villainSeatAction.amount ?? villainSeatAction.size) ? ` ${villainSeatAction.amount ?? villainSeatAction.size}` : ''}
+                                            {formatShortClubAction(villainSeatAction.action, villainSeatAction.amount ?? villainSeatAction.size)}
                                             <div style={{
                                                 ...styles.speechTail,
                                                 bottom: -ui(7),
@@ -8497,6 +8545,9 @@ function UniversalDynamicTable({
                         className="sp-club-gto-pot"
                         data-training-pot={displayPot}
                         data-club-arena-pot-pill="true"
+                        data-training-raw-control="true"
+                        data-allow-small="true"
+                        data-compact="true"
                         data-pot-display-mode-toggle="true"
                         data-display-toggle-source="pot-pill"
                         data-unit-toggle-entry="pot-pill"
@@ -8892,7 +8943,7 @@ function UniversalDynamicTable({
                             justifyContent: 'space-between',
                             flexWrap: 'wrap',
                             gap: 6,
-                            padding: '5px 10px',
+                            padding: '3px 10px',
                             background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(7,11,22,0.98) 100%)',
                             borderTop: '1px solid rgba(86, 216, 255,0.28)',
                         }}
@@ -8904,6 +8955,7 @@ function UniversalDynamicTable({
                                     <button
                                         key={p.id}
                                         type="button"
+                                        data-allow-small="true"
                                         data-club-arena-preset={p.id}
                                         disabled={!isRaiseReopened}
                                         onClick={() => {
@@ -8957,6 +9009,7 @@ function UniversalDynamicTable({
                             />
                             <button
                                 type="button"
+                                data-allow-small="true"
                                 data-club-arena-raise-confirm="true"
                                 data-matched-action-id={matchedAggressiveOpt.id}
                                 data-chosen-sizing-bb={String(effectiveSliderBb)}
@@ -12121,8 +12174,8 @@ const styles = {
     // ── THE QUESTION PANEL — full width, above the table.
     questionPanel: {
         flexShrink: 0,
-        margin: '6px 10px 4px',
-        padding: '8px 14px',
+        margin: '3px 10px 2px',
+        padding: '5px 12px',
         borderRadius: 10,
         background: 'linear-gradient(180deg, rgba(10,20,34,0.96) 0%, rgba(4,10,18,0.98) 100%)',
         border: '1px solid rgba(134,218,255,0.45)',
@@ -12134,16 +12187,16 @@ const styles = {
     },
 
     questionPanelText: {
-        fontSize: 'clamp(13px, 4.1vw, 19px)',
+        fontSize: 'clamp(13px, 3.8vw, 17px)',
         fontWeight: 800,
-        lineHeight: 1.34,
+        lineHeight: 1.28,
         color: '#ffffff',
         letterSpacing: 0.1,
         textShadow: '0 1px 6px rgba(0,0,0,0.85)',
     },
 
     questionPanelContext: {
-        marginTop: 5,
+        marginTop: 2,
         fontSize: 12,
         fontWeight: 800,
         letterSpacing: 1.3,
@@ -12913,13 +12966,13 @@ const styles = {
     // ── ACTION BAR (GTO Wizard-style — adapts to 2-9 buttons)
     actionBar: {
         display: 'grid',
-        gap: 8,
+        gap: 6,
         // #48: the "YOUR ACTION" indicator is absolutely positioned against this
         // bar and used to hang ABOVE it at top:-20, straight through whatever
         // sat there — measured on production it overlapped the hint text by 7px.
         // Reserving the strip inside the bar's own padding is the only placement
         // that cannot collide with a sibling whose height it does not control.
-        padding: '22px 12px 12px',
+        padding: '14px 12px 6px',
         flexShrink: 0,
     },
 

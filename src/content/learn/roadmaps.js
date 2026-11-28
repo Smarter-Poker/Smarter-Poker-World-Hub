@@ -224,7 +224,7 @@ export const POKER_ROADMAPS = [
         ],
         recommendedLinks: [
           { label: 'ICM Final Table Payout Calculator', href: '/tools/icm-calculator' },
-          { label: 'Tournament Chop Deal Calculator', href: '/tools/tournament-chop-calculator' },
+          { label: 'Tournament Chop Deal Calculator', href: '/tools/chop-calculator' },
           { label: 'Fedor Holz ICM Masterclass Breakdown', href: '/learn/famous-hands/holz-vs-bomo-one-drop-final-table-icm' },
         ],
       },
@@ -275,7 +275,7 @@ export const POKER_ROADMAPS = [
           'Value Freeroll And Redraw Equity: Never Stack Off On The Flop With A Bare Straight When Your Opponent Has The Same Straight Plus A Flush Redraw.',
         ],
         recommendedLinks: [
-          { label: 'Out-To-Equity & Draw Calculator', href: '/tools/out-to-equity-calculator' },
+          { label: 'Out-To-Equity & Draw Calculator', href: '/tools/outs-calculator' },
           { label: 'SPR Stack-To-Pot Ratio Calculator', href: '/tools/spr-calculator' },
           { label: 'Complete Poker Math Formulas', href: '/learn/poker-math' },
         ],
@@ -290,7 +290,7 @@ export const POKER_ROADMAPS = [
         ],
         recommendedLinks: [
           { label: 'Bankroll & Risk Of Ruin Calculator', href: '/tools/bankroll-calculator' },
-          { label: 'Variance Simulator Tool', href: '/tools/variance-simulator' },
+          { label: 'Variance Simulator Tool', href: '/tools/variance-calculator' },
           { label: 'Big O (5-Card Hi-Lo) Rules', href: '/games/big-o' },
         ],
       },
@@ -343,7 +343,7 @@ export const POKER_ROADMAPS = [
         recommendedLinks: [
           { label: 'Double-Board Bomb Pot Guide', href: '/games/double-board-bomb-pot' },
           { label: '7-2 Bounty Side Game Rules', href: '/games/7-2-game' },
-          { label: 'Tournament Chop Calculator', href: '/tools/tournament-chop-calculator' },
+          { label: 'Tournament Chop Calculator', href: '/tools/chop-calculator' },
         ],
       },
       {

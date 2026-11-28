@@ -598,7 +598,7 @@ test('anti-regression 107-game 1:1 Poker Arena parity, #SMARTERDESIGN coverage, 
   );
 
   // (c) Desktop & Mobile Club Arena poker tables must never be crushed into a narrow sliver by fixed 100dvh overflow:hidden
-  assert.match(udt, /flex:\s*1 0 495px !important;/, 'Desktop .sp-club-gto-table-area must enforce spacious above-the-fold Club Arena height');
+  assert.match(udt, /flex:\s*1 0 406px !important;/, 'Desktop .sp-club-gto-table-area must enforce spacious above-the-fold Club Arena height');
   assert.match(udt, /flex:\s*1 0 380px !important;/, 'Mobile .sp-club-gto-table-area must enforce full-width readable Club Arena height instead of crushing to 220px');
   assert.match(udt, /potOverlayRow:\s*\{[\s\S]{0,160}flexWrap:\s*'wrap'/, 'Pot/SPR overlay row must wrap cleanly inside 9-Max felt without touching UTG+1/HJ seats');
   assert.doesNotMatch(udt, /styles\.questionOfPill/, 'Duplicate floating Question X Of Y pill must not overlap hero hole cards');
@@ -697,4 +697,42 @@ test('anti-regression Phase 5: entire Training world (all 94 routes + all compon
   assert.match(tourneyPrep, /isPositiveMetric\(saved\.buyIn\)/, 'tournament-prep.js must reject null/empty saved numeric fields before Number()');
   const dailyGoals = read('pages/hub/training/daily-goals.js');
   assert.match(dailyGoals, /hasValidStreakDays/, 'daily-goals.js must reject null/empty streakDays before Number()');
+});
+
+test('anti-regression Phase 6: 1:1 Club Arena semantic action button colors, Hero nameplate overflow guard, concise Villain action chips, unclipped top avatars, and Psychology Club Arena racetrack table', () => {
+  const worldCss = read('src/styles/worlds/training.css');
+
+  // 1. Global #SMARTERDESIGN Rule 1 & Rule 2 must NEVER clobber Club Arena [data-action] semantic colors (Red Fold / Blue Call / Green Raise / Cyan All-In)
+  const rule1Match = worldCss.match(/\/\* 1\. Every Training button[\s\S]*?\/\* 2\. Primary/);
+  assert.ok(rule1Match && rule1Match[0].includes('[data-action]'), 'training.css Rule 1 must exclude [data-action] so Fold/Call/Raise/All-In are never painted dark navy');
+  const rule2Match = worldCss.match(/\/\* 2\. Primary[\s\S]*?\/\* 2b\. Club Arena/);
+  assert.ok(rule2Match && rule2Match[0].includes('[data-action]'), 'training.css Rule 2 must exclude [data-action]');
+  assert.match(worldCss, /\[data-action='fold'\][\s\S]{0,400}#ff4b52[\s\S]{0,120}#f00819/, 'Fold button must render Club Arena Red gradient inside #SMARTERDESIGN chrome');
+  assert.match(worldCss, /\[data-action='call'\][\s\S]{0,400}#1aa2ff[\s\S]{0,120}#0879ef/, 'Check/Call button must render Club Arena Blue gradient inside #SMARTERDESIGN chrome');
+  assert.match(worldCss, /\[data-action='raise'\][\s\S]{0,400}#14df75[\s\S]{0,120}#00ad4e/, 'Bet/Raise button must render Club Arena Green gradient inside #SMARTERDESIGN chrome');
+  assert.match(worldCss, /\[data-action='allin'\][\s\S]{0,400}#51c9ff[\s\S]{0,120}#0873ff/, 'All-In button must render Club Arena Electric-Cyan gradient inside #SMARTERDESIGN chrome');
+
+  // 2. Daily Challenge poker action buttons must carry semantic data-action attributes before reveal
+  const dailyChallenge = read('pages/hub/training/daily-challenge.js');
+  assert.match(dailyChallenge, /data-action=\{semanticAction\}/, 'daily-challenge.js must pass semantic data-action to QuizAnswer for Club Arena color coding');
+
+  // 3. UniversalDynamicTable Hero nameplate overflow, concise Villain action chip, top avatar head clearance, and in-felt raw-control guard
+  const udt = read('src/components/training/games/UniversalDynamicTable.jsx');
+  assert.match(udt, /function formatShortClubAction\(/, 'UniversalDynamicTable must define formatShortClubAction so Villain pills show "RAISE 2.5 BB" instead of truncated prose');
+  assert.match(udt, /formatShortClubAction\(villainSeatAction\.action/, 'Villain action bubble must render formatted short Club Arena action tokens');
+  assert.match(udt, /paddingTop:\s*isMobile \? 34 : 24/, '.sp-club-gto-table-area must reserve top clearance so top-row player avatars never clip on desktop or mobile');
+  assert.match(udt, /title=\{seatLabel\}[\s\S]{0,600}overflow:\s*'hidden'[\s\S]{0,120}textOverflow:\s*'ellipsis'/, 'Seat nameplate label must truncate long usernames with ellipsis so Hero name never collides with Hero hole cards');
+  assert.match(udt, /data-seat-stack-display="true"[\s\S]{0,120}data-training-raw-control="true"/, 'Seat stack display role="button" must opt out of 44px chrome slab inflation');
+  assert.match(udt, /data-club-arena-pot-pill="true"[\s\S]{0,120}data-training-raw-control="true"/, 'Center pot pill role="button" must opt out of chrome slab inflation so it never covers flop board cards');
+  assert.match(udt, /if\s*\(visibleBoard\.length > 0\)\s*\{[\s\S]{0,160}belowBoard:\s*true/, 'Postflop pot pill must anchor below community board cards so flop/turn/river cards are never covered');
+  assert.match(udt, /maxWidth:\s*Math\.max\(108,\s*plateW/, 'Villain action bubble must allow at least 108px width so "RAISE 2.5 BB" / "ALL-IN 15 BB" never truncate');
+  assert.ok(rule1Match[0].includes('.sp-club-gto-table *'), 'training.css Rule 1 must exclude .sp-club-gto-table * so in-felt elements never get bloated into chrome boxes');
+
+  // 4. All 20 Psychology games must render the authentic Club Arena racetrack table with real Villain & Hero seats
+  const psyUi = read('src/components/training/games/PsychologyTiltControlUI.jsx');
+  assert.match(psyUi, /data-club-arena-racetrack="true"/, 'PsychologyTiltControlUI must render the Club Arena racetrack table band');
+  assert.match(psyUi, /skin_carbon_ion-CEYiGucA-v6\.png/, 'PsychologyTiltControlUI must use the authentic Club Arena carbon-ion racetrack felt asset');
+  assert.match(psyUi, /\/avatars\/table\/free_business\.webp/, 'PsychologyTiltControlUI must render a verified Club Arena Villain seat portrait');
+  assert.match(psyUi, /\/avatars\/table\/free_cowboy\.webp/, 'PsychologyTiltControlUI must render a verified Club Arena Hero seat portrait');
+  assert.match(psyUi, /<GTOQuestionCard[\s\S]{0,220}gameId=\{gameId\}/, 'PsychologyTiltControlUI must preserve the GTOQuestionCard gameId wiring contract');
 });
