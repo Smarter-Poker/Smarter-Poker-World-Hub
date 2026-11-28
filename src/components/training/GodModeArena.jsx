@@ -598,7 +598,7 @@ function ClassificationDonut({ handHistory, gtowScore }) {
           fill={scoreColor}
           fontSize="18"
           fontWeight="bold"
-          style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}
+          style={{ fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}
         >
           {gtowScore}
         </text>
@@ -1893,22 +1893,23 @@ function GodModeArenaInner({
     const isAuthError = error.toLowerCase().includes('auth') || error.toLowerCase().includes('401');
     return (
       <div
+        className="smarterdesign"
         style={{
-          minHeight: '100dvh',
-          background: '#121212',
+          minHeight: 'calc(100dvh - 59px)',
+          background: 'radial-gradient(circle at 50% 35%, rgba(0, 111, 177, 0.22), transparent 44%), linear-gradient(180deg, #06111d 0%, #02070d 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: 20,
+          fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         }}
       >
         <div
+          className="sd-panel"
           style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 16,
-            padding: 40,
+            padding: 36,
             maxWidth: 420,
+            width: '100%',
             textAlign: 'center',
           }}
         >
@@ -1919,7 +1920,7 @@ function GodModeArenaInner({
                 height="48"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#94a3b8"
+                stroke="#86daff"
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -1946,22 +1947,24 @@ function GodModeArenaInner({
           </div>
           <h2
             style={{
-              color: '#fff',
-              fontSize: 20,
+              color: '#f2f7ff',
+              fontSize: 22,
               margin: '0 0 12px',
-              fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
+              fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
             }}
           >
             {isAuthError ? 'Sign In Required' : 'Connection Error'}
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6, margin: '0 0 24px' }}>
+          <p style={{ color: '#bdd0e2', fontSize: 14, lineHeight: 1.6, margin: '0 0 24px' }}>
             {isAuthError
               ? 'You need to be signed in to access GTO training. Sign in to track your progress and compete on leaderboards.'
               : error}
           </p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             {isAuthError && (
               <button
+                type="button"
+                className="sd-button sd-primary"
                 onClick={() => {
                   try {
                     window.top.location.href = '/auth/login';
@@ -1971,10 +1974,6 @@ function GodModeArenaInner({
                 }}
                 style={{
                   padding: '12px 24px',
-                  borderRadius: 10,
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #3b82f6, #2298ff)',
-                  color: '#fff',
                   fontWeight: 700,
                   cursor: 'pointer',
                   fontSize: 14,
@@ -1984,13 +1983,11 @@ function GodModeArenaInner({
               </button>
             )}
             <button
+              type="button"
+              className="sd-button"
               onClick={onExit}
               style={{
                 padding: '12px 24px',
-                borderRadius: 10,
-                border: '1px solid rgba(255,255,255,0.2)',
-                background: 'transparent',
-                color: '#fff',
                 fontWeight: 600,
                 cursor: 'pointer',
                 fontSize: 14,
@@ -2085,7 +2082,7 @@ function GodModeArenaInner({
               fontSize: 12,
               color: '#64748b',
               fontWeight: 600,
-              fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+              fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
             }}
           >
             {Math.floor(sessionElapsed / 60)}:{String(sessionElapsed % 60).padStart(2, '0')}
@@ -2264,7 +2261,7 @@ function GodModeArenaInner({
                           fontSize: 28,
                           fontWeight: 900,
                           color: grade.color,
-                          fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                          fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                           textShadow: `0 0 12px ${grade.color}44`,
                         }}
                       >
@@ -2321,7 +2318,7 @@ function GodModeArenaInner({
                         fontSize: 18,
                         fontWeight: 900,
                         color: 'var(--sd-ice)',
-                        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                        fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                       }}
                     >
                       +{totalReward}
@@ -2591,7 +2588,7 @@ function GodModeArenaInner({
                           fontSize: 12,
                           fontWeight: 800,
                           color: seg.count > 0 ? seg.color : '#475569',
-                          fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                          fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                         }}
                       >
                         {seg.count}
@@ -2729,7 +2726,7 @@ function GodModeArenaInner({
                             fontSize: 42,
                             fontWeight: 900,
                             color: gColor,
-                            fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                            fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                             lineHeight: 1,
                             marginTop: 4,
                           }}
@@ -2853,7 +2850,7 @@ function GodModeArenaInner({
                                   fontSize: 12,
                                   fontWeight: 800,
                                   color: '#e2e8f0',
-                                  fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                                  fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                                 }}
                               >
                                 {s.value}
@@ -2982,7 +2979,7 @@ function GodModeArenaInner({
                           fontSize: 20,
                           fontWeight: 800,
                           color: stat.color,
-                          fontFamily: "var(--font-rajdhani), 'Rajdhani', 'Inter', monospace",
+                          fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                           lineHeight: 1.2,
                         }}
                       >
@@ -3060,7 +3057,7 @@ function GodModeArenaInner({
                                   fontSize: 12,
                                   fontWeight: 800,
                                   color: accColor,
-                                  fontFamily: "'Inter', monospace",
+                                  fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                                 }}
                               >
                                 {data.accuracy}%
@@ -3135,7 +3132,7 @@ function GodModeArenaInner({
                                   fontSize: 12,
                                   fontWeight: 800,
                                   color: accColor,
-                                  fontFamily: "'Inter', monospace",
+                                  fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                                 }}
                               >
                                 {data.accuracy}%
@@ -3375,7 +3372,7 @@ function GodModeArenaInner({
                                 fontSize: 12,
                                 fontWeight: 800,
                                 color: accColor,
-                                fontFamily: "'Inter', monospace",
+                                fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                               }}
                             >
                               {ht.accuracy}%
@@ -3756,7 +3753,7 @@ function GodModeArenaInner({
                               fontSize: 12,
                               fontWeight: 800,
                               color: '#475569',
-                              fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                              fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                               minWidth: 18,
                             }}
                           >
@@ -3806,7 +3803,7 @@ function GodModeArenaInner({
                               fontSize: 12,
                               fontWeight: 800,
                               color: '#ef4444',
-                              fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                              fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                             }}
                           >
                             -{leak.evLoss.toFixed(2)}
@@ -4652,7 +4649,7 @@ function GodModeArenaInner({
 
   if (hasFullScreenUI) {
     return (
-      <div className="sp-arena-shell" style={styles.fullScreenContainer}>
+      <div className="sp-arena-shell smarterdesign" style={styles.fullScreenContainer}>
         {/* Trainer Config Modal */}
         {!presetOnly && <TrainerConfigModal
           isOpen={showConfigModal}
@@ -4697,7 +4694,7 @@ function GodModeArenaInner({
                       fontWeight: 800,
                       color: '#f4fbff',
                       letterSpacing: -0.4,
-                      fontFamily: "'Inter', -apple-system, sans-serif",
+                      fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     }}
                   >
                     {gameName || 'GTO Training'}
@@ -4827,7 +4824,7 @@ function GodModeArenaInner({
                             fontSize: 18,
                             fontWeight: 800,
                             color: '#83deff',
-                            fontFamily: "var(--font-inter), Inter, system-ui, sans-serif", fontVariantNumeric: "tabular-nums",
+                            fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", fontVariantNumeric: "tabular-nums",
                           }}
                         >
                           {Number.isFinite(crossSessionAnalytics.milestones.overallAccuracy)
@@ -4844,7 +4841,7 @@ function GodModeArenaInner({
                             fontSize: 18,
                             fontWeight: 800,
                             color: '#83deff',
-                            fontFamily: "var(--font-inter), Inter, system-ui, sans-serif", fontVariantNumeric: "tabular-nums",
+                            fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", fontVariantNumeric: "tabular-nums",
                           }}
                         >
                           {crossSessionAnalytics.milestones.totalSessions ?? 0}
@@ -4859,7 +4856,7 @@ function GodModeArenaInner({
                             fontSize: 18,
                             fontWeight: 800,
                             color: '#22c55e',
-                            fontFamily: "var(--font-inter), Inter, system-ui, sans-serif", fontVariantNumeric: "tabular-nums",
+                            fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", fontVariantNumeric: "tabular-nums",
                           }}
                         >
                           {crossSessionAnalytics.milestones.totalHands ?? 0}
@@ -5076,7 +5073,7 @@ function GodModeArenaInner({
                       cursor: splashReady || loadFailed ? 'pointer' : 'default',
                       letterSpacing: 0.5,
                       transition: 'all 0.2s',
-                      fontFamily: "'Inter', -apple-system, sans-serif",
+                      fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45), 0 10px 24px rgba(8,124,250,0.35)',
                     }}
                   >
@@ -5236,7 +5233,7 @@ function GodModeArenaInner({
   // Default layout with header/footer for games without custom UIs
   const headerScoreColor = getArenaScoreColor(gtowScore);
   return (
-    <div style={styles.container}>
+    <div className="smarterdesign" style={styles.container}>
       <div style={styles.header}>
         <button onClick={onExit} style={styles.backButton}>
           ← Exit
@@ -5340,9 +5337,11 @@ const styles = {
   fullScreenContainer: {
     width: '100%',
     maxWidth: 1180,
-    height: '100dvh',
+    minHeight: 'calc(100dvh - 59px)',
+    height: 'auto',
     background: 'radial-gradient(circle at 50% 42%, rgba(0, 111, 177, 0.22), transparent 42%), linear-gradient(180deg, #06111d 0%, #02070d 100%)',
-    overflow: 'hidden',
+    overflowX: 'clip',
+    overflowY: 'visible',
     marginLeft: 'auto',
     marginRight: 'auto',
     position: 'relative',
@@ -5398,7 +5397,7 @@ const styles = {
     background: 'radial-gradient(circle at 50% 44%, rgba(0, 119, 184, 0.24), transparent 44%), linear-gradient(180deg, #06111d 0%, #02070d 100%)',
     display: 'flex',
     flexDirection: 'column',
-    fontFamily: "'Inter', -apple-system, sans-serif",
+    fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     overflow: 'hidden',
     marginLeft: 'auto',
     marginRight: 'auto',
@@ -5479,7 +5478,7 @@ const styles = {
     background: 'radial-gradient(circle at 50% 26%, rgba(0, 133, 205, 0.2), transparent 38%), linear-gradient(180deg, #06111d 0%, #02070d 100%)',
     display: 'flex',
     flexDirection: 'column',
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     color: '#e2e8f0',
   },
 
@@ -5528,7 +5527,7 @@ const styles = {
   scoreHeroValue: {
     fontSize: 64,
     fontWeight: 'bold',
-    fontFamily: "var(--font-rajdhani), 'Rajdhani', 'Courier New', monospace",
+    fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
     lineHeight: 1,
   },
 
@@ -5567,7 +5566,7 @@ const styles = {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#e2e8f0',
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
 
   summaryLabel: {

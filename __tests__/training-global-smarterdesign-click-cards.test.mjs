@@ -505,3 +505,139 @@ test('anti-regression AST: zero nested interactive elements and zero unclickable
   assert.deepEqual(nestedInteractive, [], `Nested interactive elements detected:\n${nestedInteractive.join('\n')}`);
   assert.deepEqual(unclickableArt, [], `Unclickable <TrainingGameArt> detected:\n${unclickableArt.join('\n')}`);
 });
+
+test('anti-regression 107-game 1:1 Poker Arena parity, #SMARTERDESIGN coverage, strict 2-font discipline, and uncluttered HUD', async () => {
+  const { TRAINING_LIBRARY } = await import('../src/data/TRAINING_LIBRARY.js');
+  const { GAME_CONFIGS } = await import('../src/config/gameConfigs.js');
+  const routerSrc = read('src/components/training/GameUIRouter.jsx');
+
+  assert.equal(TRAINING_LIBRARY.length, 107, 'Canonical TRAINING_LIBRARY must contain all 107 games');
+
+  // 1. Every single one of the 107 games must be explicitly mapped in GAME_TYPE_MAP and match GAME_CONFIGS seat format
+  const routingMismatches = [];
+  for (const game of TRAINING_LIBRARY) {
+    const cfg = GAME_CONFIGS[game.id];
+    if (!cfg) {
+      routingMismatches.push(`${game.id}: missing GAME_CONFIGS entry`);
+      continue;
+    }
+    const m = routerSrc.match(new RegExp(`'${game.id}'\\s*:\\s*'(6max|mtt|spins|heads-up)'`));
+    if (!m) {
+      routingMismatches.push(`${game.id}: missing explicit GAME_TYPE_MAP entry in GameUIRouter.jsx`);
+      continue;
+    }
+    const mappedType = m[1];
+    const fmt = String(cfg.format || '').toLowerCase();
+    if (fmt.includes('heads-up') && mappedType !== 'heads-up') routingMismatches.push(`${game.id}: expected heads-up, got ${mappedType}`);
+    if (fmt.includes('3-max') && mappedType !== 'spins') routingMismatches.push(`${game.id}: expected spins (3-Max), got ${mappedType}`);
+    if (fmt.includes('9-max') && mappedType !== 'mtt') routingMismatches.push(`${game.id}: expected mtt (9-Max), got ${mappedType}`);
+    if (fmt.includes('6-max') && mappedType !== '6max') routingMismatches.push(`${game.id}: expected 6max, got ${mappedType}`);
+  }
+  assert.deepEqual(
+    routingMismatches,
+    [],
+    `Found 107-game routing or seat-count mismatches:\n${routingMismatches.join('\n')}`,
+  );
+
+  // 2. All 20 Psychology games (psy-001..psy-020) share the 1:1 Club Arena Poker Table stage & #SMARTERDESIGN chrome
+  const psyUi = read('src/components/training/games/PsychologyTiltControlUI.jsx');
+  assert.match(psyUi, /className="smarterdesign"/, 'PsychologyTiltControlUI must opt into .smarterdesign');
+  assert.match(psyUi, /data-club-arena-table-stage="true"/, 'PsychologyTiltControlUI must render the 1:1 Club Arena table stage');
+  assert.match(psyUi, /<PlayingCard arena /, 'PsychologyTiltControlUI must render authentic Club Arena cards');
+  assert.match(psyUi, /chrome-readout\.webp/, 'PsychologyTiltControlUI felt stage must use #SMARTERDESIGN steel chrome rim');
+
+  // 3. Every file in the 107-game launch & gameplay pipeline must have #SMARTERDESIGN and ZERO Orbitron / Courier New / monospace fonts
+  const gameplayPipeline = [
+    'pages/hub/training/play/[gameId].js',
+    'pages/hub/training/arena/[gameId].js',
+    'src/components/training/LevelSelector.tsx',
+    'src/components/training/GodModeArena.jsx',
+    'src/components/training/games/UniversalDynamicTable.jsx',
+    'src/components/training/games/PsychologyTiltControlUI.jsx',
+    'src/components/training/GTOQuestionCard.jsx',
+    'src/components/training/TrainingGameEntry.jsx',
+  ];
+  for (const rel of gameplayPipeline) {
+    const src = read(rel);
+    assert.match(
+      src,
+      /smarterdesign|sd-panel|sd-button/,
+      `${rel} must include #SMARTERDESIGN framing`,
+    );
+    assert.doesNotMatch(
+      src,
+      /Orbitron|Courier New|fontFamily[^;\n]*monospace/i,
+      `${rel} must not use legacy Orbitron, Courier New, or monospace font stacks`,
+    );
+  }
+
+  // 4. UniversalDynamicTable must keep duplicate SETTINGS unit toggle and STAKES badge inside the !presetOnly study tools disclosure
+  const udt = read('src/components/training/games/UniversalDynamicTable.jsx');
+  const disclosureIdx = udt.indexOf('{!presetOnly && <details');
+  const settingsToggleIdx = udt.indexOf('data-unit-toggle-entry="settings"');
+  const stakesBadgeIdx = udt.indexOf('data-training-stakes-badge="true"');
+  assert.ok(disclosureIdx > 0, 'UniversalDynamicTable must keep {!presetOnly && <details disclosure');
+  assert.ok(settingsToggleIdx > disclosureIdx, 'Duplicate SETTINGS unit toggle must live inside {!presetOnly && <details, never beside toolbar BB toggle');
+  assert.ok(stakesBadgeIdx > disclosureIdx, 'STAKES badge must live inside {!presetOnly && <details so default table HUD stays uncluttered');
+
+  // 5. Hardening guards for every visual/layout/data defect found during the 107-game Chromium click-through:
+  // (a) Never treat Number(null) === 0 as finite HUD stats (prevents literal "null/null/--" on Villain seats)
+  assert.doesNotMatch(
+    udt,
+    /hasHudStats\s*=\s*Number\.isFinite\(Number\(vpipVal\)\)/,
+    'UniversalDynamicTable must guard vpipVal/pfrVal against null/empty before Number() so "null/null/--" can never render',
+  );
+  assert.match(udt, /isFiniteMetric\(vpipVal\)\s*&&\s*isFiniteMetric\(pfrVal\)/);
+  assert.match(udt, /isFiniteSeatMetric\(vpipVal\)\s*&&\s*isFiniteSeatMetric\(pfrVal\)/);
+
+  // (b) Toolbar seat-count badge must read authoritative playerCount (not activeGameFormat === "9max" which mislabeled MTT as 6-Max)
+  assert.match(
+    udt,
+    /playerCount === 9 \? '9-Max' : playerCount === 3 \? '3-Max' : playerCount === 2 \? 'Heads-Up' : '6-Max'/,
+    'Toolbar seat-count badge must derive 9-Max/6-Max/3-Max/Heads-Up from authoritative playerCount',
+  );
+
+  // (c) Desktop & Mobile Club Arena poker tables must never be crushed into a narrow sliver by fixed 100dvh overflow:hidden
+  assert.match(udt, /flex:\s*1 0 495px !important;/, 'Desktop .sp-club-gto-table-area must enforce spacious above-the-fold Club Arena height');
+  assert.match(udt, /flex:\s*1 0 380px !important;/, 'Mobile .sp-club-gto-table-area must enforce full-width readable Club Arena height instead of crushing to 220px');
+  assert.match(udt, /potOverlayRow:\s*\{[\s\S]{0,160}flexWrap:\s*'wrap'/, 'Pot/SPR overlay row must wrap cleanly inside 9-Max felt without touching UTG+1/HJ seats');
+  assert.doesNotMatch(udt, /styles\.questionOfPill/, 'Duplicate floating Question X Of Y pill must not overlap hero hole cards');
+
+  // (c2) mtt-018 Button Warfare must resolve as a 9-Max MTT preset (preserving PLO4 variant) so seat count matches GAME_CONFIGS
+  const presetsSrc = read('src/lib/training/trainingPresets.mjs');
+  assert.match(
+    presetsSrc,
+    /gameId === 'mtt-018'[\s\S]{0,160}format:\s*'mtt'/,
+    'mtt-018 Button Warfare must resolve format: "mtt" (9-Max) rather than inheriting 6-Max cash format',
+  );
+  const arena = read('src/components/training/GodModeArena.jsx');
+  assert.doesNotMatch(
+    arena,
+    /fullScreenContainer:\s*\{[\s\S]{0,180}height:\s*'100dvh'/,
+    'GodModeArena fullScreenContainer must allow full-height desktop poker table without vertical clipping',
+  );
+  assert.match(arena, /className="sd-panel"/, 'GodModeArena error/auth fallback card must use #SMARTERDESIGN .sd-panel');
+
+  // (d) LevelSelector must not crush the 2-column .sp-level-header grid to 600px, and training.css must unify fonts to #SMARTERDESIGN
+  const levelSel = read('src/components/training/LevelSelector.tsx');
+  assert.doesNotMatch(
+    levelSel,
+    /header:\s*\{[\s\S]{0,160}maxWidth:\s*600/,
+    'LevelSelector header must not constrain maxWidth to 600px against the 2-column .sp-level-header grid',
+  );
+  const trainingCss = read('src/styles/worlds/training.css');
+  assert.match(
+    trainingCss,
+    /body\.world-training\s*\{[\s\S]{0,200}font-family:\s*var\(--font-inter,\s*Inter\)/,
+    'body.world-training must set #SMARTERDESIGN Inter font so browser never falls back to Times',
+  );
+  assert.doesNotMatch(
+    trainingCss,
+    /Orbitron|jetbrains-mono|Share Tech Mono|Courier New|monospace/i,
+    'src/styles/worlds/training.css must contain zero legacy Orbitron/monospace font declarations',
+  );
+
+  // (e) GTOQuestionCard feedback overlay must have enough height so Next Question / Practice Again / Report buttons never clip
+  const qCard = read('src/components/training/GTOQuestionCard.jsx');
+  assert.match(qCard, /minHeight:\s*'540px'/, 'GTOQuestionCard container must reserve >= 540px so feedback action buttons never clip');
+});
