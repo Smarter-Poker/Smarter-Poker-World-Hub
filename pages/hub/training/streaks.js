@@ -313,8 +313,8 @@ export default function StreaksPage() {
         marginBottom: 16,
         padding: '10px 14px',
         borderRadius: 2,
-        border: '1px solid rgba(251, 191, 36, 0.4)',
-        background: 'rgba(251, 191, 36, 0.08)',
+        border: '1px solid rgba(86, 216, 255, 0.4)',
+        background: 'rgba(86, 216, 255, 0.08)',
         color: '#86daff',
         fontSize: 12,
         fontWeight: 700,
@@ -468,7 +468,7 @@ export default function StreaksPage() {
                   marginBottom: 16,
                   background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
                   border: '1px solid rgba(239,68,68,0.45)',
-                  borderLeft: '3px solid #f2b84b',
+                  borderLeft: '3px solid #56d8ff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -640,7 +640,7 @@ export default function StreaksPage() {
                   style={{
                     ...styles.calendarDay,
                     background: day.trained
-                      ? 'linear-gradient(135deg, #25c8ff, #f2b84b)'
+                      ? 'linear-gradient(135deg, #25c8ff, #56d8ff)'
                       : day.isToday
                         ? 'rgba(37, 200, 255, 0.2)'
                         : 'linear-gradient(180deg, #0d1a22, #060d12)',
@@ -721,7 +721,7 @@ export default function StreaksPage() {
                     style={{
                       ...styles.milestoneCard,
                       opacity: milestone.achieved ? 1 : 0.55,
-                      border: isClaimable ? '1px solid #f2b84b' : '1px solid #415866',
+                      border: isClaimable ? '1px solid #56d8ff' : '1px solid #415866',
                     }}
                     whileHover={isClaimable ? { scale: 1.02 } : {}}
                   >
@@ -916,7 +916,7 @@ const styles = {
   nextMilestoneCard: {
     background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
     border: '1px solid #536a76',
-    borderLeft: '3px solid #f2b84b',
+    borderLeft: '3px solid #56d8ff',
     borderRadius: '2px',
     padding: '20px',
     marginBottom: '24px',
@@ -940,7 +940,7 @@ const styles = {
   },
   progressBarFill: {
     height: '100%',
-    background: 'linear-gradient(90deg, #25c8ff, #f2b84b)',
+    background: 'linear-gradient(90deg, #25c8ff, #56d8ff)',
     borderRadius: '2px',
     transition: 'width 0.3s ease',
   },
@@ -995,7 +995,7 @@ const styles = {
     width: '12px',
     height: '12px',
     borderRadius: '2px',
-    background: 'linear-gradient(135deg, #25c8ff, #f2b84b)',
+    background: 'linear-gradient(135deg, #25c8ff, #56d8ff)',
     marginRight: '6px',
     verticalAlign: 'middle',
   },
@@ -1043,7 +1043,7 @@ const styles = {
   claimButton: {
     minHeight: '44px',
     padding: '8px 16px',
-    background: 'linear-gradient(135deg, #f2b84b, #25c8ff)',
+    background: 'linear-gradient(135deg, #56d8ff, #25c8ff)',
     border: 'none',
     borderRadius: '2px',
     color: '#020608',

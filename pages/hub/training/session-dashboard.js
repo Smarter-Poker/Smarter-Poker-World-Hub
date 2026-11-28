@@ -386,8 +386,8 @@ function StreakTracker({ sessions }) {
                 width: 18,
                 height: 18,
                 borderRadius: 4,
-                background: isActive ? 'rgba(251,191,36,0.5)' : 'rgba(255,255,255,0.04)',
-                border: isToday ? '1px solid #fbbf24' : '1px solid transparent',
+                background: isActive ? 'rgba(86, 216, 255,0.5)' : 'rgba(255,255,255,0.04)',
+                border: isToday ? '1px solid #56d8ff' : '1px solid transparent',
               }}
             />
           );

@@ -406,7 +406,7 @@ export default function LiveHudSyncPage() {
                       style={{
                         padding: '14px 16px',
                         border: hand.leakPriorityRank === 1
-                          ? '1px solid rgba(251,191,36,.65)'
+                          ? '1px solid rgba(86, 216, 255,.65)'
                           : '1px solid rgba(132,213,242,.26)',
                         background: hand.leakPriorityRank === 1
                           ? 'rgba(30,22,12,.86)'
@@ -424,7 +424,7 @@ export default function LiveHudSyncPage() {
                             style={{
                               padding: '2px 8px',
                               border: hand.leakPriorityRank === 1
-                                ? '1px solid #fbbf24'
+                                ? '1px solid #56d8ff'
                                 : '1px solid rgba(132,213,242,.35)',
                               background: hand.leakPriorityRank === 1
                                 ? 'rgba(217,119,6,.32)'

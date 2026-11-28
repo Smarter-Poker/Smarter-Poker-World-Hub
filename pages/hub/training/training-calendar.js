@@ -404,7 +404,7 @@ export default function TrainingCalendarPage() {
                             background: cell.isFuture
                               ? 'transparent'
                               : cell.isToday
-                                ? 'rgba(251,191,36,0.4)'
+                                ? 'rgba(86, 216, 255,0.4)'
                                 : INTENSITY_COLORS[getIntensity(cell.data?.hands || 0)],
                             cursor: cell.isFuture ? 'default' : 'pointer',
                             outline: selectedDay === cell.key ? '1px solid #00d4ff' : 'none',

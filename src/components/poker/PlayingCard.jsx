@@ -246,6 +246,29 @@ export default PlayingCard;
 
 // ─── Named helpers (re-exported for convenience) ────────────────────────────
 
+const ARENA_DECK_SUITS = ['spades', 'hearts', 'diamonds', 'clubs'];
+const ARENA_DECK_RANKS = ['a', 'k', 'q', 'j', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
+let arenaDeckPreloaded = false;
+
+export function preloadArenaDeckCards() {
+  if (typeof window === 'undefined' || arenaDeckPreloaded) return;
+  arenaDeckPreloaded = true;
+  const run = () => {
+    for (const suit of ARENA_DECK_SUITS) {
+      for (const rank of ARENA_DECK_RANKS) {
+        const img = new window.Image();
+        img.decoding = 'async';
+        img.src = `/hub/club-arena/cards/4color/${suit}_${rank}.webp`;
+      }
+    }
+  };
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(run, { timeout: 1200 });
+  } else {
+    window.setTimeout(run, 180);
+  }
+}
+
 
 
 export const PLAYING_CARD_VERSION = '1.0.0';

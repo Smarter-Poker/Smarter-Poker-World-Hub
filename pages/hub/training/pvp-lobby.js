@@ -303,7 +303,7 @@ export default function PvPLobbyPage() {
                     <a
                       href={buildDuelArenaHref(activeDuel, 'opponent')}
                       data-play-opponent-duel="true"
-                      style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', padding: '0 14px', borderRadius: 6, border: '1px solid #fbbf24', background: 'rgba(180,83,9,.32)', color: '#86daff', fontSize: 12, fontWeight: 900, textDecoration: 'none' }}
+                      style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', padding: '0 14px', borderRadius: 6, border: '1px solid #56d8ff', background: 'rgba(8,115,255,0.22)', color: '#86daff', fontSize: 12, fontWeight: 900, textDecoration: 'none' }}
                     >
                       Accept &amp; Play As Opponent →
                     </a>

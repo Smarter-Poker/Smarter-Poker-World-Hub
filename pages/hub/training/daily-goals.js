@@ -469,7 +469,7 @@ export default function DailyGoalsPage() {
                           style={{
                             background: isComplete
                               ? '#39d59b'
-                              : `linear-gradient(90deg, ${g.color}, #f2b84b)`,
+                              : `linear-gradient(90deg, ${g.color}, #56d8ff)`,
                           }}
                         />
                       </div>
