@@ -40,6 +40,7 @@ import { runRelaunchNotice } from '../../../src/lib/tournamentRelaunch/notice.mj
 import { runPlayerAnnouncements } from '../../../src/lib/playerAnnouncements/notice.mjs';
 import { runLifecycleRetention } from '../../../src/lib/promoCampaigns/lifecycleEngine.mjs';
 import { runOrganicWelcomeDrip } from '../../../src/lib/seo/organicWelcomeDripRunner.mjs';
+import { notify } from '../../../src/lib/notify';
 
 export const config = { maxDuration: 300 };
 
@@ -96,21 +97,51 @@ async function handler(req, res) {
 
         // Idempotent Day-0 organic activation welcome drip + Phase B Day-1 behavioral
         // activation nudge + Phase C Day-3 unverified VIP urgency + Phase D upcoming
-        // saved series event reminders (single bounded user pass, zero net-new crons).
+        // saved series event reminders (with non-blocking Web Push mirror via notify)
+        // + Phase E Day-7/Day-21 habit digests + Phase F Day-25 VIP trial graduation
+        // (single bounded user pass, zero net-new crons).
         // Isolated try/catch: never turns signup-welcome-back red.
         let organicDrip = null;
         try {
+            const sendSeriesReminderPush = async ({ userId, title, body, url, spotId }) => {
+                const res = await notify(sb, {
+                    userId,
+                    type: 'tournament_starting',
+                    title,
+                    body,
+                    url,
+                    tag: spotId ? `series-reminder:${spotId}` : undefined,
+                    data: { spotId: spotId || null, source: 'organic_drip_series_reminder' },
+                });
+                const pushSkipped = Boolean(res?.push?.skipped);
+                const deliveredOrQueued = Boolean(res?.push?.sent || res?.push?.outboxId);
+                return {
+                    ok: deliveredOrQueued && !pushSkipped,
+                    skipped: pushSkipped,
+                    reason: res?.push?.reason || null,
+                };
+            };
             organicDrip = await runOrganicWelcomeDrip(sb, {
                 sendEmail: sendBulkEmail,
+                sendPush: sendSeriesReminderPush,
                 maxSends: 20,
                 maxDay1Sends: 20,
                 maxDay3Sends: 20,
+                maxDay7Sends: 20,
+                maxDay21Sends: 20,
+                maxDay25VipSends: 20,
                 maxReminderSends: 20,
                 windowHours: 48,
                 day1MinHours: 20,
                 day1MaxHours: 96,
                 day3MinHours: 68,
                 day3MaxHours: 168,
+                day7MinHours: 144,
+                day7MaxHours: 336,
+                day21MinHours: 480,
+                day21MaxHours: 576,
+                day25VipMinHours: 576,
+                day25VipMaxHours: 696,
                 reminderLeadHours: 24,
                 deadline: startedAt + 295_000,
                 log: (m) => console.log(m),
