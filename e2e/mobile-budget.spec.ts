@@ -168,6 +168,16 @@ for (const route of ROUTES) {
 
     // WIP measurement only: per-script breakdown.
     console.log(`BUDGETDUMP ${route} total=${jsKb}KB ` + JSON.stringify(scripts.map((s) => [s.url.replace(/^https?:\/\/[^/]+/, ''), Math.round(s.bytes / 1024)]).sort((a, b) => (b[1] as number) - (a[1] as number))));
+    if (route === '/hub/poker-tools' || route === '/hub/toke-tracker') {
+      try {
+        const cm = JSON.parse(fs.readFileSync(path.join(process.cwd(), '.next', 'wip-chunk-modules.json'), 'utf8'));
+        for (const s of scripts) {
+          if (s.bytes < 4096) continue;
+          const f = s.url.split('/').pop() || '';
+          console.log(`CHUNKMODS ${route} ${f} ${Math.round(s.bytes / 1024)}KB ` + JSON.stringify((cm[f] || []).slice(0, 25)));
+        }
+      } catch (e) { console.log('CHUNKMODS error ' + String(e)); }
+    }
     test.info().annotations.push({ type: 'budget', description: JSON.stringify({ route, jsKb, ...metrics }) });
 
     expect(metrics.overflow, `${route} scrolls sideways by ${metrics.overflow}px`).toBeLessThanOrEqual(0);

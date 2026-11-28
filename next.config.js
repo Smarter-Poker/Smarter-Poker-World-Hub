@@ -749,6 +749,32 @@ const nextConfig = {
       // correctly with the watchOptions.ignored config above (which prevents
       // stale .next corruption by excluding .next from the watcher).
     }
+    // WIP measurement only: dump chunk -> module list for budget analysis.
+    if (!dev && !isServer) {
+      config.plugins.push({
+        apply(compiler) {
+          compiler.hooks.emit.tap('WipChunkModules', (compilation) => {
+            const out = {};
+            for (const chunk of compilation.chunks) {
+              const files = [...chunk.files].filter((f) => f.endsWith('.js'));
+              if (!files.length) continue;
+              const mods = [];
+              for (const m of compilation.chunkGraph.getChunkModulesIterable(chunk)) {
+                const subs = m.modules ? [...m.modules] : [m];
+                for (const sm of subs) {
+                  let name = String((sm.nameForCondition && sm.nameForCondition()) || sm.identifier());
+                  name = name.replace(/^.*node_modules\//, 'nm/').split(__dirname).join('');
+                  mods.push([name, sm.size()]);
+                }
+              }
+              mods.sort((a, b) => b[1] - a[1]);
+              for (const f of files) out[f.split('/').pop()] = mods.slice(0, 60);
+            }
+            require('fs').writeFileSync(require('path').join(__dirname, '.next', 'wip-chunk-modules.json'), JSON.stringify(out));
+          });
+        },
+      });
+    }
     return config;
   },
 
