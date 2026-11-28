@@ -6,9 +6,10 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import styles from './BankrollForms.module.css';
-import { parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
+import { fetchReportLedger } from '../../lib/bankroll/bankrollSelectors';
+import { estimateTax, lossDeductionRate, taxYearTotals } from '../../lib/bankroll/taxMath.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // US STATE TAX DATA
@@ -35,36 +36,39 @@ const US_STATES = [
     { code: 'MD', name: 'Maryland', rate: 5.75 },
 ];
 
-const FEDERAL_BRACKETS = [
-    { min: 0, max: 11600, rate: 10 },
-    { min: 11600, max: 47150, rate: 12 },
-    { min: 47150, max: 100525, rate: 22 },
-    { min: 100525, max: 191950, rate: 24 },
-    { min: 191950, max: 243725, rate: 32 },
-    { min: 243725, max: 609350, rate: 35 },
-    { min: 609350, max: Infinity, rate: 37 },
-];
-
 const DEDUCTION_CATEGORIES = [
-    { id: 'travel', label: 'Travel & Lodging', icon: '✈️' },
-    { id: 'buyins', label: 'Tournament Buy-ins', icon: '🏆' },
-    { id: 'coaching', label: 'Coaching & Training', icon: '📚' },
-    { id: 'software', label: 'Software & Subscriptions', icon: '💻' },
-    { id: 'tips', label: 'Tips & Gratuities', icon: '💵' },
-    { id: 'meals', label: 'Meals (50%)', icon: '🍽️' },
-    { id: 'equipment', label: 'Equipment', icon: '🖥️' },
-    { id: 'other', label: 'Other Expenses', icon: '📋' },
+    { id: 'travel', label: 'Travel & Lodging' },
+    { id: 'buyins', label: 'Tournament Buy-ins' },
+    { id: 'coaching', label: 'Coaching & Training' },
+    { id: 'software', label: 'Software & Subscriptions' },
+    { id: 'tips', label: 'Tips & Gratuities' },
+    { id: 'meals', label: 'Meals (50%)' },
+    { id: 'equipment', label: 'Equipment' },
+    { id: 'other', label: 'Other Expenses' },
 ];
 
-function calcFederalTax(income) {
-    if (income <= 0) return 0;
-    let tax = 0;
-    for (const bracket of FEDERAL_BRACKETS) {
-        if (income <= bracket.min) break;
-        const taxable = Math.min(income, bracket.max) - bracket.min;
-        tax += taxable * (bracket.rate / 100);
-    }
-    return tax;
+const money = (v) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(v || 0);
+
+// The tax year is read on its own: Jan 1 to Dec 31, every location, every
+// trip. The dashboard's rows are filtered by its time and venue pickers and
+// hide active trips, so feeding them in produced a "tax year" of 30 days.
+function useTaxYearLedger(userId, year, fallbackEntries) {
+    const [state, setState] = useState({ key: null, rows: null, error: null });
+    const [attempt, setAttempt] = useState(0);
+    const key = userId ? userId + ':' + year + ':' + attempt : null;
+    useEffect(() => {
+        if (!userId) return undefined;
+        let live = true;
+        setState(prev => (prev.key === key ? prev : { key, rows: null, error: null }));
+        fetchReportLedger(userId, { startDate: year + '-01-01', endDate: year + '-12-31', includeExpenses: true })
+            .then(rows => { if (live) setState({ key, rows, error: null }); })
+            .catch(() => { if (live) setState({ key, rows: null, error: 'Could Not Load Your ' + year + ' Ledger.' }); });
+        return () => { live = false; };
+    }, [userId, year, key]);
+    const retry = useCallback(() => setAttempt(n => n + 1), []);
+    if (!userId) return { rows: fallbackEntries, error: null, loading: false, retry };
+    const current = state.key === key ? state : { rows: null, error: null };
+    return { rows: current.rows, error: current.error, loading: !current.rows && !current.error, retry };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -76,85 +80,61 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
     const [deductions, setDeductions] = useState({});
     const [copyMessage, setCopyMessage] = useState('');
     const [year, setYear] = useState(new Date().getFullYear());
+    const ledger = useTaxYearLedger(userId, year, entries);
 
     const stateInfo = US_STATES.find(s => s.code === selectedState) || US_STATES[0];
-
-    // Compute quarterly P/L from entries
-    const quarterlyData = useMemo(() => {
-        const quarters = [
-            { label: 'Q1 (Jan-Mar)', months: [0, 1, 2], income: 0, losses: 0 },
-            { label: 'Q2 (Apr-Jun)', months: [3, 4, 5], income: 0, losses: 0 },
-            { label: 'Q3 (Jul-Sep)', months: [6, 7, 8], income: 0, losses: 0 },
-            { label: 'Q4 (Oct-Dec)', months: [9, 10, 11], income: 0, losses: 0 },
-        ];
-        for (const e of entries) {
-            if (!e.entry_date) continue;
-            const d = parseLedgerDay(e.entry_date);
-            if (d.getFullYear() !== year) continue;
-            const net = (e.gross_out || 0) - (e.gross_in || 0);
-            const qIdx = Math.floor(d.getMonth() / 3);
-            if (net > 0) quarters[qIdx].income += net;
-            else quarters[qIdx].losses += Math.abs(net);
-        }
-        return quarters;
-    }, [entries, year]);
-
-    const totalIncome = quarterlyData.reduce((s, q) => s + q.income, 0);
-    const totalLosses = quarterlyData.reduce((s, q) => s + q.losses, 0);
+    const totals = useMemo(() => taxYearTotals(ledger.rows || [], year), [ledger.rows, year]);
     const totalDeductions = Object.values(deductions || {}).reduce((s, v) => s + (parseFloat(v) || 0), 0);
-    const netTaxableIncome = Math.max(0, totalIncome - totalLosses - totalDeductions);
-    const federalTax = calcFederalTax(netTaxableIncome);
-    const stateTax = netTaxableIncome * (stateInfo.rate / 100);
-    const totalTax = federalTax + stateTax;
-    const effectiveRate = netTaxableIncome > 0 ? ((totalTax / netTaxableIncome) * 100).toFixed(1) : '0.0';
+    const estimate = estimateTax(totals, { stateRate: stateInfo.rate, deductions: totalDeductions });
+    const capped = lossDeductionRate(year) < 1;
 
     const updateDeduction = (id, value) => {
         setDeductions(prev => ({ ...prev, [id]: value }));
     };
 
-    const downloadTaxSummary = () => {
-        const content = [
-            `POKER TAX REPORT - ${year}`,
-            `State: ${stateInfo.name} (${stateInfo.code})`,
-            ``,
-            `INCOME SUMMARY`,
-            `Total Winnings: $${totalIncome.toLocaleString()}`,
-            `Total Losses: -$${totalLosses.toLocaleString()}`,
-            `Deductions: -$${totalDeductions.toLocaleString()}`,
-            `Net Taxable: $${netTaxableIncome.toLocaleString()}`,
-            ``,
-            `TAX LIABILITY`,
-            `Federal: $${federalTax.toLocaleString()}`,
-            `State (${stateInfo.code}): $${stateTax.toLocaleString()}`,
-            `Total: $${totalTax.toLocaleString()}`,
-            `Effective Rate: ${effectiveRate}%`,
-        ].join('\n');
+    const figures = [
+        ['Gross Winnings', totals.winnings],
+        ['Gambling Losses', -totals.losses],
+        [capped ? 'Deductible Losses (90%)' : 'Deductible Losses', -totals.deductibleLosses],
+        ['Other Deductions', -totalDeductions],
+        ['Net Taxable', estimate.taxable],
+        ['Federal Estimate', estimate.federal],
+        ['State Estimate', estimate.state],
+        ['Recorded Expenses', -totals.recordedExpenses],
+    ];
+    const summaryLines = () => [
+        'Poker Tax Summary ' + year,
+        'State: ' + stateInfo.name + ' (' + stateInfo.code + ')',
+        'Gaming Sessions: ' + totals.sessions,
+        ...figures.map(([label, amount]) => label + ': ' + money(amount)),
+        'Total Estimated Tax: ' + money(estimate.total),
+        'Effective Rate: ' + estimate.effectiveRate + '%',
+        ...totals.quarters.map(q => q.label + ': Winnings ' + money(q.winnings) + ', Losses ' + money(-q.losses) + ', Net ' + money(q.net)),
+        'Estimate for a single filer with no other income. Consult a tax professional.',
+    ];
 
-        const blob = new Blob([content], { type: 'text/plain' });
+    const downloadTaxSummary = () => {
+        const blob = new Blob([summaryLines().join('\n')], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `poker-tax-report-${year}-${stateInfo.code}.txt`;
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        a.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
 
-    const money = (v) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(v);
-    const years = Array.from(new Set([year, ...entries.map(e => Number(String(e.entry_date || '').slice(0, 4))).filter(y => y > 1900), ...Array.from({length: 3}, (_, i) => new Date().getFullYear() - i)])).sort((a, b) => b - a);
-    const figures = [
-        ['Gross Winnings', totalIncome], ['Total Losses', -totalLosses], ['Deductions', -totalDeductions],
-        ['Net Taxable', netTaxableIncome], ['Federal Estimate', federalTax], ['State Estimate', stateTax],
-    ];
+    const thisYear = new Date().getFullYear();
+    const years = Array.from(new Set([year, ...entries.map(e => Number(String(e.entry_date || '').slice(0, 4))).filter(y => y > 1900 && y <= thisYear), ...Array.from({ length: 5 }, (_, i) => thisYear - i)])).sort((a, b) => b - a);
     async function copy() {
         try {
-            await navigator.clipboard.writeText([
-                'Poker Tax Summary ' + year, stateInfo.name, ...figures.map(([label, amount]) => label + ' ' + money(amount || 0)),
-                'Total Estimated Tax ' + money(totalTax), 'Effective Rate ' + effectiveRate + '%',
-            ].join('\n'));
+            await navigator.clipboard.writeText(summaryLines().join('\n'));
             setCopyMessage('Summary Copied');
         } catch { setCopyMessage('Copy Unavailable. Use Export Tax Report.'); }
     }
-    return <section className={'sd-panel ' + styles.tax} aria-label="State Tax Report">
+    const ready = !ledger.loading && !ledger.error;
+    return <section className={'sd-panel ' + styles.tax} aria-label="State Tax Report" aria-busy={ledger.loading}>
         <div className={styles.heading}><h2>State Tax Report</h2></div>
         <div className={styles.filters}>
             <label className={styles.field}>Tax Year<select value={year} onChange={e => { setYear(Number(e.target.value)); setCopyMessage(''); }}>
@@ -162,21 +142,28 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
             <label className={styles.field}>Jurisdiction<select value={selectedState} onChange={e => { setSelectedState(e.target.value); setCopyMessage(''); }}>
                 {US_STATES.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}</select></label>
         </div>
-        <div className={styles.readout}><span>Total Estimated Tax</span><strong>{money(totalTax)}</strong></div>
-        <dl className={styles.figures}>{figures.map(([label, amount]) => <div key={label}><dt>{label}</dt><dd>{money(amount || 0)}</dd></div>)}</dl>
-        <div className={styles.heading}><span>Combined Effective Rate</span><strong>{effectiveRate}%</strong></div>
+        {ledger.loading && <p role="status">Loading Your {year} Ledger…</p>}
+        {ledger.error && <p role="alert">{ledger.error} <button type="button" className="sd-button" onClick={ledger.retry}>Retry</button></p>}
+        {ready && <>
+        <div className={styles.readout}><span>Total Estimated Tax</span><strong>{money(estimate.total)}</strong></div>
+        <dl className={styles.figures}>{figures.map(([label, amount]) => <div key={label}><dt>{label}</dt><dd>{money(amount)}</dd></div>)}</dl>
+        <div className={styles.heading}><span>Combined Effective Rate</span><strong>{estimate.effectiveRate}%</strong></div>
+        <p>{totals.sessions === 0 ? 'No Gaming Sessions Are Logged For ' + year + '.' : totals.sessions + ' Gaming ' + (totals.sessions === 1 ? 'Session' : 'Sessions') + ' Logged In ' + year + '.'}
+            {capped ? ' From 2026 Only 90% Of Gambling Losses Can Be Deducted, And Never More Than Winnings.' : ' Losses Can Be Deducted Up To Winnings.'}
+            {' '}Recorded Expenses Are Shown For Your Records And Are Not Subtracted. Estimate For A Single Filer With No Other Income.</p>
         <section aria-label="Quarterly Profit And Loss">
             <h3>Quarterly Results · {year}</h3>
             <div role="table" aria-label={'Quarterly Results ' + year}>
                 <div role="row" className={styles.quarterHeader}>{['Quarter','Winnings','Losses','Net'].map(label => <span role="columnheader" key={label}>{label}</span>)}</div>
-                {quarterlyData.map(q => <div key={q.label} role="row" className={styles.quarter}>
-                    <strong role="rowheader" title={q.label}>{q.label.slice(0,2)}</strong><span role="cell">{money(q.income)}</span><span role="cell">{money(-q.losses || 0)}</span><strong role="cell">{money(q.income-q.losses)}</strong>
+                {totals.quarters.map(q => <div key={q.label} role="row" className={styles.quarter}>
+                    <strong role="rowheader">{q.label}</strong><span role="cell">{money(q.winnings)}</span><span role="cell">{money(-q.losses)}</span><strong role="cell">{money(q.net)}</strong>
                 </div>)}
             </div>
         </section>
         <details><summary>Itemized Deductions</summary><div className={styles.deductions}>{DEDUCTION_CATEGORIES.map(cat =>
-            <label className={styles.field} key={cat.id}>{cat.label}<input min="0" type="number" step="0.01" inputMode="decimal" placeholder="0.00" value={deductions[cat.id] || ''} onChange={e => { if (Number(e.target.value) >= 0) updateDeduction(cat.id, e.target.value); setCopyMessage(''); }} /></label>)}</div></details>
+            <label className={styles.field} key={cat.id}>{cat.label}<input min="0" type="number" step="0.01" inputMode="decimal" placeholder="0.00" value={deductions[cat.id] || ''} onChange={e => { if (e.target.value === '' || Number(e.target.value) >= 0) updateDeduction(cat.id, e.target.value); setCopyMessage(''); }} /></label>)}</div></details>
         <div className={styles.actions}><button type="button" className="sd-button sd-primary" onClick={downloadTaxSummary}>Export Tax Report</button><button type="button" className="sd-button" onClick={copy}>Copy Summary</button></div>
         {copyMessage && <span role="status">{copyMessage}</span>}
+        </>}
     </section>;
 }

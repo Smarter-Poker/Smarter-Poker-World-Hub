@@ -75,6 +75,11 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 - Best Free Poker Apps With Friends: https://smarter.poker/compare/best-free-poker-apps-with-friends (Markdown: https://smarter.poker/compare/best-free-poker-apps-with-friends.md)
 - Club Commander Vs Bravo Poker Live: https://smarter.poker/compare/club-commander-vs-bravo-poker-live (Markdown: https://smarter.poker/compare/club-commander-vs-bravo-poker-live.md)
 - Club Commander Vs TableCaptain: https://smarter.poker/compare/club-commander-vs-tablecaptain (Markdown: https://smarter.poker/compare/club-commander-vs-tablecaptain.md)
+- Smarter.Poker Vs GTO Wizard: https://smarter.poker/compare/smarter-poker-vs-gto-wizard (Markdown: https://smarter.poker/compare/smarter-poker-vs-gto-wizard.md) - Free Forever browser GTO training (107 interactive games, solver baselines, live venues, cloud bankroll manager) compared against standalone paid solver subscriptions.
+- Smarter.Poker Vs PokerAtlas: https://smarter.poker/compare/smarter-poker-vs-pokeratlas (Markdown: https://smarter.poker/compare/smarter-poker-vs-pokeratlas.md) - Listed live poker venues, tournament series, free Club Commander waitlists, 107 GTO training games, bankroll tracker, and free odds calculators compared against directory-only venue listings.
+- Smarter.Poker Vs Bravo Poker Live: https://smarter.poker/compare/smarter-poker-vs-bravo-poker-live (Markdown: https://smarter.poker/compare/smarter-poker-vs-bravo-poker-live.md) - Free browser live poker discovery, waitlists, series schedules, GTO training, and bankroll manager compared against legacy casino waitlist viewer apps.
+- Smarter.Poker Vs Upswing Poker: https://smarter.poker/compare/smarter-poker-vs-upswing-poker (Markdown: https://smarter.poker/compare/smarter-poker-vs-upswing-poker.md) - 107 interactive GTO training drills, free 13x13 preflop range matrix, and integrated live poker hub compared against paid video-course subscriptions.
+- Smarter.Poker Vs Poker Bankroll Tracker: https://smarter.poker/compare/smarter-poker-vs-poker-bankroll-tracker (Markdown: https://smarter.poker/compare/smarter-poker-vs-poker-bankroll-tracker.md) - Free cloud bankroll manager with unlimited CSV export, tax reports, GTO training, and live venue directory compared against standalone paid tracker apps.
 
 ---
 
@@ -233,6 +238,9 @@ Authoritative, solver-grade poker computation tools available for direct browser
   - Final table chop negotiations, bubble factors, and risk premium computations.
   - Raw Markdown: https://smarter.poker/tools/icm-calculator.md or Accept: text/markdown
   - MCP Tool Name: calculate_icm_payouts
+- **GTO Leak Finder**: https://smarter.poker/tools/gto-leak-finder
+  - Free interactive browser-native poker leak diagnostic comparing player VPIP, PFR, 3-Bet, Fold-to-3-Bet, C-Bet, WTSD, and aggression stats against 100BB 6-Max GTO equilibrium baselines.
+  - Flags BB/100 EV leaks with tailored corrective GTO study drills and zero subscription required.
 - **Webmaster & Poker Site Embeds**: https://smarter.poker/tools/embeds
   - Free responsive iframe widgets for poker bloggers, tournament directors, and media websites.
   - Raw Markdown: https://smarter.poker/tools/embeds.md or Accept: text/markdown
@@ -500,7 +508,7 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - [43o (Four-Three Offsuit)](https://smarter.poker/learn/hands/four-three-offsuit) ([Markdown](https://smarter.poker/learn/hands/four-three-offsuit.md))
   - [42o (Four-Two Offsuit)](https://smarter.poker/learn/hands/four-two-offsuit) ([Markdown](https://smarter.poker/learn/hands/four-two-offsuit.md))
   - [32o (Three-Two Offsuit)](https://smarter.poker/learn/hands/three-two-offsuit) ([Markdown](https://smarter.poker/learn/hands/three-two-offsuit.md))
-- **Verified Software & Cardroom Comparisons (31 Pages)**: https://smarter.poker/compare (Raw Markdown Directory: https://smarter.poker/compare.md)
+- **Verified Software & Cardroom Comparisons (36 Pages)**: https://smarter.poker/compare (Raw Markdown Directory: https://smarter.poker/compare.md)
   - [Best Poker Club Apps In 2026](https://smarter.poker/compare/best-poker-club-apps) ([Markdown](https://smarter.poker/compare/best-poker-club-apps.md))
   - [Poker Arena Vs PokerBros](https://smarter.poker/compare/poker-arena-vs-pokerbros) ([Markdown](https://smarter.poker/compare/poker-arena-vs-pokerbros.md))
   - [Poker Arena Vs PPPoker](https://smarter.poker/compare/poker-arena-vs-pppoker) ([Markdown](https://smarter.poker/compare/poker-arena-vs-pppoker.md))
@@ -532,23 +540,28 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - [Borgata Vs Parx Poker Room Comparison](https://smarter.poker/compare/borgata-vs-parx-poker) ([Markdown](https://smarter.poker/compare/borgata-vs-parx-poker.md))
   - [Best Poker Rooms In Florida](https://smarter.poker/compare/best-poker-rooms-in-florida) ([Markdown](https://smarter.poker/compare/best-poker-rooms-in-florida.md))
   - [PLO4 Vs PLO5: Odds, Variance And Bankroll](https://smarter.poker/compare/plo4-vs-plo5) ([Markdown](https://smarter.poker/compare/plo4-vs-plo5.md))
+  - [Smarter.Poker Vs GTO Wizard](https://smarter.poker/compare/smarter-poker-vs-gto-wizard) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-gto-wizard.md))
+  - [Smarter.Poker Vs PokerAtlas](https://smarter.poker/compare/smarter-poker-vs-pokeratlas) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-pokeratlas.md))
+  - [Smarter.Poker Vs Bravo Poker Live](https://smarter.poker/compare/smarter-poker-vs-bravo-poker-live) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-bravo-poker-live.md))
+  - [Smarter.Poker Vs Poker Bankroll Tracker](https://smarter.poker/compare/smarter-poker-vs-poker-bankroll-tracker) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-poker-bankroll-tracker.md))
+  - [Smarter.Poker Vs The Hendon Mob](https://smarter.poker/compare/smarter-poker-vs-hendon-mob) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-hendon-mob.md))
   - AI Comparisons API: `https://smarter.poker/api/ai/comparisons`
 - **First-Party Poker Industry Research & Data Benchmarks (15 Reports)**: https://smarter.poker/research (Raw Markdown Hub: https://smarter.poker/research.md)
-  - [US Live Poker Room Rake Caps And Bad Beat Jackpot Benchmark Report](https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark) ([Markdown](https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark.md))
-  - [Daily Live Poker Tournament Buy-In, Rake, And Guarantee Index](https://smarter.poker/research/daily-poker-tournament-buy-in-and-guarantee-index) ([Markdown](https://smarter.poker/research/daily-poker-tournament-buy-in-and-guarantee-index.md))
-  - [GTO Solver Equilibrium Vs. Population Leak Frequency Study](https://smarter.poker/research/gto-vs-population-preflop-and-postflop-leak-study) ([Markdown](https://smarter.poker/research/gto-vs-population-preflop-and-postflop-leak-study.md))
-  - [Private Poker Club Platform Architecture And Zero-Fee Economics Report](https://smarter.poker/research/private-poker-club-software-and-platform-economics) ([Markdown](https://smarter.poker/research/private-poker-club-software-and-platform-economics.md))
-  - [US Casino Poker Dealer Toke Rate, Down Duration, And Hourly Earnings Benchmark](https://smarter.poker/research/poker-dealer-toke-and-hourly-rate-benchmark) ([Markdown](https://smarter.poker/research/poker-dealer-toke-and-hourly-rate-benchmark.md))
-  - [Tournament ICM Bubble Factor, Risk Premium, And Final Table Equity Study](https://smarter.poker/research/tournament-icm-bubble-factor-and-risk-premium-study) ([Markdown](https://smarter.poker/research/tournament-icm-bubble-factor-and-risk-premium-study.md))
-  - [Pot-Limit Omaha (PLO4, PLO5, PLO6) Multiway Equity Compression And Bankroll Variance Study](https://smarter.poker/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study) ([Markdown](https://smarter.poker/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study.md))
-  - [US Poker Player IRS Form W-2G Thresholds, Session Accounting, And Tax Deductibility Benchmark](https://smarter.poker/research/us-poker-player-tax-w2g-reporting-and-session-accounting-benchmark) ([Markdown](https://smarter.poker/research/us-poker-player-tax-w2g-reporting-and-session-accounting-benchmark.md))
-  - [2026 Live Poker Room Waitlist Turnover, Call-In Conversion, And Table Utilization Benchmark](https://smarter.poker/research/cardroom-waitlist-turnover-and-table-utilization-benchmark) ([Markdown](https://smarter.poker/research/cardroom-waitlist-turnover-and-table-utilization-benchmark.md))
-  - [Private Online Poker Club Diamond Markup, Rake Cap, And Union Settlement Benchmark Study](https://smarter.poker/research/private-online-poker-club-rake-and-union-settlement-study) ([Markdown](https://smarter.poker/research/private-online-poker-club-rake-and-union-settlement-study.md))
-  - [2026 Mystery Bounty Vs. Progressive Knockout (PKO) EV & Bounty Power Factor Study](https://smarter.poker/research/mystery-bounty-vs-pko-ev-and-bounty-power-factor-study) ([Markdown](https://smarter.poker/research/mystery-bounty-vs-pko-ev-and-bounty-power-factor-study.md))
-  - [2026 Short Deck (6+ Hold'em) All-In Equity & Button-Ante Mathematical Benchmark](https://smarter.poker/research/short-deck-6-plus-holdem-equity-and-ante-math-benchmark) ([Markdown](https://smarter.poker/research/short-deck-6-plus-holdem-equity-and-ante-math-benchmark.md))
-  - [2026 Double-Board PLO Bomb Pot Equity, Scooping Frequency & Split-Pot Variance Study](https://smarter.poker/research/double-board-plo-bomb-pot-equity-and-split-pot-variance-study) ([Markdown](https://smarter.poker/research/double-board-plo-bomb-pot-equity-and-split-pot-variance-study.md))
-  - [2026 Live Low-Stakes ($1/$2 & $2/$5 NLH) Multiway VPIP, 3-Bet & River Fold Tendencies Report](https://smarter.poker/research/live-low-stakes-1-2-and-2-5-nlh-population-tendencies-report) ([Markdown](https://smarter.poker/research/live-low-stakes-1-2-and-2-5-nlh-population-tendencies-report.md))
-  - [2026 Poker Satellite Tournament Bubble Survival & Milestone Equity Threshold Study](https://smarter.poker/research/satellite-tournament-milestone-and-bubble-survival-math-study) ([Markdown](https://smarter.poker/research/satellite-tournament-milestone-and-bubble-survival-math-study.md))
+  - [US Live Poker Room Rake Structures And Jackpot Drop Guide](https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark) ([Markdown](https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark.md))
+  - [Daily Live Poker Tournament Buy-In Index From The Smarter.Poker Directory](https://smarter.poker/research/daily-poker-tournament-buy-in-and-guarantee-index) ([Markdown](https://smarter.poker/research/daily-poker-tournament-buy-in-and-guarantee-index.md))
+  - [GTO Bet-Sizing Math And Common Population Leaks Guide](https://smarter.poker/research/gto-vs-population-preflop-and-postflop-leak-study) ([Markdown](https://smarter.poker/research/gto-vs-population-preflop-and-postflop-leak-study.md))
+  - [Private Poker Club Platform Architecture And Hosting Cost Guide](https://smarter.poker/research/private-poker-club-software-and-platform-economics) ([Markdown](https://smarter.poker/research/private-poker-club-software-and-platform-economics.md))
+  - [US Casino Poker Dealer Tokes, Downs, And Earnings Guide](https://smarter.poker/research/poker-dealer-toke-and-hourly-rate-benchmark) ([Markdown](https://smarter.poker/research/poker-dealer-toke-and-hourly-rate-benchmark.md))
+  - [Tournament ICM Bubble Factor And Required Calling Equity Math](https://smarter.poker/research/tournament-icm-bubble-factor-and-risk-premium-study) ([Markdown](https://smarter.poker/research/tournament-icm-bubble-factor-and-risk-premium-study.md))
+  - [Pot-Limit Omaha (PLO4, PLO5, PLO6) Combinations And Variance Guide](https://smarter.poker/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study) ([Markdown](https://smarter.poker/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study.md))
+  - [US Poker Player IRS Form W-2G Thresholds, Session Logs, And Loss Deduction Rules](https://smarter.poker/research/us-poker-player-tax-w2g-reporting-and-session-accounting-benchmark) ([Markdown](https://smarter.poker/research/us-poker-player-tax-w2g-reporting-and-session-accounting-benchmark.md))
+  - [Live Poker Room Waitlist, Call-In, And Table Utilization Guide](https://smarter.poker/research/cardroom-waitlist-turnover-and-table-utilization-benchmark) ([Markdown](https://smarter.poker/research/cardroom-waitlist-turnover-and-table-utilization-benchmark.md))
+  - [Private Online Poker Club Hosting Costs And Union Settlement Guide](https://smarter.poker/research/private-online-poker-club-rake-and-union-settlement-study) ([Markdown](https://smarter.poker/research/private-online-poker-club-rake-and-union-settlement-study.md))
+  - [Mystery Bounty Vs Progressive Knockout (PKO) Strategy Guide](https://smarter.poker/research/mystery-bounty-vs-pko-ev-and-bounty-power-factor-study) ([Markdown](https://smarter.poker/research/mystery-bounty-vs-pko-ev-and-bounty-power-factor-study.md))
+  - [Short Deck (6+ Hold'em) Exact Hand Frequencies And All-In Equity Math](https://smarter.poker/research/short-deck-6-plus-holdem-equity-and-ante-math-benchmark) ([Markdown](https://smarter.poker/research/short-deck-6-plus-holdem-equity-and-ante-math-benchmark.md))
+  - [Double-Board PLO Bomb Pot Strategy And Split-Pot Guide](https://smarter.poker/research/double-board-plo-bomb-pot-equity-and-split-pot-variance-study) ([Markdown](https://smarter.poker/research/double-board-plo-bomb-pot-equity-and-split-pot-variance-study.md))
+  - [Live Low-Stakes 1/2 And 2/5 NLH Player Tendencies Guide](https://smarter.poker/research/live-low-stakes-1-2-and-2-5-nlh-population-tendencies-report) ([Markdown](https://smarter.poker/research/live-low-stakes-1-2-and-2-5-nlh-population-tendencies-report.md))
+  - [Poker Satellite Bubble And Milestone Strategy Guide](https://smarter.poker/research/satellite-tournament-milestone-and-bubble-survival-math-study) ([Markdown](https://smarter.poker/research/satellite-tournament-milestone-and-bubble-survival-math-study.md))
 - **Official Poker Rules & Tournament Floor Rulings Encyclopedia (30 Rulings)**: https://smarter.poker/rules (Raw Markdown Hub: https://smarter.poker/rules.md)
   - [Showdown Order: Who Shows First On The River](https://smarter.poker/rules/showdown-order-who-shows-first) ([Markdown](https://smarter.poker/rules/showdown-order-who-shows-first.md))
   - [Verbal Declarations & Binding Action In Poker](https://smarter.poker/rules/verbal-declarations-binding-action) ([Markdown](https://smarter.poker/rules/verbal-declarations-binding-action.md))
@@ -684,6 +697,7 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - Multiway Poker Odds & Equity Calculator: https://smarter.poker/tools/poker-odds-calculator ([Markdown](https://smarter.poker/tools/poker-odds-calculator.md))
   - Tournament ICM & Final Table Deal Calculator: https://smarter.poker/tools/icm-calculator ([Markdown](https://smarter.poker/tools/icm-calculator.md))
   - 13x13 GTO Preflop Range Matrix & Position Hub: https://smarter.poker/tools/preflop-ranges ([Markdown](https://smarter.poker/tools/preflop-ranges.md))
+  - Interactive GTO Leak Finder & EV Diagnostic Tool: https://smarter.poker/tools/gto-leak-finder
   - Pot Odds, Required Equity & MDF Calculator: https://smarter.poker/tools/pot-odds-calculator ([Markdown](https://smarter.poker/tools/pot-odds-calculator.md))
   - Poker Bankroll & Risk Of Ruin Calculator: https://smarter.poker/tools/bankroll-calculator ([Markdown](https://smarter.poker/tools/bankroll-calculator.md))
   - Poker Push/Fold Short-Stack Chart Calculator: https://smarter.poker/tools/push-fold-calculator ([Markdown](https://smarter.poker/tools/push-fold-calculator.md))
@@ -783,7 +797,7 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
 - **Data Provenance & Verification Methodology**: https://smarter.poker/verification-methodology (Markdown: https://smarter.poker/verification-methodology.md)
 - **Unified JSON-LD Knowledge Graph**: https://smarter.poker/knowledge-graph.jsonld
 - **Multilingual AI Grounding Corpus (EN/ES/PT/DE/FR/IT/JA)**: https://smarter.poker/api/ai/corpus (Spanish: https://smarter.poker/llms-es.txt | Portuguese: https://smarter.poker/llms-pt.txt | German: https://smarter.poker/llms-de.txt | French: https://smarter.poker/llms-fr.txt | Italian: https://smarter.poker/llms-it.txt | Japanese: https://smarter.poker/llms-ja.txt)
-- **Topic-Partitioned <20KB Fast-Context Corpora**: Tools (52 Calculators & Equations): https://smarter.poker/llms-tools.txt | Venues (560+ Rooms & Corridors): https://smarter.poker/llms-venues.txt | GTO (Strategy, HUD, Leaks & Myths): https://smarter.poker/llms-gto.txt | Rules (TDA Rulings & Variants): https://smarter.poker/llms-rules.txt
+- **Topic-Partitioned <20KB Fast-Context Corpora**: Tools (52 Calculators & Equations): https://smarter.poker/llms-tools.txt | Venues (470+ Rooms & Corridors): https://smarter.poker/llms-venues.txt | GTO (Strategy, HUD, Leaks & Myths): https://smarter.poker/llms-gto.txt | Rules (TDA Rulings & Variants): https://smarter.poker/llms-rules.txt
 - **Multi-Spot Batch Solver API (Up To 25 Spots/Call)**: https://smarter.poker/api/ai/batch-solve
 - **Natural-Language Poker Question Solver API**: https://smarter.poker/api/ai/solve-question
 - **Semantic RAG Chunks Feed**: https://smarter.poker/api/ai/rag-chunks

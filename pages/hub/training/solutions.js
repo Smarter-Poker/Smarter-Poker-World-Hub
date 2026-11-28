@@ -11,11 +11,13 @@
 // TRAIN-CSS-TOKENS-BATCH5-54 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-47 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import RangeGrid from '../../../src/components/training/RangeGrid';
 import { classifyAllHands, groupByClassification } from '../../../src/utils/pokerHandEvaluator';
+
+const RangeGrid = dynamic(() => import('../../../src/components/training/RangeGrid'), { ssr: false });
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus } from '../../../src/engine/EventBus';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
@@ -1214,7 +1216,7 @@ function SolutionsBrowserInner() {
                       cursor: 'pointer',
                       border: 'none',
                       background: showBookmarksOnly
-                        ? 'rgba(86,216,255,0.16)'
+                        ? 'rgba(134, 218, 255, 0.15)'
                         : 'rgba(255,255,255,0.04)',
                       color: showBookmarksOnly ? '#86daff' : 'var(--sp-fg-dim)',
                       transition: 'all 0.15s',
@@ -1417,7 +1419,7 @@ function SolutionsBrowserInner() {
                     marginBottom: 12,
                     padding: '16px 20px',
                     background:
-                      'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(6,72,226,0.08))',
+                      'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(134, 218, 255, 0.05))',
                     borderRadius: 12,
                     border: '1px solid rgba(0,212,255,0.15)',
                     flexWrap: 'wrap',

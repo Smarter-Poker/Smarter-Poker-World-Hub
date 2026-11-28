@@ -12,6 +12,7 @@
 // TRAIN-CSS-MOBILE-ADOPT-6 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-GRADIENT-ADOPT-45 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -21,9 +22,10 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import Card from '../../../src/components/training/Card';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
-import BottomSheet from '../../../src/components/ui/BottomSheet';
-import ProgressStrip from '../../../src/components/poker/ProgressStrip';
+const BottomSheet = dynamic(() => import('../../../src/components/ui/BottomSheet'), { ssr: false });
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/training-play.module.css';
 // TRAIN-WIRE-FX-3b — adoption: short-deck-trainer quiz feedback
 
 
@@ -144,12 +146,12 @@ export default function ShortDeckTrainerPage() {
   const randomHero = useCallback(() => {
     const deck = buildDeck();
     // BUG-07 FIX: Fisher-Yates shuffle
-    const s = [...deck];
-    for (let i = s.length - 1; i > 0; i--) {
+    const shuffled = [...deck];
+    for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [s[i], s[j]] = [s[j], s[i]];
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    setHeroCards([s[0], s[1]]);
+    setHeroCards([shuffled[0], shuffled[1]]);
     setEquity(null);
   }, []);
 
@@ -238,139 +240,65 @@ export default function ShortDeckTrainerPage() {
         description="Master Short Deck 6+ Holdem Rules, Adjusted Hand Rankings, 36-Card Draw Probabilities, And Hand-Vs-Hand Monte Carlo Equities On Smarter.Poker."
         canonical="/hub/training/short-deck-trainer"
       />
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
+      <BottomSheet
+        open={infoOpen}
+        onClose={() => setInfoOpen(false)}
+        title="How Short Deck Trainer Works"
+        subtitle="Practice-Only 36-Card Ruleset"
       >
-        {/* Header */}
-        <BottomSheet
-          open={infoOpen}
-          onClose={() => setInfoOpen(false)}
-          title="How Short Deck Trainer Works"
-          subtitle="Practice-Only 36-Card Ruleset"
-        >
-          <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
-            <p style={{ marginTop: 0 }}>
-              This Trainer Uses 36 Cards, Ranks Six Through Ace, With A-6-7-8-9
-              As The Lowest Straight And <strong>Flush Above Full House</strong>.
-              Short Deck Rooms Can Use Different Rankings, So Confirm The Live
-              Room’s Rules. Calc Mode Runs A Hand-Vs-Hand Monte Carlo Estimate.
-            </p>
-            <p>
-              Quiz Results Are A Private Practice Note Only. They Do Not Affect
-              Account Progress, Rank, Rewards, Or Solver Accuracy.
-            </p>
-          </div>
-        </BottomSheet>
+        <div className={s.sheetCopy}>
+          <p>
+            This Trainer Uses 36 Cards, Ranks Six Through Ace, With A-6-7-8-9
+            As The Lowest Straight And <strong>Flush Above Full House</strong>.
+            Short Deck Rooms Can Use Different Rankings, So Confirm The Live
+            Room’s Rules. Calc Mode Runs A Hand-Vs-Hand Monte Carlo Estimate.
+          </p>
+          <p>
+            Quiz Results Are A Private Practice Note Only. They Do Not Affect
+            Account Progress, Rank, Rewards, Or Solver Accuracy.
+          </p>
+        </div>
+      </BottomSheet>
 
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(239,68,68,0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 10,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-            <button
-              type="button"
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(239,68,68,0.1)',
-                border: 'none',
-                color: 'var(--sp-accent-red)',
-                fontSize: 18,
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                flexShrink: 0,
-              }}
-            >
-              ←
-            </button>
-            <button
-              type="button"
-              onClick={() => setInfoOpen(true)}
-              aria-label="How Short Deck Trainer Works"
-              style={{
-                background: 'rgba(var(--sp-accent-red-rgb), 0.08)',
-                border: '1px solid rgba(var(--sp-accent-red-rgb), 0.25)',
-                color: 'var(--sp-accent-red)',
-                fontSize: 12,
-                fontWeight: 700,
-                padding: '4px 12px',
-                borderRadius: 12,
-                cursor: 'pointer',
-                letterSpacing: 0.4,
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}
-            >
+      <div className={s.shell}>
+        <main className={s.page}>
+          <TrainingPageHead
+            slug="training-short-deck-trainer"
+            nav={(
+              <div className={s.segmented} role="group" aria-label="Trainer Mode">
+                {['calc', 'quiz'].map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    aria-pressed={mode === m}
+                    onClick={() => (m === 'quiz' ? startQuiz() : setMode('calc'))}
+                    className={`sd-button ${s.button}`}
+                  >
+                    {m === 'calc' ? 'Equity' : 'Quiz'}
+                  </button>
+                ))}
+              </div>
+            )}
+          >
+            <button type="button" className="sd-button" onClick={() => setInfoOpen(true)}>
               How It Works
             </button>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>
-                Short Deck (Six Plus)
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--sp-accent-red)' }}>36-Card Dynamics Trainer</div>
-            </div>
-          </div>
-          {/* Mode Toggle */}
-          <div style={{ display: 'flex', gap: 4 }}>
-            {['calc', 'quiz'].map((m) => (
-              <button
-                key={m}
-                type="button"
-                aria-pressed={mode === m}
-                onClick={() => (m === 'quiz' ? startQuiz() : setMode('calc'))}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 6,
-                  border: `1px solid ${mode === m ? 'rgba(239,68,68,0.3)' : 'transparent'}`,
-                  background: mode === m ? 'rgba(239,68,68,0.08)' : 'transparent',
-                  color: mode === m ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  textTransform: 'uppercase',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {m === 'calc' ? 'Equity' : 'Quiz'}
-              </button>
-            ))}
-          </div>
-        </div>
+          </TrainingPageHead>
 
-        <div style={{ maxWidth: 600, margin: '0 auto', padding: '24px 20px' }}>
           {/* Rule Banner */}
-          <motion.div
-            onClick={() => setShowRules(!showRules)}
-            style={{
-              background: 'rgba(239,68,68,0.05)',
-              border: '1px solid rgba(239,68,68,0.2)',
-              borderRadius: 12,
-              padding: '12px 16px',
-              marginBottom: 24,
-              cursor: 'pointer',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
+          <section className={`sd-panel ${s.panel}`} aria-labelledby="short-deck-ruleset">
+            <div className={s.panelHead}>
+              <h2 id="short-deck-ruleset" className={s.subTitle}>
                 Trainer Ruleset: Flush Ranks Above Full House
-              </div>
-              <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-                {showRules ? '● Hide' : '● Show All'}
-              </span>
+              </h2>
+              <button
+                type="button"
+                aria-expanded={showRules}
+                onClick={() => setShowRules(!showRules)}
+                className={`sd-button ${s.button}`}
+              >
+                {showRules ? 'Hide Rules' : 'Show All Rules'}
+              </button>
             </div>
             <AnimatePresence>
               {showRules && (
@@ -380,194 +308,111 @@ export default function ShortDeckTrainerPage() {
                   exit={{ height: 0, opacity: 0 }}
                   style={{ overflow: 'hidden' }}
                 >
-                  <div style={{ paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className={s.list}>
                     {RULE_DIFFS.map((r, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          padding: '8px 12px',
-                          borderRadius: 8,
-                          background: 'rgba(0,0,0,0.2)',
-                        }}
-                      >
-                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-red)' }}>
-                          {r.rule}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
-                          {r.reason}
-                        </div>
+                      <div key={i} className={s.ruleRow}>
+                        <p className={`${s.small} ${s.white}`}><strong>{r.rule}</strong></p>
+                        <p className={s.small}>{r.reason}</p>
                       </div>
                     ))}
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </section>
 
           {mode === 'calc' ? (
             /* ●●● EQUITY CALCULATOR MODE ●●● */
-            <>
+            <section className={`sd-panel ${s.panel}`} aria-labelledby="short-deck-equity">
+              <h2 id="short-deck-equity" className={s.sectionTitle}>36-Card Equity</h2>
               {/* Hero Cards */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 24 }}>
+              <div className={s.cardRow}>
                 {heroCards.map((card, i) => (
                   <motion.div key={i} whileHover={{ y: -4 }}>
                     <Card rank={card[0]} suit={UNICODE_TO_SUIT[card[1]] || card[1]} size="large" />
                   </motion.div>
                 ))}
               </div>
-
-              <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                <button
-                  onClick={randomHero}
-                  style={{
-                    padding: '6px 16px',
-                    borderRadius: 6,
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    color: 'var(--sp-fg-muted)',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Random Hand
-                </button>
-              </div>
+              <button type="button" onClick={randomHero} className={`sd-button ${s.button}`}>
+                Random Hand
+              </button>
 
               {/* Explicit Opponent Hand — the API calculates hand-vs-hand equity. */}
-              <div style={{ marginBottom: 24, textAlign: 'center' }}>
-                <label
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                  }}
-                >
-                  Villain Benchmark Hand
-                </label>
+              <label className={s.fieldLabel}>
+                Villain Benchmark Hand
                 <select
                   aria-label="Short Deck Training Scenario"
                   value={villainHand}
                   onChange={(e) => { setVillainHand(e.target.value); setEquity(null); setSimulationError(''); }}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    maxWidth: 280,
-                    margin: '8px auto',
-                    background: 'rgba(0,0,0,0.4)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    color: 'var(--sp-fg)',
-                    padding: 12,
-                    borderRadius: 8,
-                    fontSize: 14,
-                    outline: 'none',
-                  }}
+                  className={s.field}
                 >
                   {BENCHMARK_HANDS.map((hand) => <option key={hand.value} value={hand.value}>{hand.label}</option>)}
                 </select>
-                <div style={{ color: 'var(--sp-fg-faint)', fontSize: 12 }}>Exact Hand Vs Hand Calculation - Not A Range Estimate</div>
-              </div>
+              </label>
+              <p className={s.small}>Exact Hand Vs Hand Calculation - Not A Range Estimate</p>
 
               {/* Run Button */}
-              <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={runSim}
-                  disabled={simulating}
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #b91c1c)',
-                    border: 'none',
-                    color: '#fff',
-                    padding: '14px 32px',
-                    borderRadius: 10,
-                    fontSize: 14,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 6px 24px rgba(239,68,68,0.3)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                  }}
-                >
-                  {simulating ? 'Running Monte Carlo...' : 'Run 36-Card Equity'}
-                </motion.button>
-              </div>
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.97 }}
+                onClick={runSim}
+                disabled={simulating}
+                className={`sd-button sd-primary ${s.primaryAction}`}
+              >
+                {simulating ? 'Running Monte Carlo...' : 'Run 36-Card Equity'}
+              </motion.button>
 
               {simulationError && (
-                <div role="alert" style={{ margin: '0 auto 18px', maxWidth: 420, color: 'var(--sp-accent-red)', fontSize: 12, lineHeight: 1.5, textAlign: 'center' }}>
+                <p role="alert" className={s.error}>
                   {simulationError}
-                </div>
+                </p>
               )}
 
               {/* Equity Result */}
               <AnimatePresence>
                 {equity && !simulating && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
+                    initial={{ opacity: 0, scale: 0.96 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
-                    style={{
-                      textAlign: 'center',
-                      padding: 24,
-                      background: 'rgba(0,0,0,0.2)',
-                      borderRadius: 16,
-                      border: '1px solid rgba(255,255,255,0.05)',
-                    }}
+                    className={`sd-metric ${s.metric}`}
                   >
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: 'var(--sp-fg-dim)',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: 2,
-                        marginBottom: 8,
-                      }}
-                    >
+                    <span className={s.metricLabel}>
                       Hero Equity Vs {BENCHMARK_HANDS.find((hand) => hand.value === villainHand)?.label || villainHand}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 64,
-                        fontWeight: 900,
-                        color: equity > 50 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
-                        letterSpacing: -2,
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      }}
-                    >
+                    </span>
+                    <strong className={`${s.metricValue} ${s.bigValue}`} data-tone="ice">
                       {equity}%
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginTop: 8 }}>
+                    </strong>
+                    <span className={s.small}>
                       Estimated Via Short Deck Monte Carlo (36 Cards)
-                    </div>
+                    </span>
                   </motion.div>
                 )}
               </AnimatePresence>
-            </>
+            </section>
           ) : (
             /* ●●● QUIZ MODE ●●● */
-            <div style={{ textAlign: 'center' }}>
+            <section className={`sd-panel ${s.panel} ${s.lesson}`} aria-labelledby="short-deck-quiz">
+              <h2 id="short-deck-quiz" className={s.sectionTitle}>Ruleset Quiz</h2>
               {/* TRAIN-WIRE-PROGRESS-STRIP-3 — shared ProgressStrip (quiz mode) */}
               {quizScore.total > 0 ? (
-                <ProgressStrip
-                  current={quizScore.total + 1}
-                  total={Math.max(10, Math.ceil((quizScore.total + 1) / 10) * 10)}
-                  correct={quizScore.correct}
-                  difficulty="intermediate"
-                  compact
-                  style={{ marginBottom: 16 }}
-                />
+                <div className={s.metrics2} aria-label="Quiz Progress">
+                  <div className={`sd-metric ${s.metric}`}>
+                    <span className={s.metricLabel}>Answered</span>
+                    <strong className={s.metricValue}>{quizScore.total}</strong>
+                  </div>
+                  <div className={`sd-metric ${s.metric}`}>
+                    <span className={s.metricLabel}>Correct</span>
+                    <strong className={s.metricValue} data-tone="ice">{quizScore.correct}/{quizScore.total}</strong>
+                  </div>
+                </div>
               ) : null}
 
               {quiz && (
                 <>
                   {/* Hero Cards Display — present only when the factual question references them. */}
                   {quiz.hero.length > 0 && (
-                    <div
-                      style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 20 }}
-                    >
+                    <div className={s.cardRow}>
                       {quiz.hero.map((card, i) => (
                         <div key={i}>
                           <Card
@@ -581,29 +426,10 @@ export default function ShortDeckTrainerPage() {
                   )}
 
                   {/* Question */}
-                  <div
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg)',
-                      marginBottom: 20,
-                      lineHeight: 1.5,
-                      padding: '0 12px',
-                    }}
-                  >
-                    {quiz.question}
-                  </div>
+                  <p className={s.subTitle}>{quiz.question}</p>
 
                   {/* Options */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8,
-                      maxWidth: 320,
-                      margin: '0 auto',
-                    }}
-                  >
+                  <div className={s.answers}>
                     {/* TRAIN-WIRE-QUIZ-ANSWER-3 — options via shared QuizAnswer */}
                     {quiz.options.map((opt, idx) => (
                       <QuizAnswer
@@ -623,30 +449,20 @@ export default function ShortDeckTrainerPage() {
                   {/* Next */}
                   {quizAnswer !== null && (
                     <motion.button
+                      type="button"
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       onClick={nextQuiz}
-                      style={{
-                        marginTop: 20,
-                        padding: '10px 24px',
-                        borderRadius: 8,
-                        background: 'rgba(239,68,68,0.12)',
-                        border: '1px solid rgba(239,68,68,0.3)',
-                        color: 'var(--sp-accent-red)',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
+                      className={`sd-button sd-primary ${s.primaryAction}`}
                     >
-                      Next Question →
+                      Next Question
                     </motion.button>
                   )}
                 </>
               )}
-            </div>
+            </section>
           )}
-
-        </div>
+        </main>
       </div>
       <HubPageSummary page="training-short-deck-trainer" />
     </>

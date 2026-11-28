@@ -7,7 +7,7 @@
  *      buildCardListParam, URL query hydration, and Share Hand button) in
  *      src/lib/poker/oddsPermalink.js and pages/hub/poker-tools.js
  *   3. Printable / Save PDF Chart button and @media print stylesheet in
- *      pages/tools/preflop-ranges/index.js
+ *      src/components/seo/PreflopRangeMatrixHub.jsx
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -51,12 +51,12 @@ test('parseCardListFromParam and buildCardListParam round-trip card tokens and p
   assert.match(src, /ogImage="\/api\/og\/tool-card\?tool=odds/);
 });
 
-test('pages/tools/preflop-ranges/index.js includes Print / Save PDF Chart button, @media print rules, and dynamic OG tool-card', () => {
-  const filePath = path.join(ROOT, 'pages/tools/preflop-ranges/index.js');
+test('src/components/seo/PreflopRangeMatrixHub.jsx includes Print / Save PDF Chart button, @media print rules, and dynamic OG tool-card', () => {
+  const filePath = path.join(ROOT, 'src/components/seo/PreflopRangeMatrixHub.jsx');
   const src = fs.readFileSync(filePath, 'utf8');
   assert.match(src, /Print \/ Save PDF Chart/);
   assert.match(src, /window\.print\(\)/);
   assert.match(src, /@media print/);
   assert.match(src, /\/api\/og\/tool-card\?tool=ranges/);
-  assert.ok(!src.includes('\u2014'), 'preflop-ranges/index.js must not contain literal em dashes');
+  assert.ok(!src.includes('\u2014'), 'PreflopRangeMatrixHub.jsx must not contain literal em dashes');
 });

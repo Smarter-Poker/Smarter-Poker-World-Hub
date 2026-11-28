@@ -1,5 +1,5 @@
 /**
- * Poker Venues API - Serves ALL verified poker venues (uncapped)
+ * Poker Venues API - Serves ALL listed poker venues (uncapped)
  * Supports filtering, GPS-based search, and daily tournament schedule lookups
  *
  * Query params:
@@ -1102,7 +1102,7 @@ export default async function handler(req, res) {
                   }
               }
           } else {
-              // --- Venue listing: Supabase-first (live 500+ venue dataset) ---
+              // --- Venue listing: Supabase-first (the live listed-room dataset) ---
               let usedSupabase = false;
               if (req.query.listing_source !== 'snapshot') {
               try {

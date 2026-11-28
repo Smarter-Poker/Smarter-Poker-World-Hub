@@ -1,0 +1,75 @@
+/* #SMARTERDESIGN loading, signed-out and status surfaces for Training pages
+   (Daily / Progress family). One steel rim per surface, ink-navy fill,
+   square corners; the shimmer is a quiet steel sweep, never grey blobs. */
+
+.stack {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.panel {
+  box-sizing: border-box;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px 12px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metrics > .panel { min-height: 84px; align-content: center; justify-items: center; }
+
+.bar {
+  display: block;
+  height: 12px;
+  width: var(--w, 100%);
+  background: linear-gradient(90deg, rgba(134, 218, 255, 0.06) 0%, rgba(134, 218, 255, 0.16) 50%, rgba(134, 218, 255, 0.06) 100%);
+  background-size: 200% 100%;
+  animation: sweep 1.4s ease-in-out infinite;
+}
+
+.barTall { height: 20px; }
+
+.label {
+  margin: 0;
+  color: #bdd0e2;
+  font: 700 15px/1.2 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.statusTitle {
+  margin: 0;
+  color: #f2f7ff;
+  font: 700 clamp(1.12rem, 4.4vw, 1.35rem) / 1.15 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+  letter-spacing: 0.015em;
+}
+
+.statusCopy {
+  margin: 0;
+  color: #bdd0e2;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.statusPanel { padding: 16px 14px; }
+.statusPanel .action { justify-self: start; min-width: 140px; }
+
+@keyframes sweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar { animation: none; }
+}

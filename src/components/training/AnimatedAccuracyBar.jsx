@@ -10,7 +10,7 @@
  * Props:
  *   accuracy:     number (0-100) — final accuracy percentage
  *   grade:        string (S/A/B/C/D) — used for color
- *   label:        string — label text (default: "ACCURACY")
+ *   label:        string — label text (default: "Accuracy")
  *   personalBest: number|null — if provided, shows PB comparison
  *   duration:     number — animation duration in ms (default: 1200)
  */
@@ -18,17 +18,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 const GRADE_COLORS = {
-    S: '#FFD700',
+    S: '#86daff',
     A: '#22C55E',
     B: '#3B82F6',
-    C: '#F59E0B',
+    C: '#bdd0e2',
     D: '#EF4444',
 };
 
 export default function AnimatedAccuracyBar({
     accuracy = 0,
     grade = 'C',
-    label = 'ACCURACY',
+    label = 'Accuracy',
     personalBest = null,
     duration = 1200,
 }) {
@@ -72,10 +72,10 @@ export default function AnimatedAccuracyBar({
 
     return (
         <div style={{
-            background: 'rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 12,
-            padding: '14px 16px',
+            border: '3px solid transparent',
+            borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
+            background: 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)',
+            padding: '12px 14px',
             marginBottom: 16,
         }}>
             {/* Header row */}
@@ -86,10 +86,11 @@ export default function AnimatedAccuracyBar({
                 marginBottom: 10,
             }}>
                 <div style={{
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: 700,
-                    color: 'rgba(255,255,255,0.4)',
-                    letterSpacing: 1.5,
+                    color: '#86daff',
+                    letterSpacing: 0.4,
+                    fontFamily: "var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif",
                 }}>
                     {label}
                 </div>

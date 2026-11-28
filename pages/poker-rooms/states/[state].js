@@ -15,8 +15,11 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import { openQuickSignup } from '../../../src/components/seo/SmarterQuickSignupSheet';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
+import { trackSeoFunnelEvent } from '../../../src/lib/seo/seoFunnelTelemetry';
+import seoKitStyles from '../../../src/components/seo/SmarterSeoKit.module.css';
 import {
   US_POKER_STATES,
   STATES_AS_OF,
@@ -25,14 +28,11 @@ import {
   getStateGuideBySlug,
   stateGuidePath,
 } from '../../../src/content/guides/states';
+// Outage fallback only: the live listed set (src/lib/server/venueStats.mjs)
+// answers whenever the database can be read.
 import venueDirectorySnapshot from '../../../data/poker-venue-directory-snapshot.json';
-import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
-
-const STATES_WITH_LIVE_VENUES = new Set(
-  (venueDirectorySnapshot?.venues || [])
-    .filter((v) => v && !v.is_suppressed && v.state)
-    .map((v) => String(v.state).trim().toUpperCase())
-);
+import { VENUE_COUNT_LABEL, listedVenueLabel } from '../../../src/lib/venueCount.mjs';
+import { getStateRooms, VENUE_STATS_REVALIDATE_S } from '../../../src/lib/server/venueStats.mjs';
 
 export async function getStaticPaths() {
   return {
@@ -53,24 +53,15 @@ export async function getStaticProps({ params }) {
     };
   }
 
-  const stateCodeUpper = String(stateGuide.code || '').toUpperCase();
-  const hasLiveStateDirectory = STATES_WITH_LIVE_VENUES.has(stateCodeUpper);
-
-  const topStateVenues = (venueDirectorySnapshot?.venues || [])
-    .filter((v) => v && !v.is_suppressed && String(v.state || '').trim().toUpperCase() === stateCodeUpper && v.id && v.name)
-    .sort((a, b) => {
-      if (Boolean(b.is_featured) !== Boolean(a.is_featured)) return b.is_featured ? 1 : -1;
-      const tablesDiff = (Number(b.poker_tables) || 0) - (Number(a.poker_tables) || 0);
-      if (tablesDiff !== 0) return tablesDiff;
-      return (Number(b.trust_score) || 0) - (Number(a.trust_score) || 0);
-    })
-    .slice(0, 8)
-    .map((v) => ({
-      id: v.id,
-      name: v.name,
-      city: v.city || '',
-      pokerTables: Number(v.poker_tables) || 0,
-    }));
+  // Top rooms and the room count come from ONE read of the live listed set,
+  // the same rows /poker-rooms/states and /hub/poker-near-me/in/<state> show.
+  const { stats, count, topRooms } = await getStateRooms(stateGuide.code, {
+    fallbackVenues: venueDirectorySnapshot?.venues || [],
+    limit: 8,
+  });
+  const hasLiveStateDirectory = count > 0;
+  const topStateVenues = topRooms;
+  const stateRoomLabel = listedVenueLabel(stateGuide.code, { [String(stateGuide.code).toUpperCase()]: count });
 
   const peerStates = US_POKER_STATES.filter((s) => s.slug !== stateGuide.slug)
     .slice(0, 8)
@@ -88,11 +79,23 @@ export async function getStaticProps({ params }) {
       peerStates,
       hasLiveStateDirectory,
       topStateVenues,
+      stateRoomLabel,
+      venueCountLabel: stats.label,
+      venueCountSource: stats.source,
     },
+    revalidate: VENUE_STATS_REVALIDATE_S,
   };
 }
 
-export default function USStatePokerDetailPage({ stateGuide, peerStates = [], hasLiveStateDirectory = false, topStateVenues = [] }) {
+export default function USStatePokerDetailPage({
+  stateGuide,
+  peerStates = [],
+  hasLiveStateDirectory = false,
+  topStateVenues = [],
+  stateRoomLabel,
+  venueCountLabel = VENUE_COUNT_LABEL,
+}) {
+  const roomLabel = stateRoomLabel || listedVenueLabel(stateGuide.code);
   const liveRoomsHref = hasLiveStateDirectory
     ? `/hub/poker-near-me/in/${stateGuide.code.toLowerCase()}`
     : '/hub/poker-near-me/lobby';
@@ -101,8 +104,8 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
 
   const stateAssumptions = '2026 US State Gaming Commission Statutes & IRS/State Form W-2G Tax Code';
-  const discordFactSheet = `[Smarter.Poker US State Poker Law & Tax Fact Sheet: ${stateGuide.name} (${stateGuide.code})] Status: ${stateGuide.legalStatus} | Min Age: ${stateGuide.minAge} | State Tax: ${stateGuide.stateIncomeTaxRate} | Live Rooms: ${stateGuide.approxLiveRooms} | Rake Model: ${stateGuide.rakeModel} | Assumptions: ${stateAssumptions} | Source: ${canonicalUrl}`;
-  const redditFactSheet = `**${stateGuide.name} (${stateGuide.code}) - Live & Online Poker Legality, Rake & Tax Fact Sheet**\n- **Legal Cardroom Status:** ${stateGuide.legalStatus}\n- **Minimum Gaming Age:** ${stateGuide.minAge}\n- **State Income Tax / W-2G Rate:** ${stateGuide.stateIncomeTaxRate}\n- **Active Live Poker Rooms:** ${stateGuide.approxLiveRooms}\n- **Standard Rake Model:** ${stateGuide.rakeModel}\n- **Statutory Assumptions:** ${stateAssumptions}\n- *Source: [Smarter.Poker ${stateGuide.name} Poker Guide](${canonicalUrl})*`;
+  const discordFactSheet = `[Smarter.Poker US State Poker Law & Tax Fact Sheet: ${stateGuide.name} (${stateGuide.code})] Status: ${stateGuide.legalStatus} | Min Age: ${stateGuide.minAge} | State Tax: ${stateGuide.stateIncomeTaxRate} | Listed Rooms: ${roomLabel} | Rake Model: ${stateGuide.rakeModel} | Assumptions: ${stateAssumptions} | Source: ${canonicalUrl}`;
+  const redditFactSheet = `**${stateGuide.name} (${stateGuide.code}) - Live & Online Poker Legality, Rake & Tax Fact Sheet**\n- **Legal Cardroom Status:** ${stateGuide.legalStatus}\n- **Minimum Gaming Age:** ${stateGuide.minAge}\n- **State Income Tax / W-2G Rate:** ${stateGuide.stateIncomeTaxRate}\n- **Listed Poker Rooms:** ${roomLabel}\n- **Standard Rake Model:** ${stateGuide.rakeModel}\n- **Statutory Assumptions:** ${stateAssumptions}\n- *Source: [Smarter.Poker ${stateGuide.name} Poker Guide](${canonicalUrl})*`;
 
   const handleCopyFactSheet = async (type, text) => {
     try {
@@ -120,6 +123,26 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
     } catch {
       // Ignore clipboard failures
     }
+  };
+
+  const handleFollowLocalRooms = () => {
+    trackSeoFunnelEvent('seo_local_action_bar_click', {
+      vertical: 'state',
+      slug: stateGuide.slug,
+    });
+    openQuickSignup({
+      unlockKey: 'local-state-rooms',
+      source: 'local-state-action-bar',
+      redirectPath: canonicalPath,
+      eyebrow: `Free ${stateGuide.name} Poker Alerts`,
+      title: `Follow ${stateGuide.name} Poker Rooms Free`,
+      subtitle: 'Save Favorite Rooms, Get Tournament Start Reminders & Track Live Bankroll Sessions Free',
+      benefits: [
+        `Save Favorite ${stateGuide.name} Listed Poker Rooms & Quick Access`,
+        'Get Tournament Start Reminders & Series Alerts Free',
+        'Log Cash & Tournament Sessions In Free Bankroll Manager',
+      ],
+    });
   };
 
   const jsonLd = [
@@ -216,8 +239,8 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
               <div style={styles.metricValueEmerald}>{stateGuide.stateIncomeTaxRate}</div>
             </div>
             <div style={styles.metricCard}>
-              <div style={styles.metricLabel}>Active Live Poker Rooms</div>
-              <div style={styles.metricValueCyan}>{stateGuide.approxLiveRooms}</div>
+              <div style={styles.metricLabel}>Listed Poker Rooms</div>
+              <div style={styles.metricValueCyan}>{roomLabel}</div>
             </div>
             <div style={styles.metricCard}>
               <div style={styles.metricLabel}>Standard Rake Model</div>
@@ -255,6 +278,126 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
           </div>
         </header>
 
+        {/* #SMARTERDESIGN Local Player Action Strip */}
+        <section
+          aria-label={`Follow ${stateGuide.name} Poker Rooms And Log Sessions`}
+          data-testid="local-player-action-strip"
+          className={seoKitStyles.kit}
+          style={{
+            marginBottom: '24px',
+            padding: '16px 18px',
+            background: 'linear-gradient(180deg, #111827 0%, #0b1120 100%)',
+            border: '1px solid #2563eb',
+            boxShadow: 'inset 0 1px 0 rgba(56, 189, 248, 0.35), 0 8px 20px rgba(0, 0, 0, 0.45)',
+            borderRadius: 0,
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '14px 16px',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+            <span className={seoKitStyles.eyebrowTag}>
+              Free {stateGuide.name} Player Action Bar
+            </span>
+            <h2
+              style={{
+                margin: '8px 0 4px 0',
+                fontSize: '17px',
+                fontWeight: 800,
+                color: '#f8fafc',
+                lineHeight: 1.25,
+              }}
+            >
+              Follow {stateGuide.name} Poker Rooms &amp; Log Live Sessions Free
+            </h2>
+            <p
+              style={{
+                margin: 0,
+                fontSize: '13.5px',
+                lineHeight: 1.5,
+                color: '#cbd5e1',
+              }}
+            >
+              Save Favorite Rooms, Get Tournament Start Reminders &amp; Track Live Bankroll Sessions Free.
+            </p>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: '10px',
+              flex: '1 1 260px',
+              justifyContent: 'flex-start',
+              maxWidth: '100%',
+              minWidth: 0,
+            }}
+          >
+            <button
+              type="button"
+              data-testid="local-follow-rooms-cta"
+              onClick={handleFollowLocalRooms}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '44px',
+                padding: '10px 16px',
+                background: '#2563eb',
+                border: '1px solid #38bdf8',
+                borderRadius: 0,
+                color: '#ffffff',
+                fontSize: '13.5px',
+                fontWeight: 800,
+                lineHeight: 1.25,
+                textAlign: 'center',
+                whiteSpace: 'normal',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                cursor: 'pointer',
+              }}
+            >
+              Follow {stateGuide.name} Poker Rooms Free
+            </button>
+            <Link
+              href="/hub/bankroll-manager"
+              data-testid="local-bankroll-cta"
+              onClick={() =>
+                trackSeoFunnelEvent('seo_local_action_bar_click', {
+                  vertical: 'state',
+                  slug: stateGuide.slug,
+                  action: 'bankroll',
+                })
+              }
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '44px',
+                padding: '10px 16px',
+                background: '#0b1120',
+                border: '1px solid #38bdf8',
+                borderRadius: 0,
+                color: '#38bdf8',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                lineHeight: 1.25,
+                textAlign: 'center',
+                textDecoration: 'none',
+                whiteSpace: 'normal',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+              }}
+            >
+              {"Log Tonight's Session Free"}
+            </Link>
+          </div>
+        </section>
+
         {/* Regulatory & Tax Details */}
         <section aria-label="Regulatory And Tax Breakdown" style={styles.sectionPlate}>
           <h2 style={styles.h2}>
@@ -283,7 +426,7 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
 
           {topStateVenues.length > 0 && (
             <div style={{ marginTop: '20px', paddingTop: '18px', borderTop: '1px solid #2b4663' }}>
-              <h3 style={styles.h3}>Top Verified Live Poker Rooms In {stateGuide.name}</h3>
+              <h3 style={styles.h3}>Top Listed Live Poker Rooms In {stateGuide.name}</h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
                 {topStateVenues.map((venue) => (
                   <Link
@@ -317,7 +460,7 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
               <span style={styles.peerName}>
                 {hasLiveStateDirectory ? `Live Poker Rooms In ${stateGuide.name}` : 'Browse Nationwide Live Poker Rooms'}
               </span>
-              <span style={styles.peerTax}>Verified Rooms, Cash Games &amp; Schedules</span>
+              <span style={styles.peerTax}>Listed Rooms, Cash Games &amp; Schedules</span>
             </Link>
             <Link href={`/hub/home-games/in/${stateGuide.code.toLowerCase()}`} style={styles.peerCard}>
               <span style={styles.peerCode}>HOME GAMES</span>
@@ -362,7 +505,7 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
             primaryHref={`/auth/signup?redirect=${encodeURIComponent(canonicalPath)}&src=poker-rooms-state`}
             secondaryLabel="Sign In"
             secondaryHref={`/auth/login?redirect=${encodeURIComponent(canonicalPath)}`}
-            highlights={['100% Free Account', `${VENUE_COUNT_LABEL} Poker Rooms`, 'Bankroll & Tax Log']}
+            highlights={['100% Free Account', `${venueCountLabel} Poker Rooms`, 'Bankroll & Tax Log']}
           />
         </div>
 

@@ -56,6 +56,7 @@ import { useModalHistory } from '../../../src/hooks/useModalHistory';
 import toast from '../../../src/stores/toastStore';
 import { TUTORIAL_WILL_OPEN_EVENT } from '../../../src/tutorials';
 import DiscoveryStatusRail from '../../../src/components/poker-near-me/DiscoveryStatusRail';
+import PnmImageHeader from '../../../src/components/poker-near-me/PnmImageHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import { FavLiveToast, TabErrorBoundary } from '../../../src/components/poker-near-me/ControllerRecovery';
 import LazyPanel from '../../../src/components/poker-near-me/LazyPanel';
@@ -1120,7 +1121,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // LiveGamesFeed, which does its own fetching and polling.
   // HYDRATION FIX: `favorites` is read during render (the FavLiveToast block), so
   // seeding it from localStorage in the useState initializer made the first client
-  // render differ from the server HTML — the exact React #418 hazard this file
+  // render differ from the server HTML — the exact React #116088 hazard this file
   // already fixed for `filters`. Server-safe default + mount hydration instead.
   // `favoritesPersistSkipRef` makes the persist effect below ignore its first run
   // so the empty default is never written back over the stored blob.
@@ -3784,7 +3785,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       datasetSchema({
         path: `/hub/poker-near-me/${canonicalSlug}`,
         name: routeMeta.title || 'Smarter.Poker Live Poker Rooms & Venues Directory Dataset',
-        description: routeMeta.description || 'Verified North American Live Poker Venues, Casino Cardrooms, Active Cash Game Stakes, And Weekly Tournament Schedules.',
+        description: routeMeta.description || 'US Live Poker Venues, Casino Cardrooms, Active Cash Game Stakes, And Weekly Tournament Schedules.',
         keywords: ['Live Poker Rooms', 'Casino Cardrooms', 'Poker Near Me', 'United States Poker Venues', 'Cash Game Waitlists'],
         variableMeasured: ['Active Poker Tables', 'Cash Game Stakes', 'Weekly Tournament Count', 'Room Amenities & Coordinates'],
       }),
@@ -3899,50 +3900,12 @@ export default function PokerNearMePage({ initialDirectory = null }) {
             <div className="space-overlay"></div>
 
             {/* ═══ PAGE TITLE ═══ */}
-            <div className="pnm-title-bar">
-              <h1 className="pnm-title">{routeMeta.heading}</h1>
-              <p className="pnm-subtitle">
-                {dbStats.total === 0 && liveTableCount === 0 ? (
-                  'Loading Live Data...'
-                ) : (
-                  <>
-                    {dbStats.total > 0 ? dbStats.total.toLocaleString() : '-'} Public Venues &nbsp;&bull;&nbsp;
-                    {/* UX FIX: 'mixed' means the published total is real observations
-                        PLUS simulator output, so it must carry the approximate label
-                        too. Pending and offline feeds cannot prove a zero count, so
-                        they render a dash instead of a misleading zero. */}
-                    {liveDataMode == null || liveDataMode === 'none'
-                      ? '-'
-                      : liveDataMode === 'catalog'
-                        ? 'Unknown'
-                      : liveTableCount.toLocaleString()}{' '}
-                    {liveDataMode === 'estimated' || liveDataMode === 'mixed'
-                      ? 'Tables (Approx.)'
-                      : liveDataMode === 'catalog'
-                        ? 'Live Table Count'
-                        : 'Live Tables'}
-                    {typeof liveDataAgeMinutes === 'number' && liveDataAgeMinutes > 60 && (
-                      <span style={{ opacity: 0.6 }}>
-                        {' '}
-                        ({Math.round(liveDataAgeMinutes / 60)}h Old)
-                      </span>
-                    )}
-                    {/* BUG FIX: this figure is for filters.selectedDay, which the day
-                        selector lets the user change, but it always read "Today" — so
-                        after picking Saturday the header claimed that many tournaments
-                        were running today. Label it with the day it actually counts. */}
-                    {dbStats.tournaments > 0 && (
-                      <>
-                        &nbsp;&bull;&nbsp;
-                        {dbStats.tournaments.toLocaleString()} Tournaments{' '}
-                        {!dbStats.tournamentsDay || dbStats.tournamentsDay === getCurrentDay()
-                          ? 'Today'
-                          : dbStats.tournamentsDay}
-                      </>
-                    )}
-                  </>
-                )}
-              </p>
+            <div className="pnm-title-bar pnm-sd-titlebar smarterdesign">
+              {/* #SMARTERDESIGN image header (Dan, 2026-11-27). The counts that
+                  used to repeat here as a subtitle are the status readouts
+                  below; the explanation lives behind the header's "?". */}
+              <PnmImageHeader route={canonicalSlug} />
+              <div className="pnm-sd-status">
               <DiscoveryStatusRail
                 venueCount={dbStats.total}
                 mappedVenueCount={mappedVenueCount}
@@ -3956,6 +3919,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                     : dbStats.tournamentsDay
                 }
               />
+              </div>
               {(directorySource !== 'supabase' || !directoryProgress.complete) && (
                 <div className="pnm-directory-source" role="status" aria-live="polite" data-directory-source={directorySource}>
                   <span>
@@ -4258,7 +4222,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                       <span>National Room Registry</span>
                       <h2 id="pnm-ssr-directory-title">Featured Poker Rooms</h2>
                     </div>
-                    <a href="/hub/poker-near-me/in">Browse By State</a>
+                    <a href="/hub/poker-near-me/in" className="sd-button">Browse By State</a>
                   </div>
                   <div className="pnm-ssr-directory-grid">
                     {initialVenues.slice(0, 8).map((venue) => (

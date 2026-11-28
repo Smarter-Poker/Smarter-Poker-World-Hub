@@ -247,6 +247,12 @@ const CALCULATOR_ITEMS = [
     summary: 'Ten-Question Quantitative Poker Assessment Grading Pot Odds, MDF, ICM, Bounties, Board Textures, And TDA Floor Rules.',
   },
   {
+    title: '60-Second GTO Poker Leak Finder Diagnostic',
+    href: '/tools/gto-leak-finder',
+    badge: '5-Hand Solver Test',
+    summary: 'Five-Hand 100BB Cash And MTT ICM Diagnostic Measuring GTO Accuracy, Estimated BB/100 Leak Rate, And Primary Strategy Leaks Free.',
+  },
+  {
     title: 'PLO Wrap, Redraw & Nut-Out Probability Analyzer',
     href: '/tools/plo-outs-calculator',
     badge: 'PLO Wrap Solver',
@@ -558,7 +564,7 @@ const AUTHORITY_HUB_ITEMS = [
     title: 'Best Live Poker Rooms By Game Variant (PLO, Big O, Mixed, Stud & High-Stakes)',
     href: '/poker-rooms/by-game',
     badge: '6 Variant Directories',
-    summary: `Curated Directory Grouping ${VENUE_COUNT_LABEL} North American Poker Rooms By PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, And Daily MTTs.`,
+    summary: `Curated Directory Grouping ${VENUE_COUNT_LABEL} US Poker Rooms By PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, And Daily MTTs.`,
   },
   {
     category: 'Regional Poker Markets',
@@ -579,7 +585,7 @@ const AUTHORITY_HUB_ITEMS = [
     title: '2026 Annual State Of Live & Online Poker Industry Whitepaper',
     href: '/research/annual-state-of-poker-2026',
     badge: '2026 Flagship Whitepaper',
-    summary: `Flagship 2026 Quantitative Industry Report Synthesizing ${VENUE_COUNT_LABEL} Venues, 4,500+ Weekly Tournaments, And 10M+ Simulated GTO Hands.`,
+    summary: `The 2026 Smarter.Poker Whitepaper: Exact Poker Math, US Poker Tax Rules, And Dated Directory Data, Each Figure Labelled With Its Basis.`,
   },
   {
     category: 'Research Studies',
@@ -1197,7 +1203,7 @@ export default function UniversalPokerSearchPage() {
           </h1>
 
           <p style={styles.lead}>
-            Instantly Search Across <strong>52 Interactive Poker Calculators</strong>, <strong>70 Zero-Auth MCP Tools</strong>, <strong>169 GTO Starting Hands</strong>, <strong>25 Head-To-Head Matchups</strong>, <strong>30 Official TDA &amp; RROP Rules</strong>, <strong>15 Game Variants</strong>, <strong>12 US Regional Markets</strong>, <strong>10 Major Series Guides</strong>, And <strong>15 Empirical Research Studies</strong>.
+            Instantly Search Across <strong>52 Interactive Poker Calculators</strong>, <strong>70 Zero-Auth MCP Tools</strong>, <strong>169 GTO Starting Hands</strong>, <strong>25 Head-To-Head Matchups</strong>, <strong>30 Official TDA &amp; RROP Rules</strong>, <strong>15 Game Variants</strong>, <strong>12 US Regional Markets</strong>, <strong>10 Major Series Guides</strong>, And <strong>15 Research Pages</strong>.
           </p>
 
           <div style={styles.searchBoxWrap}>

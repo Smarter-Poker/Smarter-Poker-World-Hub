@@ -30,6 +30,9 @@ import {
 } from '../../../src/lib/trivia/triviaEngine';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import useTriviaKeyboardControls from '../../hooks/useTriviaKeyboardControls';
+import { isTriviaAutoAdvanceEnabled } from '../../hooks/useTriviaPreferenceRuntime';
+import { preloadTriviaDeckAhead } from '../../lib/trivia/preloadTriviaCards';
+import { getTrainingSpotForCategory } from '../../lib/trivia/trainingSpotMap.mjs';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
@@ -1027,6 +1030,20 @@ export default function StrategyTrivia({ mode }) {
         },
     });
 
+    useEffect(() => {
+        if (gameState !== 'playing') return;
+        preloadTriviaDeckAhead(questions, currentQuestionIndex);
+    }, [gameState, questions, currentQuestionIndex]);
+
+    useEffect(() => {
+        if (gameState !== 'playing' || !showResult || verdict?.wasCorrect !== true) return undefined;
+        if (!isTriviaAutoAdvanceEnabled()) return undefined;
+        const timer = window.setTimeout(() => {
+            void nextQuestion();
+        }, 1100);
+        return () => window.clearTimeout(timer);
+    }, [gameState, showResult, verdict, currentQuestionIndex]);
+
 
     if (isLoading) {
         // Was a bare 'Loading...' string on an empty page for the flagship
@@ -1493,19 +1510,21 @@ export default function StrategyTrivia({ mode }) {
                                                     <li className="tc-row">
                                                         <span className="tc-row__label">Best Line</span>
                                                         <span className="tc-row__value coaching-notes__answer">
-                                                            {renderTextWithCards(
-                                                                correctText,
-                                                                s => formatPokerText(toTitleCase(s))
-                                                            )}
+                                                            <TriviaCardText
+                                                                text={correctText}
+                                                                formatText={s => formatPokerText(toTitleCase(s))}
+                                                                cardStyle="mini"
+                                                            />
                                                         </span>
                                                     </li>
                                                 </ul>
                                                 {verdict.explanation && (
                                                     <p className="coaching-notes__body">
-                                                        {renderTextWithCards(
-                                                            verdict.explanation,
-                                                            s => formatPokerText(s)
-                                                        )}
+                                                        <TriviaCardText
+                                                            text={verdict.explanation}
+                                                            formatText={s => formatPokerText(s)}
+                                                            cardStyle="mini"
+                                                        />
                                                     </p>
                                                 )}
                                                 {!verdict.explanation && (
@@ -1515,6 +1534,25 @@ export default function StrategyTrivia({ mode }) {
                                                 )}
                                             </div>
                                         )}
+                                        {!wasCorrect && (() => {
+                                            const trainingSpot = getTrainingSpotForCategory(currentQuestion.category);
+                                            return (
+                                                <div className="trivia-coaching-actions" data-train-similar-spot="true">
+                                                    <Link
+                                                        href={trainingSpot.href}
+                                                        className="tc-word tc-ink--blue"
+                                                    >
+                                                        Train Similar Spot: {trainingSpot.label}
+                                                    </Link>
+                                                    <Link
+                                                        href="/hub/trivia/study"
+                                                        className="tc-word"
+                                                    >
+                                                        Study My Misses
+                                                    </Link>
+                                                </div>
+                                            );
+                                        })()}
                                         <ReportQuestionButton
                                             key={currentQuestion.id}
                                             questionId={currentQuestion.id}

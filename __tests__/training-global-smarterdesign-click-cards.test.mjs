@@ -221,7 +221,12 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
 
   const flashcards = read('pages/hub/training/flashcards.js');
   assert.match(flashcards, /aria-pressed=\{catFilter === c\}/, 'flashcards category filters must expose aria-pressed');
-  assert.match(flashcards, /flexWrap:\s*'wrap'/, 'flashcards category row must wrap cleanly on narrow phones');
+  // #SMARTERDESIGN study-tools module (2026-11-27): the category chips wrap from .chips.
+  const studyToolsCss = read('src/styles/training/study-tools.module.css');
+  assert.ok(
+    /flexWrap:\s*'wrap'/.test(flashcards) || (flashcards.includes('className={st.chips}') && /\.chips\s*\{[^}]*flex-wrap:\s*wrap/.test(studyToolsCss)),
+    'flashcards category row must wrap cleanly on narrow phones',
+  );
 
   const quizBuilder = read('pages/hub/training/quiz-builder.js');
   assert.match(quizBuilder, /aria-selected=\{tab === t\.id\}/, 'quiz-builder tabs must expose aria-selected');
@@ -230,7 +235,11 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
   assert.doesNotMatch(jarvis, /#fbbf24|rgba\(251,\s*191,\s*36|rgba\(139,\s*92,\s*246/i, 'jarvis.js must not use banned amber/gold/purple styling');
 
   const tournaments = read('pages/hub/training/tournaments.js');
-  assert.match(tournaments, /whiteSpace:\s*'nowrap'/, 'tournaments tabs must not split "Upcoming" mid-word');
+  const playCss = read('src/styles/training/training-play.module.css');
+  assert.ok(
+    /whiteSpace:\s*'nowrap'/.test(tournaments) || (tournaments.includes('className={s.segmented}') && /\.segmented > \.button \{ white-space: nowrap; \}/.test(playCss)),
+    'tournaments tabs must not split "Upcoming" mid-word',
+  );
   assert.doesNotMatch(tournaments, /rgba\(251,\s*191,\s*36/i, 'tournaments.js offline banner must not use banned amber border');
 
   // 6. Deep Pass-2 hardened pages: active ARIA states, wrapping rows, centered icons, and zero banned purple across ALL 95 Training pages
@@ -243,13 +252,16 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
   assert.match(studyGroupFinder, /aria-pressed=\{filterFmt === f\}/, 'study-group-finder format buttons must expose aria-pressed');
   assert.match(studyGroupFinder, /aria-pressed=\{filterLevel === l\}/, 'study-group-finder level buttons must expose aria-pressed');
   assert.match(studyGroupFinder, /aria-pressed=\{sortBy === s\.k\}/, 'study-group-finder sort buttons must expose aria-pressed');
-  assert.match(studyGroupFinder, /whiteSpace:\s*'nowrap'/, 'study-group-finder level buttons must not split "Beginner"/"Intermediate"');
+  // #SMARTERDESIGN study-tools module (2026-11-27): chip rows set nowrap in CSS.
+  const studyCss = read('src/styles/training/study-tools.module.css');
+  const studyChipsNoWrap = /\.page \.chips > :is\(a, button\) \{[^}]*white-space:\s*nowrap/.test(studyCss);
+  assert.ok(/whiteSpace:\s*'nowrap'/.test(studyGroupFinder) || (studyGroupFinder.includes('className={st.chips}') && studyChipsNoWrap), 'study-group-finder level buttons must not split "Beginner"/"Intermediate"');
 
   const sessionNotes = read('pages/hub/training/session-notes.js');
   assert.match(sessionNotes, /aria-pressed=\{mood === m\.id\}/, 'session-notes mood buttons must expose aria-pressed');
   assert.match(sessionNotes, /aria-pressed=\{isActive\}/, 'session-notes tag buttons must expose aria-pressed');
   assert.match(sessionNotes, /aria-pressed=\{searchTerm === tag\}/, 'session-notes search tag buttons must expose aria-pressed');
-  assert.match(sessionNotes, /flex:\s*'1 1 92px'/, 'session-notes mood buttons must wrap cleanly instead of slicing "Confident"/"Frustrated"');
+  assert.ok(/flex:\s*'1 1 92px'/.test(sessionNotes) || (sessionNotes.includes('className={st.chips}') && studyChipsNoWrap), 'session-notes mood buttons must wrap cleanly instead of slicing "Confident"/"Frustrated"');
 
   const customSolve = read('pages/hub/training/custom-solve.js');
   assert.match(customSolve, /aria-pressed=\{heroPos === p\}/, 'custom-solve hero position buttons must expose aria-pressed');
@@ -257,7 +269,12 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
   assert.match(customSolve, /aria-pressed=\{stackDepth === sd\}/, 'custom-solve stack depth buttons must expose aria-pressed');
 
   const gtoNews = read('pages/hub/training/gto-news.js');
-  assert.match(gtoNews, /alignItems:\s*'center',\s*justifyContent:\s*'center',\s*width:\s*44,\s*height:\s*44/, 'gto-news bookmark star button must center its icon inside the 44px chrome target');
+  const coachingCss = read('src/styles/training/sessions-coaching.module.css');
+  assert.ok(
+    /alignItems:\s*'center',\s*justifyContent:\s*'center',\s*width:\s*44,\s*height:\s*44/.test(gtoNews)
+      || (gtoNews.includes('s.iconButton') && /\.iconButton \{[^}]*place-items:\s*center;[^}]*inline-size:\s*44px;[^}]*block-size:\s*44px/.test(coachingCss)),
+    'gto-news bookmark star button must center its icon inside the 44px chrome target',
+  );
 
   assert.match(read('pages/hub/training/drill-builder.js'), /aria-pressed=\{Boolean\(selected\)\}/, 'drill-builder Chip button must expose aria-pressed');
   assert.match(read('pages/hub/training/custom-rake.js'), /aria-pressed=\{preset\.id === r\.id\}/, 'custom-rake preset buttons must expose aria-pressed');
@@ -272,19 +289,108 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
   assert.match(read('src/components/training/GodModeArena.jsx'), /aria-selected=\{reviewTab === tab\.id\}/, 'GodModeArena review tabs must expose aria-selected');
   assert.doesNotMatch(read('src/components/training/PreflopChartStats.jsx'), /#7c3aed|#a855f7|#fbbf24|rgba\(251,191,36/i, 'PreflopChartStats must not use banned purple/amber colors');
 
-  // Codebase-wide zero-purple guard across ALL 95 Training route files
+  // Codebase-wide zero-purple, zero-pink AND zero-gold/amber guard across ALL 95 Training route files + ALL mounted Training components
   const allTrainingPages = ['pages/hub/training.js', ...walkTrainingSource('pages/hub/training')];
-  const purpleHits = [];
-  const PURPLE_RE = /#(?:7c3aed|8b5cf6|a855f7|c084fc|6d28d9|9333ea|1e1b4b)\b|rgba\(\s*(?:124\s*,\s*58\s*,\s*237|139\s*,\s*92\s*,\s*246|168\s*,\s*85\s*,\s*247)\b/i;
+  const BANNED_UI_COLOR_RE = /#(?:7c3aed|8b5cf6|a855f7|a78bfa|c084fc|6d28d9|5b21b6|9333ea|1e1b4b|ec4899|f472b6|fbbf24|f59e0b|eab308|d97706|ca8a04|facc15|fde68a|ffd700|f2b84b|d4a020|8b6914)\b|rgba\(\s*(?:124\s*,\s*58\s*,\s*237|139\s*,\s*92\s*,\s*246|168\s*,\s*85\s*,\s*247|192\s*,\s*132\s*,\s*252|236\s*,\s*72\s*,\s*153|244\s*,\s*114\s*,\s*182|251\s*,\s*191\s*,\s*36|245\s*,\s*158\s*,\s*11|234\s*,\s*179\s*,\s*8|250\s*,\s*204\s*,\s*21|202\s*,\s*138\s*,\s*4|255\s*,\s*215\s*,\s*0)\b/i;
+  const bannedColorHits = [];
   for (const rel of allTrainingPages) {
-    const src = read(rel);
-    if (PURPLE_RE.test(src)) purpleHits.push(rel);
+    const lines = read(rel).split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (trimmed.startsWith('//') || trimmed.startsWith('*')) continue;
+      if (BANNED_UI_COLOR_RE.test(lines[i])) bannedColorHits.push(`${rel}:${i + 1}`);
+    }
+  }
+  const mountedTrainingUiComponents = [
+    'src/components/training/BlockerScorePanel.jsx',
+    'src/components/training/GTOQuestionCard.jsx',
+    'src/components/training/LeaderboardPanel.jsx',
+    'src/components/training/PerformanceTrends.jsx',
+    'src/components/training/GameBadge.jsx',
+    'src/components/training/RangeGrid.jsx',
+    'src/components/training/Card.tsx',
+    'src/components/training/PreflopChartStats.jsx',
+    'src/components/training/GodModeArena.jsx',
+    'src/components/training/games/UniversalDynamicTable.jsx',
+    'src/components/training/TrainingGameEntry.jsx',
+    'src/components/training/TrainingImageHeader.jsx',
+    'src/components/training/TrainingPageHead.jsx',
+    'src/components/training/lobby/TrainingGameCard.jsx',
+    'src/components/training/lobby/TrainingFiltersSheet.jsx',
+    'src/components/training/lobby/TrainingGamePreviewSheet.jsx',
+  ];
+  for (const rel of mountedTrainingUiComponents) {
+    const lines = read(rel).split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (trimmed.startsWith('//') || trimmed.startsWith('*')) continue;
+      // Physical casino chip denominations on the poker felt are authentic chip colors, not UI chrome
+      if (rel.endsWith('UniversalDynamicTable.jsx') && /--chip-(?:face|rim|edge-1)/.test(lines[i])) continue;
+      if (BANNED_UI_COLOR_RE.test(lines[i])) bannedColorHits.push(`${rel}:${i + 1}`);
+    }
   }
   assert.deepEqual(
-    purpleHits,
+    bannedColorHits,
     [],
-    `Banned purple/violet accents found in Training route pages:\n${purpleHits.join('\n')}`,
+    `Banned purple/violet/pink/gold/amber UI accents found in Training pages or mounted components:\n${bannedColorHits.join('\n')}`,
   );
+
+  // 7. Gameplay table wiring, instant 52-card picker prefetch, editorial gto-news headlines, and Playwright layout spec
+  const udt = read('src/components/training/games/UniversalDynamicTable.jsx');
+  assert.doesNotMatch(udt, /PokerSoundManagerModule\.soundManager/, 'UniversalDynamicTable must import PokerSoundManager cleanly without nonexistent soundManager named export');
+  assert.match(udt, /aria-selected=\{activeMode === mode\.id\}/, 'UniversalDynamicTable mode bar tabs must expose aria-selected');
+  assert.match(udt, /aria-pressed=\{showRangeGrid\}/, 'UniversalDynamicTable Range toggle must expose aria-pressed');
+  assert.match(udt, /aria-pressed=\{isCurrentBookmarked\}/, 'UniversalDynamicTable Save bookmark button must expose aria-pressed');
+
+  const arena = read('src/components/training/GodModeArena.jsx');
+  assert.match(arena, /aria-pressed=\{difficulty === d\}/, 'GodModeArena difficulty buttons must expose aria-pressed');
+  assert.match(arena, /aria-pressed=\{timerMode === t\.id\}/, 'GodModeArena timer buttons must expose aria-pressed');
+
+  const playingCard = read('src/components/poker/PlayingCard.jsx');
+  assert.match(playingCard, /export function preloadArenaDeckCards\(/, 'PlayingCard must export preloadArenaDeckCards for instant 52-card picker loading');
+  assert.match(read('pages/hub/training/hand-lab.js'), /preloadArenaDeckCards\(\)/, 'hand-lab must preload 52-card arena deck assets');
+  assert.match(read('pages/hub/training/hand-lab.js'), /<PlayingCard arena priority card=\{card\}/, 'hand-lab picker cards must render with priority eager loading');
+  assert.match(read('pages/hub/training/equity-calculator.js'), /preloadArenaDeckCards\(\)/, 'equity-calculator must preload 52-card arena deck assets');
+  assert.match(read('pages/hub/training/equity-calculator.js'), /<PlayingCard arena priority card=\{card\}/, 'equity-calculator picker cards must render with priority eager loading');
+
+  assert.match(gtoNews, /data-training-raw-control="true"[\s\S]{0,120}aria-expanded=\{expanded === a\.id\}/, 'gto-news article headline must use data-training-raw-control="true" so it renders as clean editorial copy');
+
+  const layoutSpec = read('e2e/030-training-smarterdesign-layout.spec.ts');
+  assert.match(layoutSpec, /getClientRects\(\)/, 'Playwright layout spec must enforce per-word Range.getClientRects() anti-slicing check');
+  assert.match(layoutSpec, /Select Hole Card 1/, 'Playwright layout spec must verify Hand Lab 52-card picker and Escape dismiss');
+
+  // 8. Phase 3 hardening: Escape-key dialog dismissal, Hand Comparison 52-card Club Arena deck,
+  //    PostgreSQL 22P02 -> 404 API resilience, study-groups try/catch, and lazy sheet code-splitting
+  assert.match(read('pages/hub/training/equity-calculator.js'), /event\.key === 'Escape'[\s\S]{0,60}onClose\(\)/, 'equity-calculator CardGrid must dismiss on Escape');
+  const handComp = read('pages/hub/training/hand-comparison.js');
+  assert.match(handComp, /preloadArenaDeckCards\(\)/, 'hand-comparison must preload 52-card arena deck assets');
+  assert.match(handComp, /<PlayingCard arena priority card=\{card\}/, 'hand-comparison picker cards must render authentic Club Arena cards with priority');
+  assert.match(handComp, /data-training-raw-control="true"/, 'hand-comparison 52-card picker buttons must stay unframed');
+  assert.match(handComp, /event\.key === 'Escape'[\s\S]{0,60}onClose\(\)/, 'hand-comparison CardPicker must dismiss on Escape');
+  const tiltGuard = read('pages/hub/training/tilt-guard.js');
+  assert.match(tiltGuard, /event\.key === 'Escape'[\s\S]{0,60}onClose\(\)/, 'tilt-guard BreathingExercise must dismiss on Escape');
+  assert.match(tiltGuard, /role="dialog"[\s\S]{0,60}aria-labelledby="breathing-title"/, 'tilt-guard BreathingExercise must expose dialog semantics');
+
+  assert.match(read('pages/api/training/tournaments.js'), /code === '22P02'[\s\S]{0,160}status\(404\)/, 'tournaments API must convert PostgreSQL 22P02 invalid UUID syntax to 404 instead of 503');
+  assert.match(read('pages/api/training/get-sessions.js'), /detailErr\?\.code === '22P02'[\s\S]{0,100}status\(404\)/, 'get-sessions API must convert PostgreSQL 22P02 invalid UUID syntax to 404 instead of 503');
+  const tournamentDetail = read('pages/hub/training/tournament/[id].js');
+  assert.match(tournamentDetail, /isValidTournamentId = typeof id === 'string' && UUID_RE\.test\(id\)/, 'tournament detail page must validate UUID before fetching /api/training/tournaments');
+  assert.match(tournamentDetail, /latestData\?\.success === false \? 0 : 15000/, 'tournament detail page must stop SWR polling when tournament lookup fails');
+  for (const apiPath of [
+    'pages/api/training/study-groups.js',
+    'pages/api/training/study-groups/[groupId].js',
+    'pages/api/training/study-groups/[groupId]/messages.js',
+  ]) {
+    const apiSrc = read(apiPath);
+    assert.match(apiSrc, /export default async function handler\(req, res\) \{\s*try \{/, `${apiPath} must wrap handler in top-level try/catch`);
+    assert.match(apiSrc, /catch \(err\)[\s\S]{0,160}status\(500\)/, `${apiPath} must return structured JSON 500 on unexpected errors`);
+  }
+
+  assert.match(read('pages/hub/training.js'), /dynamic\(\s*\(\) => import\('\.\.\/\.\.\/src\/components\/training\/lobby\/TrainingFiltersSheet'\)/, 'training lobby must dynamically import TrainingFiltersSheet');
+  assert.match(read('pages/hub/training.js'), /dynamic\(\s*\(\) => import\('\.\.\/\.\.\/src\/components\/training\/lobby\/TrainingGamePreviewSheet'\)/, 'training lobby must dynamically import TrainingGamePreviewSheet');
+  assert.match(read('pages/hub/training/category/[categoryId].js'), /dynamic\(\s*\(\) => import\('\.\.\/\.\.\/\.\.\/\.\.\/src\/components\/training\/lobby\/TrainingFiltersSheet'\)/, 'category page must dynamically import TrainingFiltersSheet');
+  assert.match(read('pages/hub/training/multiway-preflop.js'), /dynamic\(\(\) => import\('\.\.\/\.\.\/\.\.\/src\/components\/ui\/BottomSheet'\)/, 'multiway-preflop must dynamically import BottomSheet');
+  assert.match(read('pages/hub/training/short-deck-trainer.js'), /dynamic\(\(\) => import\('\.\.\/\.\.\/\.\.\/src\/components\/ui\/BottomSheet'\)/, 'short-deck-trainer must dynamically import BottomSheet');
 });
 
 test('anti-regression: all Training GET /api/training/tool-records callers guard signed-out visitors against spurious 401 errors', () => {
@@ -312,8 +418,9 @@ test('anti-regression: all Training GET /api/training/tool-records callers guard
     `Found unguarded GET /api/training/tool-records calls that cause 401 errors for guests:\n${unguarded.join('\n')}`,
   );
 
-  // drill-builder must check getSession() before EVERY getUser() call so guests never hit AuthSessionMissingError
+  // drill-builder must check getSession() before EVERY getUser() call and guard missing env vars in getSupabase()
   const drillBuilder = read('pages/hub/training/drill-builder.js');
+  assert.match(drillBuilder, /if\s*\(!url\s*\|\|\s*!key\)\s*return\s*null;/, 'drill-builder.js getSupabase() must return null cleanly when Supabase env vars are absent');
   const getUserCount = (drillBuilder.match(/\.auth\.getUser\(\)/g) || []).length;
   const getSessionCount = (drillBuilder.match(/\.auth\.getSession\(\)/g) || []).length;
   assert.ok(getUserCount >= 1 && getSessionCount >= getUserCount, 'drill-builder.js must guard every auth.getUser() call with auth.getSession()');

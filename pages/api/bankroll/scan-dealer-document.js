@@ -19,6 +19,7 @@ import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase'
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
+import { guardBankrollRequest } from '../../../src/lib/bankroll/apiGuard.mjs';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 import { parseDealerDocumentText } from '../../../src/lib/bankroll/dealerDocParser.mjs';
 
@@ -52,20 +53,11 @@ export default async function handler(req, res) {
   try {
       if (!applyRateLimit(req, res, READER_LIMIT)) return;
 
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
-
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
-          return res.status(401).json({ success: false, error: 'Unauthorized' });
-      }
-
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-      const user = authUser;
-      if (authErr || !user) {
-          return res.status(401).json({ success: false, error: 'Invalid token' });
-      }
+      const user = await guardBankrollRequest(req, res, {
+          methods: ['POST'],
+          verify: (request) => getServerUserWithFallback(request, getSupabase()),
+      });
+      if (!user) return;
 
       // SERVER-SIDE GUARD: Bankroll Pro, through the server gate. The browser
       // gate returns hasAccess:false inside an API route, which is why this
@@ -104,7 +96,6 @@ export default async function handler(req, res) {
           return res.status(500).json({
               success: false,
               error: 'Failed to read document',
-              detail: String((error && error.message) || error).slice(0, 300),
           });
       }
 

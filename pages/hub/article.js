@@ -958,7 +958,7 @@ export default function ArticlePage({ initialArticle = null, initialRelated = []
                         </Link>
                         <Link href="/hub/poker-near-me/lobby">
                             <div className="related-card" style={{ padding: 14 }}>
-                                <span>Poker Near Me: {VENUE_COUNT_LABEL} Verified US Poker Rooms</span>
+                                <span>Poker Near Me: {VENUE_COUNT_LABEL} US Poker Rooms</span>
                             </div>
                         </Link>
                         <Link href="/poker-rooms/states">

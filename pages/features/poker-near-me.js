@@ -1,16 +1,16 @@
 import React from 'react';
 import FeatureLanderLayout from '../../src/components/features/FeatureLanderLayout';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
-import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
+import { VENUE_COUNT_LABEL, VENUE_STATE_COUNT } from '../../src/lib/venueCount.mjs';
 
 export default function PokerNearMeFeaturePage() {
   const features = [
     {
-      title: `${VENUE_COUNT_LABEL} Verified Poker Venues`,
-      description: 'Directory Of Legal Casino Cardrooms And Poker Venues Across North America With Contact Details And Hours.',
+      title: `${VENUE_COUNT_LABEL} Poker Venues`,
+      description: 'Directory Of Legal Casino Cardrooms And Poker Venues Across The United States With Contact Details And Hours.',
     },
     {
-      title: '4,500+ Weekly Tournaments',
+      title: '800+ Weekly Tournaments',
       description: 'Real-Time Schedules, Guaranteed Prize Pools, Buy-Ins, Blind Structures, And Tournament Clock Details.',
     },
     {
@@ -37,7 +37,7 @@ export default function PokerNearMeFeaturePage() {
     rows: [
       ['Pricing', '100% Free For Everyone', 'Freemium / Monthly Fees', 'High Casino Contract Fees'],
       ['No App Download Needed', '100% In Any Web Browser', 'App Store Download Required', 'App Store Download Required'],
-      ['Tournament Coverage', '4,500+ Verified Weekly', 'User & Room Dependent', 'Casino Input Dependent'],
+      ['Tournament Coverage', '800+ Listed Weekly', 'User & Room Dependent', 'Casino Input Dependent'],
       ['Integrated AI Coach', 'Free Jarvis AI Hand Review', 'None', 'None'],
       ['Cardroom Management Sync', 'Native Club Commander', 'Separate Atlas Clock', 'Proprietary Hardware Only'],
       ['Multi-Platform Sync', 'Web, iPhone, iPad, Android, PC', 'iOS & Android App Only', 'iOS & Android App Only'],
@@ -65,11 +65,11 @@ export default function PokerNearMeFeaturePage() {
   const faqs = [
     {
       question: 'How Many Poker Rooms Are Listed on Smarter.Poker?',
-      answer: 'Smarter.Poker Tracks Over 324 Verified Legal Poker Venues Across The United States, Canada, And International Cardrooms.',
+      answer: `Smarter.Poker Lists ${VENUE_COUNT_LABEL} Legal Poker Venues Across ${VENUE_STATE_COUNT} US States.`,
     },
     {
       question: 'Are Tournament Schedules Updated in Real Time?',
-      answer: 'Yes. Smarter.Poker Maintains Over 4,500 Weekly Recurring Tournaments And Major Touring Series With Verified Blind Structures And Guarantees.',
+      answer: 'Yes. Smarter.Poker Maintains 800+ Live Tournaments A Week Plus Major Touring Series, With Buy-Ins And Guarantees Where Venues Publish Them.',
     },
     {
       question: 'Does Smarter.Poker Charge Cardrooms or Players For Listings?',
@@ -81,9 +81,9 @@ export default function PokerNearMeFeaturePage() {
     <FeatureLanderLayout
       title="Live Poker Rooms and Cardroom Directory"
       metaTitle="Live Poker Rooms and Cardroom Directory | Smarter.Poker"
-      description={`Discover ${VENUE_COUNT_LABEL} Legal Poker Rooms, Cardrooms, And 4,500+ Weekly Tournaments With Real-Time Waiting Lists, Tournament Clocks, Cash Games, And Phone Contacts.`}
+      description={`Discover ${VENUE_COUNT_LABEL} Legal Poker Rooms, Cardrooms, And 800+ Weekly Tournaments With Real-Time Waiting Lists, Tournament Clocks, Cash Games, And Phone Contacts.`}
       canonical="/features/poker-near-me"
-      badgeText={`${VENUE_COUNT_LABEL} Verified Venues & 4,500+ Weekly Tournaments`}
+      badgeText={`${VENUE_COUNT_LABEL} Venues & 800+ Weekly Tournaments`}
       primaryCtaText="Explore Poker Near Me"
       primaryCtaHref="/hub/poker-near-me/lobby"
       secondaryCtaText="View Plain-Text Spec"

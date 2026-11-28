@@ -13,7 +13,7 @@
 export const FORMULAS_AS_OF = '2026-11-24';
 export const FORMULAS_BASE_PATH = '/learn/formulas';
 export const FORMULAS_URL = 'https://smarter.poker/learn/formulas';
-export const FORMULAS_DOI = '10.5281/zenodo.15129481';
+export const FORMULAS_DOI = '10.5281/zenodo.24115647';
 
 export function formulaPath(slug) {
   return `/learn/formulas/${slug}`;

@@ -19,6 +19,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/sessions-coaching.module.css';
 // TRAIN-WIRE-EMPTY-3d — adoption: shared empty-state primitive
 
 // SAMPLE FALLBACK ONLY — these twenty tips are fixed editorial examples, not
@@ -280,7 +282,6 @@ function AbacusIcon({ size=14 })  { return <_Svg size={size}><rect x="3" y="3" w
 function BrainIcon({ size=14 })   { return <_Svg size={size}><path d="M9 4a4 4 0 0 0-4 4c0 1-1 2-1 4s1 3 1 4a4 4 0 0 0 4 4"/><path d="M15 4a4 4 0 0 1 4 4c0 1 1 2 1 4s-1 3-1 4a4 4 0 0 1-4 4"/><line x1="12" y1="4" x2="12" y2="20"/></_Svg>; }
 function LightbulbIcon({ size=14 }) { return <_Svg size={size}><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.65V17h8v-2.35A7 7 0 0 0 12 2z"/></_Svg>; }
 function CheckIcon({ size=12 })   { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
-function BackArrowIcon({ size=18 }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function StarToggleIcon({ filled=false, size=14 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24"
@@ -300,17 +301,6 @@ function CategoryIcon({ cat, size=14 }) {
     default:         return null;
   }
 }
-
-const CAT_COLORS = { Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: 'var(--sp-accent-amber)', Mental: 'var(--sp-accent-purple)' };
-// Tinted pill backgrounds. The old `${CAT_COLORS[cat]}12` hex-alpha concat broke
-// when CAT_COLORS moved to var() tokens (produced invalid `var(...)12`), so the
-// tint is derived from the same tokens via color-mix instead.
-const CAT_COLORS_BG = {
-  Preflop: 'color-mix(in srgb, var(--sp-accent-blue) 8%, transparent)',
-  Postflop: 'color-mix(in srgb, var(--sp-accent-green) 8%, transparent)',
-  Math: 'color-mix(in srgb, var(--sp-accent-amber) 8%, transparent)',
-  Mental: 'color-mix(in srgb, var(--sp-accent-purple) 8%, transparent)',
-};
 
 export default function GtoNewsPage() {
   const router = useRouter();
@@ -436,9 +426,9 @@ export default function GtoNewsPage() {
     if (catFilter !== 'All') list = list.filter((a) => a.cat === catFilter);
     if (showBookmarksOnly) list = list.filter((a) => bookmarks.has(a.id));
     if (search) {
-      const s = search.toLowerCase();
+      const needle = search.toLowerCase();
       list = list.filter(
-        (a) => (a.title || '').toLowerCase().includes(s) || (a.body || '').toLowerCase().includes(s)
+        (a) => (a.title || '').toLowerCase().includes(needle) || (a.body || '').toLowerCase().includes(needle)
       );
     }
     return list;
@@ -470,388 +460,190 @@ export default function GtoNewsPage() {
         description="Read Bite-Sized GTO Poker Strategy Breakdowns On Range Advantage, Minimum Defense Frequency, Blockers, And ICM Adjustments On Smarter.Poker."
         canonical="/hub/training/gto-news"
       />
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
+      <div className={s.shell}>
+        <TrainingPageHead slug="training-gto-news">
           <button
             type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-NEWS-A11Y-1: SVG back arrow */}
-            <BackArrowIcon size={18} />
-          </button>
-          <div style={{ flex: 1 }}>
-            {/* TRAIN-NEWS-A11Y-1: semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO News</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${readCount} of ${items.length} articles read`}>
-              {readCount}/{items.length} Articles Read
-            </div>
-          </div>
-          <button
-            type="button"
+            className="sd-button"
             aria-label={showBookmarksOnly ? 'Show all articles' : 'Show only bookmarked articles'}
             aria-pressed={showBookmarksOnly}
             onClick={() => setShowBookmarksOnly(!showBookmarksOnly)}
-            style={{
-              background: showBookmarksOnly ? 'rgba(86,216,255,0.14)' : 'transparent',
-              border: `1px solid ${showBookmarksOnly ? 'rgba(86,216,255,0.38)' : 'rgba(255,255,255,0.08)'}`,
-              borderRadius: 6,
-              padding: '4px 10px',
-              color: showBookmarksOnly ? '#86daff' : 'var(--sp-fg-dim)',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
           >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              {/* TRAIN-NEWS-A11Y-1: SVG star filled */}
-              <StarToggleIcon filled size={12} /> {bookmarks.size}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <StarToggleIcon filled size={13} /> Saved ({bookmarks.size})
             </span>
           </button>
-        </div>
+        </TrainingPageHead>
 
-        <div style={{ padding: '16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={s.page}>
           {/* Sample-content notice — only when the live feed came back empty.
               The list below is fixed example material, so say so plainly
               instead of letting it read as current news. */}
           {usingSample && (
-            <div
-              role="note"
-              style={{
-                padding: '12px 14px',
-                borderRadius: 12,
-                marginBottom: 16,
-                background: 'rgba(86,216,255,0.06)',
-                border: '1px solid rgba(86,216,255,0.28)',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: '#86daff',
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                }}
-              >
-                Sample Content
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, marginTop: 4 }}>
-                {feedError
-                  ? 'Live strategy articles could not be loaded right now.'
-                  : 'No live strategy articles are available right now.'}{' '}
-                The Tips Below Are Fixed Examples For Reference - Not Current News.
-              </div>
-            </div>
+            <p role="note" className={s.note}>
+              <strong className={s.ice}>Sample Content: </strong>
+              {feedError
+                ? 'Live Strategy Articles Could Not Be Loaded Right Now.'
+                : 'No Live Strategy Articles Are Available Right Now.'}{' '}
+              The Tips Below Are Fixed Examples For Reference - Not Current News.
+            </p>
           )}
 
           {/* Daily Tip Banner */}
           {dailyTip && (
-            <div
-              style={{
-                padding: '14px 16px',
-                borderRadius: 12,
-                marginBottom: 16,
-                background: 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(6,72,226,0.08))',
-                border: '1px solid rgba(0,212,255,0.12)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                {/* TRAIN-NEWS-A11Y-1: SVG lightbulb */}
-                <span style={{ display: 'inline-flex', color: '#86daff' }} aria-hidden><LightbulbIcon size={14} /></span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: 'var(--sp-accent-cyan)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                  }}
-                >
-                  {usingSample ? 'Sample Tip' : 'Tip of the Day'}
-                </span>
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>{dailyTip.title}</div>
-            </div>
+            <section className={`sd-panel ${s.panel}`} aria-labelledby="gto-news-tip-title">
+              <p id="gto-news-tip-title" className={s.eyebrow} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <LightbulbIcon size={14} />
+                {usingSample ? 'Sample Tip' : 'Tip Of The Day'}
+              </p>
+              <p className={s.subTitle}>{dailyTip.title}</p>
+            </section>
           )}
 
-          {/* Search */}
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search GTO news articles"
-            placeholder="Search articles..."
-            style={{
-              width: '100%',
-              padding: '10px 14px',
-              borderRadius: 8,
-              background: 'rgba(0,0,0,0.3)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'var(--sp-fg)',
-              fontSize: 13,
-              outline: 'none',
-              marginBottom: 12,
-              boxSizing: 'border-box',
-            }}
-          />
-
-          {/* Category Filters */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-            {CATS.map((c) => (
-              <motion.button
-                key={c}
-                type="button"
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setCatFilter(c)}
-                aria-pressed={catFilter === c}
-                style={{
-                  flex: 1,
-                  padding: '6px',
-                  borderRadius: 6,
-                  border: `1px solid ${catFilter === c ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
-                  background: catFilter === c ? 'rgba(0,212,255,0.06)' : 'transparent',
-                  color: catFilter === c ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {/* TRAIN-NEWS-A11Y-1: SVG CategoryIcon replaces emoji */}
-                {c !== 'All' && <span style={{ marginRight: 4, display: 'inline-flex', verticalAlign: 'middle' }} aria-hidden><CategoryIcon cat={c} size={12} /></span>}
-                {c}
-              </motion.button>
-            ))}
-          </div>
-
-          {/* Progress */}
-          <div
-            style={{
-              height: 3,
-              borderRadius: 2,
-              background: 'rgba(255,255,255,0.05)',
-              marginBottom: 16,
-            }}
-            role="progressbar"
-            aria-label="Reading progress"
-            aria-valuenow={readPct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-          >
-            <div
-              style={{
-                height: '100%',
-                borderRadius: 2,
-                background: 'linear-gradient(90deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
-                width: `${readPct}%`,
-                transition: 'width 0.3s',
-              }}
+          {/* Search and filters */}
+          <section className={`sd-panel ${s.panel}`} aria-label="Find Articles">
+            <input
+              type="search"
+              className={s.input}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Search GTO news articles"
+              placeholder="Search Articles..."
             />
-          </div>
+            <div className={s.chips} role="group" aria-label="Article Category">
+              {CATS.map((c) => (
+                <motion.button
+                  key={c}
+                  type="button"
+                  className={`sd-button ${s.button}`}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setCatFilter(c)}
+                  aria-pressed={catFilter === c}
+                >
+                  {/* TRAIN-NEWS-A11Y-1: SVG CategoryIcon replaces emoji */}
+                  {c !== 'All' && <span style={{ display: 'inline-flex' }} aria-hidden><CategoryIcon cat={c} size={13} /></span>}
+                  {c}
+                </motion.button>
+              ))}
+            </div>
+            <div className={s.panelHead}>
+              <span className={s.metricLabel}>Reading Progress</span>
+              <span className={s.metricLabel}>{readCount} / {items.length} Read</span>
+            </div>
+            <div
+              className={s.track}
+              role="progressbar"
+              aria-label="Reading progress"
+              aria-valuenow={readPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div className={s.fill} style={{ width: `${readPct}%`, transition: 'width 0.3s' }} />
+            </div>
+          </section>
 
           {/* Articles */}
           {showLoading && (
-            <div
-              role="status"
-              style={{
-                padding: '24px 16px',
-                textAlign: 'center',
-                fontSize: 12,
-                color: 'var(--sp-fg-dim)',
-              }}
-            >
-              Loading Strategy Articles...
-            </div>
+            <section className={`sd-panel ${s.panel} ${s.state}`} role="status">
+              <p className={s.copy}>Loading Strategy Articles...</p>
+            </section>
           )}
           {!showLoading && filtered.length === 0 && (
             <TrainerEmptyState
               variant="no-data"
-              title="No articles match"
-              message="Try a different filter combination."
+              title="No Articles Match"
+              message="Try A Different Filter Combination."
               compact
             />
           )}
-          {!showLoading && filtered.map((a, i) => (
-            <motion.div
-              key={a.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.02 }}
-              style={{
-                padding: '14px 16px',
-                borderRadius: 12,
-                marginBottom: 8,
-                background: readArticles.has(a.id) ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.25)',
-                border: `1px solid ${readArticles.has(a.id) ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)'}`,
-                cursor: 'default',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {/* Topic tag is derived, so it is shown only when one was
-                      actually matched — never invented for an untagged item. */}
-                  {a.cat && (
-                    <>
-                      {/* TRAIN-NEWS-A11Y-1: SVG CategoryIcon */}
-                      <span style={{ display: 'inline-flex', color: 'var(--sp-fg-muted)' }} aria-hidden><CategoryIcon cat={a.cat} size={14} /></span>
-                      <span
-                        style={{
-                          padding: '1px 6px',
-                          borderRadius: 3,
-                          background: CAT_COLORS_BG[a.cat] || 'rgba(255,255,255,0.06)',
-                          color: CAT_COLORS[a.cat],
-                          fontSize: 12,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {a.cat}
-                      </span>
-                    </>
-                  )}
-                  {a.isSample && (
-                    <span
-                      style={{
-                        padding: '1px 6px',
-                        borderRadius: 3,
-                        background: 'rgba(86,216,255,0.12)',
-                        color: '#86daff',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        letterSpacing: 0.5,
-                      }}
-                    >
-                      SAMPLE
-                    </span>
-                  )}
-                  {readArticles.has(a.id) && (
-                    <span style={{ fontSize: 12, color: 'var(--sp-accent-green)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                      {/* TRAIN-NEWS-A11Y-1: SVG check */}
-                      <CheckIcon size={8} /> Read
-                    </span>
-                  )}
-                </div>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>{a.readTime}m</span>
-                  <span style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>{a.date}</span>
-                  <motion.button
-                    type="button"
-                    aria-label={bookmarks.has(a.id) ? `Remove bookmark: ${a.title}` : `Bookmark article: ${a.title}`}
-                    aria-pressed={bookmarks.has(a.id)}
-                    whileTap={{ scale: 0.8 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleBookmark(a.id);
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      padding: 0,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 44,
-                      height: 44,
-                      color: bookmarks.has(a.id) ? '#86daff' : 'var(--sp-fg-faint)',
-                    }}
+          {!showLoading && filtered.length > 0 && (
+            <section className={`sd-panel ${s.panel}`} aria-label="Strategy Articles">
+              <ul className={s.list}>
+                {filtered.map((a, i) => (
+                  <motion.li
+                    key={a.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: Math.min(i, 10) * 0.02 }}
+                    className={s.newsItem}
                   >
-                    {/* TRAIN-NEWS-A11Y-1: SVG bookmark star */}
-                    <StarToggleIcon filled={bookmarks.has(a.id)} size={14} />
-                  </motion.button>
-                </div>
-              </div>
-              <button
-                type="button"
-                aria-expanded={expanded === a.id}
-                aria-label={`${a.title}${a.isSample ? ' (Sample Content)' : ''}${readArticles.has(a.id) ? ' (Read)' : ''}`}
-                onClick={() => handleExpand(a.id)}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: 0,
-                  border: 'none',
-                  background: 'transparent',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: readArticles.has(a.id) ? 'var(--sp-fg-muted)' : 'var(--sp-fg)',
-                  marginBottom: expanded === a.id ? 8 : 0,
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                }}
-              >
-                {a.title}
-              </button>
-              <AnimatePresence>
-                {expanded === a.id && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    style={{ overflow: 'hidden' }}
-                  >
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.7, paddingTop: 4 }}>
-                      {a.body || 'No preview text was published for this article.'}
+                    <div className={s.newsMeta}>
+                      {/* Topic tag is derived, so it is shown only when one was
+                          actually matched — never invented for an untagged item. */}
+                      {a.cat && (
+                        <span className={s.tag}>
+                          <CategoryIcon cat={a.cat} size={12} />
+                          {a.cat}
+                        </span>
+                      )}
+                      {a.isSample && <span className={s.tag}>Sample</span>}
+                      {readArticles.has(a.id) && (
+                        <span className={`${s.metricLabel} ${s.up}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <CheckIcon size={10} /> Read
+                        </span>
+                      )}
+                      <span className={s.metricLabel} style={{ marginLeft: 'auto' }}>{a.readTime}m · {a.date}</span>
                     </div>
-                    {/* Attribution + deep link for real feed items. stopPropagation
-                        keeps the link from also toggling the card. */}
-                    {!a.isSample && (
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          alignItems: 'center',
-                          gap: 10,
-                          marginTop: 8,
-                          fontSize: 12,
-                          color: 'var(--sp-fg-faint)',
+                    <div className={s.newsTitleRow}>
+                      <button
+                        type="button"
+                        className={s.newsTitle}
+                        data-training-raw-control="true"
+                        data-read={readArticles.has(a.id) ? 'true' : undefined}
+                        aria-expanded={expanded === a.id}
+                        aria-label={`${a.title}${a.isSample ? ' (Sample Content)' : ''}${readArticles.has(a.id) ? ' (Read)' : ''}`}
+                        onClick={() => handleExpand(a.id)}
+                      >
+                        <span>{a.title}</span>
+                        <span aria-hidden className={s.ice}>{expanded === a.id ? '\u2212' : '+'}</span>
+                      </button>
+                      <motion.button
+                        type="button"
+                        className={`sd-button ${s.iconButton}`}
+                        aria-label={bookmarks.has(a.id) ? `Remove bookmark: ${a.title}` : `Bookmark article: ${a.title}`}
+                        aria-pressed={bookmarks.has(a.id)}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleBookmark(a.id);
                         }}
                       >
-                        {a.source && <span>Source: {a.source}</span>}
-                        <a
-                          href={`/hub/article?id=${encodeURIComponent(a.id)}`}
-                          onClick={(e) => e.stopPropagation()}
-                          style={{ color: 'var(--sp-accent-cyan)', textDecoration: 'none', fontWeight: 600 }}
+                        {/* TRAIN-NEWS-A11Y-1: SVG bookmark star */}
+                        <StarToggleIcon filled={bookmarks.has(a.id)} size={16} />
+                      </motion.button>
+                    </div>
+                    <AnimatePresence>
+                      {expanded === a.id && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          style={{ overflow: 'hidden' }}
                         >
-                          Read Full Article
-                        </a>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          ))}
-
+                          <p className={s.copy} style={{ paddingTop: 4 }}>
+                            {a.body || 'No Preview Text Was Published For This Article.'}
+                          </p>
+                          {/* Attribution + deep link for real feed items. */}
+                          {!a.isSample && (
+                            <p className={s.facts} style={{ marginTop: 8, alignItems: 'center' }}>
+                              {a.source && <span>Source: {a.source}</span>}
+                              <a
+                                href={`/hub/article?id=${encodeURIComponent(a.id)}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className={`sd-button ${s.button}`}
+                              >
+                                Read Full Article
+                              </a>
+                            </p>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
       </div>
       <HubPageSummary page="training-gto-news" />

@@ -653,7 +653,7 @@ const CUSTOM_SURFACE_MARKDOWN = {
   },
   '/hub/tournaments/this-weekend': {
     title: 'Poker Tournaments This Weekend (Friday, Saturday & Sunday Schedule)',
-    lead: `Aggregate Directory Of Live Casino And Cardroom Poker Tournaments Running Friday, Saturday, And Sunday Across North America. Compare Buy-Ins, Guaranteed Prize Pools (GTD), Starting Stacks, And Blind Structures Across ${VENUE_COUNT_LABEL} Verified Venues.`,
+    lead: `Aggregate Directory Of Live Casino And Cardroom Poker Tournaments Running Friday, Saturday, And Sunday Across The United States. Compare Buy-Ins, Guaranteed Prize Pools (GTD), Starting Stacks, And Blind Structures Across ${VENUE_COUNT_LABEL} Venues.`,
     sections: [
       {
         heading: 'Weekend Tournament Discovery Features',
@@ -1010,6 +1010,26 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
   }
   if (cleanPath === '/tools/poker-iq-test') {
     return withLiveScenario(renderPokerIqTestMarkdown(query));
+  }
+  if (cleanPath === '/tools/gto-leak-finder') {
+    const url = `${SITE}/tools/gto-leak-finder`;
+    return withLiveScenario([
+      '# 60-Second GTO Poker Leak Finder Diagnostic | Smarter.Poker',
+      '',
+      `> Source: [60-Second GTO Poker Leak Finder on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'The Smarter.Poker 60-Second GTO Poker Leak Finder Grades Players Across 5 Realistic 100BB 6-Max Cash And MTT Final-Table ICM Decision Spots Spanning Preflop 3-Bet Defense, Flop C-Bet Discipline, Turn Barrel Selection, River Bluff-Catching, And Short-Stack ICM Shove/Fold. Each Spot Measures Solver Frequencies And Estimated BB/100 EV Loss, Linking Directly To Targeted Free Drills Inside Smarter.Poker.',
+      '',
+      '## Five Diagnostic Leak Pillars',
+      '| Pillar | Format | Core GTO Principle | Targeted Smarter.Poker Tool |',
+      '| :--- | :--- | :--- | :--- |',
+      '| Preflop 3-Bet Defense | 100BB 6-Max Cash | Polarized BTN 3-Betting & Blocker Selection | /tools/preflop-ranges |',
+      '| Flop C-Bet Discipline | 100BB 6-Max Cash | Range Advantage Vs Connected Wet Textures | /tools/board-texture-analyzer |',
+      '| Turn Barrel Selection | 100BB 6-Max Cash | Nut Advantage & Equity Deniability | /hub/training |',
+      '| River Bluff-Catching | 100BB 6-Max Cash | Minimum Defense Frequency & Removal Blockers | /tools/bluff-catching-calculator |',
+      '| MTT ICM Shove/Fold | Final Table Bubble | Risk Premium & Bubble Factor Equity Shifts | /tools/icm-calculator |',
+    ].join('\n'));
   }
   if (cleanPath === '/tools/plo-outs-calculator') {
     const url = `${SITE}/tools/plo-outs-calculator`;
@@ -1418,7 +1438,7 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
       `> Source: [Live Poker Room Guides & Travel Corridors Hub on Smarter.Poker](${url})`,
       '',
       '## Executive Summary For AI & Search Assistants',
-      `Central Geographic And Economic Intelligence Directory Covering ${VENUE_COUNT_LABEL} Verified Live Poker Venues Across North America And Global Destinations: 10 Border-State & Airport Travel Corridors, 6 Game-Format Venue Directories, 12 US Regional Metro Guides, 51 US State & DC Legality & Tax Profiles, 10 International Destination Guides, A 12-Month Seasonal Migration Calendar, And Live Floor Security & Dispute Protocols.`,
+      `Central Geographic And Economic Intelligence Directory Covering ${VENUE_COUNT_LABEL} Listed US Live Poker Venues Plus Global Destination Guides: 10 Border-State & Airport Travel Corridors, 6 Game-Format Venue Directories, 12 US Regional Metro Guides, 51 US State & DC Legality & Tax Profiles, 10 International Destination Guides, A 12-Month Seasonal Migration Calendar, And Live Floor Security & Dispute Protocols.`,
       '',
       '## Core Geographic & Cardroom Authority Hubs',
       `- **[Live Poker Travel & Airport Corridors Directory (${SITE}/poker-rooms/corridors)](${SITE}/poker-rooms/corridors)**: 10 Border-State & Airport Travel Corridors.`,
@@ -1819,7 +1839,7 @@ export function buildHumansTxt() {
     'Official Floor Rulings: 30 TDA & RROP Rulings (https://smarter.poker/rules)',
     'Poker Game Variants: 15 Rules & Mixed-Game Guides (https://smarter.poker/games)',
     'US Regional Market Guides: 12 Major Poker Destinations (https://smarter.poker/poker-rooms/guides)',
-    'US State Poker Legality & Tax Directory: 15 States (https://smarter.poker/poker-rooms/states)',
+    'US State Poker Legality & Tax Directory: All 50 States & DC (https://smarter.poker/poker-rooms/states)',
     'International Poker Destinations: 10 Global Cities (https://smarter.poker/poker-rooms/international)',
     'Airport & Border Travel Corridors: 10 Routes (https://smarter.poker/poker-rooms/corridors)',
     'Live Poker Rooms By Game Variant: 6 Directories (https://smarter.poker/poker-rooms/by-game)',

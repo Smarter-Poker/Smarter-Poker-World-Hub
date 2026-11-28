@@ -1,0 +1,647 @@
+/*
+ * Poker Near Me #SMARTERDESIGN layer (Dan, 2026-11-27).
+ *
+ * Dan, verbatim: "POKER NEAR ME ... NEEDS THE SAME #SMARTERDESIGN UPGRADE TO
+ * EVERY SINGLE PAGE, SUBPAGE, BUTTON AND EVERYTHING ELSE, EXACTLY LIKE WE'VE
+ * DONE FOR EVERY OTHER WORLD HUB PAGE." and, earlier the same day, "NO DO NOT
+ * USE THOSE BULKY FRAMES, THATS THE OLD STYLE... USE THE #SMARTERDESIGN STYLE".
+ *
+ * Poker Near Me was built on the #ClubArenaConsole painted system: raster
+ * chassis heads, three-slice painted panels, painted plate buttons and painted
+ * input wells. This file is loaded AFTER every other Poker Near Me stylesheet
+ * (pages/_app.js) and replaces each of those painted surfaces with the
+ * #SMARTERDESIGN material from styles/smarterdesign.css: ink-navy surfaces, ONE
+ * thin nine-slice steel rim per surface (chrome-readout / chrome-row /
+ * chrome-stat), cobalt chrome-active-v2 for the selected or primary control,
+ * white titles, silver supporting text and ice-blue emphasis. Painted ICONS
+ * (pnc-icon, tile art, map markers) are artwork and stay.
+ *
+ * The painted plate buttons, input wells and three-slice panels were rewritten
+ * at source in every Poker Near Me stylesheet and page (each rule now declares
+ * the chrome-row / chrome-active-v2 / chrome-readout rim itself);
+ * __tests__/poker-near-me-smarterdesign.law.test.mjs refuses one coming back.
+ * This file holds the structural pieces: the page header band, the lobby grid
+ * and readouts, the feature sheet, the status rail, and the painted chassis
+ * (.pnc) turned into one flowing steel-rimmed surface.
+ */
+
+
+body.world-poker-near-me {
+  --pnc-gold: #86daff;
+}
+
+.pnm-sd-top {
+  width: min(100%, 1080px);
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 10px max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
+}
+
+.pnm-sd-top .pnm-sd-header {
+  margin: 0;
+}
+
+/* Lobby: search and location sit in one band under the tabs. */
+body.world-poker-near-me .pnm-lobby-page .lobby-topbar {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+  padding: 4px 8px 0 !important;
+  background: none !important;
+}
+
+body.world-poker-near-me .pnm-lobby-page :is(.lobby-topbar > div, .lobby-search-form) {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+body.world-poker-near-me .lobby-search-wrap {
+  min-height: 52px;
+}
+
+body.world-poker-near-me .lobby-search-copy {
+  color: #bdd0e2 !important;
+  font: 600 16px/1.2 var(--font-inter, Inter), sans-serif !important;
+  letter-spacing: 0 !important;
+}
+
+body.world-poker-near-me .lobby-search-copy.has-query {
+  color: #f2f7ff !important;
+}
+
+body.world-poker-near-me .lobby-location-prompts {
+  display: grid !important;
+  gap: 6px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+body.world-poker-near-me .lobby-location-prompt {
+  width: 100% !important;
+  min-height: 56px;
+}
+
+body.world-poker-near-me .lobby-location-prompt__title {
+  color: #f2f7ff !important;
+  font: 700 16px/1.15 var(--font-rajdhani, 'Arial Narrow'), sans-serif !important;
+  letter-spacing: 0 !important;
+}
+
+body.world-poker-near-me .lobby-location-prompt__detail {
+  color: #bdd0e2 !important;
+  font: 500 13px/1.25 var(--font-inter, Inter), sans-serif !important;
+  letter-spacing: 0 !important;
+}
+
+body.world-poker-near-me .lobby-location-status {
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: #06111d padding-box !important;
+  color: #f2f7ff !important;
+  min-height: 48px;
+}
+
+body.world-poker-near-me .lobby-location-status__action {
+  color: #86daff !important;
+}
+
+/* Lobby: twelve live destination tiles in one grid, no outer frame (the
+   tiles carry their own chrome bevel; a frame round them would be a frame
+   inside a frame). */
+body.world-poker-near-me .pnm-lobby-page .lobby-card-scroll {
+  align-items: center !important;
+  padding: 12px 8px 18px !important;
+}
+
+body.world-poker-near-me .pnm-lobby-page .lobby-card-scroll > .pnm-sd-grid {
+  width: min(100%, 720px) !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+}
+
+body.world-poker-near-me .pnm-sd-grid__tiles {
+  position: relative !important;
+  inset: auto !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(8px, 2.4vw, 18px) clamp(6px, 2vw, 16px);
+}
+
+body.world-poker-near-me .pnm-lobby-page .pnm-sd-tile {
+  display: flex !important;
+  min-width: 0;
+  min-height: 44px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0 !important;
+  color: #f2f7ff;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.world-poker-near-me .pnm-sd-tile__icon {
+  display: block;
+  width: 100%;
+  max-width: 168px;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 14%;
+  box-shadow: 0 4px 12px #000a;
+  transition: transform 120ms ease, filter 120ms ease;
+  user-select: none;
+}
+
+body.world-poker-near-me .pnm-sd-tile:active .pnm-sd-tile__icon {
+  transform: scale(0.95);
+  filter: brightness(1.12);
+}
+
+@media (hover: hover) {
+  body.world-poker-near-me .pnm-sd-tile:hover .pnm-sd-tile__icon {
+    filter: brightness(1.12);
+  }
+}
+
+body.world-poker-near-me .pnm-lobby-page .pnm-sd-tile:focus-visible {
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 3px !important;
+}
+
+/* The label was a visually hidden copy of text painted into the bitmap; it is
+   now the only label, so it is shown. */
+body.world-poker-near-me .pnm-sd-tile__label.lobby-hotspot-label {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+  clip-path: none !important;
+  color: #f2f7ff !important;
+  font: 700 clamp(13px, 3.4vw, 17px)/1.12 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  overflow-wrap: anywhere;
+  text-shadow: 0 1px 2px #000;
+}
+
+/* Lobby: status readouts are #SMARTERDESIGN metrics. */
+body.world-poker-near-me .pnm-sd-stats {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: min(100%, 720px) !important;
+  margin: 16px auto 0 !important;
+  pointer-events: auto !important;
+}
+
+body.world-poker-near-me .pnm-sd-stats .lobby-stat {
+  min-height: 84px;
+  padding: 8px 6px !important;
+}
+
+body.world-poker-near-me .pnm-sd-stats .lobby-stat__value {
+  font: 800 clamp(22px, 6vw, 30px)/1.05 var(--font-rajdhani, 'Arial Narrow'), sans-serif !important;
+  font-variant-numeric: tabular-nums;
+}
+
+body.world-poker-near-me .pnm-sd-stats .lobby-stat__value.pnc-ink--muted {
+  color: #bdd0e2 !important;
+  font-size: clamp(16px, 4.4vw, 20px) !important;
+}
+
+body.world-poker-near-me .pnm-sd-stats .lobby-stat__value.pnc-ink--blue { color: #86daff !important; }
+body.world-poker-near-me .pnm-sd-stats .lobby-stat__value.pnc-ink--silver { color: #f2f7ff !important; }
+
+body.world-poker-near-me .pnm-sd-stats .lobby-stat__label {
+  margin-top: 6px !important;
+  color: #bdd0e2 !important;
+  font: 600 13px/1.15 var(--font-inter, Inter), sans-serif !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+/* Lobby feature sheet (the full-screen panel a destination opens in). */
+.pnm-sd-panel-bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
+  border-bottom: 1px solid #2b445c;
+  background: linear-gradient(180deg, #0f2236, #071321);
+}
+
+.pnm-sd-panel-bar__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px 4px 8px;
+  font-size: 15px;
+}
+
+.pnm-sd-panel-bar__title {
+  min-width: 0;
+  margin: 0;
+  color: #f2f7ff;
+  -webkit-text-fill-color: #f2f7ff;
+  font: 800 clamp(20px, 5vw, 26px)/1.05 var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.pnm-sd-panel-bar__title + div {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.sd-tabs.pnm-sd-panel-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  background: #050e18;
+  border-bottom: 1px solid #1f344a;
+}
+
+.sd-tabs.pnm-sd-panel-tabs > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.pnm-sd-panel-intel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 16px;
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-bottom: 1px solid #1f344a;
+  background: #071321;
+  color: #bdd0e2;
+  font: 600 13px/1.2 var(--font-inter, Inter), sans-serif;
+}
+
+.pnm-sd-panel-intel > span { display: inline-flex; align-items: center; gap: 5px; }
+.pnm-sd-panel-intel__value { color: #f2f7ff; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pnm-sd-panel-intel__place { color: #86daff; }
+
+/* Discovery pages: the status rail is a row of #SMARTERDESIGN metrics. */
+body.world-poker-near-me .pnm-sd-status {
+  margin: 10px 0 0;
+}
+
+body.world-poker-near-me .pnm-status-rail {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 6px;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+}
+
+body.world-poker-near-me .pnm-status-rail__item {
+  min-width: 0;
+  margin: 0 !important;
+  padding: 7px 8px !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) padding-box !important;
+  text-align: center;
+}
+
+body.world-poker-near-me .pnm-status-rail__item dt {
+  margin: 0 0 3px !important;
+  color: #bdd0e2 !important;
+  font: 600 12px/1.15 var(--font-inter, Inter), sans-serif !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+body.world-poker-near-me .pnm-status-rail__item dd {
+  display: block !important;
+  text-align: center !important;
+  margin: 0 !important;
+  color: #f2f7ff !important;
+  font: 800 16px/1.15 var(--font-rajdhani, 'Arial Narrow'), sans-serif !important;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+body.world-poker-near-me .pnm-status-rail__item--live dd { color: #8ff0a4 !important; }
+body.world-poker-near-me .pnm-status-rail__item--offline dd { color: #ff8a96 !important; }
+
+/* The painted chassis (.pnc) becomes ONE steel-rimmed surface whose head is
+   live, flowing type: no raster head, crest, mid rail, foot or plate strip,
+   and no absolutely positioned "zones" that clip a long title. */
+body.world-poker-near-me .pnc,
+.pnc[data-pnm-console='painted-chassis-v1'] {
+  box-sizing: border-box;
+  gap: 0;
+  padding: clamp(12px, 3vw, 22px) !important;
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) padding-box !important;
+  color: #f2f7ff;
+  font-family: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.pnc[data-pnm-console='painted-chassis-v1'] > .pnc__head {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+  aspect-ratio: auto !important;
+  min-height: 0 !important;
+  margin: 0 0 12px !important;
+  background: none !important;
+}
+
+.pnc[data-pnm-console='painted-chassis-v1'] > .pnc__head > .pnc-zone {
+  position: static !important;
+  inset: auto !important;
+  width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  text-wrap: pretty !important;
+  grid-column: 1;
+}
+
+.pnc[data-pnm-console='painted-chassis-v1'] > .pnc__head > .pnc-zone > span {
+  font-size: inherit !important;
+  white-space: normal;
+}
+
+.pnc[data-pnm-console='painted-chassis-v1'] .pnc__eyebrow {
+  color: #86daff !important;
+  font: 700 13px/1.2 var(--font-inter, Inter), sans-serif !important;
+  letter-spacing: 0.02em !important;
+  text-transform: none !important;
+}
+
+.pnc[data-pnm-console='painted-chassis-v1'] .pnc__title {
+  margin: 0 !important;
+  color: #f2f7ff !important;
+  -webkit-text-fill-color: #f2f7ff !important;
+  font: 800 clamp(22px, 5.6vw, 32px)/1.06 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif !important;
+  letter-spacing: -0.01em !important;
+  text-transform: none !important;
+  overflow-wrap: anywhere;
+}
+
+.pnc[data-pnm-console='painted-chassis-v1'] .pnc__subtitle {
+  color: #bdd0e2 !important;
+  font: 500 14px/1.35 var(--font-inter, Inter), sans-serif !important;
+  letter-spacing: 0 !important;
+}
+
+.pnc[data-pnm-console='painted-chassis-v1'] .pnc__pill {
+  grid-column: 2 !important;
+  grid-row: 1 / span 2;
+  align-self: start;
+  padding: 6px 10px !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  background: #06111d padding-box !important;
+  font: 700 13px/1.1 var(--font-rajdhani, 'Arial Narrow'), sans-serif !important;
+  white-space: nowrap !important;
+}
+
+.pnc[data-pnm-console='painted-chassis-v1'] > .pnc__body {
+  padding: 0 !important;
+  gap: 12px !important;
+  background: none !important;
+}
+
+.pnc[data-pnm-console='painted-chassis-v1'] > .pnc__foot {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 8px;
+  aspect-ratio: auto !important;
+  min-height: 0 !important;
+  margin-top: 12px;
+  background: none !important;
+}
+
+.pnc[data-pnm-console='painted-chassis-v1'] > .pnc__foot:empty {
+  display: none !important;
+}
+
+.pnc[data-pnm-console='painted-chassis-v1'] .pnc-plate {
+  position: static !important;
+  inset: auto !important;
+  flex: 1 1 140px;
+  width: auto !important;
+  height: auto !important;
+  min-height: 46px;
+  padding: 6px 12px !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+  color: #f2f7ff !important;
+  cursor: pointer;
+}
+
+.pnc[data-pnm-console='painted-chassis-v1'] .pnc-plate:last-child {
+  border-image-source: url('/images/smarterdesign/chrome-active-v2.webp') !important;
+  border-image-slice: 11 !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box !important;
+}
+
+.pnc[data-pnm-console='painted-chassis-v1'] .pnc-plate__face,
+.pnc[data-pnm-console='painted-chassis-v1'] .pnc-plate__text {
+  position: static !important;
+  display: block;
+  width: auto !important;
+  height: auto !important;
+  color: inherit !important;
+  font: 700 16px/1.15 var(--font-rajdhani, 'Arial Narrow'), sans-serif !important;
+  white-space: normal !important;
+}
+
+/* Painted three-slice panel (.pnc-panel): the body carries the one rim. */
+body.world-poker-near-me .pnc-panel > .pnc-panel__body {
+  padding: clamp(10px, 2.6vw, 18px) !important;
+}
+
+/* Inks: titles white, support silver, emphasis ice. No gold anywhere. */
+body.world-poker-near-me .pnc-ink--gold { color: #86daff !important; }
+body.world-poker-near-me .pnc-ink--muted { color: #bdd0e2 !important; }
+body.world-poker-near-me .pnc-ink--silver,
+body.world-poker-near-me .pnc-ink--white { color: #f2f7ff !important; }
+
+body.world-poker-near-me [data-tone='gold'] {
+  color: #86daff !important;
+  text-shadow: none !important;
+}
+
+/* Native selects and text fields inside Poker Near Me read as #SMARTERDESIGN
+   wells with readable 16px type (16px also stops iOS zooming the page). */
+body.world-poker-near-me :is(.pnm-filter-select, .sort-select, .sort-results-select) {
+  min-height: 46px;
+  color: #f2f7ff !important;
+  font: 700 16px/1.2 var(--font-rajdhani, 'Arial Narrow'), sans-serif !important;
+  color-scheme: dark;
+}
+
+/* Page header spacing on discovery routes. */
+body.world-poker-near-me .pnm-title-bar.pnm-sd-titlebar {
+  width: min(100%, 1080px);
+  margin: 0 auto !important;
+  padding: 10px 8px 4px !important;
+  border: 0 !important;
+  background: none !important;
+}
+
+/* The hero eyebrow ("LIVE POKER DISCOVERY NETWORK", CSS generated text) sat
+   above the old plain title. The image header names the page itself. */
+body.world-poker-near-me :is(.pnm-title-bar, .hg-title-bar, .ec-hero, .dt-header).pnm-sd-titlebar::before {
+  content: none !important;
+  display: none !important;
+}
+
+body.world-poker-near-me .pnm-sd-titlebar .pnm-sd-header {
+  margin: 0;
+}
+
+
+/* Featured Poker Rooms (server-rendered registry): one steel rim, a bold
+   title, and a dark scrim under each name so it reads over any logo. */
+body.world-poker-near-me .pnm-ssr-directory {
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) padding-box !important;
+}
+
+body.world-poker-near-me .pnm-ssr-directory-heading :is(h2, h3) {
+  color: #f2f7ff !important;
+  font: 800 clamp(22px, 5.6vw, 30px)/1.06 var(--font-rajdhani, 'Arial Narrow'), sans-serif !important;
+  letter-spacing: -0.01em !important;
+}
+
+body.world-poker-near-me .pnm-ssr-venue {
+  position: relative;
+  overflow: hidden;
+}
+
+body.world-poker-near-me .pnm-ssr-venue-copy {
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(180deg, #050e1800, #050e18d9 38%, #050e18f2) !important;
+  text-shadow: 0 1px 2px #000;
+}
+
+/* Load more, retry and other secondary page actions: readable, full size. */
+body.world-poker-near-me :is(.load-more-btn, .pnm-empty-state button, .empty-state button, .pnm-directory-source button) {
+  min-height: 48px !important;
+  padding: 8px 18px !important;
+  font: 700 16px/1.15 var(--font-rajdhani, 'Arial Narrow'), sans-serif !important;
+  letter-spacing: 0 !important;
+}
+
+
+/* Map frame title: no painted face to fit any more, so the title wraps in
+   full instead of shrinking to "Poker Discovery M". */
+body.world-poker-near-me .pnm-map-surface__identity,
+body.world-poker-near-me .pnm-map-surface__identity strong {
+  min-width: 0;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+body.world-poker-near-me .pnm-map-surface__identity strong > .pnm-map-surface__title-text {
+  font-size: 16px !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  color: #f2f7ff;
+}
+
+
+/* Secondary family pages (Daily Tournaments, Events Calendar, Poker Tours,
+   Home Games): the image header names the page, so the old hero block under
+   it is a plain status and search band with no eyebrow and no second title. */
+body.world-poker-near-me .pnm-sd-top + :is(.dt-header, .ec-map-page-header, .pnm-map-directory-header),
+body.world-poker-near-me .pnm-title-bar.pnm-sd-titlebar {
+  display: block !important;
+  width: min(100%, 1080px) !important;
+  box-sizing: border-box;
+  margin: 8px auto 0 !important;
+  padding: 0 8px !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  text-align: left !important;
+}
+
+body.world-poker-near-me .pnm-sd-top + :is(.dt-header, .ec-map-page-header, .pnm-map-directory-header)::before,
+body.world-poker-near-me .pnm-title-bar.pnm-sd-titlebar::before {
+  content: none !important;
+  display: none !important;
+}
+
+body.world-poker-near-me .pnm-sd-top + :is(.dt-header, .ec-map-page-header, .pnm-map-directory-header)::after,
+body.world-poker-near-me .pnm-title-bar.pnm-sd-titlebar::after {
+  content: none !important;
+  display: none !important;
+}
+
+body.world-poker-near-me .pnm-sd-top + .dt-header :is(.dt-header-left, .dt-header-right) {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+body.world-poker-near-me .pnm-sd-top + .dt-header .dt-header-right {
+  margin-top: 10px !important;
+}
+
+body.world-poker-near-me .pnm-sd-top + .dt-header .subtitle {
+  color: #bdd0e2 !important;
+  font: 600 14px/1.3 var(--font-inter, Inter), sans-serif !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+body.world-poker-near-me .pnm-search-box {
+  max-width: none !important;
+}
+
+/* Every page search field: one chrome well, 16px type, icon reserved. */
+body.world-poker-near-me :is(.dt-search-input, .ec-search-input, .tours-search-bar-input, .hg-search-input) {
+  min-height: 52px !important;
+  box-sizing: border-box;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: #06111d padding-box !important;
+  box-shadow: none !important;
+  color: #f2f7ff !important;
+  font: 600 16px/1.2 var(--font-inter, Inter), sans-serif !important;
+}
+
+body.world-poker-near-me :is(.dt-search-input, .ec-search-input, .tours-search-bar-input, .hg-search-input)::placeholder {
+  color: #9fb4c8 !important;
+}
+
+body.world-poker-near-me .pnm-sd-top .pnm-sd-header,
+body.world-poker-near-me .pnm-sd-titlebar .pnm-sd-header {
+  width: 100%;
+}
+
+/* Plate labels read white on chrome and cobalt (the old blue ink was meant
+   for painted silver plates and vanished on the cobalt primary). */
+body.world-poker-near-me .pnc[data-pnm-console='painted-chassis-v1'] .pnc-plate .pnc-plate__text[class*='pnc-ink--'] {
+  color: #ffffff !important;
+  text-shadow: 0 1px 1px #0008 !important;
+}

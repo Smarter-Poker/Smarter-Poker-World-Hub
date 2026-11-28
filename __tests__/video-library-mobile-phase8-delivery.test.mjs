@@ -39,4 +39,7 @@ test('live tracking proof uses the discoverable non-autoplaying player and nativ
  assert.match(source,/await expect\.poll\(state, \{ timeout: 20000 \}\)\.toBe\(1\)/);
  assert.match(source,/The real provider must resume near the saved position/);
  assert.doesNotMatch(source,/name: `Play \$\{video\.title\}`|searchParams\.get\('start'\)/);
+ // Ready renders nothing since #3170, so no proof may wait for a ready status line.
+ assert.doesNotMatch(source,/data-watch-tracking="ready"/);
+ assert.match(source,/expect\(page\.locator\('\[data-watch-tracking\]'\)\)\.toHaveCount\(0/);
 });

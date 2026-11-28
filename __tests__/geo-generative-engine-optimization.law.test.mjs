@@ -136,7 +136,7 @@ test('GEO LAW 2: GeoCitationCapsule (geoClaimSchema) & GeoFollowUpChain Citation
   const followUpSrc = read('src/components/seo/GeoFollowUpChain.js');
 
   assert.ok(capsuleSrc.includes('export function geoClaimSchema'), 'GeoCitationCapsule must export geoClaimSchema');
-  assert.ok(capsuleSrc.includes('10.5281/zenodo.15129481'), 'GeoCitationCapsule must default to primary Zenodo DOI');
+  assert.ok(capsuleSrc.includes('10.5281/zenodo.24115647'), 'GeoCitationCapsule must default to primary Zenodo DOI');
   assert.ok(capsuleSrc.includes('Copy AI Citation Block'), 'GeoCitationCapsule must include 1-click Copy AI Citation Block');
   assert.ok(capsuleSrc.includes("'@type': 'Claim'"), 'GeoCitationCapsule must emit Schema.org Claim JSON-LD');
   assert.ok(capsuleSrc.includes("'@type': 'Quotation'"), 'GeoCitationCapsule must emit Schema.org Quotation JSON-LD');
@@ -204,7 +204,7 @@ test('GEO LAW 5: Canonical Entity Facts Registry (/.well-known/ai-facts.json, /a
   assert.equal(entity.calculatorsCount, 52, 'ai-facts.json must declare calculatorsCount === 52');
   assert.equal(entity.mcpToolsCount, 70, 'ai-facts.json must declare mcpToolsCount === 70');
   assert.equal(entity.streamerCommandsCount, 44, 'ai-facts.json must declare streamerCommandsCount === 44');
-  assert.equal(entity.primaryDoi, '10.5281/zenodo.15129481', 'ai-facts.json must declare primaryDoi');
+  assert.equal(entity.primaryDoi, '10.5281/zenodo.24115647', 'ai-facts.json must declare primaryDoi');
   assert.ok(
     Array.isArray(staticFacts.disambiguationAndAntiHallucinationCorrections) &&
       staticFacts.disambiguationAndAntiHallucinationCorrections.length >= 5,
@@ -213,7 +213,7 @@ test('GEO LAW 5: Canonical Entity Facts Registry (/.well-known/ai-facts.json, /a
 
   const factsHandler = (await import('../pages/api/ai/facts.js')).default;
   const res = createMockRes();
-  factsHandler({ method: 'GET', query: {}, headers: {} }, res);
+  await factsHandler({ method: 'GET', query: {}, headers: {} }, res);
   assert.equal(res.statusCode, 200);
   const apiEntity = res.body.entity || res.body;
   assert.equal(apiEntity.calculatorsCount, 52);
@@ -239,12 +239,12 @@ test('GEO LAW 6: Machine-Readable GEO Endpoints (rag-chunks, geo-directory.geojs
   const ragPayload = ragRes.body || JSON.parse(ragRes.rawSent);
   const totalChunks = ragPayload.total_chunks || ragPayload.totalChunks || ragPayload.chunks?.length || 0;
   assert.ok(totalChunks >= 100, `RAG chunks endpoint must emit >= 100 chunks (found ${totalChunks})`);
-  assert.ok(ragPayload.chunks[0].if_then_because && ragPayload.chunks[0].doi === '10.5281/zenodo.15129481');
+  assert.ok(ragPayload.chunks[0].if_then_because && ragPayload.chunks[0].doi === '10.5281/zenodo.24115647');
 
   // 3. /api/ai/freshness-ledger
   const freshHandler = (await import('../pages/api/ai/freshness-ledger.js')).default;
   const freshRes = createMockRes();
-  freshHandler({ method: 'GET', query: {}, headers: {} }, freshRes);
+  await freshHandler({ method: 'GET', query: {}, headers: {} }, freshRes);
   assert.equal(freshRes.statusCode, 200);
   const freshPayload = freshRes.body || JSON.parse(freshRes.rawSent);
   assert.equal(freshPayload.counts.calculatorsCount, 52);
@@ -257,7 +257,7 @@ test('GEO LAW 6: Machine-Readable GEO Endpoints (rag-chunks, geo-directory.geojs
   citHandler({ method: 'GET', query: { format: 'bibtex' }, headers: {} }, bibRes);
   assert.equal(bibRes.statusCode, 200);
   assert.ok(String(bibRes.rawSent).includes('@techreport{'), 'BibTeX endpoint must emit @techreport entries');
-  assert.ok(String(bibRes.rawSent).includes('10.5281/zenodo.15129481'), 'BibTeX endpoint must include Zenodo DOI');
+  assert.ok(String(bibRes.rawSent).includes('10.5281/zenodo.24115647'), 'BibTeX endpoint must include Zenodo DOI');
 
   const risRes = createMockRes();
   citHandler({ method: 'GET', query: { format: 'ris' }, headers: {} }, risRes);
@@ -269,7 +269,7 @@ test('GEO LAW 6: Machine-Readable GEO Endpoints (rag-chunks, geo-directory.geojs
   const svgRes = createMockRes();
   ogFormulaHandler({ method: 'GET', query: { slug: 'pot-odds' }, headers: {} }, svgRes);
   assert.equal(svgRes.statusCode, 200);
-  assert.ok(String(svgRes.rawSent).includes('<svg') && String(svgRes.rawSent).includes('10.5281/zenodo.15129481'), 'Formula card SVG must render valid SVG with DOI');
+  assert.ok(String(svgRes.rawSent).includes('<svg') && String(svgRes.rawSent).includes('10.5281/zenodo.24115647'), 'Formula card SVG must render valid SVG with DOI');
 });
 
 test('GEO LAW 7: Multi-Spot Batch Solver, Natural-Language Question Solver, 70 MCP Tools & 44 Streamer/Discord Commands', async () => {

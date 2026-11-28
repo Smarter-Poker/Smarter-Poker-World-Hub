@@ -13,17 +13,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import { TrainingConsoleSkeleton } from '../../../src/components/training/console/TrainingConsoleStates';
+import sd from '../../../src/styles/training/training-journey-sd.module.css';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // TRAIN-CSS-MOTION-ADOPT-25 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -255,116 +257,68 @@ function getNodeStatus(node, stats, unlockedNodes) {
 // SKILL NODE COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function SkillNode({ node, nodeStatus, branchColor, onTap }) {
+function SkillNode({ node, nodeStatus, onTap }) {
   const { status, accuracy, hands = 0 } = nodeStatus;
   const isLocked = status === 'locked';
   const isMastered = status === 'mastered';
+  const state = isLocked ? 'locked' : isMastered ? 'mastered' : 'open';
 
   return (
     <motion.button
-      whileTap={!isLocked ? { scale: 0.95 } : {}}
+      type="button"
+      whileTap={!isLocked ? { scale: 0.97 } : {}}
       onClick={() => !isLocked && onTap(node)}
-      style={{
-        padding: '12px 14px',
-        borderRadius: 12,
-        width: '100%',
-        background: isMastered
-          ? `linear-gradient(135deg, ${branchColor}15, ${branchColor}08)`
-          : isLocked
-            ? 'rgba(255,255,255,0.01)'
-            : 'rgba(0,0,0,0.2)',
-        border: `1px solid ${isMastered ? `${branchColor}30` : isLocked ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)'}`,
-        cursor: isLocked ? 'not-allowed' : 'pointer',
-        opacity: isLocked ? 0.4 : 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        textAlign: 'left',
-      }}
+      disabled={isLocked}
+      className={sd.skillNode}
+      data-state={state}
+      aria-label={`${node.name}${isLocked ? ', locked' : isMastered ? ', mastered' : ''}`}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            background: isMastered
-              ? `${branchColor}20`
-              : isLocked
-                ? 'rgba(255,255,255,0.03)'
-                : 'rgba(255,255,255,0.05)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 14,
-          }}
-        >
-          {/* TRAIN-SKILL-TREE-A11Y-1: SVG status icon (was emoji /✓/). */}
-          {isLocked ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"
-              aria-hidden="true" focusable="false">
-              <rect x="3" y="11" width="18" height="11" rx="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-          ) : isMastered ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              aria-hidden="true" focusable="false">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              aria-hidden="true" focusable="false">
-              <circle cx="12" cy="12" r="9" />
-              <circle cx="12" cy="12" r="4" />
-            </svg>
-          )}
-        </div>
-        <div>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: isMastered ? branchColor : isLocked ? 'var(--sp-fg-faint)' : 'var(--sp-fg)',
-            }}
-          >
-            {node.name}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginTop: 1 }}>
-            {isLocked
-              ? 'Locked - complete prerequisite'
-              : isMastered
-                ? `Mastered at ${accuracy}%`
-                : accuracy
-                  ? `${accuracy}% - need ${node.threshold}%`
-                  : `Goal: ${node.threshold}% accuracy`}
-          </div>
-        </div>
-      </div>
-      <div style={{ textAlign: 'right' }}>
-        {!isLocked && (
-          <>
-            <div
-              style={{
-                fontSize: 14,
-                fontWeight: 800,
-                color: isMastered
-                  ? 'var(--sp-accent-green)'
-                  : accuracy >= node.threshold * 0.8
-                    ? '#38bdf8'
-                    : 'var(--sp-fg-dim)',
-              }}
-            >
-              {accuracy !== null ? `${accuracy}%` : '-'}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>
-              {hands} Verified {hands === 1 ? 'Hand' : 'Hands'}
-            </div>
-          </>
+      <span className={sd.skillNodeIcon} aria-hidden="true">
+        {/* TRAIN-SKILL-TREE-A11Y-1: SVG status icon. */}
+        {isLocked ? (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"
+            aria-hidden="true" focusable="false">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        ) : isMastered ? (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            aria-hidden="true" focusable="false">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="9" />
+            <circle cx="12" cy="12" r="4" />
+          </svg>
         )}
-      </div>
+      </span>
+      <span className={sd.skillNodeText}>
+        <span className={sd.skillNodeName}>{node.name}</span>
+        <span className={sd.skillNodeHint}>
+          {isLocked
+            ? 'Locked - Complete Prerequisite'
+            : isMastered
+              ? `Mastered At ${accuracy}%`
+              : accuracy
+                ? `${accuracy}% - Need ${node.threshold}%`
+                : `Goal: ${node.threshold}% Accuracy`}
+        </span>
+      </span>
+      {!isLocked && (
+        <span className={sd.skillNodeScore}>
+          <span className={isMastered ? sd.good : accuracy >= node.threshold * 0.8 ? sd.ice : ''}>
+            {accuracy !== null ? `${accuracy}%` : '-'}
+          </span>
+          <span className={sd.skillNodeHint}>
+            {hands} Verified {hands === 1 ? 'Hand' : 'Hands'}
+          </span>
+        </span>
+      )}
     </motion.button>
   );
 }
@@ -443,281 +397,124 @@ export default function SkillTreePage() {
         description="Track Your Poker Mastery Across Connected Competency Branches From Preflop Foundations To River Bluff Catching And Tournament ICM On Smarter.Poker."
         canonical="/hub/training/skill-tree"
       />
-      <div
-        className="sp-training-journey sp-training-journey--skill-tree"
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="sp-journey-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          {/* TRAIN-SKILL-TREE-A11Y-1: aria-label + SVG arrow (was bare '←' text
-              which screen readers announce as 'left pointing arrow'). */}
-          <button
-            type="button"
-            onClick={() => router.push('/hub/training')}
-            aria-label="Back To Training"
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              minWidth: 44,
-              minHeight: 44,
-              width: 44,
-              height: 44,
-              borderRadius: 8,
-              border: '1px solid rgba(148, 184, 224, 0.28)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.25"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-          </button>
-          <div style={{ flex: 1 }}>
-            {/* TRAIN-SKILL-TREE-A11Y-1: page heading uses semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#ffffff' }}>Skill Tree</h1>
-            <div style={{ fontSize: 12, color: '#cbd5e1' }}>
-              Mastery From Sealed Training Sessions
-            </div>
-          </div>
-          {/* TRAIN-SKILL-TREE-A11Y-1: status role + readable aria-label */}
-          <div
+      <div className={`sp-training-journey sp-training-journey--skill-tree ${sd.root}`}>
+        <TrainingPageHead slug="training-skill-tree" note="Mastery From Sealed Training Sessions">
+          <p
+            className="sp-head-note"
             role="status"
             aria-label={
               stats
                 ? `${masteredCount} of ${totalNodes} skill nodes mastered from verified sessions`
                 : 'Verified skill mastery unavailable'
             }
-            style={{
-              padding: '6px 12px',
-              borderRadius: 8,
-              background: '#081121',
-              border: '1px solid rgba(148, 184, 224, 0.28)',
-            }}
           >
-            <span style={{ fontSize: 14, fontWeight: 800, color: '#38bdf8', fontVariantNumeric: 'tabular-nums' }}>
-              {stats ? `${masteredCount}/${totalNodes}` : '-'}
-            </span>
-            <span style={{ fontSize: 12, color: '#cbd5e1', marginLeft: 4 }}>
-              Verified Mastery
-            </span>
-          </div>
-        </div>
+            <strong>{stats ? `${masteredCount}/${totalNodes}` : '-'}</strong> Verified Mastery
+          </p>
+        </TrainingPageHead>
 
-        <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={`sp-journey-main ${sd.main}`}>
 
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchData(); }} />
           {/* Progress Overview */}
           {!loading && stats && <motion.div
-            className="sp-journey-spotlight"
+            className={`sp-journey-spotlight ${sd.card}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            style={{
-              padding: '16px',
-              borderRadius: 14,
-              marginBottom: 20,
-              background:
-                'linear-gradient(135deg, rgba(29, 78, 216, 0.14) 0%, rgba(8, 17, 33, 0.92) 100%)',
-              border: '1px solid rgba(148, 184, 224, 0.28)',
-            }}
           >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 10,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: '#94a3b8',
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                }}
-              >
-                Nodes Mastered
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#38bdf8' }}>
-                {masteredCount}/{totalNodes}
-              </div>
+            <div className={sd.row}>
+              <span className={sd.title}>Nodes Mastered</span>
+              <span className={sd.value}>{masteredCount}/{totalNodes}</span>
             </div>
-            <div
-              style={{
-                height: 6,
-                borderRadius: 3,
-                background: 'rgba(255,255,255,0.06)',
-                overflow: 'hidden',
-              }}
-            >
+            <div className={sd.meter}>
               <motion.div
+                className={sd.meterFill}
                 initial={{ width: 0 }}
                 animate={{ width: `${(masteredCount / totalNodes) * 100}%` }}
                 transition={{ duration: MOTION.glacial }}
-                style={{
-                  height: '100%',
-                  borderRadius: 3,
-                  background: 'linear-gradient(90deg, #1d4ed8 0%, #38bdf8 100%)',
-                }}
               />
             </div>
           </motion.div>}
 
           {/* Loading */}
           {loading && (
-            <div style={{ padding: '20px 0' }}>
-              <SkeletonLoader variant="rows" rows={8} />
-            </div>
+            <TrainingConsoleSkeleton label="Loading Skill Tree" panels={3} rows={3} />
           )}
 
           {!loading && !stats && (
-            <div
-              role="status"
-              style={{
-                padding: '18px 16px',
-                border: '1px solid rgba(255,255,255,0.1)',
-                background: 'rgba(255,255,255,0.03)',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 12,
-                lineHeight: 1.6,
-              }}
-            >
-              Verified Skill Progress Is Currently Unavailable. No Mastery Status Has Been
-              Inferred From Missing Session Data.
+            <div role="status" className={sd.card} data-tone="muted">
+              <p className={sd.copy}>
+                Verified Skill Progress Is Currently Unavailable. No Mastery Status Has Been
+                Inferred From Missing Session Data.
+              </p>
             </div>
           )}
 
           {/* Skill Branches */}
           {!loading && stats &&
             SKILL_BRANCHES.map((branch, bIdx) => (
-              <motion.div
+              <motion.section
                 key={branch.id}
+                className={sd.section}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: bIdx * 0.1 }}
-                style={{ marginBottom: 20 }}
+                aria-labelledby={`skill-branch-${branch.id}`}
               >
                 {/* Branch Header */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    marginBottom: 10,
-                    padding: '0 4px',
-                  }}
-                >
-                  {/* TRAIN-SKILL-TREE-A11Y-1: SVG icon (was emoji); semantic <h2> */}
-                  <span style={{ color: branch.color, display: 'inline-flex' }}>
-                    <BranchIcon branchId={branch.id} size={18} color={branch.color} />
-                  </span>
-                  <h2 style={{ fontSize: 13, fontWeight: 700, color: branch.color, margin: 0 }}>
+                <div className={sd.sectionHead}>
+                  {/* TRAIN-SKILL-TREE-A11Y-1: SVG icon; semantic <h2> */}
+                  <h2 id={`skill-branch-${branch.id}`} className={sd.sectionTitle}>
+                    <BranchIcon branchId={branch.id} size={18} color="currentColor" />
                     {branch.name}
                   </h2>
-                  <div
-                    style={{
-                      marginLeft: 'auto',
-                      fontSize: 12,
-                      color: 'var(--sp-fg-faint)',
-                    }}
-                  >
+                  <span className={sd.value}>
                     {
                       branch.nodes.filter(
                         (n) => getNodeStatus(n, stats, unlockedNodes).status === 'mastered'
                       ).length
                     }
                     /{branch.nodes.length}
-                  </div>
+                  </span>
                 </div>
 
                 {/* Nodes */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {branch.nodes.map((node, nIdx) => {
+                <div className={sd.skillNodes}>
+                  {branch.nodes.map((node) => {
                     const nodeStatus = getNodeStatus(node, stats, unlockedNodes);
                     return (
-                      <div key={node.id} style={{ position: 'relative' }}>
-                        {/* Connector line */}
-                        {nIdx > 0 && (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              top: -6,
-                              left: 26,
-                              width: 2,
-                              height: 6,
-                              background:
-                                nodeStatus.status === 'locked'
-                                  ? 'rgba(255,255,255,0.03)'
-                                  : `${branch.color}30`,
-                            }}
-                          />
-                        )}
-                        <SkillNode
-                          node={node}
-                          nodeStatus={nodeStatus}
-                          branchColor={branch.color}
-                          onTap={handleNodeTap}
-                        />
-                      </div>
+                      <SkillNode
+                        key={node.id}
+                        node={node}
+                        nodeStatus={nodeStatus}
+                        onTap={handleNodeTap}
+                      />
                     );
                   })}
                 </div>
-              </motion.div>
+              </motion.section>
             ))}
-
-          <div style={{ marginTop: 20 }}>
-            <SmarterAccountUnlockGate
-              variant="study-deck"
-              context="training-skill-tree"
-              redirectPath="/hub/training/skill-tree"
-            />
-          </div>
-
-          <div style={{ marginTop: 20 }}>
-            <SmarterConversionCta
-              compact
-              eyebrow="Free Smarter.Poker Account"
-              title="Create Free Account To Save Custom Ranges & Track Skill Tree Mastery"
-              description="Sign Up Free To Record Sealed Training Sessions, Unlock All 16 Skill Tree Nodes, And Track Verified GTO Mastery."
-              primaryLabel="Create Free Account"
-              primaryHref="/auth/signup?redirect=/hub/training/skill-tree&src=skill-tree"
-              secondaryLabel="Sign In"
-              secondaryHref="/auth/login?redirect=/hub/training/skill-tree"
-            />
-          </div>
         </div>
       </div>
       <ConnectionToast />
+      <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>
+        <SmarterAccountUnlockGate
+          variant="study-deck"
+          context="training-skill-tree"
+          redirectPath="/hub/training/skill-tree"
+        />
+      </div>
+      <div style={{ maxWidth: 1120, margin: '0 auto 24px', padding: '0 16px' }}>
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Create Free Account To Save Custom Ranges & Track Skill Tree Mastery"
+          description="Sign Up Free To Record Sealed Training Sessions, Unlock All 16 Skill Tree Nodes, And Track Verified GTO Mastery."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/hub/training/skill-tree&src=skill-tree"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/hub/training/skill-tree"
+        />
+      </div>
       <HubPageSummary page="training-skill-tree" />
     </>
   );

@@ -8,7 +8,10 @@ import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
-import { localDay } from '../../lib/bankroll/localDates.mjs';
+import { localDay, parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
+import { fetchReportLedger } from '../../lib/bankroll/bankrollSelectors';
+import { formatCents, formatSignedCents, resultsCents, toCents } from '../../lib/bankroll/ledgerMath.mjs';
+import toast from '../../stores/toastStore';
 
 const PERIOD_OPTIONS = [
     { id: 'weekly', label: 'Weekly', days: 7 },
@@ -17,9 +20,17 @@ const PERIOD_OPTIONS = [
     { id: 'yearly', label: 'Yearly', days: 365 },
 ];
 
-export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 0 }) {
+// Progress is the player's net results (sessions and expenses, never deposits
+// or withdrawals) between the goal's own start and end days. It used to come
+// from a periodPL prop fed by stats.monthlyPL, a field getBankrollStats never
+// returned, so every goal sat at $0 and 0% however the player was doing.
+export default function BankrollGoals({ userId }) {
     const [goals, setGoals] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadFailed, setLoadFailed] = useState(false);
+    const [progress, setProgress] = useState({ goalId: null, cents: null, failed: false });
+    const [saving, setSaving] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
     const [showAddGoal, setShowAddGoal] = useState(false);
     const [newGoal, setNewGoal] = useState({ target: '', period: 'monthly' });
 
@@ -39,26 +50,36 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false });
 
-            if (!error && data) {
-                setGoals(data);
-            }
+            if (error) throw error;
+            setGoals(data || []);
+            setLoadFailed(false);
         } catch (err) {
             console.warn('[BankrollGoals] Error:', err);
+            setLoadFailed(true);
         }
         setIsLoading(false);
     }
 
     async function addGoal() {
-        if (!newGoal.target || !userId) return;
+        if (!userId) return;
+        if (!newGoal.target) {
+            toast.error('Enter A Target Profit');
+            return;
+        }
 
         const targetAmount = parseFloat(newGoal.target);
-        if (isNaN(targetAmount) || targetAmount <= 0) return;
+        if (isNaN(targetAmount) || targetAmount <= 0) {
+            toast.error('Enter A Target Greater Than $0');
+            return;
+        }
 
         const periodConfig = PERIOD_OPTIONS.find(p => p.id === newGoal.period);
         const startDate = new Date();
         const endDate = new Date();
         endDate.setDate(endDate.getDate() + periodConfig.days);
 
+        if (saving) return;
+        setSaving(true);
         try {
             const { data, error } = await supabase
                 .from('bankroll_goals')
@@ -72,37 +93,77 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                 .select()
                 .maybeSingle();
 
-            if (!error && data) {
-                setGoals([data, ...goals]);
-                setNewGoal({ target: '', period: 'monthly' });
-                setShowAddGoal(false);
-            }
+            if (error || !data) throw error || new Error('Goal not saved');
+            setGoals(prev => [data, ...prev]);
+            setNewGoal({ target: '', period: 'monthly' });
+            setShowAddGoal(false);
+            toast.success('Goal Set');
         } catch (err) {
             console.warn('[BankrollGoals] Add error:', err);
+            toast.error('Failed To Set Goal');
+        } finally {
+            setSaving(false);
         }
     }
 
     async function deleteGoal(goalId) {
         try {
-            const { error: err_bankroll_goals_pccjt } = await supabase.from('bankroll_goals').delete().eq('id', goalId);
-            if (err_bankroll_goals_pccjt) console.warn('[Supabase] Silent mutation failed in bankroll_goals:', err_bankroll_goals_pccjt.message);
-            setGoals(goals.filter(g => g.id !== goalId));
+            const { error } = await supabase.from('bankroll_goals').delete().eq('id', goalId).eq('user_id', userId);
+            if (error) throw error;
+            setGoals(prev => prev.filter(g => g.id !== goalId));
+            toast.success('Goal Removed');
         } catch (err) {
+            // Keep the goal on screen: it is still saved.
             console.warn('[BankrollGoals] Delete error:', err);
+            toast.error('Failed To Remove Goal');
         }
     }
 
-    function calculateProgress(goal) {
-        const target = goal.target_amount;
-        const progress = Math.min(100, Math.max(0, (periodPL / target) * 100));
-        return progress;
+    // Goal days are calendar days in the player's own time zone. Comparing
+    // `new Date(end_date)` (UTC midnight) with now ended every goal at 6 PM
+    // Chicago time on the day before its last day.
+    const today = localDay();
+    const activeGoal = goals.find(g => g.end_date && String(g.end_date).slice(0, 10) >= today && String(g.start_date || '').slice(0, 10) <= today)
+        || goals.find(g => g.end_date && String(g.end_date).slice(0, 10) >= today);
+
+    useEffect(() => {
+        if (!userId || !activeGoal) return undefined;
+        let cancelled = false;
+        const end = String(activeGoal.end_date).slice(0, 10);
+        setProgress({ goalId: activeGoal.id, cents: null, failed: false });
+        fetchReportLedger(userId, {
+            startDate: String(activeGoal.start_date).slice(0, 10),
+            endDate: end < today ? end : today,
+            includeExpenses: true,
+        }).then(rows => {
+            if (!cancelled) setProgress({ goalId: activeGoal.id, cents: resultsCents(rows), failed: false });
+        }).catch(err => {
+            console.warn('[BankrollGoals] Progress error:', err);
+            if (!cancelled) setProgress({ goalId: activeGoal.id, cents: null, failed: true });
+        });
+        return () => { cancelled = true; };
+    }, [userId, activeGoal?.id, activeGoal?.start_date, activeGoal?.end_date, today, refreshKey]);
+
+    // A session logged or deleted elsewhere on the page moves the progress too.
+    useEffect(() => {
+        const refresh = () => setRefreshKey(k => k + 1);
+        window.addEventListener('bankroll-updated', refresh);
+        return () => window.removeEventListener('bankroll-updated', refresh);
+    }, []);
+
+    const earnedCents = progress.goalId === activeGoal?.id ? progress.cents : null;
+    const targetCents = activeGoal ? toCents(activeGoal.target_amount) : 0;
+
+    function calculateProgress() {
+        if (earnedCents === null || !(targetCents > 0)) return 0;
+        return Math.min(100, Math.max(0, (earnedCents / targetCents) * 100));
     }
 
     function getDaysRemaining(endDate) {
-        const end = new Date(endDate);
-        const now = new Date();
-        const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-        return Math.max(0, diff);
+        // Inclusive of today: a goal that ends today has 1 day left.
+        const end = parseLedgerDay(String(endDate).slice(0, 10));
+        const now = parseLedgerDay(today);
+        return Math.max(0, Math.round((end - now) / 86400000) + 1);
     }
 
     if (!userId) {
@@ -114,8 +175,6 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
             </div>
         );
     }
-
-    const activeGoal = goals.find(g => new Date(g.end_date) >= new Date());
 
     return (
         <div style={styles.container}>
@@ -142,6 +201,9 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                             <span style={styles.dollarSign}>$</span>
                             <input
                                 type="number"
+                                inputMode="decimal"
+                                min="0"
+                                aria-label="Target Profit"
                                 value={newGoal.target}
                                 onChange={(e) => setNewGoal({ ...newGoal, target: e.target.value })}
                                 placeholder="Target Profit"
@@ -152,6 +214,8 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                             {PERIOD_OPTIONS.map(period => (
                                 <button
                                     key={period.id}
+                                    type="button"
+                                    aria-pressed={newGoal.period === period.id}
                                     onClick={() => setNewGoal({ ...newGoal, period: period.id })}
                                     style={{
                                         ...styles.periodBtn,
@@ -163,11 +227,11 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                             ))}
                         </div>
                         <div style={styles.formActions}>
-                            <button onClick={() => setShowAddGoal(false)} style={styles.cancelBtn}>
+                            <button type="button" onClick={() => setShowAddGoal(false)} style={styles.cancelBtn}>
                                 Cancel
                             </button>
-                            <button onClick={addGoal} style={styles.saveBtn}>
-                                Set Goal
+                            <button type="button" onClick={addGoal} disabled={saving} style={{ ...styles.saveBtn, opacity: saving ? 0.6 : 1 }}>
+                                {saving ? 'Saving...' : 'Set Goal'}
                             </button>
                         </div>
                     </motion.div>
@@ -183,10 +247,12 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                                 {PERIOD_OPTIONS.find(p => p.id === activeGoal.period)?.label || 'Goal'}
                             </span>
                             <span style={styles.goalTarget}>
-                                ${activeGoal.target_amount.toLocaleString()}
+                                {formatCents(targetCents)}
                             </span>
                         </div>
                         <button
+                            type="button"
+                            aria-label="Remove Goal"
                             onClick={() => deleteGoal(activeGoal.id)}
                             style={styles.deleteBtn}
                         >
@@ -211,10 +277,12 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                         </div>
                         <div style={styles.progressStats}>
                             <span style={{
-                                color: periodPL >= 0 ? '#22c55e' : '#ef4444',
+                                color: (earnedCents || 0) >= 0 ? '#22c55e' : '#ef4444',
                                 fontWeight: 600
                             }}>
-                                ${periodPL >= 0 ? '+' : ''}{periodPL.toLocaleString()}
+                                {progress.failed && progress.goalId === activeGoal.id
+                                    ? 'Progress Unavailable'
+                                    : earnedCents === null ? 'Loading...' : formatSignedCents(earnedCents) + ' Of ' + formatCents(targetCents)}
                             </span>
                             <span style={styles.progressPercent}>
                                 {Math.round(calculateProgress(activeGoal))}%
@@ -235,8 +303,17 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                 </div>
             )}
 
+            {!isLoading && loadFailed && (
+                <div style={styles.emptyState} role="alert">
+                    <span>Could Not Load Your Goals.</span>
+                    <button type="button" onClick={() => { setIsLoading(true); fetchGoals(); }} style={styles.setGoalBtn}>
+                        Try Again
+                    </button>
+                </div>
+            )}
+
             {/* No Goals State */}
-            {!isLoading && !activeGoal && !showAddGoal && (
+            {!isLoading && !loadFailed && !activeGoal && !showAddGoal && (
                 <div style={styles.emptyState}>
                     <span style={{ opacity: 0.5 }}>No Active Goal</span>
                     <BankrollHeaderAdd label="Set A Profit Target" onClick={() => setShowAddGoal(true)}>

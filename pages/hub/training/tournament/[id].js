@@ -54,15 +54,18 @@ function rankLabel(n) {
   return `${n}th`;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export default function TrainingTournamentDetail() {
   const router = useRouter();
   const { id } = router.query;
   const userId = getAuthUserId();
+  const isValidTournamentId = typeof id === 'string' && UUID_RE.test(id);
 
   const { data, error, isLoading } = useSWR(
-    id ? `/api/training/tournaments?tournamentId=${encodeURIComponent(id)}` : null,
+    isValidTournamentId ? `/api/training/tournaments?tournamentId=${encodeURIComponent(id)}` : null,
     fetcher,
-    { refreshInterval: 15000 }
+    { refreshInterval: (latestData) => (latestData?.success === false ? 0 : 15000) }
   );
 
   const tournament = data?.tournament || null;
@@ -195,8 +198,8 @@ export default function TrainingTournamentDetail() {
                 style={{
                   padding: '12px 14px',
                   borderRadius: 10,
-                  background: 'rgba(255,215,0,0.07)',
-                  border: '1px solid rgba(255,215,0,0.22)',
+                  background: 'rgba(86, 216, 255,0.07)',
+                  border: '1px solid rgba(86, 216, 255,0.22)',
                   marginBottom: 16,
                 }}
               >
@@ -225,7 +228,7 @@ export default function TrainingTournamentDetail() {
                   fontWeight: 800,
                   fontSize: 15,
                   cursor: 'not-allowed',
-                  background: 'linear-gradient(135deg,#ffd700,#f0a500)',
+                  background: 'linear-gradient(135deg, #51c9ff, #0648e2)',
                   color: '#1a1a1a',
                   marginBottom: 8,
                   opacity: 0.62,
@@ -243,7 +246,7 @@ export default function TrainingTournamentDetail() {
                   padding: '12px 16px',
                   borderRadius: 10,
                   fontWeight: 800,
-                  background: 'rgba(234,179,8,0.10)',
+                  background: 'rgba(56, 189, 248, 0.10)',
                   color: '#86daff',
                   marginBottom: 8,
                 }}
@@ -288,8 +291,8 @@ export default function TrainingTournamentDetail() {
                       padding: '8px 10px',
                       borderRadius: 8,
                       marginBottom: 4,
-                      background: mine ? 'rgba(255,215,0,0.10)' : 'rgba(255,255,255,0.03)',
-                      border: mine ? '1px solid rgba(255,215,0,0.3)' : '1px solid transparent',
+                      background: mine ? 'rgba(86, 216, 255,0.10)' : 'rgba(255,255,255,0.03)',
+                      border: mine ? '1px solid rgba(86, 216, 255,0.3)' : '1px solid transparent',
                     }}
                   >
                     <span style={{ minWidth: 42, opacity: 0.7, fontSize: 13 }}>

@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     const now = new Date();
     const activeVip = profile?.is_vip === true && (profile.vip_tier === 'lifetime' || Date.parse(profile.vip_expires_at) > now.getTime());
     if (!activeVip) return res.status(403).json({ success: false, error: 'A current VIP membership is required for Jarvis Insights.' });
-    const report = await readSessionInsights(db, user.id, analysisWindow(days, now));
+    const report = await readSessionInsights(db, user.id, analysisWindow(days, now, req.body?.today));
     return res.status(200).json({ success: true, insights: report, metrics: report.metrics });
   } catch (error) {
     reportApiError(error, req);

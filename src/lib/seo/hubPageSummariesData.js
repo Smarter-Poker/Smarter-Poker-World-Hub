@@ -144,7 +144,7 @@ export const HUB_PAGE_SUMMARIES = {
   'poker-near-me': {
     heading: 'About Poker Near Me',
     lead:
-      'Poker Near Me Is The Smarter Poker Directory Of Live Poker In The United States. Search Casinos, Card Rooms And Poker Rooms By State And City, See Cash Game Stakes And Tournament Schedules, Follow Poker Series And Tour Stops, And Open A Map Of What Is Running Nearby. Venue Details Are Verified Against The Room And Dated, So A Listing Says When It Was Last Checked.',
+      'Poker Near Me Is The Smarter Poker Directory Of Live Poker In The United States. Search Casinos, Card Rooms And Poker Rooms By State And City, See Cash Game Stakes And Tournament Schedules, Follow Poker Series And Tour Stops, And Open A Map Of What Is Running Nearby. Where A Venue Has Been Checked Against The Room, Its Listing Shows The Date Of That Check.',
     links: [
       { name: 'Home Games', href: '/hub/home-games', text: 'Private Home Poker Games By State And City.' },
       { name: 'Club Commander', href: '/hub/commander', text: 'Join A Venue Waitlist Remotely And Register For Tournaments.' },
@@ -248,7 +248,7 @@ export const HUB_PAGE_SUMMARIES = {
   'pnm-more': {
     heading: 'About The Poker Discovery Tools',
     lead:
-      'Discovery Tools Are The Parts Of Poker Near Me That Answer A Question Rather Than List A Place: Compare Two Venues Side By Side, Read Game Trends And Peak Hours For A Room, Estimate What A Trip Will Cost, And Set Alerts For Games And Tournaments You Want To Hear About. Every Tool Reads The Same Verified Venue Directory.',
+      'Discovery Tools Are The Parts Of Poker Near Me That Answer A Question Rather Than List A Place: Compare Two Venues Side By Side, Read Game Trends And Peak Hours For A Room, Estimate What A Trip Will Cost, And Set Alerts For Games And Tournaments You Want To Hear About. Every Tool Reads The Same Venue Directory.',
     links: [
       { name: 'Road Trip Planner', href: '/hub/poker-near-me/roadtrip', text: 'Poker Rooms Along A Route You Are Driving.' },
       { name: 'Poker Room Map', href: '/hub/poker-near-me/map', text: 'See The Whole Directory Geographically.' },
@@ -278,7 +278,7 @@ export const HUB_PAGE_SUMMARIES = {
   'pnm-alerts': {
     heading: 'About Poker Tournament Alerts',
     lead:
-      'Alerts Tell You When Something You Care About Is Happening Nearby: A Tournament At A Buy In You Play, A Cash Game Running At Your Stakes, Or A Series Starting Within A Distance You Set. Set The Radius, The Days And The Games Once, And The Alert Watches The Same Verified Directory The Rest Of Poker Near Me Reads. Alerts Are Configured Per Account And Are Private, So This Page Is Not Published Or Indexed.',
+      'Alerts Tell You When Something You Care About Is Happening Nearby: A Tournament At A Buy In You Play, A Cash Game Running At Your Stakes, Or A Series Starting Within A Distance You Set. Set The Radius, The Days And The Games Once, And The Alert Watches The Same Directory The Rest Of Poker Near Me Reads. Alerts Are Configured Per Account And Are Private, So This Page Is Not Published Or Indexed.',
     links: [
       { name: 'Live Cash Games', href: '/hub/poker-near-me/live-games', text: 'What Is Running Right Now Without Waiting For An Alert.' },
       { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'Pick The Rooms Worth Hearing About.' },
@@ -1123,7 +1123,7 @@ export const HUB_PAGE_SUMMARIES = {
     lead:
       'The International Live Poker Destinations Directory Profiles The Ten Premier Global Poker Cities Outside The United States (London, Barcelona, Rozvadov, Monte Carlo, Prague, Manila, Macau, Melbourne, Montreal, And Nassau), Covering Flagship Cardrooms, Currencies, Typical Cash Game Stakes, Rake Caps, Major Festival Stops, And Local Visitor Tax Rules. Free Global Guide.',
     links: [
-      { name: 'Live Poker Near Me Lobby', href: '/hub/poker-near-me/lobby', text: 'Browse Verified Cardrooms And Daily Tournament Schedules.' },
+      { name: 'Live Poker Near Me Lobby', href: '/hub/poker-near-me/lobby', text: 'Browse Listed Cardrooms And Daily Tournament Schedules.' },
       { name: 'Poker Trip Expense Planner', href: '/tools/poker-trip-planner', text: 'Budget Flights, Hotels And Buy-Ins For International Stops.' },
       { name: 'Live Cash Rake Calculator', href: '/tools/rake-calculator', text: 'Compare International Rake Caps And Time Collections.' },
     ],
@@ -1364,7 +1364,7 @@ export const HUB_PAGE_SUMMARIES = {
       'The Live Poker Travel Corridors Directory Maps The Ten Highest-Traffic North American Airport, Interstate, And Cross-Border Poker Routes, Connecting Non-Casino Metropolitan Areas To Their Closest Legal Commercial, Tribal, And Social-Membership Cardrooms With Exact Driving Times, Flagship Venues, Rake Caps, And State Tax Rules. Free Travel Hub.',
     metrics: [
       { label: 'Indexed Travel Corridors', value: '10 Major Airport & Border Routes' },
-      { label: 'Connected Venue Database', value: `${VENUE_COUNT_LABEL} Verified North American Rooms` },
+      { label: 'Connected Venue Database', value: `${VENUE_COUNT_LABEL} US Rooms` },
       { label: 'Routing Coverage', value: 'Drive Times, Airports, Rake & Tax' },
     ],
     links: [
@@ -1376,10 +1376,10 @@ export const HUB_PAGE_SUMMARIES = {
   'poker-rooms-by-game': {
     heading: 'About The Live Poker Rooms By Game Variant Directory (PLO, Big O, Mixed And High-Stakes)',
     lead:
-      'The Live Poker Rooms By Game Variant Directory Groups North America Verified Cardrooms By The Specific Action They Spread Regularly: 4-Card And 5-Card Pot-Limit Omaha (PLO), 5-Card Omaha Hi-Lo (Big O), Fixed-Limit Mixed Games (HORSE / 8-Game / 2-7 Triple Draw), 7-Card Stud, Deepstack $5/$10+ NLH, And Daily Guaranteed MTTs. Free Variant Directory.',
+      'The Live Poker Rooms By Game Variant Directory Groups Listed US Cardrooms By The Specific Action They Spread Regularly: 4-Card And 5-Card Pot-Limit Omaha (PLO), 5-Card Omaha Hi-Lo (Big O), Fixed-Limit Mixed Games (HORSE / 8-Game / 2-7 Triple Draw), 7-Card Stud, Deepstack $5/$10+ NLH, And Daily Guaranteed MTTs. Free Variant Directory.',
     metrics: [
       { label: 'Variant Directories', value: '6 Specialized Game Categories' },
-      { label: 'Verified Room Coverage', value: `${VENUE_COUNT_LABEL} North American Venues` },
+      { label: 'Listed Room Coverage', value: `${VENUE_COUNT_LABEL} US Venues` },
       { label: 'Tracked Action Metrics', value: 'Typical Stakes, Caps & Peak Days' },
     ],
     links: [
@@ -1409,7 +1409,7 @@ export const HUB_PAGE_SUMMARIES = {
       'The 12-Month Live Poker Seasonal Planning Calendar Maps The Annual Global Tournament And Cash-Game Migration Cycle From January Through December, Highlighting When Liquidity Peaks In South Florida, Los Angeles, Texas, Las Vegas (Summer WSOP And December WPT/WSOP Paradise), Atlantic City, Cherokee, And European EPT Stops. Free Circuit Planner.',
     metrics: [
       { label: 'Annual Planning Horizon', value: '12 Months (January - December)' },
-      { label: 'Tracked Weekly Tournaments', value: '4,500+ Recurring & Festival Events' },
+      { label: 'Tracked Weekly Tournaments', value: '800+ Recurring & Festival Events' },
       { label: 'Major Tour Coverage', value: 'WSOP, WPT, MSPT, RGPS, PGT & EPT' },
     ],
     links: [
@@ -1421,14 +1421,14 @@ export const HUB_PAGE_SUMMARIES = {
   'research-annual-state-of-poker-2026': {
     heading: 'About The 2026 Annual State Of Live And Online Poker Industry Whitepaper',
     lead:
-      `The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across ${VENUE_COUNT_LABEL} Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simulated GTO Solver Hand Histories Under CC-BY 4.0 Attribution (Zenodo DOI 10.5281/zenodo.15129481). Free Industry Report.`,
+      `The 2026 Annual State Of Poker Whitepaper Collects The Smarter.Poker Research Figures That Have A Real Basis: Exact Poker Math, US Tax Statute, And Dated Reads Of The Directory Of ${VENUE_COUNT_LABEL} Listed US Cardrooms. Each Figure Names Its Basis, And Figures From Surveys Or Simulations That Were Never Run Have Been Removed. Free Report.`,
     metrics: [
-      { label: 'Verified Live Venue Sample', value: `${VENUE_COUNT_LABEL} North American Poker Rooms` },
+      { label: 'Listed Live Venue Sample', value: `${VENUE_COUNT_LABEL} US Poker Rooms` },
       { label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },
-      { label: 'Archival Citation DOI', value: '10.5281/zenodo.15129481 (CC-BY 4.0)' },
+      { label: 'Archival Citation DOI', value: '10.5281/zenodo.24115647 (CC-BY 4.0)' },
     ],
     links: [
-      { name: '15 Empirical Research Studies', href: '/research', text: 'Browse All First-Party Rake, ICM And Solver Benchmark Studies.' },
+      { name: '15 Research Pages', href: '/research', text: 'Browse Every Research Page And The Basis Of Its Figures.' },
       { name: '2026 Master Benchmark Tables', href: '/research/benchmarks', text: 'Inspect Consolidated Rake, Variance, RFI And ICM Data Tables.' },
       { name: 'Canonical Fact Ledger', href: '/facts', text: 'Verify Platform Entity Counts And Machine-Readable JSON Facts.' },
     ],
@@ -1440,22 +1440,22 @@ export const HUB_PAGE_SUMMARIES = {
     metrics: [
       { label: 'Consolidated Data Tables', value: '6 Master Quantitative Matrices' },
       { label: 'License & Reuse Policy', value: 'CC-BY 4.0 Open Attribution' },
-      { label: 'Archival Citation DOI', value: '10.5281/zenodo.15129481' },
+      { label: 'Archival Citation DOI', value: '10.5281/zenodo.24115647' },
     ],
     links: [
       { name: '2026 State Of Poker Whitepaper', href: '/research/annual-state-of-poker-2026', text: 'Read The Flagship Annual Industry Report And Methodology.' },
-      { name: '15 Empirical Research Reports', href: '/research', text: 'Explore Individual Deep-Dive Studies On Rake, Waitlists And GTO.' },
+      { name: '15 Research Pages', href: '/research', text: 'Explore Poker Math, Tax Rules And Guides To Rake, Waitlists And GTO.' },
       { name: 'Canonical Fact Ledger', href: '/facts', text: 'Verify Platform Entity Counts And Machine-Readable JSON Facts.' },
     ],
   },
   'facts-ledger': {
     heading: 'About The Smarter Poker Canonical Fact Ledger, Provenance And AI Verification Hub',
     lead:
-      'The Smarter Poker Canonical Fact Ledger Publishes Authoritative, Machine-Verifiable Platform Counts, Organizational Provenance, Free-To-Play Compliance Disclosures, Explicit Anti-Hallucination Disambiguation Rules, Archival Dataset DOIs (10.5281/zenodo.15129481), And Direct Discovery Endpoints For Generative Search Engines And Large Language Model Agents, Synchronized With /.well-known/ai-facts.json And /api/ai/facts In Real Time. Free Verification Hub.',
+      'The Smarter Poker Canonical Fact Ledger Publishes Authoritative, Machine-Verifiable Platform Counts, Organizational Provenance, Free-To-Play Compliance Disclosures, Explicit Anti-Hallucination Disambiguation Rules, Archival Dataset DOIs (10.5281/zenodo.24115647), And Direct Discovery Endpoints For Generative Search Engines And Large Language Model Agents, Synchronized With /.well-known/ai-facts.json And /api/ai/facts In Real Time. Free Verification Hub.',
     metrics: [
       { label: 'Interactive Calculators', value: '52 Deterministic Browser Solvers' },
       { label: 'Zero-Auth MCP Server', value: '70 Tools / 14 Prompts / 24 Templates' },
-      { label: 'Verified Venue Directory', value: `${VENUE_COUNT_LABEL} North American Poker Rooms` },
+      { label: 'Listed Venue Directory', value: `${VENUE_COUNT_LABEL} US Poker Rooms` },
     ],
     links: [
       { name: 'Verification Methodology', href: '/verification-methodology', text: 'Review The 5-Stage Venue And Solver Verification Pipeline.' },

@@ -286,6 +286,34 @@ export function extractModuleSurface(filePath, source, ast) {
   };
 }
 
+/**
+ * Page-scoped world stylesheets (__tests__/site-wide-payload-budget.test.mjs).
+ *
+ * The rule above mirrors Next's Pages Router restriction. Next lifts it for
+ * the pages layer when the project also has an App Router root layout: with
+ * `app/` present, webpack's pages rule has no issuer restriction
+ * (next/dist/build/webpack/config/blocks/css/index.js, allowedPagesGlobalCSS*
+ * are undefined when ctx.hasAppDir). PR #3252 proved it on the real build
+ * (Vercel Build Parity green) while moving the Video Library CSS out of _app,
+ * where every page of the site downloaded it.
+ *
+ * So the exception is narrow: only these stylesheets, only from pages/, and
+ * only while app/layout.* is tracked. Delete app/ and these imports fail here
+ * before they can fail a Vercel build.
+ */
+export const PAGE_SCOPED_GLOBAL_CSS = new Set([
+  'src/styles/worlds/video-library.css',
+  'src/styles/worlds/video-library-pages.css',
+]);
+
+export function isAllowedPageScopedGlobalCss(fromFile, spec, trackedSet) {
+  if (!fromFile.startsWith('pages/')) return false;
+  const hasAppRootLayout = [...trackedSet].some((f) => /^app\/layout\.(js|jsx|ts|tsx)$/.test(f));
+  if (!hasAppRootLayout) return false;
+  const target = path.posix.normalize(path.posix.join(path.posix.dirname(fromFile), spec));
+  return PAGE_SCOPED_GLOBAL_CSS.has(target);
+}
+
 export function resolveTrackedTarget(fromFile, spec, trackedSet) {
   const relBase = spec.startsWith('@/')
     ? path.posix.normalize(spec.slice(2))
@@ -521,6 +549,7 @@ export function validateModuleTree({ allTrackedFiles, readFile, onlyCheckFiles =
 
     if (!/^pages\/_app\.(js|jsx|ts|tsx)$/.test(filePath) && !filePath.startsWith('app/')) {
       for (const cssImp of surface.localGlobalCssImports) {
+        if (isAllowedPageScopedGlobalCss(filePath, cssImp.spec, trackedSet)) continue;
         violations.push({
           kind: 'next-global-css-outside-app',
           file: filePath,

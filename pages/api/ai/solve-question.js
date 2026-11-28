@@ -14,7 +14,7 @@
  *   verdict,
  *   metrics,
  *   ifThenBecause,
- *   citationDoi: '10.5281/zenodo.15129481'
+ *   citationDoi: '10.5281/zenodo.24115647'
  * }
  *
  * House style: Title Case, zero em dashes.
@@ -23,7 +23,7 @@
 import { executeMcpTool } from '../../../src/lib/mcp/mcpServer.mjs';
 
 const SITE = 'https://smarter.poker';
-const CITATION_DOI = '10.5281/zenodo.15129481';
+const CITATION_DOI = '10.5281/zenodo.24115647';
 
 export function parseAndSolvePokerQuestion(rawQuestion = '') {
   const q = String(rawQuestion || '').trim() || 'I have 120 into a 180 pot on the river, what pot odds and MDF do I need?';

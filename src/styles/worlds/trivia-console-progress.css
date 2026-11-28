@@ -540,10 +540,39 @@
     min-width: 0;
 }
 
+.trivia-progress-setting__row--stacked,
+.trivia-progress-setting__row:has(.trivia-progress-choice-group) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+}
+
+.trivia-progress-setting__row--stacked .trivia-progress-setting__control,
+.trivia-progress-setting__row:has(.trivia-progress-choice-group) .trivia-progress-setting__control {
+    width: 100%;
+}
+
+.trivia-progress-setting__row--stacked .trivia-progress-choice-group,
+.trivia-progress-setting__row:has(.trivia-progress-choice-group) .trivia-progress-choice-group {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    padding-top: 2px;
+}
+
+.trivia-progress-setting__row--stacked .trivia-progress-choice.tc-word,
+.trivia-progress-setting__row:has(.trivia-progress-choice-group) .trivia-progress-choice.tc-word {
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 6px;
+}
+
 .trivia-progress-setting__copy {
     display: grid;
+    flex: 1 1 auto;
     gap: 4px;
     min-width: 0;
+    overflow-wrap: break-word;
 }
 
 .trivia-progress-setting__title {

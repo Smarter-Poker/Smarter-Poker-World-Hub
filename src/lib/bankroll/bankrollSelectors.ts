@@ -11,6 +11,7 @@ import {
   BANKROLL_RULE_UPSERT,
   BANKROLL_SEGMENT_CREATE_ONLY,
 } from './naturalKeys.mjs';
+import { RECEIPT_UNASSIGN } from './receiptGallery.mjs';
 import { localDay, localDayOffset } from './localDates.mjs';
 import {
   linkableStakingEntries,
@@ -18,6 +19,15 @@ import {
   splitStakingSession,
   stakingRowsToRewrite,
 } from './stakingMath.mjs';
+import { bankrollBalanceCents, centsToDollars, toCents } from './ledgerMath.mjs';
+import {
+  buildTripReport,
+  cleanDay,
+  completionEndDate,
+  dateRangeProblem,
+  summarizeByTrip,
+  withTripTotals,
+} from './tripMath.mjs';
 
 export interface LedgerEntry {
   id: string;
@@ -68,6 +78,7 @@ export interface Trip {
   trip_type?: string | null;
   totalNet?: number;
   totalExpenses?: number;
+  sessionCount?: number;
   entryCount?: number;
   categoryBreakdown?: Record<string, { count: number; net: number }>;
 }
@@ -235,6 +246,9 @@ function categoryToSegment(category: string): string {
       return 'sports';
     case 'expense':
       return 'poker'; // expenses deduct from poker segment
+    case 'deposit':
+    case 'withdrawal':
+      return 'poker'; // Adjust Bankroll moves money in and out of the poker segment
     default:
       return 'poker';
   }
@@ -249,7 +263,8 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
   let categories: string[] = [];
   switch (segmentType) {
     case 'poker':
-      categories = ['poker_cash', 'poker_mtt', 'expense'];
+      // Adjust Bankroll deposits and withdrawals land on the poker segment.
+      categories = ['poker_cash', 'poker_mtt', 'expense', 'deposit', 'withdrawal'];
       break;
     case 'casino':
       categories = ['casino_table', 'slots'];
@@ -269,14 +284,7 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
     .eq('is_revision', false)
     .in('category', categories);
 
-  let segmentTotal = 0;
-  entries?.forEach((e: any) => {
-    if (e.category === 'expense') {
-      segmentTotal -= Math.abs(e.gross_in || 0);
-    } else {
-      segmentTotal += (e.gross_out || 0) - (e.gross_in || 0);
-    }
-  });
+  const segmentCents = bankrollBalanceCents(entries || [], []);
 
   // Make sure the segment row exists without racing a concurrent creator: a
   // select-then-insert pair lost that race and hit the (user_id, segment_type)
@@ -297,7 +305,7 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
     .maybeSingle();
 
   // Add initial deposit (from Adjust Bankroll modal) to the ledger-derived total
-  const totalWithDeposits = segmentTotal + (existing?.initial_deposit || 0);
+  const totalWithDeposits = centsToDollars(segmentCents + toCents(existing?.initial_deposit));
   const { error: err_bankroll_segments_03601 } = await supabase
     .from('bankroll_segments')
     .update({
@@ -323,7 +331,7 @@ export async function createLedgerEntry(
       category: entry.category,
       location_id: entry.location_id,
       trip_id: entry.trip_id,
-      entry_date: entry.entry_date || new Date().toISOString().split('T')[0],
+      entry_date: entry.entry_date || localDay(),
       start_time: entry.start_time,
       end_time: entry.end_time,
       gross_in: entry.gross_in || 0,
@@ -436,120 +444,168 @@ export async function deleteLedgerEntry(
   userId: string,
   entryId: string
 ): Promise<void> {
-  const { error } = await supabase
+  // A delete that matched nothing (already gone, or not this player's) used to
+  // report "Entry Deleted". Ask for the removed row back and say so if none.
+  const { data, error } = await supabase
     .from('bankroll_ledger')
     .delete()
     .eq('id', entryId)
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .select('id, category');
 
+  if (error) throw error;
+  if (!data || data.length === 0) throw new Error('Entry Not Found');
+
+  // A receipt filed to this entry would otherwise stay `assigned` to a row that
+  // no longer exists: listed nowhere, assignable from nowhere. Dan's rule
+  // (2026-09-08) is that a scanned receipt is never abandoned, so it goes back
+  // to Receipts Waiting. The entry is already gone, so a failure here is
+  // reported, not thrown.
+  const { error: receiptError } = await supabase
+    .from('bankroll_receipts')
+    .update(RECEIPT_UNASSIGN)
+    .eq('user_id', userId)
+    .eq('assigned_id', entryId);
+  if (receiptError) console.warn('[Bankroll] Receipt not returned to Receipts Waiting:', receiptError.message);
+
+  try {
+    await recalculateSegmentBalance(userId, categoryToSegment(data[0].category || 'poker_cash'));
+  } catch (segError) {
+    console.warn('[Bankroll] Failed to update segment balance:', segError);
+  }
+}
+
+// Trip and series rows in bankroll_trips share these helpers; trip_type tells
+// them apart ('trip' by default, 'series' for the Series Tracker). Totals come
+// from tripMath.mjs so the tracker, the report and Recent Activity agree.
+
+const TRIP_ENTRY_COLUMNS = 'id, trip_id, category, gross_in, gross_out, net_result, entry_date, expense_type';
+
+/**
+ * Ledger rows for many trips in one query (was one query per trip). A failed
+ * read throws: showing a trip at $0 because its rows did not load would be a lie.
+ */
+const TRIP_ID_BATCH = 100;
+
+async function fetchTripEntryRows(userId: string, tripIds: string[]) {
+  const rows = [];
+  for (let start = 0; start < tripIds.length; start += TRIP_ID_BATCH) {
+    const { data, error } = await supabase
+      .from('bankroll_ledger')
+      .select(TRIP_ENTRY_COLUMNS)
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .in('trip_id', tripIds.slice(start, start + TRIP_ID_BATCH));
+    if (error) throw error;
+    rows.push(...(data || []));
+  }
+  return rows;
+}
+
+async function listTripsOfType(userId: string, tripType: 'trip' | 'series'): Promise<Trip[]> {
+  let query = supabase
+    .from('bankroll_trips')
+    .select(`*, bankroll_locations(name)`)
+    .eq('user_id', userId)
+    .neq('status', 'deleted');
+  query = tripType === 'series' ? query.eq('trip_type', 'series') : query.neq('trip_type', 'series');
+  const { data, error } = await query.order('start_date', { ascending: false });
+  if (error) throw error;
+  const trips = data || [];
+  const rows = await fetchTripEntryRows(userId, trips.map((t) => t.id));
+  return withTripTotals(trips, summarizeByTrip(rows));
+}
+
+async function activeTripOfType(userId: string, tripType: 'trip' | 'series'): Promise<Trip | null> {
+  let query = supabase
+    .from('bankroll_trips')
+    .select(`*, bankroll_locations(name)`)
+    .eq('user_id', userId)
+    .eq('status', 'active');
+  query = tripType === 'series' ? query.eq('trip_type', 'series') : query.neq('trip_type', 'series');
+  const { data, error } = await query.order('start_date', { ascending: false }).limit(1).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const rows = await fetchTripEntryRows(userId, [data.id]);
+  return withTripTotals([data], summarizeByTrip(rows))[0];
+}
+
+async function readTripRow(userId: string, tripId: string) {
+  const { data, error } = await supabase
+    .from('bankroll_trips')
+    .select('id, start_date, end_date, status, trip_type')
+    .eq('user_id', userId)
+    .eq('id', tripId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error('Trip not found');
+  return data;
+}
+
+async function completeTripRow(userId: string, tripId: string, label: string): Promise<Trip> {
+  const row = await readTripRow(userId, tripId);
+  const { data, error } = await supabase
+    .from('bankroll_trips')
+    .update({ status: 'completed', end_date: completionEndDate(row.start_date, localDay()) })
+    .eq('user_id', userId)
+    .eq('id', tripId)
+    .eq('status', 'active')
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error(`This ${label} is no longer active`);
+  return data;
+}
+
+async function reopenTripRow(userId: string, tripId: string, tripType: 'trip' | 'series'): Promise<Trip> {
+  const label = tripType === 'series' ? 'series' : 'trip';
+  const existing = await activeTripOfType(userId, tripType);
+  if (existing && existing.id !== tripId) {
+    throw new Error(`You already have an active ${label}. Complete it before reopening another.`);
+  }
+  const { data, error } = await supabase
+    .from('bankroll_trips')
+    .update({ status: 'active', end_date: null })
+    .eq('user_id', userId)
+    .eq('id', tripId)
+    .eq('status', 'completed')
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error(`This ${label} is not completed`);
+  return data;
+}
+
+async function deleteTripRow(userId: string, tripId: string): Promise<void> {
+  // Unlink first, and stop if that fails: a deleted trip must not keep rows
+  // that the dashboard would then hide or group under a trip nobody can open.
+  const { error: unlinkError } = await supabase
+    .from('bankroll_ledger')
+    .update({ trip_id: null })
+    .eq('user_id', userId)
+    .eq('trip_id', tripId);
+  if (unlinkError) throw unlinkError;
+
+  const { error } = await supabase
+    .from('bankroll_trips')
+    .update({ status: 'deleted' })
+    .eq('user_id', userId)
+    .eq('id', tripId);
   if (error) throw error;
 }
 
 /**
- * Fetch user's trips (excludes deleted)
+ * Fetch user's trips (excludes deleted and series)
  */
 export async function fetchTrips(userId: string): Promise<Trip[]> {
-  return withRetry(async () => {
-    const { data, error } = await supabase
-      .from('bankroll_trips')
-      .select(
-        `
-      *,
-      bankroll_locations(name)
-    `
-      )
-      .eq('user_id', userId)
-      .neq('status', 'deleted')
-      .neq('trip_type', 'series')
-      .order('start_date', { ascending: false });
-
-    if (error) throw error;
-
-    // Calculate totals for each trip
-    const trips: Trip[] = [];
-    for (const trip of data || []) {
-      const { data: entries } = await supabase
-        .from('bankroll_ledger')
-        .select('net_result, category')
-        .eq('user_id', userId)
-        .eq('trip_id', trip.id)
-        .eq('is_revision', false);
-
-      let totalNet = 0;
-      let totalExpenses = 0;
-
-      entries?.forEach((e) => {
-        if (e.category === 'expense') {
-          totalExpenses += Math.abs(e.net_result || 0);
-        } else {
-          totalNet += e.net_result || 0;
-        }
-      });
-
-      trips.push({
-        ...trip,
-        location_name: trip.bankroll_locations?.name || null,
-        totalNet: totalNet - totalExpenses,
-        totalExpenses,
-        entryCount: entries?.length || 0,
-      });
-    }
-
-    return trips;
-  });
+  return withRetry(() => listTripsOfType(userId, 'trip'));
 }
 
 /**
  * Get the user's currently active trip (only one allowed at a time)
  */
 export async function getActiveTrip(userId: string): Promise<Trip | null> {
-  return withRetry(async () => {
-    const { data, error } = await supabase
-      .from('bankroll_trips')
-      .select(`*, bankroll_locations(name)`)
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .neq('trip_type', 'series')
-      .limit(1)
-      .maybeSingle();
-
-    if (error) throw error;
-    if (!data) return null;
-
-    // Get entries for running totals
-    const { data: entries } = await supabase
-      .from('bankroll_ledger')
-      .select('net_result, category')
-      .eq('user_id', userId)
-      .eq('trip_id', data.id)
-      .eq('is_revision', false);
-
-    let totalNet = 0;
-    let totalExpenses = 0;
-    const categoryBreakdown: Record<string, { count: number; net: number }> = {};
-
-    entries?.forEach((e) => {
-      const cat = e.category || 'other';
-      if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { count: 0, net: 0 };
-      categoryBreakdown[cat].count++;
-      if (cat === 'expense') {
-        totalExpenses += Math.abs(e.net_result || 0);
-        categoryBreakdown[cat].net -= Math.abs(e.net_result || 0);
-      } else {
-        totalNet += e.net_result || 0;
-        categoryBreakdown[cat].net += e.net_result || 0;
-      }
-    });
-
-    return {
-      ...data,
-      location_name: data.bankroll_locations?.name || null,
-      totalNet: totalNet - totalExpenses,
-      totalExpenses,
-      entryCount: entries?.length || 0,
-      categoryBreakdown,
-    };
-  });
+  return withRetry(() => activeTripOfType(userId, 'trip'));
 }
 
 /**
@@ -559,23 +615,27 @@ export async function createTrip(
   userId: string,
   trip: Partial<Trip>
 ): Promise<Trip> {
-  // Check for existing active trip
   const existing = await getActiveTrip(userId);
   if (existing) {
     throw new Error('You already have an active trip. Complete or delete it before starting a new one.');
   }
+  const startDate = cleanDay(trip.start_date) || localDay();
+  const endDate = cleanDay(trip.end_date);
+  const rangeProblem = dateRangeProblem(startDate, endDate);
+  if (rangeProblem) throw new Error(rangeProblem);
 
   const { data, error } = await supabase
     .from('bankroll_trips')
     .insert({
       user_id: userId,
       name: trip.name,
-      location_id: trip.location_id,
-      start_date: trip.start_date,
-      end_date: trip.end_date,
-      purpose: trip.purpose,
-      notes: trip.notes,
+      location_id: trip.location_id || null,
+      start_date: startDate,
+      end_date: endDate,
+      purpose: trip.purpose || null,
+      notes: trip.notes || null,
       status: 'active',
+      trip_type: 'trip',
     })
     .select()
     .maybeSingle();
@@ -596,9 +656,9 @@ export async function updateTrip(
     .from('bankroll_trips')
     .update({
       name: updates.name,
-      location_id: updates.location_id,
-      purpose: updates.purpose,
-      notes: updates.notes,
+      location_id: updates.location_id || null,
+      purpose: updates.purpose || null,
+      notes: updates.notes || null,
     })
     .eq('user_id', userId)
     .eq('id', tripId)
@@ -610,52 +670,29 @@ export async function updateTrip(
 }
 
 /**
- * Complete an active trip — sets status to 'completed' and end_date
+ * Complete an active trip: status 'completed', end date = today in the
+ * player's own calendar (never before the start date).
  */
 export async function completeTrip(userId: string, tripId: string): Promise<Trip> {
-  const { data, error } = await supabase
-    .from('bankroll_trips')
-    .update({
-      status: 'completed',
-      end_date: new Date().toISOString().split('T')[0],
-    })
-    .eq('user_id', userId)
-    .eq('id', tripId)
-    .eq('status', 'active')
-    .select()
-    .maybeSingle();
+  return completeTripRow(userId, tripId, 'trip');
+}
 
-  if (error || !data) throw error || new Error('Failed to complete trip');
-  return data;
+/** Reopen a completed trip (allowed only when no other trip is active). */
+export async function reopenTrip(userId: string, tripId: string): Promise<Trip> {
+  return reopenTripRow(userId, tripId, 'trip');
 }
 
 /**
  * Delete an active trip — unlinks all entries and marks trip as deleted
  */
 export async function deleteTrip(userId: string, tripId: string): Promise<void> {
-  // Unlink all entries from this trip
-  const { error: err_bankroll_ledger_gc1j7 } = await supabase
-    .from('bankroll_ledger')
-    .update({ trip_id: null })
-    .eq('user_id', userId)
-    .eq('trip_id', tripId);
-  if (err_bankroll_ledger_gc1j7) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_gc1j7.message);
-
-  // Mark trip as deleted
-  const { error } = await supabase
-    .from('bankroll_trips')
-    .update({ status: 'deleted' })
-    .eq('user_id', userId)
-    .eq('id', tripId);
-
-  if (error) throw error;
+  return deleteTripRow(userId, tripId);
 }
 
 /**
- * Get detailed trip report for a completed trip
+ * Detailed report for a trip or series (see buildTripReport).
  */
 export async function getTripReport(userId: string, tripId: string) {
-  // Get trip info
   const { data: trip, error: tripError } = await supabase
     .from('bankroll_trips')
     .select(`*, bankroll_locations(name)`)
@@ -664,78 +701,19 @@ export async function getTripReport(userId: string, tripId: string) {
     .maybeSingle();
 
   if (tripError) throw tripError;
+  if (!trip) throw new Error('Trip not found');
 
-  // Get all entries for this trip
   const { data: entries, error: entriesError } = await supabase
     .from('bankroll_ledger')
     .select('*')
     .eq('user_id', userId)
     .eq('trip_id', tripId)
     .eq('is_revision', false)
-    .order('entry_date', { ascending: true });
+    .order('entry_date', { ascending: true })
+    .order('created_at', { ascending: true });
 
   if (entriesError) throw entriesError;
-
-  // Calculate stats
-  let totalNet = 0;
-  let totalExpenses = 0;
-  let biggestWin = 0;
-  let biggestLoss = 0;
-  let sessionCount = 0;
-  const dailyBreakdown: Record<string, number> = {};
-  const categoryBreakdown: Record<string, { count: number; net: number; grossIn: number; grossOut: number }> = {};
-
-  (entries || []).forEach((e: any) => {
-    const cat = e.category || 'other';
-    if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { count: 0, net: 0, grossIn: 0, grossOut: 0 };
-    categoryBreakdown[cat].count++;
-    categoryBreakdown[cat].grossIn += e.gross_in || 0;
-    categoryBreakdown[cat].grossOut += e.gross_out || 0;
-
-    if (cat === 'expense') {
-      totalExpenses += Math.abs(e.net_result || 0);
-      categoryBreakdown[cat].net -= Math.abs(e.net_result || 0);
-    } else {
-      const net = e.net_result || 0;
-      totalNet += net;
-      categoryBreakdown[cat].net += net;
-      sessionCount++;
-      if (net > biggestWin) biggestWin = net;
-      if (net < biggestLoss) biggestLoss = net;
-    }
-
-    // Daily breakdown
-    const day = e.entry_date;
-    dailyBreakdown[day] = (dailyBreakdown[day] || 0) + (e.net_result || 0);
-  });
-
-  const winCount = (entries || []).filter((e: any) => e.category !== 'expense' && (e.net_result || 0) > 0).length;
-  const startDate = new Date(trip.start_date);
-  const endDate = trip.end_date ? new Date(trip.end_date) : new Date();
-  const durationDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-
-  return {
-    trip: {
-      ...trip,
-      location_name: trip.bankroll_locations?.name || null,
-    },
-    entries: entries || [],
-    stats: {
-      totalNet: totalNet - totalExpenses,
-      totalExpenses,
-      totalGrossNet: totalNet,
-      sessionCount,
-      entryCount: (entries || []).length,
-      winRate: sessionCount > 0 ? Math.round((winCount / sessionCount) * 100) : 0,
-      biggestWin,
-      biggestLoss,
-      durationDays,
-      avgPerDay: durationDays > 0 ? Math.round((totalNet - totalExpenses) / durationDays) : 0,
-      avgPerSession: sessionCount > 0 ? Math.round(totalNet / sessionCount) : 0,
-    },
-    categoryBreakdown,
-    dailyBreakdown,
-  };
+  return buildTripReport(trip, entries || [], localDay());
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -743,93 +721,11 @@ export async function getTripReport(userId: string, tripId: string) {
 // ═══════════════════════════════════════════════════════════
 
 export async function fetchSeries(userId: string): Promise<Trip[]> {
-  const { data, error } = await supabase
-    .from('bankroll_trips')
-    .select(`*, bankroll_locations(name)`)
-    .eq('user_id', userId)
-    .eq('trip_type', 'series')
-    .neq('status', 'deleted')
-    .order('start_date', { ascending: false });
-
-  if (error) throw error;
-
-  const trips: Trip[] = [];
-  for (const trip of data || []) {
-    const { data: entries } = await supabase
-      .from('bankroll_ledger')
-      .select('net_result, category')
-      .eq('user_id', userId)
-      .eq('trip_id', trip.id)
-      .eq('is_revision', false);
-
-    let totalNet = 0;
-    let totalExpenses = 0;
-    entries?.forEach((e) => {
-      if (e.category === 'expense') {
-        totalExpenses += Math.abs(e.net_result || 0);
-      } else {
-        totalNet += e.net_result || 0;
-      }
-    });
-
-    trips.push({
-      ...trip,
-      location_name: trip.bankroll_locations?.name || null,
-      totalNet: totalNet - totalExpenses,
-      totalExpenses,
-      entryCount: entries?.length || 0,
-    });
-  }
-  return trips;
+  return withRetry(() => listTripsOfType(userId, 'series'));
 }
 
 export async function getActiveSeries(userId: string): Promise<Trip | null> {
-  return withRetry(async () => {
-    const { data, error } = await supabase
-      .from('bankroll_trips')
-      .select(`*, bankroll_locations(name)`)
-      .eq('user_id', userId)
-      .eq('trip_type', 'series')
-      .eq('status', 'active')
-      .limit(1)
-      .maybeSingle();
-
-    if (error) throw error;
-    if (!data) return null;
-
-    const { data: entries } = await supabase
-      .from('bankroll_ledger')
-      .select('net_result, category')
-      .eq('user_id', userId)
-      .eq('trip_id', data.id)
-      .eq('is_revision', false);
-
-    let totalNet = 0;
-    let totalExpenses = 0;
-    const categoryBreakdown: Record<string, { count: number; net: number }> = {};
-
-    entries?.forEach((e) => {
-      const cat = e.category || 'other';
-      if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { count: 0, net: 0 };
-      categoryBreakdown[cat].count++;
-      if (cat === 'expense') {
-        totalExpenses += Math.abs(e.net_result || 0);
-        categoryBreakdown[cat].net -= Math.abs(e.net_result || 0);
-      } else {
-        totalNet += e.net_result || 0;
-        categoryBreakdown[cat].net += e.net_result || 0;
-      }
-    });
-
-    return {
-      ...data,
-      location_name: data.bankroll_locations?.name || null,
-      totalNet: totalNet - totalExpenses,
-      totalExpenses,
-      entryCount: entries?.length || 0,
-      categoryBreakdown,
-    };
-  });
+  return withRetry(() => activeTripOfType(userId, 'series'));
 }
 
 export async function createSeries(
@@ -840,6 +736,12 @@ export async function createSeries(
   if (existing) {
     throw new Error('You already have an active series. Complete or delete it before starting a new one.');
   }
+  // start_date is NOT NULL in bankroll_trips: a blank date field used to be
+  // sent as null and the insert failed with a raw database error.
+  const startDate = cleanDay(series.start_date) || localDay();
+  const endDate = cleanDay(series.end_date);
+  const rangeProblem = dateRangeProblem(startDate, endDate);
+  if (rangeProblem) throw new Error(rangeProblem);
 
   const { data, error } = await supabase
     .from('bankroll_trips')
@@ -847,8 +749,8 @@ export async function createSeries(
       user_id: userId,
       name: series.name,
       location_id: series.location_id || null,
-      start_date: series.start_date || null,
-      end_date: series.end_date || null,
+      start_date: startDate,
+      end_date: endDate,
       purpose: series.purpose || null,
       notes: series.notes || null,
       status: 'active',
@@ -866,14 +768,21 @@ export async function updateSeries(
   seriesId: string,
   updates: Partial<Trip>
 ): Promise<Trip> {
+  // A cleared end date arrives as '' from the form; Postgres rejects '' as a date.
+  const endDate = cleanDay(updates.end_date);
+  if (endDate) {
+    const row = await readTripRow(userId, seriesId);
+    const rangeProblem = dateRangeProblem(row.start_date, endDate);
+    if (rangeProblem) throw new Error(rangeProblem);
+  }
   const { data, error } = await supabase
     .from('bankroll_trips')
     .update({
       name: updates.name,
-      location_id: updates.location_id,
-      purpose: updates.purpose,
-      notes: updates.notes,
-      end_date: updates.end_date,
+      location_id: updates.location_id || null,
+      purpose: updates.purpose || null,
+      notes: updates.notes || null,
+      end_date: endDate,
     })
     .eq('user_id', userId)
     .eq('id', seriesId)
@@ -885,37 +794,16 @@ export async function updateSeries(
 }
 
 export async function completeSeries(userId: string, seriesId: string): Promise<Trip> {
-  const { data, error } = await supabase
-    .from('bankroll_trips')
-    .update({
-      status: 'completed',
-      end_date: new Date().toISOString().split('T')[0],
-    })
-    .eq('user_id', userId)
-    .eq('id', seriesId)
-    .eq('status', 'active')
-    .select()
-    .maybeSingle();
+  return completeTripRow(userId, seriesId, 'series');
+}
 
-  if (error || !data) throw error || new Error('Failed to complete series');
-  return data;
+/** Reopen a completed series (allowed only when no other series is active). */
+export async function reopenSeries(userId: string, seriesId: string): Promise<Trip> {
+  return reopenTripRow(userId, seriesId, 'series');
 }
 
 export async function deleteSeries(userId: string, seriesId: string): Promise<void> {
-  const { error: err_bankroll_ledger_loq06 } = await supabase
-    .from('bankroll_ledger')
-    .update({ trip_id: null })
-    .eq('user_id', userId)
-    .eq('trip_id', seriesId);
-  if (err_bankroll_ledger_loq06) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_loq06.message);
-
-  const { error } = await supabase
-    .from('bankroll_trips')
-    .update({ status: 'deleted' })
-    .eq('user_id', userId)
-    .eq('id', seriesId);
-
-  if (error) throw error;
+  return deleteTripRow(userId, seriesId);
 }
 
 export async function getSeriesReport(userId: string, seriesId: string) {
@@ -1154,25 +1042,23 @@ export async function setStartingBankroll(userId: string, amount: number): Promi
     .eq('segment_type', 'poker');
   if (err_bankroll_segments_wwjic) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_wwjic.message);
 
-  // Log as a ledger entry for audit trail
-  const { error: err_bankroll_ledger_7o3ix } = await supabase.from('bankroll_ledger').insert({
-    user_id: userId,
-    category: 'deposit',
-    entry_date: new Date().toISOString().split('T')[0],
-    gross_in: amount,
-    gross_out: 0,
-    net_result: amount,
-    // CHECK 13 (2026-08-14): is_adjustment is not a column — its presence made
-    // the whole insert 42703 (warn swallowed), so the "Starting bankroll"
-    // audit-trail entry was never written. category 'deposit' already marks it.
-    notes: 'Starting bankroll',
-  });
-  if (err_bankroll_ledger_7o3ix) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_7o3ix.message);
+  // No ledger row: the starting bankroll is initial_deposit, and the Bankroll
+  // Balance adds every deposit row to it, so a "Starting bankroll" deposit row
+  // would count the same money twice. (The insert that used to sit here named
+  // the generated net_result column and was refused on every call, so no such
+  // row was ever written; the balance never depended on one.)
 }
 
 /**
- * Adjust bankroll — deposit or withdraw from external sources
- * type: 'deposit' (adding money in) or 'withdrawal' (taking money out)
+ * Adjust bankroll: deposit or withdraw money from outside the game.
+ *
+ * The ledger row IS the adjustment. The Bankroll Balance tile adds every
+ * deposit and subtracts every withdrawal (calculateTotalBankroll), and the
+ * poker segment's stored balance is recomputed from the same rows. Until
+ * 2026-11-27 this read-modify-wrote current_balance (which nothing displays and
+ * the next logged session overwrote) while the balance tile skipped deposit
+ * and withdrawal rows, so an adjustment changed nothing the player could see.
+ * The row is dated on the player's own calendar day, not the UTC one.
  */
 export async function adjustBankroll(
   userId: string,
@@ -1180,64 +1066,32 @@ export async function adjustBankroll(
   type: 'deposit' | 'withdrawal',
   reason?: string
 ): Promise<void> {
-  const signedAmount = type === 'deposit' ? amount : -amount;
+  if (type !== 'deposit' && type !== 'withdrawal') throw new Error('Choose Deposit Or Withdraw');
+  const cents = toCents(amount);
+  if (!(cents > 0)) throw new Error('Enter An Amount Greater Than $0');
+  const value = centsToDollars(cents);
 
-  // Update the poker segment balance
-  const { data: current, error: fetchErr } = await supabase
-    .from('bankroll_segments')
-    .select('current_balance')
-    .eq('user_id', userId)
-    .eq('segment_type', 'poker')
-    .maybeSingle();
-
-  if (fetchErr) {
-    console.warn('[adjustBankroll] Failed to fetch segment:', fetchErr);
-    throw new Error('Failed to read current balance');
-  }
-
-  const newBalance = (current?.current_balance || 0) + signedAmount;
-
-  const { error: updateErr } = await supabase
-    .from('bankroll_segments')
-    .update({
-      current_balance: newBalance,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userId)
-    .eq('segment_type', 'poker');
-
-  if (updateErr) {
-    console.warn('[adjustBankroll] Failed to update segment:', updateErr);
-    throw new Error('Failed to update balance');
-  }
-
-  // Log as ledger entry for audit trail
-  // gross_in = money put on table (buy-in), gross_out = money taken off (cashout)
-  // deposit: money added to bankroll → gross_out (like cashing out from an ATM into your roll)
-  // withdrawal: money removed from bankroll → gross_in (like buying in / spending)
-  // NOTE: net_result is a generated column (gross_out - gross_in), do NOT insert it explicitly
+  // gross_out = money into the roll, gross_in = money out of it, so the
+  // generated net_result (gross_out - gross_in) carries the sign. net_result
+  // is a generated column and must never be inserted.
   const { error: insertErr } = await supabase.from('bankroll_ledger').insert({
     user_id: userId,
     category: type,
-    entry_date: new Date().toISOString().split('T')[0],
-    gross_in: type === 'withdrawal' ? amount : 0,
-    gross_out: type === 'deposit' ? amount : 0,
-    notes: reason || (type === 'deposit' ? 'Bankroll deposit' : 'Bankroll withdrawal'),
+    entry_date: localDay(),
+    gross_in: type === 'withdrawal' ? value : 0,
+    gross_out: type === 'deposit' ? value : 0,
+    notes: (reason || '').trim() || (type === 'deposit' ? 'Bankroll deposit' : 'Bankroll withdrawal'),
   });
 
   if (insertErr) {
     console.warn('[adjustBankroll] Failed to insert ledger entry:', insertErr);
-    // Try to rollback the segment update
-    const { error: err_bankroll_segments_m2q4f } = await supabase
-      .from('bankroll_segments')
-      .update({
-        current_balance: current?.current_balance || 0,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
-      .eq('segment_type', 'poker');
-    if (err_bankroll_segments_m2q4f) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_m2q4f.message);
-    throw new Error('Failed to record adjustment');
+    throw new Error('Failed To Record Adjustment');
+  }
+
+  try {
+    await recalculateSegmentBalance(userId, 'poker');
+  } catch (segError) {
+    console.warn('[Bankroll] Failed to update segment balance:', segError);
   }
 }
 

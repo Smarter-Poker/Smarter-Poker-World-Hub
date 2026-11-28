@@ -10,6 +10,8 @@
  * House style: Title Case, zero em dashes.
  */
 
+import { tablesLabel } from '../../lib/research/venueTablesOnFile.mjs';
+
 export const SERIES_GUIDES_AS_OF = '2026-11-09';
 export const SERIES_GUIDES_BASE_PATH = '/poker-series/guides';
 export const SERIES_GUIDES_URL = 'https://smarter.poker/poker-series/guides';
@@ -239,7 +241,7 @@ export const SERIES_GUIDES = [
     registrationStrategy:
       'Utilize $265 And $140 Landmark Milestone Satellites Running Wednesday Through Friday Where Hitting The Milestone Chip Target Instantly Awards Your $1,110 Main Event Seat.',
     cashGameAction:
-      'Flagship Stops Like FireKeepers (Battle Creek, MI) And Running Aces (Minnesota) Pack 30+ Tables Of Action-Heavy Midwest Cash Games And $2/$100 Spread-Limit.',
+      'Flagship Stops Like FireKeepers (Battle Creek, MI) And Running Aces (Minnesota) Spread Action-Heavy Midwest Cash Games And $2/$100 Spread-Limit.',
     travelLogistics:
       'Drive-Market Stops Across Michigan, Minnesota, Iowa, And Ohio Offer Affordable Hotel Rates And Free Self-Parking.',
     bankrollRequirement:
@@ -351,7 +353,7 @@ export const SERIES_GUIDES = [
     registrationStrategy:
       'Target The Opening Weekend $400 Or $600 Deep Stack ($1M - $2M Guaranteed With 6 To 8 Flights) Where 4,000+ South Florida And Latin American Players Create Massive Prize Pools.',
     cashGameAction:
-      '45+ Permanent Tables Plus Ballroom Expansion Spreading The Best $2/$5, $5/$10 NLH, And $2/$2 To $25/$50 Pot-Limit Omaha Action On The East Coast.',
+      'Permanent Tables Plus Ballroom Expansion Spreading The Best $2/$5, $5/$10 NLH, And $2/$2 To $25/$50 Pot-Limit Omaha Action On The East Coast.',
     travelLogistics:
       'Fly Into Fort Lauderdale-Hollywood Airport (FLL) Just 12 Minutes Away; Book Nearby Dania Beach Or Stirling Road Hotels If Guitar Hotel Rates Spike.',
     bankrollRequirement:
@@ -435,7 +437,7 @@ export const SERIES_GUIDES = [
     faqs: [
       {
         q: 'Is Borgata Still The Largest Poker Room In Atlantic City And The Northeast?',
-        a: 'Yes. Borgata Commands Over 65% Of Atlantic City Poker Revenue With 52 Permanent Tables Plus Event Center Tournament Seating.',
+        a: `Yes. Borgata Runs Atlantic City\'s Largest Poker Room (${tablesLabel('Borgata Hotel Casino')} In The Smarter.Poker Directory) Plus Event Center Tournament Seating.`,
       },
       {
         q: 'Can I Play Regulated Online Poker In My Hotel Room At Borgata?',
@@ -463,7 +465,7 @@ export const SERIES_GUIDES = [
     registrationStrategy:
       'During June And July, Treat Wynn Summer Classic $1,100, $1,600, And $2,200 Multi-Flight Events As Co-Anchors Alongside WSOP Bracelet Events; Lower Rake And Better Structures Yield Superior Hourly EV.',
     cashGameAction:
-      'Encore Poker Room Runs 28 To 38 Tables 24/7 With $500-Cap $1/$3 And $1,500-Cap $2/$5 Games That Play Deeper Than Any Other Strip Room.',
+      'Encore Poker Room Runs 24/7 With $500-Cap $1/$3 And $1,500-Cap $2/$5 Games That Play Deeper Than Any Other Strip Room.',
     travelLogistics:
       'Free Self-Parking At Wynn/Encore Garage And Easy Pedestrian Bridge Access From Venetian/Palazzo Across Sands Avenue.',
     bankrollRequirement:

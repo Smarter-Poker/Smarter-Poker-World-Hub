@@ -78,13 +78,13 @@ const RECOVERY_ROUTES = [
     },
     {
         title: 'Live Poker Rooms Directory',
-        subtitle: 'Verified Poker Rooms, Cash Games & Daily Schedules',
+        subtitle: 'Listed Poker Rooms, Cash Games & Daily Schedules',
         href: '/hub/poker-near-me/lobby',
         badge: 'Live Directory',
     },
     {
         title: 'Poker Industry Research Hub',
-        subtitle: '15 Empirical Benchmarks On Rake, ICM, PKO & Tokes',
+        subtitle: '15 Research Pages On Rake, ICM, PKO & Tokes',
         href: '/research',
         badge: '15 Studies',
     },

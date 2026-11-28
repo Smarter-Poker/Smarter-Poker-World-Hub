@@ -959,7 +959,7 @@ export default function PokerToolsDirectoryPage() {
           compact
           eyebrow="Free Smarter.Poker Account"
           title="Save Solved Spots & Unlock 107 Free GTO Training Games"
-          description={`Create A Free Smarter.Poker Account To Bookmark All 52 Calculators, Track Live Sessions, And Find ${VENUE_COUNT_LABEL} Verified Poker Rooms.`}
+          description={`Create A Free Smarter.Poker Account To Bookmark All 52 Calculators, Track Live Sessions, And Find ${VENUE_COUNT_LABEL} Poker Rooms.`}
           primaryLabel="Create Free Account"
           primaryHref="/auth/signup?redirect=/tools&src=tools-index"
           secondaryLabel="Sign In"

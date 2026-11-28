@@ -94,6 +94,11 @@ const EXPECTED_SLUGS = [
   'borgata-vs-parx-poker',
   'best-poker-rooms-in-florida',
   'plo4-vs-plo5',
+  'smarter-poker-vs-gto-wizard',
+  'smarter-poker-vs-pokeratlas',
+  'smarter-poker-vs-bravo-poker-live',
+  'smarter-poker-vs-poker-bankroll-tracker',
+  'smarter-poker-vs-hendon-mob',
 ];
 
 /** Other names a product goes by in running copy. */
@@ -117,6 +122,7 @@ const ALIASES = {
   parx: ['Parx Casino', 'Parx'],
   seminoleHardRock: ['Seminole Hard Rock Hollywood'],
   bestbetJax: ['Bestbet Jacksonville'],
+  hendonMob: ['Hendon Mob'],
 };
 
 const allFacts = () =>

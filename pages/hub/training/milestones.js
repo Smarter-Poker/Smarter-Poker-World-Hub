@@ -17,19 +17,14 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import { TrainingConsoleSkeleton } from '../../../src/components/training/console/TrainingConsoleStates';
+import sd from '../../../src/styles/training/training-journey-sd.module.css';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 
 
-const TIERS = {
-  Bronze: { color: '#86daff', bg: 'rgba(205,127,50,0.1)' },
-  Silver: { color: 'var(--sp-fg)', bg: 'rgba(203,213,225,0.1)' },
-  Gold: { color: '#86daff', bg: 'rgba(86,216,255,0.1)' },
-  Diamond: { color: 'var(--sp-accent-cyan)', bg: 'rgba(0,212,255,0.1)' },
-  Master: { color: '#86daff', bg: 'rgba(56,189,248,0.12)' },
-};
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 
 
 // BUG FIX (TRAIN-MILESTONES-A11Y-1): SVG icon components replacing the 25
@@ -487,217 +482,65 @@ export default function MilestonesPage() {
         <title>Milestones | Smarter.Poker GTO Training</title>
               <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <div
-        className="sp-training-journey sp-training-journey--milestones"
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        <div
-          className="sp-journey-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-MILESTONES-A11Y-1: SVG back arrow replaces '←' entity */}
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <line x1="19" y1="12" x2="5" y2="12"/>
-              <polyline points="12 19 5 12 12 5"/>
-            </svg>
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Milestones</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Verified Session Thresholds</div>
-          </div>
-          <div
-            style={{
-              marginLeft: 'auto',
-              padding: '4px 10px',
-              borderRadius: 6,
-              background: 'rgba(251,191,36,0.08)',
-              border: '1px solid rgba(251,191,36,0.2)',
-            }}
-          >
-            {/* TRAIN-MILESTONES-A11Y-1: status role for the reached counter */}
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#86daff' }} role="status" aria-label={`${reached.length} of ${MILESTONE_DEFS.length} thresholds reached`}>{reached.length}</span>
-            <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>/{MILESTONE_DEFS.length}</span>
-          </div>
-        </div>
+      <div className={`sp-training-journey sp-training-journey--milestones ${sd.root}`}>
+        <TrainingPageHead slug="training-milestones" note="Verified Session Thresholds">
+          <p className="sp-head-note" role="status" aria-label={`${reached.length} of ${MILESTONE_DEFS.length} thresholds reached`}>
+            <strong>{reached.length}</strong> / {MILESTONE_DEFS.length} Reached
+          </p>
+        </TrainingPageHead>
 
-        <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={`sp-journey-main ${sd.main}`}>
           {!isOnline && (
-            <div
-              role="status"
-              data-offline-banner="true"
-              style={{
-                marginBottom: 14,
-                padding: '10px 14px',
-                borderRadius: 8,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
-                color: '#86daff',
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
+            <div role="status" data-offline-banner="true" className={sd.notice}>
               Offline. Milestone Threshold History Will Resume After Reconnection.
             </div>
           )}
 
+          {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
 
           {loading ? (
-            <div style={{ padding: '20px 0' }} role="status" aria-label="Loading milestones">
-              <SkeletonLoader variant="card" count={3} />
-            </div>
+            <TrainingConsoleSkeleton label="Loading Milestones" panels={3} rows={2} />
           ) : !stats ? (
-            <div
-              role="status"
-              style={{
-                padding: '20px',
-                borderRadius: 12,
-                border: '1px solid rgba(248,113,113,0.24)',
-                background: 'rgba(127,29,29,0.12)',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 12,
-                lineHeight: 1.6,
-              }}
-            >
-              Verified Milestone Progress Is Currently Unavailable. No Threshold Or Reward
-              Status Has Been Inferred From Missing Data.
+            <div role="status" className={sd.card} data-tone="bad">
+              <p className={sd.copy}>
+                Verified Milestone Progress Is Currently Unavailable. No Threshold Or Reward
+                Status Has Been Inferred From Missing Data.
+              </p>
             </div>
           ) : (
             <>
               {/* Next Milestone Spotlight */}
               {nextMilestone && (
-                <motion.div
-                  className="sp-journey-spotlight"
+                <motion.section
+                  className={`sp-journey-spotlight ${sd.section}`}
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  style={{
-                    marginBottom: 24,
-                    padding: '20px',
-                    borderRadius: 16,
-                    background:
-                      'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
+                  aria-labelledby="milestone-up-next"
                 >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: -40,
-                      right: -40,
-                      fontSize: 120,
-                      opacity: 0.05,
-                    }}
-                  >
-                    {/* TRAIN-MILESTONES-A11Y-1: SVG watermark instead of giant emoji */}
-                    <span style={{ display: 'inline-flex', color: TIERS[nextMilestone.tier].color }} aria-hidden>
-                      <MilestoneIcon kind={nextMilestone.iconKind} size={120} />
-                    </span>
+                  <div className={sd.sectionHead}>
+                    <h2 id="milestone-up-next" className={sd.sectionTitle}>Up Next</h2>
+                    <span className={sd.tag}>{nextMilestone.tier}</span>
                   </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: 'var(--sp-accent-cyan)',
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      marginBottom: 12,
-                    }}
-                  >
-                    Up Next
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                    <div
-                      style={{
-                        width: 50,
-                        height: 50,
-                        borderRadius: 12,
-                        background: TIERS[nextMilestone.tier].bg,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border: `1px solid ${TIERS[nextMilestone.tier].color}40`,
-                        color: TIERS[nextMilestone.tier].color,
-                      }}
-                    >
+                  <div className={sd.milestoneLine}>
+                    <span className={sd.badge} aria-hidden>
                       {/* TRAIN-MILESTONES-A11Y-1: SVG milestone icon */}
                       <MilestoneIcon kind={nextMilestone.iconKind} size={24} />
-                    </div>
+                    </span>
                     <div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>
-                        {nextMilestone.name}{' '}
-                        <span
-                          style={{
-                            fontSize: 12,
-                            padding: '2px 6px',
-                            borderRadius: 4,
-                            background: TIERS[nextMilestone.tier].bg,
-                            color: TIERS[nextMilestone.tier].color,
-                            marginLeft: 8,
-                          }}
-                        >
-                          {nextMilestone.tier}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
-                        {nextMilestone.desc}
-                      </div>
+                      <div className={sd.title}>{nextMilestone.name}</div>
+                      <div className={sd.copy}>{nextMilestone.desc}</div>
                     </div>
                   </div>
                   {/* Big Progress Bar */}
                   <div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        fontSize: 12,
-                        marginBottom: 6,
-                        fontWeight: 700,
-                      }}
-                    >
-                      <span style={{ color: 'var(--sp-accent-cyan)' }}>
-                        {Math.round(nextMilestone.percent)}% Complete
-                      </span>
-                      <span style={{ color: 'var(--sp-fg-dim)' }}>
+                    <div className={sd.row}>
+                      <span className={`${sd.stateLabel} ${sd.ice}`}>{Math.round(nextMilestone.percent)}% Complete</span>
+                      <span className={sd.value}>
                         {nextMilestone.current} / {nextMilestone.target}
                       </span>
                     </div>
                     <div
-                      style={{
-                        height: 10,
-                        background: 'rgba(0,0,0,0.4)',
-                        borderRadius: 5,
-                        overflow: 'hidden',
-                      }}
+                      className={sd.meter}
                       role="progressbar"
                       aria-label={`Progress to ${nextMilestone.name}`}
                       aria-valuenow={Math.round(nextMilestone.percent)}
@@ -705,231 +548,95 @@ export default function MilestonesPage() {
                       aria-valuemax={100}
                     >
                       <motion.div
+                        className={sd.meterFill}
                         initial={{ width: 0 }}
                         animate={{ width: `${nextMilestone.percent}%` }}
-                        style={{
-                          height: '100%',
-                          background: 'linear-gradient(90deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
-                        }}
                       />
                     </div>
                   </div>
-                  {/* Settlement disclosure — this page has no reward ledger source. */}
-                  <div
-                    style={{
-                      marginTop: 12,
-                      fontSize: 12,
-                      color: 'var(--sp-fg-muted)',
-                      fontWeight: 600,
-                      lineHeight: 1.5,
-                    }}
-                    role="note"
-                  >
-                    <strong style={{ color: 'var(--sp-fg)' }}>Reward Status: Unverified.</strong>{' '}
+                  {/* Settlement disclosure: this page has no reward ledger source. */}
+                  <p className={sd.copy} role="note">
+                    <strong className={sd.ice}>Reward Status: Unverified.</strong>{' '}
                     This Progress-Only Page Cannot Confirm Or Issue Diamonds.
-                  </div>
-                </motion.div>
+                  </p>
+                </motion.section>
               )}
 
               {/* Reached Thresholds */}
               {reached.length > 0 && (
-                <div style={{ marginBottom: 24 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-dim)',
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      marginBottom: 10,
-                    }}
-                  >
-                    Thresholds Reached
+                <section className={sd.section} aria-labelledby="milestones-reached">
+                  <div className={sd.sectionHead}>
+                    <h2 id="milestones-reached" className={sd.sectionTitle}>Thresholds Reached</h2>
+                    <span className={sd.value}>{reached.length}</span>
                   </div>
-                  {reached.map((m, i) => (
-                    <motion.div
-                      key={m.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      style={{
-                        padding: '14px 16px',
-                        borderRadius: 12,
-                        marginBottom: 8,
-                        background: `linear-gradient(135deg, ${TIERS[m.tier].bg}, rgba(0,0,0,0))`,
-                        border: `1px solid ${TIERS[m.tier].color}40`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 10,
-                          background: TIERS[m.tier].bg,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: TIERS[m.tier].color,
-                        }}
+                  <div className={sd.list}>
+                    {reached.map((m, i) => (
+                      <motion.div
+                        key={m.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className={`${sd.card} ${sd.milestoneLine}`}
+                        data-tone="good"
                       >
-                        {/* TRAIN-MILESTONES-A11Y-1 */}
-                        <MilestoneIcon kind={m.iconKind} size={20} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <div
-                            style={{ fontSize: 14, fontWeight: 700, color: TIERS[m.tier].color }}
-                          >
-                            {m.name}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: 'var(--sp-fg-dim)',
-                              textTransform: 'uppercase',
-                            }}
-                          >
-                            {m.tier}
-                          </div>
+                        <span className={sd.badge} aria-hidden>
+                          {/* TRAIN-MILESTONES-A11Y-1 */}
+                          <MilestoneIcon kind={m.iconKind} size={20} />
+                        </span>
+                        <div>
+                          <div className={sd.title}>{m.name} <span className={sd.tierLabel}>{m.tier}</span></div>
+                          <div className={sd.copy}>{m.desc}</div>
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--sp-fg)', marginTop: 2 }}>{m.desc}</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 14, color: 'var(--sp-accent-green)', display: 'inline-flex', justifyContent: 'flex-end' }} aria-hidden>
-                          {/* TRAIN-MILESTONES-A11Y-1: SVG check replaces ✓ */}
-                          <CheckIcon size={14} />
+                        <div className={sd.milestoneStatus}>
+                          <span className={`${sd.good} ${sd.inline}`}>
+                            {/* TRAIN-MILESTONES-A11Y-1: SVG check */}
+                            <CheckIcon size={14} />
+                            Threshold Reached
+                          </span>
+                          <span className={sd.muted}>Reward Unverified</span>
                         </div>
-                        <div
-                          style={{ fontSize: 12, color: 'var(--sp-accent-green)', marginTop: 4, fontWeight: 700 }}
-                        >
-                          Threshold Reached
-                        </div>
-                        <div
-                          style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}
-                        >
-                          Reward Unverified
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </section>
               )}
 
               {/* Locked In Progress */}
               {inProgress.length > (nextMilestone ? 1 : 0) && (
-                <div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-dim)',
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      marginBottom: 10,
-                    }}
-                  >
-                    IN PROGRESS
+                <section className={sd.section} aria-labelledby="milestones-in-progress">
+                  <div className={sd.sectionHead}>
+                    <h2 id="milestones-in-progress" className={sd.sectionTitle}>In Progress</h2>
+                    <span className={sd.value}>{inProgress.length - (nextMilestone ? 1 : 0)}</span>
                   </div>
-                  {inProgress
-                    .filter((m) => m.id !== nextMilestone?.id)
-                    .map((m, i) => (
-                      <div
-                        key={m.id}
-                        style={{
-                          padding: '12px 16px',
-                          borderRadius: 12,
-                          marginBottom: 6,
-                          background: 'rgba(0,0,0,0.2)',
-                          border: '1px solid rgba(255,255,255,0.04)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12,
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 10,
-                            background: 'rgba(255,255,255,0.03)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            filter: 'grayscale(1)',
-                            opacity: 0.5,
-                            color: 'var(--sp-fg-muted)',
-                          }}
-                        >
-                          {/* TRAIN-MILESTONES-A11Y-1 */}
-                          <MilestoneIcon kind={m.iconKind} size={16} />
-                        </div>
-                        <div style={{ flex: 1, opacity: 0.8 }}>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
-                              {m.name}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 12,
-                                fontWeight: 700,
-                                color: TIERS[m.tier].color,
-                                opacity: 0.5,
-                              }}
-                            >
-                              {m.tier}
-                            </div>
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginTop: 2 }}>
-                            {m.desc}
-                          </div>
-
-                          {/* Mini Progress Bar */}
-                          <div
-                            style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}
-                          >
-                            <div
-                              style={{
-                                flex: 1,
-                                height: 4,
-                                background: 'rgba(0,0,0,0.5)',
-                                borderRadius: 2,
-                                overflow: 'hidden',
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: `${m.percent}%`,
-                                  height: '100%',
-                                  background: TIERS[m.tier].color,
-                                  opacity: 0.5,
-                                }}
-                              />
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 12,
-                                color: 'var(--sp-fg-faint)',
-                                minWidth: 30,
-                                textAlign: 'right',
-                              }}
-                            >
-                              {Math.round(m.percent)}%
+                  <div className={sd.list}>
+                    {inProgress
+                      .filter((m) => m.id !== nextMilestone?.id)
+                      .map((m) => (
+                        <div key={m.id} className={`${sd.card} ${sd.milestoneLine}`} data-tone="muted">
+                          <span className={`${sd.badge} ${sd.badgeLocked}`} aria-hidden>
+                            {/* TRAIN-MILESTONES-A11Y-1 */}
+                            <MilestoneIcon kind={m.iconKind} size={18} />
+                          </span>
+                          <div>
+                            <div className={sd.title}>{m.name} <span className={sd.tierLabel}>{m.tier}</span></div>
+                            <div className={sd.copy}>{m.desc}</div>
+                            {/* Mini Progress Bar */}
+                            <div className={sd.row}>
+                              <div className={sd.meter} style={{ flex: 1 }}>
+                                <div className={sd.meterFill} style={{ width: `${m.percent}%` }} />
+                              </div>
+                              <span className={`${sd.value} ${sd.small}`}>{Math.round(m.percent)}%</span>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                </div>
+                      ))}
+                  </div>
+                </section>
               )}
             </>
           )}
         </div>
       </div>
-      {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
       <ConnectionToast />
     </>
   );

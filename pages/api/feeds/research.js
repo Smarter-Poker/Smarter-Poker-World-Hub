@@ -52,6 +52,7 @@ const CALCULATOR_BADGE_VALUES = {
   'who-wins-calculator': 'Showdown & Kicker Resolver',
   'mixed-game-placards': 'Mixed-Game Rotation Tracker',
   'poker-iq-test': '10-Question GTO Poker IQ',
+  'gto-leak-finder': '60-Second GTO Poker Leak Finder',
   'geometric-bet-calculator': '2e & 3e Geometric Sizing',
   'late-reg-calculator': 'Late-Registration ICM Boost',
   'mtt-grind-planner': 'MTT Grind & ABI Planner',
@@ -149,8 +150,8 @@ const AUTHORITY_WHITEPAPER_FEED_ITEMS = [
   {
     slug: 'annual-state-of-poker-2026',
     url: `${SITE_URL}/research/annual-state-of-poker-2026`,
-    title: '2026 Annual State Of Live & Online Poker Industry Whitepaper (DOI: 10.5281/zenodo.15129481)',
-    summary: `Flagship 2026 quantitative industry report synthesizing ${VENUE_COUNT_LABEL} verified North American poker venues, 4,500+ weekly tournaments, all 50 US states and DC tax regimes, and 10M+ simulated GTO hands.`,
+    title: '2026 Annual State Of Live & Online Poker Industry Whitepaper (DOI: 10.5281/zenodo.24115647)',
+    summary: `The 2026 Smarter.Poker whitepaper: exact poker math, US poker tax rules, and dated directory data, each figure labelled with its basis.`,
     category: 'Annual Industry Whitepaper',
   },
   {
@@ -213,7 +214,7 @@ const AUTHORITY_WHITEPAPER_FEED_ITEMS = [
     slug: 'by-game',
     url: `${SITE_URL}/poker-rooms/by-game`,
     title: 'Best Live Poker Rooms By Game Variant (PLO, Big O, Mixed, Stud & High-Stakes NLH)',
-    summary: `Curated directory grouping ${VENUE_COUNT_LABEL} verified North American poker venues by PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, and Daily MTTs.`,
+    summary: `Curated directory grouping ${VENUE_COUNT_LABEL} US poker venues by PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, and Daily MTTs.`,
     category: 'Geographic Venue Intelligence',
   },
   {
@@ -275,7 +276,7 @@ export const SYNDICATED_CALCULATORS = [
 export function buildResearchJsonFeed() {
   const researchItems = RESEARCH_REPORTS.map((report) => {
     const url = `${SITE_URL}${researchPath(report.slug)}`;
-    const badgeUrl = `${SITE_URL}/api/seo/badge?type=research&label=${encodeURIComponent(report.category || 'Empirical Data')}&value=${encodeURIComponent('Smarter.Poker Research')}`;
+    const badgeUrl = `${SITE_URL}/api/seo/badge?type=research&label=${encodeURIComponent(report.category || 'Research')}&value=${encodeURIComponent('Smarter.Poker Research')}`;
     const findingsHtml = (report.keyFindings || [])
       .map((f) => `<li>${f}</li>`)
       .join('');
@@ -284,7 +285,7 @@ export function buildResearchJsonFeed() {
       `<p><strong>${report.title}</strong>: ${report.summary}</p>`,
       findingsHtml ? `<ul>${findingsHtml}</ul>` : '',
       `<p>Primary Source &amp; Full Dataset Table: <a href="${url}" rel="noopener">${report.title} (Smarter.Poker Research)</a> | <a href="${url}.md" rel="noopener">Raw Markdown (.md)</a></p>`,
-      `<p><a href="${url}" rel="noopener"><img src="${badgeUrl}" alt="Empirical Data Source: Smarter.Poker Research" height="28" /></a></p>`,
+      `<p><a href="${url}" rel="noopener"><img src="${badgeUrl}" alt="Research Source: Smarter.Poker Research" height="28" /></a></p>`,
     ]
       .filter(Boolean)
       .join('\n');
@@ -352,7 +353,7 @@ export function buildResearchJsonFeed() {
 
   return {
     version: 'https://jsonfeed.org/version/1.1',
-    title: 'Smarter.Poker Empirical Poker Research, Whitepapers & 52 Interactive Solver Calculators',
+    title: 'Smarter.Poker Poker Research, Whitepapers & Interactive Solver Calculators',
     home_page_url: `${SITE_URL}/research`,
     feed_url: `${SITE_URL}/api/feeds/research`,
     description:

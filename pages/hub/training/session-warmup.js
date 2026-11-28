@@ -18,6 +18,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/sessions-coaching.module.css';
 // TRAIN-CSS-MOTION-ADOPT-8 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
 // framer-motion contract) while the CSS sweep still collapses them under
@@ -48,7 +50,6 @@ function PawnIcon({ size=40 })   { return <_Svg size={size}><circle cx="12" cy="
 function StopIcon({ size=40 })   { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><line x1="6" y1="6" x2="18" y2="18"/></_Svg>; }
 function ClockIcon({ size=40 })  { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></_Svg>; }
 function CheckIcon({ size=36 })  { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
-function BackArrowIcon({ size=18 }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function StepIcon({ kind, size=40 }) {
   switch (kind) {
     case 'brain':  return <BrainIcon size={size}/>;
@@ -177,7 +178,7 @@ export default function SessionWarmupPage() {
     (option) => {
       setAnswers((prev) => ({ ...prev, [currentStep.id]: option }));
       if (step < PROTOCOL_STEPS.length - 1) {
-        setStep((s) => s + 1);
+        setStep((prevStep) => prevStep + 1);
       } else {
         setCompleted(true);
       }
@@ -190,7 +191,7 @@ export default function SessionWarmupPage() {
     setAnswers((prev) => ({ ...prev, [currentStep.id]: inputVal.trim() }));
     setInputVal('');
     if (step < PROTOCOL_STEPS.length - 1) {
-      setStep((s) => s + 1);
+      setStep((prevStep) => prevStep + 1);
     } else {
       setCompleted(true);
     }
@@ -241,218 +242,90 @@ export default function SessionWarmupPage() {
         description="Complete A 6-Step Pre-Session Poker Mental Readiness Check To Set Session Goals, Verify Bankroll Stop-Losses, And Screen For Tilt On Smarter.Poker."
         canonical="/hub/training/session-warmup"
       />
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Back Button */}
-        <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10 }}>
-          <button
-            type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-WARMUP-A11Y-1: SVG back arrow */}
-            <BackArrowIcon size={18} />
-          </button>
-        </div>
+      <div className={s.shell}>
+        <TrainingPageHead slug="training-session-warmup" />
 
-        {/* Completion Counter */}
-        <div
-          data-warmup-completed-count={completionCount}
-          style={{
-            position: 'absolute',
-            top: 20,
-            right: 20,
-            zIndex: 10,
-            fontSize: 12,
-            color: 'var(--sp-fg-faint)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
-          <span>Warmups Completed: {completionCount}</span>
-          {!completed && (
-            <button
-              type="button"
-              data-complete-warmup-btn="true"
-              onClick={() => {
-                setAnswers({ mental: '8 - Focused', timer: '60 min', goal: 'Play A-Game' });
-                setCompleted(true);
-              }}
-              style={{
-                padding: '4px 10px',
-                borderRadius: 6,
-                border: '1px solid rgba(59,130,246,0.35)',
-                background: 'rgba(59,130,246,0.12)',
-                color: 'var(--sp-accent-blue)',
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              Quick Complete
-            </button>
-          )}
-        </div>
+        <div className={s.page}>
+          {/* Completion counter and progress, in their own row under the header */}
+          <section className={`sd-panel ${s.panel}`} aria-label="Warmup Status" data-warmup-completed-count={completionCount}>
+            <div className={s.panelHead}>
+              <p className={s.facts}><span>Warmups Completed: <strong className={s.ice}>{completionCount}</strong></span></p>
+              {!completed && (
+                <button
+                  type="button"
+                  data-complete-warmup-btn="true"
+                  className={`sd-button ${s.button}`}
+                  onClick={() => {
+                    setAnswers({ mental: '8 - Focused', timer: '60 min', goal: 'Play A-Game' });
+                    setCompleted(true);
+                  }}
+                >
+                  Quick Complete
+                </button>
+              )}
+            </div>
+            {!completed && (
+              <div
+                className={s.track}
+                role="progressbar"
+                aria-label="Warmup protocol progress"
+                aria-valuenow={step + 1}
+                aria-valuemin={1}
+                aria-valuemax={PROTOCOL_STEPS.length}
+              >
+                <motion.div
+                  className={s.fill}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: MOTION.standard }}
+                />
+              </div>
+            )}
+          </section>
 
-        {/* Progress Bar */}
-        {!completed && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 3,
-              background: 'rgba(255,255,255,0.03)',
-              zIndex: 10,
-            }}
-          >
-            <motion.div
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: MOTION.standard }}
-              style={{
-                height: '100%',
-                background: 'linear-gradient(90deg, rgba(var(--sp-accent-blue-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
-                borderRadius: '0 2px 2px 0',
-              }}
-            />
-          </div>
-        )}
-
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '100dvh',
-            padding: 20,
-          }}
-        >
           {!completed ? (
             <AnimatePresence mode="wait">
-              <motion.div
+              <motion.section
                 key={step}
-                initial={{ opacity: 0, scale: 0.92, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -14 }}
                 transition={{ duration: MOTION.standard }}
-                style={{
-                  background: 'rgba(255,255,255,0.02)',
-                  border: '1px solid rgba(255,255,255,0.05)',
-                  borderRadius: 24,
-                  padding: '48px 40px',
-                  maxWidth: 520,
-                  width: '100%',
-                  textAlign: 'center',
-                  backdropFilter: 'blur(10px)',
-                }}
+                className={`sd-panel ${s.panel}`}
+                aria-labelledby="warmup-step-title"
               >
-                {/* TRAIN-WARMUP-A11Y-1: SVG StepIcon replaces emoji */}
-                <div style={{ fontSize: 40, marginBottom: 16, display: 'inline-flex', justifyContent: 'center', color: 'var(--sp-accent-blue)' }} aria-hidden>
-                  <StepIcon kind={currentStep.iconKind} size={40} />
+                <div className={s.panelHead} style={{ justifyContent: 'flex-start' }}>
+                  <span className={`sd-metric ${s.ice}`} aria-hidden style={{ display: 'inline-grid', placeItems: 'center', width: 48, height: 48, padding: 0 }}>
+                    <StepIcon kind={currentStep.iconKind} size={24} />
+                  </span>
+                  <p className={s.eyebrow}>System Check {step + 1} Of {PROTOCOL_STEPS.length}</p>
                 </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: 'var(--sp-accent-blue)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 2,
-                    marginBottom: 16,
-                  }}
-                >
-                  System Check {step + 1} Of {PROTOCOL_STEPS.length}
-                </div>
-                {/* TRAIN-WARMUP-A11Y-1: semantic h1 per active step */}
-                <h1
-                  style={{
-                    fontSize: 28,
-                    fontWeight: 900,
-                    color: '#fff',
-                    marginBottom: 12,
-                    letterSpacing: '-0.5px',
-                    marginTop: 0,
-                  }}
-                >
-                  {currentStep.title}
-                </h1>
-                <div
-                  style={{
-                    fontSize: 14,
-                    color: 'var(--sp-fg-muted)',
-                    lineHeight: 1.6,
-                    marginBottom: 32,
-                    padding: '0 8px',
-                  }}
-                >
-                  {currentStep.desc}
-                </div>
+                <h2 id="warmup-step-title" className={s.sectionTitle}>{currentStep.title}</h2>
+                <p className={s.copy}>{currentStep.desc}</p>
 
                 {/* Options */}
                 {currentStep.options && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8,
-                      maxWidth: 320,
-                      margin: '0 auto',
-                    }}
-                  >
-                    {currentStep.options.map((opt, i) => {
-                      const colors = ['var(--sp-accent-green)', 'var(--sp-accent-blue)', 'var(--sp-accent-amber)', 'var(--sp-accent-red)', 'var(--sp-fg-dim)'];
-                      const color = colors[i] || 'var(--sp-fg-muted)';
-                      return (
-                        <motion.button
-                          key={opt}
-                          type="button"
-                          aria-label={`${currentStep.title}: ${opt}`}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.97 }}
-                          onClick={() => selectOption(opt)}
-                          style={{
-                            padding: '14px 16px',
-                            borderRadius: 10,
-                            background: `${color}10`,
-                            border: `1px solid ${color}30`,
-                            color: color,
-                            fontSize: 14,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {opt}
-                        </motion.button>
-                      );
-                    })}
+                  <div className={s.options}>
+                    {currentStep.options.map((opt) => (
+                      <motion.button
+                        key={opt}
+                        type="button"
+                        className={`sd-button ${s.button}`}
+                        aria-label={`${currentStep.title}: ${opt}`}
+                        aria-pressed={answers[currentStep.id] === opt}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => selectOption(opt)}
+                      >
+                        {opt}
+                      </motion.button>
+                    ))}
                   </div>
                 )}
 
                 {/* Text Input */}
                 {currentStep.input && (
-                  <div style={{ maxWidth: 400, margin: '0 auto' }}>
+                  <div className={s.options}>
                     <input
+                      className={s.input}
                       type={currentStep.type || 'text'}
                       value={inputVal}
                       onChange={(e) => setInputVal(e.target.value)}
@@ -460,200 +333,83 @@ export default function SessionWarmupPage() {
                       placeholder={currentStep.placeholder}
                       aria-label={currentStep.title}
                       autoFocus
-                      style={{
-                        width: '100%',
-                        padding: '16px 20px',
-                        background: 'rgba(0,0,0,0.4)',
-                        border: '1px solid rgba(59,130,246,0.4)',
-                        borderRadius: 12,
-                        color: '#fff',
-                        fontSize: 16,
-                        textAlign: 'center',
-                        outline: 'none',
-                        marginBottom: 16,
-                        boxSizing: 'border-box',
-                      }}
                     />
                     <motion.button
                       type="button"
                       aria-label="Continue to next step"
-                      whileHover={{ scale: 1.03 }}
+                      className={`sd-button ${inputVal.trim() ? 'sd-primary' : ''} ${s.button} ${s.primary}`}
                       whileTap={{ scale: 0.97 }}
                       onClick={submitInput}
                       disabled={!inputVal.trim()}
-                      style={{
-                        background: inputVal.trim() ? 'var(--sp-accent-blue)' : 'rgba(59,130,246,0.3)',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '14px 32px',
-                        borderRadius: 10,
-                        fontSize: 14,
-                        fontWeight: 800,
-                        cursor: inputVal.trim() ? 'pointer' : 'not-allowed',
-                        boxShadow: inputVal.trim() ? '0 6px 24px rgba(59,130,246,0.3)' : 'none',
-                      }}
                     >
                       Continue →
                     </motion.button>
                   </div>
                 )}
 
-                {/* Step indicator dots */}
-                <div
-                  style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 24 }}
-                  role="progressbar"
-                  aria-label="Warmup protocol progress"
-                  aria-valuenow={step + 1}
-                  aria-valuemin={1}
-                  aria-valuemax={PROTOCOL_STEPS.length}
-                >
+                {/* Step indicator */}
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${PROTOCOL_STEPS.length}, minmax(0, 1fr))`, gap: 4 }} aria-hidden>
                   {PROTOCOL_STEPS.map((_, i) => (
                     <div
                       key={i}
                       style={{
-                        width: 6,
                         height: 6,
-                        borderRadius: '50%',
-                        background: i <= step ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.1)',
+                        background: i <= step ? 'linear-gradient(180deg, #7fe7ff, #1d8fe0)' : '#06111c',
+                        boxShadow: 'inset 0 0 0 1px rgba(124, 158, 187, 0.3)',
                       }}
                     />
                   ))}
                 </div>
-              </motion.div>
+              </motion.section>
             </AnimatePresence>
           ) : (
             /* ●●● COMPLETION SCREEN ●●● */
-            <motion.div
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200 }}
-              style={{ textAlign: 'center', maxWidth: 480, width: '100%' }}
+            <motion.section
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`sd-panel ${s.panel}`}
+              aria-labelledby="warmup-done-title"
             >
-              <div
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  background: 'rgba(74,222,128,0.1)',
-                  border: '3px solid #4ade80',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 24px',
-                  color: 'var(--sp-accent-green)',
-                }}
-              >
-                {/* TRAIN-WARMUP-A11Y-1: SVG check replaces ✓ */}
-                <CheckIcon size={36} />
-              </div>
-              {/* TRAIN-WARMUP-A11Y-1: semantic h1 for completion screen */}
-              <h1
-                style={{
-                  fontSize: 32,
-                  fontWeight: 900,
-                  color: '#fff',
-                  marginBottom: 8,
-                  letterSpacing: '-1px',
-                  marginTop: 0,
-                }}
-              >
-                You Are Prepared.
-              </h1>
-              <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginBottom: 32 }}>
-                Protocol Verified. Execute Your Strategy.
+              <div className={s.panelHead} style={{ justifyContent: 'flex-start' }}>
+                <span className={`sd-metric ${s.up}`} aria-hidden style={{ display: 'inline-grid', placeItems: 'center', width: 52, height: 52, padding: 0 }}>
+                  <CheckIcon size={28} />
+                </span>
+                <div>
+                  <h2 id="warmup-done-title" className={s.sectionTitle}>You Are Prepared.</h2>
+                  <p className={s.copy}>Protocol Verified. Execute Your Strategy.</p>
+                </div>
               </div>
 
               {/* Summary */}
-              <div
-                style={{
-                  background: 'rgba(0,0,0,0.2)',
-                  borderRadius: 12,
-                  padding: 16,
-                  marginBottom: 24,
-                  textAlign: 'left',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    marginBottom: 8,
-                    letterSpacing: 1,
-                  }}
-                >
-                  Session Plan
-                </div>
+              <h3 className={s.subTitle}>Session Plan</h3>
+              <dl className={s.list}>
                 {Object.entries(answers || {}).map(([key, val]) => {
-                  const label = PROTOCOL_STEPS.find((s) => s.id === key)?.title || key;
+                  const label = PROTOCOL_STEPS.find((p) => p.id === key)?.title || key;
                   return (
-                    <div
-                      key={key}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        padding: '6px 0',
-                        borderBottom: '1px solid rgba(255,255,255,0.03)',
-                      }}
-                    >
-                      <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{label}</span>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          color: 'var(--sp-fg)',
-                          fontWeight: 600,
-                          maxWidth: 200,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'normal',
-                        }}
-                      >
-                        {val}
-                      </span>
+                    <div key={key} className={s.row}>
+                      <dt className={s.rowValue} style={{ textTransform: 'capitalize' }}>{label}</dt>
+                      <dd className={s.rowLabel} style={{ textAlign: 'right', overflowWrap: 'anywhere' }}>{val}</dd>
                     </div>
                   );
                 })}
-              </div>
+              </dl>
 
               {/* Tip */}
-              <div
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: 8,
-                  background: 'rgba(0,212,255,0.04)',
-                  border: '1px solid rgba(0,212,255,0.1)',
-                  marginBottom: 24,
-                }}
-              >
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>TIP: </span>
-                <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{tip}</span>
-              </div>
+              <p className={s.note}>
+                <strong className={s.ice}>Tip: </strong>{tip}
+              </p>
 
               <motion.button
                 type="button"
                 aria-label="Deploy to training tables"
+                className={`sd-button sd-primary ${s.button} ${s.primary} ${s.full}`}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => router.push('/hub/training')}
-                style={{
-                  background: 'var(--sp-accent-green)',
-                  color: '#000',
-                  border: 'none',
-                  padding: '16px 40px',
-                  borderRadius: 12,
-                  fontSize: 16,
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                  boxShadow: '0 8px 30px rgba(74,222,128,0.3)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                }}
               >
                 Deploy To Tables
               </motion.button>
-            </motion.div>
+            </motion.section>
           )}
-
         </div>
       </div>
       <HubPageSummary page="training-session-warmup" />

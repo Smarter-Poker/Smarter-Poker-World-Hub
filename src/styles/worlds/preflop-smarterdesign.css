@@ -1,0 +1,1384 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   PREFLOP CHARTS IN #SMARTERDESIGN (Dan, 2026-11-27)
+
+   "PREFLOP CHARTS NEEDS THE SAME #SMARTERDESIGN UPGRADE TO EVERY SINGLE PAGE,
+   SUBPAGE, BUTTON AND EVERYTHING ELSE, EXACTLY LIKE WE'VE DONE FOR EVERY OTHER
+   WORLD HUB PAGE."
+
+   One layer over src/styles/worlds/memory-games.css for every Preflop Charts
+   surface: the Range Lab menu, the mode launch cards, Rankings and Daily
+   panels, the level path, the scenario filter, the live Range Lab, the six
+   game screens, the result and coach panels, and the My Stats, Ranks, Awards
+   and Guide subpages.
+
+   The vocabulary is docs/SMARTERDESIGN.md and styles/smarterdesign.css:
+     surface  -> ink-navy fill inside the chrome-readout nine-slice rim
+     row      -> chrome-row rim
+     metric   -> chrome-stat rim, tabular figures
+     control  -> chrome-row rim on the steel control fill
+     selected -> chrome-active-v2 rim on cobalt, white type
+   White titles, silver body, ice blue kickers and links. No gold, amber,
+   yellow, purple, violet, pink or magenta type. The 13x13 matrix cells and
+   the six action colours are data and keep their own fills.
+
+   Specificity: the doubled body class outranks memory-games.css's
+   `body.world-preflop-charts .x` rules without !important. Inline colours
+   that used to set gold/purple type were removed at the source.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-preflop-charts.world-preflop-charts {
+    --pcsd-ink: #040d18;
+    --pcsd-text: #f2f7ff;
+    --pcsd-silver: #bdd0e2;
+    --pcsd-muted: #93a9bd;
+    --pcsd-ice: #86daff;
+    --pcsd-navy: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+    --pcsd-control: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+    --pcsd-cobalt: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+    --pcsd-type: var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+    --pcsd-body: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ── 1. Surfaces: one continuous steel rim per surface ─────────────────── */
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-smart-practice,
+    .preflop-suggestions,
+    .preflop-level-toolbar,
+    .preflop-circuit-status,
+    .preflop-mastery-gate,
+    .preflop-primer,
+    .preflop-recent,
+    .preflop-board-panel,
+    .preflop-board-panel.is-gold,
+    .preflop-board-panel.is-green,
+    .preflop-board-panel.is-daily-casino,
+    .preflop-daily-card,
+    .preflop-launch-card,
+    .preflop-game-notice,
+    .scenario-filter-console,
+    .preflop-lab-briefing,
+    .preflop-lab-console,
+    .preflop-lab-matrix-panel,
+    .preflop-lab-submit-panel,
+    .preflop-lab-feedback,
+    .preflop-lab-coach,
+    .preflop-subpage-panel,
+    .preflop-subpage-empty,
+    .preflop-subpage-error,
+    .preflop-subpage-loading,
+    .preflop-award-progress,
+    .preflop-auth-gate,
+    .preflop-sd-surface
+) {
+    box-sizing: border-box;
+    border: 5px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+    background: var(--pcsd-navy);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42);
+    color: var(--pcsd-silver);
+    clip-path: none;
+}
+
+/* The old double hairlines, neon strips, corner glints and art plates that
+   sat inside these surfaces. One frame per surface. */
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-smart-practice,
+    .preflop-suggestions,
+    .preflop-level-toolbar,
+    .preflop-circuit-status,
+    .preflop-mastery-gate,
+    .preflop-primer,
+    .preflop-board-panel,
+    .preflop-daily-card,
+    .preflop-launch-card,
+    .scenario-filter-console,
+    .preflop-lab-briefing,
+    .preflop-lab-matrix-panel
+)::before,
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-launch-card,
+    .preflop-circuit-status,
+    .scenario-filter-console,
+    .preflop-board-panel
+)::after {
+    content: none;
+    display: none;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-launch-card {
+    border-radius: 0;
+    max-width: 560px;
+}
+
+/* ── 2. Type: white titles, silver body, ice kickers ───────────────────── */
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-smart-copy h2,
+    .preflop-level-toolbar h3,
+    .preflop-launch-title,
+    .preflop-board-heading h2,
+    .preflop-board-panel.is-daily-casino .preflop-board-heading h2,
+    .preflop-board-challenge-head strong,
+    .preflop-board-complete h3,
+    .preflop-board-empty h3,
+    .preflop-mastery-title,
+    .preflop-primer-heading h2,
+    .preflop-level-copy h3,
+    .preflop-daily-card-copy h2,
+    .scenario-filter-heading h3,
+    .preflop-lab-briefing h2,
+    .preflop-panel-heading h2,
+    .preflop-subpage-empty h2,
+    .preflop-subpage-empty h3,
+    .preflop-award-grid h2,
+    .preflop-ai-overlay-title,
+    .preflop-sd-title
+) {
+    color: var(--pcsd-text);
+    font-family: var(--pcsd-type);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    text-shadow: 0 2px 0 #10243a;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-smart-copy h2,
+    .preflop-launch-title,
+    .preflop-board-heading h2,
+    .preflop-primer-heading h2,
+    .preflop-lab-briefing h2
+) {
+    font-size: clamp(1.45rem, 4.6vw, 2rem);
+    line-height: 1.08;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-panel-kicker,
+    .preflop-suggestions-title,
+    .preflop-smart-practice .preflop-panel-kicker,
+    .preflop-circuit-label > span,
+    .preflop-recent-head span:first-child,
+    .preflop-daily-card-copy > span,
+    .preflop-board-panel.is-daily-casino .preflop-board-kicker,
+    .preflop-board-kicker,
+    .scenario-filter-kicker,
+    .preflop-lab-kicker span,
+    .preflop-panel-heading > div > span,
+    .preflop-award-progress small,
+    .preflop-primer-key-title,
+    .preflop-weak-label,
+    .preflop-sd-kicker
+) {
+    color: var(--pcsd-ice);
+    font-family: var(--pcsd-type);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-shadow: none;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-smart-copy > p,
+    .preflop-launch-desc,
+    .preflop-board-heading p,
+    .preflop-board-challenge > p,
+    .preflop-board-empty p,
+    .preflop-board-note span,
+    .preflop-mastery-desc,
+    .preflop-primer-heading p,
+    .preflop-level-copy p,
+    .preflop-daily-card.is-empty p,
+    .scenario-filter-heading p,
+    .preflop-lab-briefing-copy > p,
+    .preflop-subpage-empty p,
+    .preflop-award-grid p,
+    .preflop-ai-overlay-sub
+) {
+    color: var(--pcsd-silver);
+    font-family: var(--pcsd-body);
+}
+
+/* Orbitron was the old console face. Condensed for titles and figures,
+   readable Inter for controls (docs/SMARTERDESIGN.md, Material). */
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-level-number,
+    .preflop-level-node > span,
+    .preflop-circuit-stat strong,
+    .preflop-launch-stats strong,
+    .preflop-board-rank strong,
+    .preflop-board-streaks strong,
+    .preflop-recent-stats strong,
+    .preflop-recent-score strong,
+    .preflop-daily-card-streak strong,
+    .scenario-filter-meter strong,
+    .preflop-lab-readout strong,
+    .preflop-lab-section-index,
+    .preflop-stat-grid strong,
+    .preflop-mode-metrics strong,
+    .preflop-award-code span,
+    .preflop-level-telemetry strong
+) {
+    font-family: var(--pcsd-type);
+    font-variant-numeric: tabular-nums;
+    color: var(--pcsd-text);
+}
+
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-lab-submit,
+    .preflop-lab-result-actions button,
+    .preflop-subpage-utility,
+    .preflop-subpage-back
+) {
+    font-family: var(--pcsd-type);
+    text-transform: none;
+    letter-spacing: 0.02em;
+}
+
+/* ── 3. Controls: steel by default, cobalt when selected or primary ────── */
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-mode-card,
+    .preflop-quick-button,
+    .preflop-tool-button,
+    .preflop-board-modes button,
+    .preflop-board-actions button,
+    .preflop-lab-result-actions button,
+    .preflop-lab-edit-tools button,
+    .preflop-lab-shape-tools button,
+    .preflop-lab-coach-button,
+    .preflop-lab-jarvis-button,
+    .preflop-game-notice button,
+    .preflop-vip-notice button,
+    .preflop-subpage-nav a,
+    .preflop-tab-rail button,
+    .preflop-subpage-error button,
+    .preflop-subpage-back,
+    .scenario-filter-reset,
+    .scenario-filter-close,
+    .preflop-sd-button
+) {
+    box-sizing: border-box;
+    min-height: 44px;
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: var(--pcsd-control);
+    box-shadow: none;
+    color: var(--pcsd-text);
+    font-family: var(--pcsd-type);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    text-decoration: none;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-mode-card.is-active,
+    .preflop-mode-card[aria-pressed='true'],
+    .preflop-quick-button.is-active,
+    .preflop-tool-button.is-active,
+    .preflop-tool-button.is-active.is-gold,
+    .preflop-board-modes button[aria-pressed='true'],
+    .preflop-subpage-nav a[aria-current='page'],
+    .preflop-tab-rail button[aria-selected='true'],
+    .preflop-tab-rail button[aria-pressed='true'],
+    .preflop-primary-cta,
+    .preflop-launch-button,
+    .preflop-board-start,
+    .preflop-board-panel.is-daily-casino .preflop-board-start,
+    .preflop-daily-card > button,
+    .preflop-lab-submit,
+    .preflop-lab-result-actions button.is-primary,
+    .preflop-subpage-primary-cta,
+    .preflop-auth-gate > a,
+    .scenario-filter-apply,
+    .preflop-sd-primary
+) {
+    box-sizing: border-box;
+    min-height: 44px;
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch;
+    background: var(--pcsd-cobalt);
+    background-clip: padding-box;
+    box-shadow: none;
+    color: #fff;
+    font-family: var(--pcsd-type);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    text-decoration: none;
+    text-shadow: 0 1px 2px #021022;
+    filter: none;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-primary-cta,
+    .preflop-launch-button,
+    .preflop-board-start,
+    .preflop-lab-submit,
+    .preflop-daily-card > button,
+    .scenario-filter-apply
+) {
+    min-height: 52px;
+    font-size: 17px;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-mode-card,
+    .preflop-quick-button,
+    .preflop-tool-button,
+    .preflop-board-modes button,
+    .preflop-board-actions button,
+    .preflop-lab-result-actions button,
+    .preflop-lab-edit-tools button,
+    .preflop-lab-shape-tools button,
+    .preflop-subpage-nav a,
+    .preflop-tab-rail button,
+    .preflop-primary-cta,
+    .preflop-launch-button,
+    .preflop-board-start,
+    .preflop-lab-submit,
+    .preflop-subpage-primary-cta,
+    .scenario-filter-apply,
+    .scenario-filter-reset,
+    .preflop-sd-button,
+    .preflop-sd-primary
+):active:not(:disabled) {
+    filter: brightness(0.88);
+    transform: none;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-mode-card,
+    .preflop-quick-button,
+    .preflop-tool-button,
+    .preflop-board-modes button,
+    .preflop-board-actions button,
+    .preflop-primary-cta,
+    .preflop-launch-button,
+    .preflop-lab-submit,
+    .preflop-lab-result-actions button,
+    .preflop-lab-edit-tools button,
+    .scenario-filter-apply,
+    .scenario-filter-reset,
+    .preflop-sd-button,
+    .preflop-sd-primary
+):disabled {
+    border-image-source: url('/images/smarterdesign/chrome-row.webp');
+    border-image-slice: 13;
+    background: #13202c;
+    color: #a7b7c8;
+    cursor: default;
+    opacity: 0.7;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-command-deck,
+    .preflop-subpage,
+    .preflop-range-lab,
+    .preflop-sd-game
+) :is(button, a, [role='button'], [tabindex='0'], select, summary):focus-visible {
+    outline: 2px solid #9ee3ff;
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+/* Mode picker. The selected mode lights cobalt; the per-mode neon strip and
+   coloured glow are gone. */
+body.world-preflop-charts.world-preflop-charts .preflop-mode-card {
+    padding: 12px 8px 11px;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-mode-card::after {
+    content: none;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-mode-card .preflop-mode-icon {
+    color: var(--pcsd-ice);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-mode-card.is-active .preflop-mode-icon,
+body.world-preflop-charts.world-preflop-charts .preflop-mode-card.is-active .preflop-mode-label,
+body.world-preflop-charts.world-preflop-charts .preflop-mode-card.is-active .preflop-mode-desc {
+    color: #fff;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-mode-label {
+    color: var(--pcsd-text);
+    font-family: var(--pcsd-type);
+    font-size: 16px;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-mode-desc {
+    color: var(--pcsd-silver);
+    font-family: var(--pcsd-body);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-quick-button svg,
+body.world-preflop-charts.world-preflop-charts .preflop-tool-button svg {
+    color: var(--pcsd-ice);
+}
+
+body.world-preflop-charts.world-preflop-charts :is(.preflop-quick-button, .preflop-tool-button).is-active svg {
+    color: #fff;
+}
+
+/* Section nav. A steel case holding steel keys; the current page lights. */
+body.world-preflop-charts.world-preflop-charts .preflop-subpage-nav {
+    gap: 6px;
+    padding: 6px;
+    border: 5px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+    background: var(--pcsd-navy);
+    backdrop-filter: none;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-subpage-nav a {
+    flex: 1 1 calc(33.333% - 6px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 8px;
+    font-size: 15px;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-subpage-nav a svg {
+    color: var(--pcsd-ice);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-subpage-nav a[aria-current='page'] svg {
+    color: #fff;
+}
+
+@media (min-width: 700px) {
+    body.world-preflop-charts.world-preflop-charts .preflop-subpage-nav a {
+        flex-basis: calc(20% - 6px);
+    }
+}
+
+/* ── 4. Readouts: chrome-stat tiles with tabular figures ───────────────── */
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-circuit-stat,
+    .preflop-launch-stats > div,
+    .preflop-board-rank > div,
+    .preflop-board-challenge-meta > div,
+    .preflop-board-streaks > div,
+    .preflop-recent-stats > div,
+    .preflop-daily-card-metrics > div,
+    .preflop-daily-card-streak,
+    .scenario-filter-meter,
+    .preflop-lab-readout,
+    .preflop-lab-feedback-grid > div,
+    .preflop-stat-grid article,
+    .preflop-mode-metrics > div,
+    .preflop-grade-chip,
+    .preflop-sd-metric
+) {
+    box-sizing: border-box;
+    min-width: 0;
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+    background: var(--pcsd-navy);
+    box-shadow: none;
+    color: var(--pcsd-silver);
+    font-variant-numeric: tabular-nums;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-circuit-stat small,
+    .preflop-launch-stats span,
+    .preflop-board-rank span,
+    .preflop-board-challenge-meta span,
+    .preflop-board-streaks span,
+    .preflop-recent-stats span,
+    .preflop-daily-card-metrics small,
+    .scenario-filter-meter span,
+    .preflop-lab-readout span,
+    .preflop-stat-grid span,
+    .preflop-mode-metrics span
+) {
+    color: var(--pcsd-silver);
+    font-family: var(--pcsd-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: none;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-circuit-stat > svg,
+    .preflop-launch-best svg,
+    .preflop-mastery-icon,
+    .preflop-board-heading svg,
+    .preflop-board-challenge-head svg,
+    .preflop-award-progress > svg,
+    .scenario-filter-field label svg
+) {
+    color: var(--pcsd-ice);
+}
+
+/* The level path. Each station is a chrome row; the current station lights
+   cobalt at its edge, a mastered one carries a green check (semantic),
+   locked stations dim. */
+body.world-preflop-charts.world-preflop-charts .preflop-circuit-status {
+    padding: 10px;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-circuit-label strong {
+    color: var(--pcsd-text);
+    font-family: var(--pcsd-type);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-circuit-stat strong em {
+    color: var(--pcsd-silver);
+    font-style: normal;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-card {
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: var(--pcsd-navy);
+    box-shadow: none;
+    clip-path: none;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-card::after {
+    content: none;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-card.is-current {
+    border-image-source: url('/images/smarterdesign/chrome-active-v2.webp');
+    border-image-slice: 11;
+    background: linear-gradient(110deg, rgba(12, 85, 192, 0.42), rgba(5, 14, 24, 0.96) 62%);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-card.is-locked {
+    opacity: 0.62;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-card.is-locked :is(h3, p, .preflop-level-meta) {
+    color: var(--pcsd-muted);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-node {
+    border-color: rgba(134, 218, 255, 0.55);
+    background: linear-gradient(180deg, #1c3550, #08182a);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-card.is-current .preflop-level-node {
+    border-color: #9ee3ff;
+    background: var(--pcsd-cobalt);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-node > span {
+    color: #fff;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-number {
+    color: var(--pcsd-ice);
+    font-size: 15px;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-meta {
+    color: var(--pcsd-silver);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-state {
+    border: 2px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 3px stretch;
+    background: #0a1726;
+    color: var(--pcsd-silver);
+    font-family: var(--pcsd-type);
+    font-weight: 700;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-state.is-current {
+    border-image-source: url('/images/smarterdesign/chrome-active-v2.webp');
+    border-image-slice: 11;
+    background: var(--pcsd-cobalt);
+    background-clip: padding-box;
+    color: #fff;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-state.is-mastered {
+    color: #6ef0b5;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-progress-track {
+    border-radius: 0;
+    background: #06111d;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-progress-fill {
+    border-radius: 0;
+    background: linear-gradient(90deg, #0c55c0, #39a8ff);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-progress-fill.is-mastered {
+    background: linear-gradient(90deg, #138a5d, #39e9a5);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-level-progress-label {
+    color: var(--pcsd-silver);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-mastery-gate .preflop-mastery-icon {
+    border-color: rgba(134, 218, 255, 0.5);
+    background: #0a1a2c;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-mastery-title {
+    font-size: 18px;
+}
+
+/* Smart Practice. Jarvis sits in a chrome medallion; the violet halo is gone. */
+body.world-preflop-charts.world-preflop-charts .preflop-jarvis-medallion {
+    border: 2px solid #9fb8cc;
+    background: #050c16;
+    box-shadow: inset 0 0 0 2px #0c1a2a, 0 0 0 3px #40576c, 0 6px 16px rgba(0, 0, 0, 0.55);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-weak-row {
+    border: 2px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 3px stretch;
+    background: #0a1726;
+    color: var(--pcsd-text);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-weak-row span:last-child {
+    color: #ff8a9a;
+}
+
+/* Rows: suggestions, recent sessions, stats archive, awards, weak spots. */
+body.world-preflop-charts.world-preflop-charts :is(
+    .preflop-suggestion-row,
+    .preflop-recent-row,
+    .preflop-session-list article,
+    .preflop-award-grid article,
+    .preflop-weak-signal article,
+    .preflop-sd-row
+) {
+    box-sizing: border-box;
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: var(--pcsd-navy);
+    box-shadow: none;
+    color: var(--pcsd-text);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-suggestion-row:active {
+    filter: brightness(0.88);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-suggestion-row > span:last-child,
+body.world-preflop-charts.world-preflop-charts .preflop-recent-head span:last-child,
+body.world-preflop-charts.world-preflop-charts .preflop-board-note strong {
+    color: var(--pcsd-ice);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-recent-copy,
+body.world-preflop-charts.world-preflop-charts .preflop-recent-score span {
+    color: var(--pcsd-silver);
+}
+
+/* Grade chips carry a letter, so colour is only a second cue. */
+body.world-preflop-charts.world-preflop-charts .preflop-recent-grade {
+    border-radius: 0;
+    font-family: var(--pcsd-type);
+}
+
+/* ── 5. Launch card, Rankings and Daily panels ─────────────────────────── */
+body.world-preflop-charts.world-preflop-charts .preflop-launch-difficulty {
+    border: 2px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 3px stretch;
+    background: #0a1726;
+    color: var(--pcsd-ice);
+    font-family: var(--pcsd-type);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-launch-icon {
+    color: var(--pcsd-ice);
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-launch-best {
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+    background: var(--pcsd-navy);
+    color: var(--pcsd-silver);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-launch-best strong {
+    color: var(--pcsd-text);
+    font-family: var(--pcsd-type);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-board-heading > svg {
+    color: var(--pcsd-ice);
+}
+
+body.world-preflop-charts.world-preflop-charts :is(.preflop-board-empty, .preflop-board-empty.is-warning, .preflop-board-challenge, .preflop-board-complete, .preflop-board-note) {
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: #071422;
+    box-shadow: none;
+    color: var(--pcsd-silver);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-board-empty.is-warning h3 {
+    color: var(--pcsd-text);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-board-challenge-head span,
+body.world-preflop-charts.world-preflop-charts .preflop-board-panel.is-daily-casino .preflop-board-challenge-head {
+    color: var(--pcsd-ice);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-board-panel.is-daily-casino .preflop-board-challenge-meta > div strong,
+body.world-preflop-charts.world-preflop-charts .preflop-board-challenge-meta strong,
+body.world-preflop-charts.world-preflop-charts .preflop-board-rank strong {
+    color: var(--pcsd-text);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-board-modes {
+    gap: 6px;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-board-modes button {
+    padding: 6px 14px;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-board-table .sp-rtable th {
+    color: var(--pcsd-ice);
+    font-family: var(--pcsd-type);
+}
+
+/* Daily Local Practice card (menu). */
+body.world-preflop-charts.world-preflop-charts .preflop-daily-card-art {
+    background: linear-gradient(90deg, transparent 60%, rgba(32, 129, 236, 0.08));
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-daily-card-mark {
+    border-color: rgba(134, 218, 255, 0.55);
+    background: #0a1a2c;
+    color: var(--pcsd-ice);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-daily-card-copy h2 {
+    color: var(--pcsd-text);
+    font-size: clamp(1.3rem, 4.4vw, 1.75rem);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-daily-card-metrics strong,
+body.world-preflop-charts.world-preflop-charts .preflop-daily-card-streak strong {
+    color: var(--pcsd-text);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-daily-card-scan {
+    background: var(--pcsd-ice);
+    box-shadow: 0 0 10px rgba(134, 218, 255, 0.7);
+}
+
+/* ── 6. Scenario filter ─────────────────────────────────────────────────── */
+body.world-preflop-charts.world-preflop-charts .scenario-filter-field {
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: #071422;
+}
+
+body.world-preflop-charts.world-preflop-charts .scenario-filter-field label {
+    color: var(--pcsd-text);
+    font-family: var(--pcsd-type);
+    font-size: 15px;
+}
+
+body.world-preflop-charts.world-preflop-charts .scenario-filter-field-note {
+    color: var(--pcsd-silver);
+}
+
+body.world-preflop-charts.world-preflop-charts .scenario-filter-field select {
+    min-height: 44px;
+    border: 1px solid #5d7890;
+    border-radius: 0;
+    background: linear-gradient(180deg, #020a10, #061822);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+    color: var(--pcsd-text);
+    color-scheme: dark;
+}
+
+body.world-preflop-charts.world-preflop-charts .scenario-filter-summary span {
+    border: 2px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 3px stretch;
+    background: #0a1726;
+    color: var(--pcsd-silver);
+}
+
+body.world-preflop-charts.world-preflop-charts .scenario-filter-summary span.is-selected {
+    border-image-source: url('/images/smarterdesign/chrome-active-v2.webp');
+    border-image-slice: 11;
+    background: var(--pcsd-cobalt);
+    background-clip: padding-box;
+    color: #fff;
+}
+
+body.world-preflop-charts.world-preflop-charts .scenario-filter-meter strong {
+    color: var(--pcsd-text);
+}
+
+body.world-preflop-charts.world-preflop-charts .scenario-filter-close {
+    width: 44px;
+    min-width: 44px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+}
+
+/* ── 7. Range Lab (live drill, result, coach) ──────────────────────────── */
+body.world-preflop-charts.world-preflop-charts .preflop-lab-kicker span {
+    border: 0;
+    background: none;
+    padding: 0;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-tip {
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: #071422;
+    color: var(--pcsd-silver);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-tip svg {
+    color: var(--pcsd-ice);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-timer {
+    border-radius: 0;
+    background: #06111d;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-timer span {
+    background: linear-gradient(90deg, #0c55c0, #39a8ff);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-timer[data-urgency='warning'] span {
+    background: linear-gradient(90deg, #b5470f, #ff8a3d);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-timer[data-urgency='critical'] span {
+    background: linear-gradient(90deg, #a3162c, #ff5c74);
+}
+
+body.world-preflop-charts.world-preflop-charts :is(.preflop-lab-action-header, .preflop-lab-matrix-heading) > span,
+body.world-preflop-charts.world-preflop-charts .preflop-lab-command-counts span {
+    color: var(--pcsd-silver);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-section-index {
+    border: 2px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 3px stretch;
+    background: #0a1726;
+    color: var(--pcsd-ice);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-grid-frame {
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: #040b14;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-submit kbd {
+    border-radius: 0;
+    background: rgba(2, 16, 34, 0.55);
+    color: #dff4ff;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-coach-head span:first-child,
+body.world-preflop-charts.world-preflop-charts .preflop-lab-coach-label {
+    color: var(--pcsd-ice);
+    font-family: var(--pcsd-type);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-coach-item {
+    border: 2px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 3px stretch;
+    background: #071422;
+    color: var(--pcsd-silver);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-reward {
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+    background: var(--pcsd-navy);
+    color: var(--pcsd-silver);
+}
+
+/* Combo popup and the Jarvis generation overlay. */
+body.world-preflop-charts.world-preflop-charts .preflop-combo-popup {
+    border: 5px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+    background: var(--pcsd-navy);
+    color: var(--pcsd-text);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-combo-popup :is(div, span) {
+    color: var(--pcsd-text);
+    font-family: var(--pcsd-type);
+    text-shadow: 0 2px 0 #10243a;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-ai-overlay {
+    background: rgba(2, 8, 16, 0.86);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-ai-overlay-icon {
+    color: var(--pcsd-ice);
+}
+
+/* Matrix primer: the region legend reads as steel, blue and ink rather than
+   violet. Action colours are data and stay as they are. */
+body.world-preflop-charts.world-preflop-charts .preflop-lab-grid.is-static [data-region='suited'] {
+    background: rgba(32, 129, 236, 0.32);
+    border-color: rgba(95, 170, 255, 0.55);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-primer-swatches span,
+body.world-preflop-charts.world-preflop-charts .preflop-primer-grades span {
+    border: 2px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 3px stretch;
+    background: #0a1726;
+    color: var(--pcsd-text);
+}
+
+body.world-preflop-charts.world-preflop-charts :is(.preflop-primer-keys > div, .preflop-primer-score) {
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: #071422;
+}
+
+/* ── 8. Subpages: Back above the header, nav below it ──────────────────── */
+body.world-preflop-charts.world-preflop-charts .preflop-subpage {
+    background:
+        radial-gradient(circle at 80% 5%, rgba(17, 118, 190, 0.14), transparent 30rem),
+        #02070c;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-subpage-main > [data-header-stack] {
+    margin-bottom: 10px;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-subpage-metric {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 4px;
+    padding: 3px 10px;
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+    background: rgba(5, 14, 24, 0.82);
+    color: var(--pcsd-text);
+    font-family: var(--pcsd-type);
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-subpage-metric small {
+    color: var(--pcsd-silver);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-subpage-panel {
+    padding: 14px;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-panel-heading {
+    border-bottom: 1px solid rgba(134, 218, 255, 0.16);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-panel-heading > span,
+body.world-preflop-charts.world-preflop-charts .preflop-award-progress > span {
+    color: var(--pcsd-silver);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-award-progress > span strong,
+body.world-preflop-charts.world-preflop-charts .preflop-award-progress strong {
+    color: var(--pcsd-text);
+    font-family: var(--pcsd-type);
+}
+
+body.world-preflop-charts.world-preflop-charts :is(.preflop-award-progress [role='progressbar'], .preflop-level-telemetry > div > div) {
+    border-radius: 0;
+    background: #06111d;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+body.world-preflop-charts.world-preflop-charts :is(.preflop-award-progress [role='progressbar'] i, .preflop-level-telemetry i) {
+    border-radius: 0;
+    background: linear-gradient(90deg, #0c55c0, #39a8ff);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-award-grid article[data-unlocked] {
+    border-image-source: url('/images/smarterdesign/chrome-active-v2.webp');
+    border-image-slice: 11;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-award-grid article small {
+    color: var(--pcsd-ice);
+    font-family: var(--pcsd-type);
+    letter-spacing: 0.04em;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-award-grid article :is(.preflop-award-code span, svg) {
+    color: var(--pcsd-ice);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-award-grid article:not([data-unlocked]) :is(h2, p) {
+    color: var(--pcsd-muted);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-award-grid article time {
+    color: var(--pcsd-silver);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-session-list strong[data-pass='true'],
+body.world-preflop-charts.world-preflop-charts .preflop-lab-readout.has-result strong[data-pass='true'] {
+    color: #6ef0b5;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(.preflop-subpage-empty, .preflop-auth-gate) > svg {
+    color: var(--pcsd-ice);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-auth-gate > a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 18px;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-subpage-primary-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 18px;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-guide-tour-list article,
+body.world-preflop-charts.world-preflop-charts .preflop-feedback-legend > div {
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: #071422;
+}
+
+/* The four guide steps are surfaces of their own. */
+body.world-preflop-charts.world-preflop-charts .preflop-guide-step {
+    border: 5px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+    background: var(--pcsd-navy);
+}
+
+body.world-preflop-charts.world-preflop-charts :is(.preflop-guide-step-index, .preflop-guide-tour-list article > span) {
+    color: var(--pcsd-ice);
+    font-family: var(--pcsd-type);
+    font-weight: 700;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-guide-tour-list article > span {
+    border: 2px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 3px stretch;
+    background: #0a1726;
+    font-size: 18px;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(.preflop-guide-step h2, .preflop-guide-tour-list h3, .preflop-guide-shortcuts h2) {
+    color: var(--pcsd-text);
+    font-family: var(--pcsd-type);
+    font-size: 19px;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(.preflop-guide-step p, .preflop-guide-tour-list p, .preflop-guide-shortcuts p) {
+    color: var(--pcsd-silver);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-guide-step svg,
+body.world-preflop-charts.world-preflop-charts .preflop-guide-shortcuts > svg {
+    color: var(--pcsd-ice);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-guide-shortcuts kbd {
+    border: 2px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 3px stretch;
+    background: #0a1726;
+    color: var(--pcsd-text);
+}
+
+/* ── 9. Game screens (Speed Drill, Pressure, Pattern, Mixed, Spot, VS) ─── */
+.preflop-sd-game {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 640px;
+    margin: 10px auto 36px;
+    color: #bdd0e2;
+    font-family: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-variant-numeric: tabular-nums;
+}
+
+.preflop-sd-game .preflop-sd-surface {
+    padding: clamp(14px, 4vw, 24px);
+    border: 5px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+    background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42);
+    text-align: center;
+}
+
+.preflop-sd-game .preflop-sd-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.preflop-sd-game .preflop-sd-title {
+    margin: 10px 0 10px;
+    color: #f2f7ff;
+    font: 700 clamp(1.7rem, 6vw, 2.3rem)/1.06 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+    letter-spacing: 0.01em;
+    text-shadow: 0 2px 0 #10243a;
+}
+
+.preflop-sd-game .preflop-sd-kicker {
+    color: #86daff;
+    font: 700 13px/1.2 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+    letter-spacing: 0.06em;
+}
+
+.preflop-sd-game .preflop-sd-copy {
+    margin: 0 auto 22px;
+    max-width: 30rem;
+    color: #bdd0e2;
+    line-height: 1.55;
+}
+
+.preflop-sd-game .preflop-sd-emblem {
+    width: 92px;
+    height: 92px;
+    display: grid;
+    place-items: center;
+    margin: 4px auto 6px;
+    border: 2px solid #9fb8cc;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 35%, #1b3550, #050c16 72%);
+    box-shadow: inset 0 0 0 2px #0c1a2a, 0 0 0 3px #40576c, 0 8px 18px rgba(0, 0, 0, 0.55);
+    color: #86daff;
+}
+
+.preflop-sd-game :is(.preflop-sd-button, .preflop-sd-primary) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 6px 16px;
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+    color: #f2f7ff;
+    font: 700 16px/1.18 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.preflop-sd-game .preflop-sd-primary {
+    min-height: 52px;
+    padding: 8px 26px;
+    border-image-source: url('/images/smarterdesign/chrome-active-v2.webp');
+    border-image-slice: 11;
+    background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+    background-clip: padding-box;
+    color: #fff;
+    font-size: 18px;
+    text-shadow: 0 1px 2px #021022;
+}
+
+.preflop-sd-game :is(.preflop-sd-button, .preflop-sd-primary):active:not(:disabled) {
+    filter: brightness(0.88);
+}
+
+.preflop-sd-game :is(.preflop-sd-button, .preflop-sd-primary):disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.preflop-sd-game :is(button, a, [role='button']):focus-visible {
+    outline: 2px solid #9ee3ff;
+    outline-offset: 2px;
+}
+
+.preflop-sd-game .preflop-sd-score {
+    color: #f2f7ff;
+    font: 700 28px/1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+    font-variant-numeric: tabular-nums;
+}
+
+.preflop-sd-game .preflop-sd-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border: 2px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 3px stretch;
+    background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+    background-clip: padding-box;
+    color: #fff;
+    font: 700 15px/1.2 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+}
+
+.preflop-sd-game .preflop-sd-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+    gap: 8px;
+    margin: 0 0 16px;
+}
+
+.preflop-sd-game .preflop-sd-metric {
+    padding: 10px 8px;
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+    background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+    text-align: center;
+}
+
+.preflop-sd-game .preflop-sd-metric strong {
+    display: block;
+    color: #f2f7ff;
+    font: 700 24px/1.05 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+    font-variant-numeric: tabular-nums;
+}
+
+.preflop-sd-game .preflop-sd-metric span {
+    display: block;
+    margin-top: 3px;
+    color: #bdd0e2;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.preflop-sd-game .preflop-sd-row {
+    padding: 10px 12px;
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: #071422;
+    text-align: left;
+}
+
+.preflop-sd-game .preflop-sd-hand {
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 6px stretch;
+    background: linear-gradient(180deg, #0f2236, #050e18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .preflop-sd-game *,
+    .preflop-sd-game *::before,
+    .preflop-sd-game *::after {
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* A note inside a framed panel needs no second frame of its own. */
+body.world-preflop-charts.world-preflop-charts .preflop-subpage-panel :is(.preflop-subpage-empty, .preflop-auth-gate) {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+@media (max-width: 560px) {
+    body.world-preflop-charts.world-preflop-charts .preflop-circuit-stat {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 6px;
+        padding: 9px 9px 10px;
+    }
+}
+
+.preflop-sd-game .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Range Lab action keys: steel keys, condensed labels that wrap rather than
+   truncate ("Raise Small" was "RAISE S..." at 393px). The selected key keeps
+   its action colour, which is data. */
+body.world-preflop-charts.world-preflop-charts .preflop-lab-actions button {
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+    color: var(--pcsd-text);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-actions button span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    line-height: 1.1;
+}
+
+body.world-preflop-charts.world-preflop-charts :is(.preflop-lab-action-header, .preflop-lab-matrix-heading, .preflop-lab-shape-tools > span) {
+    color: var(--pcsd-silver);
+    font-family: var(--pcsd-type);
+    font-size: 14px;
+    letter-spacing: 0.02em;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-lab-actions button.is-selected {
+    border: 3px solid var(--action-color);
+    border-image: none;
+    background: linear-gradient(135deg, var(--action-fill), rgba(6, 15, 24, 0.9));
+    color: #fff;
+    box-shadow: inset 3px 0 0 var(--action-color);
+}

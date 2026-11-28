@@ -38,8 +38,8 @@ const styles = {
     },
 
     levelBadge: {
-        background: 'linear-gradient(180deg, rgba(245,158,11,0.22), rgba(180,83,9,0.28))',
-        border: '1px solid rgba(251,191,36,0.55)',
+        background: 'linear-gradient(180deg, rgba(86,216,255,0.22), rgba(6,72,226,0.28))',
+        border: '1px solid rgba(86, 216, 255,0.55)',
         color: '#86daff',
         padding: '6px 16px',
         borderRadius: 999,
@@ -130,8 +130,8 @@ const styles = {
     },
 
     answerButtonSelected: {
-        background: 'linear-gradient(180deg, #fbbf24 0%, #d97706 56%, #92400e 100%)',
-        border: '1px solid #fde68a',
+        background: 'linear-gradient(180deg, #51c9ff 0%, #0873ff 48%, #0648e2 100%)',
+        border: '1px solid rgba(134, 218, 255, 0.45)',
     },
 
     answerLetter: {

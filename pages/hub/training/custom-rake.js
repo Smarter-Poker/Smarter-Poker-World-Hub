@@ -15,6 +15,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import at from '../../../src/styles/training/analysis-tools.module.css';
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // RAKE PRESETS
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -166,301 +168,130 @@ export default function CustomRakePage() {
         canonical="/hub/training/custom-rake"
       />
 
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: '#040d18',
-          color: '#e4e6eb',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #3a3b3c' }}>
-          <button
-            onClick={() => router.back()}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#b0b3b8',
-              fontSize: 14,
-              cursor: 'pointer',
-              marginBottom: 4,
-            }}
-          >
-            Back To Training
-          </button>
-          <h1
-            style={{
-              fontSize: 22,
-              fontWeight: 700,
-              margin: 0,
-              fontFamily: "'Rajdhani', sans-serif",
-            }}
-          >
-            Rake Cost Estimator
-          </h1>
-          <p style={{ fontSize: 14, color: '#b0b3b8', margin: '2px 0 0' }}>
-            Transparent Teaching Model • Not A Solver • Not Strategy Advice
-          </p>
-        </div>
+      <div className={at.shell}>
+        <TrainingPageHead slug="training-custom-rake" note="Transparent Teaching Model • Not A Solver • Not Strategy Advice" />
 
-        <div style={{ padding: '16px 20px', maxWidth: 900, margin: '0 auto' }}>
+        <div className={at.page}>
           {/* Rake Preset Grid */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))',
-              gap: 8,
-              marginBottom: 16,
-            }}
-          >
-            {RAKE_PRESETS.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                aria-pressed={preset.id === r.id}
-                onClick={() => setPreset(r)}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  background:
-                    preset.id === r.id ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${preset.id === r.id ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.06)'}`,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: preset.id === r.id ? 'var(--sp-accent-blue)' : '#e4e6eb',
-                    marginBottom: 2,
-                  }}
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="cr-structure-title">
+            <h2 id="cr-structure-title" className={at.sectionTitle}>Rake Structure</h2>
+            <div className={at.cardsGrid}>
+              {RAKE_PRESETS.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  className={`sd-button ${at.choiceCard}`}
+                  aria-pressed={preset.id === r.id}
+                  onClick={() => setPreset(r)}
                 >
-                  {r.label}
-                </div>
-                <div style={{ fontSize: 12, color: '#b0b3b8' }}>
-                  {r.pct}% / Cap ${r.cap}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{r.desc}</div>
-              </button>
-            ))}
-          </div>
-
-          {/* Custom Inputs */}
-          {preset.id === 'custom' && (
-            <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-              <div style={{ flex: 1 }}>
-                <label
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#b0b3b8',
-                    display: 'block',
-                    marginBottom: 4,
-                  }}
-                >
-                  Rake %
-                </label>
-                <input
-                  aria-label="Custom Rake Percentage"
-                  type="number"
-                  step="0.5"
-                  value={customPct}
-                  onChange={(e) => setCustomPct(parseFloat(e.target.value) || 0)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: 6,
-                    fontSize: 14,
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#e4e6eb',
-                  }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#b0b3b8',
-                    display: 'block',
-                    marginBottom: 4,
-                  }}
-                >
-                  Cap ($)
-                </label>
-                <input
-                  aria-label="Custom Rake Cap"
-                  type="number"
-                  step="0.5"
-                  value={customCap}
-                  onChange={(e) => setCustomCap(parseFloat(e.target.value) || 0)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: 6,
-                    fontSize: 14,
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#e4e6eb',
-                  }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#b0b3b8', display: 'block', marginBottom: 4 }}>
-                  Big Blind ($)
-                </label>
-                <input
-                  aria-label="Big Blind In Dollars"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={customBigBlind}
-                  onChange={(e) => setCustomBigBlind(Math.max(0.01, parseFloat(e.target.value) || 0.01))}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, fontSize: 14, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#e4e6eb' }}
-                />
-              </div>
+                  <span className={at.choiceTitle}>{r.label}</span>
+                  <span className={at.choiceMeta}>{r.pct}% / Cap ${r.cap}</span>
+                  <span className={at.choiceMeta}>{r.desc}</span>
+                </button>
+              ))}
             </div>
-          )}
 
-          {/* Stack Depth Slider */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#b0b3b8' }}>Stack Depth</label>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#e4e6eb' }}>
-                {stackDepth}BB
+            {/* Custom Inputs */}
+            {preset.id === 'custom' && (
+              <div className={`${at.metrics} ${at.metrics3}`}>
+                <label className={at.field}>
+                  <span className={at.label}>Rake %</span>
+                  <input
+                    aria-label="Custom Rake Percentage"
+                    type="number"
+                    step="0.5"
+                    inputMode="decimal"
+                    className={at.input}
+                    value={customPct}
+                    onChange={(e) => setCustomPct(parseFloat(e.target.value) || 0)}
+                  />
+                </label>
+                <label className={at.field}>
+                  <span className={at.label}>Cap ($)</span>
+                  <input
+                    aria-label="Custom Rake Cap"
+                    type="number"
+                    step="0.5"
+                    inputMode="decimal"
+                    className={at.input}
+                    value={customCap}
+                    onChange={(e) => setCustomCap(parseFloat(e.target.value) || 0)}
+                  />
+                </label>
+                <label className={at.field}>
+                  <span className={at.label}>Big Blind ($)</span>
+                  <input
+                    aria-label="Big Blind In Dollars"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    inputMode="decimal"
+                    className={at.input}
+                    value={customBigBlind}
+                    onChange={(e) => setCustomBigBlind(Math.max(0.01, parseFloat(e.target.value) || 0.01))}
+                  />
+                </label>
+              </div>
+            )}
+
+            {/* Stack Depth Slider */}
+            <label className={at.field}>
+              <span className={at.barHead}>
+                <span>Stack Depth</span>
+                <strong className={at.ice}>{stackDepth}BB</strong>
               </span>
-            </div>
-            <input
-              aria-label="Stack Depth In Big Blinds"
-              type="range"
-              min="20"
-              max="200"
-              value={stackDepth}
-              onChange={(e) => setStackDepth(parseInt(e.target.value, 10))}
-              style={{ width: '100%', accentColor: 'var(--sp-accent-blue)' }}
-            />
-          </div>
+              <input
+                aria-label="Stack Depth In Big Blinds"
+                type="range"
+                className={at.range}
+                min="20"
+                max="200"
+                value={stackDepth}
+                onChange={(e) => setStackDepth(parseInt(e.target.value, 10))}
+              />
+            </label>
+          </section>
 
           {/* Impact Stats */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 10,
-              marginBottom: 20,
-            }}
-          >
+          <div className={`${at.metrics} ${at.metrics3}`}>
             {[
-              { label: 'Estimated Rake Per Pot', value: `${impact.rakePerPot}BB`, color: '#86daff' },
-              { label: 'Estimated Rake / Hour', value: `${impact.rakePerHourBB}BB`, color: 'var(--sp-accent-red)' },
-              { label: '40-Hour Model', value: `${impact.monthlyImpactBB}BB`, color: 'var(--sp-accent-red)' },
+              { label: 'Estimated Rake Per Pot', value: `${impact.rakePerPot}BB`, tone: 'ice' },
+              { label: 'Estimated Rake / Hour', value: `${impact.rakePerHourBB}BB`, tone: 'down' },
+              { label: '40-Hour Model', value: `${impact.monthlyImpactBB}BB`, tone: 'down' },
             ].map((s) => (
-              <div
-                key={s.label}
-                style={{
-                  padding: '14px',
-                  borderRadius: 10,
-                  textAlign: 'center',
-                  background: `${s.color}08`,
-                  border: `1px solid ${s.color}25`,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: s.color,
-                    letterSpacing: '0.08em',
-                    marginBottom: 4,
-                  }}
-                >
-                  {s.label.toUpperCase()}
-                </div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: '#e4e6eb' }}>{s.value}</div>
+              <div key={s.label} className={`sd-metric ${at.metric}`}>
+                <span className={at.metricLabel}>{s.label}</span>
+                <strong className={at.metricValue} data-tone={s.tone}>{s.value}</strong>
               </div>
             ))}
           </div>
 
           {/* Strategy Adjustments */}
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 12,
-              padding: 20,
-            }}
-          >
-            <h3
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: '#e4e6eb',
-                margin: '0 0 14px',
-                fontFamily: "'Rajdhani', sans-serif",
-              }}
-            >
-              Rake Sensitivity Study Prompts
-            </h3>
-            {impact.adjustments.map((a, i) => (
-              <div
-                key={i}
-                style={{
-                  padding: '10px 14px',
-                  marginBottom: 8,
-                  borderRadius: 8,
-                  background: 'rgba(0,0,0,0.2)',
-                  borderLeft: `3px solid ${a.color}`,
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 4,
-                  }}
-                >
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#e4e6eb' }}>{a.stat}</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: a.color }}>{a.adj}</span>
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="cr-prompts-title">
+            <h2 id="cr-prompts-title" className={at.sectionTitle}>Rake Sensitivity Study Prompts</h2>
+            <div className={at.list}>
+              {impact.adjustments.map((a, i) => (
+                <div key={i} className={at.listRow} style={{ display: 'grid', gap: 4 }}>
+                  <div className={at.barHead} style={{ margin: 0 }}>
+                    <span>{a.stat}</span>
+                    <strong className={at.ice}>{a.adj}</strong>
+                  </div>
+                  <span className={at.small}>{a.note}</span>
                 </div>
-                <div style={{ fontSize: 12, color: '#b0b3b8' }}>{a.note}</div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </section>
 
           {/* Key Insight */}
-          <div
-            style={{
-              marginTop: 16,
-              padding: '14px 18px',
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(6,72,226,0.06))',
-              border: '1px solid rgba(86,216,255,0.22)',
-              borderLeft: '3px solid #56d8ff',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--sp-accent-blue)',
-                letterSpacing: '0.08em',
-                marginBottom: 4,
-              }}
-            >
-              KEY INSIGHT
-            </div>
-            <div style={{ fontSize: 13, color: '#e4e6eb', lineHeight: 1.5 }}>
+          <section className={`sd-panel ${at.panel} ${at.tight}`} aria-labelledby="cr-insight-title">
+            <h2 id="cr-insight-title" className={at.eyebrow}>Key Insight</h2>
+            <p className={at.copy}>
               This Teaching Estimate Uses A {rakePct}% Rake, ${rakeCap} Cap, ${bigBlind} Big Blind,
               A Pot Equal To 12% Of The Selected Stack, 28 Hands Per Hour, And A 35% Raked-Pot Share.
               It Estimates {impact.rakePerHourBB}BB/Hour Under Those Assumptions. It Does Not Solve A
               Poker Tree, Produce EV, Or Prescribe Any Range Or Action.
-            </div>
-          </div>
-
+            </p>
+          </section>
         </div>
       </div>
       <HubPageSummary page="training-custom-rake" />

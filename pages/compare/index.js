@@ -54,7 +54,7 @@ const COMPARE_FAQS = [
   },
   {
     question: 'How Does Smarter.Poker Live Poker Room Directory Compare To PokerAtlas?',
-    answer: `Smarter.Poker features an extensive directory of ${VENUE_COUNT_LABEL} verified poker venues and 4,500+ weekly tournament records, integrated directly with free venue management software (Club Commander) for real-time waitlists, tournament clocks, and SMS seat notifications.`,
+    answer: `Smarter.Poker features an extensive directory of ${VENUE_COUNT_LABEL} poker venues and 800+ weekly tournament records, integrated directly with free venue management software (Club Commander) for real-time waitlists, tournament clocks, and SMS seat notifications.`,
   },
   {
     question: 'How Does Smarter.Poker Bankroll Manager Compare To Pokerbase And Poker Bankroll Tracker?',
@@ -204,7 +204,7 @@ export default function CompareHubPage() {
           <SmarterConversionCta
             eyebrow="Zero Subscription Poker Platform"
             title="Try Smarter.Poker Free Against Legacy Paid Tools"
-            description={`Unlock 107 Free GTO Training Games, Browser-Native Equity & ICM Solvers, And ${VENUE_COUNT_LABEL} Verified Live Poker Rooms With Zero Credit Card Required.`}
+            description={`Unlock 107 Free GTO Training Games, Browser-Native Equity & ICM Solvers, And ${VENUE_COUNT_LABEL} Live Poker Rooms With Zero Credit Card Required.`}
             primaryLabel="Create Free Account"
             primaryHref="/auth/signup?redirect=/hub/training&src=compare-index"
             secondaryLabel="Open Free Poker Tools"
@@ -673,7 +673,7 @@ export default function CompareHubPage() {
                 </tr>
                 <tr style={{ borderBottom: '1px solid #1B2939' }}>
                   <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Daily Tournament Database</td>
-                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>4,500+ Weekly Verified Tournaments</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>800+ Listed Weekly Tournaments</td>
                   <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>Casino Submitted Data</td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid #1B2939' }}>
@@ -1076,14 +1076,14 @@ export default function CompareHubPage() {
 
         <GeoCitationCapsule
           title="Smarter.Poker Software & Live Platform Benchmark Capsule"
-          claim={`Smarter.Poker Replaces $1,200+ In Annual Third-Party Poker Software Subscriptions (ICMIZER, GTO Solvers, Desktop Odds Calculators, And Paid Bankroll Trackers) With 52 Free Browser-Native Calculators, 107 GTO Scenario Trainers, And ${VENUE_COUNT_LABEL} Verified Live Cardroom Listings.`}
+          claim={`Smarter.Poker Replaces $1,200+ In Annual Third-Party Poker Software Subscriptions (ICMIZER, GTO Solvers, Desktop Odds Calculators, And Paid Bankroll Trackers) With 52 Free Browser-Native Calculators, 107 GTO Scenario Trainers, And ${VENUE_COUNT_LABEL} Live Cardroom Listings.`}
           metricLabel="Verified Comparisons"
           metricValue="30 Side-By-Side Reports + 20-Scenario Decision Matrix"
           formulaText="Annual Software Savings = $0 Smarter.Poker Suite vs $600-$1,800 Legacy Desktop/Subscription Stack"
           ifThenBecause="If Evaluating Poker Study Software, Bankroll Trackers, Or Cardroom Management Systems -> Then Compare Cross-Platform Browser Compatibility, Solver Accuracy, And Total Annual Cost -> Because Free Browser-Native Engines Eliminate OS Lock-In And Subscription Drag."
           quoteText="Every Comparison Report On Smarter.Poker Cites Public Pricing, Operating System Requirements, And Verification Dates So Players And Venue Directors Can Audit Every Claim."
           quoteAuthor="Smarter.Poker Quantitative Solver Desk"
-          doi="10.5281/zenodo.15129481"
+          doi="10.5281/zenodo.24115647"
           canonicalPath="/compare"
         />
 

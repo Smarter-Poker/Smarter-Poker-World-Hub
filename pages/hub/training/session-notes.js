@@ -20,6 +20,8 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import st from '../../../src/styles/training/study-tools.module.css';
 // TRAIN-WIRE-EMPTY-3a — adoption: shared empty-state primitive
 
 const MOOD_OPTIONS = [
@@ -285,36 +287,12 @@ export default function SessionNotesPage() {
         <title>Session Notes | Smarter.Poker GTO Training</title>
               <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        <header className="sd-masthead" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button
-            type="button"
-            className="sd-button"
-            aria-label="Back To Training"
-            onClick={() => router.push('/hub/training')}
-          >
-            <span aria-hidden="true">←</span>
-          </button>
-          <h1 style={{ margin: 0 }}>Session Notes</h1>
-        </header>
+      <div className={st.shell}>
+        <TrainingPageHead slug="training-session-notes" />
 
+        <div className={st.page}>
         {/* Tabs */}
-        <div
-          style={{
-            display: 'flex',
-            gap: 4,
-            padding: '10px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.04)',
-            background: 'rgba(0,0,0,0.15)',
-          }}
-        >
+        <div className={`sd-tabs ${st.grid2}`} role="group" aria-label="Session Notes Views">
           {[
             { id: 'write', label: 'Write'},
             { id: 'browse', label: `Browse (${notes.length})`},
@@ -327,199 +305,81 @@ export default function SessionNotesPage() {
               aria-label={`Tab: ${t.id === 'write' ? 'Write new note' : 'Browse notes'}`}
               aria-pressed={tab === t.id}
               onClick={() => setTab(t.id)}
-              style={{ flex: 1 }}
             >
               {t.label}
             </motion.button>
           ))}
         </div>
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {tab === 'write' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`sd-panel ${st.panel}`} aria-label="Write A Session Note">
               {/* Recent accuracy tag */}
               {recentAccuracy !== null && (
-                <div
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    marginBottom: 16,
-                    background: 'rgba(0,212,255,0.04)',
-                    border: '1px solid rgba(0,212,255,0.1)',
-                    fontSize: 12,
-                    color: 'var(--sp-fg-muted)',
-                  }}
-                >
+                <p className={st.notice}>
                   Last Session Accuracy:{' '}
-                  <span
-                    style={{ fontWeight: 800, color: recentAccuracy >= 75 ? 'var(--sp-accent-green)' : '#86daff' }}
-                  >
-                    {recentAccuracy}%
-                  </span>
-                </div>
+                  <strong className={st.ice}>{recentAccuracy}%</strong>
+                </p>
               )}
 
               {/* Mood */}
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                  marginBottom: 6,
-                }}
-              >
-                HOW DO YOU FEEL?
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-                {MOOD_OPTIONS.map((m) => (
-                  <motion.button
-                    key={m.id}
-                    type="button"
-                    aria-pressed={mood === m.id}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setMood(m.id)}
-                    style={{
-                      flex: '1 1 92px',
-                      padding: '10px 8px',
-                      borderRadius: 8,
-                      border: `1px solid ${mood === m.id ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
-                      background: mood === m.id ? 'rgba(0,212,255,0.06)' : 'rgba(0,0,0,0.15)',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    <div style={{ fontSize: 18 }}>{m.emoji}</div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: mood === m.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-faint)',
-                        fontWeight: 600,
-                        marginTop: 2,
-                      }}
+              <fieldset className={st.fieldset}>
+                <legend className={st.label}>How Do You Feel?</legend>
+                <div className={st.chips}>
+                  {MOOD_OPTIONS.map((m) => (
+                    <motion.button
+                      key={m.id}
+                      type="button"
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setMood(m.id)}
+                      aria-pressed={mood === m.id}
+                      className="sd-button"
                     >
                       {m.label}
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
+                    </motion.button>
+                  ))}
+                </div>
+              </fieldset>
 
               {/* Went well */}
-              <div style={{ marginBottom: 12 }}>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-accent-green)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    marginBottom: 4,
-                  }}
-                >
-                  WHAT WENT WELL
-                </div>
+              <label className={st.field}>
+                <span className={st.label}>What Went Well</span>
                 <textarea
                   value={wentWell}
                   onChange={(e) => setWentWell(e.target.value)}
                   placeholder="Good reads, correct folds, improved spots..."
                   rows={2}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: 8,
-                    background: 'rgba(34,197,94,0.04)',
-                    border: '1px solid rgba(34,197,94,0.1)',
-                    color: 'var(--sp-fg)',
-                    fontSize: 12,
-                    resize: 'vertical',
-                    fontFamily: 'Inter, sans-serif',
-                  }}
+                  className={st.input}
                 />
-              </div>
+              </label>
 
               {/* To improve */}
-              <div style={{ marginBottom: 12 }}>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-accent-red)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    marginBottom: 4,
-                  }}
-                >
-                  WHAT TO IMPROVE
-                </div>
+              <label className={st.field}>
+                <span className={st.label}>What To Improve</span>
                 <textarea
                   value={toImprove}
                   onChange={(e) => setToImprove(e.target.value)}
                   placeholder="Missed spots, tilt triggers, leaks found..."
                   rows={2}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: 8,
-                    background: 'rgba(239,68,68,0.04)',
-                    border: '1px solid rgba(239,68,68,0.1)',
-                    color: 'var(--sp-fg)',
-                    fontSize: 12,
-                    resize: 'vertical',
-                    fontFamily: 'Inter, sans-serif',
-                  }}
+                  className={st.input}
                 />
-              </div>
+              </label>
 
               {/* Free notes */}
-              <div style={{ marginBottom: 16 }}>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    marginBottom: 4,
-                  }}
-                >
-                  FREE NOTES (MARKDOWN SUPPORTED)
-                </div>
+              <label className={st.field}>
+                <span className={st.label}>Free Notes (Markdown Supported)</span>
                 <textarea
                   value={freeText}
                   onChange={(e) => setFreeText(e.target.value)}
                   placeholder="Formatting: **bold**, *italic*, `code`, - bullets..."
                   rows={4}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: 8,
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    color: 'var(--sp-fg)',
-                    fontSize: 12,
-                    resize: 'vertical',
-                    fontFamily: 'Inter, sans-serif',
-                  }}
+                  className={st.input}
                 />
-              </div>
+              </label>
 
               {/* Tags */}
-              <div style={{ marginBottom: 20 }}>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    marginBottom: 8,
-                  }}
-                >
-                  TAGS
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <fieldset className={st.fieldset}>
+                <legend className={st.label}>Tags</legend>
+                <div className={st.chips}>
                   {SUGGESTED_TAGS.map((tag) => {
                     const isActive = selectedTags.includes(tag);
                     return (
@@ -527,6 +387,7 @@ export default function SessionNotesPage() {
                         key={tag}
                         type="button"
                         aria-pressed={isActive}
+                        className="sd-button"
                         onClick={() =>
                           setSelectedTags(
                             isActive
@@ -534,192 +395,98 @@ export default function SessionNotesPage() {
                               : [...selectedTags, tag]
                           )
                         }
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: 12,
-                          background: isActive ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.05)',
-                          border: `1px solid ${isActive ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                          color: isActive ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
                       >
                         {tag}
                       </button>
                     );
                   })}
                 </div>
-              </div>
+              </fieldset>
 
               <motion.button
+                type="button"
                 whileTap={{ scale: 0.97 }}
                 onClick={saveNote}
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  borderRadius: 12,
-                  border: 'none',
-                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
-                  color: '#fff',
-                  fontSize: 14,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 20px rgba(0,212,255,0.25)',
-                }}
+                className={`sd-button sd-primary ${st.block}`}
               >
                 Save Note
               </motion.button>
-            </motion.div>
+            </motion.section>
           )}
 
           {tab === 'browse' && (
             <>
               {/* Note stats */}
               {notes.length > 0 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 8,
-                    marginBottom: 12,
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <div
-                    style={{
-                      flex: 1,
-                      minWidth: 80,
-                      padding: '10px 12px',
-                      borderRadius: 10,
-                      background: 'rgba(0,212,255,0.04)',
-                      border: '1px solid rgba(0,212,255,0.08)',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--sp-accent-cyan)' }}>
-                      {noteStats.total}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                      Notes
-                    </div>
+                <section className={st.metrics} style={{ '--cols': noteStats.avgAccuracy !== null ? 3 : 2 }} aria-label="Note Summary">
+                  <div className={`sd-metric ${st.metric}`}>
+                    <strong className={st.metricValue} data-tone="ice">{noteStats.total}</strong>
+                    <span className={st.metricLabel}>Notes</span>
                   </div>
                   {noteStats.avgAccuracy !== null && (
-                    <div
-                      style={{
-                        flex: 1,
-                        minWidth: 80,
-                        padding: '10px 12px',
-                        borderRadius: 10,
-                        background: 'rgba(34,197,94,0.04)',
-                        border: '1px solid rgba(34,197,94,0.08)',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--sp-accent-green)' }}>
-                        {noteStats.avgAccuracy}%
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                        Avg Accuracy
-                      </div>
+                    <div className={`sd-metric ${st.metric}`}>
+                      <strong className={st.metricValue}>{noteStats.avgAccuracy}%</strong>
+                      <span className={st.metricLabel}>Avg Accuracy</span>
                     </div>
                   )}
-                  <div
-                    style={{
-                      flex: 1,
-                      minWidth: 80,
-                      padding: '10px 12px',
-                      borderRadius: 10,
-                      background: 'rgba(86,216,255,0.05)',
-                      border: '1px solid rgba(86,216,255,0.14)',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <div style={{ fontSize: 20 }}>
+                  <div className={`sd-metric ${st.metric}`}>
+                    <strong className={st.metricValue}>
                       {moodObj(
                         Object.entries(noteStats.moodCounts || {}).sort((a, b) => b[1] - a[1])?.[0]?.[0] || 'neutral'
-                      ).emoji}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                      Top Mood
-                    </div>
+                      ).label}
+                    </strong>
+                    <span className={st.metricLabel}>Top Mood</span>
                   </div>
-                </div>
+                </section>
               )}
 
-              {/* Tag quick-filter */}
-              {topTags.length > 0 && (
-                <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
-                  {topTags.map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      aria-pressed={searchTerm === tag}
-                      onClick={() => setSearchTerm(searchTerm === tag ? '' : tag)}
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: 10,
-                        background:
-                          searchTerm === tag ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
-                        border: `1px solid ${searchTerm === tag ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                        color: searchTerm === tag ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      #{tag}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <section className={`sd-panel ${st.panel}`} aria-label="Find Notes">
+                {/* Tag quick-filter */}
+                {topTags.length > 0 && (
+                  <div className={st.chips} role="group" aria-label="Filter By Tag">
+                    {topTags.map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        aria-pressed={searchTerm === tag}
+                        className="sd-button"
+                        onClick={() => setSearchTerm(searchTerm === tag ? '' : tag)}
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-              <input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search notes..."
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: 8,
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: 'var(--sp-fg)',
-                  fontSize: 12,
-                  marginBottom: 12,
-                  fontFamily: 'Inter, sans-serif',
-                }}
-              />
+                <input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search notes..."
+                  aria-label="Search Notes"
+                  className={st.input}
+                />
 
-              {/* Export button */}
-              {filtered.length > 0 && (
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={exportNotes}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: 8,
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    background: 'rgba(255,255,255,0.03)',
-                    color: 'var(--sp-fg-muted)',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    marginBottom: 16,
-                  }}
-                >
-                  Download {filtered.length} Notes As CSV
-                </motion.button>
-              )
-              }
+                {/* Export button */}
+                {filtered.length > 0 && (
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.97 }}
+                    onClick={exportNotes}
+                    className={`sd-button ${st.block}`}
+                  >
+                    Download {filtered.length} Notes As CSV
+                  </motion.button>
+                )}
+              </section>
               {filtered.length === 0 && (
                 <TrainerEmptyState
                   variant="no-data"
-                  title="No notes yet"
-                  message="Switch to the Write tab after your next session to start your journal."
+                  title="No Notes Yet"
+                  message="Switch To The Write Tab After Your Next Session To Start Your Journal."
                   compact
                 />
               )}
+              <div className={st.list}>
               <AnimatePresence>
                 {filtered.map((note) => (
                   <motion.div
@@ -727,111 +494,61 @@ export default function SessionNotesPage() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    style={{
-                      padding: '14px 16px',
-                      borderRadius: 12,
-                      marginBottom: 8,
-                      background: 'rgba(0,0,0,0.2)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                    }}
+                    className={`${st.item} ${note.pinned ? st.itemActive : ''}`}
                   >
-                    <div
-                      style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 14 }}>{moodObj(note.mood).emoji}</span>
-                        <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-                          {formatDate(note.createdAt)}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {note.accuracy !== null && (
-                          <span
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: note.accuracy >= 75 ? 'var(--sp-accent-green)' : '#86daff',
-                            }}
-                          >
-                            {note.accuracy}%
-                          </span>
-                        )}
-                        <button
-                          onClick={() => togglePin(note.id)}
-                          title="Pin Note"
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: note.pinned ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                            opacity: note.pinned ? 1 : 0.6,
-                          }}
-                        >
-                          {note.pinned ? 'Pinned' : 'Pin'}
-                        </button>
-                        <motion.button
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => deleteNote(note.id)}
-                          style={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: 4,
-                            background: 'rgba(239,68,68,0.08)',
-                            border: 'none',
-                            color: 'var(--sp-accent-red)',
-                            fontSize: 12,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          ✕
-                        </motion.button>
-                      </div>
+                    <div className={st.noteHead}>
+                      <span className={st.dayText}>
+                        <span className={st.itemTitle}>{moodObj(note.mood).label}</span>
+                        <span className={st.small}>{formatDate(note.createdAt)}</span>
+                      </span>
+                      {note.accuracy !== null && (
+                        <strong className={st.ice}>{note.accuracy}%</strong>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => togglePin(note.id)}
+                        title="Pin Note"
+                        aria-pressed={!!note.pinned}
+                        className="sd-button"
+                      >
+                        {note.pinned ? 'Pinned' : 'Pin'}
+                      </button>
+                      <motion.button
+                        type="button"
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => deleteNote(note.id)}
+                        aria-label="Delete Note"
+                        className={`sd-button ${st.close}`}
+                      >
+                        ✕
+                      </motion.button>
                     </div>
                     {note.tags && note.tags.length > 0 && (
-                      <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+                      <div className={st.chips}>
                         {note.tags.map((t) => (
-                          <span
-                            key={t}
-                            style={{
-                              fontSize: 12,
-                              padding: '2px 6px',
-                              background: 'rgba(255,255,255,0.08)',
-                              borderRadius: 4,
-                              color: 'var(--sp-fg)',
-                            }}
-                          >
-                            #{t}
-                          </span>
+                          <span key={t} className={st.tag}>#{t}</span>
                         ))}
                       </div>
                     )}
                     {note.wentWell && (
-                      <div style={{ fontSize: 12, marginBottom: 4 }}>
-                        <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>Good: </span>
-                        <span style={{ color: 'var(--sp-fg-muted)' }}>{note.wentWell}</span>
-                      </div>
+                      <p className={st.copy}>
+                        <strong className={st.white}>Good: </strong><span className="no-capitalize">{note.wentWell}</span>
+                      </p>
                     )}
                     {note.toImprove && (
-                      <div style={{ fontSize: 12, marginBottom: 4 }}>
-                        <span style={{ color: 'var(--sp-accent-red)', fontWeight: 700 }}>Fix: </span>
-                        <span style={{ color: 'var(--sp-fg-muted)' }}>{note.toImprove}</span>
-                      </div>
+                      <p className={st.copy}>
+                        <strong className={st.white}>Fix: </strong><span className="no-capitalize">{note.toImprove}</span>
+                      </p>
                     )}
                     {note.freeText && (
-                      <div
-                        style={{ fontSize: 12, color: 'var(--sp-fg)', marginTop: 6, lineHeight: 1.5 }}
-                      >
+                      <div className={`${st.noteBody} no-capitalize`}>
                         {renderNoteText(note.freeText)}
                       </div>
                     )}
                   </motion.div>
                 ))}
               </AnimatePresence>
+              </div>
             </>
           )}
 

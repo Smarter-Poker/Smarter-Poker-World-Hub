@@ -10,8 +10,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import view from './toke/DealerVault.module.css';
 import ResponsiveTable from '../ui/ResponsiveTable';
-
-const IRS_MILEAGE_RATES = { 2026: 0.67, 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585, 2021: 0.56 };
+import { defaultTaxYear, formatMileageRates, taxYearOptions, taxYearSummary } from '../../lib/bankroll/dealerTax.mjs';
 
 const METAL = {
     base: '#0d1b2b', mid: '#112338', elevated: '#30485f', darkest: '#07111e',
@@ -26,27 +25,7 @@ const EXPENSE_LABELS = {
     tip_out: 'Tip-Out', other: 'Other',
 };
 
-function getYear(gig) {
-    return gig.start_date ? parseInt(gig.start_date.slice(0, 4), 10) : null;
-}
-
-function computeGigTokes(gig) {
-    // Prefer pre-computed value from fetchGigs; fallback to days traversal
-    if (gig.totalTokes !== undefined) return gig.totalTokes;
-    return (gig.days || []).reduce((sum, day) =>
-        sum + (day.downs || []).reduce((s, d) => s + (d.toke_amount || 0), 0), 0
-    );
-}
-
-function computeGigExpenses(gig) {
-    // Prefer pre-computed value from fetchGigs; fallback to days traversal
-    if (gig.totalExpenses !== undefined) return gig.totalExpenses;
-    return (gig.days || []).reduce((sum, day) =>
-        sum + (day.expenses || []).reduce((s, e) => s + (e.amount || 0), 0), 0
-    );
-}
-
-export default function TaxSummaryModal({ completedGigs = [], onClose }) {
+export default function TaxSummaryModal({ completedGigs = [], onClose, status = 'ready', onRetry }) {
     const closeRef = useRef(null);
     const dialogRef = useRef(null);
     const [mounted, setMounted] = useState(false);
@@ -60,62 +39,20 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
         return () => { node.close(); returnFocus?.focus?.({ preventScroll: true }); };
     }, [mounted]);
 
-    const availableYears = useMemo(() => {
-        const years = new Set();
-        for (const g of completedGigs) {
-            const y = getYear(g);
-            if (y) years.add(y);
-        }
-        return Array.from(years).sort((a, b) => b - a);
-    }, [completedGigs]);
-
-    const [selectedYear, setSelectedYear] = useState(availableYears[0] || new Date().getFullYear());
-
-    const yearGigs = useMemo(
-        () => completedGigs.filter(g => getYear(g) === selectedYear),
-        [completedGigs, selectedYear]
-    );
-
-    const irsRate = IRS_MILEAGE_RATES[selectedYear] || 0.67;
-
-    // Per-venue breakdown
-    const venueBreakdown = useMemo(() => {
-        const map = {};
-        for (const gig of yearGigs) {
-            const venue = gig.venue_name || 'Unknown Venue';
-            if (!map[venue]) map[venue] = { tokes: 0, expenses: 0, miles: 0, events: 0 };
-            map[venue].tokes += computeGigTokes(gig);
-            map[venue].expenses += computeGigExpenses(gig);
-            map[venue].miles += gig.mileage || 0;
-            map[venue].events += 1;
-        }
-        return Object.entries(map || {})
-            .map(([venue, data]) => ({ venue, ...data }))
-            .sort((a, b) => b.tokes - a.tokes);
-    }, [yearGigs]);
-
-    // Expense breakdown by category - use gig.expenses[] attached by fetchGigs
-    const expenseBreakdown = useMemo(() => {
-        const map = {};
-        for (const gig of yearGigs) {
-            // gig.expenses[] is attached by fetchGigs (preferred)
-            const expenses = gig.expenses || gig.days?.flatMap(d => d.expenses || []) || [];
-            for (const e of expenses) {
-                const cat = e.category || 'other';
-                map[cat] = (map[cat] || 0) + (e.amount || 0);
-            }
-        }
-        return Object.entries(map || {})
-            .map(([cat, amt]) => ({ cat, label: EXPENSE_LABELS[cat] || cat, amt }))
-            .sort((a, b) => b.amt - a.amt);
-    }, [yearGigs]);
-
-    const totalTokes = venueBreakdown.reduce((s, v) => s + v.tokes, 0);
-    const totalExpenses = venueBreakdown.reduce((s, v) => s + v.expenses, 0);
-    const totalMiles = yearGigs.reduce((s, g) => s + (g.mileage || 0), 0);
-    const mileageDeduction = totalMiles * irsRate;
-    const totalDeductions = totalExpenses + mileageDeduction;
-    const netTaxableIncome = Math.max(0, totalTokes - totalDeductions);
+    // The year shown is the dealer's choice once made; until then the latest
+    // year with events. It used to be fixed on first render, so opening the
+    // summary from the menu (?tab=tax) before the gigs had loaded pinned it
+    // to a year with nothing in it and an empty year selector.
+    const currentYear = new Date().getFullYear();
+    const [chosenYear, setChosenYear] = useState(null);
+    const availableYears = useMemo(() => taxYearOptions(completedGigs, currentYear), [completedGigs, currentYear]);
+    const selectedYear = chosenYear ?? defaultTaxYear(completedGigs, currentYear);
+    const summary = useMemo(() => taxYearSummary(completedGigs, selectedYear), [completedGigs, selectedYear]);
+    const venueBreakdown = summary.venues;
+    const expenseBreakdown = summary.expenses.map((e) => ({ ...e, label: EXPENSE_LABELS[e.cat] || e.cat }));
+    const { totalTokes, totalExpenses, totalMiles, mileageDeduction, threshold } = summary;
+    const netTaxableIncome = summary.netTaxable;
+    const rateText = formatMileageRates(summary.mileageRates);
 
     const fmt = (n) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -151,7 +88,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                         <select
                             style={s.yearSelect}
                             value={selectedYear}
-                            onChange={e => setSelectedYear(parseInt(e.target.value, 10))}
+                            onChange={e => setChosenYear(parseInt(e.target.value, 10))}
                             className="no-print"
                             aria-label="Tax Year"
                         >
@@ -173,7 +110,16 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                     </div>
                 </div>
 
-                {yearGigs.length === 0 ? (
+                {status === 'loading' ? (
+                    <div style={s.empty} role="status">Loading Your Completed Events…</div>
+                ) : status === 'error' && summary.events === 0 ? (
+                    <div style={s.empty} role="alert">
+                        Your Completed Events Could Not Be Loaded.
+                        {onRetry && <div style={{ marginTop: 12 }}><button type="button" className="sd-button" onClick={onRetry}>Retry</button></div>}
+                    </div>
+                ) : status === 'signed-out' ? (
+                    <div style={s.empty}>Sign In To See Your Annual Tax Summary.</div>
+                ) : summary.events === 0 ? (
                     <div style={s.empty}>No Completed Events In {selectedYear}</div>
                 ) : (
                     <div className={view.statementBody}>
@@ -183,7 +129,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                             {[
                                 { label: 'Gross Tip Income', value: fmt(totalTokes), color: METAL.success },
                                 { label: 'Business Expenses', value: `-${fmt(totalExpenses)}`, color: METAL.danger },
-                                { label: `Mileage Deduction (${totalMiles.toLocaleString()} mi × $${irsRate}/mi)`, value: `-${fmt(mileageDeduction)}`, color: METAL.warn },
+                                { label: totalMiles > 0 ? `Mileage Deduction (${totalMiles.toLocaleString()} mi × ${rateText}/mi)` : 'Mileage Deduction', value: `-${fmt(mileageDeduction)}`, color: METAL.warn },
                                 { label: 'Net Taxable Tips', value: fmt(netTaxableIncome), color: METAL.primary },
                             ].map(stat => (
                                 <div key={stat.label} className={view.statBox}>
@@ -203,7 +149,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                                     { key: 'venue', label: 'Venue' },
                                     { key: 'events', label: 'Events', align: 'right' },
                                     { key: 'tokes', label: 'Tokes', align: 'right', render: (v) => <span style={{ color: METAL.success }}>{fmt(v.tokes)}</span> },
-                                    { key: 'form1099', label: '1099?', align: 'right', render: (v) => (v.tokes >= 600
+                                    { key: 'form1099', label: '1099?', align: 'right', render: (v) => (v.meets1099
                                         ? <span style={{ color: METAL.warn, fontWeight: 700 }}>Yes</span>
                                         : <span style={{ color: METAL.textSecondary }}>No</span>) },
                                 ]}
@@ -230,14 +176,14 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                             <div style={s.mileageBox} className="print-section">
                                 <span style={s.mileageLabel}>Mileage Deduction ({selectedYear})</span>
                                 <span style={s.mileageValue}>
-                                    {totalMiles.toLocaleString()} Mi × ${irsRate}/Mi = <strong style={{ color: METAL.warn }}>{fmt(mileageDeduction)}</strong>
+                                    {totalMiles.toLocaleString()} Mi × {rateText}/Mi = <strong style={{ color: METAL.warn }}>{fmt(mileageDeduction)}</strong>
                                 </span>
                             </div>
                         )}
 
                         {/* ── IRS Notice ── */}
                         <div style={s.notice}>
-                            <strong>IRS Note:</strong> Tips Received From Casino Players Are Generally Taxable Income. Venues That Paid You ≥$600/Year May Issue A 1099-NEC. Keep This Report And Your Supporting Records. Consult A Tax Professional.
+                            <strong>IRS Note:</strong> Tips Received From Casino Players Are Generally Taxable Income. Venues That Paid You ${threshold.toLocaleString('en-US')} Or More In {selectedYear} May Issue A 1099-NEC ($600 Through 2025, $2,000 From 2026). Mileage Uses The IRS Rate On Each Event's Date. Keep This Report And Your Supporting Records. Consult A Tax Professional.
                         </div>
 
                         {/* ── Print footer (only visible when printing - controlled by CSS .print-footer-row class) ── */}

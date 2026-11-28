@@ -134,7 +134,7 @@ export const LANDING_GUIDES = [
     id: 'research',
     name: 'Original Poker Research',
     href: '/research',
-    summary: 'First-Party Empirical Benchmarks On US Live Poker Room Rake, Tournament Buy-In Indexes, Population Leaks And Club Economics.',
+    summary: 'Exact Poker Math, US Poker Tax Rules, A Dated Tournament Buy-In Index, And Guides To Rake, Leaks And Club Economics.',
   },
   {
     id: 'tools-hub',
@@ -152,7 +152,7 @@ export const LANDING_GUIDES = [
     id: 'poker-tours',
     name: 'Traveling Poker Tours & Circuits',
     href: '/hub/poker-tours',
-    summary: 'Track Every Major Traveling Poker Tour Stop, Circuit Schedule, And Championship Main Event Across Verified US Card Rooms.',
+    summary: 'Track Every Major Traveling Poker Tour Stop, Circuit Schedule, And Championship Main Event Across US Card Rooms.',
   },
   {
     id: 'events-calendar',

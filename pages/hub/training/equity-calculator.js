@@ -1,4 +1,4 @@
-import PlayingCard from '../../../src/components/poker/PlayingCard';
+import PlayingCard, { preloadArenaDeckCards } from '../../../src/components/poker/PlayingCard';
 import { runLocalTrainingEquity } from '../../../src/lib/poker/runLocalTrainingEquity';
 /**
  * Equity Calculator — Monte Carlo Hand vs Hand Equity Tool
@@ -13,6 +13,9 @@ import { runLocalTrainingEquity } from '../../../src/lib/poker/runLocalTrainingE
 // TRAIN-CSS-TOKENS-BATCH5-11 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-8 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import BankrollImageHeader from '../../../src/components/bankroll/BankrollImageHeader';
+import Link from 'next/link';
+import { ArrowLeft, X } from 'lucide-react';
+import at from '../../../src/styles/training/analysis-tools.module.css';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -54,19 +57,73 @@ const EQUITY_VARIANTS = [
 ];
 
 const PRESETS = [
-  { name: 'AA vs KK', variant: 'holdem', hands: ['AhAs', 'KdKc'], board: [] },
-  { name: 'AKs vs QQ', variant: 'holdem', hands: ['AhKh', 'QcQd'], board: [] },
-  { name: 'AKo vs 77', variant: 'holdem', hands: ['AhKd', '7c7s'], board: [] },
-  { name: 'AA vs AKs', variant: 'holdem', hands: ['AhAd', 'AcKc'], board: [] },
-  { name: 'JJ vs AKs', variant: 'holdem', hands: ['JhJd', 'AcKc'], board: [] },
-  { name: 'KK vs AKs vs QQ', variant: 'holdem', hands: ['KhKd', 'AcKc', 'QsQh'], board: [] },
-  { name: 'Cooler: Set vs Flush', variant: 'holdem', hands: ['7h7d', 'Ah9h'], board: ['7s', '3h', '5h'] },
-  { name: 'PLO4: AAKKds vs Rundown', variant: 'plo4', hands: ['AhAsKhKs', 'JhTh9d8d'], board: [] },
-  { name: 'PLO5: Wrap vs Top Set', variant: 'plo5', hands: ['AhKhQhJdTc', '9s9d9c2h3d'], board: ['9h', '8h', '2c'] },
+  { name: 'AA Vs KK', variant: 'holdem', hands: ['AhAs', 'KdKc'], board: [] },
+  { name: 'AKs Vs QQ', variant: 'holdem', hands: ['AhKh', 'QcQd'], board: [] },
+  { name: 'AKo Vs 77', variant: 'holdem', hands: ['AhKd', '7c7s'], board: [] },
+  { name: 'AA Vs AKs', variant: 'holdem', hands: ['AhAd', 'AcKc'], board: [] },
+  { name: 'JJ Vs AKs', variant: 'holdem', hands: ['JhJd', 'AcKc'], board: [] },
+  { name: 'KK Vs AKs Vs QQ', variant: 'holdem', hands: ['KhKd', 'AcKc', 'QsQh'], board: [] },
+  { name: 'Cooler: Set Vs Flush', variant: 'holdem', hands: ['7h7d', 'Ah9h'], board: ['7s', '3h', '5h'] },
+  { name: 'PLO4: AAKKds Vs Rundown', variant: 'plo4', hands: ['AhAsKhKs', 'JhTh9d8d'], board: [] },
+  { name: 'PLO5: Wrap Vs Top Set', variant: 'plo5', hands: ['AhKhQhJdTc', '9s9d9c2h3d'], board: ['9h', '8h', '2c'] },
   { name: 'PLO6: 6-Card High Clash', variant: 'plo6', hands: ['AhAsKhKsQhQs', 'JhTh9h8d7d6c'], board: [] },
-  { name: 'PLO8: As2sKd3d vs QhQcJdTd', variant: 'plo8', hands: ['As2sKd3d', 'QhQcJdTd'], board: [] },
+  { name: 'PLO8: As2sKd3d Vs QhQcJdTd', variant: 'plo8', hands: ['As2sKd3d', 'QhQcJdTd'], board: [] },
 ];
 
+
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// CARD GRID (shared by the hole-card and board pickers)
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+
+function CardGrid({ title, usedCards, onPick, onClose }) {
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      className={`sd-panel ${at.picker}`}
+      role="dialog"
+      aria-label={title}
+      initial={{ opacity: 0, y: -5 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -5 }}
+    >
+      <div className={at.pickerHead}>
+        <span className={at.eyebrow}>{title}</span>
+        <button type="button" className={`sd-button ${at.close}`} onClick={onClose} aria-label={`Close ${title}`}>
+          <X size={18} aria-hidden />
+        </button>
+      </div>
+      {SUITS.map((suit) => (
+        <div key={suit.char} className={at.pickerRow}>
+          {RANKS.map((rank) => {
+            const card = rank + suit.char;
+            const used = usedCards.has(card);
+            return (
+              <button
+                type="button"
+                key={card}
+                data-allow-small="true"
+                data-training-raw-control="true"
+                className={at.pick}
+                onClick={() => !used && onPick(rank, suit)}
+                disabled={used}
+                aria-label={`${rank} Of ${suit.name}`}
+              >
+                <PlayingCard arena priority card={card} width={32} />
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </motion.div>
+  );
+}
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CARD PICKER COMPONENT
@@ -95,47 +152,22 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
   };
 
   return (
-    <div style={{ position: 'relative' }}>
-      <div
-        style={{
-          fontSize: 12,
-          color: 'var(--sp-fg-dim)',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: 1,
-          marginBottom: 4,
-        }}
-      >
-        {label}
-      </div>
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+    <div>
+      {label ? <div className={at.label}>{label}</div> : null}
+      <div className={at.slots}>
         {Array.from({ length: holeCount }, (_, idx) => idx).map((idx) => {
           const card = selectedCards[idx];
           return (
             <button
               type="button"
               key={idx}
+              className={at.slot}
+              data-filled={card ? 'true' : undefined}
+              data-active={open && slot === idx ? 'true' : undefined}
               aria-label={`Select hole card ${idx + 1}`}
               onClick={() => {
                 setSlot(idx);
                 setOpen(true);
-              }}
-              style={{
-                width: 44,
-                height: 60,
-                borderRadius: 6,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column',
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-                background: card ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
-                border: card
-                  ? '2px solid rgba(0,212,255,0.3)'
-                  : '2px dashed rgba(255,255,255,0.15)',
-                position: 'relative',
-                padding: 0,
               }}
             >
               {card ? (
@@ -144,133 +176,28 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
                   <span
                     role="button"
                     tabIndex={0}
+                    className={at.remove}
                     aria-label={`Remove hole card ${idx + 1}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       removeCard(idx);
                     }}
                     onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); removeCard(idx); } }}
-                    style={{
-                      position: 'absolute',
-                      top: -6,
-                      right: -6,
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
-                      background: 'var(--sp-accent-red)',
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
                   >
                     X
                   </span>
                 </>
               ) : (
-                <span style={{ fontSize: 18, color: 'var(--sp-fg-faint)' }}>?</span>
+                <span className={at.slotPlus} aria-hidden>+</span>
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Card Grid Picker Popover */}
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: -5 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: -5 }}
-            style={{
-              position: 'relative',
-              maxHeight: '50dvh', overflowY: 'auto',
-              left: 0,
-              zIndex: 200,
-              background: 'linear-gradient(145deg, #1a1a2e, #0f172a)',
-              border: '1px solid rgba(0,212,255,0.3)',
-              borderRadius: 10,
-              padding: 10,
-              marginTop: 4,
-              boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
-              minWidth: 220,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 6,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 12,
-                  color: 'var(--sp-accent-cyan)',
-                  fontWeight: 700,
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                }}
-              >
-                SELECT CARD
-              </span>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--sp-fg-dim)',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                }}
-              >
-                X
-              </button>
-            </div>
-            {SUITS.map((suit) => (
-              <div key={suit.char} style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 5 }}>
-                {RANKS.map((rank) => {
-                  const card = rank + suit.char;
-                  const used = usedCards.has(card);
-                  return (
-                    <button
-                      type="button"
-                      key={card}
-                      data-training-raw-control="true"
-                      aria-label={`Select ${card}`}
-                      onClick={() => !used && handlePick(rank, suit)}
-                      disabled={used}
-                      style={{
-                        width: 44,
-                        height: 46,
-                        borderRadius: 3,
-                        border: 'none',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: used ? 'not-allowed' : 'pointer',
-                        background: used ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
-                        color: used ? '#333' : suit.color,
-                        opacity: used ? 0.3 : 1,
-                        transition: 'all 0.1s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexDirection: 'column',
-                        lineHeight: 1,
-                        padding: 0,
-                      }}
-                    >
-                      <PlayingCard arena card={card} width={32} />
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </motion.div>
+          <CardGrid title="Select Card" usedCards={usedCards} onPick={handlePick} onClose={() => setOpen(false)} />
         )}
       </AnimatePresence>
     </div>
@@ -280,6 +207,8 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // BOARD PICKER COMPONENT
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+
+const BOARD_SLOT_LABELS = ['Flop', 'Flop', 'Flop', 'Turn', 'River'];
 
 function BoardPicker({ boardCards, onUpdate, usedCards }) {
   const [activeSlot, setActiveSlot] = useState(null);
@@ -300,50 +229,20 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
   };
 
   return (
-    <div style={{ position: 'relative' }}>
-      <div
-        style={{
-          fontSize: 12,
-          color: 'var(--sp-fg-dim)',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: 1,
-          marginBottom: 4,
-        }}
-      >
-        Board (Optional)
-      </div>
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+    <div className={at.panel}>
+      <h2 className={at.subTitle}>Board (Optional)</h2>
+      <div className={at.slots}>
         {[0, 1, 2, 3, 4].map((idx) => {
           const card = boardCards[idx];
-          const isFlop = idx < 3;
-          const label = idx === 3 ? 'T' : idx === 4 ? 'R' : '';
           return (
             <button
               type="button"
               key={idx}
+              className={`${at.slot} ${at.slotSmall}`}
+              data-filled={card ? 'true' : undefined}
+              data-active={activeSlot === idx ? 'true' : undefined}
               aria-label={`Select board card ${idx + 1}`}
               onClick={() => setActiveSlot(idx)}
-              style={{
-                width: 36,
-                height: 50,
-                borderRadius: 5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column',
-                cursor: 'pointer',
-                background: card ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
-                border:
-                  activeSlot === idx
-                    ? '2px solid #00d4ff'
-                    : card
-                      ? '1px solid rgba(255,255,255,0.15)'
-                      : '1px dashed rgba(255,255,255,0.1)',
-                position: 'relative',
-                transition: 'all 0.15s',
-                padding: 0,
-              }}
             >
               {card ? (
                 <>
@@ -351,133 +250,28 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                   <span
                     role="button"
                     tabIndex={0}
+                    className={at.remove}
                     aria-label={`Remove board card ${idx + 1}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       removeCard(idx);
                     }}
                     onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); removeCard(idx); } }}
-                    style={{
-                      position: 'absolute',
-                      top: -4,
-                      right: -4,
-                      width: 14,
-                      height: 14,
-                      borderRadius: '50%',
-                      background: 'var(--sp-accent-red)',
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
                   >
                     X
                   </span>
                 </>
               ) : (
-                <span style={{ fontSize: 12, color: '#333' }}>{label || '?'}</span>
+                <span>{BOARD_SLOT_LABELS[idx]}</span>
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Inline picker */}
       <AnimatePresence>
         {activeSlot !== null && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            style={{
-              position: 'relative',
-              maxHeight: '50dvh', overflowY: 'auto',
-              left: 0,
-              zIndex: 200,
-              background: 'linear-gradient(145deg, #1a1a2e, #0f172a)',
-              border: '1px solid rgba(0,212,255,0.3)',
-              borderRadius: 10,
-              padding: 10,
-              marginTop: 4,
-              boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
-              minWidth: 220,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 6,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 12,
-                  color: 'var(--sp-accent-cyan)',
-                  fontWeight: 700,
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                }}
-              >
-                BOARD CARD
-              </span>
-              <button
-                type="button"
-                onClick={() => setActiveSlot(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--sp-fg-dim)',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                }}
-              >
-                X
-              </button>
-            </div>
-            {SUITS.map((suit) => (
-              <div key={suit.char} style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 5 }}>
-                {RANKS.map((rank) => {
-                  const card = rank + suit.char;
-                  const used = usedCards.has(card);
-                  return (
-                    <button
-                      type="button"
-                      key={card}
-                      data-training-raw-control="true"
-                      aria-label={`Select ${card}`}
-                      onClick={() => !used && handlePick(rank, suit)}
-                      disabled={used}
-                      style={{
-                        width: 44,
-                        height: 46,
-                        borderRadius: 3,
-                        border: 'none',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: used ? 'not-allowed' : 'pointer',
-                        background: used ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
-                        color: used ? '#333' : suit.color,
-                        opacity: used ? 0.3 : 1,
-                        transition: 'all 0.1s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexDirection: 'column',
-                        lineHeight: 1,
-                        padding: 0,
-                      }}
-                    >
-                      <PlayingCard arena card={card} width={32} />
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </motion.div>
+          <CardGrid title="Board Card" usedCards={usedCards} onPick={handlePick} onClose={() => setActiveSlot(null)} />
         )}
       </AnimatePresence>
     </div>
@@ -493,118 +287,31 @@ function EquityBar({ results }) {
   const total = results.reduce((a, r) => a + r.equity, 0) || 100;
 
   return (
-    <div>
-      {/* Labels */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+    <div className={at.panel}>
+      <div className={`${at.metrics} ${results.length === 2 ? at.metrics2 : ''}`}>
         {results.map((r, i) => (
-          <div
-            key={i}
-            style={{
-              textAlign: i === 0 ? 'left' : i === results.length - 1 ? 'right' : 'center',
-              flex: 1,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 22,
-                fontWeight: 900,
-                color: PLAYER_COLORS[i],
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                lineHeight: 1,
-              }}
-            >
-              {r.equity}%
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', fontWeight: 600, marginTop: 2 }}>
-              {formatHand(r.hand)}
-            </div>
+          <div key={i} className={`sd-metric ${at.metric}`}>
+            <span className={at.metricLabel}><i className={at.swatch} style={{ background: PLAYER_COLORS[i] }} aria-hidden />{`${PLAYER_LABELS[i]} · ${formatHand(r.hand)}`}</span>
+            <strong className={at.metricValue}>{r.equity}%</strong>
+            <span className={at.small}>
+              Win <strong className={at.white}>{r.wins}</strong> · Tie <strong className={at.white}>{r.ties}</strong>
+            </span>
           </div>
         ))}
       </div>
 
-      {/* Bar */}
-      <div
-        style={{
-          height: 46,
-          borderRadius: 14,
-          overflow: 'hidden',
-          display: 'flex',
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.06)',
-        }}
-      >
+      <div className={at.equityBar} role="img" aria-label={results.map((r, i) => `${PLAYER_LABELS[i]} ${r.equity}%`).join(', ')}>
         {results.map((r, i) => (
           <motion.div
             key={i}
+            className={at.equitySeg}
             initial={{ width: `${100 / results.length}%` }}
             animate={{ width: `${(r.equity / total) * 100}%` }}
             transition={{ duration: MOTION.slow, ease: 'easeOut' }}
-            style={{
-              height: '100%',
-              background: `linear-gradient(90deg, ${PLAYER_COLORS[i]}80, ${PLAYER_COLORS[i]})`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: r.equity > 3 ? 30 : 0,
-            }}
+            style={{ background: `linear-gradient(180deg, ${PLAYER_COLORS[i]}, ${PLAYER_COLORS[i]}99)`, minWidth: r.equity > 3 ? 30 : 0 }}
           >
-            {r.equity > 10 && (
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: '#fff',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.4)',
-                }}
-              >
-                {r.equity}%
-              </span>
-            )}
+            {r.equity > 10 && <span>{r.equity}%</span>}
           </motion.div>
-        ))}
-      </div>
-
-      {/* Detail Row */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: 8,
-          flexWrap: 'wrap',
-          gap: 8,
-        }}
-      >
-        {results.map((r, i) => (
-          <div
-            key={i}
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              borderRadius: 8,
-              padding: '8px 12px',
-              flex: '1 1 120px',
-              border: `1px solid ${PLAYER_COLORS[i]}20`,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: PLAYER_COLORS[i],
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                marginBottom: 4,
-              }}
-            >
-              {formatHand(r.hand)}
-            </div>
-            <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--sp-fg-muted)' }}>
-              <span>
-                Win: <strong style={{ color: 'var(--sp-fg)' }}>{r.wins}</strong>
-              </span>
-              <span>
-                Tie: <strong style={{ color: 'var(--sp-fg)' }}>{r.ties}</strong>
-              </span>
-            </div>
-          </div>
         ))}
       </div>
     </div>
@@ -647,6 +354,7 @@ export default function EquityCalculatorPage() {
   const [offlineFallbackUsed, setOfflineFallbackUsed] = useState(false);
 
   useEffect(() => {
+    preloadArenaDeckCards();
     if (typeof window === 'undefined') return undefined;
     setIsOffline(navigator.onLine === false);
     const handleOnline = () => setIsOffline(false);
@@ -969,235 +677,100 @@ export default function EquityCalculatorPage() {
         jsonLd={equityJsonLd}
       />
 
-      <div
-        className="sp-training-tool sp-training-tool--analysis sp-analysis-equity"
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        <BankrollImageHeader art="jarvis" title="Equity Calculator" helpContent={<><p>Choose A Game And Enter Each Hand. Add Community Cards To Compare Win, Tie And Pot Equity. PLO8 Splits The Pot When A Low Qualifies.</p>
-          {/* About Section */}
-          <div
-            className="sp-equity-aeo-kernel"
-            style={{
-              marginTop: 20,
-              padding: '16px 20px',
-              background: 'linear-gradient(135deg, rgba(86, 216, 255, 0.1), rgba(255,255,255,0.02))',
-              borderRadius: 12,
-              border: '1px solid rgba(86,216,255,0.3)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                color: 'var(--sp-accent-cyan)',
-                textTransform: 'uppercase',
-                letterSpacing: 1.2,
-                marginBottom: 8,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Direct Answer &bull; Poker Equity Overview
-            </div>
-            <p style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
-              The Poker Equity Calculator Computes Real-Time Hand-Versus-Hand Odds Using 5,000 Monte Carlo Iterations Across Any Community Board. Input 2 To 4 Hole-Card Matchups Pre-Flop, Flop, Or Turn To Instantaneously Calculate Mathematical Win, Tie, And Loss Probabilities.
-            </p>
+      <div className={`sp-training-tool sp-training-tool--analysis sp-analysis-equity ${at.shell}`}>
+        <div className={`sp-training-head ${at.head}`}>
+          <div className="sd-back-row">
+            <Link href="/hub/training" className="sd-button">
+              <ArrowLeft size={16} aria-hidden /> Training
+            </Link>
           </div>
+          <BankrollImageHeader
+            art="training-equity-calculator"
+            title="Equity Calculator"
+            helpContent={(
+              <>
+                <p>Choose A Game And Enter Each Hand. Add Community Cards To Compare Win, Tie And Pot Equity. PLO8 Splits The Pot When A Low Qualifies.</p>
+                <div className={`sp-equity-aeo-kernel ${at.helpBlock}`}>
+                  <h3>Direct Answer: Poker Equity Overview</h3>
+                  <p>
+                    The Poker Equity Calculator Computes Real-Time Hand-Versus-Hand Odds Using 5,000 Monte Carlo Iterations Across Any Community Board. Input 2 To 4 Hole-Card Matchups Pre-Flop, Flop, Or Turn To Instantaneously Calculate Mathematical Win, Tie, And Loss Probabilities.
+                  </p>
+                </div>
+                <div className={`sp-equity-faq-section ${at.helpBlock}`}>
+                  <h3>Frequently Asked Questions</h3>
+                  <details className={at.faq}>
+                    <summary>What Is Poker Equity?</summary>
+                    <p>Poker Equity Represents Your Expected Share Of The Pot Based On Your Mathematical Probability Of Winning Or Tying At Showdown.</p>
+                  </details>
+                  <details className={at.faq}>
+                    <summary>How Does A Monte Carlo Equity Calculator Work?</summary>
+                    <p>A Monte Carlo Equity Calculator Simulates Thousands Of Random Unrevealed Community Board Runouts To Calculate Estimated Win, Tie, And Loss Frequencies.</p>
+                  </details>
+                  <details className={at.faq}>
+                    <summary>How Many Players Can Be Compared Simultaneously?</summary>
+                    <p>This Tool Supports Comparing Equities For Up To 4 Active Players Simultaneously Pre-Flop, On The Flop, Or On The Turn.</p>
+                  </details>
+                </div>
+              </>
+            )}
+          />
+        </div>
 
-          {/* FAQ Accordion Section */}
-          <div
-            className="sp-equity-faq-section"
-            style={{
-              marginTop: 20,
-              padding: '16px 20px',
-              background: 'rgba(255,255,255,0.02)',
-              borderRadius: 12,
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 1.2,
-                marginBottom: 12,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Frequently Asked Questions
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <details style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, color: 'var(--sp-fg)' }}>
-                  What Is Poker Equity?
-                </summary>
-                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
-                  Poker Equity Represents Your Expected Share Of The Pot Based On Your Mathematical Probability Of Winning Or Tying At Showdown.
-                </div>
-              </details>
-              <details style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, color: 'var(--sp-fg)' }}>
-                  How Does A Monte Carlo Equity Calculator Work?
-                </summary>
-                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
-                  A Monte Carlo Equity Calculator Simulates Thousands Of Random Unrevealed Community Board Runouts To Calculate Estimated Win, Tie, And Loss Frequencies.
-                </div>
-              </details>
-              <details style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, color: 'var(--sp-fg)' }}>
-                  How Many Players Can Be Compared Simultaneously?
-                </summary>
-                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
-                  This Tool Supports Comparing Equities For Up To 4 Active Players Simultaneously Pre-Flop, On The Flop, Or On The Turn.
-                </div>
-              </details>
-            </div>
-          </div>
-          </>} />
         {/* Main Content */}
-        <div className="sp-training-analysis-main" style={{ padding: '20px 24px', maxWidth: 700, margin: '0 auto' }}>
+        <div className={`sp-training-analysis-main ${at.page}`}>
           {/* Variant & Player Count */}
-          <div
-            data-equity-variant-selector="true"
-            style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}
-          >
-            <span
-              style={{
-                fontSize: 12,
-                color: 'var(--sp-fg-dim)',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-              }}
-            >
-              Variant:
-            </span>
-            {EQUITY_VARIANTS.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                data-variant-option={v.id}
-                data-equity-variant={v.id}
-                aria-pressed={variant === v.id}
-                onClick={() => changeVariant(v.id)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  border: variant === v.id ? '1px solid rgba(34,211,238,0.5)' : '1px solid rgba(255,255,255,0.08)',
-                  transition: 'all 0.2s',
-                  background:
-                    variant === v.id
-                      ? 'linear-gradient(135deg, rgba(6,182,212,0.35), rgba(59,130,246,0.35))'
-                      : 'rgba(255,255,255,0.05)',
-                  color: variant === v.id ? '#e0f2fe' : 'var(--sp-fg-muted)',
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                }}
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
-
-          {variant === 'plo8' && (
-            <div
-              data-plo8-equity-banner="true"
-              style={{
-                marginBottom: 14,
-                padding: '8px 14px',
-                borderRadius: 8,
-                background: 'rgba(16, 185, 129, 0.12)',
-                border: '1px solid rgba(52, 211, 153, 0.35)',
-                color: '#6ee7b7',
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: '0.02em',
-              }}
-            >
-              PLO8 Hi-Lo 8-Or-Better (2 Hole + 3 Board)
+          <section className={`sd-panel ${at.panel}`} aria-label="Game And Players">
+            <div className={at.field} data-equity-variant-selector="true">
+              <span className={at.label}>Variant</span>
+              <div className={at.chips}>
+                {EQUITY_VARIANTS.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    className="sd-button"
+                    data-variant-option={v.id}
+                    data-equity-variant={v.id}
+                    aria-pressed={variant === v.id}
+                    onClick={() => changeVariant(v.id)}
+                  >
+                    {v.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
 
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 16 }}>
-            <span
-              style={{
-                fontSize: 12,
-                color: 'var(--sp-fg-dim)',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-              }}
-            >
-              Players:
-            </span>
-            {[2, 3, 4].map((n) => (
-              <button
-                type="button"
-                key={n}
-                aria-pressed={numPlayers === n}
-                onClick={() => changePlayerCount(n)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  border: 'none',
-                  transition: 'all 0.2s',
-                  background:
-                    numPlayers === n
-                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)'
-                      : 'rgba(255,255,255,0.06)',
-                  color: numPlayers === n ? '#fff' : 'var(--sp-fg-muted)',
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                }}
-              >
-                {n}-Way
-              </button>
-            ))}
-          </div>
+            {variant === 'plo8' && (
+              <p data-plo8-equity-banner="true" className={at.note}>
+                PLO8 Hi-Lo 8-Or-Better (2 Hole + 3 Board)
+              </p>
+            )}
+
+            <div className={at.field}>
+              <span className={at.label}>Players</span>
+              <div className={at.segmented}>
+                {[2, 3, 4].map((n) => (
+                  <button
+                    type="button"
+                    key={n}
+                    className="sd-button"
+                    aria-pressed={numPlayers === n}
+                    onClick={() => changePlayerCount(n)}
+                  >
+                    {n}-Way
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
 
           {/* Hand Inputs */}
-          <div
-            style={{
-              display: 'flex',
-              gap: 8,
-              flexWrap: 'wrap',
-              marginBottom: 16,
-              alignItems: 'flex-start',
-            }}
-          >
+          <div className={`${at.cardsGrid} ${at.cardsWide}`}>
             {Array.from({ length: numPlayers }).map((_, idx) => (
-              <div
-                key={idx}
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${PLAYER_COLORS[idx]}20`,
-                  borderRadius: 10,
-                  padding: '10px 14px',
-                  flex: '1 1 120px',
-                  minWidth: 0,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: PLAYER_COLORS[idx],
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                    marginBottom: 6,
-                  }}
-                >
+              <section key={idx} className={`sd-panel ${at.panel} ${at.tight}`} aria-label={PLAYER_LABELS[idx]}>
+                <h2 className={at.subTitle}>
+                  <i className={at.swatch} style={{ background: PLAYER_COLORS[idx] }} aria-hidden />
                   {PLAYER_LABELS[idx]}
-                </div>
+                </h2>
                 <CardPicker
                   selectedCards={hands[idx] || []}
                   onSelect={(cards) => updateHand(idx, cards)}
@@ -1205,150 +778,68 @@ export default function EquityCalculatorPage() {
                   label=""
                   holeCount={activeVariantSpec.holeCount}
                 />
-              </div>
+              </section>
             ))}
           </div>
 
           {/* Board */}
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 10,
-              padding: '10px 14px',
-              marginBottom: 16,
-            }}
-          >
+          <section className="sd-panel" aria-label="Board">
             <BoardPicker boardCards={boardCards} onUpdate={updateBoardCards} usedCards={usedCards} />
-          </div>
+          </section>
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+          <div className={at.actions}>
             <button
               type="button"
-              className="sp-analysis-primary-action"
+              className={`sp-analysis-primary-action sd-button sd-primary ${at.primary}`}
               onClick={calculate}
               disabled={!canCalculate || loading}
-              style={{
-                flex: '1 1 200px',
-                padding: '14px 0',
-                background: canCalculate
-                  ? 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #6366f1)'
-                  : 'rgba(255,255,255,0.06)',
-                border: 'none',
-                borderRadius: 10,
-                color: canCalculate ? '#fff' : 'var(--sp-fg-faint)',
-                cursor: canCalculate ? 'pointer' : 'default',
-                fontSize: 14,
-                fontWeight: 800,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                transition: 'all 0.2s',
-              }}
             >
               {loading ? 'Calculating...' : 'Calculate Equity'}
             </button>
-            <button
-              type="button"
-              onClick={clearAll}
-              style={{
-                padding: '14px 20px',
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 10,
-                color: 'var(--sp-fg-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
+            <button type="button" className="sd-button" onClick={clearAll} style={{ minWidth: 120 }}>
               Clear All
             </button>
           </div>
 
           {(isOffline || offlineFallbackUsed) && (
-            <div
-              data-offline-equity-fallback="true"
-              style={{
-                padding: '12px 14px',
-                marginBottom: 16,
-                borderRadius: 10,
-                border: '1px solid rgba(251, 191, 36, 0.45)',
-                background: 'rgba(120, 53, 15, 0.22)',
-                color: '#86daff',
-                fontSize: 12,
-              }}
-            >
-              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <strong style={{ color: '#86daff', textTransform: 'uppercase' }}>
-                  Offline Horse Brain Evaluation Mode Active
-                </strong>
+            <section data-offline-equity-fallback="true" className={`sd-panel ${at.panel} ${at.tight}`}>
+              <div className={at.panelHead}>
+                <strong className={at.eyebrow}>Offline Horse Brain Evaluation Mode Active</strong>
                 <button
                   type="button"
+                  className={`sd-button ${at.compact}`}
                   onClick={() => {
                     setRetryCount((c) => c + 1);
                     calculate();
-                  }}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: 6,
-                    border: '1px solid rgba(251, 191, 36, 0.5)',
-                    background: 'rgba(217, 119, 6, 0.28)',
-                    color: '#86daff',
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: 'pointer',
                   }}
                 >
                   Retry Server Simulation {retryCount > 0 ? `(${retryCount})` : ''}
                 </button>
               </div>
               {liveOfflineSpotPreview && (
-                <div style={{ color: '#e2e8f0', lineHeight: 1.5 }}>
+                <div className={at.copy}>
                   <div>
-                    Engine: <strong>{liveOfflineSpotPreview.engineModule}</strong> · Made Hand: <strong>{liveOfflineSpotPreview.madeHandCategory}</strong> · Recommended Action: <strong style={{ color: '#4ade80' }}>{liveOfflineSpotPreview.recommendedAction}</strong>
+                    Engine: <strong className={at.white}>{liveOfflineSpotPreview.engineModule}</strong> · Made Hand: <strong className={at.white}>{liveOfflineSpotPreview.madeHandCategory}</strong> · Recommended Action: <strong className={at.ice}>{liveOfflineSpotPreview.recommendedAction}</strong>
                   </div>
                   <div style={{ marginTop: 4 }}>
-                    Draws: Flush Outs <strong>{liveOfflineSpotPreview.flushOuts}</strong> · Straight/Wrap Outs <strong>{liveOfflineSpotPreview.straightOuts}</strong> ({liveOfflineSpotPreview.wrapType})
+                    Draws: Flush Outs <strong className={at.white}>{liveOfflineSpotPreview.flushOuts}</strong> · Straight/Wrap Outs <strong className={at.white}>{liveOfflineSpotPreview.straightOuts}</strong> ({liveOfflineSpotPreview.wrapType})
                   </div>
                 </div>
               )}
-            </div>
+            </section>
           )}
 
           {/* Error */}
           {error && (
-            <div
-              style={{
-                padding: '10px 14px',
-                background: 'rgba(239,68,68,0.1)',
-                border: '1px solid rgba(239,68,68,0.3)',
-                borderRadius: 8,
-                color: 'var(--sp-accent-red)',
-                fontSize: 12,
-                fontWeight: 600,
-                marginBottom: 16,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
+            <div className={`${at.error} ${at.errorRow}`} role="alert">
               <span>{error}</span>
               <button
                 type="button"
+                className={`sd-button ${at.compact}`}
                 onClick={() => {
                   setRetryCount((c) => c + 1);
                   calculate();
-                }}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: 6,
-                  border: '1px solid rgba(239,68,68,0.4)',
-                  background: 'rgba(239,68,68,0.18)',
-                  color: '#fecaca',
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: 'pointer',
                 }}
               >
                 Retry
@@ -1356,127 +847,62 @@ export default function EquityCalculatorPage() {
             </div>
           )}
 
-          {/* Horse Brain 4-Variant Spot Preview & 1:1 Club Arena Launcher */}
-
           {/* Results */}
           <AnimatePresence>
             {results && (
-              <motion.div
+              <motion.section
                 data-equity-results-panel="true"
                 data-equity-seq={equitySeq}
                 data-equity-variant-result={variant}
+                className={`sd-panel ${at.panel}`}
+                aria-label="Equity Results"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                style={{
-                  background:
-                    'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                  border: '1px solid rgba(86,216,255,0.22)',
-                  borderRadius: 14,
-                  padding: 20,
-                  marginBottom: 20,
-                }}
               >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: '#86daff',
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                    letterSpacing: 1.5,
-                    textTransform: 'uppercase',
-                    marginBottom: 12,
-                  }}
-                >
+                <h2 className={at.sectionTitle}>
                   {boardCards.length === 5 ? 'Exact Showdown Equity' : 'Estimated Equity · 5,000 Runouts'}
-                </div>
+                </h2>
                 <EquityBar results={results} />
                 {horseBrainAnalysis && (
                   <div
                     data-equity-brain-panel="true"
                     data-brain-engine={horseBrainAnalysis.engineModule}
                     data-recommended-action={horseBrainAnalysis.recommendedAction || 'Call'}
-                    style={{
-                      marginTop: 14,
-                      padding: '12px 14px',
-                      borderRadius: 10,
-                      background: 'rgba(6,182,212,0.08)',
-                      border: '1px solid rgba(34,211,238,0.28)',
-                    }}
+                    className={at.helpBlock}
                   >
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: '#67e8f9', textTransform: 'uppercase' }}>
-                        {`Engine: ${horseBrainAnalysis.engineModule}`}
-                      </span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#cbd5e1' }}>
-                        {`Player 1 Made Hand: ${horseBrainAnalysis.madeHandCategory}`}
-                      </span>
+                    <div className={at.row}>
+                      <span className={at.eyebrow}>{`Engine: ${horseBrainAnalysis.engineModule}`}</span>
+                      <span className={at.label}>{`Player 1 Made Hand: ${horseBrainAnalysis.madeHandCategory}`}</span>
                       {horseBrainAnalysis.recommendedAction && (
-                        <span style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
-                          {`Recommended Line: ${horseBrainAnalysis.recommendedAction}`}
+                        <span className={at.label}>
+                          Recommended Line: <strong className={at.ice}>{horseBrainAnalysis.recommendedAction}</strong>
                         </span>
                       )}
                       {horseBrainAnalysis.potLimitMaxBetBb && (
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>
-                          {`Pot-Limit Max Bet: ${horseBrainAnalysis.potLimitMaxBetBb} BB`}
+                        <span className={at.label}>
+                          Pot-Limit Max Bet: <strong className={at.ice}>{`${horseBrainAnalysis.potLimitMaxBetBb} BB`}</strong>
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 12, color: '#e2e8f0', lineHeight: 1.5 }}>
-                      {horseBrainAnalysis.coachingSummary}
-                    </div>
+                    <p className={at.copy}>{horseBrainAnalysis.coachingSummary}</p>
                   </div>
                 )}
-              </motion.div>
+              </motion.section>
             )}
           </AnimatePresence>
 
           {/* Presets */}
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 12,
-              padding: '14px 18px',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-                marginBottom: 10,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Quick Presets
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="equity-presets-title">
+            <h2 id="equity-presets-title" className={at.sectionTitle}>Quick Presets</h2>
+            <div className={at.chips}>
               {PRESETS.map((preset, i) => (
-                <button
-                  type="button"
-                  key={i}
-                  onClick={() => loadPreset(preset)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    background: 'rgba(255,255,255,0.04)',
-                    color: 'var(--sp-fg-muted)',
-                    transition: 'all 0.15s',
-                  }}
-                >
+                <button type="button" key={i} className="sd-button" onClick={() => loadPreset(preset)}>
                   {preset.name}
                 </button>
               ))}
             </div>
-          </div>
-
+          </section>
         </div>
       </div>
     </>

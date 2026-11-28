@@ -8,21 +8,21 @@ import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase'
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { clientDay, exportRequest, guardBankrollRequest } from '../../../src/lib/bankroll/apiGuard.mjs';
+import { exportRow, fetchAllRows, ledgerCsv, summarizeLedger } from '../../../src/lib/bankroll/ledgerReport.mjs';
 
 
 export default async function handler(req, res) {
   try {
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-          if (!applyRateLimit(req, res, LIMITS.write)) return;
-      }
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
 
-      // BUG #249 FIX: Require JWT auth — prevent IDOR on bankroll data
-      const _token = req.headers.authorization?.replace('Bearer ', '');
-      if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-      const _authUser = authData?.user;
-      if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+      // Method, token and identity in one place (src/lib/bankroll/apiGuard.mjs):
+      // a GET is 405 with Allow, a session-service outage is 503, not "sign in".
+      const _authUser = await guardBankrollRequest(req, res, {
+          methods: ['POST'],
+          verify: (request) => getServerUserWithFallback(request, getSupabase()),
+      });
+      if (!_authUser) return;
 
       // ═══ PREMIUM GATE ═══
       const access = await checkServerFeatureAccess(getSupabase(), _authUser.id, 'bankroll_pro');
@@ -30,41 +30,30 @@ export default async function handler(req, res) {
           return res.status(403).json({ success: false, error: 'Premium feature access required' });
       }
 
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
-
-      const { format = 'csv', dateRange } = req.body;
+      // A bad date used to reach PostgREST and come back as a 500.
+      const input = exportRequest(req.body);
+      if (input.error) return res.status(400).json({ success: false, error: input.error });
+      const { format } = input;
 
       // BUG #239 FIX: Use JWT user_id, not client-submitted userId (IDOR prevention)
       const userId = _authUser.id;
 
       try {
-          // Build query — use select('*') to match working selectors pattern
-          let query = getSupabase()
-              .from('bankroll_ledger')
-              .select('*')
-              .eq('user_id', userId)
-              .eq('is_revision', false)
-              .order('entry_date', { ascending: false })
-              .limit(500);
-
-          // Apply date range filter
-          if (dateRange?.start) {
-              query = query.gte('entry_date', dateRange.start)
-                  .limit(500);
-          }
-          if (dateRange?.end) {
-              query = query.lte('entry_date', dateRange.end)
-                  .limit(500);
-          }
-
-          const { data: entries, error } = await query;
-
-          if (error) {
-              console.warn('[Export] Supabase error:', error);
-              return res.status(500).json({ success: false, error: 'Internal server error' });
-          }
+          // Every row, a page at a time: the old 500-row limit silently dropped
+          // everything older than a player's 500th entry from the file.
+          const entries = await fetchAllRows(() => {
+              let query = getSupabase()
+                  .from('bankroll_ledger')
+                  .select('*')
+                  .eq('user_id', userId)
+                  .eq('is_revision', false);
+              if (input.start) query = query.gte('entry_date', input.start);
+              if (input.end) query = query.lte('entry_date', input.end);
+              return query
+                  .order('entry_date', { ascending: false })
+                  .order('created_at', { ascending: false })
+                  .order('id', { ascending: false });
+          });
 
           if (!entries || entries.length === 0) {
               return res.status(200).json({
@@ -73,86 +62,29 @@ export default async function handler(req, res) {
               });
           }
 
-          // Transform entries — use only columns that exist in the table
-          const exportData = entries.map(entry => {
-              const netPL = (entry.gross_out || 0) - (entry.gross_in || 0);
-              return {
-                  date: entry.entry_date,
-                  category: entry.category || 'Other',
-                  buy_in: entry.gross_in || 0,
-                  cash_out: entry.gross_out || 0,
-                  net_pl: netPL,
-                  stakes: entry.stakes || '',
-                  game_type: entry.game_type || '',
-                  tournament_name: entry.tournament_name || '',
-                  start_time: entry.start_time || '',
-                  end_time: entry.end_time || '',
-                  emotional_tag: entry.emotional_tag || '',
-                  notes: entry.notes || ''
-              };
-          });
-
-          // Calculate summary stats
-          const totalIn = exportData.reduce((sum, e) => sum + e.buy_in, 0);
-          const totalOut = exportData.reduce((sum, e) => sum + e.cash_out, 0);
-          const netPL = totalOut - totalIn;
+          const exportData = entries.map(exportRow);
+          const totals = summarizeLedger(entries);
+          // The client names the file with the player's own calendar day.
+          const day = clientDay(req.body?.today);
+          const summary = {
+              entries: entries.length,
+              sessions: totals.sessions,
+              totalIn: totals.totalBuyIns,
+              totalOut: totals.totalCashOuts,
+              netPL: totals.sessionNet,
+              expenses: totals.expenses,
+              netAfterExpenses: totals.netAfterExpenses,
+              deposits: totals.deposits,
+              withdrawals: totals.withdrawals,
+          };
 
           if (format === 'csv') {
-              // Generate CSV
-              const headers = [
-                  'Date',
-                  'Category',
-                  'Buy-In',
-                  'Cash-Out',
-                  'Net P/L',
-                  'Stakes',
-                  'Game Type',
-                  'Tournament',
-                  'Start Time',
-                  'End Time',
-                  'Mood',
-                  'Notes'
-              ];
-
-              const rows = exportData.map(e => [
-                  e.date,
-                  e.category,
-                  e.buy_in,
-                  e.cash_out,
-                  e.net_pl,
-                  e.stakes,
-                  e.game_type,
-                  e.tournament_name,
-                  e.start_time,
-                  e.end_time,
-                  e.emotional_tag,
-                  `"${(e.notes || '').replace(/"/g, '""')}"`
-              ]);
-
-              // Add summary row
-              rows.push([]);
-              rows.push(['SUMMARY']);
-              rows.push(['Total Sessions', entries.length]);
-              rows.push(['Total Buy-Ins', totalIn]);
-              rows.push(['Total Cash-Outs', totalOut]);
-              rows.push(['Net P/L', netPL]);
-
-              const csvContent = [
-                  headers.join(','),
-                  ...rows.map(r => r.join(','))
-              ].join('\n');
-
               return res.status(200).json({
                   success: true,
                   format: 'csv',
-                  filename: `bankroll_export_${new Date().toISOString().split('T')[0]}.csv`,
-                  content: csvContent,
-                  summary: {
-                      sessions: entries.length,
-                      totalIn,
-                      totalOut,
-                      netPL
-                  }
+                  filename: `bankroll_export_${day}.csv`,
+                  content: ledgerCsv(exportData),
+                  summary,
               });
           }
 
@@ -160,13 +92,10 @@ export default async function handler(req, res) {
           return res.status(200).json({
               success: true,
               format: 'json',
-              filename: `bankroll_export_${new Date().toISOString().split('T')[0]}.json`,
-              data: exportData,
+              filename: `bankroll_export_${day}.json`,
+              data: exportData.map(({ category_id, ...row }) => row),
               summary: {
-                  sessions: entries.length,
-                  totalIn,
-                  totalOut,
-                  netPL,
+                  ...summary,
                   dateRange: {
                       earliest: entries[entries.length - 1]?.entry_date,
                       latest: entries[0]?.entry_date

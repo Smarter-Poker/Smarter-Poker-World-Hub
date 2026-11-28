@@ -51,9 +51,9 @@ function researchIndexJsonLd() {
     {
       '@type': 'CollectionPage',
       '@id': `${url}#collection`,
-      name: 'Smarter.Poker Original Poker Industry Research And Benchmark Reports',
+      name: 'Smarter.Poker Poker Research And Reference Pages',
       description:
-        'First-Party Statistical Studies And Structured Datasets Covering US Live Poker Room Rake Caps, Daily Tournament Buy-In Fee Ratios, GTO Vs. Population Leak Frequencies, And Club Software Economics.',
+        'Poker Research And Reference Pages: Computed Poker Math, Federal Tax Rules, Dated Tournament Directory Data, And Editorial Guides To Rake, Dealers, Waitlists And Clubs.',
       url,
       inLanguage: 'en-US',
       dateModified: '2026-11-09',
@@ -79,7 +79,7 @@ function researchIndexJsonLd() {
       '@id': `${url}#datacatalog`,
       name: 'Smarter.Poker Open Quantitative Poker & Live Cardroom Data Catalog',
       description:
-        `Public CC-BY 4.0 Catalog Of 15 Quantitative Poker Research Datasets, 169 Starting Hand Preflop Frequency Matrices, And ${VENUE_COUNT_LABEL} US Live Cardroom Benchmarks.`,
+        `Public CC-BY 4.0 Catalog Of Smarter.Poker Research Pages, 169 Starting Hand Guides, And The Directory Of ${VENUE_COUNT_LABEL} Listed US Poker Rooms.`,
       url,
       inLanguage: 'en-US',
       license: 'https://creativecommons.org/licenses/by/4.0/',
@@ -147,7 +147,7 @@ export default function ResearchIndexPage() {
     <div style={{ minHeight: '100vh', background: '#070b14', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title="Poker Industry Research And Benchmarks"
-        description="Original Poker Industry Research And Statistical Benchmark Reports By Smarter.Poker: Live Room Rake Caps, Tournament Buy-In Indexes, And GTO Population Leak Studies."
+        description="Smarter.Poker Research Pages: Exact Poker Math, US Poker Tax Rules, A Dated Tournament Buy-In Index, And Guides To Rake, Dealers And Clubs."
         canonical={RESEARCH_BASE_PATH}
         jsonLd={researchIndexJsonLd()}
       >
@@ -170,11 +170,11 @@ export default function ResearchIndexPage() {
         <div style={{ marginBottom: 22 }}>
           <SmarterSeoMasthead
             vertical="research"
-            eyebrow="Smarter.Poker Quantitative Research Division"
-            title="Smarter.Poker Original Poker Industry Research And Data Benchmarks"
-            lead="15 First-Party Empirical Studies, 6 Zenodo DOI Archives, And Open CC BY 4.0 Live Poker & Solver Datasets."
+            eyebrow="Smarter.Poker Research"
+            title="Smarter.Poker Poker Research And Reference Pages"
+            lead="Computed Poker Math, Federal Tax Rules, Dated Directory Data And Editorial Guides, Each Labelled With The Basis Of Its Figures."
             stats={[
-              { label: 'Open Studies', value: `${RESEARCH_REPORTS.length} Reports` },
+              { label: 'Research Pages', value: `${RESEARCH_REPORTS.length} Pages` },
               { label: 'Zenodo Archives', value: '6 DOIs' },
               { label: 'Open License', value: 'CC BY 4.0' },
               { label: 'Raw Exports', value: 'CSV / JSON' },
@@ -188,7 +188,7 @@ export default function ResearchIndexPage() {
         </div>
 
         <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
-          First-Party Empirical Studies And Structured Datasets Compiled From Smarter.Poker&apos;S National Directory Of {VENUE_COUNT_LABEL} Verified US Poker Rooms, 4,500+ Weekly Tournament Schedules, And 100+ GTO Solver Training Baselines.
+          Every Page States The Basis Of Its Figures: Exact Mathematics Anyone Can Recompute, Federal Statute With Its Citation, A Dated Read Of The Smarter.Poker Directory Of {VENUE_COUNT_LABEL} US Poker Rooms, Or An Editorial Guide That States No Measured Figures. No Page Reports A Survey, Because None Was Run.
         </p>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
@@ -389,9 +389,9 @@ export default function ResearchIndexPage() {
           title="Smarter.Poker Original Poker Industry Research Hub"
           canonicalUrl={url}
           badgeType="research"
-          badgeLabel="Empirical Data Source"
+          badgeLabel="Research Source"
           badgeValue="Smarter.Poker Research"
-          summary="15 First-Party Poker Industry Benchmarks Covering US Cardroom Rake, Tournament Guarantees, Waitlist Turnover, W-2G Tax Reporting, And Solver Frequencies."
+          summary="Smarter.Poker Research Pages Covering Exact Poker Math, W-2G Tax Rules, A Dated Tournament Buy-In Index, And Guides To Rake, Waitlists And Clubs."
           slug="smarter-poker-research-hub"
           doi="10.5281/zenodo.24115647"
         />

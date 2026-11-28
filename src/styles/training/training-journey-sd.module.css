@@ -1,0 +1,694 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   #SMARTERDESIGN interiors for the Training journey pages in the Daily /
+   Progress family (Achievements, Streaks, Progress, Milestones, Skill Tree,
+   Community Leaderboard, Training Feed).
+
+   One continuous steel rim per surface (Club Arena chrome nine-slices),
+   ink-navy fills, square corners, cobalt + white for selected controls,
+   white titles, silver copy, ice (#86daff) emphasis. Green / red only for
+   real gains, completions and errors.
+
+   The legacy journey layer in src/styles/worlds/training.css paints the
+   shared sp-journey-* hooks with !important; every rule here is scoped under
+   .root and doubled where it must outrank that layer.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.root.root {
+  --j-ice: #86daff;
+  --j-silver: #bdd0e2;
+  --j-white: #f2f7ff;
+  --j-green: #3ddc97;
+  --j-red: #ff7a84;
+  --j-navy: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  --j-control: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  --j-cobalt: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  --j-rule: linear-gradient(90deg, transparent, #5d7d98 12%, #9cb8cf 50%, #5d7d98 88%, transparent);
+  box-sizing: border-box;
+  min-height: 100dvh !important;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: clip !important;
+  padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+  color: var(--j-white) !important;
+  background: radial-gradient(ellipse at 50% -10%, #12304d 0%, transparent 55%), #040d18 !important;
+  background-size: auto !important;
+  font-family: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.root.root::before { content: none; }
+.root :where(h1, h2, h3, p, span, div) { text-shadow: none; }
+.root [style*='text-transform'] { text-transform: none !important; }
+
+/* Page stage under the head: same column and gutters as the head. */
+.root.root .main.main,
+.root .main.main {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 820px !important;
+  margin: 0 auto !important;
+  padding: 10px clamp(10px, 3vw, 24px) 0 !important;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.root .main.main > * { min-width: 0; margin: 0 !important; }
+
+/* ─── Surfaces ──────────────────────────────────────────────────────── */
+.root .panel.panel,
+.root .card.card,
+.root .metric.metric {
+  box-sizing: border-box;
+  position: relative;
+  overflow: visible;
+  min-width: 0;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: var(--j-navy) !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32) !important;
+  color: var(--j-white) !important;
+}
+
+.root .panel.panel { padding: 12px !important; display: grid; gap: 12px; }
+.root .card.card { padding: 12px !important; }
+
+.root .section.section {
+  box-sizing: border-box;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px !important;
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+  border-radius: 0 !important;
+  background: var(--j-navy) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+.root :is(.panel, .card, .metric, .section)::before,
+.root :is(.panel, .card, .metric, .section)::after { content: none !important; }
+
+/* Status stripe for cards that carry a real state (earned, weak, error). */
+.root .card[data-tone]::before {
+  content: '' !important;
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--j-ice);
+}
+.root .card[data-tone='good']::before { background: var(--j-green); }
+.root .card[data-tone='bad']::before { background: var(--j-red); }
+.root .card[data-tone='muted']::before { background: #4c6680; }
+
+/* ─── Headings & copy ───────────────────────────────────────────────── */
+.root .sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0 !important;
+  padding: 0 0 8px;
+  background: var(--j-rule) bottom / 100% 1px no-repeat;
+}
+
+.root .sectionTitle.sectionTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 !important;
+  color: var(--j-white) !important;
+  font: 700 clamp(1.12rem, 4.4vw, 1.4rem) / 1.15 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif !important;
+  letter-spacing: 0.015em;
+  text-shadow: 0 2px 0 #243951, 0 3px 6px #020914 !important;
+}
+
+.root .sectionTitle svg { color: var(--j-ice); flex: 0 0 auto; }
+
+.root .eyebrow {
+  margin: 0;
+  color: var(--j-ice) !important;
+  font: 700 14px/1.2 var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.root .title {
+  margin: 0;
+  color: var(--j-white) !important;
+  font: 700 17px/1.2 var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+
+.root .copy {
+  margin: 0;
+  color: var(--j-silver) !important;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.root .ice { color: var(--j-ice) !important; }
+.root .good { color: var(--j-green) !important; }
+.root .bad { color: var(--j-red) !important; }
+.root .muted { color: #8fa6bc !important; }
+
+/* ─── Metric tiles ──────────────────────────────────────────────────── */
+.root .metrics.metrics {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin: 0 !important;
+}
+
+.root .metrics3.metrics3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+
+.root .metrics > :nth-child(odd):last-child { grid-column: 1 / -1; }
+.root .metrics3 > :nth-child(odd):last-child { grid-column: auto; }
+
+.root .metric.metric {
+  min-height: 0 !important;
+  display: grid !important;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  padding: 12px 8px !important;
+  text-align: center;
+}
+
+.root .metricIcon { display: inline-flex; color: var(--j-ice); }
+
+.root .metric.metric > .metricValue.metricValue,
+.root .metricValue.metricValue {
+  color: var(--j-white) !important;
+  font: 700 clamp(22px, 6.4vw, 28px) / 1.05 var(--font-inter, Inter), system-ui, sans-serif !important;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.root .metricLabel {
+  color: var(--j-silver) !important;
+  font: 700 15px/1.2 var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Controls ──────────────────────────────────────────────────────── */
+.root .chips.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.root .chip.chip,
+.root .button.button {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 5px 12px !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: var(--j-control) !important;
+  box-shadow: none !important;
+  color: var(--j-white) !important;
+  font: 700 16px/1.15 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif !important;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-decoration: none;
+  text-shadow: 0 1px 1px #000;
+  white-space: nowrap;
+  overflow-wrap: normal !important;
+  cursor: pointer;
+}
+
+.root .chips .chip.chip:is([aria-pressed='true'], [aria-selected='true'], [aria-current='page']),
+.root .chip.chip:is([aria-pressed='true'], [aria-selected='true'], [aria-current='page']),
+.root .button.primary {
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  background: var(--j-cobalt) !important;
+  color: #fff !important;
+  text-shadow: 0 1px 2px #021022;
+}
+
+.root :is(.chip, .button):active { filter: brightness(0.89); }
+.root :is(.chip, .button):focus-visible { outline: 2px solid #9ee3ff !important; outline-offset: 2px; }
+.root :is(.chip, .button):disabled { color: #a7b7c8 !important; background: #13202c !important; cursor: default; }
+
+.root .actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+/* ─── Lists & meters ────────────────────────────────────────────────── */
+.root .list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+
+.root .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.root .row > :first-child { min-width: 0; }
+
+.root .value {
+  flex: 0 0 auto;
+  color: var(--j-ice) !important;
+  font: 700 17px/1 var(--font-inter, Inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.root .meter {
+  height: 8px;
+  margin-top: 10px;
+  background: #030a12;
+  box-shadow: inset 0 0 0 1px #2c4560;
+  overflow: hidden;
+}
+
+.root .meterFill {
+  height: 100%;
+  background: linear-gradient(90deg, #1981ec, #86daff);
+}
+
+.root .meterFill[data-tone='good'] { background: var(--j-green); }
+
+.root .notice {
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: #071420;
+  color: var(--j-ice);
+  font: 700 15px/1.3 var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Achievement rows ──────────────────────────────────────────────── */
+.root .achievement.achievement {
+  display: grid !important;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 0 !important;
+  padding: 12px 12px 12px 14px !important;
+}
+
+.root .achievementIcon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--j-ice);
+  font-size: 26px;
+  line-height: 1;
+}
+
+.root .achievementInfo { display: grid; gap: 3px; min-width: 0; }
+
+.root .achievementState {
+  grid-column: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--j-silver);
+  font: 700 14px/1.2 var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Small helpers ─────────────────────────────────────────────────── */
+.root .inline { display: inline-flex; align-items: center; gap: 6px; }
+.root .alignEnd { margin-top: 6px; text-align: right; }
+.root .stateLabel { font: 700 14px/1.2 var(--font-rajdhani, 'Arial Narrow'), sans-serif; letter-spacing: 0.02em; }
+
+/* ─── Streak hero ───────────────────────────────────────────────────── */
+.root .streakHero.streakHero {
+  justify-items: center;
+  gap: 8px;
+  padding: 18px 14px !important;
+  text-align: center;
+}
+
+.root .streakNumber {
+  color: var(--j-white) !important;
+  font: 700 clamp(48px, 16vw, 68px) / 1 var(--font-inter, Inter), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.root .tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  padding-top: 10px;
+  background: var(--j-rule) top / 100% 1px no-repeat;
+  color: var(--j-silver);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+/* ─── 30-day calendar ───────────────────────────────────────────────── */
+.root .calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.root .calendarDay {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 1px solid #2c4560;
+  background: #071420;
+  color: #8fa6bc;
+  font: 650 13px/1 var(--font-inter, Inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.root .calendarDay[data-trained] {
+  border-color: #5c95d6;
+  background: var(--j-cobalt);
+  color: #fff;
+}
+
+.root .calendarDay[data-today] { border: 2px solid var(--j-ice); color: var(--j-ice); }
+.root .calendarDay[data-trained][data-today] { color: #fff; }
+
+.root .calendarFlame {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  display: inline-flex;
+  color: #dff6ff;
+}
+
+.root .legend {
+  display: flex;
+  gap: 16px;
+  color: var(--j-silver);
+  font-size: 13px;
+}
+.root .legend span { display: inline-flex; align-items: center; gap: 6px; }
+.root .legend i { width: 12px; height: 12px; border: 1px solid #5c95d6; }
+.root .legendTrained { background: #0c55c0; }
+.root .legendToday { background: #071420; border: 2px solid var(--j-ice) !important; }
+
+/* ─── Milestone tiles ───────────────────────────────────────────────── */
+.root .milestoneGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.root .milestone.milestone {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  padding: 14px 10px !important;
+  text-align: center;
+}
+
+.root .milestone[data-locked] { opacity: 0.62; }
+.root .milestone .button { width: 100%; margin-top: 6px; }
+
+/* Shared state components rendered inside these pages (ErrorBanner,
+   TrainerEmptyState) lose their rounded legacy frames. */
+.root .main :global([role='alert'][style]),
+.root .main :global([data-trainer-empty-state]),
+.root .main :global(.sp-trainer-empty) {
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: var(--j-navy) !important;
+  box-shadow: none !important;
+}
+
+@media (min-width: 700px) {
+  .root .metricsWide.metricsWide { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; }
+  .root .metricsWide > :nth-child(odd):last-child { grid-column: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root * { scroll-behavior: auto !important; }
+}
+
+@media (forced-colors: active) {
+  .root .panel.panel,
+  .root .card.card,
+  .root .metric.metric,
+  .root .section.section,
+  .root .chip.chip,
+  .root .button.button {
+    border-color: CanvasText !important;
+    background: Canvas !important;
+    color: CanvasText !important;
+  }
+}
+
+/* ─── Activity rows (Progress) ──────────────────────────────────────── */
+.root .activity.activity {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.root .activityDate {
+  color: var(--j-ice);
+  font: 700 15px/1.1 var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Milestone lines (Milestones) ──────────────────────────────────── */
+.root .milestoneLine.milestoneLine {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.root .badge {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 3px stretch;
+  background: #071420;
+  color: var(--j-ice);
+}
+
+.root .badgeLocked { color: #6f8aa3; }
+
+.root .tag {
+  padding: 2px 9px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: #071420;
+  color: var(--j-ice);
+  font: 700 14px/1.2 var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.root .tierLabel {
+  margin-left: 6px;
+  color: var(--j-ice);
+  font: 700 13px/1 var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.root .milestoneStatus {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font: 700 14px/1.2 var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.root .small { font-size: 13px; min-width: 38px; text-align: right; }
+.root .milestoneLine .row { margin-top: 8px; }
+.root .milestoneLine .meter { margin-top: 0; }
+
+/* ─── Skill tree nodes ──────────────────────────────────────────────── */
+.root .skillNodes { display: grid; gap: 8px; }
+
+.root .skillNode.skillNode {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 12px !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: var(--j-control) !important;
+  box-shadow: none !important;
+  color: var(--j-white) !important;
+  text-align: left;
+  cursor: pointer;
+}
+
+.root .skillNode[data-state='mastered'] {
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  background: var(--j-navy) !important;
+}
+
+.root .skillNode[data-state='locked'] {
+  background: #0b1622 !important;
+  color: #a7b7c8 !important;
+  cursor: not-allowed;
+}
+
+.root .skillNode:focus-visible { outline: 2px solid #9ee3ff !important; outline-offset: 2px; }
+.root .skillNode:active:not(:disabled) { filter: brightness(0.89); }
+
+.root .skillNodeIcon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #2c4560;
+  background: #071420;
+  color: var(--j-ice);
+}
+.root .skillNode[data-state='mastered'] .skillNodeIcon { color: var(--j-green); }
+.root .skillNode[data-state='locked'] .skillNodeIcon { color: #6f8aa3; }
+
+.root .skillNodeText { display: grid; gap: 2px; min-width: 0; }
+
+.root .skillNodeName {
+  color: inherit;
+  font: 700 16px/1.2 var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.root .skillNodeHint {
+  color: var(--j-silver);
+  font-size: 13px;
+  line-height: 1.3;
+}
+.root .skillNode[data-state='locked'] .skillNodeHint { color: #8fa6bc; }
+
+.root .skillNodeScore {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  font: 700 16px/1 var(--font-inter, Inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ─── Chip row layouts ──────────────────────────────────────────────── */
+.root .chipsEven.chipsEven { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.root .chipsThree.chipsThree { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.root .chipsThree .chip { padding: 5px 6px !important; }
+
+/* ─── Leaderboard (Community) ───────────────────────────────────────── */
+.root .podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 8px;
+}
+
+.root .podiumSlot.podiumSlot {
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  gap: 4px;
+  padding: 10px 6px !important;
+  text-align: center;
+}
+.root .podiumSlot[data-place='first'] { min-height: 118px; }
+.root .podiumSlot[data-place='second'] { min-height: 98px; }
+.root .podiumSlot[data-place='third'] { min-height: 86px; }
+
+.root .podiumMedal { display: inline-flex; color: var(--j-silver); }
+.root .podiumSlot[data-place='first'] .podiumMedal { color: var(--j-ice); }
+
+.root .podiumName {
+  max-width: 100%;
+  color: var(--j-white);
+  font: 700 15px/1.2 var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.root .rankChip {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  height: 32px;
+  padding: 0 6px;
+  border: 2px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 3px stretch;
+  background: var(--j-cobalt);
+  color: #fff;
+  font: 700 14px/1 var(--font-inter, Inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.root .rankRow.rankRow {
+  display: grid;
+  grid-template-columns: 28px 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px !important;
+}
+
+.root .rankNumber {
+  color: var(--j-silver);
+  font: 700 15px/1 var(--font-inter, Inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.root .avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(189, 208, 226, 0.45);
+  color: #fff;
+  font: 700 14px/1 var(--font-inter, Inter), sans-serif;
+}
+
+.root .rankIdentity { display: grid; gap: 2px; min-width: 0; }
+
+/* ─── Feed items (Training Feed) ────────────────────────────────────── */
+.root .feedItem.feedItem {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+
+.root .feedBody { display: grid; gap: 8px; min-width: 0; }
+.root .feedMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.root .strong { color: var(--j-white) !important; font-weight: 700; }
+.root .center { text-align: center; }
+.root .feedItem .avatar { background: linear-gradient(180deg, #2a4a6b, #12263c); }

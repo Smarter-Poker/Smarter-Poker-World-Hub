@@ -58,6 +58,7 @@ import './aeo-video-library-schema.test.mjs';
 import './llms-corpus-parity.law.test.mjs';
 import './phase31-security-txt.test.mjs';
 import './phases-27-34-aeo.test.mjs';
+import './pages-routes-are-claimed-once.test.mjs';
 import './phases-35-50-aeo.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
@@ -167,9 +168,18 @@ import './pg17-parallel-and-build-parity.law.test.mjs';
 import './api-routes-exist.test.mjs';
 import './bankroll-export-download.test.mjs';
 import './bankroll-analytics-view.test.mjs';
+import './toke-tracker-pages.test.mjs';
+import './bankroll-live-suite.test.mjs';
 import './bankroll-staking-math.test.mjs';
 import './bankroll-toke-report.test.mjs';
+import './bankroll-ledger-math.test.mjs';
+import './bankroll-receipts-are-read-kept-and-sent.test.mjs';
+import './bankroll-trip-math.test.mjs';
+import './bankroll-tournament-schedule.test.mjs';
+import './bankroll-reports-audit.test.mjs';
 import './bankroll-local-dates.test.mjs';
+import './bankroll-api-routes.test.mjs';
+import './bankroll-deleted-entry-frees-receipts.test.mjs';
 import './bankroll-jarvis-session-insights.test.mjs';
 import './toke-dealer-reference.test.mjs';
 import './bankroll-mobile-upgrades.test.mjs';
@@ -379,6 +389,7 @@ import './training-reference-is-public-a.test.mjs';
 import './training-hub-progressive-grid.test.mjs';
 import './training-arena-lobby-ui.test.mjs';
 import './training-global-smarterdesign-click-cards.test.mjs';
+import './preflop-charts-smarterdesign.law.test.mjs';
 import './training-surface-inventory.test.mjs';
 // Training reference pages open to everyone (Dan, 2026-10-12: "THEY SHOULD
 // OPEN TO EVERYONE"): anonymous reads, signed-in writes, no anonymous writes.
@@ -854,6 +865,8 @@ const CI_UNREACHABLE_ON_PURPOSE = {
 };
 
 import './video-operations-phase10.test.mjs';
+// 2026-11-28: the News desktop sidebar dock sticks (overflow-x clip, not hidden).
+import './news-sidebar-dock-sticks.test.mjs';
 // Dan 2026-10-11: four World Hub cards hidden from everyone but him.
 import './owner-only-hub-cards.test.mjs';
 // Dan 2026-10-15: Share & Invite short links credit the sender.
@@ -868,6 +881,10 @@ import './messenger-one-row-per-issuer.law.test.mjs';
 import './messenger-calls-device-safety.test.mjs';
 import './messenger-typed-text-is-white.law.test.mjs';
 import './digest-figures-carry-separators.test.mjs';
+// 2026-11-28: the Poker News header has no seal and sets its title first.
+import './news-header-title-first.test.mjs';
+// 2026-11-28: News video cards wear one frame, the thin chrome rim.
+import './news-video-cards-wear-one-frame.test.mjs';
 // GSC Series 4 And Series 5 Technical SEO Test Guards
 import './gsc-series4-phase1.test.mjs';
 import './gsc-series4-phase2.test.mjs';
@@ -966,6 +983,9 @@ import './phase2-seo-smarterdesign-fortress-20261127.law.test.mjs';
 import './unlock-gate-shows-no-fabricated-data.law.test.mjs';
 // The site's room count is the database's, from src/lib/venueCount.mjs (2026-11-27).
 import './the-room-count-is-real.law.test.mjs';
+import './the-venue-claims-are-real.law.test.mjs';
+import './the-room-counts-maintain-themselves.law.test.mjs';
+import './the-research-figures-are-real.law.test.mjs';
 import './phase3-conversion-funnel-fortress-20261127.law.test.mjs';
 import './phase4-seo-ctr-and-activation-fortress-20261127.law.test.mjs';
 import './forensic-hardening-fortress-20261127.law.test.mjs';
@@ -983,8 +1003,19 @@ import './trivia-phase3-enhancements.test.mjs';
 import './smarterdesign-standard.test.mjs';
 import './diamond-store-smarterdesign.test.mjs';
 import './trivia-hardening-audit.test.mjs';
+import './jarvis-hand-vision.test.mjs';
+import './trivia-phase4-polish.test.mjs';
 import './a-dropped-connection-is-not-a-stale-build.law.test.mjs';
 import './render-marketplace-fixtures.test.mjs';
+import './otc-tier1-overlay-attribution-onetap-20261127.law.test.mjs';
+import './otc-tier2-leak-finder-and-activation-20261127.law.test.mjs';
+import './otc-tier2-bofu-compare-and-matchups-20261127.law.test.mjs';
+import './otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs';
+import './otc-tier4-live-funnel-telemetry-20261127.law.test.mjs';
+import './otc-tier4-reminder-sync-and-viral-loop-20261127.law.test.mjs';
+import './otc-tier4-local-geo-conversion-20261127.law.test.mjs';
+import './otc-tier4-100-matchups-and-live-drip-20261127.law.test.mjs';
+import './site-wide-payload-budget.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

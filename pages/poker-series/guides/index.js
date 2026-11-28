@@ -138,7 +138,7 @@ export default function PokerSeriesGuidesIndexPage() {
             lead="Complete Bankroll, Structure, Late-Reg & Satellite Strategy Guides For WSOP, WPT, WSOPC, MSPT, RGPS & SHRPO."
             stats={[
               { label: 'Major Series', value: `${SERIES_GUIDES.length} Guides` },
-              { label: 'Weekly MTTs', value: '4,500+ Events' },
+              { label: 'Weekly MTTs', value: '800+ Events' },
               { label: 'Listed Venues', value: `${VENUE_COUNT_LABEL} Rooms` },
               { label: 'Schedule Sync', value: 'Free Account' },
             ]}

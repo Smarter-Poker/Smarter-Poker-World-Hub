@@ -11,6 +11,9 @@
  * House style: Title Case, zero em dashes.
  */
 
+import { listedVenueLabel } from '../../lib/venueCount.mjs';
+import { tablesLabel } from '../../lib/research/venueTablesOnFile.mjs';
+
 export const STATES_AS_OF = '2026-11-26';
 export const STATES_BASE_PATH = '/poker-rooms/states';
 export const STATES_URL = 'https://smarter.poker/poker-rooms/states';
@@ -106,12 +109,11 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casino & Regulated Online Poker',
     minAge: '21+',
     stateIncomeTaxRate: '0.0% (Zero State Income Tax)',
-    approxLiveRooms: '28+ Active Poker Rooms (Las Vegas, Reno, Lake Tahoe, Laughlin)',
     topCities: ['Las Vegas', 'Henderson', 'Reno', 'Stateline (Lake Tahoe)'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap (Zero Promo Drop At Premier Strip Rooms)',
     onlineRealMoneyStatus: 'Legal & Regulated (WSOP.com Multi-State Shared Liquidity Pool)',
     summary:
-      'Nevada Is The Global Capital Of Regulated Poker, Offering 28+ Active Brick-And-Mortar Casino Poker Rooms, Multi-State Regulated Online Poker, Low 10% Up To $5-$6 Cap Rake On The Las Vegas Strip, And A 0% State Income Tax Rate.',
+      `Nevada Is The Global Capital Of Regulated Poker, Offering Brick-And-Mortar Casino Poker Rooms (${listedVenueLabel('NV')} In The Smarter.Poker Directory), Multi-State Regulated Online Poker, Low 10% Up To $5-$6 Cap Rake On The Las Vegas Strip, And A 0% State Income Tax Rate.`,
     regulatoryOverview:
       'Regulated By The Nevada Gaming Control Board (NGCB) And Nevada Gaming Commission. Commercial Casino Cardrooms Operate 24/7 Across Clark County And Washoe County, And Nevada Participates In The Multi-State Internet Gaming Agreement (MSIGA) Alongside New Jersey, Michigan, And Pennsylvania.',
     taxWithholdingNotes:
@@ -136,7 +138,6 @@ export const US_POKER_STATES = [
     legalStatus: 'Private Membership Social Card Clubs (Texas Penal Code Chapter 47)',
     minAge: '18+ Or 21+ (By Club Policy)',
     stateIncomeTaxRate: '0.0% (Zero State Income Tax)',
-    approxLiveRooms: '65+ Private Social Poker Clubs & Kickapoo Tribal Casino',
     topCities: ['Houston', 'Dallas-Fort Worth', 'Austin', 'San Antonio'],
     rakeModel: '0% Pot Rake | Membership + Hourly Seat Access Fee ($10 - $14/Hr)',
     onlineRealMoneyStatus: 'Social & Club Arena / Sweepstakes Only (No State-Licensed Real-Money Operators)',
@@ -166,12 +167,11 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Tribal Casinos & Licensed Pari-Mutuel Cardrooms',
     minAge: '18+ At Pari-Mutuel Cardrooms | 21+ At Full Tribal Casinos',
     stateIncomeTaxRate: '0.0% (Zero State Income Tax)',
-    approxLiveRooms: '29+ Licensed Pari-Mutuel & Seminole Tribal Poker Rooms',
     topCities: ['Hollywood / Miami', 'Tampa', 'Jacksonville', 'Orlando / Daytona', 'West Palm Beach'],
     rakeModel: '10% Up To $5 - $7 Cap + $2 High-Hand / Bad Beat Jackpot Drop',
     onlineRealMoneyStatus: 'Social & Club Play (No Regulated Real-Money Online Operator License)',
     summary:
-      'Florida Is A Year-Round Live Poker Powerhouse Combining Flagship Seminole Hard Rock Casinos In Hollywood And Tampa With Nearly 30 Pari-Mutuel Cardrooms (Allowing 18+ Entry), High-Hand Promotions, And 0% State Income Tax.',
+      'Florida Is A Year-Round Live Poker Powerhouse Combining Flagship Seminole Hard Rock Casinos In Hollywood And Tampa With Licensed Pari-Mutuel Cardrooms (Allowing 18+ Entry), High-Hand Promotions, And 0% State Income Tax.',
     regulatoryOverview:
       'Regulated By The Florida Gaming Control Commission (FGCC) For Pari-Mutuel Cardrooms And The Seminole Tribe Of Florida Compact. In 2017 Florida Eliminated Previous Buy-In Caps On Pari-Mutuel Cash Games, Unlocking Uncapped No-Limit Hold\'em And Pot-Limit Omaha Statewide.',
     taxWithholdingNotes:
@@ -196,7 +196,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Municipal Commercial Cardrooms & Sovereign Tribal Casinos',
     minAge: '21+ (18+ At Select Tribal Casinos Without Alcohol On Floor)',
     stateIncomeTaxRate: '1.0% To 13.3% Progressive State Income Tax',
-    approxLiveRooms: '85+ Active Municipal Cardrooms & Tribal Casino Poker Rooms',
     topCities: ['Los Angeles (Commerce / Bell Gardens / Gardena)', 'San Jose', 'San Diego', 'Sacramento'],
     rakeModel: 'Flat $6 - $7 Per-Flop Collection Drop (Zero Percentage Calculation)',
     onlineRealMoneyStatus: 'Social & Club Play Only (No State Real-Money iPoker Legislation)',
@@ -213,7 +212,7 @@ export const US_POKER_STATES = [
       },
       {
         q: 'What Are The Largest Poker Rooms In California?',
-        a: 'Commerce Casino (150+ Tables), The Bicycle Casino (120+ Tables), The Gardens Casino (100+ Tables), Hustler Casino, Bay 101, Matrix Casino, And Graton Resort Lead The State.',
+        a: 'Commerce Casino, The Bicycle Casino, The Gardens Casino, Hustler Casino, Bay 101, Matrix Casino, And Graton Resort Lead The State.',
       },
     ],
   },
@@ -226,7 +225,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casinos & Regulated Online Real-Money Poker',
     minAge: '21+',
     stateIncomeTaxRate: '3.07% Flat State Income Tax',
-    approxLiveRooms: '11 Active Casino Poker Rooms',
     topCities: ['Bensalem / Philadelphia', 'Pittsburgh', 'Bethlehem', 'Chester', 'Mount Airy'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Bad Beat / High-Hand Drop',
     onlineRealMoneyStatus: '100% Legal & Regulated (WSOP PA, PokerStars PA, BetMGM PA, Borgata PA)',
@@ -256,7 +254,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Atlantic City Casinos & Regulated Multi-State Online Poker',
     minAge: '21+',
     stateIncomeTaxRate: '1.4% To 10.75% Progressive State Income Tax',
-    approxLiveRooms: '3 Major Atlantic City Casino Poker Rooms (Borgata, Harrah\'s, Tropicana)',
     topCities: ['Atlantic City'],
     rakeModel: '10% Pot Rake Up To $5 Cap + $2 Promo Drop',
     onlineRealMoneyStatus: '100% Legal & Regulated (WSOP, PokerStars, BetMGM, Borgata Shared Liquidity)',
@@ -269,7 +266,7 @@ export const US_POKER_STATES = [
     faqs: [
       {
         q: 'Which Atlantic City Casinos Currently Have Live Poker Rooms?',
-        a: 'Borgata Hotel Casino & Spa Leads Atlantic City With 52+ Tables And Year-Round Tournament Series, Joined By Harrah\'s Resort Atlantic City And Tropicana Atlantic City.',
+        a: `Borgata Hotel Casino & Spa Leads Atlantic City With ${tablesLabel('Borgata Hotel Casino')} And Year-Round Tournament Series, Joined By Harrah\'s Resort Atlantic City And Tropicana Atlantic City.`,
       },
       {
         q: 'Does New Jersey Allow Deducting Gambling Losses On State Taxes?',
@@ -286,7 +283,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Detroit Commercial Casinos, Tribal Rooms & Regulated Online Poker',
     minAge: '21+ At Commercial Casinos & Online (18+ At Select Tribal Properties)',
     stateIncomeTaxRate: '4.25% Flat State Income Tax',
-    approxLiveRooms: '12+ Commercial, Tribal & Licensed Charity Poker Rooms',
     topCities: ['Detroit', 'Mount Pleasant', 'New Buffalo', 'Grand Rapids / Lansing'],
     rakeModel: '10% Pot Rake Up To $6 - $7 Cap + $1 - $2 Jackpot Drop',
     onlineRealMoneyStatus: '100% Legal & Regulated (MSIGA Multi-State WSOP, PokerStars & BetMGM)',
@@ -316,12 +312,11 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casino Poker Rooms',
     minAge: '21+',
     stateIncomeTaxRate: '2.0% To 5.75% State Income Tax (+ County Local Tax)',
-    approxLiveRooms: '3 Premier Commercial Casino Poker Rooms',
     topCities: ['Oxon Hill (National Harbor / DC Metro)', 'Hanover (BWI / Baltimore)', 'Baltimore Inner Harbor'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play (No Regulated Real-Money Online Poker Yet)',
     summary:
-      'Serving The Affluent Washington D.C. And Baltimore Corridor, Maryland Hosts Two Of The Ten Largest Poker Rooms On The East Coast: Maryland Live! Casino (52 Tables) And MGM National Harbor (46 Tables), Plus Horseshoe Baltimore.',
+      'Serving The Affluent Washington D.C. And Baltimore Corridor, Maryland Hosts Two Of The Largest Poker Rooms In The Mid-Atlantic: Maryland Live! Casino And MGM National Harbor, Plus Horseshoe Baltimore.',
     regulatoryOverview:
       'Regulated By The Maryland Lottery And Gaming Control Agency (MLGCA). Maryland Casinos Operate 24/7 With Uncapped High-Stakes Cash Games And Major WPT And WSOP Circuit Stops.',
     taxWithholdingNotes:
@@ -346,7 +341,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Tribal Casino Poker Rooms (2021 Amended Gaming Compact)',
     minAge: '21+',
     stateIncomeTaxRate: '2.5% Flat State Income Tax',
-    approxLiveRooms: '8 Active Tribal Casino Poker Rooms',
     topCities: ['Scottsdale / Phoenix', 'Chandler', 'Glendale', 'Tucson'],
     rakeModel: '10% Pot Rake Up To $5 Cap + $2 Jackpot/High-Hand Drop',
     onlineRealMoneyStatus: 'Social & Club Play (Regulated Mobile Sportsbooks Only; No Online Poker)',
@@ -359,7 +353,7 @@ export const US_POKER_STATES = [
     faqs: [
       {
         q: 'What Is The Biggest Poker Tournament In Arizona?',
-        a: 'The Annual Arizona State Poker Championship Hosted Every August At Talking Stick Resort In Scottsdale Regularly Draws 1,500+ Entrants And Builds A $1.5 Million+ Prize Pool.',
+        a: 'The Annual Arizona State Poker Championship Hosted Every August At Talking Stick Resort In Scottsdale Is One Of The Largest Annual Tournament Festivals In The Southwest.',
       },
       {
         q: 'Are Spread-Limit Rules Gone In Arizona Poker Rooms?',
@@ -376,7 +370,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casino Poker In Black Hawk, Central City & Cripple Creek',
     minAge: '21+',
     stateIncomeTaxRate: '4.40% Flat State Income Tax',
-    approxLiveRooms: '5 Major Mountain Casino Poker Rooms',
     topCities: ['Black Hawk (Denver Metro)', 'Cripple Creek'],
     rakeModel: '10% Pot Rake Up To $6 Cap + $2 Bad Beat Jackpot Drop',
     onlineRealMoneyStatus: 'Social & Club Play (Online Sports Betting Legal; No Regulated Online Poker)',
@@ -393,7 +386,7 @@ export const US_POKER_STATES = [
       },
       {
         q: 'Which Black Hawk Casinos Have The Best Poker Rooms?',
-        a: 'Monarch Casino Resort Spa Black Hawk (14 Tables) And Bally\'s / Ameristar Black Hawk Lead The Market With Non-Stop $1/$3, $2/$5, PLO, And Major Mid-States Poker Tour (MSPT) And WSOP Circuit Festivals.',
+        a: 'Monarch Casino Resort Spa Black Hawk And Bally\'s / Ameristar Black Hawk Lead The Market With Non-Stop $1/$3, $2/$5, PLO, And Major Mid-States Poker Tour (MSPT) And WSOP Circuit Festivals.',
       },
     ],
   },
@@ -406,12 +399,11 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casino Poker Rooms & Charitable Games Act Events',
     minAge: '21+',
     stateIncomeTaxRate: '4.95% Flat State Income Tax',
-    approxLiveRooms: '7+ Commercial Casino Poker Rooms + Rockford Charitable Rooms',
     topCities: ['Des Plaines / Rosemont (Chicago O\'Hare)', 'Elgin', 'Aurora', 'Rockford', 'East St. Louis'],
     rakeModel: '10% Pot Rake Up To $6 Cap + $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play (Online Poker Legislation Pending In General Assembly)',
     summary:
-      'Serving The 9.5-Million-Resident Chicagoland Market, Illinois Features High-Demand Live Poker Rooms Led By Rivers Casino Des Plaines (22 Tables Near O\'Hare), Grand Victoria Casino In Elgin, And Hard Rock Rockford.',
+      'Serving The 9.5-Million-Resident Chicagoland Market, Illinois Features High-Demand Live Poker Rooms Led By Rivers Casino Des Plaines Near O\'Hare, Grand Victoria Casino In Elgin, And Hard Rock Rockford.',
     regulatoryOverview:
       'Regulated By The Illinois Gaming Board (IGB). Because Table Supply In Chicagoland Is Tight Relative To Population, Cash Games At $1/$3, $2/$5, And $5/$5 PLO Run Deep With Long Waitlists On Weekends.',
     taxWithholdingNotes:
@@ -436,7 +428,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Land-Based, Riverboat & Tribal Casino Poker Rooms',
     minAge: '21+',
     stateIncomeTaxRate: '1.85% To 4.25% State Income Tax',
-    approxLiveRooms: '8 Active Casino Poker Rooms',
     topCities: ['New Orleans', 'Lake Charles', 'Shreveport / Bossier City', 'Baton Rouge'],
     rakeModel: '10% Pot Rake Up To $6 Cap + $1 - $2 Jackpot Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -466,7 +457,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Gulf Coast & Mississippi River Commercial Casino Poker Rooms',
     minAge: '21+',
     stateIncomeTaxRate: '4.70% Flat State Income Tax (Over $10,000)',
-    approxLiveRooms: '7 Active Casino Poker Rooms',
     topCities: ['Biloxi (Gulf Coast)', 'Tunica (Memphis Metro)', 'Vicksburg'],
     rakeModel: '10% Pot Rake Up To $6 Cap + $1 - $2 Jackpot Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -496,7 +486,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Upstate Commercial & Tribal Casino Poker Rooms',
     minAge: '18+ At Turning Stone Tribal Room | 21+ At Commercial Casinos',
     stateIncomeTaxRate: '4.0% To 10.9% Progressive State Income Tax (+ NYC Local Tax)',
-    approxLiveRooms: '6 Active Commercial & Tribal Casino Poker Rooms',
     topCities: ['Verona (Syracuse / Turning Stone)', 'Schenectady (Albany)', 'Monticello (Catskills)', 'Waterloo / Nichols'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Bad Beat Drop',
     onlineRealMoneyStatus: 'Social & Club Play (Online Poker Bills Introduced Regularly In Albany)',
@@ -526,7 +515,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casinos & Licensed Social Poker Clubs',
     minAge: '21+ At Casinos | 18+ Or 21+ At Social Clubs',
     stateIncomeTaxRate: '2.75% To 3.50% State Income Tax',
-    approxLiveRooms: '10+ Commercial Casinos & Social Poker Clubs',
     topCities: ['Columbus', 'Cleveland', 'Cincinnati', 'Toledo'],
     rakeModel: '10% Up To $6 Cap At Casinos | Hourly Seat/Membership Model At Social Clubs',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -543,7 +531,7 @@ export const US_POKER_STATES = [
       },
       {
         q: 'Which Ohio Poker Room Spreads The Biggest Tournament Series?',
-        a: 'Hollywood Casino Columbus (34 Tables), Hard Rock Casino Cincinnati (31 Tables), And Jack Cleveland Casino Regularly Host Major Regional Deepstack And WSOP/WPT Satellite Series.',
+        a: 'Hollywood Casino Columbus, Hard Rock Casino Cincinnati, And Jack Cleveland Casino Regularly Host Major Regional Deepstack And WSOP/WPT Satellite Series.',
       },
     ],
   },
@@ -556,12 +544,11 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Tribal Casino Poker Rooms Statewide',
     minAge: '18+ At Most Tribal Casinos (21+ At Select Venues)',
     stateIncomeTaxRate: 'Up To 4.75% State Income Tax',
-    approxLiveRooms: '15+ Active Tribal Casino Poker Rooms',
     topCities: ['Durant (Choctaw)', 'Thackerville (WinStar)', 'Tulsa', 'Oklahoma City'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
     summary:
-      'Oklahoma Hosts Some Of The Highest-Volume Tribal Poker Rooms In The Country Including WinStar World Casino (55+ Tables), Choctaw Durant (WSOP Circuit & WPT Host), And Hard Rock Tulsa, Many Admitting Players Age 18+.',
+      'Oklahoma Hosts Some Of The Highest-Volume Tribal Poker Rooms In The Country Including WinStar World Casino, Choctaw Durant (WSOP Circuit & WPT Host), And Hard Rock Tulsa, Many Admitting Players Age 18+.',
     regulatoryOverview:
       'Live Poker Operates Under Class III Tribal-State Gaming Compacts Supervised By Sovereign Tribal Gaming Commissions And The Oklahoma Office Of Management And Enterprise Services.',
     taxWithholdingNotes:
@@ -586,12 +573,11 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Cardrooms & Tribal Casino Poker Rooms',
     minAge: '18+ At Commercial Cardrooms & Select Tribal Rooms (21+ Where Alcohol Is Served)',
     stateIncomeTaxRate: '0.0% (Zero State Income Tax)',
-    approxLiveRooms: '25+ Active Commercial Cardrooms & Tribal Poker Rooms',
     topCities: ['Seattle Metro (Tukwila, Shoreline)', 'Tacoma', 'Spokane', 'Ridgefield'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Jackpot Drop (Spread-Limit Caps Up To $300-$500)',
     onlineRealMoneyStatus: 'Strictly Prohibited Under RCW 9.46.240 (Free Social Play Only)',
     summary:
-      'Washington Offers Over 25 Live Poker Rooms Including Fortune Poker, Muckleshoot, Tulalip, And Ilani With 0% State Income Tax, While Enforcing Strict Spread-Limit Betting Caps And Prohibiting Real-Money Online Poker.',
+      `Washington Offers Live Poker Rooms (${listedVenueLabel('WA')} In The Smarter.Poker Directory) Including Fortune Poker, Muckleshoot, Tulalip, And Ilani With 0% State Income Tax, While Enforcing Strict Spread-Limit Betting Caps And Prohibiting Real-Money Online Poker.`,
     regulatoryOverview:
       'Regulated By The Washington State Gambling Commission (WSGC) Under RCW 9.46. Commercial House-Banked Cardrooms And Tribal Casinos Operate Spread-Limit Cash Games (Typically $300-$500 Max Bet Per Street) And No-Limit Tournaments.',
     taxWithholdingNotes:
@@ -616,12 +602,11 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Pari-Mutuel Racetrack Cardrooms & Tribal Poker Rooms',
     minAge: '18+ Statewide',
     stateIncomeTaxRate: '5.35% To 9.85% State Income Tax',
-    approxLiveRooms: '6+ Active Cardrooms Anchored By Canterbury Park & Running Aces',
     topCities: ['Shakopee (Twin Cities)', 'Columbus (Twin Cities)', 'Hinckley', 'Mahnomen'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop ($100 Max Bet Spread-Limit Cash)',
     onlineRealMoneyStatus: 'Social & Club Play Only',
     summary:
-      'Minnesota Is A Midwest Poker Hub Anchored By Canterbury Park (30+ Tables, MSPT Host) And Running Aces Casino In The Twin Cities, Both Admitting Players Age 18+ Under State Spread-Limit Cash Rules.',
+      'Minnesota Is A Midwest Poker Hub Anchored By Canterbury Park And Running Aces Casino In The Twin Cities, Both Admitting Players Age 18+ Under State Spread-Limit Cash Rules.',
     regulatoryOverview:
       'Pari-Mutuel Card Clubs At Canterbury Park And Running Aces Are Regulated By The Minnesota Racing Commission With A Statutory $100 Max Bet Spread-Limit On Cash Games And Full No-Limit Tournament Structures.',
     taxWithholdingNotes:
@@ -646,7 +631,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Municipal Social Poker Clubs & Tribal Casino Poker Rooms',
     minAge: '21+ At Social Clubs & Most Tribal Rooms (18+ At Select Tribal Venues)',
     stateIncomeTaxRate: '4.75% To 9.9% State Income Tax',
-    approxLiveRooms: '12+ Active Portland Social Clubs & Tribal Casino Rooms',
     topCities: ['Portland', 'Eugene', 'Bend', 'Pendleton', 'Lincoln City'],
     rakeModel: 'Flat $15 - $25 Daily Door Fee (0% Pot Rake) At Portland Clubs | Standard Pot Rake At Tribal Rooms',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -676,7 +660,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Tribal Casino Poker Rooms & Authorized Online Poker',
     minAge: '21+ Statewide',
     stateIncomeTaxRate: '2.0% To 6.99% State Income Tax',
-    approxLiveRooms: '2 Flagship Tribal Casino Poker Rooms (Foxwoods & Mohegan Sun)',
     topCities: ['Mashantucket (Foxwoods)', 'Uncasville (Mohegan Sun)'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Legally Authorized Under 2021 Tribal Compacts (Pending Shared-Liquidity Launch)',
@@ -689,7 +672,7 @@ export const US_POKER_STATES = [
     faqs: [
       {
         q: 'Which Connecticut Poker Room Is Larger: Foxwoods Or Mohegan Sun?',
-        a: 'Foxwoods Resort Casino Operates The Larger Poker Room In Connecticut (50+ Tables During Major Series) And Hosts Regular WPT And Foxwoods Poker Classic Festivals, While Mohegan Sun Runs A Busy 25+ Table Room.',
+        a: 'Foxwoods Resort Casino Operates The Larger Poker Room In Connecticut And Hosts Regular WPT And Foxwoods Poker Classic Festivals, While Mohegan Sun Runs A Busy Room Of Its Own.',
       },
       {
         q: 'Is Real-Money Online Poker Legal In Connecticut?',
@@ -706,12 +689,11 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casino Poker Rooms',
     minAge: '21+ Statewide',
     stateIncomeTaxRate: '5.0% Flat State Income Tax (+4% Surtax Above $1M)',
-    approxLiveRooms: '2 Major Commercial Casino Poker Rooms (Encore Boston Harbor & MGM Springfield)',
     topCities: ['Everett / Boston', 'Springfield'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap (No Promo Drop At Select Limits) Or Hourly Time At Higher Stakes',
     onlineRealMoneyStatus: 'Social & Club Play Only',
     summary:
-      'Massachusetts Live Poker Is Anchored By Encore Boston Harbor (24+ Tables In Metro Boston) And MGM Springfield, Offering Deep Cash Games Under A Flat 5.0% State Income Tax Rate.',
+      'Massachusetts Live Poker Is Anchored By Encore Boston Harbor And MGM Springfield, Offering Deep Cash Games Under A Flat 5.0% State Income Tax Rate.',
     regulatoryOverview:
       'Commercial Casino Poker Rooms Are Licensed And Audited By The Massachusetts Gaming Commission (MGC) Under The Expanded Gaming Act Of 2011.',
     taxWithholdingNotes:
@@ -736,7 +718,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casinos & Licensed Charity Poker Rooms',
     minAge: '21+ At Commercial Casinos',
     stateIncomeTaxRate: '3.0% Flat State Income Tax (2026)',
-    approxLiveRooms: '8+ Commercial Casino Poker Rooms & Charity Rooms',
     topCities: ['Hammond (Chicagoland)', 'Elizabeth / Louisville Metro', 'Anderson', 'Evansville'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -766,7 +747,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Riverboat Casino Poker Rooms',
     minAge: '21+ Statewide',
     stateIncomeTaxRate: 'Up To 4.7% State Income Tax',
-    approxLiveRooms: '6+ Active Commercial Casino Poker Rooms',
     topCities: ['St. Louis (Maryland Heights)', 'Kansas City', 'St. Charles', 'Boonville'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Jackpot Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -779,7 +759,7 @@ export const US_POKER_STATES = [
     faqs: [
       {
         q: 'Where Are The Biggest Live Poker Rooms In Missouri?',
-        a: 'Hollywood Casino St. Louis (20+ Tables) And Ameristar Casino Kansas City Lead Missouri\'s Live Cash Game And Daily Tournament Schedule.',
+        a: 'Hollywood Casino St. Louis And Ameristar Casino Kansas City Lead Missouri\'s Live Cash Game And Daily Tournament Schedule.',
       },
       {
         q: 'Are Private Home Poker Games Legal In Missouri?',
@@ -796,7 +776,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial & Tribal Casino Poker Rooms',
     minAge: '21+ Statewide',
     stateIncomeTaxRate: '3.8% Flat State Income Tax',
-    approxLiveRooms: '8+ Active Commercial & Tribal Casino Poker Rooms',
     topCities: ['Council Bluffs (Omaha Metro)', 'Riverside', 'Larchwood', 'Bettendorf', 'Tama'],
     rakeModel: '10% Pot Rake Up To $5 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -826,7 +805,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Tribal Casino Poker Rooms',
     minAge: '21+ At Most Tribal Rooms (18+ At Select Tribal Venues)',
     stateIncomeTaxRate: '3.5% To 7.65% State Income Tax',
-    approxLiveRooms: '6+ Active Tribal Casino Poker Rooms',
     topCities: ['Milwaukee', 'Green Bay', 'Wisconsin Dells', 'Carter'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -856,7 +834,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Tribal Casino Poker Rooms',
     minAge: '21+ Statewide',
     stateIncomeTaxRate: '4.25% Flat State Income Tax (2026)',
-    approxLiveRooms: '2 Major Tribal Poker Rooms (Harrah\'s Cherokee & Catawba Two Kings)',
     topCities: ['Cherokee (Western NC)', 'Kings Mountain (Charlotte Metro)'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -886,7 +863,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casino Poker & Regulated Online Poker (MSIGA)',
     minAge: '21+ Statewide',
     stateIncomeTaxRate: '2.22% To 4.82% State Income Tax',
-    approxLiveRooms: '4 Commercial Casino Poker Rooms (Charles Town, Wheeling, Mardi Gras, Mountaineer)',
     topCities: ['Charles Town (DC Metro)', 'Wheeling', 'Cross Lanes / Charleston', 'New Cumberland'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Legal & Regulated (Member Of Multi-State Internet Gaming Agreement, MSIGA)',
@@ -916,7 +892,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Racetrack Casinos & Regulated Online Poker (MSIGA)',
     minAge: '21+ Statewide',
     stateIncomeTaxRate: '2.2% To 6.6% State Income Tax',
-    approxLiveRooms: '2 Active Racetrack Casino Poker Rooms (Delaware Park & Bally\'s Dover)',
     topCities: ['Wilmington (Delaware Park)', 'Dover', 'Harrington'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Legal & Regulated (Founding MSIGA Compact State)',
@@ -929,7 +904,7 @@ export const US_POKER_STATES = [
     faqs: [
       {
         q: 'Which Live Poker Rooms Operate In Delaware?',
-        a: 'Delaware Park Casino Near Wilmington (20+ Tables) And Bally\'s Dover Casino Resort Both Spread Daily Hold\'em, PLO Cash Games, And Scheduled Tournaments.',
+        a: 'Delaware Park Casino Near Wilmington And Bally\'s Dover Casino Resort Both Spread Daily Hold\'em, PLO Cash Games, And Scheduled Tournaments.',
       },
       {
         q: 'Is Online Poker Legal In Delaware?',
@@ -946,12 +921,11 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Licensed Charitable Casino Poker Rooms Statewide',
     minAge: '18+ Statewide',
     stateIncomeTaxRate: '0.0% (Zero State Income Tax)',
-    approxLiveRooms: '10+ Active Licensed Charitable Poker Rooms',
     topCities: ['Nashua', 'Manchester', 'Seabrook', 'Hampton Falls', 'Keene'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap (No-Limit Cash & Tournaments Under State Charitable Rules)',
     onlineRealMoneyStatus: 'Social & Club Play Only',
     summary:
-      'New Hampshire Is A Premier Northeast Poker Destination Offering 0% State Income Tax, 18+ Entry, And Over 10 Active Charitable Cardrooms Including Boston Billiard Club & Casino (Nashua) And The Brook (Seabrook).',
+      `New Hampshire Is A Premier Northeast Poker Destination Offering 0% State Income Tax, 18+ Entry, And Charitable Cardrooms (${listedVenueLabel('NH')} In The Smarter.Poker Directory) Including Boston Billiard Club & Casino (Nashua) And The Brook (Seabrook).`,
     regulatoryOverview:
       'Charitable Gaming Poker Rooms Are Licensed By The New Hampshire Lottery Commission Under RSA 287-D, Directing A Portion Of Gaming Revenue To Registered New Hampshire Nonprofits.',
     taxWithholdingNotes:
@@ -976,7 +950,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casino Poker (Bally\'s Twin River) & Regulated iGaming',
     minAge: '18+ At Rhode Island Casinos (21+ For Online iGaming)',
     stateIncomeTaxRate: '3.75% To 5.99% State Income Tax',
-    approxLiveRooms: '1 Flagship Casino Poker Room (Bally\'s Twin River Lincoln)',
     topCities: ['Lincoln (Providence Metro)', 'Tiverton'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Online Casino Legalized In 2024; Online Poker Not Yet Launched',
@@ -1006,12 +979,11 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casino Poker Rooms & Regulated Charitable Poker',
     minAge: '21+ At Commercial Casinos (18+ At Select Charity Events)',
     stateIncomeTaxRate: '2.0% To 5.75% State Income Tax',
-    approxLiveRooms: '5+ Active Commercial Casino & Charitable Poker Venues',
     topCities: ['Portsmouth (Hampton Roads)', 'Danville', 'Bristol', 'Richmond', 'Norfolk'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
     summary:
-      'Virginia\'s Live Poker Market Has Expanded Rapidly With Commercial Casino Poker Rooms At Rivers Casino Portsmouth (24 Tables), Caesars Virginia (Danville), And Hard Rock Bristol Alongside Licensed Charitable Poker.',
+      'Virginia\'s Live Poker Market Has Expanded Rapidly With Commercial Casino Poker Rooms At Rivers Casino Portsmouth, Caesars Virginia (Danville), And Hard Rock Bristol Alongside Licensed Charitable Poker.',
     regulatoryOverview:
       'Commercial Casinos Are Licensed By The Virginia Lottery Board, While Charitable Texas Hold\'em Tournaments Are Supervised By The Virginia Department Of Agriculture And Consumer Services (VDACS).',
     taxWithholdingNotes:
@@ -1036,7 +1008,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Tribal Casino Poker Rooms Statewide',
     minAge: '21+ Statewide',
     stateIncomeTaxRate: '1.5% To 5.9% State Income Tax',
-    approxLiveRooms: '6+ Active Tribal Casino Poker Rooms',
     topCities: ['Albuquerque', 'Santa Fe', 'Mescalero (Ruidoso)', 'Taos'],
     rakeModel: '10% Pot Rake Up To $5 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1066,7 +1037,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casinos In Deadwood & Tribal Poker Rooms',
     minAge: '21+ Statewide',
     stateIncomeTaxRate: '0.0% (Zero State Income Tax)',
-    approxLiveRooms: '5+ Active Historic Deadwood & Tribal Poker Rooms',
     topCities: ['Deadwood', 'Sioux Falls Metro (Nearby IA/SD Border)', 'Flandreau'],
     rakeModel: '10% Pot Rake Up To $5 Cap ($1,000 Max Bet Limit Per Street In Deadwood)',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1096,7 +1066,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal State-Licensed Tavern & Casino Poker Rooms Statewide',
     minAge: '18+ Statewide',
     stateIncomeTaxRate: '4.7% To 5.9% State Income Tax',
-    approxLiveRooms: '25+ Active Licensed Cardrooms Across Billings, Bozeman, Missoula & Great Falls',
     topCities: ['Billings', 'Bozeman', 'Missoula', 'Helena', 'Great Falls', 'Kalispell'],
     rakeModel: '10% Pot Rake Up To $5 Cap ($800 Statutory Max Pot Limit Under Montana Law)',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1126,7 +1095,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal State-Owned Commercial Casinos & Tribal Poker Rooms',
     minAge: '21+ Statewide',
     stateIncomeTaxRate: '5.2% To 5.58% State Income Tax',
-    approxLiveRooms: '3+ Active Commercial & Tribal Poker Rooms',
     topCities: ['Kansas City (KS)', 'Mulvane / Wichita', 'Mayetta (Topeka Metro)'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1156,7 +1124,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casino Poker Rooms Statewide',
     minAge: '21+ Statewide',
     stateIncomeTaxRate: 'Up To 3.9% State Income Tax',
-    approxLiveRooms: '3 Active Commercial Casino Poker Rooms (Oaklawn, Southland, Saracen)',
     topCities: ['Hot Springs (Oaklawn)', 'West Memphis (Memphis Metro)', 'Pine Bluff'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1186,7 +1153,6 @@ export const US_POKER_STATES = [
     legalStatus: 'No Commercial Or Tribal Casinos; Free Bar Leagues & Social Play Only',
     minAge: '18+ For Free Bar Leagues (21+ At Out-Of-State Neighboring Casinos)',
     stateIncomeTaxRate: '5.19% Flat State Income Tax (2026)',
-    approxLiveRooms: '0 Brick-And-Mortar Casinos (Players Travel To Cherokee NC, Jacksonville FL & Biloxi MS)',
     topCities: ['Atlanta', 'Savannah', 'Augusta', 'Columbus'],
     rakeModel: 'Zero Commercial Rake Allowed; Free-To-Enter Bar Poker Leagues Only',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1216,7 +1182,6 @@ export const US_POKER_STATES = [
     legalStatus: 'No Brick-And-Mortar Casinos; Free Bar Leagues & Social Play Only',
     minAge: '18+ For Free Leagues (21+ At Border Casinos In MS, AR, NC, VA, KY/IN)',
     stateIncomeTaxRate: '0.0% (Zero State Income Tax)',
-    approxLiveRooms: '0 In-State Casinos (Border Access To Tunica MS, Cherokee NC, Bristol VA & Southern IN)',
     topCities: ['Nashville', 'Memphis', 'Knoxville', 'Chattanooga'],
     rakeModel: 'Zero Commercial Rake Permitted In-State',
     onlineRealMoneyStatus: 'Social & Club Play Only (Mobile Sports Betting Only)',
@@ -1246,7 +1211,6 @@ export const US_POKER_STATES = [
     legalStatus: 'No Commercial Table-Game Casinos; Licensed Charity Poker & Border Rooms',
     minAge: '18+ For Charity Events (21+ At Border Casinos In IN & OH)',
     stateIncomeTaxRate: '3.5% Flat State Income Tax (2026)',
-    approxLiveRooms: '0 In-State Commercial Poker Rooms (Minutes From Cincinnati OH & Southern IN Casinos)',
     topCities: ['Louisville', 'Lexington', 'Northern Kentucky (Cincinnati Metro)'],
     rakeModel: 'No Commercial Pot Rake In-State (Border Casinos Run Standard 10% Up To $5-$6 Cap)',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1276,7 +1240,6 @@ export const US_POKER_STATES = [
     legalStatus: 'No Live Poker Rooms In-State; Social & Play-Credit Poker Only',
     minAge: '21+ At Neighboring MS And FL Casino Poker Rooms',
     stateIncomeTaxRate: '2.0% To 5.0% State Income Tax',
-    approxLiveRooms: '0 In-State Poker Rooms (Players Travel To Biloxi MS & Pensacola/Panhandle FL)',
     topCities: ['Birmingham', 'Mobile', 'Huntsville', 'Montgomery'],
     rakeModel: 'No Commercial Live Poker In-State',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1306,7 +1269,6 @@ export const US_POKER_STATES = [
     legalStatus: 'No Land-Based Poker Rooms; Offshore Casino Cruises & Social Play Only',
     minAge: '21+ On Offshore Cruises & Neighboring NC/FL Rooms',
     stateIncomeTaxRate: 'Up To 6.2% State Income Tax',
-    approxLiveRooms: '0 Land-Based Rooms (Big "M" Casino Cruises From Little River; Cherokee NC Nearby)',
     topCities: ['Charleston', 'Columbia', 'Greenville', 'Myrtle Beach'],
     rakeModel: 'No Land-Based Commercial Poker Allowed In-State',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1336,7 +1298,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Licensed Charitable Poker Rooms & Tribal Casino Poker',
     minAge: '21+ At Commercial Charity Sites (18+ At Select Tribal Casinos)',
     stateIncomeTaxRate: '0.0% To 2.5% State Income Tax',
-    approxLiveRooms: '10+ Active Charity Poker Sites & Tribal Casino Rooms',
     topCities: ['Fargo', 'Bismarck', 'Grand Forks', 'Minot'],
     rakeModel: 'Low Cap Rake / Limit & Spread-Limit Structures Under State Charitable Rules',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1366,7 +1327,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Racetrack Casinos & Tribal Gaming',
     minAge: '21+ Statewide',
     stateIncomeTaxRate: '2.46% To 4.55% State Income Tax (2026)',
-    approxLiveRooms: '2+ Emerging Racetrack Casino Properties + Immediate Access To Horseshoe Council Bluffs (IA)',
     topCities: ['Omaha', 'Lincoln', 'Grand Island'],
     rakeModel: 'Standard Commercial Casino Pot Rake (10% Up To $5 Cap)',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1396,7 +1356,6 @@ export const US_POKER_STATES = [
     legalStatus: '100% Legal Commercial Casinos & Licensed High-Stakes Charity Poker',
     minAge: '21+ At Commercial Casinos (18+ At Select Charity Tournaments)',
     stateIncomeTaxRate: '5.8% To 7.15% State Income Tax',
-    approxLiveRooms: '2 Commercial Casinos (Oxford & Bangor) + Licensed Nonprofit Poker Tournaments',
     topCities: ['Portland', 'Bangor', 'Oxford'],
     rakeModel: 'Commercial Casino Table Rules & State-Capped Charitable Tournament Entry Fees',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1426,7 +1385,6 @@ export const US_POKER_STATES = [
     legalStatus: 'No Brick-And-Mortar Casinos; Nonprofit Charity Play & Social Poker Only',
     minAge: '18+ For Nonprofit Events (21+ At Neighboring NH, NY & MA Rooms)',
     stateIncomeTaxRate: '3.35% To 8.75% State Income Tax',
-    approxLiveRooms: '0 In-State Casinos (Border Access To NH Charity Rooms, Turning Stone NY & Montreal)',
     topCities: ['Burlington', 'Montpelier', 'Rutland', 'Brattleboro'],
     rakeModel: 'No Commercial Pot Rake Permitted In-State',
     onlineRealMoneyStatus: 'Social & Club Play Only (Mobile Sports Betting Only)',
@@ -1456,7 +1414,6 @@ export const US_POKER_STATES = [
     legalStatus: 'No Live Dealer Poker Rooms In-State; Social & Play-Credit Poker Only',
     minAge: '21+ At Neighboring NV (Jackpot/Wendover), WA (Spokane) & MT Rooms',
     stateIncomeTaxRate: '5.695% Flat State Income Tax',
-    approxLiveRooms: '0 In-State Poker Rooms (Border Access To Spokane WA, Wendover/Jackpot NV & MT)',
     topCities: ['Boise', 'Coeur d\'Alene', 'Idaho Falls', 'Twin Falls'],
     rakeModel: 'No Commercial Live Poker Allowed In-State',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1486,7 +1443,6 @@ export const US_POKER_STATES = [
     legalStatus: 'Legal Tribal Casino Gaming & Private Non-Raked Social Poker Games',
     minAge: '21+ At Tribal Casinos (18+ At Select Venues)',
     stateIncomeTaxRate: '0.0% (Zero State Income Tax)',
-    approxLiveRooms: '2+ Tribal Casinos (Wind River / Shoshone Rose) + Border Access To Black Hawk CO & Deadwood SD',
     topCities: ['Cheyenne', 'Casper', 'Riverton', 'Lander', 'Jackson'],
     rakeModel: 'Zero Rake Permitted On Private Social Games; Standard Tribal Gaming Rules',
     onlineRealMoneyStatus: 'Social & Club Play Only (Online Sports Betting Only)',
@@ -1516,7 +1472,6 @@ export const US_POKER_STATES = [
     legalStatus: 'All Real-Money Gambling Prohibited In-State; Free Play-Credit Only',
     minAge: '21+ Across The Border In West Wendover & Mesquite, Nevada',
     stateIncomeTaxRate: '4.55% Flat State Income Tax',
-    approxLiveRooms: '0 In-State Rooms (West Wendover NV & Mesquite NV Serve Salt Lake City & St. George)',
     topCities: ['Salt Lake City', 'Provo', 'Ogden', 'St. George'],
     rakeModel: 'Zero Real-Money Wagering Permitted In-State',
     onlineRealMoneyStatus: 'Strictly Prohibited By Utah Code 76-10-1102 (Free Play-Credit Only)',
@@ -1546,7 +1501,6 @@ export const US_POKER_STATES = [
     legalStatus: 'No Casinos Or Commercial Poker Rooms; Free Play-Credit Only',
     minAge: '18+ For Free Play-Credit Platforms (21+ When Traveling To Las Vegas)',
     stateIncomeTaxRate: '1.4% To 11.0% State Income Tax',
-    approxLiveRooms: '0 In-State Poker Rooms (Las Vegas Is The Traditional Live Destination)',
     topCities: ['Honolulu', 'Maui', 'Hilo', 'Kailua-Kona'],
     rakeModel: 'No Commercial Live Poker Permitted In-State',
     onlineRealMoneyStatus: 'Prohibited (Free Play-Credit Platforms Like Smarter.Poker Only)',
@@ -1576,7 +1530,6 @@ export const US_POKER_STATES = [
     legalStatus: 'No Commercial Casinos; Non-Raked Social Home Games Permitted',
     minAge: '18+ For Free & Social Play (21+ At Out-Of-State Casinos)',
     stateIncomeTaxRate: '0.0% (Zero State Income Tax)',
-    approxLiveRooms: '0 Commercial Casino Poker Rooms (Active Local Home-Game Communities)',
     topCities: ['Anchorage', 'Fairbanks', 'Juneau'],
     rakeModel: 'Zero House Rake Allowed Under Alaska Social Gambling Law',
     onlineRealMoneyStatus: 'Social & Club Play Only',
@@ -1606,12 +1559,11 @@ export const US_POKER_STATES = [
     legalStatus: 'No In-District Casino Poker Rooms; Minutes From MGM National Harbor (MD)',
     minAge: '21+ At Neighboring MD & WV Casino Poker Rooms',
     stateIncomeTaxRate: '4.0% To 10.75% DC Income Tax',
-    approxLiveRooms: '0 In-District Casinos (MGM National Harbor MD Is 15 Minutes From Downtown DC)',
     topCities: ['Washington, D.C.', 'National Harbor (MD Border)', 'Hanover (MD)', 'Charles Town (WV)'],
     rakeModel: 'Neighboring MGM National Harbor & Live! Maryland Run 10% Up To $5-$6 Cap',
     onlineRealMoneyStatus: 'Social & Club Play Only (Sports Betting Only In-District)',
     summary:
-      'While Washington, D.C. Does Not Host A Brick-And-Mortar Casino Within District Borders, Players Are Just 15 Minutes Across The Potomac From MGM National Harbor (46 Tables) And 35 Minutes From Live! Casino Maryland (50+ Tables).',
+      'While Washington, D.C. Does Not Host A Brick-And-Mortar Casino Within District Borders, Players Are Just 15 Minutes Across The Potomac From MGM National Harbor And 35 Minutes From Live! Casino Maryland.',
     regulatoryOverview:
       'Gaming Inside The District Is Regulated By The DC Office Of Lottery And Gaming (OLG), Covering Lottery, Sports Betting, And Charitable Raffles, Without Commercial Casino Table Games.',
     taxWithholdingNotes:

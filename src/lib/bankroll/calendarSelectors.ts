@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '../supabase';
+import { monthBounds } from './tournamentSchedule.mjs';
 
 export interface CalendarEvent {
     id: string;
@@ -77,12 +78,17 @@ export async function updateCalendarEvent(
 
 /** Delete a calendar event */
 export async function deleteCalendarEvent(eventId: string): Promise<void> {
-    const { error } = await supabase
+    // Row security turns a delete it does not allow into "0 rows, no error".
+    // Reading the deleted id back is what tells "Event deleted" from nothing
+    // having happened.
+    const { data, error } = await supabase
         .from('dealer_calendar_events')
         .delete()
-        .eq('id', eventId);
+        .eq('id', eventId)
+        .select('id');
 
     if (error) throw new Error(error.message);
+    if (!data || data.length === 0) throw new Error('This Calendar Event Could Not Be Deleted.');
 }
 
 /** Get events for a specific month */
@@ -91,8 +97,9 @@ export async function fetchEventsForMonth(
     year: number,
     month: number // 1-indexed
 ): Promise<CalendarEvent[]> {
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endDate = new Date(year, month, 0).toISOString().split('T')[0]; // last day of month
+    // Civil dates: toISOString() of local midnight is the PREVIOUS day east of
+    // UTC, which dropped the last day of every month from the query.
+    const { start: startDate, end: endDate } = monthBounds(year, month - 1);
 
     const { data, error } = await supabase
         .from('dealer_calendar_events')

@@ -23,15 +23,28 @@ import {
   STATES_URL,
   stateGuidePath,
 } from '../../../src/content/guides/states';
+import { LISTED_VENUES_BY_STATE, listedVenueCount } from '../../../src/lib/venueCount.mjs';
+import { getVenueStats, VENUE_STATS_REVALIDATE_S } from '../../../src/lib/server/venueStats.mjs';
 
-const DIRECTORY_FAQS = [
+// Listed Rooms per state come from the live listed set at ISR time, the same
+// rows each state page and /hub/poker-near-me/in/<state> read. The snapshot
+// in venueCount.mjs answers only when the database cannot.
+export async function getStaticProps() {
+  const stats = await getVenueStats();
+  return {
+    props: { byState: { ...stats.byState }, venueCountSource: stats.source },
+    revalidate: VENUE_STATS_REVALIDATE_S,
+  };
+}
+
+const directoryFaqs = (byState) => [
   {
     q: 'Which Major US Poker States Have 0% State Income Tax On Poker Winnings?',
     a: 'Nevada, Texas, And Florida All Levy 0.0% State Individual Income Tax On Cash Game And Poker Tournament Winnings, Making Las Vegas, Houston/Dallas/Austin, And South Florida/Tampa The Three Most Tax-Advantaged Bases For Poker Players.',
   },
   {
     q: 'Which US States Allow Playing Live Poker At Age 18+',
-    a: 'Licensed Pari-Mutuel Cardrooms In Florida (25+ Venues), Most Private Membership Social Poker Clubs In Texas And Ohio, And Select Non-Alcohol Tribal Poker Rooms Such As Turning Stone In New York Legally Admit Players Age 18 And Older.',
+    a: `Licensed Pari-Mutuel Cardrooms In Florida (${listedVenueCount('FL', byState)} Listed Rooms), Most Private Membership Social Poker Clubs In Texas And Ohio, And Select Non-Alcohol Tribal Poker Rooms Such As Turning Stone In New York Legally Admit Players Age 18 And Older.`,
   },
   {
     q: 'Which US States Have Regulated Real-Money Online Poker?',
@@ -43,7 +56,8 @@ const DIRECTORY_FAQS = [
   },
 ];
 
-export default function USStatePokerDirectoryPage() {
+export default function USStatePokerDirectoryPage({ byState = LISTED_VENUES_BY_STATE }) {
+  const DIRECTORY_FAQS = useMemo(() => directoryFaqs(byState), [byState]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredStates = useMemo(() => {
@@ -147,7 +161,7 @@ export default function USStatePokerDirectoryPage() {
           <p style={styles.lead}>
             <strong>Direct Answer:</strong> Live And Online Poker Regulations Vary Dramatically Across US State Lines:
             <strong> Nevada, Texas, And Florida Offer 0% State Income Tax</strong>;
-            <strong> California Operates 85+ Rooms On A Flat Per-Flop Collection Drop</strong>;
+            <strong> California Card Rooms Charge A Flat Per-Hand Collection Drop</strong>;
             <strong> Texas Social Clubs Charge $0 Pot Rake And Hourly Seat Time</strong>; And
             <strong> Nevada, New Jersey, Michigan, And Pennsylvania Share Regulated Multi-State Online Poker Liquidity</strong>.
           </p>
@@ -201,7 +215,7 @@ export default function USStatePokerDirectoryPage() {
                   <th style={styles.th}>State</th>
                   <th style={styles.th}>Min Age</th>
                   <th style={styles.th}>State Income Tax</th>
-                  <th style={styles.th}>Active Live Rooms</th>
+                  <th style={styles.th}>Listed Rooms</th>
                   <th style={styles.th}>Typical Rake Model</th>
                   <th style={styles.th}>Full State Guide</th>
                 </tr>
@@ -216,7 +230,7 @@ export default function USStatePokerDirectoryPage() {
                     </td>
                     <td style={styles.tdCyan}>{s.minAge}</td>
                     <td style={styles.tdEmerald}>{s.stateIncomeTaxRate}</td>
-                    <td style={styles.tdCell}>{s.approxLiveRooms}</td>
+                    <td style={styles.tdCell}>{listedVenueCount(s.code, byState)}</td>
                     <td style={styles.tdCell}>{s.rakeModel}</td>
                     <td style={styles.tdAction}>
                       <Link href={stateGuidePath(s.slug)} style={styles.guideLink}>

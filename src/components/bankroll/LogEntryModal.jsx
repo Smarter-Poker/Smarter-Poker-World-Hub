@@ -12,7 +12,8 @@ import { supabase } from '../../lib/supabase';
 import { createLedgerEntry, updateLedgerEntry, getActiveTrip, getActiveSeries } from '../../lib/bankroll/bankrollSelectors';
 import { getOrCreateLocation, detectNearbyLocation } from '../../lib/bankroll/locationMemory';
 import VenueSelector from './VenueSelector';
-import { checkRuleViolations } from '../../lib/bankroll/leakDetection';
+import { sessionEndStamp, toCents } from '../../lib/bankroll/ledgerMath.mjs';
+import { localDay } from '../../lib/bankroll/localDates.mjs';
 import toast from '../../stores/toastStore';
 import { requireOnlineNow } from '../../hooks/useOnlineStatus';
 import { uploadBankrollImage } from '../../lib/bankroll/receiptStorage';
@@ -108,7 +109,6 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   const [step, setStep] = useState(isEditMode || knownDefault ? 'details' : 'category');
   const [category, setCategory] = useState(isEditMode ? editEntry.category : knownDefault);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [ruleWarnings, setRuleWarnings] = useState([]);
   const [savedStakes, setSavedStakes] = useState([]);
   const [customStakes, setCustomStakes] = useState(false);
   const [savedSwapNames, setSavedSwapNames] = useState([]);
@@ -135,15 +135,20 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   };
 
   // Helper: convert "H:MM" + period to 24h "HH:MM"
+  // Accepts "9", "9:30" and "930"/"0930". Anything else (13:00, 9:75) is
+  // not a 12-hour clock time and returns '' so the form can say so, instead
+  // of building a timestamp the database refuses.
   const to24h = (timeStr, period) => {
     if (!timeStr) return '';
-    const parts = timeStr.split(':');
-    let h = parseInt(parts[0], 10);
-    const m = parts[1] || '00';
-    if (isNaN(h)) return '';
+    const text = String(timeStr).trim();
+    const match = /^(\d{1,2})(?::(\d{2}))?$/.exec(text) || /^(\d{1,2})(\d{2})$/.exec(text);
+    if (!match) return '';
+    let h = parseInt(match[1], 10);
+    const m = match[2] || '00';
+    if (!(h >= 1 && h <= 12) || Number(m) > 59) return '';
     if (period === 'AM' && h === 12) h = 0;
     else if (period === 'PM' && h !== 12) h += 12;
-    return `${h.toString().padStart(2, '0')}:${m.padStart(2, '0')}`;
+    return `${h.toString().padStart(2, '0')}:${m}`;
   };
 
   // Form state
@@ -407,21 +412,51 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
     return grossOut - grossIn;
   };
 
+  // Nothing used to be checked before saving: a blank cash game saved as a
+  // $0 session, a negative cash-out saved as a loss, and a typo'd year put a
+  // session in the future where no date range shows it.
+  const validateEntry = () => {
+    if (!category) return 'Choose A Category';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(formData.entry_date || '')) return 'Enter A Valid Date';
+    if (formData.entry_date > localDay()) return 'The Date Cannot Be In The Future';
+    const money = ['gross_in', 'gross_out', 'buy_in_amount', 'add_on_amount', 'bounties_collected',
+      'inline_expense_amount', 'swap_amount', 'staker_amount', 'action_amount'];
+    for (const field of money) {
+      const raw = formData[field];
+      if (raw === '' || raw === null || raw === undefined) continue;
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < 0) return 'Amounts Must Be $0 Or More';
+    }
+    if (formData.start_time_text && !to24h(formData.start_time_text, formData.start_period)) return 'Enter A Valid Start Time';
+    if (formData.end_time_text && !to24h(formData.end_time_text, formData.end_period)) return 'Enter A Valid End Time';
+    if (category === 'expense') {
+      if (!(toCents(formData.gross_in) > 0)) return 'Enter The Expense Amount';
+    } else if (category !== 'poker_mtt') {
+      // A tournament can be a freeroll; any other session moved some money.
+      if (!(toCents(formData.gross_in) > 0) && !(toCents(formData.gross_out) > 0)) return 'Enter A Buy-In Or A Cash-Out';
+    }
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
     if (!requireOnlineNow(toast)) return;
 
+    const problem = validateEntry();
+    if (problem) {
+      toast.error(problem);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Check for rule violations
+      // Bankroll Rules are judged by the page once the row is saved, against
+      // the saved row and its own day (src/lib/bankroll/ruleViolations.mjs).
+      // The check that used to run here set warnings inside a sheet that
+      // closes on save, so nobody ever saw them.
       const netResult = calculateNetResult();
-      const violations = await checkRuleViolations(userId, netResult);
-      if (violations.violated) {
-        setRuleWarnings(violations.rules);
-        // Continue anyway - just surface the warning
-      }
 
       // Get or create location if name provided but no ID
       let locationId = formData.location_id;
@@ -446,8 +481,14 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         start_time: formData.start_time_text
           ? `${formData.entry_date}T${to24h(formData.start_time_text, formData.start_period)}:00`
           : null,
+        // An end time earlier than the start is the next morning (a 9 PM to
+        // 3 AM session); stored on the same day it read as -18 hours.
         end_time: formData.end_time_text
-          ? `${formData.entry_date}T${to24h(formData.end_time_text, formData.end_period)}:00`
+          ? sessionEndStamp(
+            formData.entry_date,
+            formData.start_time_text ? to24h(formData.start_time_text, formData.start_period) : '',
+            to24h(formData.end_time_text, formData.end_period)
+          )
           : null,
         gross_in: parseFloat(formData.gross_in) || 0,
         gross_out: parseFloat(formData.gross_out) || 0,
@@ -1337,7 +1378,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 value={formData.trip_id}
                 onChange={(e) => {
                   if (e.target.value === '__new__') {
-                    window.open('/hub/bankroll-manager?view=trip-tracker', '_blank');
+                    window.open('/hub/bankroll-manager?view=trips', '_blank');
                   } else {
                     handleInputChange('trip_id', e.target.value);
                   }
@@ -1531,37 +1572,6 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           />
         </div>
 
-
-        {/* Rule Warnings - SmarterPoker Dark Theme */}
-        {ruleWarnings.length > 0 && (
-          <div style={styles.warningBox}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 16 }}>⚠️</span>
-              <strong style={{ color: '#edf6ff', fontSize: 14 }}>Bankroll Rule Alerts</strong>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {ruleWarnings.map((w, i) => (
-                <div key={i} style={styles.warningItem}>
-                  <span style={{ flex: 1, fontSize: 14, color: '#b6c9dd' }}>{w}</span>
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRuleWarnings(prev => prev.filter((_, idx) => idx !== i));
-                      }}
-                      style={styles.warningDismissBtn}
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p style={{ fontSize: 14, color: '#91a7bc', margin: '10px 0 0', fontStyle: 'italic' }}>
-              Manage Rules From Bankroll Rules On Your Dashboard
-            </p>
-          </div>
-        )}
 
         {/* Actions: sticky above the keyboard-safe bottom of the sheet */}
         <div className="bankroll-modal-footer" style={styles.actions}>

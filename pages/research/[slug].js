@@ -24,6 +24,7 @@ import {
   researchPath,
   getResearchReport,
   renderResearchReportMarkdown,
+  RESEARCH_BASIS,
 } from '../../src/content/research/reports.js';
 import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
@@ -318,9 +319,29 @@ export default function ResearchReportDetailPage({ report }) {
           {report.summary}
         </p>
 
+        <section
+          aria-label="Basis Of The Figures On This Page"
+          data-research-basis={report.basis}
+          style={{ marginBottom: 24, padding: 16, background: '#0b1324', borderRadius: 0, border: '1px solid #2b4663' }}
+        >
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: '#e2e8f0' }}>
+            <strong>Basis:</strong> {RESEARCH_BASIS[report.basis]}
+          </p>
+          {Array.isArray(report.sources) && report.sources.length > 0 ? (
+            <ul style={{ margin: '10px 0 0 0', paddingLeft: 20, lineHeight: 1.6, color: '#cbd5e1', fontSize: 14 }}>
+              {report.sources.map((src) => (
+                <li key={src.url}>
+                  <strong>Source:</strong>{' '}
+                  <a href={src.url} rel="noopener" style={{ color: '#38bdf8' }}>{src.label}</a>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+
         <section style={{ marginBottom: 32, padding: 20, background: '#0d1f33', borderRadius: 0, border: '1px solid #2b4663' }}>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
-            Key Empirical Findings
+            Key Findings
           </h2>
           <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.75, color: '#cbd5e1' }}>
             {report.keyFindings.map((finding) => (
@@ -464,7 +485,7 @@ export default function ResearchReportDetailPage({ report }) {
         <SmarterConversionCta
           eyebrow="Free Poker Analytics & GTO Tools"
           title="Turn Industry Data Into Winning Decisions On Smarter.Poker"
-          description={`Track Your Own Bankroll And Rake, Explore ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, And Train With 107 Free GTO Games In One Account.`}
+          description={`Track Your Own Bankroll And Rake, Explore ${VENUE_COUNT_LABEL} Live Poker Rooms, And Train With 107 Free GTO Games In One Account.`}
           primaryLabel="Create Free Account"
           primaryHref={`/auth/signup?redirect=/hub/training&src=research-${encodeURIComponent(report.slug)}`}
           secondaryLabel="Explore Free Calculators"
@@ -490,7 +511,7 @@ export default function ResearchReportDetailPage({ report }) {
           title={report.title}
           canonicalUrl={url}
           badgeType="research"
-          badgeLabel="Empirical Data Source"
+          badgeLabel="Research Source"
           badgeValue={report.shortTitle || 'Smarter.Poker Research'}
           summary={report.summary}
           publishedYear={String(report.publishedDate || '2026').slice(0, 4)}

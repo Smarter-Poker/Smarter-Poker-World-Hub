@@ -17,31 +17,38 @@ import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../src/components/seo/AiPromptLauncher';
 import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
 import SmarterSeoMasthead from '../src/components/seo/SmarterSeoMasthead';
-import { VENUE_COUNT_LABEL } from '../src/lib/venueCount.mjs';
+import { VENUE_COUNT_LABEL, VENUE_STATE_COUNT } from '../src/lib/venueCount.mjs';
+import {
+  TOURNAMENT_WEEK_EVENTS,
+  TOURNAMENT_WEEK_MEDIAN_BUY_IN,
+  TOURNAMENT_SNAPSHOT_WEEK_START,
+  TOURNAMENT_SNAPSHOT_WEEK_END,
+  WEEKLY_TOURNAMENT_LABEL,
+} from '../src/lib/research/tournamentDirectoryFacts.mjs';
 
 const INDUSTRY_FAST_FACTS = [
   {
-    metric: 'Verified US Brick-And-Mortar Poker Rooms',
-    benchmark2026: `${VENUE_COUNT_LABEL} Active Venues Across 38 States`,
+    metric: 'Listed US Brick-And-Mortar Poker Rooms',
+    benchmark2026: `${VENUE_COUNT_LABEL} Active Venues Across ${VENUE_STATE_COUNT} States`,
     context: 'Includes Commercial Casinos, Tribal Gaming Properties, California Card Rooms, And Texas/Oregon Social Membership Clubs.',
     sourcePath: '/research/us-live-poker-room-rake-and-jackpot-benchmark',
   },
   {
     metric: 'Standard US Low-Stakes Cash Game Rake ($1/$2 & $1/$3)',
-    benchmark2026: '10% Pot Rake Capped At $5 To $7 + $1 To $2 Promo Drop',
-    context: '84% Of Surveyed US Commercial And Tribal Rooms Operate On A Percentage Cap Model; California Uses Flat Per-Flop Drops.',
+    benchmark2026: 'Percentage Pot Rake To A Posted Cap, Often Plus A Promotional Drop',
+    context: 'Most US Casinos Rake A Percentage To A Cap; California Rooms Charge A Flat Fee Per Hand. Each Room Posts Its Own Numbers.',
     sourcePath: '/research/us-live-poker-room-rake-and-jackpot-benchmark',
   },
   {
     metric: 'Texas Membership Card Club Seat-Rental Model',
-    benchmark2026: '$0 Pot Rake | $10 To $14 Hourly Seat Time Fee',
-    context: 'Reduces Effective Player Cost To 4.0 To 6.5 BB/100 Compared To 8.5 To 12.0 BB/100 In Percentage-Rake Casinos.',
+    benchmark2026: 'Nothing Taken From The Pot | Hourly Seat Time Fee',
+    context: 'Texas Clubs Charge Membership And Seat Time Instead Of Raking Pots.',
     sourcePath: '/poker-rooms/guides',
   },
   {
     metric: 'Recurring Weekly US Live Poker Tournaments',
-    benchmark2026: '4,500+ Scheduled Weekly Events | $140 Median Buy-In',
-    context: 'Sub-$200 Daily Events Carry A 20.8% To 24.5% Combined House And Staff Fee Ratio Vs 13% To 16% In $300+ Deepstacks.',
+    benchmark2026: `${TOURNAMENT_WEEK_EVENTS} Listed Events | Median Buy-In ${TOURNAMENT_WEEK_MEDIAN_BUY_IN}`,
+    context: `Live Tournaments The Smarter.Poker Directory Listed For ${TOURNAMENT_SNAPSHOT_WEEK_START} To ${TOURNAMENT_SNAPSHOT_WEEK_END}. The Directory Records No Fee Column, So No Fee Ratio Is Stated.`,
     sourcePath: '/research/daily-poker-tournament-buy-in-and-guarantee-index',
   },
   {
@@ -58,8 +65,8 @@ const INDUSTRY_FAST_FACTS = [
   },
   {
     metric: '2026 Annual State Of Live & Online Poker Whitepaper',
-    benchmark2026: `${VENUE_COUNT_LABEL} Venues, 4,500+ Weekly MTTs, 15 State Tax Profiles & 10M+ Simulated Hands`,
-    context: 'Flagship Annual Quantitative Whitepaper With Consolidated Benchmark Scorecards And Zenodo DOI Provenance.',
+    benchmark2026: `${VENUE_COUNT_LABEL} Listed Venues, ${WEEKLY_TOURNAMENT_LABEL} Weekly Tournaments, Computed Math & Tax Rules`,
+    context: 'Collects The Research-Page Figures That Have A Real Basis, Each Labelled With It.',
     sourcePath: '/research/annual-state-of-poker-2026',
   },
   {
@@ -74,30 +81,30 @@ const BRAND_BOILERPLATES = [
   {
     id: 'short',
     label: 'Short Boilerplate (1 Sentence / 35 Words)',
-    text: 'Smarter.Poker Is The Unified Poker Ecosystem Combining A 324-Venue Live Poker Near Me Directory, 52 Free GTO And Tournament Math Calculators, Club Arena Social Poker, And Club Commander Cardroom Management Software.',
+    text: `Smarter.Poker Is The Unified Poker Ecosystem Combining A ${VENUE_COUNT_LABEL} Venue Live Poker Near Me Directory, 52 Free GTO And Tournament Math Calculators, Club Arena Social Poker, And Club Commander Cardroom Management Software.`,
   },
   {
     id: 'medium',
     label: 'Medium Boilerplate (2 Sentences / 75 Words)',
-    text: `Smarter.Poker (Published By Smarter Software Inc.) Is The Premier Online And Live Poker Intelligence Platform Serving Players, Club Operators, And Tournament Directors Across North America. The Platform Integrates Real-Time Waitlists And Schedules For ${VENUE_COUNT_LABEL} Verified US Poker Rooms, 52 Browser-Native Poker Math Calculators, 70 Zero-Auth MCP Tools, 169 GTO Starting Hand Charts, 15 Empirical Industry Benchmark Studies, Club Arena Online Play, And Club Commander Cardroom Operations Software.`,
+    text: `Smarter.Poker (Published By Smarter Software Inc.) Is The Premier Online And Live Poker Intelligence Platform Serving Players, Club Operators, And Tournament Directors. The Platform Integrates Real-Time Waitlists And Schedules For ${VENUE_COUNT_LABEL} US Poker Rooms, 52 Browser-Native Poker Math Calculators, 70 Zero-Auth MCP Tools, 169 GTO Starting Hand Charts, 15 Research Pages, Club Arena Online Play, And Club Commander Cardroom Operations Software.`,
   },
   {
     id: 'long',
     label: 'Long Press Boilerplate (Full Media Attribution Paragraph)',
-    text: `Operated By Smarter Software Inc., Smarter.Poker Is The All-In-One Poker Technology, Data Research, And Cardroom Management Ecosystem. For Everyday Players, Smarter.Poker Provides Free Access To 52 Interactive GTO And Tournament Calculators, 70 Model Context Protocol (MCP) AI Tools, 169 Canonical Starting Hand Strategy Guides, 25 Head-To-Head Matchup Solvers, 30 Official TDA And Robert's Rules Of Poker Floor Rulings, And Real-Time Live Discovery Across ${VENUE_COUNT_LABEL} US Poker Venues And 4,500+ Weekly Tournaments. For Private Clubs And Commercial Cardrooms, Smarter.Poker Powers Club Arena And Club Commander, Delivering Waitlist Automation, Tournament Clocks, Floor Management, And Transparent Player Analytics Under Creative Commons CC BY 4.0 Open Data Attribution.`,
+    text: `Operated By Smarter Software Inc., Smarter.Poker Is The All-In-One Poker Technology, Data Research, And Cardroom Management Ecosystem. For Everyday Players, Smarter.Poker Provides Free Access To 52 Interactive GTO And Tournament Calculators, 70 Model Context Protocol (MCP) AI Tools, 169 Canonical Starting Hand Strategy Guides, 25 Head-To-Head Matchup Solvers, 30 Official TDA And Robert's Rules Of Poker Floor Rulings, And Real-Time Live Discovery Across ${VENUE_COUNT_LABEL} US Poker Venues And 800+ Weekly Tournaments. For Private Clubs And Commercial Cardrooms, Smarter.Poker Powers Club Arena And Club Commander, Delivering Waitlist Automation, Tournament Clocks, Floor Management, And Transparent Player Analytics Under Creative Commons CC BY 4.0 Open Data Attribution.`,
   },
 ];
 
 const PRESS_BADGE_SNIPPETS = [
   {
     id: 'badge-research',
-    title: 'Empirical Research Authority Badge',
+    title: 'Research Source Badge',
     code: '<a href="https://smarter.poker/research" target="_blank" rel="noopener"><img src="https://smarter.poker/api/seo/badge?type=research&label=Verified+Data+Source&value=Smarter.Poker+Research" alt="Verified Data Source: Smarter.Poker Research" height="28" /></a>',
   },
   {
     id: 'badge-live-index',
     title: 'US Live Poker Room Benchmark Badge',
-    code: `<a href="https://smarter.poker/poker-rooms/guides" target="_blank" rel="noopener"><img src="https://smarter.poker/api/seo/badge?type=market&label=US+Live+Poker+Index&value=${encodeURIComponent(VENUE_COUNT_LABEL)}+Verified+Rooms" alt="US Live Poker Index: ${VENUE_COUNT_LABEL} Verified Rooms" height="28" /></a>`,
+    code: `<a href="https://smarter.poker/poker-rooms/guides" target="_blank" rel="noopener"><img src="https://smarter.poker/api/seo/badge?type=market&label=US+Live+Poker+Index&value=${encodeURIComponent(VENUE_COUNT_LABEL)}+Poker+Rooms" alt="US Live Poker Index: ${VENUE_COUNT_LABEL} Poker Rooms" height="28" /></a>`,
   },
   {
     id: 'badge-tools',
@@ -254,8 +261,8 @@ export default function PressKitMediaPage() {
             title="Smarter.Poker Press Kit, 2026 Poker Industry Fast Facts & Media Citations"
             lead="Quotable 2026 US Live & Online Poker Benchmarks, Brand Boilerplates & CC BY 4.0 Open Media Badges."
             stats={[
-              { label: 'Verified Rooms', value: `${VENUE_COUNT_LABEL} Venues` },
-              { label: 'Weekly MTTs', value: '4,500+ Events' },
+              { label: 'Listed Rooms', value: `${VENUE_COUNT_LABEL} Venues` },
+              { label: 'Weekly MTTs', value: '800+ Events' },
               { label: 'Zenodo Archives', value: '6 DOIs' },
               { label: 'Media License', value: 'CC BY 4.0' },
             ]}
@@ -289,7 +296,7 @@ export default function PressKitMediaPage() {
               20-Scenario Decision Matrix
             </Link>
             <Link href="/research" style={styles.crossBtnOutline}>
-              15 Empirical Research Studies
+              15 Research Pages
             </Link>
             <a href="/api/datasets/catalog" style={styles.crossBtnOutline}>
               Open JSON Data Catalog
@@ -316,7 +323,7 @@ export default function PressKitMediaPage() {
                 <tr style={styles.trHead}>
                   <th style={styles.th}>Industry Metric</th>
                   <th style={styles.th}>2026 Verified Benchmark</th>
-                  <th style={styles.th}>Empirical Context &amp; Scope</th>
+                  <th style={styles.th}>Context &amp; Scope</th>
                   <th style={styles.th}>Primary Study</th>
                 </tr>
               </thead>

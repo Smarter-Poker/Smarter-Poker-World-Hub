@@ -36,6 +36,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
+import useNearViewport from '../../src/hooks/useNearViewport';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../src/hooks/useYouTubeErrorManager';
 import { getYouTubeVideoId } from '../../src/lib/socialHelpers';
 import useSWR, { SWRConfig } from 'swr';
@@ -155,7 +156,10 @@ const VALID_SOURCES = ['PokerNews', 'MSPT', 'Card Player', 'WSOP', 'Poker.org', 
 // Sections reachable via ?tab= (hamburger menu deep links). 'bookmarks' and 'later'
 // are reached via ?filter= instead and are handled separately.
 const SECTION_TABS = ['news', 'reels', 'videos', 'events'];
-const NAV_SECTION_TABS = [...SECTION_TABS, 'later'];
+// The rail ends with Magazine (owner, 2026-11-27: the magazine lives behind its
+// own tab, not at the top of the page). Read Later is still a section, reached
+// from the menu as ?filter=later and the clock on each story.
+const NAV_SECTION_TABS = [...SECTION_TABS, 'magazine'];
 
 // Uniform electric blue source names and selected source chips
 const SOURCE_COLORS = {
@@ -245,6 +249,11 @@ export async function getServerSideProps({ req, res }) {
 // every new article) is gone. The story list itself is refreshed from page 0
 // on the same 15-minute clock (see NEWS_REFRESH_MS in NewsHub).
 const NEWS_REFRESH_MS = 15 * 60 * 1000;
+// The MSPT box shows its six newest items; the rest are one tap away in the feed.
+const MSPT_SIDEBAR_ITEMS = 6;
+// Below this scroll depth the reader is reading; a refresh waits behind the
+// "N New Stories" key instead of reordering the list under them.
+const NEWS_READING_DEPTH_PX = 400;
 const NEWS_REFRESH_POLICY = {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
@@ -339,7 +348,7 @@ function NewsHub() {
     });
 
     const activeTab = filters.activeTab;
-    const activeSection = [...NAV_SECTION_TABS, 'bookmarks'].includes(filters.activeSection)
+    const activeSection = [...NAV_SECTION_TABS, 'bookmarks', 'later'].includes(filters.activeSection)
         ? filters.activeSection
         : 'news';
     // Bookmarks is a filtered News view, not a sixth rail destination.
@@ -360,6 +369,18 @@ function NewsHub() {
         else if (section !== 'news') query.tab = section;
 
         router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+    };
+
+    // "All MSPT Stories": open the News section filtered to MSPT and bring
+    // the search row into view so the filter is visible and easy to clear.
+    const showAllMspt = () => {
+        selectSection('news');
+        setSearchQuery('MSPT');
+        if (typeof window !== 'undefined') {
+            window.requestAnimationFrame(() => {
+                document.querySelector('.search-view-row')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
     };
 
     const handleSectionKeyDown = (event, section) => {
@@ -438,25 +459,33 @@ function NewsHub() {
         }));
     }, [rawSourceBoxes]);
 
+    // Side feeds load only when they are about to be seen: videos with the
+    // Videos tab, reels with the Reels tab or when the reels preview nears the
+    // screen, and the sidebar widgets (MSPT, Player Of The Year, Events) as the
+    // sidebar approaches. On a wide screen the sidebar is in view at once, so
+    // it loads at once; on a phone it sits below the feed and waits.
+    const [sidebarRef, sidebarNear] = useNearViewport();
+    const [reelsPreviewRef, reelsPreviewNear] = useNearViewport();
+
     // Videos feed — backs the ?tab=videos section. Real data only; an empty list
     // renders the section's own empty state rather than fabricated placeholders.
-    const { data: videosData, error: videosError, isLoading: videosLoading, mutate: refreshVideos } = useSWR('/api/news/videos?limit=20', fetchNewsJson);
+    const { data: videosData, error: videosError, isLoading: videosLoading, mutate: refreshVideos } = useSWR(activeSection === 'videos' ? '/api/news/videos?limit=20' : null, fetchNewsJson);
     const videos = (videosData?.success && Array.isArray(videosData.data)) ? videosData.data : [];
 
-    const { data: reelsData, error: reelsError, isLoading: reelsLoading, mutate: refreshReels } = useSWR('/api/news/reels?limit=20&sort=recent', fetchNewsJson);
+    const { data: reelsData, error: reelsError, isLoading: reelsLoading, mutate: refreshReels } = useSWR((activeSection === 'reels' || reelsPreviewNear) ? '/api/news/reels?limit=20&sort=recent' : null, fetchNewsJson);
     const reels = (reelsData?.success && reelsData.data?.length) ? reelsData.data : [];
 
-    const { data: leaderboardData, error: leaderboardError, isLoading: leaderboardLoading } = useSWR('/api/news/leaderboard?limit=5', fetchNewsJson);
+    const { data: leaderboardData, error: leaderboardError, isLoading: leaderboardLoading } = useSWR(sidebarNear ? '/api/news/leaderboard?limit=5' : null, fetchNewsJson);
     const leaderboard = (leaderboardData?.success && Array.isArray(leaderboardData.data)) ? leaderboardData.data : [];
 
     const eventsKey = nearbyLocation
         ? `/api/news/events?limit=25&radius=100&lat=${encodeURIComponent(nearbyLocation.lat)}&lng=${encodeURIComponent(nearbyLocation.lng)}`
         : '/api/news/events?limit=25';
-    const { data: eventsData, error: eventsError, isLoading: eventsLoading, mutate: refreshEvents } = useSWR(eventsKey, fetchNewsJson);
+    const { data: eventsData, error: eventsError, isLoading: eventsLoading, mutate: refreshEvents } = useSWR((activeSection === 'events' || sidebarNear) ? eventsKey : null, fetchNewsJson);
     const events = (eventsData?.success && eventsData.data?.length) ? eventsData.data : [];
     const sidebarEvents = events.slice(0, 3);
 
-    const { data: msptData } = useSWR('/api/news/articles?search=MSPT&limit=10', fetchNewsJson);
+    const { data: msptData } = useSWR(sidebarNear ? '/api/news/articles?search=MSPT&limit=10' : null, fetchNewsJson);
     const msptNews = (msptData?.success && msptData.data?.length)
         ? msptData.data.map(a => ({ id: a.id, title: a.title, source_url: a.source_url || null, published_at: a.published_at, prize_pool: a.prize_pool || null }))
         : FALLBACK_MSPT;
@@ -751,7 +780,7 @@ function NewsHub() {
         if (router.query.tab !== tabDeepLinkConsumed.current) {
             tabDeepLinkConsumed.current = router.query.tab;
             const tab = String(router.query.tab || '');
-            if (SECTION_TABS.includes(tab)) setFilter('activeSection', tab);
+            if (NAV_SECTION_TABS.includes(tab)) setFilter('activeSection', tab);
         }
         if (router.query.filter !== filterDeepLinkConsumed.current) {
             filterDeepLinkConsumed.current = router.query.filter;
@@ -887,15 +916,42 @@ function NewsHub() {
     // refreshNewsFeed (not the raw SWR mutate): with offset pagination a plain
     // revalidate would only refresh whichever page is currently in the SWR key.
     // A hidden tab waits; the next tick after it is visible again refreshes it.
+    //
+    // A READER IS NEVER MOVED. Near the top of the page the list refreshes in
+    // place. Further down, the first page is checked in the background and, if
+    // it holds stories the reader has not been shown, a "N New Stories" key
+    // appears under the header; tapping it scrolls up and brings them in. The
+    // list under someone reading is never reordered by the clock.
     const refreshNewsRef = useRef(null);
     refreshNewsRef.current = refreshNewsFeed;
+    const newsParamsRef = useRef('');
+    newsParamsRef.current = newsParams.toString();
+    const loadedIdsRef = useRef([]);
+    loadedIdsRef.current = loadedNews.map(a => a?.id).filter(Boolean);
+    const [newStoriesWaiting, setNewStoriesWaiting] = useState(0);
     useEffect(() => {
-        const timer = setInterval(() => {
+        let cancelled = false;
+        const timer = setInterval(async () => {
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-            refreshNewsRef.current?.();
+            if (typeof window === 'undefined' || window.scrollY < NEWS_READING_DEPTH_PX) {
+                refreshNewsRef.current?.();
+                return;
+            }
+            const firstPage = new URLSearchParams(newsParamsRef.current);
+            firstPage.set('offset', '0');
+            const res = await fetchNewsJson(`/api/news/articles?${firstPage}`).catch(() => null);
+            if (cancelled || !res || res.success !== true || !Array.isArray(res.data)) return;
+            const known = new Set(loadedIdsRef.current);
+            const fresh = res.data.filter(a => a?.id && !known.has(a.id)).length;
+            if (fresh > 0) setNewStoriesWaiting(fresh);
         }, NEWS_REFRESH_MS);
-        return () => clearInterval(timer);
+        return () => { cancelled = true; clearInterval(timer); };
     }, []);
+    const showNewStories = () => {
+        setNewStoriesWaiting(0);
+        if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+        refreshNewsRef.current?.();
+    };
 
     // Load preferences and bookmarks from Supabase on mount
     useEffect(() => {
@@ -1562,19 +1618,22 @@ function NewsHub() {
                                 title="Poker News"
                                 titleId="news-page-title"
                                 className="news-image-header"
+                                seal={false}
+                                parentBelow
                                 parent={(
                                     <span className="news-desk-kicker">
-                                        Live Intelligence Wire · {filteredNews.length} Stories
-                                        {newArticleCount > 0 ? ` · ${newArticleCount} New` : ''}
-                                        {lastRefreshed && hasMounted ? ` · Updated ${timeAgo(lastRefreshed)}` : ''}
+                                        <span>Live Intelligence Wire</span>
+                                        <span>{`· ${filteredNews.length} Stories`}</span>
+                                        {newArticleCount > 0 ? <span>{`· ${newArticleCount} New`}</span> : null}
+                                        {lastRefreshed && hasMounted ? <span>{`· Updated ${timeAgo(lastRefreshed)}`}</span> : null}
                                     </span>
                                 )}
                                 helpContent={(
                                     <>
                                         <p>Headlines Are Gathered Every Hour From Seven Poker Outlets, Each Shown As A Source Chip Below. Open A Story To Read It Here.</p>
-                                        <p>Use The Tabs For News, Reels, Videos, Events And Read Later. Tap A Source To Show Only Its Stories, Or Several Sources At Once. Clear Removes Every Source Filter.</p>
+                                        <p>Use The Tabs For News, Reels, Videos, Events And The Smarter.Poker Magazine. Tap A Source To Show Only Its Stories, Or Several Sources At Once. Clear Removes Every Source Filter.</p>
                                         <p>Story Signal Counts The Stories Shown. Latest Puts The Newest First; Most Read Ranks Stories By Reader Views.</p>
-                                        <p>The Bookmark And Clock On Each Story Save It To Bookmarks Or Read Later. Saved Stories Sync When You Are Signed In.</p>
+                                        <p>The Bookmark And Clock On Each Story Save It To Bookmarks Or Read Later; Open Either From The Menu. Saved Stories Sync When You Are Signed In.</p>
                                         <p>Events Lists Upcoming Tournaments; Allow Location To Sort Them By Distance. Location Is Used Once And Never Stored.</p>
                                         <p>The Page Loads The Latest Stories When You Open It, Then Checks Again Every 15 Minutes While It Stays Open.</p>
                                     </>
@@ -1629,22 +1688,24 @@ function NewsHub() {
                                 </button>
                                 <button
                                     role="tab"
-                                    ref={(node) => { sectionTabRefs.current.later = node; }}
-                                    aria-selected={navActiveSection === 'later'}
-                                    tabIndex={navActiveSection === 'later' ? 0 : -1}
-                                    className={`section-tab ${navActiveSection === 'later' ? 'active' : ''}`}
-                                    onClick={() => selectSection('later')}
-                                    onKeyDown={(event) => handleSectionKeyDown(event, 'later')}
+                                    ref={(node) => { sectionTabRefs.current.magazine = node; }}
+                                    aria-selected={navActiveSection === 'magazine'}
+                                    tabIndex={navActiveSection === 'magazine' ? 0 : -1}
+                                    className={`section-tab ${navActiveSection === 'magazine' ? 'active' : ''}`}
+                                    onClick={() => selectSection('magazine')}
+                                    onKeyDown={(event) => handleSectionKeyDown(event, 'magazine')}
                                 >
-                                    <Clock size={14} /> Read Later
+                                    <Newspaper size={14} /> Magazine
                                 </button>
                             </div>
 
-                            <div style={{ marginBottom: '14px' }}>
-                                <MagazineNewsstandBanner variant="news" />
-                            </div>
-
                             {/* Breaking News Ticker */}
+                            {newStoriesWaiting > 0 && (
+                                <button type="button" className="news-new-stories sd-button sd-primary" onClick={showNewStories}>
+                                    {newStoriesWaiting} New {newStoriesWaiting === 1 ? 'Story' : 'Stories'}
+                                </button>
+                            )}
+
                             {breakingNews && (
                                 <div
                                     className="breaking-ticker"
@@ -1671,6 +1732,9 @@ function NewsHub() {
                                 <div className="bookmark-notice" role="status">{bookmarkNotice}</div>
                             )}
 
+                            {/* Story filters only apply to stories; the Magazine tab has none. */}
+                            {activeSection !== 'magazine' && (
+                            <>
                             {/* Source Filter Chips */}
                             <div className="source-filters">
                                 {VALID_SOURCES.map(src => (
@@ -1821,6 +1885,9 @@ function NewsHub() {
                                     </div>
                                     <button type="button" onClick={() => refreshNewsFeed()}>Try Again</button>
                                 </div>
+                            )}
+
+                            </>
                             )}
 
                             {/* Phase 5: Reading Stats Bar */}
@@ -2051,20 +2118,18 @@ function NewsHub() {
                                     </section>
 
                                     {/* CLUB ARENA NEWS REELS PREVIEW START */}
-                                    <VideoLibraryConsole
-                                        as="section"
+                                    <div ref={reelsPreviewRef} className="news-reels-preview-anchor" aria-hidden="true" />
+                                    <section
                                         className="news-reels-console news-reels-console--preview"
-                                        eyebrow="News Desk"
-                                        title="Poker Reels"
-                                        titleAs="h2"
-                                        subtitle="Fresh Short Form Poker"
-                                        pill={reels.length > 0 ? `${reels.length} Live` : 'Daily'}
-                                        pillInk="blue"
-                                        foot="foot"
+                                        aria-labelledby="news-reels-preview-title"
                                         aria-busy={hasMounted && reelsLoading}
                                     >
+                                        <div className="news-reels-console__head">
+                                            <h2 className="section-title" id="news-reels-preview-title">Poker Reels</h2>
+                                            <span className="news-reels-console__count">{reels.length > 0 ? `${reels.length} Live` : 'Daily'}</span>
+                                        </div>
                                         <div className="news-reels-console__intro">
-                                            <ConsoleCopy>Real Poker Clips Selected From The Live Reels Feed.</ConsoleCopy>
+                                            <p className="news-reels-console__copy">Real Poker Clips Selected From The Live Reels Feed.</p>
                                             <button
                                                 type="button"
                                                 className="news-reels-console__text-action"
@@ -2099,43 +2164,47 @@ function NewsHub() {
                                                 </div>
                                             </div>
                                         ) : hasMounted && reelsLoading ? (
-                                            <ConsoleCopy align="center" role="status">Loading Reels...</ConsoleCopy>
+                                            <p className="news-reels-console__copy news-reels-console__copy--center" role="status">Loading Reels...</p>
                                         ) : reelsError ? (
                                             <div className="news-reels-console__state" role="alert">
-                                                <ConsoleCopy align="center">Reels Are Temporarily Unavailable.</ConsoleCopy>
+                                                <p className="news-reels-console__copy news-reels-console__copy--center">Reels Are Temporarily Unavailable.</p>
                                                 <button type="button" onClick={() => refreshReels()}>Retry Reels</button>
                                             </div>
                                         ) : (
-                                            <ConsoleCopy align="center" role="status">No Reels Available Yet. Check Back Soon.</ConsoleCopy>
+                                            <p className="news-reels-console__copy news-reels-console__copy--center" role="status">No Reels Available Yet. Check Back Soon.</p>
                                         )}
-                                    </VideoLibraryConsole>
+                                    </section>
                                     {/* CLUB ARENA NEWS REELS PREVIEW END */}
                                 </>
                             )}
                             
+                            {activeSection === 'magazine' && (
+                                <section className="news-magazine-section" aria-label="Smarter.Poker Magazine">
+                                    <MagazineNewsstandBanner variant="news" />
+                                </section>
+                            )}
+
                             {activeSection === 'reels' && (
                                 /* CLUB ARENA NEWS REELS FULL START */
-                                <VideoLibraryConsole
-                                    as="section"
+                                <section
                                     className="news-reels-console news-reels-console--full"
-                                    eyebrow="News Desk"
-                                    title="Poker Reels"
-                                    titleAs="h2"
-                                    subtitle="Short Form Poker Updated Daily"
-                                    pill={reels.length > 0 ? `${reels.length} Live` : 'Reels'}
-                                    pillInk="blue"
-                                    foot="foot"
+                                    aria-labelledby="news-reels-full-title"
                                     aria-busy={hasMounted && reelsLoading}
                                 >
+                                    <div className="news-reels-console__head">
+                                        <h2 className="section-title" id="news-reels-full-title">Poker Reels</h2>
+                                        <span className="news-reels-console__count">{reels.length > 0 ? `${reels.length} Live` : 'Reels'}</span>
+                                    </div>
+                                    <p className="section-desc">Short Form Poker, Updated Daily.</p>
                                     {hasMounted && reelsLoading ? (
-                                        <ConsoleCopy align="center" role="status">Loading Reels...</ConsoleCopy>
+                                        <p className="news-reels-console__copy news-reels-console__copy--center" role="status">Loading Reels...</p>
                                     ) : reelsError ? (
                                         <div className="news-reels-console__state" role="alert">
-                                            <ConsoleCopy align="center">Reels Are Temporarily Unavailable.</ConsoleCopy>
+                                            <p className="news-reels-console__copy news-reels-console__copy--center">Reels Are Temporarily Unavailable.</p>
                                             <button type="button" onClick={() => refreshReels()}>Retry Reels</button>
                                         </div>
                                     ) : reels.length === 0 ? (
-                                        <ConsoleCopy align="center" role="status">No Reels Available Yet. Check Back Soon.</ConsoleCopy>
+                                        <p className="news-reels-console__copy news-reels-console__copy--center" role="status">No Reels Available Yet. Check Back Soon.</p>
                                     ) : (
                                         <div className="news-reels-console__grid" role="list">
                                             {reels.map((reel, idx) => (
@@ -2148,7 +2217,7 @@ function NewsHub() {
                                             ))}
                                         </div>
                                     )}
-                                </VideoLibraryConsole>
+                                </section>
                                 /* CLUB ARENA NEWS REELS FULL END */
                             )}
 
@@ -2305,12 +2374,12 @@ function NewsHub() {
                         </main>
 
                         {/* Right Sidebar */}
-                        <aside className="sidebar" aria-label="News intelligence">
+                        <aside className="sidebar" aria-label="News intelligence" ref={sidebarRef}>
                             {/* MSPT News & Updates - Dedicated Box */}
                             <div className="widget mspt">
                                 <h4><Trophy size={14} /> MSPT News & Updates{msptNews[0]?.is_fallback && <span className="sample-tag">Sample</span>}</h4>
                                 <ul className="mspt-list">
-                                    {msptNews.map((item) => {
+                                    {msptNews.slice(0, MSPT_SIDEBAR_ITEMS).map((item) => {
                                         const clickable = !!(item.source_url && item.source_url !== '#');
                                         // Route through openArticle so MSPT items get the same
                                         // reader modal, read-state, and view tracking as the feed
@@ -2336,6 +2405,11 @@ function NewsHub() {
                                         );
                                     })}
                                 </ul>
+                                {msptNews.length > MSPT_SIDEBAR_ITEMS && !msptNews[0]?.is_fallback && (
+                                    <button type="button" className="mspt-more sd-button" onClick={showAllMspt}>
+                                        All MSPT Stories
+                                    </button>
+                                )}
                                 <a
                                     href="https://msptpoker.com"
                                     target="_blank"
@@ -2378,6 +2452,35 @@ function NewsHub() {
                                 </ul>
                             </div>
 
+                            {/* Phase 3: Reading History Widget — most recently read first
+                                (readArticles is append-ordered, so reverse = recency order) */}
+                            {readArticles.length > 0 && (
+                                <div className="widget reading-history">
+                                    <h4><Eye size={14} /> Recently Read</h4>
+                                    <ul className="history-list">
+                                        {[...readArticles].reverse()
+                                            .map(id => news.find(a => a.id === id))
+                                            .filter(Boolean)
+                                            .slice(0, 5)
+                                            .map(a => (
+                                                <li
+                                                    key={a.id}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() => openArticle(a)}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openArticle(a); } }}
+                                                >
+                                                    <CheckCircle size={10} style={{ color: '#22c55e', flexShrink: 0 }} />
+                                                    <span>{a.title?.slice(0, 50)}{a.title?.length > 50 ? '...' : ''}</span>
+                                                </li>
+                                            ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {/* Desktop: these three stay docked in view while the feed scrolls.
+                                At 1000px and below the dock dissolves (display: contents) and
+                                they join the sidebar grid as before. */}
+                            <div className="sidebar-dock">
                             {/* Player of the Year */}
                             <div className="widget leaderboard">
                                 <h4>
@@ -2401,7 +2504,7 @@ function NewsHub() {
                                     </>
                                 ) : (
                                     <div className="widget-empty" role="status">
-                                        {leaderboardLoading ? 'Loading current standings…' : leaderboardError ? 'Standings are temporarily unavailable.' : 'Licensed GPI standings are not connected yet.'}
+                                        {(leaderboardLoading || !leaderboardData) && !leaderboardError ? 'Loading Current Standings…' : leaderboardError ? 'Standings are temporarily unavailable.' : 'Licensed GPI standings are not connected yet.'}
                                     </div>
                                 )}
                             </div>
@@ -2431,7 +2534,7 @@ function NewsHub() {
                                         ))}
                                     </ul>
                                     {eventsLoading && <div className="widget-empty" role="status">Loading Tournaments…</div>}
-                                    {!eventsLoading && !eventsError && sidebarEvents.length === 0 && (
+                                    {eventsData && !eventsLoading && !eventsError && sidebarEvents.length === 0 && (
                                         <div className="widget-empty">No Tournaments found{nearbyLocation ? ' within 100 miles' : ''}.</div>
                                     )}
                                     {eventsError && <div className="widget-empty">Tournament Feed Is Temporarily Unavailable.</div>}
@@ -2464,32 +2567,8 @@ function NewsHub() {
                                 )}
                                 {subscribeError && <div className="error" role="alert">{subscribeError}</div>}
                             </div>
+                            </div>
 
-                            {/* Phase 3: Reading History Widget — most recently read first
-                                (readArticles is append-ordered, so reverse = recency order) */}
-                            {readArticles.length > 0 && (
-                                <div className="widget reading-history">
-                                    <h4><Eye size={14} /> Recently Read</h4>
-                                    <ul className="history-list">
-                                        {[...readArticles].reverse()
-                                            .map(id => news.find(a => a.id === id))
-                                            .filter(Boolean)
-                                            .slice(0, 5)
-                                            .map(a => (
-                                                <li
-                                                    key={a.id}
-                                                    role="button"
-                                                    tabIndex={0}
-                                                    onClick={() => openArticle(a)}
-                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openArticle(a); } }}
-                                                >
-                                                    <CheckCircle size={10} style={{ color: '#22c55e', flexShrink: 0 }} />
-                                                    <span>{a.title?.slice(0, 50)}{a.title?.length > 50 ? '...' : ''}</span>
-                                                </li>
-                                            ))}
-                                    </ul>
-                                </div>
-                            )}
                         </aside>
                     </div>
 
@@ -3519,6 +3598,33 @@ function NewsHub() {
                     .news-reels-console {
                         width: 100%;
                         margin-block: 18px 28px;
+                    }
+
+                    .news-reels-console__head {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 12px;
+                    }
+
+                    .news-reels-console__count {
+                        color: #86daff;
+                        font-size: 13px;
+                        font-weight: 800;
+                        letter-spacing: 0.06em;
+                        white-space: nowrap;
+                    }
+
+                    .news-reels-console__copy {
+                        margin: 0;
+                        color: #bdd0e2;
+                        font-size: 14px;
+                        line-height: 1.4;
+                    }
+
+                    .news-reels-console__copy--center {
+                        padding: 24px 0;
+                        text-align: center;
                     }
 
                     .news-reels-console__intro,

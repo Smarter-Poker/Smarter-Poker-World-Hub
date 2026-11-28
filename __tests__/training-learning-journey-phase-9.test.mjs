@@ -38,7 +38,8 @@ test('progress and achievements use dense dimensional metric systems', () => {
 
 test('planner, calendar, milestones, and skill tree share the metallic command header', () => {
   for (const route of ['milestones', 'daily-goals', 'study-plan', 'training-calendar', 'skill-tree']) {
-    assert.match(read(`pages/hub/training/${route}.js`), /sp-journey-header/);
+    // The shared #SMARTERDESIGN page head replaced each page's own header bar.
+    assert.match(read(`pages/hub/training/${route}.js`), /<TrainingPageHead slug="training-/);
   }
 });
 

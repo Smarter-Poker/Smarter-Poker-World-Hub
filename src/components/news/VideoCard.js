@@ -73,30 +73,19 @@ function VideoCardBody({ video, onClick }) {
                 .video-card {
                     position: relative;
                     background: #1a1c1e;
-                    border-radius: 16px;
+                    border-radius: 0;
                     overflow: hidden;
                     cursor: pointer;
                     transition: all 0.3s;
                     height: 280px;
                     display: flex;
                     flex-direction: column;
-                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+                    box-shadow: none;
                 }
 
-                /* Chrome frame overlay for video cards - border only, no glow */
-                .video-card::after {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    border-radius: 16px;
-                    border: 5px solid rgba(180, 195, 220, 0.9);
-                    box-shadow: none;
-                    pointer-events: none;
-                    z-index: 100;
-                }
+                /* The only frame is the thin chrome rim from NewsSmarterDesignStyles.
+                   The old 5px rounded silver overlay sat on top of it and read as a
+                   thick frame behind another frame (owner, 2026-11-27). */
 
                 .video-card:hover {
                     transform: translateY(-2px);
@@ -113,7 +102,7 @@ function VideoCardBody({ video, onClick }) {
                     width: 100%;
                     height: 180px;
                     overflow: hidden;
-                    border-radius: 12px 12px 0 0;
+                    border-radius: 0;
                 }
 
                 .video-thumbnail :global(img) {

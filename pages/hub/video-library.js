@@ -1,3 +1,8 @@
+// World stylesheets load with the pages that use them, not from _app
+// (__tests__/site-wide-payload-budget.test.mjs). First, so they keep the
+// cascade position they had at the end of the global sheet.
+import '../../src/styles/worlds/video-library.css';
+import '../../src/styles/worlds/video-library-pages.css';
 /**
  * VIDEO LIBRARY - Full Poker Videos from Global Livestreams
  * Browse and watch complete hands from HCL, The Lodge, Triton, and more

@@ -419,6 +419,12 @@ body.world-trivia :focus-visible:not(:is(header, nav, footer) *) {
     vertical-align: middle;
 }
 
+.trivia-card-img--mini {
+    width: 22px;
+    height: 31px;
+    border-radius: 3px;
+}
+
 .trivia-card-img--hero {
     width: 30px;
     height: 42px;
@@ -429,6 +435,91 @@ body.world-trivia :focus-visible:not(:is(header, nav, footer) *) {
     height: 70px;
     border-radius: 6px;
     box-shadow: 0 4px 12px rgb(0 0 0 / 65%);
+}
+
+.trivia-card-img--street-gap {
+    margin-left: 5px;
+}
+
+/* ── Shared Clean Playing Top Bar (All Trivia Modes) ────────────────────── */
+
+.trivia-play-topbar {
+    display: grid;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+}
+
+.trivia-play-topbar__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+}
+
+.trivia-play-topbar__count {
+    color: var(--tc-ink-blue, #86daff);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+}
+
+.trivia-play-topbar__badges {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.trivia-play-topbar__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border: 1px solid #445e77;
+    border-radius: 6px;
+    background: #0a1829;
+    color: var(--tc-ink-white, #f2f7ff);
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums lining-nums;
+    line-height: 1.2;
+}
+
+/* ── 1v1 PvP Live Matchmaking Progress Bar ──────────────────────────────── */
+
+.trivia-pvp-radar {
+    display: grid;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.trivia-pvp-radar__track {
+    width: 100%;
+    height: 6px;
+    overflow: hidden;
+    border: 1px solid #445e77;
+    border-radius: 999px;
+    background: #0e2236;
+}
+
+.trivia-pvp-radar__fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #1981ec;
+    transition: width 350ms ease;
+}
+
+/* ── Post-Answer Coaching Action Row ────────────────────────────────────── */
+
+.trivia-coaching-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
 }
 
 @media (min-width: 720px) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Convert verified-venues-master.csv to all-venues.json
- * Generates a comprehensive JSON file with all 483+ venues, each with a unique ID.
+ * Generates a comprehensive JSON file with every venue in the CSV, each with a unique ID.
  */
 
 const fs = require('fs');

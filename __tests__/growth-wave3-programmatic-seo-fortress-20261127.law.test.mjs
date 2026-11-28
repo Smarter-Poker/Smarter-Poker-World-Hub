@@ -113,11 +113,11 @@ test('WAVE 3 LAW 1 — /compare/plo4-vs-plo5 satisfies all benchmarks, SEO budge
 });
 
 test('WAVE 3 LAW 2 — All 30 /tools/odds/[matchup] entries have exact math, SEO fit, valid schema, and zero dashes', () => {
-  assert.equal(TOOL_HAND_MATCHUPS.length, 30, 'Exactly 30 programmatic hand-vs-hand matchups');
+  assert.ok(TOOL_HAND_MATCHUPS.length >= 30, 'At least 30 programmatic hand-vs-hand matchups');
   assert.deepEqual(
-    TOOL_HAND_MATCHUPS.map((m) => m.slug),
+    TOOL_HAND_MATCHUPS.slice(0, REQUIRED_30_MATCHUP_SLUGS.length).map((m) => m.slug),
     REQUIRED_30_MATCHUP_SLUGS,
-    'All 30 required matchup slugs must be present in canonical order',
+    'All 30 required Wave 3 matchup slugs must remain present in canonical order',
   );
 
   const seenTitles = new Set();
@@ -139,7 +139,7 @@ test('WAVE 3 LAW 2 — All 30 /tools/odds/[matchup] entries have exact math, SEO
     assert.ok(m.flopHitNotes.length >= 3, `${m.slug} has >= 3 flop hit notes`);
     assert.ok(m.strategicTakeaways.length >= 3, `${m.slug} has >= 3 strategic takeaways`);
     assert.ok(m.faqs.length >= 3, `${m.slug} has >= 3 FAQs`);
-    assert.match(m.calculatorUrl, /^\/tools\/poker-odds-calculator\?game=(nlhe|plo4)&h0=/, `${m.slug} calculator URL preloads hands`);
+    assert.match(m.calculatorUrl, /^\/tools\/poker-odds-calculator\?game=(nlhe|plo4|plo5)&h0=/, `${m.slug} calculator URL preloads hands`);
 
     for (const rel of m.relatedSlugs) {
       assert.ok(getToolHandMatchup(rel), `${m.slug} related slug ${rel} resolves`);
@@ -180,7 +180,10 @@ test('WAVE 3 LAW 4 — pages/sitemap-tools.xml.js registers all 30 /tools/odds/<
   const sitemapSrc = read('pages/sitemap-tools.xml.js');
   assert.match(sitemapSrc, /TOOL_HAND_MATCHUPS/, 'sitemap-tools.xml.js must import TOOL_HAND_MATCHUPS');
   const { TOOLS_SITEMAP_URLS } = await import('../pages/sitemap-tools.xml.js');
-  assert.equal(TOOLS_SITEMAP_URLS.length, TOOLS_PAGES.length + 30, 'sitemap includes base tools plus all 30 odds matchups');
+  assert.ok(
+    TOOLS_SITEMAP_URLS.length >= TOOLS_PAGES.length + TOOL_HAND_MATCHUPS.length,
+    'sitemap includes base tools plus all programmatic odds matchups',
+  );
   const xml = generateSitemapXml(TOOLS_SITEMAP_URLS);
   for (const slug of REQUIRED_30_MATCHUP_SLUGS) {
     assert.ok(

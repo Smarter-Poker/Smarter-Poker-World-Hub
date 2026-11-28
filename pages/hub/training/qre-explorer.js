@@ -12,12 +12,14 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import at from '../../../src/styles/training/analysis-tools.module.css';
 // TRAIN-CSS-MOTION-ADOPT-6 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
 // framer-motion contract) while the CSS sweep still collapses them under
@@ -142,93 +144,25 @@ export default function QREExplorerPage() {
         description="Explore How Quantal Response Equilibrium And Softmax Noise Parameter Lambda Transform Sharp Nash Poker Strategies Into Smooth Distributions On Smarter.Poker."
         canonical="/hub/training/qre-explorer"
       />
-      <div
-        style={{
-          minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', sans-serif",
-          paddingBottom: 60,
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: '#ffffff' }}>QRE Toy Model</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              Authored Illustration • No Solver Or Population Data
-            </div>
-          </div>
-        </div>
+      <div className={at.shell}>
+        <TrainingPageHead slug="training-qre-explorer" note="Authored Illustration • No Solver Or Population Data" />
 
-        <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
+        <div className={at.page}>
           {/* λ Slider */}
-          <div
-            style={{
-              padding: 24,
-              borderRadius: 16,
-              background: 'rgba(0,0,0,0.3)',
-              border: '1px solid rgba(99,102,241,0.2)',
-              marginBottom: 24,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 12,
-              }}
-            >
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="qre-lambda-title">
+            <div className={at.panelHead}>
               <div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: '#86daff',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                  }}
-                >
-                  Concentration Parameter (λ)
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
-                  Lower = More Even → Higher = More Concentrated
-                </div>
+                <h2 id="qre-lambda-title" className={at.sectionTitle}>Concentration Parameter (λ)</h2>
+                <p className={at.small}>Lower = More Even → Higher = More Concentrated</p>
               </div>
-              <div style={{ fontSize: 32, fontWeight: 900, color: '#86daff' }}>
+              <strong className={at.metricValue} data-tone="ice" style={{ fontSize: '2rem' }}>
                 {(Number.isFinite(Number(lambda)) ? Number(lambda) : 0).toFixed(1)}
-              </div>
+              </strong>
             </div>
             <input
               aria-label="Model Concentration Lambda"
               type="range"
+              className={at.range}
               min="0.1"
               max="10"
               step="0.1"
@@ -237,323 +171,141 @@ export default function QREExplorerPage() {
                 setLambda(parseFloat(e.target.value));
                 setActivePreset(null);
               }}
-              style={{ width: '100%', accentColor: '#38bdf8' }}
             />
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: 12,
-                color: 'var(--sp-fg-dim)',
-                marginTop: 4,
-              }}
-            >
+            <div className={at.scaleLabels} aria-hidden>
               <span>Diffuse</span>
               <span>Soft</span>
               <span>Medium</span>
               <span>Focused</span>
               <span>Sharp</span>
             </div>
-          </div>
 
-          {/* Pool Presets */}
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: 'var(--sp-fg-dim)',
-              textTransform: 'uppercase',
-              letterSpacing: 1,
-              marginBottom: 12,
-            }}
-          >
-            Illustration Presets
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 8,
-              marginBottom: 24,
-            }}
-          >
-            {MODEL_PRESETS.map((p) => (
-              <motion.button
-                key={p.id}
-                type="button"
-                aria-pressed={activePreset === p.id}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => handlePreset(p)}
-                style={{
-                  padding: 12,
-                  borderRadius: 10,
-                  border: `1px solid ${activePreset === p.id ? 'rgba(56,189,248,0.45)' : 'rgba(255,255,255,0.05)'}`,
-                  background:
-                    activePreset === p.id ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.02)',
-                  color: activePreset === p.id ? '#86daff' : 'var(--sp-fg-muted)',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 2 }}>{p.label}</div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>λ = {p.lambda}</div>
-              </motion.button>
-            ))}
-          </div>
+            {/* Pool Presets */}
+            <hr className={at.rule} />
+            <h3 className={at.label}>Illustration Presets</h3>
+            <div className={`${at.metrics} ${at.metrics3}`}>
+              {MODEL_PRESETS.map((p) => (
+                <motion.button
+                  key={p.id}
+                  type="button"
+                  className={`sd-button ${at.stackedButton}`}
+                  aria-pressed={activePreset === p.id}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => handlePreset(p)}
+                >
+                  <span className={at.choiceTitle}>{p.label}</span>
+                  <span className={at.choiceMeta}>λ = {p.lambda}</span>
+                </motion.button>
+              ))}
+            </div>
+          </section>
 
           {/* Spot Selector */}
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: 'var(--sp-fg-dim)',
-              textTransform: 'uppercase',
-              letterSpacing: 1,
-              marginBottom: 12,
-            }}
-          >
-            Decision Spot
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 8,
-              paddingBottom: 8,
-              marginBottom: 20,
-            }}
-          >
-            {Object.entries(SPOT_LABELS || {}).map(([key, info]) => (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={selectedSpot === key}
-                onClick={() => setSelectedSpot(key)}
-                style={{
-                  padding: '10px 14px',
-                  minHeight: 44,
-                  borderRadius: 8,
-                  border: selectedSpot === key ? '1px solid rgba(56,189,248,0.6)' : '1px solid rgba(148,184,224,0.22)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  flex: '0 0 auto',
-                  background: selectedSpot === key ? '#1d4ed8' : 'rgba(255,255,255,0.05)',
-                  color: selectedSpot === key ? '#ffffff' : '#cbd5e1',
-                }}
-              >
-                {info.icon} {info.label}
-              </button>
-            ))}
-          </div>
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="qre-spot-title">
+            <h2 id="qre-spot-title" className={at.sectionTitle}>Decision Spot</h2>
+            <div className={at.chips} role="group" aria-label="Decision Spot">
+              {Object.entries(SPOT_LABELS || {}).map(([key, info]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className="sd-button"
+                  aria-pressed={selectedSpot === key}
+                  onClick={() => setSelectedSpot(key)}
+                >
+                  <span aria-hidden>{info.icon}</span> {info.label}
+                </button>
+              ))}
+            </div>
+          </section>
 
           {/* Authored reference versus teaching-model comparison */}
-          <div
-            style={{
-              background: 'rgba(0,0,0,0.2)',
-              padding: 24,
-              borderRadius: 16,
-              border: '1px solid rgba(255,255,255,0.05)',
-              marginBottom: 24,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 20,
-              }}
-            >
-              <div style={{ fontSize: 15, fontWeight: 800 }}>
-                {spotInfo.icon} {spotInfo.label}
-              </div>
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  padding: '3px 8px',
-                  borderRadius: 4,
-                  background: 'rgba(56,189,248,0.12)',
-                  color: '#86daff',
-                }}
-              >
-                {spotInfo.street}
-              </span>
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="qre-compare-title">
+            <div className={at.panelHead}>
+              <h2 id="qre-compare-title" className={at.sectionTitle}>
+                <span aria-hidden className={at.ice}>{spotInfo.icon}</span> {spotInfo.label}
+              </h2>
+              <span className={at.tag}>{spotInfo.street}</span>
             </div>
 
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 60px 60px 60px',
-                gap: 8,
-                marginBottom: 8,
-              }}
-            >
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-dim)' }}>ACTION</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)', textAlign: 'center' }}>
-                AUTHORED
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', textAlign: 'center' }}>
-                MODEL
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', textAlign: 'center' }}>
-                DELTA
-              </div>
+            <div className={at.tableWrap}>
+              <table className={at.table}>
+                <thead>
+                  <tr>
+                    <th scope="col">Action</th>
+                    <th scope="col">Authored</th>
+                    <th scope="col">Model</th>
+                    <th scope="col">Delta</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentActions.map((a) => {
+                    const delta = a.modelFreq - a.referenceFreq;
+                    return (
+                      <tr key={a.action}>
+                        <td>
+                          <strong className={at.white}>{a.action}</strong>
+                          <span className={at.small} style={{ display: 'block' }}>Model Utility: {a.utility}</span>
+                        </td>
+                        <td>{a.referenceFreq}%</td>
+                        <td className={at.ice}>{a.modelFreq}%</td>
+                        <td className={Math.abs(delta) < 3 ? at.small : at.white}>
+                          {delta > 0 ? '+' : ''}
+                          {delta}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-
-            {currentActions.map((a) => {
-              const delta = a.modelFreq - a.referenceFreq;
-              return (
-                <motion.div
-                  key={a.action}
-                  initial={{ opacity: 0, x: -5 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 60px 60px 60px',
-                    gap: 8,
-                    alignItems: 'center',
-                    padding: '12px 0',
-                    borderBottom: '1px solid rgba(255,255,255,0.03)',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
-                      {a.action}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-                      Model Utility: {a.utility}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--sp-accent-green)' }}>
-                      {a.referenceFreq}%
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#86daff' }}>
-                      {a.modelFreq}%
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: Math.abs(delta) < 3 ? 'var(--sp-fg-muted)' : delta > 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
-                      }}
-                    >
-                      {delta > 0 ? '+' : ''}
-                      {delta}%
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+          </section>
 
           {/* Visual Bar Chart */}
-          <div
-            style={{
-              background: 'rgba(0,0,0,0.2)',
-              padding: 24,
-              borderRadius: 16,
-              border: '1px solid rgba(255,255,255,0.05)',
-              marginBottom: 24,
-            }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-muted)', marginBottom: 16 }}>
-              Frequency Distribution
-            </div>
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="qre-dist-title">
+            <h2 id="qre-dist-title" className={at.sectionTitle}>Frequency Distribution</h2>
             {currentActions.map((a) => (
-              <div key={a.action} style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)', marginBottom: 6 }}>
-                  {a.action}
+              <div key={a.action} className={at.field}>
+                <span className={at.barHead} style={{ margin: 0 }}>
+                  <span>{a.action}</span>
+                  <span>{a.referenceFreq}% / {a.modelFreq}%</span>
+                </span>
+                <div className={at.track} aria-hidden>
+                  <motion.div
+                    className={`${at.fill} ${at.fillSilver}`}
+                    animate={{ width: `${a.referenceFreq}%` }}
+                    transition={{ duration: MOTION.slow }}
+                  />
                 </div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        height: 10,
-                        borderRadius: 3,
-                        background: 'rgba(255,255,255,0.04)',
-                        overflow: 'hidden',
-                        marginBottom: 2,
-                      }}
-                    >
-                      <motion.div
-                        animate={{ width: `${a.referenceFreq}%` }}
-                        transition={{ duration: MOTION.slow }}
-                        style={{ height: '100%', background: 'var(--sp-accent-green)', borderRadius: 3 }}
-                      />
-                    </div>
-                    <div
-                      style={{
-                        height: 10,
-                        borderRadius: 3,
-                        background: 'rgba(255,255,255,0.04)',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <motion.div
-                        animate={{ width: `${a.modelFreq}%` }}
-                        transition={{ duration: MOTION.slow }}
-                        style={{ height: '100%', background: '#38bdf8', borderRadius: 3 }}
-                      />
-                    </div>
-                  </div>
+                <div className={at.track} aria-hidden>
+                  <motion.div
+                    className={at.fill}
+                    animate={{ width: `${a.modelFreq}%` }}
+                    transition={{ duration: MOTION.slow }}
+                  />
                 </div>
               </div>
             ))}
-            <div
-              style={{
-                display: 'flex',
-                gap: 16,
-                justifyContent: 'center',
-                fontSize: 12,
-                marginTop: 8,
-              }}
-            >
-              <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>Authored Reference</span>
-              <span style={{ color: '#86daff', fontWeight: 700 }}>Toy Model</span>
+            <div className={at.legend} style={{ gridAutoFlow: 'column', justifyContent: 'center', gap: 16 }}>
+              <span className={at.legendItem}><span className={at.legendSwatch} style={{ background: 'linear-gradient(180deg, #d4e3ef, #6d8aa3)' }} aria-hidden />Authored Reference</span>
+              <span className={at.legendItem}><span className={at.legendSwatch} style={{ background: 'linear-gradient(180deg, #7fe7ff, #1d8fe0)' }} aria-hidden />Toy Model</span>
             </div>
-          </div>
+          </section>
 
           {/* Model interpretation */}
-          <div
-            style={{
-              padding: 20,
-              borderRadius: 16,
-              background: 'rgba(251,191,36,0.05)',
-              border: '1px solid rgba(251,191,36,0.15)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: '#86daff',
-                textTransform: 'uppercase',
-                marginBottom: 8,
-              }}
-            >
-              Model Observation
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
+          <section className={`sd-panel ${at.panel} ${at.tight}`} aria-labelledby="qre-observation-title">
+            <h2 id="qre-observation-title" className={at.eyebrow}>Model Observation</h2>
+            <p className={at.copy}>
               {lambda < 1.5
-                ? 'At this setting, the toy model keeps the authored actions relatively diffuse.'
+                ? 'At This Setting, The Toy Model Keeps The Authored Actions Relatively Diffuse.'
                 : lambda < 3
-                  ? 'At this setting, authored utility differences create moderate concentration.'
+                  ? 'At This Setting, Authored Utility Differences Create Moderate Concentration.'
                   : lambda < 6
-                    ? 'At this setting, the toy model places much more weight on the highest authored utility.'
-                    : 'At this setting, the toy model is extremely sensitive to the highest authored utility.'}{' '}
+                    ? 'At This Setting, The Toy Model Places Much More Weight On The Highest Authored Utility.'
+                    : 'At This Setting, The Toy Model Is Extremely Sensitive To The Highest Authored Utility.'}{' '}
               This Is A Mathematical Illustration Only. It Does Not Describe A Real Player Pool,
               Establish Action Quality, Or Recommend Poker Strategy.
-            </div>
-          </div>
-
+            </p>
+          </section>
         </div>
       </div>
       <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>

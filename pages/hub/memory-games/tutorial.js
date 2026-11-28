@@ -51,7 +51,7 @@ export default function MemoryGamesTutorial() {
         canonical="/hub/preflop-charts/tutorial"
         jsonLd={PREFLOP_GUIDE_SCHEMA}
       />
-      <PreflopSubpageShell eyebrow="FIELD MANUAL // RANGE LAB" title="Operate The Matrix" description="A Practical Guide To Building Exact Preflop Ranges On Desktop Or Mobile." metric="GUIDE">
+      <PreflopSubpageShell eyebrow="FIELD MANUAL // RANGE LAB" title="Operate The Matrix" description="A Practical Guide To Building Exact Preflop Ranges On Desktop Or Mobile.">
         <section className="preflop-guide-grid" aria-label="How to use Preflop Charts">
           {STEPS.map(({ icon: Icon, title, description }, index) => (
             <article className="preflop-guide-step" key={title}>
@@ -61,7 +61,7 @@ export default function MemoryGamesTutorial() {
         </section>
 
         <section className="preflop-subpage-panel preflop-guide-tour" aria-labelledby="tour-steps-title">
-          <div className="preflop-panel-heading"><div><span>INTERACTIVE TOUR // {PREFLOP_TUTORIAL.steps.length} STEPS</span><h2 id="tour-steps-title">{PREFLOP_TUTORIAL.title} Tour</h2></div><Compass size={22} aria-hidden style={{ color: '#6bd2ff' }} /></div>
+          <div className="preflop-panel-heading"><div><span>Interactive Tour: {PREFLOP_TUTORIAL.steps.length} Steps</span><h2 id="tour-steps-title">{PREFLOP_TUTORIAL.title} Tour</h2></div><Compass size={22} aria-hidden style={{ color: '#86daff' }} /></div>
           <div className="preflop-guide-tour-list">
             {PREFLOP_TUTORIAL.steps.map((step, index) => (
               <article key={step.id} aria-labelledby={`tour-step-${step.id}`}>
@@ -77,13 +77,13 @@ export default function MemoryGamesTutorial() {
         </section>
 
         <section className="preflop-subpage-panel preflop-guide-feedback" aria-labelledby="feedback-legend-title">
-          <div className="preflop-panel-heading"><div><span>RESULT LAYER</span><h2 id="feedback-legend-title">Read The Review Colors</h2></div></div>
+          <div className="preflop-panel-heading"><div><span>Result Layer</span><h2 id="feedback-legend-title">Read The Review Colors</h2></div></div>
           <div className="preflop-feedback-legend">
             {FEEDBACK.map((item) => <div key={item.state} data-feedback={item.state}><i aria-hidden /><span><strong>{item.label}</strong>{item.detail}</span></div>)}
           </div>
         </section>
         <section className="preflop-subpage-panel preflop-guide-shortcuts" aria-labelledby="shortcut-title">
-          <Keyboard size={24} aria-hidden /><div><span>DESKTOP CONTROL MAP</span><h2 id="shortcut-title">Keyboard Shortcuts</h2><p><kbd>1-6</kbd> Select Actions. <kbd>Arrow Keys</kbd> Move Through The Matrix. <kbd>Enter</kbd> Or <kbd>Space</kbd> Toggles The Focused Hand, Or Submits Outside The Grid. <kbd>Ctrl/Cmd Z</kbd> Undo. <kbd>Shift + Ctrl/Cmd Z</kbd> Redo.</p></div>
+          <Keyboard size={24} aria-hidden /><div><span>Desktop Control Map</span><h2 id="shortcut-title">Keyboard Shortcuts</h2><p><kbd>1-6</kbd> Select Actions. <kbd>Arrow Keys</kbd> Move Through The Matrix. <kbd>Enter</kbd> Or <kbd>Space</kbd> Toggles The Focused Hand, Or Submits Outside The Grid. <kbd>Ctrl/Cmd Z</kbd> Undo. <kbd>Shift + Ctrl/Cmd Z</kbd> Redo.</p></div>
         </section>
         <div className="preflop-subpage-cta-row"><Link href="/hub/preflop-charts" className="preflop-subpage-primary-cta">Start Range Training <ArrowRight size={17} aria-hidden /></Link></div>
       </PreflopSubpageShell>

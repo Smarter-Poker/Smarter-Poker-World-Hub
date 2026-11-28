@@ -43,6 +43,10 @@ import {
   buildSeriesFactKernel,
   buildSeriesPaaQuestions,
 } from '../../../src/lib/poker-near-me/venueAeo.mjs';
+import {
+  buildSeriesMetaDescription,
+  buildSeriesSubEventSchema,
+} from '../../../src/lib/seo/seriesEventSchema.mjs';
 import Link from 'next/link';
 import { useState, useEffect, Fragment, useRef, useCallback } from 'react';
 import useSWR from 'swr';
@@ -50,6 +54,7 @@ import { useRouter } from 'next/router';
 import { eventBus } from '../../../src/engine/EventBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PnmImageHeader from '../../../src/components/poker-near-me/PnmImageHeader';
 import PokerIdentityMark from '../../../src/components/poker-near-me/PokerIdentityMark';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { formatGameType, decodeHtml } from '../../../src/utils/pokerFormatters';
@@ -64,7 +69,7 @@ const TOUR_COLORS = {
   'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981' },
   'PGT': { bg: 'linear-gradient(135deg, #0f766e, #115e59)', text: '#fff', border: '#2dd4bf' },
   'EPT': { bg: 'linear-gradient(135deg, #0ea5e9, #0369a1)', text: '#fff', border: '#38bdf8' },
-  'LAPC': { bg: 'linear-gradient(135deg, #e11d48, #9f1239)', text: '#fff', border: '#fb7185' },
+  'LAPC': { bg: 'linear-gradient(135deg, #e11d48, #12709f)', text: '#fff', border: '#fb7185' },
   'SHRPO': { bg: 'linear-gradient(135deg, #0369a1, #075985)', text: '#fff', border: '#38bdf8' },
   'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563' },
 };
@@ -88,7 +93,7 @@ const ACTIVITY_TYPE_COLORS = {
 const PODIUM_COLORS = {
   1: '#00D4FF',
   2: '#c0c0c0',
-  3: '#cd7f32',
+  3: '#3299cd',
 };
 
 function formatDateRange(startDate, endDate) {
@@ -435,7 +440,7 @@ export async function getServerSideProps({ params, req, res }) {
  * the server HTML whether the browser data has arrived or not. A series with
  * nothing to index (missing, or no name) stays out of the index.
  */
-function SeriesHead({ series }) {
+function SeriesHead({ series, liveEvents = null }) {
   if (!isPublicSeries(series)) {
     return (
       <SEOHead
@@ -447,11 +452,37 @@ function SeriesHead({ series }) {
   }
   const geoRegion = series.state ? `US-${String(series.state).trim().toUpperCase()}` : null;
   const geoPlacename = [series.city, series.state].filter(Boolean).join(', ') || null;
+  const scheduledEvents = Array.isArray(liveEvents) && liveEvents.length > 0
+    ? liveEvents
+    : (Array.isArray(series.events) ? series.events : []);
+  const metaDescription = buildSeriesMetaDescription(series, scheduledEvents, { maxLength: 158 })
+    || seriesDescription(series);
+
+  if (Array.isArray(liveEvents) && liveEvents.length > 0 && (!Array.isArray(series.events) || series.events.length === 0)) {
+    const nodes = seriesSchema(series);
+    const subEvents = buildSeriesSubEventSchema(series, liveEvents);
+    if (subEvents.length > 0 && Array.isArray(nodes)) {
+      const eventNode = nodes.find((n) => n?.['@type'] === 'EventSeries' || n?.['@type'] === 'Event');
+      if (eventNode) eventNode.subEvent = subEvents;
+    }
+    return (
+      <SEOHead
+        title={seriesTitle(series)}
+        description={metaDescription}
+        canonical={seriesPath(series)}
+        ogImage={seriesOgImage(series) || series.logoUrl || null}
+        jsonLd={nodes}
+        geoRegion={geoRegion}
+        geoPlacename={geoPlacename}
+        markdownUrl={series?.id ? `https://smarter.poker/hub/series/${series.id}.md` : undefined}
+      />
+    );
+  }
 
   return (
     <SEOHead
       title={seriesTitle(series)}
-      description={seriesDescription(series)}
+      description={metaDescription}
       canonical={seriesPath(series)}
       ogImage={seriesOgImage(series) || series.logoUrl || null}
       jsonLd={seriesSchema(series)}
@@ -855,6 +886,41 @@ export default function SeriesDetailPage({ seoSeries = null }) {
     const seriesLabel = series?.name ? decodeHtml(series.name) : 'This Poker Series';
     const redirectTarget = `/hub/series/${id || series?.id || ''}`;
     try {
+      const seriesIdSlug = String(id || series?.id || 'series')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'series';
+      const rawEventKey =
+        evt?.event_number != null && String(evt.event_number).trim() !== ''
+          ? String(evt.event_number)
+          : eventLabel;
+      const eventNumOrSlug = rawEventKey
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 40) || 'event';
+      const reminderEntry = {
+        id: `series-reminder-${seriesIdSlug}-${eventNumOrSlug}`.slice(0, 80),
+        toolSlug: 'series-event-reminder',
+        toolName: 'Tournament Event Reminder',
+        summaryText: `${eventLabel} (${buyInLabel} · ${dateLabel}) At ${seriesLabel}`.slice(0, 320),
+        url: redirectTarget,
+        savedAt: new Date().toISOString(),
+      };
+      const rawSaved = window.localStorage?.getItem('sp_saved_spots_v1');
+      const parsedSaved = rawSaved ? JSON.parse(rawSaved) : [];
+      const existingSaved = Array.isArray(parsedSaved) ? parsedSaved : [];
+      const nextSaved = [
+        reminderEntry,
+        ...existingSaved.filter((item) => item && item.id !== reminderEntry.id),
+      ].slice(0, 25);
+      window.localStorage?.setItem('sp_saved_spots_v1', JSON.stringify(nextSaved));
+    } catch (_) {
+      /* ignore storage restrictions */
+    }
+    try {
       window.dispatchEvent(
         new CustomEvent('sp:seo-tool-engaged', {
           detail: {
@@ -1055,6 +1121,9 @@ export default function SeriesDetailPage({ seoSeries = null }) {
         }}
       />
       <PokerNearMeFamilyNav />
+      <div className="smarterdesign pnm-sd-top">
+        <PnmImageHeader route="series" title="Poker Series" heading="p" />
+      </div>
 
       <HamburgerMenu
           isOpen={menuOpen}
@@ -1793,10 +1862,6 @@ const styles = `
     justify-content: center;
     gap: 8px;
     padding: 0 20px !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / 100% 100% no-repeat !important;
-    box-shadow: none !important;
     color: #e4e7ec !important;
     cursor: pointer;
     font-size: 13px;
@@ -1804,11 +1869,22 @@ const styles = `
     letter-spacing: 0.1em;
     text-shadow: 0 1px 0 #050607, 0 2px 4px rgba(0,0,0,0.85);
     text-transform: uppercase;
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+    background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: #f2f7ff !important;
   }
   body.world-poker-near-me .series-header .action-btn.follow-btn {
-    background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
     color: #f4f7fb !important;
     text-shadow: 0 0 8px rgba(140,210,255,0.85), 0 2px 4px rgba(0,0,0,0.7);
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch !important;
+    background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
   }
   body.world-poker-near-me .series-header .action-btn:active {
     filter: brightness(1.2);
@@ -2054,7 +2130,7 @@ const styles = `
   }
 
   .venue-link.external:hover {
-    color: #e8c370;
+    color: #70c0e8;
   }
 
   /* Events Table */

@@ -17,12 +17,13 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 import { analyzeVerifiedTrainingWeaknesses } from '../../../src/lib/training/weaknessAnalysis.mjs';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import st from '../../../src/styles/training/study-tools.module.css';
 // TRAIN-CSS-MOTION-ADOPT-9 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
 // framer-motion contract) while the CSS sweep still collapses them under
@@ -271,112 +272,37 @@ function DayCard({ dayPlan, isToday, onStartArea, completedGames }) {
   const allDone = dayPlan.areas.every((area) => completedGames.has(area.gameId));
 
   return (
-    <motion.div
+    <motion.section
       layout
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{
-        background: isToday
-          ? 'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(0,212,255,0.02) 100%)'
-          : 'rgba(0,0,0,0.2)',
-        border: `1px solid ${isToday ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)'}`,
-        borderRadius: 14,
-        overflow: 'hidden',
-        marginBottom: 10,
-      }}
+      className={`sd-panel ${st.dayCard}`}
+      data-today={isToday ? 'true' : undefined}
+      aria-label={`${dayPlan.day} Plan`}
     >
       {/* Header */}
       <motion.button
         type="button"
         onClick={() => setExpanded(!expanded)}
         whileTap={{ scale: 0.99 }}
-        style={{
-          width: '100%',
-          padding: '14px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-        }}
+        aria-expanded={expanded}
+        className={st.dayToggle}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {allDone ? (
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: 'rgba(34,197,94,0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 14,
-              }}
-            >
-              ✓
-            </div>
-          ) : isToday ? (
-            <motion.div
-              animate={{
-                boxShadow: [
-                  '0 0 8px rgba(0,212,255,0.3)',
-                  '0 0 16px rgba(0,212,255,0.6)',
-                  '0 0 8px rgba(0,212,255,0.3)',
-                ],
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: 'rgba(0,212,255,0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 12,
-                color: 'var(--sp-accent-cyan)',
-                fontWeight: 800,
-              }}
-            >
-              ▶
-            </motion.div>
-          ) : (
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.05)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 12,
-                color: 'var(--sp-fg-faint)',
-                fontWeight: 700,
-              }}
-            >
-              {dayPlan.dayIndex + 1}
-            </div>
-          )}
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: isToday ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)' }}>
-              {dayPlan.day}{' '}
-              {isToday && (
-                <span style={{ fontSize: 12, color: 'var(--sp-accent-cyan)', fontWeight: 600 }}>- TODAY</span>
-              )}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              {dayPlan.areas.length} Focus {dayPlan.areas.length === 1 ? 'area' : 'areas'} ·{' '}
-              {dayPlan.totalQuestions} Questions
-            </div>
-          </div>
-        </div>
-        <motion.span
-          animate={{ rotate: expanded ? 180 : 0 }}
-          style={{ color: 'var(--sp-fg-faint)', fontSize: 14 }}
-        >
+        <span className={st.dayBadge} data-state={allDone ? 'done' : isToday ? 'today' : 'idle'} aria-hidden>
+          {allDone ? '✓' : isToday ? '▶' : dayPlan.dayIndex + 1}
+        </span>
+        <span className={st.dayText}>
+          <span className={st.itemTitle}>
+            {dayPlan.day}{' '}
+            {isToday && <span className={st.ice}>· Today</span>}
+            {allDone && <span className={st.ice}> · Complete</span>}
+          </span>
+          <span className={st.small}>
+            {dayPlan.areas.length} Focus {dayPlan.areas.length === 1 ? 'Area' : 'Areas'} ·{' '}
+            {dayPlan.totalQuestions} Questions
+          </span>
+        </span>
+        <motion.span animate={{ rotate: expanded ? 180 : 0 }} className={st.chevron} aria-hidden>
           ▼
         </motion.span>
       </motion.button>
@@ -391,9 +317,7 @@ function DayCard({ dayPlan, isToday, onStartArea, completedGames }) {
             transition={{ duration: MOTION.standard }}
             style={{ overflow: 'hidden' }}
           >
-            <div
-              style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}
-            >
+            <div className={st.dayAreas}>
               {dayPlan.areas.map((area, areaIdx) => {
                 const isDone = completedGames.has(area.gameId);
 
@@ -403,48 +327,20 @@ function DayCard({ dayPlan, isToday, onStartArea, completedGames }) {
                     key={areaIdx}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => onStartArea(area)}
-                    style={{
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '12px 14px',
-                      borderRadius: 10,
-                      background: isDone ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.02)',
-                      border: `1px solid ${isDone ? 'rgba(34,197,94,0.15)' : `${area.color}18`}`,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      opacity: isDone ? 0.6 : 1,
-                    }}
+                    className={`sd-button ${st.savedRow}`}
+                    data-done={isDone ? 'true' : undefined}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: 18 }}>{area.icon}</span>
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: isDone ? 'var(--sp-accent-green)' : area.color,
-                          }}
-                        >
-                          {area.name}
-                          {isDone && (
-                            <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--sp-accent-green)' }}>
-                              ✓ Practiced This Week
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 1 }}>
-                          {area.reason}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: area.color }}>
-                        {area.questionCount}Q
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>Goal: {area.goal}%</div>
-                    </div>
+                    <span className={st.savedText}>
+                      <span className={st.presetName}>
+                        {area.icon ? `${area.icon} ` : ''}{area.name}
+                      </span>
+                      {isDone && <span className={st.doneNote}>✓ Practiced This Week</span>}
+                      <span className={st.presetDesc}>{area.reason}</span>
+                    </span>
+                    <span className={st.areaGoal}>
+                      <strong>{area.questionCount}Q</strong>
+                      <span>Goal: {area.goal}%</span>
+                    </span>
                   </motion.button>
                 );
               })}
@@ -452,7 +348,7 @@ function DayCard({ dayPlan, isToday, onStartArea, completedGames }) {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </motion.section>
   );
 }
 
@@ -643,174 +539,79 @@ export default function StudyPlanPage() {
         <title>Study Plan | Smarter.Poker GTO Training</title>
               <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <div
-        className="sp-training-journey sp-training-journey--study-plan"
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: '#040d18',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="sp-journey-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid #688299',
-            background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              type="button"
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 18,
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              ←
-            </button>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
-                Weekly Study Plan
-              </h1>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-                {loading
-                  ? 'Loading Verified Training History'
-                  : signedOut
-                    ? 'Sign In To Build Your Schedule'
-                    : fetchError
-                      ? 'Training History Unavailable'
-                      : isAuthoredStarterPlan
-                        ? 'Authored Starter Schedule'
-                        : 'Personalized From Verified Training History'}
-              </div>
-            </div>
-          </div>
+      <div className={`sp-training-journey sp-training-journey--study-plan ${st.shell}`}>
+        <TrainingPageHead slug="training-study-plan">
+          <p className="sp-head-note">
+            {loading
+              ? 'Loading Verified Training History'
+              : signedOut
+                ? 'Sign In To Build Your Schedule'
+                : fetchError
+                  ? 'Training History Unavailable'
+                  : isAuthoredStarterPlan
+                    ? 'Authored Starter Schedule'
+                    : 'Personalized From Verified Training History'}
+          </p>
           {plan && (
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.95 }}
-              onClick={regeneratePlan}
-              style={{
-                padding: '8px 14px',
-                borderRadius: 8,
-                border: '1px solid rgba(255,255,255,0.1)',
-                background: 'rgba(255,255,255,0.03)',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
+            <button type="button" className="sd-button" onClick={regeneratePlan}>
               New Plan
-            </motion.button>
+            </button>
           )}
-        </div>
+        </TrainingPageHead>
 
-        <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
-          <div
+        <div className={`sp-journey-main ${st.page} ${st.journey}`}>
+          <section
             data-dynamic-leak-curriculum="true"
             data-leak-variant={topLeak.variant}
             data-leak-street={topLeak.street}
             data-leak-position={topLeak.position}
             data-leak-sample-count={topLeak.sampleSize}
             data-leak-basis={leakAnalysis.hasVerifiedLeak ? 'verified-history' : 'baseline-calibration'}
-            style={{
-              marginBottom: 18,
-              padding: 16,
-              borderRadius: 7,
-              border: '1px solid #688299',
-              borderTopColor: '#aec0d0',
-              background: '#091727',
-            }}
+            className={`sd-panel ${st.panel}`}
+            aria-labelledby="priority-leak-title"
           >
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 900, color: '#86daff', textTransform: 'uppercase' }}>
-                #1 Priority Leak Curriculum: {String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}
+            <div className={st.panelHead}>
+              <div>
+                <p className={st.eyebrow}>#1 Priority Leak Curriculum</p>
+                <h2 id="priority-leak-title" className={st.title}>
+                  {String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}
+                </h2>
               </div>
-              <div style={{ fontSize: 12, fontWeight: 800, color: leakAnalysis.hasVerifiedLeak ? '#4ade80' : '#94a3b8' }}>
+              <span className={`${st.tag} ${leakAnalysis.hasVerifiedLeak ? st.tagActive : ''}`}>
                 {leakAnalysis.hasVerifiedLeak ? 'Verified Leak History' : 'Baseline Calibration'} · N = {topLeak.sampleSize}
-              </div>
+              </span>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 12, color: '#e2e8f0', marginBottom: 12 }}>
-              <span>Target Module: <strong>{topLeak.gameId}</strong></span>
-              <span>Sample Count: <strong>N = {topLeak.sampleSize}</strong></span>
-              <span>Total EV Loss: <strong>{topLeak.evLossBb} BB</strong></span>
-              <span>Avg EV Loss: <strong>{topLeak.avgEvLossBb} BB/Hand</strong></span>
-            </div>
+            <dl className={st.facts}>
+              <div><dt>Target Module</dt><dd className="no-capitalize">{topLeak.gameId}</dd></div>
+              <div><dt>Sample Count</dt><dd>N = {topLeak.sampleSize}</dd></div>
+              <div><dt>Total EV Loss</dt><dd>{topLeak.evLossBb} BB</dd></div>
+              <div><dt>Avg EV Loss</dt><dd>{topLeak.avgEvLossBb} BB/Hand</dd></div>
+            </dl>
             <button
               type="button"
               data-drill-priority-leak-cta="true"
               data-drill-href={topLeakDrillHref}
               onClick={() => router.push(topLeakDrillHref)}
-              style={{
-                display: 'inline-flex',
-                minHeight: 44,
-                alignItems: 'center',
-                padding: '0 16px',
-                borderRadius: 8,
-                border: '1px solid #fbbf24',
-                background: 'linear-gradient(180deg, rgba(217, 119, 6, 0.48), rgba(146, 64, 14, 0.72))',
-                color: '#86daff',
-                fontSize: 12,
-                fontWeight: 900,
-                cursor: 'pointer',
-              }}
+              className={`sd-button sd-primary ${st.block}`}
             >
               Drill Priority #1 Leak In Club Arena ({String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}) →
             </button>
-          </div>
+          </section>
 
           {!loading && signedOut && (
-            <div
-              role="status"
-              style={{
-                padding: '18px 16px',
-                borderRadius: 12,
-                border: '1px solid rgba(0,212,255,0.18)',
-                background: 'rgba(0,212,255,0.05)',
-                color: 'var(--sp-fg-muted)',
-                lineHeight: 1.6,
-                marginBottom: 16,
-              }}
-            >
-              <strong style={{ display: 'block', color: 'var(--sp-fg)', marginBottom: 4 }}>
-                Sign In To Build Your Study Plan
-              </strong>
-              Personalized Progress Requires Verified Training History. No Schedule Or Completion Totals Are Inferred While Signed Out.
+            <section role="status" className={`sd-panel ${st.panel} ${st.state}`}>
+              <h2 className={st.title}>Sign In To Build Your Study Plan</h2>
+              <p className={st.copy}>
+                Personalized Progress Requires Verified Training History. No Schedule Or Completion Totals Are Inferred While Signed Out.
+              </p>
               <button
                 type="button"
                 onClick={() => router.push('/auth/login?redirect=/hub/training/study-plan')}
-                style={{
-                  display: 'block',
-                  marginTop: 12,
-                  padding: '9px 14px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(0,212,255,0.3)',
-                  background: 'rgba(0,212,255,0.1)',
-                  color: 'var(--sp-accent-cyan)',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                }}
+                className="sd-button sd-primary"
               >
                 Sign In
               </button>
-            </div>
+            </section>
           )}
           {!loading && !signedOut && (fetchError || !Array.isArray(sessions)) && (
             <ErrorBanner
@@ -820,83 +621,40 @@ export default function StudyPlanPage() {
           )}
           {/* Progress Overview */}
           {plan && !loading && !fetchError && !signedOut && (
-            <motion.div
-            className="sp-journey-spotlight"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{
-              padding: '18px 16px',
-              borderRadius: 14,
-              marginBottom: 20,
-              background:
-                'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(6,72,226,0.06) 100%)',
-              border: '1px solid rgba(0,212,255,0.12)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 12,
-              }}
+            <motion.section
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`sd-panel ${st.panel}`}
+              aria-label="Week Progress"
             >
-              <div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                  }}
-                >
-                  Week Progress
+              <div className={st.grid2}>
+                <div className={st.statBlock}>
+                  <span className={st.metricLabel}>Week Progress</span>
+                  <strong className={st.metricValue}>{progress}%</strong>
                 </div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--sp-fg)', marginTop: 2 }}>
-                  {progress}%
+                <div className={`${st.statBlock} ${st.statRight}`}>
+                  <span className={st.metricLabel}>Drills Completed</span>
+                  <strong className={st.metricValue} data-tone="ice">{totalCompleted}/{totalAreas}</strong>
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
-                  {totalCompleted}/{totalAreas}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Drills Completed</div>
+              {/* Progress bar */}
+              <div className={st.track} role="progressbar" aria-label="Week Progress" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: MOTION.glacial, ease: 'easeOut' }}
+                  className={st.fill}
+                />
               </div>
-            </div>
-            {/* Progress bar */}
-            <div
-              style={{
-                height: 6,
-                borderRadius: 3,
-                background: 'rgba(255,255,255,0.06)',
-                overflow: 'hidden',
-              }}
-            >
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: MOTION.glacial, ease: 'easeOut' }}
-                style={{
-                  height: '100%',
-                  borderRadius: 3,
-                  background:
-                    progress >= 80
-                      ? 'linear-gradient(90deg, rgba(var(--sp-accent-green-rgb), 1), rgba(var(--sp-accent-green-rgb), 1))'
-                      : progress >= 40
-                        ? 'linear-gradient(90deg, rgba(var(--sp-accent-amber-rgb), 1), rgba(var(--sp-accent-orange-rgb), 1))'
-                        : 'linear-gradient(90deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
-                }}
-              />
-            </div>
-            </motion.div>
+            </motion.section>
           )}
 
           {/* Loading State */}
           {loading && (
-            <div style={{ padding: '20px 0' }}>
-              <SkeletonLoader variant="card" count={3} />
-            </div>
+            <section className={`sd-panel ${st.panel}`} role="status" aria-label="Loading Study Plan">
+              <div className={st.skeleton} aria-hidden><span /><span /><span /><span /><span /><span /></div>
+              <p className={st.small}>Loading Verified Training History...</p>
+            </section>
           )}
 
           {/* Weakness Insights (data-driven transparency) */}
@@ -905,69 +663,34 @@ export default function StudyPlanPage() {
             const dataWeaknesses = weaknesses.filter((w) => w.weakness && w.accuracy !== undefined);
             if (dataWeaknesses.length === 0) return null;
             return (
-              <motion.div
+              <motion.section
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                style={{
-                  padding: '14px 16px',
-                  borderRadius: 12,
-                  marginBottom: 16,
-                  background: 'rgba(239,68,68,0.04)',
-                  border: '1px solid rgba(239,68,68,0.08)',
-                }}
+                className={`sd-panel ${st.panel}`}
+                aria-labelledby="weak-spots-title"
               >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-accent-red)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    marginBottom: 10,
-                  }}
-                >
-                  Your Weak Spots (Based On Data)
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <h2 id="weak-spots-title" className={st.title}>Your Weak Spots (Based On Data)</h2>
+                <div className={st.list}>
                   {dataWeaknesses.slice(0, 3).map((w, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '8px 10px',
-                        borderRadius: 8,
-                        background: 'rgba(0,0,0,0.15)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 16 }}>{w.icon}</span>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)' }}>
-                          {w.name}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 800,
-                            color: w.accuracy < 50 ? 'var(--sp-accent-red)' : w.accuracy < 70 ? '#86daff' : 'var(--sp-accent-green)',
-                          }}
-                        >
+                    <div key={i} className={`${st.item} ${st.rowItem}`}>
+                      <span className={st.itemTitle}>
+                        {w.icon ? `${w.icon} ` : ''}{w.name}
+                      </span>
+                      <span className={st.areaGoal}>
+                        <strong className={w.accuracy < 50 ? st.down : w.accuracy < 70 ? st.ice : st.up}>
                           {w.accuracy}%
-                        </span>
+                        </strong>
                         {w.measuredEvDecisions > 0 && w.evLoss !== null && (
-                          <span style={{ fontSize: 12, color: 'var(--sp-accent-red)' }}>
+                          <span className={st.down}>
                             {Math.round(w.evLoss * 10) / 10} BB Measured EV Loss
                           </span>
                         )}
-                      </div>
+                      </span>
                     </div>
                   ))}
                 </div>
-              </motion.div>
+              </motion.section>
             );
           })()}
 
@@ -979,28 +702,18 @@ export default function StudyPlanPage() {
             const focus = focusWeaknesses[Math.floor(Date.now() / 86400000) % focusWeaknesses.length];
             if (!focus) return null;
             return (
-              <motion.div
+              <motion.section
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                style={{
-                  padding: '14px 16px',
-                  borderRadius: 12,
-                  marginBottom: 16,
-                  background: 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(59,130,246,0.03))',
-                  border: '1px solid rgba(0,212,255,0.12)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
+                className={`sd-panel ${st.panel} ${st.rowItem}`}
+                aria-label="Today's Focus"
               >
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-                    Today's Focus
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
+                  <p className={st.eyebrow}>Today's Focus</p>
+                  <div className={st.itemTitle}>
                     {focus.icon} {focus.name}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
+                  <div className={st.small}>
                     {focus.accuracy}% Accuracy - Needs Attention
                   </div>
                 </div>
@@ -1008,21 +721,11 @@ export default function StudyPlanPage() {
                   type="button"
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleStartArea(focus, 'focus-0')}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: 8,
-                    border: '1px solid rgba(0,212,255,0.25)',
-                    background: 'rgba(0,212,255,0.08)',
-                    color: 'var(--sp-accent-cyan)',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
+                  className="sd-button sd-primary"
                 >
                   Start Training
                 </motion.button>
-              </motion.div>
+              </motion.section>
             );
           })()}
 
@@ -1040,21 +743,13 @@ export default function StudyPlanPage() {
 
           {/* Footer tip */}
           {plan && (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: '20px 16px',
-                fontSize: 12,
-                color: 'var(--sp-fg-faint)',
-                lineHeight: 1.5,
-              }}
-            >
+            <p className={`${st.small} ${st.centerNote}`}>
               {isAuthoredStarterPlan
                 ? 'This Is An Authored Starter Plan Because No Verified Sessions Were Found.'
                 : 'Plan Regenerates Each Week From Your Latest Verified Performance.'}
               <br />
               Training Completion And Streaks Are Recorded Only By The Server.
-            </div>
+            </p>
           )}
         </div>
       </div>

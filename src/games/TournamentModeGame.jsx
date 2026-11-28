@@ -13,6 +13,9 @@ import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness } from '../utils/weaknessTracker';
 import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
 import PowerUpBar from '../components/training/PowerUpBar';
+import { resolveArenaCardUrl } from '../lib/clubArenaTheme';
+import { CheckCircle2, Swords, XCircle } from 'lucide-react';
+import { GameFrame, GameTopBar, GameIntro, GameResult, GameActions, GameShare, GameCoachTip, GameNextButton } from '../components/memory-games/PreflopGameKit';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -181,54 +184,37 @@ const SIMULATED_COACHES = [
 const getSimulatedOpponent = (runNumber) =>
     SIMULATED_COACHES[runNumber % SIMULATED_COACHES.length];
 
-// Card display component
+// Card display component. #SMARTERDESIGN parity: a hand or board shown in a
+// Preflop Charts game uses the authentic Club Arena 4-color deck
+// (resolveArenaCardUrl), the same art as every Poker Arena table, not
+// CSS-drawn white tiles. Text stays as the alt and as the fallback.
+const CARD_SUIT = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
+const CARD_RANK = { A: 'a', K: 'k', Q: 'q', J: 'j', T: '10' };
+const CARD_SUIT_LABEL = { s: 'Spades', h: 'Hearts', d: 'Diamonds', c: 'Clubs' };
+
 const CardDisplay = ({ cards, size = 'medium' }) => {
-    const sizeStyles = {
-        small: { width: 28, height: 40, fontSize: 12 },
-        medium: { width: 40, height: 56, fontSize: 16 },
-        large: { width: 52, height: 72, fontSize: 20 },
-    };
-    const style = sizeStyles[size];
-
-    const getSuitColor = (suit) => {
-        if (suit === 'h' || suit === 'd') return '#ff4444';
-        return '#111';
-    };
-
-    const getSuitSymbol = (suit) => {
-        const symbols = { h: '♥', d: '♦', c: '♣', s: '♠' };
-        return symbols[suit] || suit;
-    };
+    const sizes = { small: 30, medium: 44, large: 56 };
+    const width = sizes[size] || sizes.medium;
 
     if (!cards || cards.length === 0) return null;
 
     return (
-        <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
             {cards.map((card, idx) => {
-                const rank = card.slice(0, -1);
-                const suit = card.slice(-1);
+                const rank = card.slice(0, -1).toUpperCase();
+                const suit = card.slice(-1).toLowerCase();
+                const src = resolveArenaCardUrl(CARD_SUIT[suit], CARD_RANK[rank] || rank.toLowerCase());
                 return (
-                    <div
+                    <img
                         key={idx}
-                        style={{
-                            width: style.width,
-                            height: style.height,
-                            background: 'linear-gradient(135deg, #fff, #f0f0f0)',
-                            borderRadius: 6,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: style.fontSize,
-                            fontWeight: 700,
-                            color: getSuitColor(suit),
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                            border: '1px solid rgba(0,0,0,0.1)',
-                        }}
-                    >
-                        <span>{rank}</span>
-                        <span style={{ fontSize: style.fontSize * 0.8 }}>{getSuitSymbol(suit)}</span>
-                    </div>
+                        src={src || '/cards/back.webp'}
+                        alt={`${rank} of ${CARD_SUIT_LABEL[suit] || suit}`}
+                        width={width}
+                        height={Math.round(width * 1.4)}
+                        loading="lazy"
+                        decoding="async"
+                        style={{ width, height: 'auto', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.45)' }}
+                    />
                 );
             })}
         </div>
@@ -390,73 +376,49 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
     // LOBBY VIEW
     // ═══════════════════════════════════════════════════════════════════════
     if (matchState === 'lobby') {
+        const winCount = matchHistory.filter(m => m.result === 'W').length;
+        const lossCount = matchHistory.filter(m => m.result === 'L').length;
+        const winRate = matchHistory.length > 0 ? Math.round((winCount / matchHistory.length) * 100) : 0;
         return (
-            <div style={styles.container}>
-                <div style={styles.header}>
-                    <button onClick={onExit} style={styles.backButton}>
-                        ← Exit
-                    </button>
-                </div>
-
-                <div style={styles.lobbyCard}>
-                    <div style={{ fontSize: 64, marginBottom: 16 }}>⚔️</div>
-                    <h1 style={styles.lobbyTitle}>LOCAL VS PRACTICE</h1>
-                    <p style={styles.lobbySubtitle}>Browser-Simulated Range Drill</p>
-
-                    {/* Authority boundary */}
-                    <div style={styles.authorityDisplay}>
-                        <div>
-                            <div style={{ ...styles.authorityName, color: '#EC4899' }}>
-                                Session-Only Practice
-                            </div>
-                            <div style={styles.authorityValue}>
-                                No Live Opponent, Matchmaking, Account Rank, Leaderboard, Or Diamond Settlement
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Stats */}
-                    <div style={styles.statsRow}>
-                        <div style={styles.statItem}>
-                            <div style={styles.statNumber}>{matchHistory.filter(m => m.result === 'W').length}</div>
-                            <div style={styles.statLabel}>Wins</div>
-                        </div>
-                        <div style={styles.statItem}>
-                            <div style={styles.statNumber}>{matchHistory.filter(m => m.result === 'L').length}</div>
-                            <div style={styles.statLabel}>Losses</div>
-                        </div>
-                        <div style={styles.statItem}>
-                            <div style={styles.statNumber}>
-                                {matchHistory.length > 0
-                                    ? Math.round((matchHistory.filter(m => m.result === 'W').length / matchHistory.length) * 100)
-                                    : 0}%
-                            </div>
-                            <div style={styles.statLabel}>Win Rate</div>
-                        </div>
-                    </div>
-
-                    <button onClick={startLocalPractice} style={styles.findMatchButton}>
-                        ⚔️ START SIMULATED PRACTICE
-                    </button>
-
-                    {/* Recent local runs */}
-                    {matchHistory.length > 0 && (
-                        <div style={styles.recentMatches}>
-                            <h3 style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>THIS SESSION&apos;S PRACTICE RUNS</h3>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <GameFrame>
+                <GameTopBar onExit={onExit} />
+                <GameIntro
+                    icon={Swords}
+                    kicker="Browser-Simulated Range Drill"
+                    title="Local VS Practice"
+                    onStart={startLocalPractice}
+                    startLabel="Start Simulated Practice"
+                    footer={matchHistory.length > 0 && (
+                        <div style={{ marginTop: 18, textAlign: 'left' }}>
+                            <div className="preflop-sd-kicker" style={{ marginBottom: 8 }}>Practice Runs This Session</div>
+                            <div style={{ display: 'grid', gap: 6 }}>
                                 {matchHistory.slice(-5).reverse().map((match, idx) => (
-                                    <div key={idx} style={styles.matchItem}>
-                                        <span>{match.result === 'W' ? '✅' : '❌'}</span>
-                                        <span style={{ color: '#fff' }}>Vs Simulated {match.opponent}</span>
-                                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>{match.score}</span>
-                                        <span style={{ color: '#00ff88' }}>{match.accuracy}%</span>
+                                    <div key={idx} className="preflop-sd-row" style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+                                        {match.result === 'W'
+                                            ? <CheckCircle2 size={18} color="#39e9a5" aria-label="Win" />
+                                            : <XCircle size={18} color="#ff5c74" aria-label="Loss" />}
+                                        <span style={{ flex: 1, minWidth: 0, color: '#f2f7ff' }}>Vs Simulated {match.opponent}</span>
+                                        <span style={{ color: '#bdd0e2' }}>{match.score}</span>
+                                        <span style={{ color: '#f2f7ff', fontWeight: 700 }}>{match.accuracy}%</span>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
-                </div>
-            </div>
+                >
+                    <div className="preflop-sd-row" style={{ marginBottom: 16, textAlign: 'center' }}>
+                        <div className="preflop-sd-kicker" style={{ marginBottom: 4 }}>Session-Only Practice</div>
+                        <div style={{ color: '#bdd0e2', fontSize: 15 }}>
+                            No Live Opponent, Matchmaking, Account Rank, Leaderboard, Or Diamond Settlement
+                        </div>
+                    </div>
+                    <div className="preflop-sd-metrics" style={{ marginBottom: 0 }}>
+                        <div className="preflop-sd-metric"><strong>{winCount}</strong><span>Wins</span></div>
+                        <div className="preflop-sd-metric"><strong>{lossCount}</strong><span>Losses</span></div>
+                        <div className="preflop-sd-metric"><strong>{winRate}%</strong><span>Win Rate</span></div>
+                    </div>
+                </GameIntro>
+            </GameFrame>
         );
     }
 
@@ -465,8 +427,8 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
     // ═══════════════════════════════════════════════════════════════════════
     if (matchState === 'matching') {
         return (
-            <div style={styles.container}>
-                <div style={styles.localSetupCard}>
+            <GameFrame>
+                <div className="preflop-sd-surface" style={{ marginTop: 24 }}>
                     <motion.div
                         initial={{ opacity: 0, scale: 0.96 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -475,20 +437,21 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                         <motion.div
                             animate={{ rotate: 360 }}
                             transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-                            style={{ fontSize: 64, marginBottom: 24 }}
+                            className="preflop-sd-emblem"
+                            aria-hidden="true"
                         >
-                            ⚔️
+                            <Swords size={40} strokeWidth={1.8} />
                         </motion.div>
-                        <h2 style={styles.localSetupTitle}>Preparing Local Simulation...</h2>
-                        <p style={styles.localSetupSubtitle}>
+                        <h2 className="preflop-sd-title">Preparing Local Simulation...</h2>
+                        <p className="preflop-sd-copy">
                             No Player Search Is Running. This Browser Is Loading A Scripted Practice Coach.
                         </p>
 
                         {opponent && (
                             <div style={styles.authorityDisplay}>
-                                <div style={{ fontSize: 48 }}>{opponent.avatar}</div>
-                                <div>
-                                    <div style={{ ...styles.authorityName, color: '#EC4899' }}>{opponent.name}</div>
+                                <div className="preflop-sd-emblem" style={{ width: 56, height: 56, margin: 0, fontSize: 24, fontWeight: 700 }} aria-hidden="true">{opponent.avatar}</div>
+                                <div style={{ textAlign: 'left' }}>
+                                    <div style={styles.authorityName}>{opponent.name}</div>
                                     <div style={styles.authorityValue}>Simulated Coach / {opponent.difficulty}</div>
                                 </div>
                             </div>
@@ -499,22 +462,15 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                                 clearTimeout(setupTimerRef.current);
                                 setMatchState('lobby');
                             }}
-                            style={{
-                                marginTop: 12,
-                                padding: '10px 32px',
-                                background: 'rgba(255,255,255,0.08)',
-                                border: '1px solid rgba(255,255,255,0.15)',
-                                borderRadius: 8,
-                                color: 'rgba(255,255,255,0.7)',
-                                cursor: 'pointer',
-                                fontSize: 13,
-                            }}
+                            type="button"
+                            className="preflop-sd-button"
+                            style={{ marginTop: 12 }}
                         >
                             Cancel Local Practice
                         </button>
                     </motion.div>
                 </div>
-            </div>
+            </GameFrame>
         );
     }
 
@@ -523,12 +479,12 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
     // ═══════════════════════════════════════════════════════════════════════
     if (matchState === 'battle' && currentChallenge) {
         return (
-            <div style={styles.container}>
+            <GameFrame>
                 {/* Score Header */}
                 <div style={styles.battleHeader}>
                     {/* Player */}
                     <div style={styles.playerPanel}>
-                        <div style={{ fontSize: 20, fontWeight: 900, color: '#00D4FF' }}>YOU</div>
+                        <div className="preflop-sd-emblem" style={{ width: 40, height: 40, margin: 0, fontSize: 15, fontWeight: 700 }} aria-hidden="true">You</div>
                         <div>
                             <div style={styles.playerName}>You</div>
                             <div style={styles.playerMeta}>Local Player</div>
@@ -537,14 +493,14 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
 
                     {/* Score */}
                     <div style={styles.scorePanel}>
-                        <span style={{ ...styles.scoreNumber, color: '#00ff88' }}>{playerScore}</span>
+                        <span style={styles.scoreNumber}>{playerScore}</span>
                         <span style={styles.scoreSeparator}>-</span>
-                        <span style={{ ...styles.scoreNumber, color: '#ff4444' }}>{opponentScore}</span>
+                        <span style={styles.scoreNumber}>{opponentScore}</span>
                     </div>
 
                     {/* Opponent */}
                     <div style={styles.playerPanel}>
-                        <div style={{ fontSize: 32 }}>{opponent?.avatar}</div>
+                        <div className="preflop-sd-emblem" style={{ width: 40, height: 40, margin: 0, fontSize: 18, fontWeight: 700 }} aria-hidden="true">{opponent?.avatar}</div>
                         <div>
                             <div style={styles.playerName}>{opponent?.name}</div>
                             <div style={styles.playerMeta}>Simulated Coach</div>
@@ -553,7 +509,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                 </div>
 
                 <div style={styles.practiceBoundary}>
-                    LOCAL SIMULATION / Scores Exist Only In This Run
+                    Local Simulation: Scores Exist Only In This Run
                 </div>
 
                 {/* Round Indicator */}
@@ -576,12 +532,12 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                 {/* Challenge Card */}
                 <div style={styles.challengeCard}>
                     <div style={styles.challengeHeader}>
-                        <span style={styles.challengeType}>{currentChallenge.type.replace('-', ' ').toUpperCase()}</span>
+                        <span style={styles.challengeType}>{currentChallenge.type.replace('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</span>
                         <span style={{
-                            ...styles.difficultyBadge, background:
-                                currentChallenge.difficulty === 'Expert' ? '#ff4444' :
-                                    currentChallenge.difficulty === 'Hard' ? '#ff9900' :
-                                        currentChallenge.difficulty === 'Medium' ? '#00D4FF' : '#00ff88'
+                            ...styles.difficultyBadge,
+                            color: currentChallenge.difficulty === 'Expert' ? '#ff8a9a' :
+                                currentChallenge.difficulty === 'Hard' ? '#ffb08a' :
+                                    currentChallenge.difficulty === 'Medium' ? '#86daff' : '#6ef0b5'
                         }}>
                             {currentChallenge.difficulty}
                         </span>
@@ -593,7 +549,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                     {/* Hero Hand if available */}
                     {currentChallenge.heroHand && (
                         <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>YOUR HAND</div>
+                            <div className="preflop-sd-kicker" style={{ marginBottom: 8 }}>Your Hand</div>
                             <CardDisplay cards={currentChallenge.heroHand} size="medium" />
                         </div>
                     )}
@@ -601,7 +557,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                     {/* Board if available */}
                     {currentChallenge.board && (
                         <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>BOARD</div>
+                            <div className="preflop-sd-kicker" style={{ marginBottom: 8 }}>Board</div>
                             <CardDisplay cards={currentChallenge.board} size="medium" />
                         </div>
                     )}
@@ -615,7 +571,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                                 : option.ev === Math.max(...currentChallenge.options.map(o => o.ev || 0));
                             const isEliminated = eliminatedOptionIdx === idx;
 
-                            let bgColor = isEliminated ? 'rgba(50,50,50,0.15)' : 'rgba(255,255,255,0.05)';
+                            let bgColor = isEliminated ? 'rgba(50,50,50,0.15)' : 'linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c)';
                             let borderColor = isEliminated ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)';
 
                             if (showResult) {
@@ -627,8 +583,8 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                                     borderColor = '#ff4444';
                                 }
                             } else if (isSelected) {
-                                bgColor = 'rgba(0, 212, 255, 0.2)';
-                                borderColor = '#00D4FF';
+                                bgColor = 'rgba(25, 129, 236, 0.32)';
+                                borderColor = '#86daff';
                             }
 
                             return (
@@ -681,18 +637,18 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                                     color: currentChallenge.options[selectedOption]?.correct ? '#00ff88' : '#ff4444'
                                 }}>
                                     {currentChallenge.options[selectedOption]?.correct
-                                        ? '✅ Correct - You Win This Practice Round'
-                                        : '❌ Review This Spot - The Simulated Coach Wins This Round'}
+                                        ? 'Correct - You Win This Practice Round'
+                                        : 'Review This Spot - The Simulated Coach Wins This Round'}
                                 </div>
                                 <p style={styles.explanationText}>{currentChallenge.explanation}</p>
-                                <button onClick={handleNextRound} style={styles.nextRoundButton}>
+                                <GameNextButton onClick={handleNextRound}>
                                     {currentRound < ROUNDS_PER_MATCH - 1 ? 'Next Round →' : 'View Results →'}
-                                </button>
+                                </GameNextButton>
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
-            </div>
+            </GameFrame>
         );
     }
 
@@ -703,102 +659,55 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
         const lastMatch = matchHistory[matchHistory.length - 1];
         const playerWon = lastMatch?.result === 'W';
         const accuracy = Math.round((playerScore / ROUNDS_PER_MATCH) * 100);
-        const resultColor = playerWon ? '#00ff88' : '#ff4444';
 
         return (
-            <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                style={styles.container}
-            >
-                <div style={{ maxWidth: 500, margin: '20px auto', textAlign: 'center' }}>
-                    {/* Result Hero Card */}
-                    <div style={{
-                        background: `linear-gradient(135deg, ${resultColor}15, ${resultColor}05)`,
-                        border: `1px solid ${resultColor}40`,
-                        borderRadius: 20, padding: 28, marginBottom: 20
-                    }}>
-                        <div style={{ fontSize: 14, color: resultColor, fontWeight: 700, marginBottom: 8, letterSpacing: 2 }}>
-                            {playerWon ? 'LOCAL PRACTICE WIN' : 'LOCAL PRACTICE REVIEW'}
-                        </div>
-                        <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontSize: 48, fontWeight: 900, color: '#fff', lineHeight: 1, marginBottom: 4 }}>
-                            <span style={{ color: '#00ff88' }}>{playerScore}</span>
-                            <span style={{ color: 'rgba(255,255,255,0.3)', margin: '0 8px' }}>-</span>
-                            <span style={{ color: '#ff4444' }}>{opponentScore}</span>
-                        </div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 16 }}>
-                            Vs Simulated {opponent?.name || 'Practice Coach'}
-                        </div>
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}>
+                <GameFrame>
+                    <GameResult
+                        headline={`${playerScore} - ${opponentScore}`}
+                        label={`${playerWon ? 'Local Practice Win' : 'Local Practice Review'} Vs Simulated ${opponent?.name || 'Practice Coach'}`}
+                        metrics={[
+                            { label: 'Local Score', value: lastMatch?.score || `${playerScore}-${opponentScore}` },
+                            { label: 'Accuracy', value: `${accuracy}%` },
+                            { label: 'Session Only', value: 'Local' },
+                        ]}
+                    />
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
-                            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontSize: 24, fontWeight: 800, color: '#fff' }}>
-                                    {lastMatch?.score || `${playerScore}-${opponentScore}`}
-                                </div>
-                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>LOCAL SCORE</div>
-                            </div>
-                            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif", fontSize: 24, fontWeight: 800, color: '#00D4FF' }}>{accuracy}%</div>
-                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>ACCURACY</div>
-                            </div>
-                            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                <div style={{ fontSize: 18, fontWeight: 800, color: '#EC4899' }}>LOCAL</div>
-                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SESSION ONLY</div>
-                            </div>
-                        </div>
-                    </div>
+                    <AnimatedAccuracyBar accuracy={accuracy} grade={playerWon ? 'A' : 'D'} label="Round Win Rate" />
 
-                    {/* Animated Win Rate Bar */}
-                    <AnimatedAccuracyBar accuracy={accuracy} grade={playerWon ? 'A' : 'D'} label="ROUND WIN RATE" />
-
-                    {/* Position Weakness Heatmap */}
                     <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={ROUNDS_PER_MATCH} />
 
-                    {/* Weakness Detection */}
                     {mistakesRef.current.length > 0 && (
-                        <div style={{
-                            background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
-                            borderRadius: 12, padding: 16, marginBottom: 16, textAlign: 'left'
-                        }}>
-                            <div style={{ fontSize: 11, color: '#EF4444', fontWeight: 700, marginBottom: 10, letterSpacing: 1, textAlign: 'center' }}>
-                                {'\u26A0\uFE0F'} ROUNDS LOST
-                            </div>
+                        <div className="preflop-sd-row" style={{ marginBottom: 12 }}>
+                            <div className="preflop-sd-kicker" style={{ marginBottom: 8, color: '#ff8a9a' }}>Rounds Lost</div>
                             {mistakesRef.current.map((m, i) => (
                                 <div key={i} style={{
-                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                    padding: '8px 10px', background: 'rgba(0,0,0,0.25)', borderRadius: 8,
-                                    marginBottom: i < mistakesRef.current.length - 1 ? 6 : 0
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                                    padding: '7px 0',
+                                    borderBottom: i < mistakesRef.current.length - 1 ? '1px solid rgba(134,218,255,0.12)' : 'none'
                                 }}>
                                     <div>
-                                        <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600 }}>{m.title}</span>
-                                        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginLeft: 6 }}>{m.type.replace('-', ' ')}</span>
+                                        <span style={{ color: '#f2f7ff', fontSize: 13, fontWeight: 600 }}>{m.title}</span>
+                                        <span style={{ color: '#93a9bd', fontSize: 12, marginLeft: 6 }}>{m.type.replace('-', ' ')}</span>
                                     </div>
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
-                                        <span style={{ color: '#EF4444' }}>{typeof m.picked === 'string' && m.picked.length > 20 ? m.picked.slice(0, 20) + '...' : m.picked}</span>
+                                    <div style={{ fontSize: 12, color: '#bdd0e2' }}>
+                                        <span style={{ color: '#ff8a9a' }}>{typeof m.picked === 'string' && m.picked.length > 20 ? m.picked.slice(0, 20) + '...' : m.picked}</span>
                                         <span style={{ margin: '0 4px' }}>{'\u2192'}</span>
-                                        <span style={{ color: '#00ff88' }}>{typeof m.correct === 'string' && m.correct.length > 20 ? m.correct.slice(0, 20) + '...' : m.correct}</span>
+                                        <span style={{ color: '#6ef0b5' }}>{typeof m.correct === 'string' && m.correct.length > 20 ? m.correct.slice(0, 20) + '...' : m.correct}</span>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     )}
 
-                    {/* Actions */}
-                    <div style={{ display: 'flex', gap: 12 }}>
-                        <button onClick={startLocalPractice} style={{
-                            flex: '1 1 80px', minHeight: 52, padding: '14px 0', fontSize: 14, fontWeight: 700,
-                            background: 'linear-gradient(135deg, #9333EA, #D946EF)', color: '#fff',
-                            border: 'none', borderRadius: 12, cursor: 'pointer', touchAction: 'manipulation'
-                        }}>START NEXT LOCAL RUN</button>
-                        <button onClick={() => setMatchState('lobby')} style={{
-                            flex: '1 1 80px', minHeight: 52, padding: '14px 0', fontSize: 14, fontWeight: 600,
-                            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                            borderRadius: 12, color: '#fff', cursor: 'pointer', touchAction: 'manipulation'
-                        }}>BACK TO PRACTICE MENU</button>
-                    </div>
+                    <GameActions
+                        onReplay={startLocalPractice}
+                        replayLabel="Start Next Local Run"
+                        onExit={() => setMatchState('lobby')}
+                        exitLabel="Back To Practice Menu"
+                    />
 
-                    {/* Share Result */}
-                    <button onClick={() => shareResult({
+                    <GameShare onShare={() => shareResult({
                         gameTitle: 'LOCAL VS PRACTICE',
                         grade: playerWon ? 'S' : 'D',
                         score: playerScore,
@@ -808,27 +717,12 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                             { label: 'Accuracy', value: accuracy + '%' },
                             { label: 'Settlement', value: 'Session Only' },
                         ],
-                        color: '#9333EA',
+                        color: '#86daff',
                         subtitle: `Simulated drill vs ${opponent?.name || 'Practice Coach'}`,
-                    })} style={{
-                        width: '100%', marginTop: 12, padding: '12px 0', fontSize: 13, fontWeight: 600,
-                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-                        borderRadius: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer'
-                    }}>{'\uD83D\uDCF4'} Share Result</button>
+                    })} />
 
-                    {/* Coach Tip */}
-                    <div style={{
-                        background: 'rgba(147,51,234,0.08)', border: '1px solid rgba(147,51,234,0.2)',
-                        borderRadius: 10, padding: 14, marginTop: 12, textAlign: 'center'
-                    }}>
-                        <div style={{ fontSize: 10, color: '#9333EA', fontWeight: 700, marginBottom: 6, letterSpacing: 1 }}>
-                            {'\u2694\uFE0F'} COACH TIP
-                        </div>
-                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>
-                            {getCoachingTip(playerWon ? 'A' : 'C')}
-                        </div>
-                    </div>
-                </div>
+                    <GameCoachTip>{getCoachingTip(playerWon ? 'A' : 'C')}</GameCoachTip>
+                </GameFrame>
             </motion.div>
         );
     }
@@ -840,46 +734,6 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
 // STYLES
 // ═══════════════════════════════════════════════════════════════════════════
 const styles = {
-    container: {
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0a0a12, #1a0a2a)',
-        padding: 16,
-        fontFamily: 'Inter, -apple-system, sans-serif',
-    },
-    header: {
-        marginBottom: 20,
-    },
-    backButton: {
-        padding: '10px 16px',
-        background: 'rgba(0, 212, 255, 0.1)',
-        border: '1px solid rgba(0, 212, 255, 0.3)',
-        borderRadius: 8,
-        color: '#00D4FF',
-        fontSize: 14,
-        fontWeight: 500,
-        cursor: 'pointer',
-    },
-    lobbyCard: {
-        maxWidth: 500,
-        margin: '0 auto',
-        textAlign: 'center',
-        padding: 32,
-        background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.05), rgba(138, 43, 226, 0.05))',
-        border: '2px solid rgba(0, 212, 255, 0.2)',
-        borderRadius: 24,
-    },
-    lobbyTitle: {
-        fontSize: 36,
-        fontWeight: 900,
-        color: '#fff',
-        marginBottom: 8,
-        fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
-    },
-    lobbySubtitle: {
-        fontSize: 16,
-        color: 'rgba(255,255,255,0.5)',
-        marginBottom: 32,
-    },
     authorityDisplay: {
         display: 'flex',
         alignItems: 'center',
@@ -888,85 +742,25 @@ const styles = {
         marginBottom: 32,
     },
     authorityName: {
-        fontSize: 24,
-        fontWeight: 700,
-    },
-    authorityValue: {
-        fontSize: 18,
-        color: 'rgba(255,255,255,0.6)',
-    },
-    statsRow: {
-        display: 'flex',
-        justifyContent: 'center',
-        gap: 32,
-        marginBottom: 32,
-    },
-    statItem: {
-        textAlign: 'center',
-    },
-    statNumber: {
-        fontSize: 28,
-        fontWeight: 700,
-        color: '#fff',
-    },
-    statLabel: {
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.5)',
-    },
-    findMatchButton: {
-        width: '100%',
-        padding: '18px 32px',
-        background: 'linear-gradient(135deg, #ff6b00, #ff0066)',
-        border: 'none',
-        borderRadius: 50,
         fontSize: 20,
         fontWeight: 700,
-        color: '#fff',
-        cursor: 'pointer',
-        boxShadow: '0 0 30px rgba(255, 107, 0, 0.4)',
-        marginBottom: 24,
+        color: '#f2f7ff',
+        fontFamily: "var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif",
     },
-    recentMatches: {
-        marginTop: 24,
-        textAlign: 'left',
-    },
-    matchItem: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '8px 12px',
-        background: 'rgba(0,0,0,0.3)',
-        borderRadius: 8,
-        fontSize: 14,
-    },
-    localSetupCard: {
-        maxWidth: 400,
-        margin: '100px auto',
-        textAlign: 'center',
-        padding: 48,
-        background: 'rgba(0,0,0,0.4)',
-        borderRadius: 24,
-        border: '2px solid rgba(255,255,255,0.1)',
-    },
-    localSetupTitle: {
-        fontSize: 28,
-        fontWeight: 700,
-        color: '#fff',
-        marginBottom: 8,
-    },
-    localSetupSubtitle: {
-        fontSize: 14,
-        color: 'rgba(255,255,255,0.5)',
-        marginBottom: 24,
+    authorityValue: {
+        fontSize: 15,
+        color: '#bdd0e2',
     },
     battleHeader: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 16,
-        background: 'rgba(0,0,0,0.4)',
-        borderRadius: 16,
-        marginBottom: 20,
+        gap: 8,
+        padding: 12,
+        background: 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)',
+        border: '3px solid transparent',
+        borderImage: "url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch",
+        marginBottom: 16,
     },
     playerPanel: {
         display: 'flex',
@@ -981,15 +775,15 @@ const styles = {
     playerMeta: {
         fontSize: 12,
         fontWeight: 500,
-        color: 'rgba(255,255,255,0.55)',
+        color: '#bdd0e2',
     },
     practiceBoundary: {
         margin: '-8px 0 16px',
         textAlign: 'center',
         fontSize: 11,
-        color: '#EC4899',
+        color: '#86daff',
         fontWeight: 700,
-        letterSpacing: 1,
+        letterSpacing: 0.5,
     },
     scorePanel: {
         display: 'flex',
@@ -997,8 +791,11 @@ const styles = {
         gap: 8,
     },
     scoreNumber: {
-        fontSize: 36,
-        fontWeight: 900,
+        fontSize: 34,
+        fontWeight: 700,
+        color: '#f2f7ff',
+        fontFamily: "var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif",
+        fontVariantNumeric: 'tabular-nums',
     },
     scoreSeparator: {
         fontSize: 24,
@@ -1007,14 +804,15 @@ const styles = {
     roundIndicator: {
         textAlign: 'center',
         fontSize: 14,
-        color: 'rgba(255,255,255,0.5)',
-        marginBottom: 16,
+        color: '#bdd0e2',
+        marginBottom: 12,
     },
     challengeCard: {
-        background: 'rgba(0,0,0,0.4)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 20,
-        padding: 24,
+        background: 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)',
+        border: '5px solid transparent',
+        borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+        boxShadow: '0 12px 30px rgba(0, 0, 0, 0.42)',
+        padding: 18,
     },
     challengeHeader: {
         display: 'flex',
@@ -1023,39 +821,45 @@ const styles = {
         marginBottom: 16,
     },
     challengeType: {
-        fontSize: 11,
-        color: 'rgba(255,255,255,0.5)',
-        letterSpacing: 1,
+        fontSize: 13,
+        color: '#86daff',
+        fontWeight: 700,
+        letterSpacing: 0.5,
+        fontFamily: "var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif",
     },
     difficultyBadge: {
-        padding: '4px 10px',
-        borderRadius: 12,
-        fontSize: 11,
-        fontWeight: 600,
-        color: '#fff',
+        padding: '2px 10px',
+        border: '2px solid transparent',
+        borderImage: "url('/images/smarterdesign/chrome-stat.webp') 11 / 3px stretch",
+        background: '#0a1726',
+        fontSize: 13,
+        fontWeight: 700,
+        fontFamily: "var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif",
     },
     challengeTitle: {
-        fontSize: 24,
+        fontSize: 26,
         fontWeight: 700,
-        color: '#fff',
+        color: '#f2f7ff',
         marginBottom: 8,
+        fontFamily: "var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif",
     },
     challengeQuestion: {
         fontSize: 16,
-        color: 'rgba(255,255,255,0.7)',
+        color: '#bdd0e2',
         marginBottom: 24,
         lineHeight: 1.5,
     },
     optionsGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: 12,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+        gap: 10,
         marginBottom: 24,
     },
     optionButton: {
-        padding: '16px',
+        minHeight: 52,
+        padding: '14px',
         border: '2px solid',
-        borderRadius: 12,
+        borderRadius: 0,
         fontSize: 14,
         fontWeight: 600,
         color: '#fff',
@@ -1068,31 +872,20 @@ const styles = {
     },
     optionPercent: {
         fontSize: 12,
-        color: 'rgba(255,255,255,0.5)',
+        color: '#bdd0e2',
         marginTop: 4,
     },
     explanationBox: {
-        background: 'rgba(0,0,0,0.5)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 12,
-        padding: 20,
-        marginTop: 20,
+        background: '#071422',
+        border: '3px solid transparent',
+        borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
+        padding: 16,
+        marginTop: 16,
     },
     explanationText: {
         fontSize: 14,
-        color: 'rgba(255,255,255,0.7)',
+        color: '#bdd0e2',
         lineHeight: 1.6,
         marginBottom: 20,
-    },
-    nextRoundButton: {
-        width: '100%',
-        padding: '14px 24px',
-        background: 'linear-gradient(135deg, #00D4FF, #0088dd)',
-        border: 'none',
-        borderRadius: 30,
-        fontSize: 16,
-        fontWeight: 700,
-        color: '#000',
-        cursor: 'pointer',
     },
 };

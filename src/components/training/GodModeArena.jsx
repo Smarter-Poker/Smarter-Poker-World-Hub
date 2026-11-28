@@ -342,7 +342,7 @@ function WeaknessHeatmap({ handHistory }) {
   const posArr = [...positions];
   if (posArr.length === 0) return null;
   const getColor = (pct) =>
-    pct >= 80 ? '#22c55e' : pct >= 60 ? '#fbbf24' : pct >= 40 ? '#f97316' : '#ef4444';
+    pct >= 80 ? '#22c55e' : pct >= 60 ? '#56d8ff' : pct >= 40 ? '#f97316' : '#ef4444';
   return (
     <div
       style={{
@@ -778,10 +778,10 @@ function DrillFilters({
                   fontWeight: 'bold',
                   minHeight: 44,
                   background: streets.includes(s)
-                    ? 'rgba(139,92,246,0.2)'
+                    ? 'rgba(86, 216, 255,0.2)'
                     : 'rgba(255,255,255,0.05)',
                   color: streets.includes(s) ? '#86daff' : '#94a3b8',
-                  border: `1px solid ${streets.includes(s) ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                  border: `1px solid ${streets.includes(s) ? 'rgba(86, 216, 255,0.4)' : 'rgba(255,255,255,0.1)'}`,
                   cursor: 'pointer',
                   textTransform: 'capitalize',
                 }}
@@ -809,6 +809,8 @@ function DrillFilters({
             {['beginner', 'standard', 'expert'].map((d) => (
               <button
                 key={d}
+                type="button"
+                aria-pressed={difficulty === d}
                 onClick={() => setDifficulty(d)}
                 style={{
                   flex: 1,
@@ -842,7 +844,7 @@ function DrillFilters({
           >
             Timer Mode
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {[
               { id: 'relaxed', label: 'Relaxed (∞)' },
               { id: 'standard', label: 'Standard (25s)' },
@@ -851,6 +853,8 @@ function DrillFilters({
             ].map((t) => (
               <button
                 key={t.id}
+                type="button"
+                aria-pressed={timerMode === t.id}
                 onClick={() => setTimerMode(t.id)}
                 style={{
                   flex: 1,
@@ -900,7 +904,7 @@ function DrillFilters({
               fontSize: 14,
               fontWeight: 'bold',
               minHeight: 48,
-              background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+              background: 'linear-gradient(135deg, #3b82f6, #2298ff)',
               color: '#fff',
               border: 'none',
               cursor: 'pointer',
@@ -932,8 +936,8 @@ function SessionScoreTarget({ gtowScore, targetScore = 70 }) {
         marginBottom: 12,
         background: achieved
           ? 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(16,163,74,0.1))'
-          : 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.1))',
-        border: `1px solid ${achieved ? 'rgba(34,197,94,0.3)' : 'rgba(139,92,246,0.3)'}`,
+          : 'linear-gradient(135deg, rgba(86, 216, 255,0.15), rgba(59,130,246,0.1))',
+        border: `1px solid ${achieved ? 'rgba(34,197,94,0.3)' : 'rgba(86, 216, 255,0.3)'}`,
         borderRadius: 10,
       }}
     >
@@ -1929,7 +1933,7 @@ function GodModeArenaInner({
                 height="48"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#fbbf24"
+                stroke="#56d8ff"
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -1969,7 +1973,7 @@ function GodModeArenaInner({
                   padding: '12px 24px',
                   borderRadius: 10,
                   border: 'none',
-                  background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                  background: 'linear-gradient(135deg, #3b82f6, #2298ff)',
                   color: '#fff',
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -2340,8 +2344,8 @@ function GodModeArenaInner({
                         style={{
                           padding: '4px 10px',
                           borderRadius: 7,
-                          background: 'rgba(139, 92, 246, 0.15)',
-                          border: '1px solid rgba(139, 92, 246, 0.3)',
+                          background: 'rgba(86, 216, 255, 0.15)',
+                          border: '1px solid rgba(86, 216, 255, 0.3)',
                           fontSize: 12,
                           fontWeight: 700,
                           color: 'var(--sd-ice)',
@@ -2690,11 +2694,11 @@ function GodModeArenaInner({
                   const eg = getEndgameReport();
                   if (!eg) return null;
                   const gradeColors = {
-                    S: '#f59e0b',
+                    S: '#56d8ff',
                     A: '#22c55e',
                     B: '#4ade80',
                     C: '#06b6d4',
-                    D: '#fbbf24',
+                    D: '#56d8ff',
                     F: '#ef4444',
                   };
                   const gColor = gradeColors[eg.grade] || '#94a3b8';
@@ -2811,8 +2815,8 @@ function GodModeArenaInner({
                         marginBottom: 12,
                         padding: '12px 16px',
                         borderRadius: 12,
-                        background: 'rgba(139,92,246,0.06)',
-                        border: '1px solid rgba(139,92,246,0.15)',
+                        background: 'rgba(86, 216, 255,0.06)',
+                        border: '1px solid rgba(86, 216, 255,0.15)',
                       }}
                     >
                       <div
@@ -2945,7 +2949,7 @@ function GodModeArenaInner({
                       label: 'Accuracy',
                       value: Math.round(gtowAccuracy),
                       color:
-                        gtowAccuracy >= 80 ? '#22c55e' : gtowAccuracy >= 60 ? '#fbbf24' : '#ef4444',
+                        gtowAccuracy >= 80 ? '#22c55e' : gtowAccuracy >= 60 ? '#56d8ff' : '#ef4444',
                       suffix: '%',
                     },
                     {
@@ -2960,7 +2964,7 @@ function GodModeArenaInner({
                           : measuredEVTotal > 5
                             ? '#ef4444'
                             : measuredEVTotal > 2
-                              ? '#fbbf24'
+                              ? '#56d8ff'
                               : '#22c55e',
                       suffix: measuredEVReviewHistory.length > 0 ? ' BB' : '',
                       prefix: measuredEVReviewHistory.length > 0 ? '-' : '',
@@ -3025,7 +3029,7 @@ function GodModeArenaInner({
                             data.accuracy >= 80
                               ? '#22c55e'
                               : data.accuracy >= 60
-                                ? '#fbbf24'
+                                ? '#56d8ff'
                                 : '#ef4444';
                           const isWeakest = weakestPosition === pos;
                           return (
@@ -3092,7 +3096,7 @@ function GodModeArenaInner({
                         .map((st) => {
                           const data = streetAccuracy[st];
                           const streetColors = {
-                            preflop: '#a78bfa',
+                            preflop: '#38bdf8',
                             flop: '#4ade80',
                             turn: '#fb923c',
                             river: '#f87171',
@@ -3101,7 +3105,7 @@ function GodModeArenaInner({
                             data.accuracy >= 80
                               ? '#22c55e'
                               : data.accuracy >= 60
-                                ? '#fbbf24'
+                                ? '#56d8ff'
                                 : '#ef4444';
                           return (
                             <div
@@ -3405,8 +3409,8 @@ function GodModeArenaInner({
                     marginBottom: 16,
                     padding: '14px 16px',
                     background:
-                      'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(0,212,255,0.04) 100%)',
-                    border: '1px solid rgba(139,92,246,0.2)',
+                      'linear-gradient(135deg, rgba(86, 216, 255,0.08) 0%, rgba(0,212,255,0.04) 100%)',
+                    border: '1px solid rgba(86, 216, 255,0.2)',
                     borderRadius: 12,
                   }}
                 >
@@ -3634,9 +3638,9 @@ function GodModeArenaInner({
                         background:
                           pattern.severity === 'high'
                             ? 'rgba(239,68,68,0.08)'
-                            : 'rgba(251,191,36,0.06)',
+                            : 'rgba(86, 216, 255,0.06)',
                         borderRadius: 8,
-                        border: `1px solid ${pattern.severity === 'high' ? 'rgba(239,68,68,0.2)' : 'rgba(251,191,36,0.15)'}`,
+                        border: `1px solid ${pattern.severity === 'high' ? 'rgba(239,68,68,0.2)' : 'rgba(86, 216, 255,0.15)'}`,
                       }}
                     >
                       <div
@@ -3686,12 +3690,12 @@ function GodModeArenaInner({
                 const leaks = deriveTopLeaks(measuredEVReviewHistory, 5);
                 if (leaks.length === 0) return null;
                 const classColors = {
-                  inaccuracy: '#fbbf24',
+                  inaccuracy: '#56d8ff',
                   wrong: '#f97316',
                   blunder: '#ef4444',
                 };
                 const streetColors = {
-                  preflop: '#a78bfa',
+                  preflop: '#38bdf8',
                   flop: '#4ade80',
                   turn: '#fb923c',
                   river: '#f87171',
@@ -3870,7 +3874,7 @@ function GodModeArenaInner({
                             mixedStrategyScore >= 50
                               ? 'linear-gradient(90deg, #22c55e, #4ade80)'
                               : mixedStrategyScore >= 30
-                                ? 'linear-gradient(90deg, #fbbf24, #f59e0b)'
+                                ? 'linear-gradient(90deg, #56d8ff, #2298ff)'
                                 : 'linear-gradient(90deg, #ef4444, #dc2626)',
                         }}
                       />
@@ -3884,7 +3888,7 @@ function GodModeArenaInner({
                           mixedStrategyScore >= 50
                             ? '#22c55e'
                             : mixedStrategyScore >= 30
-                              ? '#fbbf24'
+                              ? '#56d8ff'
                               : '#ef4444',
                       }}
                     >
@@ -3962,8 +3966,8 @@ function GodModeArenaInner({
                     style={{
                       padding: '8px 16px',
                       borderRadius: 8,
-                      border: '1px solid rgba(139, 92, 246, 0.3)',
-                      background: 'rgba(139, 92, 246, 0.1)',
+                      border: '1px solid rgba(86, 216, 255, 0.3)',
+                      background: 'rgba(86, 216, 255, 0.1)',
                       color: '#86daff',
                       fontSize: 12,
                       fontWeight: 700,
@@ -3993,9 +3997,9 @@ function GodModeArenaInner({
                   });
                   const maxEV = Math.max(0.01, ...Object.values(streetEV || {}));
                   const streetColors = {
-                    preflop: '#8b5cf6',
+                    preflop: '#2298ff',
                     flop: '#22c55e',
-                    turn: '#fbbf24',
+                    turn: '#56d8ff',
                     river: '#ef4444',
                   };
 
@@ -4160,7 +4164,7 @@ function GodModeArenaInner({
                     padding: '10px 0',
                     borderRadius: 10,
                     border: 'none',
-                    background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                    background: 'linear-gradient(135deg, #3b82f6, #2298ff)',
                     color: '#fff',
                     fontSize: 13,
                     fontWeight: 700,
@@ -4608,7 +4612,7 @@ function GodModeArenaInner({
         width: 'min(92vw, 560px)',
         padding: '14px 16px',
         background: 'linear-gradient(180deg, rgba(54,35,12,.98), rgba(13,9,5,.98))',
-        border: '1px solid rgba(251,191,36,.72)',
+        border: '1px solid rgba(86, 216, 255,.72)',
         boxShadow: 'inset 0 1px rgba(255,255,255,.16), 0 14px 36px rgba(0,0,0,.62)',
         color: '#86daff',
         display: 'flex',
@@ -5686,7 +5690,7 @@ const styles = {
   },
   masteryFill: {
     height: '100%',
-    background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)',
+    background: 'linear-gradient(90deg, #3b82f6, #2298ff)',
   },
 };
 

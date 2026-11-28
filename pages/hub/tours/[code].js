@@ -12,6 +12,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PnmImageHeader from '../../../src/components/poker-near-me/PnmImageHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import StopScheduleModal from '../../../src/components/tours/StopScheduleModal';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
@@ -24,9 +25,9 @@ import tourSourceRegistry from '../../../data/tour-source-registry.json';
 
 
 const TOUR_COLORS = {
-  'WSOP': { bg: '#b9943f', text: '#05080c', tone: 'gold' },
+  'WSOP': { bg: '#3f90b9', text: '#05080c', tone: 'gold' },
   'WPT': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
-  'WSOPC': { bg: '#b9943f', text: '#05080c', tone: 'gold' },
+  'WSOPC': { bg: '#3f90b9', text: '#05080c', tone: 'gold' },
   'MSPT': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
   'RGPS': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
   'PGT': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
@@ -613,6 +614,9 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
         }}
       />
       <PokerNearMeFamilyNav />
+      <div className="smarterdesign pnm-sd-top">
+        <PnmImageHeader route="tours" title="Poker Tour" heading="p" />
+      </div>
 
       <HamburgerMenu
           isOpen={menuOpen}
@@ -1179,7 +1183,7 @@ const styles = `
     --tour-dim: #65717f;
     --tour-blue: #31a8ff;
     --tour-blue-soft: #8fd4ff;
-    --tour-gold: #d6b76a;
+    --tour-gold: #6ab2d6;
     --tour-alert: #ff5b6e;
   }
 
@@ -1218,16 +1222,23 @@ const styles = `
   body.world-poker-near-me .tour-page .sp-tab,
   body.world-poker-near-me .tour-page .tour-action,
   body.world-poker-near-me .tour-page .notif-btn {
-    border: 0 !important;
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+    background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
     border-radius: 0 !important;
-    background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat !important;
     box-shadow: none !important;
+    color: #f2f7ff !important;
   }
 
   body.world-poker-near-me .tour-page .sp-tab-active,
   body.world-poker-near-me .tour-page .tour-action.follow-btn,
   body.world-poker-near-me .tour-page .notif-btn {
-    background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch !important;
+    background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
   }
 
   body.world-poker-near-me .tour-page .sp-filter-bar {
@@ -1239,9 +1250,10 @@ const styles = `
   body.world-poker-near-me .tour-page .sp-filter-input,
   body.world-poker-near-me .tour-page .sp-filter-select {
     height: auto !important;
-    border: 0 !important;
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+    background: #06111d padding-box !important;
     border-radius: 0 !important;
-    background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
     box-shadow: none !important;
   }
 
@@ -1405,12 +1417,7 @@ const styles = `
     align-items: center;
     justify-content: center;
     gap: 7px;
-    aspect-ratio: 348 / 114;
     padding: 0 17px;
-    border: 0;
-    border-radius: 0;
-    background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat;
-    box-shadow: none;
     color: var(--tour-silver);
     cursor: pointer;
     font: 800 12px/1 var(--font-rajdhani), Rajdhani, sans-serif;
@@ -1418,6 +1425,12 @@ const styles = `
     text-shadow: 0 1px 0 #000;
     text-transform: uppercase;
     touch-action: manipulation;
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box;
+    border-radius: 0;
+    box-shadow: none;
+    color: #f2f7ff;
   }
 
   .tour-action {
@@ -1428,8 +1441,13 @@ const styles = `
   .tour-action.follow-btn,
   .sp-tab-active,
   .notif-btn {
-    background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
     color: #f4f7fb;
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch;
+    background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box;
+    border-radius: 0;
+    box-shadow: none;
+    color: #ffffff;
   }
 
   .tour-action:active,
@@ -1631,13 +1649,14 @@ const styles = `
   .sp-filter-select {
     min-width: 0;
     min-height: 44px;
-    border: 0;
-    border-radius: 0;
-    background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
-    box-shadow: none;
     color: #f4f7fb;
     font: 700 13px/1 var(--font-inter), Inter, sans-serif;
     outline: 0;
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: #06111d padding-box;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .sp-filter-input {

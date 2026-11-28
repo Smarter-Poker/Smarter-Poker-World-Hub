@@ -77,15 +77,18 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getBankrollPreferences, updateBankrollPreferences } from '../../src/services/bankrollPreferences';
 
 // Bankroll library
-import { getBankrollStats } from '../../src/lib/bankroll/calculations';
-import { localDay, parseLedgerDay } from '../../src/lib/bankroll/localDates.mjs';
+import { getBankrollStats, calculateTotalBankroll } from '../../src/lib/bankroll/calculations';
+import { centsToDollars, resultsCents, toCents } from '../../src/lib/bankroll/ledgerMath.mjs';
+import { evaluateRuleViolations, monthBounds } from '../../src/lib/bankroll/ruleViolations.mjs';
+import { parseLedgerDay } from '../../src/lib/bankroll/localDates.mjs';
 import { runLeakAnalysis } from '../../src/lib/bankroll/leakDetection';
 import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
-import { fetchLedgerEntries, fetchReportLedger, fetchTrips, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, getActiveSeries, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
+import { fetchReportLedger, fetchTrips, fetchSeries, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
+import { buildRecentActivity, tripDayLabel, withoutActiveTripRows } from '../../src/lib/bankroll/tripMath.mjs';
 import {
   receiptActions, tripFromReceipt, w2gRowFromReceipt, receiptRowFromScan, ledgerCategoryFor,
   matchLocationByName, findOpenSessionFor, rankEntriesForReceipt,
-  ledgerEntryFromReceipt, partitionForBulkFiling,
+  ledgerEntryFromReceipt, partitionForBulkFiling, entryHoldingImage, receiptNeedingTrip,
   RECEIPT_ACTIONS, RECEIPT_TARGETS,
 } from '../../src/lib/bankroll/receiptInbox.mjs';
 import { warmOcr } from '../../src/lib/docscan/ocr.mjs';
@@ -140,6 +143,7 @@ const TripTracker = lazySection(() => import('../../src/components/bankroll/Trip
 const TokeTracker = lazySection(() => import('../../src/components/bankroll/TokeTracker'));
 const CategoryOverview = lazySection(() => import('../../src/components/bankroll/CategoryOverview'));
 const AdvancedTaxReport = lazySection(() => import('../../src/components/bankroll/AdvancedTaxReport'));
+const BankrollBadges = lazySection(() => import('../../src/components/bankroll/BankrollBadges'));
 const SocialStakingProfile = lazySection(() => import('../../src/components/bankroll/SocialStakingProfile'));
 const TournamentCalendar = lazySection(() => import('../../src/components/bankroll/TournamentCalendar'));
 import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollModal';
@@ -147,7 +151,8 @@ import { hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
 import GeofenceService from '../../src/lib/geofence';
 import { requestPermission, showVenueAlert } from '../../src/lib/pushAlerts';
 import { sendGeofenceNotification } from '../../src/lib/geofencePush';
-import { getAccessToken } from '../../src/lib/authUtils';
+import { getAccessToken, getFreshAccessToken } from '../../src/lib/authUtils';
+import { loadGeofenceVenues } from '../../src/lib/bankroll/geofenceVenues.mjs';
 import { listHeld, releaseHeld, noteAttempt } from '../../src/lib/bankroll/receiptHold.mjs';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import FaqSection from '../../src/components/seo/FaqSection';
@@ -183,6 +188,7 @@ const MENU_SECTION_TITLES = {
   settings: 'Settings',
   rules: 'Bankroll Rules',
   goals: 'Bankroll Goals',
+  badges: 'Badges',
 };
 
 function resolveBankrollView(requestedView) {
@@ -346,6 +352,7 @@ export default function BankrollManagerPage() {
 
   const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
   const requestedType = Array.isArray(router.query.type) ? router.query.type[0] : router.query.type;
+  const requestedTripId = (Array.isArray(router.query.trip) ? router.query.trip[0] : router.query.trip) || null;
   const categoryFilter = Object.hasOwn(TYPE_TO_CATEGORY, requestedType) ? TYPE_TO_CATEGORY[requestedType] :
     Object.hasOwn(CATEGORY_LABELS, requestedType) ? requestedType : 'all';
   const activeSection = categoryFilter !== 'all' ? 'dashboard' : resolveBankrollView(requestedView);
@@ -591,88 +598,24 @@ export default function BankrollManagerPage() {
       setLocations(locationsData);
       setLeakAnalysis(leakData);
 
-      // Fetch active series for dashboard banner
-      var seriesData = null;
+      // Series feed the dashboard banner and Recent Activity. If they cannot
+      // be read, their rows are still grouped (never shown loose), because
+      // buildRecentActivity treats an unknown trip as possibly active.
+      var seriesList = [];
       try {
-        seriesData = await getActiveSeries(userId);
-        if (request !== latestLoad.current || !isMountedRef.current) return;
-        setActiveSeries(seriesData);
+        seriesList = await fetchSeries(userId);
       } catch (e) {
-      setIsLoading(false);
+        console.warn('Could not load series:', e);
       }
-
-      // ── Filter out active trip/series entries ──
-      // Entries belonging to an active trip or series stay hidden
-      // until the user completes the trip/series. Then they appear
-      // as ONE summary row in Recent Activity.
-
-      // 1. Collect active trip IDs
-      var activeIds = [];
-      for (var t = 0; t < tripsData.length; t++) {
-        if (tripsData[t].status === 'active') {
-          activeIds.push(tripsData[t].id);
-        }
-      }
-      // 2. Collect active series ID (if any)
-      if (seriesData && seriesData.id) {
-        activeIds.push(seriesData.id);
-      }
-
-      // 3. Separate entries: hide active trip/series, keep the rest
       if (request !== latestLoad.current || !isMountedRef.current) return;
-      setAnalysisLedger({ scope: reportScope, rows: entriesData.filter(entry => !entry.trip_id || !activeIds.includes(entry.trip_id)) });
+      setActiveSeries(seriesList.find(function (s) { return s.status === 'active'; }) || null);
+
+      // Rows of an active trip or series stay hidden until it is completed;
+      // then the trip appears as ONE summary row covering all of its rows.
+      var allTrips = tripsData.concat(seriesList);
+      setAnalysisLedger({ scope: reportScope, rows: withoutActiveTripRows(entriesData, allTrips) });
       setFailedScope(null);
-      var visible = [];
-      var completedTripMap = {};
-      for (var i = 0; i < Math.min(50, entriesData.length); i++) {
-        var entry = entriesData[i];
-        if (entry.trip_id && activeIds.indexOf(entry.trip_id) !== -1) {
-          // Entry belongs to an active trip/series - HIDE it
-          continue;
-        }
-        if (entry.trip_id) {
-          // Entry belongs to a completed trip/series - group for summary
-          if (!completedTripMap[entry.trip_id]) completedTripMap[entry.trip_id] = [];
-          completedTripMap[entry.trip_id].push(entry);
-        } else {
-          // Standalone entry - show directly
-          visible.push(entry);
-        }
-      }
-
-      // 4. Create ONE summary row per completed trip/series
-      var completedTripIds = Object.keys(completedTripMap || {});
-      for (var k = 0; k < completedTripIds.length; k++) {
-        var tid = completedTripIds[k];
-        var items = completedTripMap[tid];
-        // Find the trip/series metadata
-        var tripMeta = null;
-        for (var m = 0; m < tripsData.length; m++) {
-          if (tripsData[m].id === tid) { tripMeta = tripsData[m]; break; }
-        }
-        var net = 0;
-        var latestDate = items[0].entry_date || '';
-        for (var n = 0; n < items.length; n++) {
-          net += (items[n].gross_out || 0) - (items[n].gross_in || 0);
-          if (items[n].entry_date > latestDate) latestDate = items[n].entry_date;
-        }
-        visible.push({
-          id: 'trip-summary-' + tid,
-          category: 'trip_summary',
-          entry_date: latestDate,
-          net_result: net,
-          gross_in: 0,
-          gross_out: 0,
-          location_name: (tripMeta ? tripMeta.location_name : '') || (items[0] ? items[0].location_name : '') || '',
-          _tripName: (tripMeta ? tripMeta.name : '') || 'Trip',
-          _sessionCount: items.length,
-          _isTripSummary: true,
-        });
-      }
-
-      // 5. Sort by date descending
-      visible.sort(function (a, b) { return b.entry_date.localeCompare(a.entry_date); });
-      setEntries(visible);
+      setEntries(buildRecentActivity(entriesData, allTrips, 50));
     } catch (error) {
       if (request === latestLoad.current && isMountedRef.current) setFailedScope(reportScope);
       console.warn('Error loading bankroll data:', error);
@@ -701,14 +644,15 @@ export default function BankrollManagerPage() {
   useEffect(() => {
     if (!userId) return;
     const gf = new GeofenceService();
+    let cancelled = false;
 
     (async () => {
       try {
-        const res = await fetch(`/api/bankroll/linked-venues?userId=${userId}`);
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const data = await res.json();
-        if (data.success && data.venues?.length > 0) {
-          gf.start(data.venues, async (venue) => {
+        // Token-authenticated, no userId in the URL, and only where location
+        // is already granted (src/lib/bankroll/geofenceVenues.mjs).
+        const { venues } = await loadGeofenceVenues({ getToken: getFreshAccessToken });
+        if (!cancelled && venues.length > 0) {
+          gf.start(venues, async (venue) => {
             // Request permission on first trigger
             await requestPermission();
             // Show browser notification (foreground, current tab)
@@ -722,10 +666,10 @@ export default function BankrollManagerPage() {
       } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     })();
 
-    return () => gf.stop();
+    return () => { cancelled = true; gf.stop(); };
   }, [userId]);
 
-  const handleLogSubmit = async () => {
+  const handleLogSubmit = async (saved) => {
     // The step nothing measured: an account that had never written a bankroll
     // entry just wrote one. `entries` is this user's ledger as it was BEFORE
     // the save, so an empty one means this is the first.
@@ -736,55 +680,25 @@ export default function BankrollManagerPage() {
     setRefreshTrigger(prev => prev + 1);
     await loadData();
 
-    // Check rules for violations after logging
-    if (userId) {
+    // Bankroll Rules are judged against the row just saved and its own day and
+    // month (src/lib/bankroll/ruleViolations.mjs), never against whatever row
+    // happens to be newest or against deposits and withdrawals.
+    if (userId && saved && saved.entry_date) {
       try {
         const rules = await fetchBankrollRules(userId);
         if (rules && rules.length > 0) {
-          // Refresh stats & entries to get latest data
-          const dateRange = getDateRangeFilter(timeFilter);
-          const [latestStats, latestEntries] = await Promise.all([
-            getBankrollStats(userId, dateRange.startDate, dateRange.endDate, locationFilter),
-            fetchLedgerEntries(userId, { startDate: dateRange.startDate, endDate: dateRange.endDate, includeExpenses: true, limit: 50 }),
+          const month = monthBounds(saved.entry_date);
+          const [bankroll, monthEntries] = await Promise.all([
+            calculateTotalBankroll(userId),
+            fetchReportLedger(userId, { startDate: month.startDate, endDate: month.endDate, includeExpenses: true }),
           ]);
-
-          const violations = [];
-          const today = localDay();
-          const todayEntries = latestEntries.filter(e => e.entry_date === today);
-          const todayNet = todayEntries.reduce((sum, e) => sum + ((e.gross_out || 0) - (e.gross_in || 0)), 0);
-          const lastEntry = latestEntries[0];
-          const lastSessionNet = lastEntry ? ((lastEntry.gross_out || 0) - (lastEntry.gross_in || 0)) : 0;
-
-          for (const rule of rules) {
-            const val = rule.value;
-            switch (rule.rule_type) {
-              case 'stop_loss_session':
-                if (lastSessionNet < 0 && Math.abs(lastSessionNet) >= val)
-                  violations.push({ rule: 'Session Stop-Loss', limit: `$${val}`, actual: `-$${Math.abs(lastSessionNet)}`, severity: 'high' });
-                break;
-              case 'stop_loss_day':
-                if (todayNet < 0 && Math.abs(todayNet) >= val)
-                  violations.push({ rule: 'Daily Stop-Loss', limit: `$${val}`, actual: `-$${Math.abs(todayNet)}`, severity: 'high' });
-                break;
-              case 'max_buyin_percent': {
-                const bankroll = latestStats?.totalBankroll || 0;
-                if (bankroll > 0 && lastEntry) {
-                  const buyinPercent = ((lastEntry.gross_in || 0) / bankroll) * 100;
-                  if (buyinPercent > val)
-                    violations.push({ rule: 'Max Buy-In %', limit: `${val}%`, actual: `${buyinPercent.toFixed(1)}%`, severity: 'medium' });
-                }
-                break;
-              }
-              case 'win_goal_session':
-                if (lastSessionNet > 0 && lastSessionNet >= val)
-                  violations.push({ rule: 'Win Goal Reached!', limit: `$${val}`, actual: `+$${lastSessionNet}`, severity: 'info' });
-                break;
-            }
-          }
-
-          if (violations.length > 0) {
-            setRuleViolations(violations);
-          }
+          const violations = evaluateRuleViolations({
+            rules,
+            entry: saved,
+            monthEntries,
+            bankrollCents: toCents(bankroll),
+          });
+          if (violations.length > 0) setRuleViolations(violations);
         }
       } catch (err) {
         console.warn('[RuleCheck] Error:', err);
@@ -831,7 +745,14 @@ export default function BankrollManagerPage() {
     hasStartingBankroll(userId).then(has => setBankrollInitialized(has));
   }, [userId]);
 
+  // A trip summary row is not a ledger row: open its trip's report instead.
+  const openTripSummary = (entry) => {
+    const view = entry._tripType === 'series' ? 'series' : 'trips';
+    void router.push({ pathname: '/hub/bankroll-manager', query: { view, trip: entry._tripId } }, undefined, { shallow: true, scroll: true });
+  };
+
   const handleEditEntry = (entry) => {
+    if (entry && entry._isTripSummary) { openTripSummary(entry); return; }
     setEditEntry(entry);
     setShowLogModal(true);
   };
@@ -839,6 +760,11 @@ export default function BankrollManagerPage() {
   const handleDeleteEntry = async (entryId) => {
     if (!userId) { toast.error('You Must Be Logged In'); return; }
     if (!requireOnline()) return;
+    if (typeof entryId === 'string' && entryId.startsWith('trip-summary-')) {
+      toast.info('Open The Trip To Manage Its Entries');
+      openTripSummary({ _tripId: entryId.slice('trip-summary-'.length), _tripType: (entries.find(e => e.id === entryId) || {})._tripType });
+      return;
+    }
     // Optimistic removal - entry disappears immediately
     setEntries(prev => prev.filter(e => e.id !== entryId));
     try {
@@ -988,6 +914,9 @@ export default function BankrollManagerPage() {
     if (scannerStep !== 'scan' && scannerReceiptId) {
       toast.success('Receipt Kept In Receipts Waiting. Assign It From The Dashboard.');
     }
+    // A held scan the player opened and closed stays in the hold; letting go
+    // of it here is what lets Send and the automatic sender run again.
+    setResumingHeld(null);
     setScannerHasUnsaved(false);
     clearActionView('scan-receipt');
     setShowScanner(false);
@@ -1209,11 +1138,31 @@ export default function BankrollManagerPage() {
     const { willFile } = partitionForBulkFiling(pendingReceipts);
     if (willFile.length === 0) return;
     setBulkFiling(true);
-    const activeTrip = trips.find(t => t.status === 'active' && t.trip_type !== 'series') || null;
+    let activeTrip = trips.find(t => t.status === 'active' && t.trip_type !== 'series') || null;
+    // Rule 2 holds in bulk too: a buy-in is never filed onto no trip.
+    const tripSeed = receiptNeedingTrip(willFile, activeTrip);
+    if (tripSeed) {
+      try {
+        const seedVenue = tripSeed.route.prefill.location_name || tripSeed.route.prefill.vendor;
+        const seedMatch = matchLocationByName(locations, seedVenue);
+        activeTrip = await createTrip(userId, { ...tripFromReceipt(tripSeed.route), location_id: seedMatch ? seedMatch.id : null });
+        toast.success(`Trip Started: ${activeTrip.name}`);
+      } catch (err) {
+        console.warn('[bankroll] bulk auto trip failed:', err?.message || err);
+        toast.error('Could Not Start A Trip. The Sessions Will Be Filed Without One.');
+      }
+    }
     let filed = 0;
     let failed = 0;
     for (const receipt of willFile) {
       try {
+        // Already on an entry (the last mark failed): mark it, never file twice.
+        const holder = entryHoldingImage(entries, receipt.image_url);
+        if (holder) {
+          await markReceiptAssigned(receipt.id, RECEIPT_TARGETS.LEDGER_ENTRY, holder.id);
+          filed++;
+          continue;
+        }
         const venue = receipt.route && receipt.route.prefill
           && (receipt.route.prefill.location_name || receipt.route.prefill.vendor);
         const match = matchLocationByName(locations, venue);
@@ -1241,7 +1190,7 @@ export default function BankrollManagerPage() {
     if (failed > 0) toast.error(`Filed ${filed}. ${failed} Could Not Be Filed And Are Still Waiting.`);
     else toast.success(`Filed ${filed} Receipt${filed === 1 ? '' : 's'}.`);
     loadPendingReceipts();
-  }, [bulkFiling, requireOnline, pendingReceipts, trips, locations, userId, markReceiptAssigned, loadData, loadPendingReceipts]);
+  }, [bulkFiling, requireOnline, pendingReceipts, trips, entries, locations, userId, markReceiptAssigned, loadData, loadPendingReceipts]);
 
   /**
    * What the Receipt Saved sheet does for each choice (Dan, 2026-09-08):
@@ -1551,7 +1500,7 @@ export default function BankrollManagerPage() {
           />
 
           <BankrollImageHeader className={layout.mast} title={sectionTitle}
-            art={headerSection === 'dashboard' ? 'bankroll' : headerSection} section={headerSection}
+            art={headerSection === 'dashboard' ? 'bankroll' : headerSection === 'badges' ? 'goals' : headerSection} section={headerSection}
             parent={sectionTitle !== 'Bankroll Manager' ? 'Bankroll Manager' : undefined}
             onTutorial={requestPageTutorial}
             back={isDashboard ? undefined : { href: '/hub/bankroll-manager', shallow: true }}
@@ -1657,6 +1606,7 @@ export default function BankrollManagerPage() {
                           }
                         }}
                         onHeld={() => { finishAutoFlush(autoFlushing, false); }}
+                        onUploadFailed={() => { finishAutoFlush(autoFlushing, false); }}
                       />
                     </div>
                   )}
@@ -1762,7 +1712,7 @@ export default function BankrollManagerPage() {
                   {(() => {
                     const activeTrip = trips.find(t => t.status === 'active' && t.trip_type !== 'series');
                     if (!activeTrip) return null;
-                    const daysSinceStart = Math.max(1, Math.ceil((Date.now() - new Date(activeTrip.start_date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)));
+                    const dayLabel = tripDayLabel(activeTrip.start_date);
                     return (
                       <div
                         style={{
@@ -1798,7 +1748,7 @@ export default function BankrollManagerPage() {
                           </div>
                           <div style={{ fontSize: 14, color: '#94a3b8' }}>
                             {activeTrip.location_name && `${activeTrip.location_name} · `}
-                            Day {daysSinceStart} · {activeTrip.entryCount || 0} Sessions
+                            {dayLabel} · {activeTrip.sessionCount || 0} Sessions
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -1834,7 +1784,7 @@ export default function BankrollManagerPage() {
 
                   {/* Active Series Featured Banner */}
                   {activeSeries && (() => {
-                    const daysSinceStart = Math.max(1, Math.ceil((Date.now() - new Date(activeSeries.start_date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)));
+                    const dayLabel = tripDayLabel(activeSeries.start_date);
                     return (
                       <div
                         style={{
@@ -1870,7 +1820,7 @@ export default function BankrollManagerPage() {
                           </div>
                           <div style={{ fontSize: 14, color: '#94a3b8' }}>
                             {activeSeries.location_name && `${activeSeries.location_name} · `}
-                            Day {daysSinceStart} · {activeSeries.entryCount || 0} Sessions
+                            {dayLabel} · {activeSeries.sessionCount || 0} Sessions
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -1937,9 +1887,13 @@ export default function BankrollManagerPage() {
                       <StatCard
                         title="Net Results"
                         value={
-                          stats
-                            ? formatCurrency(stats.allInNet, preferences.currencyEUR)
-                            : '-'
+                          // Summed from the rows the trend chart plots, so the
+                          // tile and the chart's last point always agree.
+                          reportReady
+                            ? formatCurrency(centsToDollars(resultsCents(chartEntries)), preferences.currencyEUR)
+                            : stats
+                              ? formatCurrency(stats.allInNet, preferences.currencyEUR)
+                              : '-'
                         }
                         isLoading={isLoading}
                       />
@@ -2283,6 +2237,7 @@ export default function BankrollManagerPage() {
                     onEditEntry={handleEditEntry}
                     onDeleteEntry={handleDeleteEntry}
                     refreshTrigger={refreshTrigger}
+                    openTripId={requestedTripId}
                   />
                 </HubErrorBoundary>
               )}
@@ -2296,6 +2251,7 @@ export default function BankrollManagerPage() {
                     onEditEntry={handleEditEntry}
                     onDeleteEntry={handleDeleteEntry}
                     refreshTrigger={refreshTrigger}
+                    openSeriesId={requestedTripId}
                   />
                 </HubErrorBoundary>
               )}
@@ -2337,11 +2293,7 @@ export default function BankrollManagerPage() {
               {activeSection === 'goals' && (
                 <div className={`sd-panel ${layout.panel}`}>
                   <h2 className="sd-section-title">Bankroll Goals</h2>
-                  <BankrollGoals
-                    userId={userId}
-                    currentBankroll={stats?.totalBankroll || 0}
-                    periodPL={stats?.monthlyPL || 0}
-                  />
+                  <BankrollGoals userId={userId} />
                 </div>
               )}
 
@@ -2400,6 +2352,14 @@ export default function BankrollManagerPage() {
                     Export Data
                     <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
                   </button>
+                </div>
+              )}
+
+              {/* Badges View (footer BADGES button) */}
+              {activeSection === 'badges' && (
+                <div className={`sd-panel ${layout.panel}`}>
+                  <h2 className="sd-section-title">Badges</h2>
+                  <BankrollBadges userId={userId} />
                 </div>
               )}
 
@@ -2798,7 +2758,7 @@ export default function BankrollManagerPage() {
                   markReceiptAssigned(receiptId, RECEIPT_TARGETS.LEDGER_ENTRY, saved.id);
                   capture(FunnelEvents.BANKROLL_RECEIPT_FILED, { destination: entry && entry.category === 'expense' ? 'expense' : 'session', bulk: false });
                 }
-                handleLogSubmit(); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); setDefaultReceiptData(null);
+                handleLogSubmit(saved && saved.id ? saved : null); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); setDefaultReceiptData(null);
               }}
             />
           ) : (
@@ -3001,6 +2961,7 @@ export default function BankrollManagerPage() {
         {showAdjustModal && (
           <AdjustBankrollModal
             userId={userId}
+            currentBalance={stats ? stats.totalBankroll : null}
             onComplete={() => {
               clearActionView('adjust-bankroll');
               setShowAdjustModal(false);

@@ -14,7 +14,6 @@ import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { getGameById } from '../../../src/data/TRAINING_LIBRARY';
 import { supabase } from '../../../src/lib/supabase';
@@ -23,6 +22,10 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import TrainingSignInPrompt from '../../../src/components/training/TrainingSignInPrompt';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/training-play.module.css';
+
+const TAB_LABELS = { live: 'Live', scheduled: 'Upcoming', completed: 'Past' };
 // TRAIN-WIRE-EMPTY-5a — adoption: shared empty-state primitive
 
 
@@ -244,18 +247,18 @@ export default function TournamentsPage() {
 
   const getStatusBadge = (status) => {
     // TRAIN-TOURNAMENTS-A11Y-1: SVG status badges replace emoji prefixes.
-    const wrap = (children, bg) => (
-      <span style={{ ...styles.badge, background: bg, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+    const wrap = (children) => (
+      <span className={s.tag}>
         {children}
       </span>
     );
     switch (status) {
       case 'live':
-        return wrap(<><LiveDotIcon size={8} /> LIVE</>, '#31A24C');
+        return wrap(<><LiveDotIcon size={8} /> Live</>);
       case 'scheduled':
-        return wrap(<><ClockIcon size={12} /> Upcoming</>, '#00E0FF');
+        return wrap(<><ClockIcon size={12} /> Upcoming</>);
       case 'complete':
-        return wrap(<><CheckIcon size={12} /> Complete</>, 'var(--sp-fg-dim)');
+        return wrap(<><CheckIcon size={12} /> Complete</>);
       default:
         return null;
     }
@@ -270,43 +273,20 @@ export default function TournamentsPage() {
         canonical="/hub/training/tournaments"
       />
 
-      <div style={styles.container}>
+      <div className={s.shell}>
         <UniversalHeader pageDepth={2} />
 
-        <div className="sp-training-tool sp-training-tool--tournaments" style={styles.content}>
-          {/* Header */}
-          <div style={styles.header}>
-            <h1 style={styles.title}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#86daff' }}>
-                <TrophyIcon size={22} />
-                Training Tournaments
-              </span>
-            </h1>
-            <p style={styles.subtitle}>Compete Against Other Players In Timed GTO Challenges</p>
-          </div>
+        <main className={s.page}>
+          <TrainingPageHead slug="training-tournaments" note="Compete Against Other Players In Timed GTO Challenges" />
 
           {!isOnline && (
-            <div
-              role="status"
-              data-offline-banner="true"
-              style={{
-                marginBottom: 16,
-                padding: '10px 14px',
-                borderRadius: 10,
-                border: '1px solid #56d8ff',
-                background: 'rgba(8, 124, 250, 0.12)',
-                color: '#86daff',
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
+            <p role="status" data-offline-banner="true" className={s.note}>
               Offline. Live Tournament Sync Will Resume After Reconnection.
-            </div>
+            </p>
           )}
 
-
           {/* Tab Navigation */}
-          <div style={styles.tabs}>
+          <div className={s.segmented} role="group" aria-label="Tournament Status">
             {['live', 'scheduled', 'completed'].map((tab) => (
               <button
                 key={tab}
@@ -314,17 +294,14 @@ export default function TournamentsPage() {
                 aria-label={`Filter by ${tab}`}
                 aria-pressed={activeTab === tab}
                 onClick={() => setActiveTab(tab)}
-                style={{
-                  ...styles.tab,
-                  ...(activeTab === tab ? styles.tabActive : {}),
-                }}
+                className={`sd-button ${s.button}`}
               >
                 {tab === 'live' ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><LiveDotIcon size={8} /> Live</span>
+                  <><LiveDotIcon size={8} /> Live</>
                 ) : tab === 'scheduled' ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ClockIcon size={12} /> Upcoming</span>
+                  <><ClockIcon size={14} /> Upcoming</>
                 ) : (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckIcon size={12} /> Past</span>
+                  <><CheckIcon size={14} /> Past</>
                 )}
               </button>
             ))}
@@ -339,7 +316,15 @@ export default function TournamentsPage() {
 
           {/* Tournament List */}
           {loading ? (
-            <SkeletonLoader variant="card" count={3} style={{ padding: '16px' }} />
+            <div role="status" aria-label="Loading Tournaments" className={s.grid}>
+              {[0, 1, 2].map((n) => (
+                <div key={n} className={`sd-panel ${s.skeleton}`} aria-hidden>
+                  <span className={s.skeletonBar} />
+                  <span className={s.skeletonBar} />
+                  <span className={s.skeletonBar} />
+                </div>
+              ))}
+            </div>
           ) : tournamentsError ? (
             <TrainerEmptyState
               variant="retry"
@@ -350,65 +335,61 @@ export default function TournamentsPage() {
           ) : tournaments.length === 0 ? (
             <TrainerEmptyState
               variant="no-data"
-              title={`No ${activeTab} tournaments`}
-              message={activeTab === 'live' ? 'Check upcoming tournaments or wait for the next one.' : 'Check back soon for new tournaments.'}
+              title={`No ${TAB_LABELS[activeTab]} Tournaments`}
+              message={activeTab === 'live' ? 'Check Upcoming Tournaments Or Wait For The Next One.' : 'Check Back Soon For New Tournaments.'}
             />
           ) : (
-            <div style={styles.tournamentList}>
-              {tournaments.map((tournament, i) => {
+            <div className={s.grid}>
+              {tournaments.map((tournament) => {
                 const game = getGameById(tournament.game_id);
 
                 return (
-                  <div key={tournament.id} style={styles.tournamentCard}>
-                    <div style={styles.cardHeader}>
-                      <div style={styles.cardTitle}>
-                        <span style={{ ...styles.gameIcon, display: 'inline-flex' }}>{game?.icon ? game.icon : <TargetIcon size={16} />}</span>
+                  <article key={tournament.id} className={`sd-panel ${s.card}`}>
+                    <div className={s.row}>
+                      <h2 className={s.subTitle}>
+                        <span className={s.ice} aria-hidden>{game?.icon ? game.icon : <TargetIcon size={16} />}</span>{' '}
                         {tournament.name}
-                      </div>
+                      </h2>
                       {getStatusBadge(tournament.status)}
                     </div>
 
-                    <div style={styles.cardDetails}>
-                      <div style={styles.detailRow}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><BookIcon size={12} /> Game:</span>
-                        <span>{game?.name || tournament.game_id}</span>
+                    <div className={s.list}>
+                      <div className={s.kv}>
+                        <span className={s.iconLabel}><BookIcon size={12} /> Game</span>
+                        <strong>{game?.name || tournament.game_id}</strong>
                       </div>
-                      <div style={styles.detailRow}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ClockIcon size={12} /> Time:</span>
-                        <span>
-                          {formatDate(tournament.start_time)} At {formatTime(tournament.start_time)}
-                        </span>
+                      <div className={s.kv}>
+                        <span className={s.iconLabel}><ClockIcon size={12} /> Time</span>
+                        <strong>{formatDate(tournament.start_time)} At {formatTime(tournament.start_time)}</strong>
                       </div>
-                      <div style={styles.detailRow}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><QuestionIcon size={12} /> Questions:</span>
-                        <span>{tournament.questions_count}</span>
+                      <div className={s.kv}>
+                        <span className={s.iconLabel}><QuestionIcon size={12} /> Questions</span>
+                        <strong>{tournament.questions_count}</strong>
                       </div>
-                      <div style={styles.detailRow}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><UsersIcon size={12} /> Players:</span>
-                        <span>
+                      <div className={s.kv}>
+                        <span className={s.iconLabel}><UsersIcon size={12} /> Players</span>
+                        <strong>
                           {tournament.entry_count}
                           {tournament.max_entries ? `/${tournament.max_entries}` : ''}
-                        </span>
+                        </strong>
                       </div>
                     </div>
 
-                    <div style={styles.prizes}>
-                      <div style={styles.prizeItem}>
-                        <span style={{ display: 'inline-flex' }}><GoldMedalIcon size={14} /></span>
-                        <span style={{ ...styles.prizeAmount, display: 'inline-flex', alignItems: 'center', gap: 2 }}>{tournament.prize_1st}<DiamondIcon size={12} /></span>
-                      </div>
-                      <div style={styles.prizeItem}>
-                        <span style={{ display: 'inline-flex' }}><SilverMedalIcon size={14} /></span>
-                        <span style={{ ...styles.prizeAmount, display: 'inline-flex', alignItems: 'center', gap: 2 }}>{tournament.prize_2nd}<DiamondIcon size={12} /></span>
-                      </div>
-                      <div style={styles.prizeItem}>
-                        <span style={{ display: 'inline-flex' }}><BronzeMedalIcon size={14} /></span>
-                        <span style={{ ...styles.prizeAmount, display: 'inline-flex', alignItems: 'center', gap: 2 }}>{tournament.prize_3rd}<DiamondIcon size={12} /></span>
-                      </div>
+                    <div className={s.metrics3} aria-label="Prizes">
+                      {[
+                        ['1st', <GoldMedalIcon key="g" size={14} />, tournament.prize_1st],
+                        ['2nd', <SilverMedalIcon key="s" size={14} />, tournament.prize_2nd],
+                        ['3rd', <BronzeMedalIcon key="b" size={14} />, tournament.prize_3rd],
+                      ].map(([place, icon, prize]) => (
+                        <div key={place} className={`sd-metric ${s.metric}`}>
+                          <span className={s.metricLabel}><span className={s.iconLabel}>{icon} {place}</span></span>
+                          <strong className={s.metricValue} data-tone="ice"><span className={s.iconLabel}>{prize}<DiamondIcon size={12} /></span></strong>
+                        </div>
+                      ))}
                     </div>
 
                     {tournament.entry_fee_diamonds > 0 && (
-                      <div style={{ ...styles.entryFee, display: 'inline-flex', alignItems: 'center', gap: 4 }}>Entry: {tournament.entry_fee_diamonds}<DiamondIcon size={12} /></div>
+                      <p className={s.small}><span className={s.iconLabel}>Entry: {tournament.entry_fee_diamonds}<DiamondIcon size={12} /></span></p>
                     )}
 
                     {tournament.status === 'scheduled' && (
@@ -417,7 +398,7 @@ export default function TournamentsPage() {
                         aria-label={`Verified registration is not available for tournament: ${tournament.name}`}
                         disabled
                         title="Registration Reopens After Server-Authoritative Settlement Is Certified"
-                        style={{ ...styles.registerBtn, cursor: 'not-allowed', opacity: 0.62 }}
+                        className={`sd-button ${s.primaryAction}`}
                       >
                         Registration Temporarily Paused
                       </button>
@@ -426,26 +407,26 @@ export default function TournamentsPage() {
                     {tournament.status === 'live' && (
                       <Link
                         href={`/hub/training/tournament/${tournament.id}`}
-                        style={styles.playBtn}
+                        className={`sd-button sd-primary ${s.primaryAction}`}
                       >
-                        View Live Standings →
+                        View Live Standings
                       </Link>
                     )}
 
                     {tournament.status === 'complete' && (
                       <Link
                         href={`/hub/training/tournament/${tournament.id}`}
-                        style={styles.viewBtn}
+                        className={`sd-button ${s.primaryAction}`}
                       >
                         View Results
                       </Link>
                     )}
-                  </div>
+                  </article>
                 );
               })}
             </div>
           )}
-        </div>
+        </main>
       </div>
     </PageTransition>
     <ConnectionToast />
@@ -455,212 +436,3 @@ export default function TournamentsPage() {
     </>
   );
 }
-
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// STYLES
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-
-const styles = {
-  container: {
-    minHeight: '100dvh',
-    paddingBottom: 70,
-    width: '100%',
-    maxWidth: '100vw',
-    overflowX: 'clip',
-    boxSizing: 'border-box',
-    background: '#040d18',
-    color: '#f2f7fb',
-  },
-  content: {
-    maxWidth: '720px',
-    margin: '0 auto',
-    padding: '80px 24px 40px',
-  },
-  header: {
-    textAlign: 'center',
-    marginBottom: '28px',
-  },
-  title: {
-    fontSize: '28px',
-    fontWeight: 800,
-    marginBottom: '8px',
-    color: '#f4f8fa',
-  },
-  subtitle: {
-    fontSize: '14px',
-    color: 'var(--sp-fg-muted)',
-  },
-  tabs: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '8px',
-    marginBottom: '24px',
-    background: 'linear-gradient(180deg, #0c1820, #050c10)',
-    border: '1px solid #688299',
-    padding: '6px',
-    borderRadius: '12px',
-  },
-  tab: {
-    flex: '1 1 auto',
-    minHeight: '44px',
-    padding: '10px 10px',
-    background: 'transparent',
-    border: '1px solid transparent',
-    borderRadius: '10px',
-    color: 'var(--sp-fg-muted)',
-    fontSize: '13px',
-    fontWeight: 700,
-    whiteSpace: 'nowrap',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  tabActive: {
-    background: 'linear-gradient(180deg, #8beaff 0%, #23aee8 48%, #07557f 100%)',
-    border: '1px solid #25c8ff',
-    borderRadius: '2px',
-    color: '#03101a',
-  },
-  loading: {
-    textAlign: 'center',
-    padding: '60px 20px',
-    color: 'var(--sp-fg-muted)',
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '60px 20px',
-    color: 'var(--sp-fg-muted)',
-  },
-  emptyIcon: {
-    fontSize: '48px',
-    display: 'block',
-    marginBottom: '16px',
-  },
-  emptyHint: {
-    fontSize: '13px',
-    color: 'var(--sp-fg-dim)',
-    marginTop: '8px',
-  },
-  tournamentList: {
-    display: 'grid',
-    gap: '16px',
-  },
-  tournamentCard: {
-    background: 'linear-gradient(180deg, #0c1820, #050c10)',
-    borderRadius: 0,
-    padding: '20px',
-    border: '1px solid #4d6472',
-    borderLeft: '3px solid #25c8ff',
-    boxShadow: '0 22px 60px rgba(0,0,0,0.58), inset 0 1px 0 rgba(224,248,255,0.16), inset 0 -1px 0 rgba(0,0,0,0.88)',
-  },
-  cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '16px',
-  },
-  cardTitle: {
-    fontSize: '18px',
-    fontWeight: 700,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    color: '#f2f7fa',
-  },
-  gameIcon: {
-    fontSize: '24px',
-  },
-  badge: {
-    padding: '4px 10px',
-    borderRadius: '2px',
-    fontSize: '12px',
-    fontWeight: 700,
-    color: '#fff',
-  },
-  cardDetails: {
-    background: '#050b10',
-    border: '1px solid #354c58',
-    borderRadius: '2px',
-    padding: '12px',
-    marginBottom: '16px',
-  },
-  detailRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '13px',
-    color: 'var(--sp-fg-muted)',
-    marginBottom: '6px',
-  },
-  prizes: {
-    display: 'flex',
-    justifyContent: 'space-around',
-    padding: '12px 0',
-    marginBottom: '16px',
-    borderTop: '1px solid #354c58',
-    borderBottom: '1px solid #354c58',
-  },
-  prizeItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '4px',
-  },
-  prizeAmount: {
-    fontWeight: 700,
-    color: '#86daff',
-  },
-  entryFee: {
-    textAlign: 'center',
-    fontSize: '13px',
-    color: 'var(--sp-fg-muted)',
-    marginBottom: '12px',
-  },
-  registerBtn: {
-    width: '100%',
-    minHeight: '44px',
-    padding: '12px',
-    background: 'linear-gradient(180deg, #0c1820, #050c10)',
-    border: '1px solid #f2b84b',
-    borderRadius: '2px',
-    color: '#86daff',
-    fontSize: '14px',
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  playBtn: {
-    display: 'block',
-    width: '100%',
-    minHeight: '44px',
-    padding: '12px',
-    background: 'linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%)',
-    border: '1px solid #25c8ff',
-    borderRadius: '2px',
-    color: '#fff',
-    fontSize: '15px',
-    fontWeight: 700,
-    textAlign: 'center',
-    textDecoration: 'none',
-  },
-  viewBtn: {
-    display: 'block',
-    width: '100%',
-    minHeight: '44px',
-    padding: '12px',
-    background: 'linear-gradient(180deg, #0c1820, #050c10)',
-    border: '1px solid #4d6472',
-    borderRadius: '2px',
-    color: 'var(--sp-fg-muted)',
-    fontSize: '15px',
-    fontWeight: 700,
-    textAlign: 'center',
-    textDecoration: 'none',
-  },
-  actions: {
-    textAlign: 'center',
-    marginTop: '40px',
-  },
-  backButton: {
-    color: '#25c8ff',
-    textDecoration: 'none',
-    fontSize: '16px',
-  },
-};

@@ -7,83 +7,86 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { applyRateLimit } from '../../../src/lib/apiRateLimit';
+import { guardBankrollRequest, taxReportRequest } from '../../../src/lib/bankroll/apiGuard.mjs';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 
 
-// W2-G thresholds
-const W2G_THRESHOLDS = {
-    poker: 5000,      // $5,000+ net from poker tournament
-    slots: 1200,      // $1,200+ jackpot  
-    keno: 1500,       // $1,500+ keno win
-    bingo: 1200,      // $1,200+ bingo
-};
+import { fetchAllRows, formatUsd, SESSION_CATEGORIES } from '../../../src/lib/bankroll/ledgerReport.mjs';
+import { taxYearTotals, w2gThresholds } from '../../../src/lib/bankroll/taxMath.mjs';
+
+const TAX_LIMIT = { max: 20, windowMs: 60_000, scope: ':bankroll-tax' };
 
 export default async function handler(req, res) {
   try {
-      if (!applyRateLimit(req, res, LIMITS.ai)) return;
+      // Its own bucket. LIMITS.ai (5 a minute) was written for a billed model
+      // call; this is a ledger read, and the panel loads a preview on every
+      // year switch, so the fifth switch in a minute failed with a 429 the
+      // panel reported as "Could Not Generate The Report".
+      if (!applyRateLimit(req, res, TAX_LIMIT)) return;
 
-      if (req.method !== 'GET') {
-          return res.status(405).json({ error: 'Method not allowed' });
-      }
-
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
-          return res.status(401).json({ error: 'Unauthorized' });
-      }
-
-      const token = authHeader.replace('Bearer ', '');
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-      const user = authData?.user;
-      if (authErr || !user) {
-          return res.status(401).json({ error: 'Invalid token' });
-      }
+      const user = await guardBankrollRequest(req, res, {
+          methods: ['GET'],
+          verify: (request) => getServerUserWithFallback(request, getSupabase()),
+      });
+      if (!user) return;
 
       // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
       const access = await checkServerFeatureAccess(getSupabase(), user.id, 'bankroll_pro');
       if (!access.hasAccess) {
-          return res.status(403).json({ error: 'Premium feature access required' });
+          return res.status(403).json({ success: false, error: 'Premium feature access required' });
       }
 
-      const { year = new Date().getFullYear(), format = 'pdf' } = req.query;
+      // A strict four-digit year: parseInt('2025abc') used to read as 2025,
+      // and an unknown format silently became a PDF.
+      const input = taxReportRequest(req.query);
+      if (input.error) return res.status(400).json({ success: false, error: input.error });
+      const { format } = input;
 
       try {
-          // Fetch all sessions for the year
-          const startDate = `${year}-01-01`;
-          const endDate = `${year}-12-31`;
+          // Fetch every current ledger row for the year. Superseded revisions
+          // used to be counted next to the entry that replaced them, and the
+          // read stopped at 500 rows.
+          const taxYear = input.year;
+          const startDate = `${taxYear}-01-01`;
+          const endDate = `${taxYear}-12-31`;
 
-          const { data: sessions, error: sessionsError } = await getSupabase()
+          const sessions = await fetchAllRows(() => getSupabase()
               .from('bankroll_ledger')
-              .select('*')
+              .select('id, entry_date, category, gross_in, gross_out, expense_type, tournament_name, is_revision, created_at, bankroll_locations(name)')
               .eq('user_id', user.id)
+              .eq('is_revision', false)
               .gte('entry_date', startDate)
               .lte('entry_date', endDate)
               .order('entry_date', { ascending: true })
-              .limit(500);
+              .order('created_at', { ascending: true })
+              .order('id', { ascending: true }));
 
-          if (sessionsError) throw sessionsError;
-
-          // Fetch all expenses for the year (from trips)
-          const { data: trips } = await getSupabase()
-              .from('trips')
-              .select('*')
+          // Trips the player actually keeps (bankroll_trips) that overlap the year.
+          const { data: trips, error: tripsError } = await getSupabase()
+              .from('bankroll_trips')
+              .select('id, start_date, end_date, status')
               .eq('user_id', user.id)
-              .gte('start_date', startDate)
-              .lte('end_date', endDate)
-              .limit(100);
+              .neq('status', 'deleted')
+              .lte('start_date', endDate)
+              .or(`end_date.is.null,end_date.gte.${startDate}`)
+              .limit(1000);
+          // A failed read used to print "0 trips" as if it were true.
+          if (tripsError) throw tripsError;
 
           // Fetch uploaded W-2G forms for the year
-          const { data: uploadedW2g } = await getSupabase()
+          const { data: uploadedW2g, error: w2gError } = await getSupabase()
               .from('w2g_forms')
               .select('upload_date, created_at, form_type, source_description, file_name, gross_amount, withholding_amount, federal_withheld, state_withheld, file_url')
               .eq('user_id', user.id)
-              .eq('tax_year', parseInt(year))
+              .eq('tax_year', taxYear)
               .order('upload_date', { ascending: true })
-              .limit(100);
+              .limit(1000);
+          // Same for the uploaded forms: a failed read is not "no W-2Gs".
+          if (w2gError) throw w2gError;
 
           // Calculate totals
-          const report = calculateTaxReport(sessions || [], trips || [], year);
+          const report = calculateTaxReport(sessions || [], trips || [], taxYear);
 
           // Merge uploaded W-2G forms into report
           // w2g_forms holds gross_amount and withholding_amount. This read
@@ -109,15 +112,15 @@ export default async function handler(req, res) {
           }
 
           // Generate PDF
-          const pdfBuffer = await generateTaxPDF(report, user);
+          const pdfBuffer = await generateTaxPDF(report, input.today);
 
           res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', `attachment; filename=poker_tax_report_${year}.pdf`);
+          res.setHeader('Content-Disposition', `attachment; filename=poker_tax_report_${taxYear}.pdf`);
           return res.send(Buffer.from(pdfBuffer));
 
       } catch (error) {
           console.warn('Tax report error:', error);
-          return res.status(500).json({ error: 'Failed to generate tax report' });
+          return res.status(500).json({ success: false, error: 'Failed to generate tax report' });
       }
 
   } catch (err) {
@@ -127,110 +130,73 @@ export default async function handler(req, res) {
   }
 }
 
-function calculateTaxReport(sessions, trips, year) {
-    // Session stats
-    let totalWinnings = 0;
-    let totalLosses = 0;
-    let cashGameWinnings = 0;
-    let cashGameLosses = 0;
-    let tournamentWinnings = 0;
-    let tournamentLosses = 0;
-    const w2gEvents = [];
+function calculateTaxReport(rows, trips, year) {
+    const totals = taxYearTotals(rows, year);
+    const threshold = w2gThresholds(year).poker;
+    const venueOf = (row) => row.bankroll_locations?.name || row.tournament_name || 'Unknown';
+    const games = rows.filter(row => !row.is_revision && SESSION_CATEGORIES.includes(row.category));
+    const net = (row) => Math.round(((Number(row.gross_out) || 0) - (Number(row.gross_in) || 0)) * 100) / 100;
 
-    sessions.forEach(session => {
-        const net = (session.gross_out || 0) - (session.gross_in || 0);
-        const isTournament = session.category === 'poker_mtt';
-
-        if (net > 0) {
-            totalWinnings += net;
-            if (isTournament) {
-                tournamentWinnings += net;
-                // Check W2-G threshold for tournaments
-                if (net >= W2G_THRESHOLDS.poker) {
-                    w2gEvents.push({
-                        date: session.entry_date,
-                        type: 'Tournament',
-                        venue: session.venue_name || session.location,
-                        amount: net,
-                        threshold: W2G_THRESHOLDS.poker
-                    });
-                }
-            } else {
-                cashGameWinnings += net;
-            }
-        } else {
-            totalLosses += Math.abs(net);
-            if (isTournament) {
-                tournamentLosses += Math.abs(net);
-            } else {
-                cashGameLosses += Math.abs(net);
-            }
+    const side = (match) => {
+        let winnings = 0, losses = 0;
+        for (const row of games.filter(match)) {
+            const n = net(row);
+            if (n > 0) winnings += n; else losses += -n;
         }
-    });
-
-    // Expense totals from trips
-    let totalExpenses = 0;
-    const expenseBreakdown = {
-        hotel: 0,
-        flights: 0,
-        rental_car: 0,
-        gas: 0,
-        meals: 0,
-        transport: 0,
-        tips: 0,
-        other: 0
+        winnings = Math.round(winnings * 100) / 100;
+        losses = Math.round(losses * 100) / 100;
+        return { winnings, losses, net: Math.round((winnings - losses) * 100) / 100 };
     };
 
-    trips.forEach(trip => {
-        if (trip.expenses) {
-            Object.keys(expenseBreakdown || {}).forEach(key => {
-                const amount = trip.expenses[key] || 0;
-                expenseBreakdown[key] += amount;
-                totalExpenses += amount;
-            });
-        }
-    });
+    // A poker tournament win is W-2G reportable at $5,000 or more net of the buy-in.
+    const w2gEvents = games
+        .filter(row => row.category === 'poker_mtt' && net(row) >= threshold)
+        .map(row => ({ date: row.entry_date, type: 'Tournament', venue: venueOf(row), amount: net(row), threshold }));
 
-    const netResult = totalWinnings - totalLosses;
-    const taxableIncome = Math.max(0, netResult - totalExpenses);
+    // Expenses are the ledger's own expense entries, by type. The old read
+    // took them from a `trips.expenses` object that is a number column, so
+    // every report showed $0 of expenses.
+    const expenses = {};
+    for (const row of rows) {
+        if (row.is_revision || row.category !== 'expense') continue;
+        const key = row.expense_type || 'other';
+        expenses[key] = Math.round(((expenses[key] || 0) + Math.abs(Number(row.gross_in) || 0)) * 100) / 100;
+    }
 
     return {
         year,
         summary: {
-            totalSessions: sessions.length,
+            totalSessions: totals.sessions,
             totalTrips: trips.length,
-            totalWinnings,
-            totalLosses,
-            netGamblingResult: netResult,
-            totalExpenses,
-            taxableIncome,
+            totalWinnings: totals.winnings,
+            totalLosses: totals.losses,
+            netGamblingResult: totals.net,
+            lossDeductionRate: totals.lossDeductionRate,
+            deductibleLosses: totals.deductibleLosses,
+            totalExpenses: totals.recordedExpenses,
+            // Gambling income left after the losses the law allows. Expenses
+            // are listed apart: only a professional gambler may deduct them.
+            taxableIncome: Math.round((totals.winnings - totals.deductibleLosses) * 100) / 100,
         },
+        quarters: totals.quarters,
         breakdown: {
-            cashGame: {
-                winnings: cashGameWinnings,
-                losses: cashGameLosses,
-                net: cashGameWinnings - cashGameLosses
-            },
-            tournament: {
-                winnings: tournamentWinnings,
-                losses: tournamentLosses,
-                net: tournamentWinnings - tournamentLosses
-            }
+            cashGame: side(row => row.category !== 'poker_mtt'),
+            tournament: side(row => row.category === 'poker_mtt'),
         },
-        expenses: expenseBreakdown,
+        expenses,
         w2gEvents,
-        sessions: sessions.map(s => ({
+        sessions: games.map(s => ({
             date: s.entry_date,
-            venue: s.venue_name || s.location || 'Unknown',
-            type: s.category === 'poker_mtt' ? 'Tournament' : 'Cash',
-            buyIn: s.gross_in || 0,
-            cashOut: s.gross_out || 0,
-            net: (s.gross_out || 0) - (s.gross_in || 0)
+            venue: venueOf(s),
+            type: s.category === 'poker_mtt' ? 'Tournament' : s.category === 'poker_cash' ? 'Cash' : s.category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            buyIn: Number(s.gross_in) || 0,
+            cashOut: Number(s.gross_out) || 0,
+            net: net(s),
         }))
     };
 }
 
-async function generateTaxPDF(report, user) {
+async function generateTaxPDF(report, generatedDay) {
         // Dynamic-import jspdf only after auth + feature-gate pass (Phase 4.3)
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
@@ -245,7 +211,7 @@ async function generateTaxPDF(report, user) {
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 28, { align: 'center' });
+    doc.text(`Generated: ${generatedDay}`, pageWidth / 2, 28, { align: 'center' });
 
     let yPos = 40;
 
@@ -261,11 +227,12 @@ async function generateTaxPDF(report, user) {
         body: [
             ['Total Sessions', report.summary.totalSessions.toString()],
             ['Total Trips', report.summary.totalTrips.toString()],
-            ['Gross Winnings', `$${report.summary.totalWinnings.toLocaleString()}`],
-            ['Gross Losses', `($${report.summary.totalLosses.toLocaleString()})`],
-            ['Net Gambling Result', `$${report.summary.netGamblingResult.toLocaleString()}`],
-            ['Total Deductible Expenses', `($${report.summary.totalExpenses.toLocaleString()})`],
-            ['Taxable Income', `$${report.summary.taxableIncome.toLocaleString()}`],
+            ['Gross Winnings', formatUsd(report.summary.totalWinnings)],
+            ['Gross Losses', formatUsd(-report.summary.totalLosses)],
+            ['Net Gambling Result', formatUsd(report.summary.netGamblingResult)],
+            [report.summary.lossDeductionRate < 1 ? 'Deductible Losses (90%, Capped At Winnings)' : 'Deductible Losses (Capped At Winnings)', formatUsd(-report.summary.deductibleLosses)],
+            ['Taxable Gambling Income', formatUsd(report.summary.taxableIncome)],
+            ['Recorded Expenses (Professional Gamblers Only)', formatUsd(-report.summary.totalExpenses)],
         ],
         theme: 'grid',
         styles: { fontSize: 10 },
@@ -288,8 +255,8 @@ async function generateTaxPDF(report, user) {
                 e.date,
                 e.type,
                 e.venue,
-                `$${e.amount.toLocaleString()}`,
-                `$${e.threshold.toLocaleString()}`
+                formatUsd(e.amount),
+                formatUsd(e.threshold)
             ]),
             theme: 'grid',
             styles: { fontSize: 9 },
@@ -314,8 +281,8 @@ async function generateTaxPDF(report, user) {
                 f.date || '-',
                 f.type || '-',
                 (f.description || '-').substring(0, 30),
-                f.amount !== null ? `$${f.amount.toLocaleString()}` : '-',
-                f.withheld !== null ? `$${f.withheld.toLocaleString()}` : '-'
+                f.amount !== null ? formatUsd(f.amount) : '-',
+                f.withheld !== null ? formatUsd(f.withheld) : '-'
             ]),
             theme: 'grid',
             styles: { fontSize: 9 },
@@ -328,7 +295,7 @@ async function generateTaxPDF(report, user) {
     // Expense Breakdown
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Deductible Expense Breakdown', 14, yPos);
+    doc.text('Recorded Expense Breakdown', 14, yPos);
     yPos += 8;
 
     autoTable(doc, {
@@ -337,8 +304,8 @@ async function generateTaxPDF(report, user) {
         body: Object.entries(report.expenses || {})
             .filter(([, amount]) => amount > 0)
             .map(([cat, amount]) => [
-                cat.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                `$${amount.toLocaleString()}`
+                cat.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                formatUsd(amount)
             ]),
         theme: 'grid',
         styles: { fontSize: 10 },
@@ -358,11 +325,11 @@ async function generateTaxPDF(report, user) {
         head: [['Date', 'Venue', 'Type', 'Buy-In', 'Cash Out', 'Net']],
         body: report.sessions.map(s => [
             s.date,
-            s.venue.substring(0, 25),
+            String(s.venue).substring(0, 25),
             s.type,
-            `$${s.buyIn.toLocaleString()}`,
-            `$${s.cashOut.toLocaleString()}`,
-            `$${s.net.toLocaleString()}`
+            formatUsd(s.buyIn),
+            formatUsd(s.cashOut),
+            formatUsd(s.net)
         ]),
         theme: 'striped',
         styles: { fontSize: 8 },

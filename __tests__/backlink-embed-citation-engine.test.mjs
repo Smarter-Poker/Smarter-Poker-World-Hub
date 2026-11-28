@@ -130,7 +130,7 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
   assert.ok(embedsSrc.includes('syndication-apis-heading'), 'embeds.js renders Open Datasets & Syndication APIs section');
 
   const embedUrls = [...embedsSrc.matchAll(/embedUrl:\s*'([^']+)'/g)].map((m) => m[1]);
-  assert.equal(embedUrls.length, 51, 'all 51 widgets define embedUrl');
+  assert.equal(embedUrls.length, 52, 'all 52 widgets define embedUrl');
   for (const url of embedUrls) {
     assert.ok(
       url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
@@ -152,7 +152,7 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
 
   const md = renderEmbedsMarkdown();
   const mdEmbedUrls = [...md.matchAll(/- Embed URL: `([^`]+)`/g)].map((m) => m[1]);
-  assert.equal(mdEmbedUrls.length, 51, 'renderEmbedsMarkdown lists 51 Embed URLs');
+  assert.equal(mdEmbedUrls.length, 52, 'renderEmbedsMarkdown lists 52 Embed URLs');
   for (const url of mdEmbedUrls) {
     assert.ok(
       url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
@@ -220,7 +220,7 @@ test('All authority page templates wire CitationBacklinkBox with 7 citation form
     'pages/tools/payout-calculator.js',
     'pages/tools/rake-calculator.js',
     'pages/tools/3bet-calculator.js',
-    'pages/tools/preflop-ranges/index.js',
+    'src/components/seo/PreflopRangeMatrixHub.jsx',
     'pages/hub/training/daily-challenge.js',
   ];
 
@@ -230,11 +230,11 @@ test('All authority page templates wire CitationBacklinkBox with 7 citation form
   }
 });
 
-test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 51 calculators with canonical backlinks', () => {
+test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 52 calculators with canonical backlinks', () => {
   const jsonFeed = buildResearchJsonFeed();
   assert.equal(jsonFeed.version, 'https://jsonfeed.org/version/1.1');
   assert.equal(jsonFeed.feed_url, 'https://smarter.poker/api/feeds/research');
-  assert.equal(jsonFeed.items.length, 81);
+  assert.equal(jsonFeed.items.length, 82);
 
   for (const item of jsonFeed.items) {
     assert.match(item.url, /^https:\/\/smarter\.poker\//);
@@ -389,7 +389,7 @@ test('All 23 interactive calculators export getServerSideProps and renderHubTool
   const calculatorPages = [
     'pages/tools/poker-odds-calculator.js',
     'pages/tools/icm-calculator.js',
-    'pages/tools/preflop-ranges/index.js',
+    'pages/tools/preflop-ranges.js',
     'pages/tools/pot-odds-calculator.js',
     'pages/tools/push-fold-calculator.js',
     'pages/tools/bankroll-calculator.js',
@@ -756,7 +756,7 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   assert.equal(invalidOembed.status, 404);
 
   const catalog = buildPartnerInstallationCatalog({ partner: 'upswingpoker.com' });
-  assert.equal(catalog.counts.embeddable_calculators, 51);
+  assert.equal(catalog.counts.embeddable_calculators, 52);
   assert.equal(catalog.counts.svg_attribution_badges, 16);
   assert.equal(catalog.counts.streamer_chat_commands, 44);
   assert.equal(catalog.counts.dead_tool_replacements, 12);

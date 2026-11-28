@@ -14,6 +14,9 @@
  */
 
 import React from 'react';
+import { Clock3, Lightbulb, ShieldCheck, Sparkles } from 'lucide-react';
+
+const POWER_UP_ICONS = { shield: ShieldCheck, timer: Clock3, hint: Lightbulb, double: Sparkles };
 
 export default function PowerUpBar({
     powerUps = [],
@@ -58,13 +61,15 @@ export default function PowerUpBar({
                                 ? `${pu.color}30`
                                 : isUsed
                                     ? 'rgba(255,255,255,0.03)'
-                                    : 'rgba(255,255,255,0.06)',
+                                    : 'linear-gradient(180deg, #1c3248, #0a1726)',
                             border: isActive
                                 ? `2px solid ${pu.color}`
                                 : isUsed
                                     ? '1px solid rgba(255,255,255,0.05)'
                                     : `1px solid ${canAfford ? pu.color + '40' : 'rgba(255,255,255,0.08)'}`,
-                            borderRadius: 20,
+                            borderRadius: 0,
+                            borderImage: isActive ? 'none' : "url('/images/smarterdesign/chrome-stat.webp') 11 / 3px stretch",
+                            minHeight: 36,
                             cursor: isDisabled ? 'default' : 'pointer',
                             opacity: isDisabled ? 0.35 : 1,
                             transition: 'all 0.2s ease',
@@ -72,14 +77,14 @@ export default function PowerUpBar({
                             animation: isActive ? 'powerUpPulse 1.5s ease-in-out infinite' : 'none',
                         }}
                     >
-                        <span style={{ fontSize: compact ? 12 : 14 }}>{pu.icon}</span>
+                        {(() => { const Icon = POWER_UP_ICONS[pu.icon] || Sparkles; return <Icon size={compact ? 14 : 16} aria-hidden style={{ color: pu.color }} />; })()}
                         <span style={{
                             fontSize: compact ? 12 : 12,
                             fontWeight: 700,
-                            color: isActive ? pu.color : isUsed ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
+                            color: isActive ? '#ffffff' : isUsed ? 'rgba(255,255,255,0.35)' : '#f2f7ff',
                             letterSpacing: 0.5,
                         }}>
-                            {isUsed ? 'USED' : isActive ? 'ACTIVE' : pu.cost}
+                            {isUsed ? 'Used' : isActive ? 'Active' : pu.cost}
                         </span>
                         {!isUsed && !isActive && (
                             <span style={{ fontSize: compact ? 12 : 12, opacity: 0.5 }}>◆</span>

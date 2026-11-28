@@ -345,6 +345,16 @@ const WIDGETS = [
     creditAnchor: 'Smarter.Poker GTO Poker IQ Test',
   },
   {
+    id: 'gto-leak-finder',
+    title: '60-Second GTO Poker Leak Finder Diagnostic',
+    description: 'Interactive 5-hand 100BB cash and MTT ICM solver diagnostic estimating BB/100 EV loss across five core strategy pillars.',
+    embedUrl: 'https://smarter.poker/tools/gto-leak-finder?embed=true',
+    landerUrl: 'https://smarter.poker/tools/gto-leak-finder',
+    height: 820,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker 60-Second GTO Leak Finder',
+  },
+  {
     id: 'geometric-bet-calculator',
     title: 'Geometric Bet Sizing (2e & 3e) Street Calculator',
     description: 'Computes exact 1-street, 2-street (2e), and 3-street (3e) geometric pot-fraction bet sizing and villain MDF across flop, turn, and river.',
@@ -531,11 +541,11 @@ export const EMBEDDABLE_TOOLS = WIDGETS;
 export const PARTNER_BADGES = [
   {
     id: 'badge-venue',
-    title: 'Verified Live Poker Room Badge',
+    title: 'Listed Live Poker Room Badge',
     description: 'For casinos, Texas social poker clubs, and charity rooms listed in the Smarter.Poker directory.',
     badgeUrl: 'https://smarter.poker/api/seo/badge?type=venue',
     targetUrl: 'https://smarter.poker/hub/poker-near-me/lobby',
-    altText: 'Verified Poker Room: Smarter.Poker Directory',
+    altText: 'Listed Poker Room: Smarter.Poker Directory',
   },
   {
     id: 'badge-directory-listing',
@@ -1195,6 +1205,7 @@ const WIDGET_CATEGORY_MAP = {
   'who-wins-calculator': 'equity',
   'hand-converter': 'equity',
   'poker-iq-test': 'equity',
+  'gto-leak-finder': 'equity',
   'm-ratio-calculator': 'tournament',
   'satellite-calculator': 'tournament',
   'straddle-calculator': 'cash',
@@ -2304,7 +2315,7 @@ export default function WebmasterEmbedPortal() {
                   textDecoration: 'none',
                 }}
               >
-                15 Empirical Poker Studies
+                15 Poker Research Pages
               </Link>
               <Link
                 href="/tools/poker-odds-calculator"
@@ -2347,7 +2358,7 @@ export default function WebmasterEmbedPortal() {
             compact
             eyebrow="Free Smarter.Poker Account"
             title="Unlock All 52 Poker Calculators, 107 GTO Drills & Live Room Data"
-            description={`Create A Free Smarter.Poker Account To Save Custom Calculator Presets, Track Bankroll Sessions, And Access ${VENUE_COUNT_LABEL} Verified Poker Rooms.`}
+            description={`Create A Free Smarter.Poker Account To Save Custom Calculator Presets, Track Bankroll Sessions, And Access ${VENUE_COUNT_LABEL} Poker Rooms.`}
             primaryLabel="Create Free Account"
             primaryHref="/auth/signup?redirect=/tools/embeds&src=tools-embeds"
             secondaryLabel="Sign In"

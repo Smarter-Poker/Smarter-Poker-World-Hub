@@ -78,7 +78,7 @@ const FEATURE_ITEMS = [
     {
         title: 'Live Poker Near Me & Cardroom Directory',
         link: `${SITE_URL}/features/poker-near-me`,
-        description: `Explore ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, 4,500+ Weekly Tournaments, WSOP/WPT Series Schedules, Cash Game Listings, And Waitlists With Instant GPS Directions.`,
+        description: `Explore ${VENUE_COUNT_LABEL} Live Poker Rooms, 800+ Weekly Tournaments, WSOP/WPT Series Schedules, Cash Game Listings, And Waitlists With Instant GPS Directions.`,
     },
     {
         title: 'Private Poker Clubs & Union Hosting Arena',
@@ -335,6 +335,13 @@ const TOOL_ITEMS = [
         pubDate: LEARN_MODIFIED,
     },
     {
+        title: '60-Second GTO Poker Leak Finder Diagnostic',
+        link: `${SITE_URL}/tools/gto-leak-finder`,
+        description: 'Play 5 Solver-Graded 100BB Cash And ICM Hands To Measure Your GTO Accuracy, Estimated BB/100 Leak Rate, And Primary Strategy Leak Free.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
         title: 'PLO4 & PLO5 Straight Wrap Outs & Nut Equity Calculator',
         link: `${SITE_URL}/tools/plo-outs-calculator`,
         description: 'Compute 13, 16, 17, And 20-Out Omaha Straight Wrap Plus Flush Redraw Hypergeometric Turn-And-River Equity.',
@@ -526,7 +533,7 @@ const TOOL_ITEMS = [
     {
         title: 'Best Live Poker Rooms By Game Variant (PLO, Big O, Mixed, Stud & High-Stakes)',
         link: `${SITE_URL}/poker-rooms/by-game`,
-        description: `Curated Directory Grouping ${VENUE_COUNT_LABEL} North American Poker Rooms By PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, And Daily MTTs.`,
+        description: `Curated Directory Grouping ${VENUE_COUNT_LABEL} US Poker Rooms By PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, And Daily MTTs.`,
         category: 'Live Poker Guides',
         pubDate: LEARN_MODIFIED,
     },
@@ -547,7 +554,7 @@ const TOOL_ITEMS = [
     {
         title: '2026 Annual State Of Live & Online Poker Industry Whitepaper',
         link: `${SITE_URL}/research/annual-state-of-poker-2026`,
-        description: `Flagship 2026 Quantitative Industry Report Synthesizing ${VENUE_COUNT_LABEL} Venues, 4,500+ Weekly Tournaments, And 10M+ Simulated GTO Hands (DOI: 10.5281/zenodo.15129481).`,
+        description: `The 2026 Smarter.Poker Whitepaper: Exact Poker Math, US Poker Tax Rules, And Dated Directory Data, Each Figure Labelled With Its Basis.`,
         category: 'Poker Industry Research',
         pubDate: LEARN_MODIFIED,
     },

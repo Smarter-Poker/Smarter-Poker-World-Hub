@@ -8,7 +8,7 @@
  * ratio; icon holders are the painted pictograms. Everything else is live DOM
  * text printed on the black glass between the rails, in the console's inks:
  * silver #e4e7ec, white #f4f7fb, blue #45adff, green #c8ffd2, red #ff5b6e,
- * gold #ffd700, muted #9aa5b3. No fill, rounded box or cast shadow is drawn to
+ * gold #86daff, muted #9aa5b3. No fill, rounded box or cast shadow is drawn to
  * imitate chrome: a row is separated from the next by an engraved rule only.
  *
  * panel-mid.png's rails end at 8.8% of the slice width on each side, so the
@@ -58,8 +58,8 @@
 }
 
 .pnm-console-card > .pnc-panel__head {
-  aspect-ratio: 1000 / 112;
-  background: url('/images/pnm-console/painted-panels-v1/panel-head.png') top center / 100% auto no-repeat;
+  background: none;
+  display: none;
 }
 
 .pnm-console-card > .pnc-panel__body {
@@ -73,12 +73,16 @@
   flex-direction: column;
   gap: 12px;
   padding: 2px var(--pnm-card-inset) 6px;
-  background: url('/images/pnm-console/painted-panels-v1/panel-mid.png') top center / 100% auto repeat-y;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) padding-box;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .pnm-console-card > .pnc-panel__foot {
-  aspect-ratio: 1000 / 72;
-  background: url('/images/pnm-console/painted-panels-v1/panel-foot.png') bottom center / 100% auto no-repeat;
+  background: none;
+  display: none;
 }
 
 .pnm-console-card:focus-visible {
@@ -287,7 +291,7 @@
 .pnm-console-card.pnm-console-card [data-tone='blue'] { color: #45adff; text-shadow: 0 0 6px rgb(49 168 255 / 40%); }
 .pnm-console-card.pnm-console-card [data-tone='green'] { color: #c8ffd2; text-shadow: 0 0 6px rgb(53 217 90 / 60%); }
 .pnm-console-card.pnm-console-card [data-tone='red'] { color: #ff5b6e; text-shadow: 0 0 6px rgb(240 40 73 / 45%); }
-.pnm-console-card.pnm-console-card [data-tone='gold'] { color: #ffd700; text-shadow: 0 0 6px rgb(255 215 0 / 35%); }
+.pnm-console-card.pnm-console-card [data-tone='gold'] { color: #86daff; text-shadow: 0 0 6px rgb(19 164 236 / 35%); }
 .pnm-console-card.pnm-console-card [data-tone='muted'] { color: #9aa5b3; }
 
 /* ---------- Meta lines and printed tags ---------- */
@@ -331,7 +335,7 @@
 }
 
 .pnm-console-card :is(.guaranteed, .pnm-console-card__tag--premium) {
-  color: #ffd700;
+  color: #86daff;
 }
 
 .pnm-console-card .pnm-console-card__tag--blue {
@@ -537,10 +541,8 @@
   max-width: 200px;
   min-height: 44px;
   flex: 1 1 0;
-  aspect-ratio: 348 / 114;
   place-items: center;
   color: #e4e7ec;
-  background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat;
   font: 800 clamp(12px, 4.2cqw, 15px) / 1 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif;
   letter-spacing: 0.06em;
   text-align: center;
@@ -549,11 +551,22 @@
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box;
+  border-radius: 0;
+  box-shadow: none;
+  color: #f2f7ff;
 }
 
 .pnm-console-card.pnm-console-card :is(.action-btn.primary, .tour-action-btn.primary, .pnm-card-plate--primary) {
   color: #f4f7fb;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box;
+  border-radius: 0;
+  box-shadow: none;
+  color: #ffffff;
 }
 
 .pnm-card-plate__face {
@@ -1044,7 +1057,7 @@
 }
 
 .pnm-console-card .vc3-tourney-gtd {
-  color: #ffd700;
+  color: #86daff;
   font-size: 12px;
   font-weight: 800;
 }
@@ -1649,16 +1662,18 @@
    the insets are fractions of the well's own width, never of the host. */
 .pnm-venue-compare__search {
   --pnm-compare-well-w: min(100%, 560px);
-
   position: relative;
   display: flex;
   width: var(--pnm-compare-well-w);
   min-width: 0;
   box-sizing: border-box;
-  aspect-ratio: 1829 / 313;
   align-items: center;
   padding: 0 calc(var(--pnm-compare-well-w) * 0.075);
-  background: url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: #06111d padding-box;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 body.world-poker-near-me .pnm-venue-compare__search input,

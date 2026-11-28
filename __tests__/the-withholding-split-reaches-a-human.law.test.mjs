@@ -46,8 +46,10 @@ test('the vault card shows federal and state, not just the total', () => {
     const panel = code(PANEL);
     assert.match(panel, /form\.federal_withheld/, 'the federal box never reached a screen');
     assert.match(panel, /form\.state_withheld/, 'nor the state box');
-    assert.match(panel, /Fed \$\$\{parseFloat\(form\.federal_withheld \|\| 0\)/);
-    assert.match(panel, /State \$\$\{parseFloat\(form\.state_withheld \|\| 0\)/);
+    // Formatted as currency by the shared report formatter (formatUsd writes
+    // the dollar sign, cents and a leading minus).
+    assert.match(panel, /Fed \$\{formatUsd\(form\.federal_withheld\)\}/);
+    assert.match(panel, /State \$\{formatUsd\(form\.state_withheld\)\}/);
 });
 
 test('both places that list a W-2G show it', () => {

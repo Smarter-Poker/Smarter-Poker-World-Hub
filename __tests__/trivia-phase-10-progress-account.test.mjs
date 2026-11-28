@@ -210,6 +210,7 @@ test('every native settings toggle has a unique accessible name', () => {
   assert.deepEqual(labels, [
     'Timer Visibility',
     'Question Hints',
+    'Auto-Advance On Correct',
     'Sound Effects',
     'Haptic Vibration',
     'Screen Shake',

@@ -195,7 +195,7 @@ const Card: React.FC<CardProps> = ({
         position: 'relative',
         cursor: onClick ? 'pointer' : 'default',
         boxShadow: highlighted
-            ? '0 4px 20px rgba(255, 215, 0, 0.5), 0 0 0 3px #ffd700'
+            ? '0 4px 20px rgba(86, 216, 255, 0.5), 0 0 0 3px #56d8ff'
             : '0 2px 8px rgba(0, 0, 0, 0.3)',
         opacity: dimmed ? 0.4 : 1,
         ...customStyle,

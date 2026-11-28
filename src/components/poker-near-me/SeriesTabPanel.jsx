@@ -20,7 +20,7 @@ const TOUR_COLORS = {
     'WSOPC': { bg: 'linear-gradient(135deg, #f2f8ff, #c3d2e0)', text: '#000', border: '#ffffff' },
     'MSPT': { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6' },
     'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981' },
-    'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6' },
+    'PGT': { bg: 'linear-gradient(135deg, #2f7fe0, #2184b6)', text: '#fff', border: '#4f9cff' },
     'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563' }
 };
 

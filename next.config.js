@@ -674,7 +674,18 @@ const nextConfig = {
   // applies to both Vercel production builds AND local dev builds.
   // It sets HMR watchOptions and resolve aliases needed for local development.
   turbopack: {},
-  webpack: (config, { dev, isServer }) => {
+  webpack: (config, { dev, isServer, config: nextConfig }) => {
+    // CSS and font url()s carry ?dpl=<deployment id>; key those loaders to the
+    // deployment so a restored build cache cannot ship CSS that points at an
+    // earlier deployment (it made every page download its fonts twice). See
+    // src/lib/build/deploymentKeyedCssLoaders.js.
+    if (!dev) {
+      require(require('path').join(__dirname, 'src/lib/build/deploymentKeyedCssLoaders')).keyCssLoadersToDeployment(
+        config,
+        (nextConfig && nextConfig.deploymentId) || process.env.NEXT_DEPLOYMENT_ID
+      );
+    }
+
     // ─── Supabase Client Resolution Fix ─────────────────────────────────────────
     // Both supabase.ts (real client) and supabase.js (Node ESM test mock) exist
     // in src/lib/. Without this alias, imports with explicit .js extension
@@ -2011,6 +2022,11 @@ const nextConfig = {
           destination: '/api/hub-tool-markdown?path=/tools/poker-iq-test',
         },
         {
+          source: '/tools/gto-leak-finder',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/gto-leak-finder',
+        },
+        {
           source: '/tools/plo-outs-calculator',
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/hub-tool-markdown?path=/tools/plo-outs-calculator',
@@ -2730,6 +2746,10 @@ const nextConfig = {
         {
           source: '/tools/poker-iq-test.md',
           destination: '/api/hub-tool-markdown?path=/tools/poker-iq-test',
+        },
+        {
+          source: '/tools/gto-leak-finder.md',
+          destination: '/api/hub-tool-markdown?path=/tools/gto-leak-finder',
         },
         {
           source: '/tools/plo-outs-calculator.md',

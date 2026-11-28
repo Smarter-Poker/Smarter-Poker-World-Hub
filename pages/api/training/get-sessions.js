@@ -75,6 +75,9 @@ export default async function handler(req, res) {
                   { label: 'TrainingSessions.detail' },
               );
 
+              if (detailErr?.code === '22P02') {
+                  return res.status(404).json({ success: false, error: 'Session not found' });
+              }
               if (detailErr) {
                   console.warn('[GetSessions] Detail query failed:', detailErr.message);
                   return res.status(503).json({

@@ -42,7 +42,10 @@ test('every catalog surface consumes the canonical artwork contract', () => {
     const responsiveArt = read('src/components/training/TrainingGameArt.jsx');
 
     for (const [name, source] of Object.entries({ hub, category, levelSelector, sessionModal })) {
-        assert.match(source, /getGameImage|TrainingGameArt/, `${name} must use the canonical game render`);
+        // The category hero became its #SMARTERDESIGN image header, whose scene is
+        // generated from the canonical casino-realism renders.
+        const canonical = name === 'category' ? /getGameImage|TrainingGameArt|TrainingImageHeader/ : /getGameImage|TrainingGameArt/;
+        assert.match(source, canonical, `${name} must use the canonical game render`);
     }
     assert.match(responsiveArt, /getGameImageSources/);
     assert.match(responsiveArt, /type="image\/avif"/);

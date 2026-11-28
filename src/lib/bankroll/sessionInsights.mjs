@@ -10,9 +10,23 @@ const money = cents => (cents / 100).toLocaleString('en-US', { style: 'currency'
 const isoDay = ms => new Date(ms).toISOString().slice(0, 10);
 const DAY = 86400000;
 
-export function analysisWindow(days, now = new Date()) {
+/**
+ * The player's own calendar day, if the client sent one that can be today
+ * somewhere on Earth (UTC-12 to UTC+14 is at most one day either side of the
+ * UTC date). The server runs in UTC, so without it every evening in the
+ * Americas ended the window on tomorrow and dropped the oldest local day.
+ */
+export function clientToday(value, now = new Date()) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const day = Date.parse(value + 'T00:00:00Z');
+  const utc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return Number.isFinite(day) && Math.abs(day - utc) <= DAY && isoDay(day) === value ? value : null;
+}
+
+export function analysisWindow(days, now = new Date(), today = null) {
   if (!INSIGHT_WINDOWS.includes(days)) throw new RangeError('Unsupported analysis window');
-  const end = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const local = clientToday(today, now);
+  const end = local ? Date.parse(local + 'T00:00:00Z') : Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   const first = end - (days - 1) * DAY;
   return { days, start: isoDay(first), end: isoDay(end), previousStart: isoDay(first - days * DAY), previousEnd: isoDay(first - DAY) };
 }
