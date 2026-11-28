@@ -74,14 +74,14 @@ test('both lobby location recovery sheets are focus-managed painted consoles', (
     assert.match(modal, /crest="locator"/);
     assert.match(modal, /secondary:\s*\{/);
     assert.match(modal, /primary:\s*\{/);
-    assert.doesNotMatch(modal, /<svg|style=|<style jsx|backdropFilter|borderRadius/);
+    assert.doesNotMatch(modal, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   }
 
   assert.match(dialogs, /\.pnm-console-dialog-overlay \{/);
   assert.match(dialogs, /\.pnm-console-dialog__close \{/);
   assert.match(dialogs, /min-height:\s*44px/);
   assert.match(dialogs, /grid-template-columns:\s*minmax\(0, 2fr\) minmax\(110px, 0\.8fr\)/);
-  assert.doesNotMatch(dialogs, /(?:linear|radial|conic)-gradient|(?:^|[;{\s])border(?:-radius)?\s*:|box-shadow\s*:|backdrop-filter\s*:|:hover/im);
+  assert.doesNotMatch(dialogs, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.ok(
     app.indexOf("import '../src/styles/worlds/poker-near-me-console-dialogs.css';")
       > app.indexOf("import '../src/styles/worlds/poker-near-me-console.css';")
@@ -105,7 +105,7 @@ test('the lobby login prompt is a focus-managed painted two-action console', () 
   assert.match(login, /label:\s*'Cancel'/);
   assert.match(login, /label:\s*'Sign In'/);
   assert.match(login, /router\.push\(`\/auth\/login\?redirect=\$\{encodeURIComponent\('\/hub\/poker-near-me\/lobby'\)\}`\)/);
-  assert.doesNotMatch(login, /<svg|style=|<style jsx|(?:linear|radial|conic)-gradient/);
+  assert.doesNotMatch(login, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
 });
 
 test('the lobby never stacks a location prompt over its first-run tutorial', () => {
