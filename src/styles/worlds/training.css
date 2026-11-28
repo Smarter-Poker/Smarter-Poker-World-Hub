@@ -2592,20 +2592,9 @@ body.world-training {
     color: #eaf8ff;
 }
 
-/* NOT a stacking context (2026-11-27). This shell used to carry
-   `isolation: isolate`, which trapped every overlay rendered inside it -
-   above all the World Command drawer (HamburgerMenu, z-index 10100) - at the
-   shell's own level, underneath the global header (portalled to <body>,
-   z-index 10050) and the guest account bar (sticky, z-index 850). On every
-   Training route the drawer then opened with its title, edit and close
-   controls painted over by the header and the guest bar
-   (e2e/022-world-menu-visual.spec.ts, training-mobile.png). Every Training
-   decoration that relies on z-index: -1 already isolates its own parent
-   (.sp-training-command, .sp-training-tool, .sp-training-journey,
-   .sp-training-intelligence, the coach casino, .sp-level-selector), so the
-   shell does not need to. */
 body.world-training .sp-training-route-shell {
     position: relative;
+    isolation: isolate;
     min-height: 100dvh;
     overflow-x: clip;
     background: #040d18;

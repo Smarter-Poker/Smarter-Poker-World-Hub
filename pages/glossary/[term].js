@@ -23,6 +23,10 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import { openQuickSignup } from '../../src/components/seo/SmarterQuickSignupSheet';
+import { trackSeoFunnelEvent } from '../../src/lib/seo/seoFunnelTelemetry';
+import { resolveConceptToolBridge } from '../../src/lib/seo/conceptToolBridge.mjs';
+import seoKitStyles from '../../src/components/seo/SmarterSeoKit.module.css';
 import { firstThatFits } from '../../src/lib/seo/titleFit.js';
 import {
   GLOSSARY_TERMS,
@@ -76,7 +80,31 @@ export async function getStaticProps({ params }) {
 
 export default function GlossaryTermPage({ term, related, products, lessons = [] }) {
   const path = glossaryTermPath(term.slug);
+  const canonicalPath = path;
   const url = `https://smarter.poker${path}`;
+  const bridge = resolveConceptToolBridge({
+    kind: 'glossary',
+    slug: term.slug,
+    title: term.term,
+    category: term.category,
+  });
+
+  const handleBridgeSignup = () => {
+    trackSeoFunnelEvent('seo_concept_bridge_click', {
+      kind: 'glossary',
+      slug: term.slug,
+      target_tool: bridge.toolHref,
+      action: 'signup',
+    });
+    openQuickSignup({
+      unlockKey: bridge.unlockKey,
+      redirectPath: canonicalPath,
+      source: 'glossary-tool-bridge',
+      eyebrow: bridge.eyebrow,
+      title: `Practice ${term.term} Free In 107 GTO Games`,
+      subtitle: `Apply ${term.term} With ${bridge.toolLabel}, 107 Interactive GTO Training Games, And Cloud Study Progress.`,
+    });
+  };
   // "What Is Poker Union In Poker?" says poker twice; a term that already
   // names the game is asked about as it is.
   const inPoker = /\bpoker\b/i.test(term.term) ? '' : ' In Poker';
@@ -177,6 +205,124 @@ export default function GlossaryTermPage({ term, related, products, lessons = []
               {term.category}
             </Link>
           </p>
+
+          <section
+            data-testid="concept-tool-bridge"
+            aria-label={bridge.eyebrow}
+            className={seoKitStyles.kit}
+            style={{
+              margin: '20px 0 24px',
+              padding: '16px 18px',
+              background: 'linear-gradient(180deg, #111827 0%, #0b1120 100%)',
+              border: '1px solid #2563eb',
+              boxShadow: 'inset 0 1px 0 rgba(56, 189, 248, 0.35), 0 8px 20px rgba(0, 0, 0, 0.45)',
+              borderRadius: 0,
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '14px 16px',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+              <span className={seoKitStyles.eyebrowTag}>{bridge.eyebrow}</span>
+              <h2
+                style={{
+                  margin: '8px 0 4px',
+                  fontSize: '17px',
+                  fontWeight: 800,
+                  color: '#f8fafc',
+                  lineHeight: 1.25,
+                  overflowWrap: 'anywhere',
+                }}
+              >
+                {bridge.headline}
+              </h2>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '13.5px',
+                  lineHeight: 1.5,
+                  color: '#cbd5e1',
+                }}
+              >
+                {bridge.subcopy}
+              </p>
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: '10px',
+                flex: '1 1 260px',
+                maxWidth: '100%',
+                minWidth: 0,
+              }}
+            >
+              <Link
+                href={bridge.toolHref}
+                data-testid="concept-bridge-tool-link"
+                onClick={() =>
+                  trackSeoFunnelEvent('seo_concept_bridge_click', {
+                    kind: 'glossary',
+                    slug: term.slug,
+                    target_tool: bridge.toolHref,
+                    action: 'tool',
+                  })
+                }
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: '44px',
+                  padding: '10px 16px',
+                  background: '#0b1120',
+                  border: '1px solid #38bdf8',
+                  borderRadius: 0,
+                  color: '#38bdf8',
+                  fontSize: '13.5px',
+                  fontWeight: 700,
+                  lineHeight: 1.25,
+                  textAlign: 'center',
+                  textDecoration: 'none',
+                  whiteSpace: 'normal',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                }}
+              >
+                Open {bridge.toolLabel} Free
+              </Link>
+              <button
+                type="button"
+                data-testid="concept-bridge-signup-cta"
+                onClick={handleBridgeSignup}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: '44px',
+                  padding: '10px 16px',
+                  background: '#2563eb',
+                  border: '1px solid #38bdf8',
+                  borderRadius: 0,
+                  color: '#ffffff',
+                  fontSize: '13.5px',
+                  fontWeight: 800,
+                  lineHeight: 1.25,
+                  textAlign: 'center',
+                  whiteSpace: 'normal',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                  cursor: 'pointer',
+                }}
+              >
+                Practice Free In 107 GTO Games
+              </button>
+            </div>
+          </section>
 
           {related.length > 0 && (
             <>

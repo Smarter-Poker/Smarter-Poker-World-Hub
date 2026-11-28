@@ -17,6 +17,8 @@ const guides = {
   dashboard: ['Use Add + to log play. Use Adjust Bankroll for deposits and withdrawals from outside play.', 'Open a tool to work in its own view. Return with Back To Dashboard. Jarvis Insights reviews your recorded sessions at the bottom of the dashboard.'],
   trips: ['Use Add + to create a trip. Open a trip to review or link its sessions.'],
   series: ['Use Add + to start a series and group its events. Open the series to review its results.'],
+  leaks: ['Leak Analysis reads every recorded session for stakes, times of day, non-poker play and trip costs that are costing you money. The Location filter on the dashboard narrows it to one venue.', 'Each finding shows what it cost and what to change. It updates when you log, edit or delete an entry.'],
+  'hand-review': ['Link a hand you analysed in Training to the bankroll session it was played in. Search your recent hands, choose one, then choose its session.'],
   players: ['Use Add + to save a player note. Choose an existing player to review their notes.'],
   'scan-receipt': ['Select an image or take a photo. Review its contents before saving the receipt.'],
   receipts: ['Open a saved receipt to review it. Use Add + to enter the receipt capture flow.'],

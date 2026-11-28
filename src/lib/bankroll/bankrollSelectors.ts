@@ -15,6 +15,7 @@ import { RECEIPT_UNASSIGN } from './receiptGallery.mjs';
 import { localDay, localDayOffset } from './localDates.mjs';
 import {
   linkableStakingEntries,
+  isStakeableEntry,
   replayStakingDeal,
   splitStakingSession,
   stakingRowsToRewrite,
@@ -370,38 +371,6 @@ export async function createLedgerEntry(
     console.warn('[Bankroll] Failed to update segment balance:', segError);
   }
 
-  return data;
-}
-
-/**
- * Create a revision entry (for editing - original remains immutable)
- */
-export async function createRevisionEntry(
-  userId: string,
-  originalEntryId: string,
-  updates: Partial<LedgerEntry>,
-  reason: string
-): Promise<LedgerEntry> {
-  // Fetch original entry
-  const original = await fetchLedgerEntry(userId, originalEntryId);
-  if (!original) throw new Error('Original entry not found');
-
-  // Create revision with updated fields
-  const { data, error } = await supabase
-    .from('bankroll_ledger')
-    .insert({
-      ...original,
-      ...updates,
-      id: undefined, // Let Supabase generate new ID
-      is_revision: true,
-      original_entry_id: originalEntryId,
-      revision_reason: reason,
-      created_at: undefined, // Let Supabase set timestamp
-    })
-    .select()
-    .maybeSingle();
-
-  if (error || !data) throw error || new Error('Failed to create revision');
   return data;
 }
 
@@ -1371,6 +1340,9 @@ export async function loadStakingDeal(
  * caller reloads the deal, which replays every session in played order.
  */
 export async function linkStakingSession(arrangement: StakingArrangement, entry: LedgerEntry): Promise<void> {
+  if (!isStakeableEntry(entry)) {
+    throw new Error('Only Poker Cash Games And Tournaments Can Be Linked To A Staking Deal.');
+  }
   const split = splitStakingSession({
     grossResult: entry.net_result ?? (entry.gross_out || 0) - (entry.gross_in || 0),
     splitPercentage: arrangement.split_percentage,

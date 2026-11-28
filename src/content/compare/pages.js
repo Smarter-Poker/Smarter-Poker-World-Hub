@@ -1153,45 +1153,68 @@ export const COMPARE_PAGES = [
     title: 'Smarter.Poker Vs ICMIZER',
     h1: 'Smarter.Poker Vs ICMIZER',
     description:
-      'Smarter.Poker And ICMIZER Compared On Tournament ICM Calculations, Push Or Fold Training, Pricing, Free Access, Solver Depth And Supported Platforms.',
+      'Smarter.Poker And ICMIZER Compared On Free Browser ICM Calculations, 107 GTO Games, Push-Fold Training, Live Venues, Bankroll Tracking And Pricing.',
     summary: p(
-      'ICMIZER Is A Dedicated Tournament Preflop ICM And Nash Equilibrium Calculator With Push Or Fold Quizzes Under Monthly And Annual Subscription Plans. Smarter.Poker Provides A Free Browser-Based Malmuth-Harville Tournament ICM Calculator Alongside 107 Free GTO Training Games, Solver Baselines And Multiway Equity Tools With No Subscription Required.',
-      ['icmizerSite', 'spIcmCalculator', 'spTraining', 'spSolutions', 'spHome']
+      'ICMIZER Is A Paid Tournament Preflop ICM And Nash Equilibrium Calculator Pairing SNG Coach Push-Fold Quizzes With Monthly And Annual Subscriptions And Limited Daily Free Runs. Smarter.Poker Is Free Forever In Any Browser, Combining Unlimited Malmuth-Harville Tournament ICM Calculations With 107 Interactive GTO Games, Listed Poker Rooms And Cloud Bankroll Tracking.',
+      ['icmizerSite', 'spIcmCalculator', 'spTraining', 'spSolutions', 'spPokerNearMe', 'spBankroll', 'spHome']
     ),
     intro: p(
-      'Final Table Deal Making And Bubble Play Require Accurate Independent Chip Model Math. Here Is How Smarter.Poker And ICMIZER Compare Across Tournament Study Features.',
+      'Final Table Deal Making, Bubble Pressure And Short-Stack Shoving Demand Accurate Independent Chip Model Math. Players Comparing A Standalone Paid ICM Tool Like ICMIZER Against A Free All-In-One Poker Hub Evaluate Daily Limits, Solver Depth And Connected Live Tools. Every Fact Below Comes From Each Platform\'s Public Pages.',
       ['icmizerSite', 'spIcmCalculator', 'spTraining']
     ),
     table: {
       caption: 'Smarter.Poker And ICMIZER, ' + CHECKED_LABEL,
       products: ['smarterTraining', 'icmizer'],
-      columns: TRAINER_COLUMNS,
+      columns: SWITCHER_GTO_COLUMNS,
     },
     sections: [
       {
         heading: 'Where ICMIZER Stands Out',
         bullets: [
-          p('ICMIZER Solves Custom Preflop Push Or Fold Nash Equilibrium Ranges Using Future Game Simulation (FGS) And Chip EV Models.', ['icmizerSite']),
-          p('ICMIZER Automatically Reviews Uploaded Tournament Hand Histories To Flag Preflop Push Or Fold Mistakes.', ['icmizerSite']),
+          p('ICMIZER Solves Custom Preflop Push-Fold Nash Equilibrium Ranges Using Future Game Simulation (FGS) And Chip EV Models Across Multi-Table Tournaments And Sit And Gos.', ['icmizerSite']),
+          p('ICMIZER Includes SNG Coach Push-Fold Quiz Drills Focused Specifically On Short-Stack Tournament Inflection Points.', ['icmizerSite']),
+          p('ICMIZER Automates Tournament Hand History Review To Flag Preflop Shove And Call Leaks Inside Its Paid Subscription Tiers.', ['icmizerSite']),
         ],
       },
       {
         heading: 'Where Smarter.Poker Stands Out',
         bullets: [
-          p('Smarter.Poker Offers A Free Instant Malmuth-Harville ICM Payout Calculator Directly In The Web Browser With Zero Daily Limits.', ['spIcmCalculator', 'spHome']),
-          p('Smarter.Poker Combines Tournament ICM Study With 107 Interactive Training Games, Multiway Equity Calculators And Live Tournament Discovery.', ['spTraining', 'spOddsCalculator', 'spPokerNearMe']),
+          p('Smarter.Poker Offers A Free Instant Malmuth-Harville Tournament ICM Calculator Directly In Any Desktop Or Mobile Web Browser With Zero Daily Calculation Caps.', ['spIcmCalculator', 'spHome']),
+          p('Smarter.Poker Pairs Tournament ICM Study With 107 Interactive GTO Training Games Coached By Jarvis, A Free 13x13 Preflop Range Matrix, Free TXT Hand History Upload And Multiway Odds Tools.', ['spTraining', 'spPreflopRanges', 'spHandHistory', 'spOddsCalculator']),
+          p('Smarter.Poker Connects Tournament Study To Real-World Play With Listed Poker Rooms, Major Tournament Series Schedules And A Free Cloud Bankroll And Tax Manager.', ['spPokerNearMe', 'spPokerSeries', 'spBankroll']),
+        ],
+      },
+      {
+        heading: 'Paid Push-Fold Solver Vs Free All-In-One Tournament Hub',
+        paragraphs: [
+          p(
+            'High-Volume Online Sit And Go And Turbo MTT Specialists Who Rely Daily On Custom Future Game Simulation (FGS) Trees Often Subscribe To ICMIZER Basic Or Pro. Live And Online Tournament Players Looking For Unlimited Free ICM Calculations, 107 Interactive GTO Drills, Preflop Range Charts, Live Series Discovery And Cloud Bankroll Tracking Can Run Everything Free Inside Smarter.Poker.',
+            ['icmizerSite', 'spIcmCalculator', 'spTraining', 'spPreflopRanges', 'spPokerSeries', 'spBankroll', 'spHome']
+          ),
         ],
       },
     ],
     faq: [
       {
-        q: 'Does Smarter.Poker Have A Free ICM Calculator?',
-        a: p('Yes. Smarter.Poker Provides A Free Web-Based Malmuth-Harville ICM Calculator For Tournament Stacks And Payout Structures At Smarter.Poker/Tools/Icm-Calculator.', ['spIcmCalculator', 'spHome']),
+        q: 'Does Smarter.Poker Have A Free ICM Calculator Without Daily Limits?',
+        a: p('Yes. Smarter.Poker Provides A Free Browser-Native Malmuth-Harville ICM Calculator For Tournament Stacks And Payouts With Zero Daily Caps, Whereas ICMIZER Limits Free Users To A Small Number Of Daily Calculations.', ['spIcmCalculator', 'spHome', 'icmizerSite']),
+      },
+      {
+        q: 'How Do Smarter.Poker And ICMIZER Compare On Pricing?',
+        a: p('ICMIZER Requires Monthly Or Annual Basic And Pro Subscriptions To Unlock Full FGS Solving And SNG Coach Quizzes, While Smarter.Poker ICM Tools, 107 GTO Games, Preflop Ranges And Bankroll Tracking Are Free Forever.', ['icmizerSite', 'spIcmCalculator', 'spTraining', 'spBankroll', 'spHome']),
+      },
+      {
+        q: 'When Does ICMIZER Offer More Than Smarter.Poker?',
+        a: p('ICMIZER Specializes In Custom Multi-Street Future Game Simulation (FGS) Push-Fold Trees And Automated Tournament Push-Fold Hand Reviews, Whereas Smarter.Poker Focuses On Instant Malmuth-Harville ICM Math Alongside Broad Cash And MTT GTO Training.', ['icmizerSite', 'spIcmCalculator', 'spTraining']),
+      },
+      {
+        q: 'What Live Tournament Tools Does Smarter.Poker Include That ICMIZER Does Not?',
+        a: p('The ICMIZER Site Focuses On Tournament Push-Fold And ICM Calculation Rather Than Live Directories Or Bankroll Accounting. Smarter.Poker Adds Listed Poker Rooms, Upcoming Series Schedules And A Free Cloud Bankroll Manager.', ['icmizerSite', 'spPokerNearMe', 'spPokerSeries', 'spBankroll']),
       },
     ],
-    related: ['best-gto-poker-trainers', 'smarter-poker-vs-pokercoaching', 'smarter-poker-vs-equilab'],
-    productLinks: ['smarterTraining'],
-    glossary: ['ICM', 'Nash Equilibrium', 'EV (Expected Value)'],
+    related: ['smarter-poker-vs-holdem-resources-calculator', 'smarter-poker-vs-gto-wizard', 'smarter-poker-vs-pokercoaching', 'best-gto-poker-trainers'],
+    productLinks: ['smarterTraining', 'smarterLiveHub', 'bankrollManager'],
+    glossary: ['ICM', 'Nash Equilibrium', 'EV (Expected Value)', 'Variance'],
   },
 
   // 19 ────────────────────────────────────────────────────────────────────
@@ -1494,45 +1517,68 @@ export const COMPARE_PAGES = [
     title: 'Smarter.Poker Vs PioSolver',
     h1: 'Smarter.Poker Vs PioSolver',
     description:
-      'Smarter.Poker And PioSolver Compared On Postflop GTO Equilibrium Solving, Pre-Solved Range Browsing, Hardware Requirements, Pricing And Drills.',
+      'Smarter.Poker And PioSolver Compared On Free Browser GTO Baselines, 107 Drills, Windows Hardware Requirements, License Pricing And Live Poker Tools.',
     summary: p(
-      'PioSolver Is A Standalone Windows Postflop Game Tree Equilibrium Solver With Licenses From $249 To $1,099 Requiring Dedicated Multi-Core CPU And RAM Hardware. Smarter.Poker Provides Instant Cloud-Solved GTO Baselines, 107 Interactive Training Drills, Preflop Matrices And Multiway Equity Simulators Free In Any Web Browser.',
-      ['piosolverSite', 'spSolutions', 'spTraining', 'spOddsCalculator', 'spHome']
+      'PioSolver Is A Standalone Windows Postflop Game Tree Equilibrium Solver With Licenses From $249 To $1,099 Requiring High-RAM Multi-Core Workstation Hardware. Smarter.Poker Is Free Forever In Any Browser, Pairing Instant Pre-Solved GTO Baselines, A 13x13 Preflop Range Matrix And 107 Interactive Training Drills With Listed Poker Rooms And Cloud Bankroll Tracking.',
+      ['piosolverSite', 'spSolutions', 'spPreflopRanges', 'spTraining', 'spOddsCalculator', 'spPokerNearMe', 'spBankroll', 'spHome']
     ),
     intro: p(
-      'Building Custom Game Trees From Scratch And Studying Pre-Solved GTO Baselines Serve Different Study Needs. Here Is How Smarter.Poker And PioSolver Compare.',
+      'Computing Custom Heads-Up Postflop Trees On Local Hardware And Drilling Instant Pre-Solved GTO Baselines Serve Distinct Study Workflows. Players Weighing A High-Cost Windows License Like PioSolver Against A Free Cloud Poker Platform Evaluate Speed, Hardware Cost And Ecosystem Tools. Every Fact Below Comes Directly From Publicly Listed Pages.',
       ['piosolverSite', 'spSolutions', 'spTraining']
     ),
     table: {
       caption: 'Smarter.Poker And PioSolver, ' + CHECKED_LABEL,
       products: ['smarterTraining', 'piosolver'],
-      columns: TRAINER_COLUMNS,
+      columns: SWITCHER_GTO_COLUMNS,
     },
     sections: [
       {
         heading: 'Where PioSolver Stands Out',
         bullets: [
-          p('PioSolver Solves Custom Heads-Up Postflop Game Trees From Scratch With Arbitrary Bet Sizes, Stack Depths And Node-Locking On Windows Workstations.', ['piosolverSite']),
-          p('PioSolver Pro And Edge Support Scripting To Batch-Solve Hundreds Of Flop Textures Locally.', ['piosolverSite']),
+          p('PioSolver Solves Custom Heads-Up Postflop Game Trees From Scratch With Arbitrary Bet Sizes, Stack Depths, Rake Structures And Node-Locking On Windows Workstations.', ['piosolverSite']),
+          p('PioSolver Pro ($475) And Edge ($1,099) Support Automated Scripting To Batch-Solve Large Subsets Of Flop Textures Locally.', ['piosolverSite']),
+          p('PioSolver Includes PioViewer For Deep Tree Inspection, EV Heatmaps And Custom Exploitative Node-Lock Modeling.', ['piosolverSite']),
         ],
       },
       {
         heading: 'Where Smarter.Poker Stands Out',
         bullets: [
-          p('Smarter.Poker Delivers Instant Pre-Solved GTO Solutions And 107 Interactive Drills In The Browser With Zero Solver Compute Time Or Hardware Requirements.', ['spSolutions', 'spTraining', 'spHome']),
-          p('Smarter.Poker Is Free To Play On Mobile And Desktop And Includes Multiway Equity Simulation And Free Hand History Upload.', ['spOddsCalculator', 'spHandHistory', 'spHome']),
+          p('Smarter.Poker Delivers Instant Pre-Solved GTO Baselines, A 13x13 Preflop Range Matrix And 107 Interactive Drills Free In Any Browser With Zero Local Compute Time Or Hardware Upgrades.', ['spSolutions', 'spPreflopRanges', 'spTraining', 'spHome']),
+          p('Smarter.Poker Runs Natively On Mac, iPhone, iPad, Android And Windows Browsers With Free TXT Hand History Upload And Multi-Variant Hold\'em And Omaha Odds And ICM Calculators.', ['spTraining', 'spHandHistory', 'spOddsCalculator', 'spIcmCalculator']),
+          p('Smarter.Poker Unifies GTO Study With Real-World Live Play Through Listed Poker Rooms, Tournament Series Calendars And A Free Cloud Bankroll And Tax Manager.', ['spPokerNearMe', 'spPokerSeries', 'spBankroll']),
+        ],
+      },
+      {
+        heading: 'Local Workstation Solver Vs Instant Cloud GTO And Live Hub',
+        paragraphs: [
+          p(
+            'High-Stakes Theorists Building Custom Node-Locked Trees On Dedicated Windows Workstations Often Buy PioSolver Basic, Pro Or Edge Licenses. Players Who Want Fast Daily GTO Drills, Instant Preflop Ranges, Free Hand Review, Multiway Equity Calculators, Live Venue Discovery And Bankroll Tracking Without Spending $249 To $1,099 Or Upgrading RAM Can Study Free On Smarter.Poker.',
+            ['piosolverSite', 'spSolutions', 'spPreflopRanges', 'spTraining', 'spPokerNearMe', 'spBankroll', 'spHome']
+          ),
         ],
       },
     ],
     faq: [
       {
         q: 'Do I Need A High-RAM Windows PC To Study GTO On Smarter.Poker?',
-        a: p('No. Unlike PioSolver Which Computes Game Trees Locally On Windows Hardware, Smarter.Poker Serves Pre-Solved GTO Baselines And Drills Directly In Your Browser On Any Device.', ['piosolverSite', 'spSolutions', 'spTraining']),
+        a: p('No. Unlike PioSolver Which Computes Postflop Game Trees Locally On High-RAM Multi-Core Windows Hardware, Smarter.Poker Serves Pre-Solved GTO Baselines And 107 Interactive Drills Directly In Any Mobile Or Desktop Browser.', ['piosolverSite', 'spSolutions', 'spTraining']),
+      },
+      {
+        q: 'How Much Does PioSolver Cost Compared To Smarter.Poker?',
+        a: p('PioSolver Sells Standalone Desktop Licenses At $249 (Basic), $475 (Pro) And $1,099 (Edge) Alongside A Limited Free Turn And River Version. Smarter.Poker GTO Training, Preflop Range Charts, Hand History Upload And Calculators Are Free Forever.', ['piosolverSite', 'spTraining', 'spPreflopRanges', 'spHome']),
+      },
+      {
+        q: 'Can Smarter.Poker Build Custom Node-Locked Game Trees Like PioSolver?',
+        a: p('No. PioSolver Is Purpose-Built For Custom Local Postflop Game Tree Solving And Node-Locking, Whereas Smarter.Poker Provides Instant Pre-Solved Baselines, 107 Interactive Scenario Drills And Browser Equity Calculators With Zero Setup.', ['piosolverSite', 'spSolutions', 'spTraining', 'spOddsCalculator']),
+      },
+      {
+        q: 'What Live Poker Features Does Smarter.Poker Include That PioSolver Does Not?',
+        a: p('The PioSolver Site Focuses Strictly On Standalone Windows Postflop Solving Rather Than Live Directories Or Bankroll Accounting. Smarter.Poker Includes Listed Poker Rooms, Live Series Schedules And A Free Cloud Bankroll Manager.', ['piosolverSite', 'spPokerNearMe', 'spPokerSeries', 'spBankroll']),
       },
     ],
-    related: ['best-gto-poker-trainers', 'smarter-poker-vs-monkersolver', 'smarter-poker-vs-equilab'],
-    productLinks: ['smarterTraining'],
-    glossary: ['GTO', 'Nash Equilibrium', 'Range'],
+    related: ['smarter-poker-vs-gto-wizard', 'smarter-poker-vs-monkersolver', 'smarter-poker-vs-flopzilla', 'best-gto-poker-trainers'],
+    productLinks: ['smarterTraining', 'smarterLiveHub', 'bankrollManager'],
+    glossary: ['GTO', 'Nash Equilibrium', 'Range', 'EV (Expected Value)'],
   },
 
   // 25 ────────────────────────────────────────────────────────────────────
@@ -1638,45 +1684,68 @@ export const COMPARE_PAGES = [
     title: 'Smarter.Poker Vs Flopzilla: Range And Equity Tools',
     h1: 'Smarter.Poker Vs Flopzilla: Range And Equity Tools',
     description:
-      'Smarter.Poker Compared With Flopzilla: Free Browser 13x13 GTO Ranges, Multiway Equity And Pot Odds Calculators Versus Windows Range Filtering Software.',
+      'Smarter.Poker And Flopzilla Compared On Free Browser 13x13 GTO Ranges, Multiway Holdem And PLO Equity, 107 Drills, Live Venues And Windows Software.',
     summary: p(
-      'Flopzilla Is A $25 Windows Desktop Program Built For Filtering Hand-Versus-Range And Range-Versus-Board Hit Frequencies. Smarter.Poker Provides Free Web-Based Multiway Equity Calculators For Hold\'em And Omaha (PLO4, PLO5 And PLO6), Interactive 13x13 GTO Preflop Range Matrices And 107 Coaching Drills On Any Device.',
-      ['flopzillaSite', 'spOddsCalculator', 'spSolutions', 'spTraining', 'spHome']
+      'Flopzilla Is A $25 One-Time Windows Desktop Program Including FlopzillaPro Built For Filtering Hand-Versus-Range And Range-Versus-Board Flop Hit Frequencies. Smarter.Poker Is Free Forever In Any Browser Across Mac, Mobile And Windows, Pairing Multiway Hold\'em And Omaha (PLO4, PLO5 And PLO6) Equity Calculators With 13x13 GTO Ranges, 107 Drills And Listed Poker Rooms.',
+      ['flopzillaSite', 'spOddsCalculator', 'spPreflopRanges', 'spSolutions', 'spTraining', 'spPokerNearMe', 'spBankroll', 'spHome']
     ),
     intro: p(
-      'Visualizing How Ranges Hit Flop Textures And Computing Multiway Equity Are Core Study Habits. Here Is How Smarter.Poker And Flopzilla Compare For Modern Players.',
-      ['flopzillaSite', 'spOddsCalculator', 'spHome']
+      'Visualizing How Starting Ranges Connect With Flop Textures And Computing Multiway Equity Are Essential Study Habits. Players Comparing Windows Desktop Software Like Flopzilla Against A Cross-Device Web Suite Evaluate Platform Support, Omaha Variants, GTO Drills And Connected Live Tools. Every Fact Below Is Read Directly From Each Product\'s Public Pages.',
+      ['flopzillaSite', 'spOddsCalculator', 'spPreflopRanges']
     ),
     table: {
       caption: 'Smarter.Poker And Flopzilla, ' + CHECKED_LABEL,
       products: ['smarterTraining', 'flopzilla'],
-      columns: TRAINER_COLUMNS,
+      columns: SWITCHER_GTO_COLUMNS,
     },
     sections: [
       {
         heading: 'Where Flopzilla Stands Out',
         bullets: [
-          p('Flopzilla Breaks Down Exact Flop Hit Frequencies (Top Pair, Flush Draws, Gutshots) With Interactive Combo Pie Charts On Windows.', ['flopzillaSite']),
-          p('Flopzilla Includes FlopzillaPro For Multiway Range-Versus-Range Matrix Comparisons.', ['flopzillaSite']),
+          p('Flopzilla Breaks Down Exact Flop Hit Frequencies Such As Top Pair, Sets, Flush Draws And Gutshots With Interactive Combo Pie Charts On Windows.', ['flopzillaSite']),
+          p('Flopzilla Includes FlopzillaPro For Multiway Range-Versus-Range Matrix Filtering And Street-By-Street Equity Graphs Under A One-Time $25 License.', ['flopzillaSite']),
+          p('Flopzilla Runs Offline As A Lightweight Native Windows Desktop Utility After Its 7-Day Free Trial.', ['flopzillaSite']),
         ],
       },
       {
         heading: 'Where Smarter.Poker Stands Out',
         bullets: [
-          p('Smarter.Poker Runs Directly In Any Mobile Or Desktop Browser On Mac, iPhone, iPad And Android Without Requiring Windows.', ['spOddsCalculator', 'spSolutions', 'spHome']),
-          p('Smarter.Poker Combines Multiway Hold\'em And PLO4/PLO5/PLO6 Equity Calculators With 100BB 6-Max GTO Preflop Charts Free Of Charge.', ['spOddsCalculator', 'spSolutions', 'spHome']),
+          p('Smarter.Poker Runs Free Forever Directly In Any Web Browser On Mac, iPhone, iPad, Android And Windows With Zero Software Installation Or Paid License Required.', ['spOddsCalculator', 'spPreflopRanges', 'spHome']),
+          p('Smarter.Poker Combines Multiway Hold\'em And PLO4, PLO5 And PLO6 Equity Calculators With A 13x13 GTO Preflop Range Matrix, 107 Interactive Training Drills And Free TXT Hand History Upload.', ['spOddsCalculator', 'spPreflopRanges', 'spTraining', 'spHandHistory']),
+          p('Smarter.Poker Connects Range Study Directly To Real-World Play With Listed Poker Rooms, Live Tournament Series Calendars And A Free Cloud Bankroll And Tax Ledger.', ['spPokerNearMe', 'spPokerSeries', 'spBankroll']),
+        ],
+      },
+      {
+        heading: 'Windows Range Filtering Vs Cross-Device GTO And Live Hub',
+        paragraphs: [
+          p(
+            'Hold\'em Players On Windows Who Want Offline Combo-Pie Flop Texture Filtering Often Buy Flopzilla\'s One-Time $25 License. Players On Mac, Mobile Or Multi-Device Setups Who Want Free Multi-Variant Hold\'em And Omaha Equity Calculators, Interactive 13x13 GTO Preflop Ranges, 107 Active Drills, Live Venue Discovery And Bankroll Tracking Can Run Their Entire Workflow Free On Smarter.Poker.',
+            ['flopzillaSite', 'spOddsCalculator', 'spPreflopRanges', 'spTraining', 'spPokerNearMe', 'spBankroll', 'spHome']
+          ),
         ],
       },
     ],
     faq: [
       {
-        q: 'Does Flopzilla Run Natively On iPhone Or Android?',
-        a: p('Flopzilla Is Windows Desktop Software, Whereas Smarter.Poker Provides Browser-Native Equity And Range Tools Across All Mobile And Desktop Devices.', ['flopzillaSite', 'spOddsCalculator', 'spHome']),
+        q: 'Does Flopzilla Run Natively On Mac, iPhone Or Android?',
+        a: p('No. Flopzilla Is Windows Desktop Software, Whereas Smarter.Poker Provides Browser-Native Equity Calculators, 13x13 Preflop Range Charts And 107 GTO Training Drills Across Mac, iPhone, iPad, Android And Windows.', ['flopzillaSite', 'spOddsCalculator', 'spPreflopRanges', 'spTraining']),
+      },
+      {
+        q: 'How Do Smarter.Poker And Flopzilla Compare On Pricing?',
+        a: p('Flopzilla Offers A 7-Day Free Trial Followed By A $25 One-Time Windows License Including FlopzillaPro. Smarter.Poker Equity Calculators, GTO Preflop Ranges, 107 Training Games And Bankroll Tools Are Free Forever.', ['flopzillaSite', 'spOddsCalculator', 'spTraining', 'spBankroll', 'spHome']),
+      },
+      {
+        q: 'Does Smarter.Poker Support Pot-Limit Omaha Equity Better Than Flopzilla?',
+        a: p('Smarter.Poker Includes A Free Browser-Native Multiway Equity Calculator Supporting Hold\'em, PLO4, PLO5, PLO6, 7-Card Stud And Razz Alongside Dedicated PLO Research, While Flopzilla Focuses On Hold\'em Range-Versus-Board Analysis On Windows.', ['spOddsCalculator', 'spPloStudy', 'flopzillaSite']),
+      },
+      {
+        q: 'What Extra Tools Does Smarter.Poker Include Beyond Equity Calculation?',
+        a: p('The Flopzilla Site Focuses On Range-Versus-Board Equity Analysis Rather Than Live Directories Or Session Ledgers. Smarter.Poker Combines Equity And ICM Calculators With 107 GTO Drills, Listed Poker Rooms And A Free Cloud Bankroll Manager.', ['flopzillaSite', 'spOddsCalculator', 'spIcmCalculator', 'spTraining', 'spPokerNearMe', 'spBankroll']),
       },
     ],
-    related: ['smarter-poker-vs-equilab', 'best-gto-poker-trainers', 'smarter-poker-vs-piosolver'],
-    productLinks: ['smarterTraining'],
-    glossary: ['Equity', 'Range', 'Pot Odds'],
+    related: ['smarter-poker-vs-equilab', 'smarter-poker-vs-piosolver', 'smarter-poker-vs-gto-wizard', 'best-gto-poker-trainers'],
+    productLinks: ['smarterTraining', 'smarterLiveHub', 'bankrollManager'],
+    glossary: ['Equity', 'Range', 'Pot Odds', 'GTO'],
   },
 
   // 28 ────────────────────────────────────────────────────────────────────
@@ -2291,6 +2360,148 @@ export const COMPARE_PAGES = [
     related: ['smarter-poker-vs-pokeratlas', 'smarter-poker-vs-bravo-poker-live', 'smarter-poker-vs-poker-bankroll-tracker', 'best-poker-bankroll-trackers'],
     productLinks: ['smarterLiveHub', 'bankrollManager', 'smarterTraining'],
     glossary: ['ICM', 'Variance', 'Rake', 'Waitlist'],
+  },
+
+  // 37 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-pokercode',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs PokerCode',
+    h1: 'Smarter.Poker Vs PokerCode',
+    description:
+      'Smarter.Poker And PokerCode Compared On Free Forever 107 GTO Games, Live Venue Hub, Free Calculators, Fedor Holz Coaching Courses And Membership Cost.',
+    summary: p(
+      'PokerCode Is The Paid Poker Coaching Community Co-Founded By Fedor Holz Offering MTT And Cash Game Masterclasses, Live Coaching Calls, The PokerCode Rangeviewer And A Private Discord Under Annual And Quarterly Memberships. Smarter.Poker Is Free Forever In Any Browser, Combining 107 Interactive GTO Training Games, Listed Poker Rooms, Cloud Bankroll Tracking And Free Solver Calculators.',
+      ['pokercodeSite', 'spTraining', 'spPreflopRanges', 'spSolutions', 'spPokerNearMe', 'spBankroll', 'spOddsCalculator', 'spIcmCalculator', 'spHome']
+    ),
+    intro: p(
+      'Players Weighing A Paid High-Stakes Coaching Community Like PokerCode Against An All-In-One Free GTO And Live Poker Hub Compare Membership Cost, Study Format And Connected Tools. Every Fact Below Is Read Directly From Each Platform\'s Publicly Listed Pages.',
+      ['pokercodeSite', 'spTraining']
+    ),
+    table: {
+      caption: 'Smarter.Poker And PokerCode, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'pokercode'],
+      columns: SWITCHER_GTO_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where PokerCode Stands Out',
+        bullets: [
+          p('PokerCode Delivers Structured MTT And Cash Game Video Masterclasses Led By Co-Founder Fedor Holz And High-Stakes Tournament And Cash Coaches.', ['pokercodeSite']),
+          p('PokerCode Runs Recurring Live Coaching Calls, Interactive Quizzes And Hand Reviews Inside Its Paid Membership Portal.', ['pokercodeSite']),
+          p('PokerCode Includes The PokerCode Rangeviewer For Autonomous Range Study Alongside A Private Member Discord Community.', ['pokercodeSite']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Is Free Forever With Zero Recurring Membership Paywalls, Giving Players 107 Interactive GTO Training Games Coached By Jarvis And A Free 13x13 Preflop Range Matrix.', ['spHome', 'spTraining', 'spPreflopRanges', 'spSolutions']),
+          p('Smarter.Poker Provides Free TXT Hand History Upload For PokerStars, GGPoker, 888 And ACR Alongside Browser-Native Hold\'em, PLO4, PLO5 And PLO6 Odds And Malmuth-Harville ICM Calculators.', ['spHandHistory', 'spOddsCalculator', 'spIcmCalculator']),
+          p('Smarter.Poker Connects Daily GTO Study Directly To Live Play Through Listed Poker Rooms, Upcoming Series Schedules And A Free Cloud Bankroll And Tax Manager.', ['spPokerNearMe', 'spPokerSeries', 'spBankroll']),
+        ],
+      },
+      {
+        heading: 'Paid Coaching Community Vs Free Forever GTO And Live Hub',
+        paragraphs: [
+          p(
+            'PokerCode Suits Dedicated Tournament And Cash Grinders Who Specifically Want Paid High-Roller Video Masterclasses, Live Coach Calls And A Private Discord Peer Group. Players Seeking Active Daily GTO Decision Reps Across 107 Games, Free Preflop Ranges, Free Equity And ICM Calculators, Listed Poker Rooms And Cloud Bankroll Accounting Without Paying Membership Fees Can Run Their Full Routine Free On Smarter.Poker.',
+            ['pokercodeSite', 'spTraining', 'spPreflopRanges', 'spOddsCalculator', 'spIcmCalculator', 'spPokerNearMe', 'spBankroll', 'spHome']
+          ),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'How Does Smarter.Poker Compare With PokerCode On Pricing?',
+        a: p('PokerCode Sells Paid Annual And Quarterly Coaching Memberships Plus Standalone Masterclasses On PokerCode.com, Whereas Smarter.Poker GTO Training, 107 Interactive Games, Preflop Charts, Calculators And Live Venue Tools Are Free Forever.', ['pokercodeSite', 'spTraining', 'spPreflopRanges', 'spHome']),
+      },
+      {
+        q: 'Which Platform Is Better For Interactive GTO Drilling Vs Coaching Videos?',
+        a: p('PokerCode Focuses On High-Stakes Video Masterclasses, Live Coaching Calls And Its PokerCode Rangeviewer, While Smarter.Poker Centers On High-Repetition Interactive Practice Across 107 Free Browser GTO Games Coached By Jarvis.', ['pokercodeSite', 'spTraining', 'spHome']),
+      },
+      {
+        q: 'Does Smarter.Poker Include Free Equity And ICM Calculators Like PokerCode?',
+        a: p('Yes. While PokerCode Publishes Free Equity And Variance Calculators Alongside Its Paid Courses, Smarter.Poker Offers A Full Free Suite Including Multi-Variant Odds (Hold\'em And PLO4/PLO5/PLO6), Malmuth-Harville ICM And 13x13 Preflop Ranges.', ['pokercodeSite', 'spOddsCalculator', 'spIcmCalculator', 'spPreflopRanges', 'spHome']),
+      },
+      {
+        q: 'What Live Poker Features Does Smarter.Poker Include That PokerCode Does Not?',
+        a: p('The PokerCode Site Focuses On Coaching Courses, Rangeviewer And Community Access Rather Than Live Directories Or Bankroll Tracking. Smarter.Poker Adds Listed Poker Rooms, Live Series Schedules And A Free Cloud Bankroll Manager.', ['pokercodeSite', 'spPokerNearMe', 'spPokerSeries', 'spBankroll']),
+      },
+    ],
+    related: ['smarter-poker-vs-gto-wizard', 'smarter-poker-vs-run-it-once', 'smarter-poker-vs-pokercoaching', 'best-gto-poker-trainers'],
+    productLinks: ['smarterTraining', 'smarterLiveHub', 'bankrollManager'],
+    glossary: ['GTO', 'Range', 'ICM', 'EV (Expected Value)'],
+  },
+
+  // 38 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-cardschat',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs CardsChat',
+    h1: 'Smarter.Poker Vs CardsChat',
+    description:
+      'Smarter.Poker And CardsChat Compared On 107 Interactive GTO Games, Listed Poker Rooms, Cloud Bankroll Tracking, Free Solver Calculators And Forums.',
+    summary: p(
+      'CardsChat Is A Long-Running Free Online Poker Community Forum Offering Member Hand Discussion Threads, Static Strategy School Guides, Exclusive Freeroll Listings And A Basic Browser Odds Calculator. Smarter.Poker Upgrades That Workflow With 107 Interactive GTO Training Games, A Listed Live Poker Room Directory, A Free Cloud Bankroll Manager And Free Solver Calculators In One Browser Hub.',
+      ['cardschatSite', 'spTraining', 'spPokerNearMe', 'spBankroll', 'spOddsCalculator', 'spIcmCalculator', 'spPreflopRanges', 'spHome']
+    ),
+    intro: p(
+      'New And Improving Players Often Start On Classic Forums Like CardsChat Before Seeking Interactive GTO Drilling, Live Venue Discovery And Cloud Bankroll Accounting. Every Fact Below Comes Directly From Publicly Listed Pages On Both Platforms.',
+      ['cardschatSite', 'spTraining', 'spPokerNearMe']
+    ),
+    table: {
+      caption: 'Smarter.Poker And CardsChat, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'cardschat'],
+      columns: SWITCHER_GTO_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where CardsChat Stands Out',
+        bullets: [
+          p('CardsChat Hosts A Large Long-Running Poker Forum Where Members Discuss Strategy, Online Poker Rooms And Community Topics.', ['cardschatSite']),
+          p('CardsChat Publishes Free Beginner Poker School Articles, Written Strategy Guides And Online Room Review Pages.', ['cardschatSite']),
+          p('CardsChat Coordinates Community Freeroll Schedules Across Partner Online Poker Sites For Active Forum Members.', ['cardschatSite']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Replaces Passive Reading With 107 Interactive GTO Training Games Coached By Jarvis, A Free 13x13 Preflop Range Matrix And Instant Solver Baselines.', ['spTraining', 'spPreflopRanges', 'spSolutions', 'spHome']),
+          p('Smarter.Poker Delivers Free Browser-Native Multi-Variant Odds Calculators (Hold\'em, PLO4, PLO5 And PLO6), Malmuth-Harville ICM Math And Automated TXT Hand History Grading.', ['spOddsCalculator', 'spIcmCalculator', 'spHandHistory']),
+          p('Smarter.Poker Unifies Live Play With Listed Poker Rooms, Major Tournament Series Calendars And A Free Cloud Bankroll Manager With CSV Export And Tax Reports.', ['spPokerNearMe', 'spPokerSeries', 'spBankroll']),
+        ],
+      },
+      {
+        heading: 'Static Poker Forum Vs Interactive GTO And Live Poker Hub',
+        paragraphs: [
+          p(
+            'CardsChat Remains A Popular Free Destination For Forum Banter, Introductory Strategy Articles And Community Freeroll Passwords. Players Ready To Move Beyond Static Forum Threads Into Active Solver-Backed GTO Decision Drills, Multi-Variant Equity And ICM Calculators, Listed Live Poker Rooms And Cloud Bankroll Tracking Get Everything Free Inside Smarter.Poker.',
+            ['cardschatSite', 'spTraining', 'spOddsCalculator', 'spIcmCalculator', 'spPokerNearMe', 'spBankroll', 'spHome']
+          ),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'How Is Smarter.Poker Different From CardsChat?',
+        a: p('CardsChat Is Primarily A Community Forum, Written Strategy Guide Library And Freeroll Listing Site. Smarter.Poker Is An Interactive Free Poker Platform Combining 107 GTO Training Games, Solver Calculators, Listed Live Poker Rooms And Cloud Bankroll Tracking.', ['cardschatSite', 'spTraining', 'spPokerNearMe', 'spBankroll', 'spHome']),
+      },
+      {
+        q: 'Are Both Smarter.Poker And CardsChat Free To Use?',
+        a: p('Yes. CardsChat Offers Free Forum Registration And Strategy Articles, While Smarter.Poker Offers Free Forever Access To 107 Interactive GTO Training Games, Preflop Ranges, Multi-Variant Calculators, Listed Poker Rooms And Cloud Bankroll Accounting.', ['cardschatSite', 'spHome', 'spTraining', 'spBankroll']),
+      },
+      {
+        q: 'Does Smarter.Poker Offer Stronger Hand Review Than Forum Threads?',
+        a: p('CardsChat Relies On Peer Forum Replies To Posted Hands, Whereas Smarter.Poker Supports Direct TXT Hand History Uploads From PokerStars, GGPoker, 888 And ACR Graded Against Solver Baselines Plus 107 Active Drills.', ['cardschatSite', 'spHandHistory', 'spSolutions', 'spTraining']),
+      },
+      {
+        q: 'Does CardsChat Include A Live Poker Room Directory Or Bankroll Manager?',
+        a: p('The CardsChat Site Focuses On Community Forums, Static Guides And Online Room Reviews Rather Than Live Cardroom Directories Or Cloud Bankroll Ledgers. Smarter.Poker Includes Both Free In Any Browser.', ['cardschatSite', 'spPokerNearMe', 'spBankroll', 'spHome']),
+      },
+    ],
+    related: ['best-gto-poker-trainers', 'smarter-poker-vs-pokercode', 'smarter-poker-vs-pokercoaching', 'smarter-poker-vs-pokeratlas'],
+    productLinks: ['smarterTraining', 'smarterLiveHub', 'bankrollManager'],
+    glossary: ['GTO', 'Equity', 'Pot Odds', 'Variance'],
   },
 ];
 

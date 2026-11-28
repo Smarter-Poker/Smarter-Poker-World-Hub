@@ -650,7 +650,11 @@ export default function UniversalHeader({
                   // a likely click, so keep the warm-up - just not in the way.
                   if (typeof window !== 'undefined') {
                     const warm = () => {
-                      try { router.prefetch(directHref); } catch (_) { /* best effort */ }
+                      // router.prefetch is async: its rejection (a warm-up
+                      // fetch cancelled by a reload or navigation, which
+                      // WebKit reports as an access-control failure) escapes
+                      // a try/catch and surfaces as an unhandled rejection.
+                      try { Promise.resolve(router.prefetch(directHref)).catch(() => { /* best effort */ }); } catch (_) { /* best effort */ }
                     };
                     if (typeof window.requestIdleCallback === 'function') {
                       window.requestIdleCallback(warm, { timeout: 5000 });
@@ -781,7 +785,11 @@ export default function UniversalHeader({
                   // a likely click, so keep the warm-up - just not in the way.
                   if (typeof window !== 'undefined') {
                     const warm = () => {
-                      try { router.prefetch(directHref); } catch (_) { /* best effort */ }
+                      // router.prefetch is async: its rejection (a warm-up
+                      // fetch cancelled by a reload or navigation, which
+                      // WebKit reports as an access-control failure) escapes
+                      // a try/catch and surfaces as an unhandled rejection.
+                      try { Promise.resolve(router.prefetch(directHref)).catch(() => { /* best effort */ }); } catch (_) { /* best effort */ }
                     };
                     if (typeof window.requestIdleCallback === 'function') {
                       window.requestIdleCallback(warm, { timeout: 5000 });

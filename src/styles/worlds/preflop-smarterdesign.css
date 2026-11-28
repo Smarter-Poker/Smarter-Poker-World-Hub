@@ -489,6 +489,20 @@ body.world-preflop-charts.world-preflop-charts :is(
     font-variant-numeric: tabular-nums;
 }
 
+/* The letter grade is the headline of the chip, not a 12px glyph. Its tone is
+   gradeTone() from PreflopGameKit (S ice, A green, B blue, C silver, D red). */
+body.world-preflop-charts.world-preflop-charts .preflop-grade-chip {
+    align-items: center;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-grade-chip .preflop-grade-letter {
+    font-family: var(--pcsd-type);
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--grade-tone, var(--pcsd-text));
+}
+
 body.world-preflop-charts.world-preflop-charts :is(
     .preflop-circuit-stat small,
     .preflop-launch-stats span,
