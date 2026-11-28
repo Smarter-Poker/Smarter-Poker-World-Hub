@@ -85,7 +85,10 @@ export default function PlayerPlanningPanel({ userId }) {
     finally { if (getAuthUser()?.id === account) setLoading(false); }
   }, [userId]);
   const writer = usePlayerPlanningWrite('saved-library', load);
-  useEffect(() => { setAccount(getAuthUser()?.id || null); setPlans([]); load(); const changed = () => { setAccount(getAuthUser()?.id || null); setPlans([]); load(); }; window.addEventListener('storage', changed); return () => window.removeEventListener('storage', changed); }, [load]);
+  // Only an account switch (the auth key, or storage.clear()) reloads the
+  // private plans. Every other key another tab writes (filters, venue cache,
+  // search history) used to re-request the list too (2026-11-28 request flood).
+  useEffect(() => { setAccount(getAuthUser()?.id || null); setPlans([]); load(); const changed = (event) => { if (event && event.key && event.key !== 'smarter-poker-auth') return; setAccount(getAuthUser()?.id || null); setPlans([]); load(); }; window.addEventListener('storage', changed); return () => window.removeEventListener('storage', changed); }, [load]);
   return <PokerNearMePanelShell as="section" bodyClassName={styles.body} aria-label="Player Planning" data-player-planning="library">
     <h2 className={styles.title}>Player Planning</h2>
     <p className={styles.copy}>Private Account-Owned Searches And Trip Plans. Device Trips Are Imported Only When You Explicitly Choose To Import Them.</p>

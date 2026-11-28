@@ -16,6 +16,40 @@ function getSupabase() {
 
 
 
+// Batched venue read (`venue_ids=`). The cap is explicit: a longer list is
+// refused rather than silently truncated, so a caller can never believe it
+// asked about a venue it did not.
+export const VENUE_IDS_MAX = 25;
+const VENUE_ROWS_MAX = 100; // the single-venue branch's per-venue ceiling
+const BATCH_PAGE = 1000; // PostgREST project row cap
+
+export function parseBatchVenueIds(raw) {
+  const parts = String(raw).split(',').map((part) => part.trim()).filter(Boolean);
+  if (parts.length === 0) return { error: 'venue_ids must list at least one venue id' };
+  const ids = [];
+  for (const part of parts) {
+    if (!/^\d+$/.test(part) || Number(part) < 1) {
+      return { error: 'venue_ids must be positive integers' };
+    }
+    const id = Number(part);
+    if (!ids.includes(id)) ids.push(id);
+  }
+  if (ids.length > VENUE_IDS_MAX) {
+    return { error: `venue_ids accepts at most ${VENUE_IDS_MAX} venues` };
+  }
+  return { ids };
+}
+
+// The venue branches show at most the last 24 hours; `since` narrows that
+// window and can never widen it or point into the future.
+export function resolveVenueWindowStartMs(since, nowMs = Date.now()) {
+  const floorMs = nowMs - 24 * 60 * 60 * 1000;
+  if (!since) return floorMs;
+  const sinceMs = new Date(since).getTime();
+  if (isNaN(sinceMs)) return floorMs;
+  return Math.min(Math.max(sinceMs, floorMs), nowMs);
+}
+
 export default async function handler(req, res) {
     if (!applyCors(req, res, { methods: 'GET, POST, PUT, DELETE, OPTIONS', headers: 'Content-Type, x-user-id, Authorization' })) return;
 try {
@@ -213,6 +247,55 @@ try {
           return res.status(200).json({ success: true, data: rows, counts, total: rows.length, truncated });
         }
 
+        // Batched venue check-ins (2026-11-28). The Near Me Now feed asked
+        // this route once PER nearby venue (up to 20 requests on every feed
+        // load, and the feed reloaded on every parent re-render), which is a
+        // large share of the request flood measured on /hub/poker-near-me/more.
+        // `venue_ids=1,2,3` answers the same question for every listed venue
+        // in ONE request. Visibility is exactly the single-venue branch's:
+        // public check-in rows, 24h ceiling, `since` honoured inside it, at
+        // most 100 rows per venue, newest first. The response carries one
+        // `{ checkins, count }` entry per requested venue - the single-venue
+        // body shape - keyed by venue id.
+        const venue_ids = safeQ(req.query.venue_ids);
+        if (venue_ids !== undefined && venue_ids !== null) {
+          const parsed = parseBatchVenueIds(venue_ids);
+          if (parsed.error) {
+            return res.status(400).json({ success: false, error: parsed.error });
+          }
+          const ids = parsed.ids;
+          const windowStart = new Date(resolveVenueWindowStartMs(since)).toISOString();
+          const wanted = ids.length * VENUE_ROWS_MAX;
+          let rows = [];
+          for (let offset = 0; offset < wanted; offset += BATCH_PAGE) {
+            const { data: pageRows, error } = await getSupabase()
+              .from('venue_checkins')
+              .select('*')
+              .in('venue_id', ids.map(String))
+              .gte('created_at', windowStart)
+              .order('created_at', { ascending: false })
+              .order('id', { ascending: false })
+              .range(offset, Math.min(offset + BATCH_PAGE, wanted) - 1);
+            if (error) {
+              console.warn('Error fetching batched checkins:', error);
+              return res.status(500).json({ success: false, error: 'Internal server error' });
+            }
+            if (!pageRows || pageRows.length === 0) break;
+            rows = rows.concat(pageRows);
+            if (pageRows.length < Math.min(BATCH_PAGE, wanted - offset)) break;
+          }
+          const venues = {};
+          for (const id of ids) venues[String(id)] = { checkins: [], count: 0 };
+          for (const row of rows) {
+            const entry = venues[String(row.venue_id)];
+            if (!entry || entry.checkins.length >= VENUE_ROWS_MAX) continue;
+            entry.checkins.push(row);
+            entry.count = entry.checkins.length;
+          }
+          res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+          return res.status(200).json({ success: true, venues });
+        }
+
         // Venue check-ins (last 24 hours)
         if (venue_id) {
           const venueIdNum = parseInt(venue_id, 10);
@@ -225,15 +308,7 @@ try {
           // them as current activity — with the window hardcoded at 24h it was
           // showing day-old check-ins as "now". Honour it here, clamped to the
           // 24h ceiling this branch has always enforced.
-          const twentyFourHoursAgoMs = Date.now() - 24 * 60 * 60 * 1000;
-          let windowStartMs = twentyFourHoursAgoMs;
-          if (since) {
-            const sinceMs = new Date(since).getTime();
-            if (!isNaN(sinceMs)) {
-              windowStartMs = Math.min(Math.max(sinceMs, twentyFourHoursAgoMs), Date.now());
-            }
-          }
-          const twentyFourHoursAgo = new Date(windowStartMs).toISOString();
+          const twentyFourHoursAgo = new Date(resolveVenueWindowStartMs(since)).toISOString();
 
           if (count_only === 'true') {
             const { count, error } = await getSupabase()
