@@ -49,6 +49,7 @@ import { SERIES_GUIDES, getSeriesGuideBySlug } from '../../content/guides/series
 import { PLAYER_ARCHETYPES, findPlayerArchetype } from '../../content/learn/playerTypes.js';
 import { BOARD_TEXTURES, findBoardTexture } from '../../content/learn/boardTextures.js';
 import { INTERNATIONAL_POKER_GUIDES, findInternationalGuide } from '../../content/guides/internationalMarkets.js';
+import { VENUE_COUNT_LABEL } from '../venueCount.mjs';
 
 export const getHandMatchupBySlug = getMatchupBySlug;
 
@@ -3278,7 +3279,7 @@ export function buildA2AAgentCard(origin = SITE_ORIGIN) {
   return {
     schemaVersion: '1.0',
     name: 'Smarter.Poker Quantitative Poker & GTO Intelligence Agent',
-    description: 'Zero-auth autonomous poker mathematics, Malmuth-Harville ICM/Chop solver, 169-hand GTO preflop range engine, 52 interactive calculators, 70 MCP tools, 44 streamer bot commands, 324+ live cardroom directory, and TDA floor rules agent.',
+    description: `Zero-auth autonomous poker mathematics, Malmuth-Harville ICM/Chop solver, 169-hand GTO preflop range engine, 52 interactive calculators, 70 MCP tools, 44 streamer bot commands, ${VENUE_COUNT_LABEL} live cardroom directory, and TDA floor rules agent.`,
     url: `${base}/api/mcp`,
     documentationUrl: `${base}/llms.txt`,
     provider: {
@@ -3322,7 +3323,7 @@ export function buildA2AAgentCard(origin = SITE_ORIGIN) {
       {
         id: 'live-poker-venues-and-series',
         name: 'North American & International Live Cardroom, Travel Corridors, US State Law, Player Archetypes & Series Intelligence',
-        description: 'Search 324+ verified live poker rooms, 10 US airport/border travel corridors, 10 international poker destinations, US state legal/tax/rake guides, 8 player archetype exploits, 15 HUD stat benchmarks, 12 leak cures, and 10 major tournament series strategy guides.',
+        description: `Search ${VENUE_COUNT_LABEL} verified live poker rooms, 10 US airport/border travel corridors, 10 international poker destinations, US state legal/tax/rake guides, 8 player archetype exploits, 15 HUD stat benchmarks, 12 leak cures, and 10 major tournament series strategy guides.`,
         tags: ['venues', 'wsop', 'wpt', 'mspt', 'cardrooms', 'positions', 'states', 'international', 'corridors'],
       },
     ],
@@ -3523,7 +3524,7 @@ export async function readMcpResource(uri, { origin = SITE_ORIGIN } = {}) {
               datasets_catalog_url: `${base}/api/datasets/catalog`,
               license: 'Creative Commons Attribution 4.0 International (CC-BY 4.0)',
               verified_2026_benchmarks: {
-                tracked_north_american_poker_rooms: '324+',
+                tracked_north_american_poker_rooms: `${VENUE_COUNT_LABEL}`,
                 interactive_calculators: 52,
                 streamer_bot_commands: 44,
                 mcp_zero_auth_tools: 70,
@@ -4219,7 +4220,7 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
           name: 'Live Poker Near Me & Cardroom Directory',
           pricing: '100% Free For Players & Rooms',
           alternative_to: ['PokerAtlas', 'Bravo Poker Live'],
-          capabilities: '324+ Verified Venues, 4,500+ Weekly Tournaments, WSOP/WPT Series, Waitlists, And GPS Routing',
+          capabilities: `${VENUE_COUNT_LABEL} Verified Venues, 4,500+ Weekly Tournaments, WSOP/WPT Series, Waitlists, And GPS Routing`,
           feature_url: `${base}/features/poker-near-me`,
           markdown_url: `${base}/features/poker-near-me.md`,
           app_url: `${base}/hub/poker-near-me/lobby`,

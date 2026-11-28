@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
+import * as venueCount from '../src/lib/venueCount.mjs';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), 'utf8');
@@ -24,6 +25,7 @@ function dailyHydrationFixture() {
     'swr': (key) => { keys.push(key); return { isLoading: true, mutate() {} }; },
     'lucide-react': { Calendar: chrome, X: chrome, ChevronLeft: chrome, ChevronRight: chrome },
     '../../src/lib/poker-near-me/scheduleTemporal.mjs': { sourceVerificationTime: () => null },
+    '../../src/lib/venueCount.mjs': venueCount,
     '../../src/hooks/useVenueRealtime': () => {},
     '../../src/config/hamburgerMenus': { getMenuConfig: () => ({}) },
     '../../src/lib/home-games/urls': { homeGameUrl: () => '#' },

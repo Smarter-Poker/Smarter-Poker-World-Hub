@@ -34,6 +34,7 @@ import {
   byGameGuidePath,
   renderByGameDetailMarkdown,
 } from '../../../src/content/guides/byGame';
+import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 
 export async function getServerSideProps(context) {
   const { req, res, params, query } = context;
@@ -252,7 +253,7 @@ export default function PokerRoomsByGameDetailPage({ gameVertical, peerVerticals
             primaryHref={`/auth/signup?redirect=${encodeURIComponent(canonicalPath)}&src=poker-rooms-by-game`}
             secondaryLabel="Sign In"
             secondaryHref={`/auth/login?redirect=${encodeURIComponent(canonicalPath)}`}
-            highlights={['100% Free Account', '715+ Live Rooms', 'Bankroll Tracker']}
+            highlights={['100% Free Account', `${VENUE_COUNT_LABEL} Poker Rooms`, 'Bankroll Tracker']}
           />
         </div>
 

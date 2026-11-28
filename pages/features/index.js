@@ -7,6 +7,7 @@ import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta'
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const FEATURES_FAQS = [
   {
@@ -130,8 +131,8 @@ export const ALL_FEATURES = [
   {
     slug: 'poker-near-me',
     title: 'Live Poker Near Me & Cardroom Directory',
-    badge: '320+ Live Poker Rooms',
-    description: 'Explore 324+ Verified Live Poker Rooms, 4,500+ Weekly Tournaments, WSOP/WPT Series Schedules, Real-Time Cash Games, And Waitlists With Instant GPS Directions.',
+    badge: `${VENUE_COUNT_LABEL} Poker Rooms`,
+    description: `Explore ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, 4,500+ Weekly Tournaments, WSOP/WPT Series Schedules, Cash Game Listings, And Waitlists With Instant GPS Directions.`,
     href: '/features/poker-near-me',
     appHref: '/hub/poker-near-me/lobby',
     mdHref: '/features/poker-near-me.md',
@@ -314,7 +315,7 @@ export default function FeaturesIndexPage() {
               { label: 'Core Verticals', value: `${ALL_FEATURES.length} Modules` },
               { label: 'Free Tools', value: '52 Calcs' },
               { label: 'GTO Drills', value: '107 Games' },
-              { label: 'Live Rooms', value: '715+ Venues' },
+              { label: 'Poker Rooms', value: `${VENUE_COUNT_LABEL} Venues` },
             ]}
             redirectPath="/features"
             unlockKey="masthead-features"
@@ -423,7 +424,7 @@ export default function FeaturesIndexPage() {
             primaryHref="/auth/signup?redirect=/hub&src=features-index"
             secondaryLabel="Sign In"
             secondaryHref="/auth/login?redirect=/hub"
-            highlights={['100% Free Forever', '107 GTO Drills', '715+ Live Rooms']}
+            highlights={['100% Free Forever', '107 GTO Drills', `${VENUE_COUNT_LABEL} Poker Rooms`]}
           />
         </div>
       </div>

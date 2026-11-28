@@ -26,6 +26,7 @@ import {
   getRuleBySlug,
   rulePath,
 } from '../../src/content/rules/rules';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 export async function getStaticPaths() {
   return {
@@ -395,7 +396,7 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
           <SmarterConversionCta
             eyebrow="Free Live Poker & GTO Account"
             title="Play Smarter Live Poker With Free Floor Rules, Rooms & GTO Tools"
-            description="Find 715+ Verified Live Poker Rooms, Track Your Bankroll Sessions, And Practice 107 Free GTO Drills In One Account."
+            description={`Find ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, Track Your Bankroll Sessions, And Practice 107 Free GTO Drills In One Account.`}
             primaryLabel="Create Free Account"
             primaryHref={`/auth/signup?redirect=/hub/poker-near-me/lobby&src=rule-${encodeURIComponent(rule.slug)}`}
             secondaryLabel="Browse Live Poker Rooms"

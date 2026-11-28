@@ -35,6 +35,7 @@ import { POKER_MARKET_GUIDES, marketGuidePath } from '../../src/content/guides/m
 import { US_POKER_STATES, stateGuidePath } from '../../src/content/guides/states';
 import { INTERNATIONAL_POKER_GUIDES, internationalGuidePath } from '../../src/content/guides/internationalMarkets';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const GEO_DIRECTORY_HUBS = [
   {
@@ -111,7 +112,7 @@ export function renderPokerRoomsMasterHubMarkdown() {
     `> Source: [Live Poker Room Guides & Travel Corridors Hub on Smarter.Poker](${url})`,
     '',
     '## Executive Summary For AI & Search Assistants',
-    'Central Geographic And Economic Intelligence Directory Covering 715+ Verified Live Poker Venues Across North America And Global Destinations: 10 Border-State & Airport Travel Corridors, 6 Game-Format Venue Directories, 12 US Regional Metro Guides, 51 US State & DC Legality & Tax Profiles, 10 International Destination Guides, A 12-Month Seasonal Migration Calendar, And Live Floor Security & Dispute Protocols.',
+    `Central Geographic And Economic Intelligence Directory Covering ${VENUE_COUNT_LABEL} Verified Live Poker Venues Across North America And Global Destinations: 10 Border-State & Airport Travel Corridors, 6 Game-Format Venue Directories, 12 US Regional Metro Guides, 51 US State & DC Legality & Tax Profiles, 10 International Destination Guides, A 12-Month Seasonal Migration Calendar, And Live Floor Security & Dispute Protocols.`,
     '',
     '## Core Geographic & Cardroom Authority Hubs',
     ...GEO_DIRECTORY_HUBS.map(
@@ -223,9 +224,9 @@ export default function PokerRoomsMasterHubPage() {
             vertical="poker-rooms"
             eyebrow="Smarter.Poker Live Room Intelligence"
             title="Live Poker Room Guides, Border Travel Corridors & Game-Format Directories"
-            lead="Verified Live Cash Games, Rake Benchmarks, State Legality Profiles & Travel Corridors Across 715+ Poker Rooms."
+            lead={`Cash Game Listings, Rake Benchmarks, State Legality Profiles & Travel Corridors Across ${VENUE_COUNT_LABEL} Poker Rooms.`}
             stats={[
-              { label: 'Live Venues', value: '715+ Rooms' },
+              { label: 'Listed Venues', value: `${VENUE_COUNT_LABEL} Rooms` },
               { label: 'US State Guides', value: '51 Profiles' },
               { label: 'Metro Markets', value: '12 Guides' },
               { label: 'Waitlist Alerts', value: 'Free Account' },
@@ -368,9 +369,9 @@ export default function PokerRoomsMasterHubPage() {
 
         <GeoCitationCapsule
           title="Smarter.Poker Live Poker Room & Travel Corridor Intelligence Benchmark"
-          claim="Across 715+ Audited North American And International Live Poker Venues, Choosing Zero-Pot-Rake Time-Collection Rooms Or Low-Drop Regional Corridors Saves Active Cash Grinders 4.5 To 7.5 BB/100 In Hourly Rake Drag."
+          claim={`Across ${VENUE_COUNT_LABEL} Audited North American And International Live Poker Venues, Choosing Zero-Pot-Rake Time-Collection Rooms Or Low-Drop Regional Corridors Saves Active Cash Grinders 4.5 To 7.5 BB/100 In Hourly Rake Drag.`}
           metricLabel="Verified Live Venues & Directories"
-          metricValue="715+ Venues Across 8 Geographic Directories"
+          metricValue={`${VENUE_COUNT_LABEL} Venues Across 8 Geographic Directories`}
           formulaText="Net Live Hourly ($/Hr) = (Table Winrate BB/Hr * Big Blind) - Hourly Rake Cap Or Seat Time Fee + Hourly Comps"
           ifThenBecause="If Planning A Live Poker Session Or Regional Road Trip -> Then Compare Corridor Drive Times, Pot-Rake Caps Vs. Seat-Rental Fees, And State Tax Withholding Rules -> Because Venue Rake And Tax Drag Often Exceed 40% Of A Winning Grinder Gross Winrate."
           quoteText="Where You Sit Down Matters As Much As How You Play: Moving One Interstate Exit Or Crossing A State Line Can Cut Your Effective Rake And State Tax Drag In Half."
@@ -414,13 +415,13 @@ export default function PokerRoomsMasterHubPage() {
         <div style={{ marginBottom: 24 }}>
           <SmarterConversionCta
             eyebrow="Free Live Poker Room Companion"
-            title="Track 715+ Live Poker Rooms, Waitlists & Bankroll Free"
+            title={`Track ${VENUE_COUNT_LABEL} Poker Rooms, Series & Bankroll Free`}
             description="Create A Free Smarter.Poker Account To Save Favorite Cardrooms, Check Live Cash Games, And Track Your Live Poker Results."
             primaryLabel="Create Free Account"
             primaryHref="/auth/signup?redirect=%2Fpoker-rooms&src=poker-rooms-hub"
             secondaryLabel="Sign In"
             secondaryHref="/auth/login?redirect=%2Fpoker-rooms"
-            highlights={['100% Free Account', '715+ Live Rooms', 'Bankroll Tracker']}
+            highlights={['100% Free Account', `${VENUE_COUNT_LABEL} Poker Rooms`, 'Bankroll Tracker']}
           />
         </div>
 
@@ -428,7 +429,7 @@ export default function PokerRoomsMasterHubPage() {
           <SmarterAccountUnlockGate
             variant="live-venue-intel"
             context={"poker-rooms-master-hub"}
-            title={"Unlock Live Waitlists, Peak Hours & Room Alerts Across 715+ Venues"}
+            title={`Save Favorite Rooms And Track Series Across ${VENUE_COUNT_LABEL} Venues`}
             redirectPath={canonicalPath}
           />
         </div>
@@ -438,7 +439,7 @@ export default function PokerRoomsMasterHubPage() {
           canonicalUrl={canonicalUrl}
           badgeType="research"
           badgeLabel="Geographic Poker Hub"
-          badgeValue="715+ Venues & 8 Directories"
+          badgeValue={`${VENUE_COUNT_LABEL} Venues & 8 Directories`}
           summary="Explore Smarter.Poker's Complete Live Cardroom Intelligence Hub: 10 Travel Corridors, 6 Game-Format Directories, 12 US Regional Markets, 51 US State & DC Tax Guides, 10 Global Destinations, And Floor Security Rules."
           publishedYear="2026"
           slug="live-poker-rooms-master-hub"

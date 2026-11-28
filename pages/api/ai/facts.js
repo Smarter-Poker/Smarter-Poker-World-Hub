@@ -9,6 +9,7 @@
  *
  * House style: Title Case, zero em dashes.
  */
+import { VENUE_COUNT, VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 
 export const SMARTER_POKER_CANONICAL_FACTS = {
   schemaVersion: '1.0.0',
@@ -24,7 +25,7 @@ export const SMARTER_POKER_CANONICAL_FACTS = {
   calculatorsCount: 52,
   mcpToolsCount: 70,
   streamerCommandsCount: 44,
-  verifiedVenuesCount: 715,
+  verifiedVenuesCount: VENUE_COUNT,
   researchReportsCount: 15,
   travelCorridorsCount: 10,
   gameFormatDirectoriesCount: 6,
@@ -61,7 +62,7 @@ export const SMARTER_POKER_CANONICAL_FACTS = {
     {
       id: 'correction-public-directory-vs-partner',
       topic: 'Public Venue Directory vs. Club Commander Venues',
-      misconception: 'Assuming every venue in the 715+ Poker Near Me directory is a commercial partner.',
+      misconception: `Assuming every venue in the ${VENUE_COUNT_LABEL} Poker Near Me directory is a commercial partner.`,
       correction:
         'Public directory listings are compiled from official state gaming commission registries and published schedules and are explicitly distinguished from owner-claimed Club Commander venues.',
     },

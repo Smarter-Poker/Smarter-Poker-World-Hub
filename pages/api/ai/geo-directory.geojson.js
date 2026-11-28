@@ -19,6 +19,7 @@
 import { POKER_TRAVEL_CORRIDORS, corridorGuidePath } from '../../../src/content/guides/corridors.js';
 import { POKER_MARKET_GUIDES, marketGuidePath } from '../../../src/content/guides/markets.js';
 import { INTERNATIONAL_POKER_GUIDES, internationalGuidePath } from '../../../src/content/guides/internationalMarkets.js';
+import { VENUE_COUNT } from '../../../src/lib/venueCount.mjs';
 
 const US_MARKET_COORDS = {
   'las-vegas-nevada': { lat: 36.1147, lng: -115.1728, stateTax: '0.0% Nevada State Income Tax' },
@@ -146,7 +147,7 @@ export function buildGeoDirectoryFeatureCollection() {
       standard: 'RFC 7946 GeoJSON',
       verifiedAt: '2026-11-24',
       totalFeatures: features.length,
-      totalVerifiedVenuesInCorpus: 715,
+      totalVerifiedVenuesInCorpus: VENUE_COUNT,
       counts: {
         usRegionalMarkets: POKER_MARKET_GUIDES.length,
         internationalPokerDestinations: INTERNATIONAL_POKER_GUIDES.length,

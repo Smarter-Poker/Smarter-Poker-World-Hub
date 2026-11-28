@@ -29,11 +29,12 @@ import { getWeekendDates } from '../../../src/lib/poker-near-me/weekendSchedule.
 import { datasetSchema, faqSchema, breadcrumbSchema } from '../../../src/lib/seo/hubPageSchema';
 import FaqSection from '../../../src/components/seo/FaqSection';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 
 const WEEKEND_TOURNAMENTS_FAQS = [
   {
     question: 'How Do I Find Poker Tournaments Running This Weekend Near Me?',
-    answer: 'Smarter.Poker Aggregates All Recurring And Special Friday, Saturday, And Sunday Live Poker Tournaments Across 324+ Verified Casino Poker Rooms And Licensed Cardrooms. Filter By Day (Friday, Saturday, Sunday), State, Or Buy-In Range To Compare Start Times And Guaranteed Prize Pools.',
+    answer: `Smarter.Poker Aggregates All Recurring And Special Friday, Saturday, And Sunday Live Poker Tournaments Across ${VENUE_COUNT_LABEL} Verified Casino Poker Rooms And Licensed Cardrooms. Filter By Day (Friday, Saturday, Sunday), State, Or Buy-In Range To Compare Start Times And Guaranteed Prize Pools.`,
   },
   {
     question: 'Which Weekend Day Has The Largest Guaranteed Poker Tournaments?',
@@ -222,7 +223,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
                   path: '/hub/tournaments/this-weekend',
                   name: 'Smarter.Poker Weekend Poker Tournaments Directory (Friday, Saturday & Sunday)',
                   description:
-                    'Live Friday, Saturday, And Sunday Poker Tournament Schedules, Buy-Ins, Starting Stacks, And Guaranteed Prize Pools Across 324+ Verified North American Poker Rooms.',
+                    `Live Friday, Saturday, And Sunday Poker Tournament Schedules, Buy-Ins, Starting Stacks, And Guaranteed Prize Pools Across ${VENUE_COUNT_LABEL} Verified North American Poker Rooms.`,
                   keywords: [
                     'poker tournaments this weekend',
                     'weekend poker tournaments near me',
@@ -292,7 +293,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
               </div>
               <div className="stat-card">
                 <dt className="stat-label">Verified Venues</dt>
-                <dd className="stat-value">{stats.venues || '324+'}</dd>
+                <dd className="stat-value">{stats.venues || VENUE_COUNT_LABEL}</dd>
               </div>
               <div className="stat-card">
                 <dt className="stat-label">Total Guarantees</dt>

@@ -2,6 +2,7 @@
  * Pure data export for HUB_PAGE_SUMMARIES (shared across SSR components, API routes, and Node ESM tests).
  * Bundled directly by Next.js / Vercel without runtime fs reads.
  */
+import { VENUE_COUNT_LABEL } from '../venueCount.mjs';
 export const HUB_PAGE_SUMMARIES = {
   hub: {
     heading: 'The Smarter Poker World Hub',
@@ -1363,7 +1364,7 @@ export const HUB_PAGE_SUMMARIES = {
       'The Live Poker Travel Corridors Directory Maps The Ten Highest-Traffic North American Airport, Interstate, And Cross-Border Poker Routes, Connecting Non-Casino Metropolitan Areas To Their Closest Legal Commercial, Tribal, And Social-Membership Cardrooms With Exact Driving Times, Flagship Venues, Rake Caps, And State Tax Rules. Free Travel Hub.',
     metrics: [
       { label: 'Indexed Travel Corridors', value: '10 Major Airport & Border Routes' },
-      { label: 'Connected Venue Database', value: '715+ Verified North American Rooms' },
+      { label: 'Connected Venue Database', value: `${VENUE_COUNT_LABEL} Verified North American Rooms` },
       { label: 'Routing Coverage', value: 'Drive Times, Airports, Rake & Tax' },
     ],
     links: [
@@ -1378,7 +1379,7 @@ export const HUB_PAGE_SUMMARIES = {
       'The Live Poker Rooms By Game Variant Directory Groups North America Verified Cardrooms By The Specific Action They Spread Regularly: 4-Card And 5-Card Pot-Limit Omaha (PLO), 5-Card Omaha Hi-Lo (Big O), Fixed-Limit Mixed Games (HORSE / 8-Game / 2-7 Triple Draw), 7-Card Stud, Deepstack $5/$10+ NLH, And Daily Guaranteed MTTs. Free Variant Directory.',
     metrics: [
       { label: 'Variant Directories', value: '6 Specialized Game Categories' },
-      { label: 'Verified Room Coverage', value: '715+ North American Venues' },
+      { label: 'Verified Room Coverage', value: `${VENUE_COUNT_LABEL} North American Venues` },
       { label: 'Tracked Action Metrics', value: 'Typical Stakes, Caps & Peak Days' },
     ],
     links: [
@@ -1420,9 +1421,9 @@ export const HUB_PAGE_SUMMARIES = {
   'research-annual-state-of-poker-2026': {
     heading: 'About The 2026 Annual State Of Live And Online Poker Industry Whitepaper',
     lead:
-      'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simulated GTO Solver Hand Histories Under CC-BY 4.0 Attribution (Zenodo DOI 10.5281/zenodo.15129481). Free Industry Report.',
+      `The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across ${VENUE_COUNT_LABEL} Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simulated GTO Solver Hand Histories Under CC-BY 4.0 Attribution (Zenodo DOI 10.5281/zenodo.15129481). Free Industry Report.`,
     metrics: [
-      { label: 'Verified Live Venue Sample', value: '715+ North American Poker Rooms' },
+      { label: 'Verified Live Venue Sample', value: `${VENUE_COUNT_LABEL} North American Poker Rooms` },
       { label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },
       { label: 'Archival Citation DOI', value: '10.5281/zenodo.15129481 (CC-BY 4.0)' },
     ],
@@ -1454,7 +1455,7 @@ export const HUB_PAGE_SUMMARIES = {
     metrics: [
       { label: 'Interactive Calculators', value: '52 Deterministic Browser Solvers' },
       { label: 'Zero-Auth MCP Server', value: '70 Tools / 14 Prompts / 24 Templates' },
-      { label: 'Verified Venue Directory', value: '715+ Live North American Rooms' },
+      { label: 'Verified Venue Directory', value: `${VENUE_COUNT_LABEL} North American Poker Rooms` },
     ],
     links: [
       { name: 'Verification Methodology', href: '/verification-methodology', text: 'Review The 5-Stage Venue And Solver Verification Pipeline.' },

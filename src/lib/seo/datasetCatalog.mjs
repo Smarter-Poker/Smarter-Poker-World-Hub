@@ -19,6 +19,7 @@ import { POKER_STAKES } from '../../content/learn/stakes.js';
 import { BOARD_TEXTURES } from '../../content/learn/boardTextures.js';
 import { PLAYER_ARCHETYPES } from '../../content/learn/playerTypes.js';
 import { INTERNATIONAL_POKER_GUIDES } from '../../content/guides/internationalMarkets.js';
+import { VENUE_COUNT_LABEL } from '../venueCount.mjs';
 
 export const ZENODO_RECORDS = [
   {
@@ -413,7 +414,7 @@ export function buildZenodoMetadata() {
       },
     ],
     description:
-      'Open CC-BY 4.0 catalog of 22 quantitative poker research and authority benchmark datasets covering 324+ US live poker venues, all 50 US states and DC (51 jurisdictions) legality and tax benchmarks, 10 international poker destinations, 9 table seat positions, 8 player archetypes, 12 canonical flop board textures, 12 historic televised hands, 7 stake tiers, Malmuth-Harville ICM bubble factors, PKO and Mystery Bounty chip equivalents, 169-hand preflop GTO matrices, and a 55-Tool Model Context Protocol (MCP) Server Archive (v1.0.7).',
+      `Open CC-BY 4.0 catalog of 22 quantitative poker research and authority benchmark datasets covering ${VENUE_COUNT_LABEL} US live poker venues, all 50 US states and DC (51 jurisdictions) legality and tax benchmarks, 10 international poker destinations, 9 table seat positions, 8 player archetypes, 12 canonical flop board textures, 12 historic televised hands, 7 stake tiers, Malmuth-Harville ICM bubble factors, PKO and Mystery Bounty chip equivalents, 169-hand preflop GTO matrices, and a 55-Tool Model Context Protocol (MCP) Server Archive (v1.0.7).`,
     access_right: 'open',
     license: 'cc-by-4.0',
     keywords: [
@@ -623,7 +624,7 @@ export function buildDataCatalogJsonLd() {
     name: 'Smarter.Poker Open Quantitative Poker & Live Cardroom Data Catalog',
     version: '2026.11.14',
     description:
-      'Public CC-BY 4.0 catalog of 22 quantitative poker research and authority benchmark datasets, 169 starting hand preflop frequency matrices, 55-Tool Model Context Protocol (MCP) Server Archive (v1.0.7), and 324+ US live cardroom benchmarks.',
+      `Public CC-BY 4.0 catalog of 22 quantitative poker research and authority benchmark datasets, 169 starting hand preflop frequency matrices, 55-Tool Model Context Protocol (MCP) Server Archive (v1.0.7), and ${VENUE_COUNT_LABEL} US live cardroom benchmarks.`,
     url: 'https://smarter.poker/research',
     inLanguage: 'en-US',
     license: 'https://creativecommons.org/licenses/by/4.0/',

@@ -24,6 +24,7 @@ import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderPromoEvCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const QUALIFIER_TIERS = [
   { id: 'ACES_FULL_TENS', label: 'Aces Full Of Tens+ Beaten', oneInHands: 11500 },
@@ -588,7 +589,7 @@ export default function PromoEvCalculatorPage({
               compact
               eyebrow="Free Smarter.Poker Account"
               title="Save High-Hand & Jackpot EV Spots & Find Best Rooms Free"
-              description="Compare Bad Beat Jackpot And High-Hand Value Across 715+ Verified Live Poker Rooms And Track Sessions Free."
+              description={`Compare Bad Beat Jackpot And High-Hand Value Across ${VENUE_COUNT_LABEL} Verified Live Poker Rooms And Track Sessions Free.`}
               primaryLabel="Create Free Account"
               primaryHref="/auth/signup?redirect=/tools/promo-ev-calculator&src=promo-ev"
               secondaryLabel="Sign In"

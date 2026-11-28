@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { buildSignupUrl, openQuickSignup } from './SmarterQuickSignupSheet';
 import styles from './SmarterSeoKit.module.css';
+import { VENUE_COUNT_LABEL } from '../../lib/venueCount.mjs';
 
 function hasStoredAuthSession() {
   if (typeof window === 'undefined') return false;
@@ -34,13 +35,13 @@ function hasStoredAuthSession() {
 export default function SmarterConversionCta({
   eyebrow = 'Free Smarter.Poker Account',
   title = 'Unlock Free GTO Tools And Live Poker Data',
-  description = 'Save Your Study Progress, Track Bankroll Sessions, And Explore 715+ Live Poker Rooms With One Free Account.',
+  description = `Save Your Study Progress, Track Bankroll Sessions, And Explore ${VENUE_COUNT_LABEL} Live Poker Rooms With One Free Account.`,
   primaryLabel = 'Create Free Account',
   ctaLabel,
   primaryHref,
   secondaryLabel = 'Sign In',
   secondaryHref,
-  highlights = ['100% Free Forever', '107 GTO Drills', '715+ Live Rooms'],
+  highlights = ['100% Free Forever', '107 GTO Drills', `${VENUE_COUNT_LABEL} Poker Rooms`],
   compact = false,
   context = 'smarter-conversion-cta',
   redirectPath,
