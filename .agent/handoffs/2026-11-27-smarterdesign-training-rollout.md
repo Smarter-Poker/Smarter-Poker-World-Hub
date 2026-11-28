@@ -202,3 +202,25 @@ Status legend: H = image header + chrome ? + back-above done in code; V = visual
 - Art: `python3 scripts/design/generate-training-header-art.py` then
   `node --test __tests__/bankroll-mobile-upgrades.test.mjs` (unique seal/scene bytes).
 - Inventory: `node scripts/training-surface-inventory.mjs --write` then the two inventory tests.
+
+## 6. UPDATE - second session (2026-11-27 evening): P1, P2, P3, P5 DONE; awaiting Dan's visual approval
+- Commits on the branch: `d667584` (Turbopack-breaking soundManager import fixed at the source + capture
+  tooling in `.agent/handoffs/2026-11-27-smarterdesign-tools/`), `2aefc35` (bespoke #SMARTERDESIGN interiors
+  on every remaining Training page, Preflop sub pages, shared fixes), then the evidence commit.
+- The first session's BEFORE shots were mostly the Turbopack build-error overlay (71 of 91) because of that
+  import. BEFORE was regenerated from a 3ef4e63 worktree with only that one-line fix applied.
+- Evidence: `2026-11-27-smarterdesign-page-list.md` (every route, status), screenshots `before-all-393/`,
+  `after-all-393/`, `after-1280/`, sheets `sheets/rollout/sheet-01..11.webp`.
+- Audit of all 91 AFTER routes: header + own art + chrome "?" (8px from top/right) + back outside header on
+  90; table-wizard redirects to the arena by design; zero forbidden-ink text; zero horizontal overflow.
+  /hub/preflop-charts keeps its HubPageSummary as h1 because its body is client-only (law test).
+- Tests: 262 targeted files, 99 failures on branch vs 99 on base d667584, identical names (no new failures).
+  eslint 0 errors. Training surface inventory regenerated.
+- NOT done / open: P4 seals (purpose-made iconic emblems need new art; current seals are scene crops
+  assigned in pool order, not by page subject). P6 merge/publish waits for Dan's approval of the sheets.
+  P7 leaderboard minimum-sample rule still a product call. bankroll-manager.js Back arrow skipped: that file
+  is hash-guarded by docs/business-hub-guide-review.json and needs a recorded guide review.
+- Known leftovers (out of scope, logged by lanes): src/styles/worlds/training.css `[data-stats-grid]` phone
+  rule forces 2 columns globally; training.css ~2702 sd-button background rules use high specificity !important;
+  RangeGrid header pill still rounded; unused public/images/training/lobby/arena-{mode,filter,row-rim}.webp;
+  Quiz Builder select accessible names swapped (pinned by a test); Mental Journal "1 Cups".

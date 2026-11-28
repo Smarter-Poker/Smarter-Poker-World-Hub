@@ -19,3 +19,8 @@ Production art (committed, served by the site):
 - `public/images/smarterdesign/headers/<slug>-seal.webp` and `<slug>-scene.webp` are the header art for each page.
   `scripts/design/generate-training-header-art.py` regenerates everything except the four hand-made pairs
   (`icm`, `preflop-charts`, `training-goals`, `training-leaderboard`).
+
+## Update (second session)
+`before-all-393/` was regenerated: the first set was mostly the Turbopack error overlay. `after-all-393/`
+now exists for all 91 routes (same file names), `after-1280/` holds desktop samples, and
+`sheets/rollout/` holds the 11 before/after sheets. The page list is `../2026-11-27-smarterdesign-page-list.md`.

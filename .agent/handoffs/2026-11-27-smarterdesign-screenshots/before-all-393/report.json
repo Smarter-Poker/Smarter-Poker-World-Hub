@@ -1,866 +1,1452 @@
-[
- {
-  "route": "/hub/training/aggregate",
+{
+ "/hub/training/aggregate": {
+  "ok": true,
+  "name": "training_aggregate",
   "header": false,
   "art": null,
   "help": false,
-  "bad": [],
-  "h1": "Aggregate Reports Are Paused",
-  "missing": []
- },
- {
-  "route": "/hub/training/achievements",
-  "header": false,
-  "art": null,
-  "help": false,
-  "bad": [],
-  "h1": "Training Achievements",
-  "missing": []
- },
- {
-  "route": "/hub/training/autopilot",
-  "header": false,
-  "art": null,
-  "help": false,
-  "bad": [],
-  "h1": null,
-  "missing": []
- },
- {
-  "route": "/hub/training/blind-defense",
-  "header": false,
-  "art": null,
-  "help": false,
-  "bad": [],
-  "h1": "Blind Defense",
-  "missing": []
- },
- {
-  "route": "/hub/training/bluff-catcher",
-  "header": false,
-  "art": null,
-  "help": false,
-  "bad": [],
-  "h1": "Bluff Catcher",
-  "missing": []
- },
- {
-  "route": "/hub/training/challenges",
-  "header": false,
-  "art": null,
-  "help": false,
-  "bad": [],
-  "h1": "Your Goals",
-  "missing": []
- },
- {
-  "route": "/hub/training/bounty-trainer",
-  "header": false,
-  "art": null,
-  "help": false,
-  "bad": [],
-  "h1": "Bounty Trainer",
-  "missing": []
- },
- {
-  "route": "/hub/training/coach-mode",
-  "header": false,
-  "art": null,
-  "help": false,
-  "bad": [],
-  "h1": "Train Every Decision Until It Becomes In",
-  "missing": []
- },
- {
-  "route": "/hub/training/custom-rake",
-  "header": false,
-  "art": null,
-  "help": false,
-  "bad": [],
-  "h1": "Rake Cost Estimator",
-  "missing": []
- },
- {
-  "route": "/hub/training/community-leaderboard",
-  "header": false,
-  "art": null,
-  "help": false,
-  "bad": [],
-  "h1": "Community Leaderboard",
-  "missing": []
- },
- {
-  "route": "/hub/training/daily-challenge",
-  "header": false,
-  "art": null,
-  "help": false,
-  "bad": [
-   "\u25c7 Preflop Ranges"
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Aggregate Reports Are Paused"
   ],
-  "h1": "Daily Challenge",
-  "missing": []
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
  },
- {
-  "route": "/hub/training/drill-builder",
+ "/hub/training/achievements": {
+  "ok": true,
+  "name": "training_achievements",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Training Achievements"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/custom-solve",
+ "/hub/training/autopilot": {
+  "ok": true,
+  "name": "training_autopilot",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/famous-finals",
+ "/hub/training/blind-defense": {
+  "ok": true,
+  "name": "training_blind-defense",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Blind Defense"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Famous Finals Archive",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/daily-goals",
+ "/hub/training/bluff-catcher": {
+  "ok": true,
+  "name": "training_bluff-catcher",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Bluff Catcher"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Daily Goals",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/flashcards",
+ "/hub/training/challenges": {
+  "ok": true,
+  "name": "training_challenges",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Your Goals",
+   "About Daily Challenges"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "GTO Flashcards",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/frequency-locking",
+ "/hub/training/bounty-trainer": {
+  "ok": true,
+  "name": "training_bounty-trainer",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Bounty Trainer"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Frequency Math",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/equity-calculator",
+ "/hub/training/coach-mode": {
+  "ok": true,
+  "name": "training_coach-mode",
+  "header": false,
+  "art": null,
+  "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Train Every Decision Until It Becomes Instinct."
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/custom-rake": {
+  "ok": true,
+  "name": "training_custom-rake",
+  "header": false,
+  "art": null,
+  "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Rake Cost Estimator"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/community-leaderboard": {
+  "ok": true,
+  "name": "training_community-leaderboard",
+  "header": false,
+  "art": null,
+  "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Community Leaderboard"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/daily-challenge": {
+  "ok": true,
+  "name": "training_daily-challenge",
+  "header": false,
+  "art": null,
+  "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Daily Challenge"
+  ],
+  "wrongHelp": 0,
+  "bad": [
+   "◇ [rgb(242, 211, 139)]",
+   "Preflop Ranges [rgb(242, 211, 139)]"
+  ],
+  "overflowX": false
+ },
+ "/hub/training/drill-builder": {
+  "ok": true,
+  "name": "training_drill-builder",
+  "header": false,
+  "art": null,
+  "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/custom-solve": {
+  "ok": true,
+  "name": "training_custom-solve",
+  "header": false,
+  "art": null,
+  "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/famous-finals": {
+  "ok": true,
+  "name": "training_famous-finals",
+  "header": false,
+  "art": null,
+  "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Famous Finals Archive"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/daily-goals": {
+  "ok": true,
+  "name": "training_daily-goals",
+  "header": false,
+  "art": null,
+  "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Daily Goals"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/flashcards": {
+  "ok": true,
+  "name": "training_flashcards",
+  "header": false,
+  "art": null,
+  "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "GTO Flashcards"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/frequency-locking": {
+  "ok": true,
+  "name": "training_frequency-locking",
+  "header": false,
+  "art": null,
+  "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Frequency Math"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/equity-calculator": {
+  "ok": true,
+  "name": "training_equity-calculator",
   "header": true,
   "art": "jarvis",
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Equity Calculator"
+  ],
+  "wrongHelp": 8,
   "bad": [],
-  "h1": "Equity Calculator",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/gto-news",
+ "/hub/training/gto-news": {
+  "ok": true,
+  "name": "training_gto-news",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "GTO News"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "GTO News",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/ev-trainer",
+ "/hub/training/ev-trainer": {
+  "ok": true,
+  "name": "training_ev-trainer",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Expected Value"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Expected Value",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/gto-reports",
+ "/hub/training/gto-reports": {
+  "ok": true,
+  "name": "training_gto-reports",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Verified Training Reports"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Verified Training Reports",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/final-table-sim",
+ "/hub/training/final-table-sim": {
+  "ok": true,
+  "name": "training_final-table-sim",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Final Table Sim"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Final Table Sim",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/gto-vs-exploitative",
+ "/hub/training/gto-vs-exploitative": {
+  "ok": true,
+  "name": "training_gto-vs-exploitative",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "GTO Versus Exploitative"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "GTO Versus Exploitative",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/focus-timer",
+ "/hub/training/focus-timer": {
+  "ok": true,
+  "name": "training_focus-timer",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Focus Timer"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Focus Timer",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/glossary",
+ "/hub/training/glossary": {
+  "ok": true,
+  "name": "training_glossary",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Glossary Study Tool"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Glossary Study Tool",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/gto-preloader",
+ "/hub/training/gto-preloader": {
+  "ok": true,
+  "name": "training_gto-preloader",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/hand-history-upload",
+ "/hub/training/hand-history-upload": {
+  "ok": true,
+  "name": "training_hand-history-upload",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "About Hand History Upload"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "About Hand History Upload",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/hand-comparison",
+ "/hub/training/hand-comparison": {
+  "ok": true,
+  "name": "training_hand-comparison",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "HAND COMPARISON"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "HAND COMPARISON",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/icm-calculator",
+ "/hub/training/icm-calculator": {
+  "ok": true,
+  "name": "training_icm-calculator",
   "header": true,
   "art": "poker_mtt",
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "ICM Calculator"
+  ],
+  "wrongHelp": 1,
   "bad": [],
-  "h1": "ICM Calculator",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/icm-simulator",
+ "/hub/training/icm-simulator": {
+  "ok": true,
+  "name": "training_icm-simulator",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/hand-lab",
+ "/hub/training/hand-lab": {
+  "ok": true,
+  "name": "training_hand-lab",
   "header": true,
   "art": "casino_table",
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Hand Lab"
+  ],
+  "wrongHelp": 1,
   "bad": [],
-  "h1": "Hand Lab",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/leaderboard",
+ "/hub/training/leaderboard": {
+  "ok": true,
+  "name": "training_leaderboard",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Training Leaderboard"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Training Leaderboard",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/icm-final-table",
+ "/hub/training/icm-final-table": {
+  "ok": true,
+  "name": "training_icm-final-table",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Final Table ICM"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Final Table ICM",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/mental-journal",
+ "/hub/training/mental-journal": {
+  "ok": true,
+  "name": "training_mental-journal",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Mental Journal"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Mental Journal",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/jarvis",
+ "/hub/training/jarvis": {
+  "ok": true,
+  "name": "training_jarvis",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "JARVIS Dashboard"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "JARVIS Dashboard",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/mixed-strategy-lab",
+ "/hub/training/mixed-strategy-lab": {
+  "ok": true,
+  "name": "training_mixed-strategy-lab",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Mixed Strategy Lab"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Mixed Strategy Lab",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/multiway-postflop",
+ "/hub/training/multiway-postflop": {
+  "ok": true,
+  "name": "training_multiway-postflop",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Multiway Postflop"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Multiway Postflop",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/live-hud-sync",
+ "/hub/training/live-hud-sync": {
+  "ok": true,
+  "name": "training_live-hud-sync",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Live HUD Sync"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Live HUD Sync",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/my-playbook",
+ "/hub/training/my-playbook": {
+  "ok": true,
+  "name": "training_my-playbook",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "My Playbook"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "My Playbook",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/player-profiles",
+ "/hub/training/player-profiles": {
+  "ok": true,
+  "name": "training_player-profiles",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Population Reads"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Population Reads",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/milestones",
+ "/hub/training/milestones": {
+  "ok": true,
+  "name": "training_milestones",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/pot-geometry",
+ "/hub/training/pot-geometry": {
+  "ok": true,
+  "name": "training_pot-geometry",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Pot Geometry"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Pot Geometry",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/preflop-charts",
+ "/hub/training/preflop-charts": {
+  "ok": true,
+  "name": "training_preflop-charts",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Preflop Charts"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Preflop Charts",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/pvp-lobby",
+ "/hub/training/pvp-lobby": {
+  "ok": true,
+  "name": "training_pvp-lobby",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "PvP Lobby"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "PvP Lobby",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/multi-table",
+ "/hub/training/multi-table": {
+  "ok": true,
+  "name": "training_multi-table",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Multi-Table Practice"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/quick-warmup",
+ "/hub/training/quick-warmup": {
+  "ok": true,
+  "name": "training_quick-warmup",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Quick Warmup"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/multiway-preflop",
+ "/hub/training/multiway-preflop": {
+  "ok": true,
+  "name": "training_multiway-preflop",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Multiway Preflop Reference"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Multiway Preflop Reference",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/range-advisor",
+ "/hub/training/range-advisor": {
+  "ok": true,
+  "name": "training_range-advisor",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Range Construction"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Range Construction",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/reports",
+ "/hub/training/reports": {
+  "ok": true,
+  "name": "training_reports",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Verified Training Reports"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Verified Training Reports",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/nodelocking",
+ "/hub/training/nodelocking": {
+  "ok": true,
+  "name": "training_nodelocking",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Node Locking"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Node Locking",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/scenario-demo",
+ "/hub/training/scenario-demo": {
+  "ok": true,
+  "name": "training_scenario-demo",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/position-mastery",
+ "/hub/training/position-mastery": {
+  "ok": true,
+  "name": "training_position-mastery",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Position Mastery"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Position Mastery",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/preflop-advisor",
+ "/hub/training/preflop-advisor": {
+  "ok": true,
+  "name": "training_preflop-advisor",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Preflop Decisions"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Preflop Decisions",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/progress",
+ "/hub/training/progress": {
+  "ok": true,
+  "name": "training_progress",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/qre-explorer",
+ "/hub/training/qre-explorer": {
+  "ok": true,
+  "name": "training_qre-explorer",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/quiz-builder",
+ "/hub/training/quiz-builder": {
+  "ok": true,
+  "name": "training_quiz-builder",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/session-notes",
+ "/hub/training/session-notes": {
+  "ok": true,
+  "name": "training_session-notes",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Session Notes"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Session Notes",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/rake-solutions",
+ "/hub/training/rake-solutions": {
+  "ok": true,
+  "name": "training_rake-solutions",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/short-deck-trainer",
+ "/hub/training/short-deck-trainer": {
+  "ok": true,
+  "name": "training_short-deck-trainer",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/range-builder",
+ "/hub/training/range-builder": {
+  "ok": true,
+  "name": "training_range-builder",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Range Builder"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Range Builder",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/replay-theater",
+ "/hub/training/replay-theater": {
+  "ok": true,
+  "name": "training_replay-theater",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/spr-trainer",
+ "/hub/training/spr-trainer": {
+  "ok": true,
+  "name": "training_spr-trainer",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Stack-To-Pot Ratio"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Stack-To-Pot Ratio",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/risk-analyzer",
+ "/hub/training/risk-analyzer": {
+  "ok": true,
+  "name": "training_risk-analyzer",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/study-group-finder",
+ "/hub/training/study-group-finder": {
+  "ok": true,
+  "name": "training_study-group-finder",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/session-dashboard",
+ "/hub/training/session-dashboard": {
+  "ok": true,
+  "name": "training_session-dashboard",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Session Dashboard"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Session Dashboard",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/study-plan",
+ "/hub/training/study-plan": {
+  "ok": true,
+  "name": "training_study-plan",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Weekly Study Plan"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Weekly Study Plan",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/session-warmup",
+ "/hub/training/session-warmup": {
+  "ok": true,
+  "name": "training_session-warmup",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Mental State Check"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Mental State Check",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/three-way-postflop",
+ "/hub/training/three-way-postflop": {
+  "ok": true,
+  "name": "training_three-way-postflop",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Three-Way Postflop"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Three-Way Postflop",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/skill-tree",
+ "/hub/training/skill-tree": {
+  "ok": true,
+  "name": "training_skill-tree",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Skill Tree"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Skill Tree",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/tournament-prep",
+ "/hub/training/tournament-prep": {
+  "ok": true,
+  "name": "training_tournament-prep",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "TOURNAMENT PREP PLANNER"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "TOURNAMENT PREP PLANNER",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/spot-trainer",
+ "/hub/training/spot-trainer": {
+  "ok": true,
+  "name": "training_spot-trainer",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Solver Spot Study"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Solver Spot Study",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/training-calendar",
+ "/hub/training/training-calendar": {
+  "ok": true,
+  "name": "training_training-calendar",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Training Calendar"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Training Calendar",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/streaks",
+ "/hub/training/streaks": {
+  "ok": true,
+  "name": "training_streaks",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": null,
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/villain-range",
+ "/hub/training/villain-range": {
+  "ok": true,
+  "name": "training_villain-range",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Range Advantage"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Range Advantage",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/study-group",
+ "/hub/training/study-group": {
+  "ok": true,
+  "name": "training_study-group",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "COLLABORATIVE STUDY ROOM"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "COLLABORATIVE STUDY ROOM",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/table-wizard",
+ "/hub/training/table-wizard": {
+  "ok": true,
+  "name": "training_table-wizard",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Table Selection",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/tilt-guard",
+ "/hub/training/tilt-guard": {
+  "ok": true,
+  "name": "training_tilt-guard",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Tilt Guard"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Tilt Guard",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/tournaments",
+ "/hub/training/tournaments": {
+  "ok": true,
+  "name": "training_tournaments",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Training Tournaments"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Training Tournaments",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/training-feed",
+ "/hub/training/training-feed": {
+  "ok": true,
+  "name": "training_training-feed",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Training Feed"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Training Feed",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/weakness-scanner",
+ "/hub/training/weakness-scanner": {
+  "ok": true,
+  "name": "training_weakness-scanner",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Weakness Scanner"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Weakness Scanner",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training",
+ "/hub/training": {
+  "ok": true,
+  "name": "training",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Training Games",
+   "Filter & Sort Training Games"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "Training Games",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/preflop-charts/stats",
+ "/hub/preflop-charts/stats": {
+  "ok": true,
+  "name": "preflop-charts_stats",
   "header": true,
   "art": "reports",
   "help": false,
-  "bad": [
-   "LEGACY LOCAL ARCHIVE",
-   "No Verified Rank Or Reward",
-   "Practice Locally"
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Local Practice History"
   ],
-  "h1": "Local Practice History",
-  "missing": []
+  "wrongHelp": 1,
+  "bad": [
+   "LEGACY LOCAL ARCHIVE [rgb(165, 138, 68)]",
+   "No Verified Rank Or Reward [rgb(241, 228, 181)]",
+   "Practice Locally [rgb(241, 213, 126)]"
+  ],
+  "overflowX": false
  },
- {
-  "route": "/hub/preflop-charts/leaderboard",
+ "/hub/preflop-charts/leaderboard": {
+  "ok": true,
+  "name": "preflop-charts_leaderboard",
   "header": true,
   "art": "players",
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Ranked Standings Paused"
+  ],
+  "wrongHelp": 1,
   "bad": [],
-  "h1": "Ranked Standings Paused",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/preflop-charts/achievements",
+ "/hub/preflop-charts/achievements": {
+  "ok": true,
+  "name": "preflop-charts_achievements",
   "header": true,
   "art": "goals",
   "help": false,
-  "bad": [
-   "VAULT COMPLETION",
-   "0 / 9 Unlocked",
-   "Next TargetFirst Signal",
-   "First Signal",
-   "Unlock Status Could Not Be S",
-   "01",
-   "AA",
-   "60"
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Range Distinctions"
   ],
-  "h1": "Range Distinctions",
-  "missing": []
+  "wrongHelp": 1,
+  "bad": [
+   "VAULT COMPLETION [rgb(165, 138, 68)]",
+   "First Signal [rgb(198, 185, 135)]",
+   "Unlock Status Could Not Be Synchronized. [rgb(237, 217, 154)]",
+   "01 [rgb(244, 196, 78)]",
+   "AA [rgb(244, 196, 78)]",
+   "60 [rgb(244, 196, 78)]",
+   "L5 [rgb(244, 196, 78)]",
+   "LX [rgb(244, 196, 78)]",
+   "7D [rgb(244, 196, 78)]",
+   "1K [rgb(244, 196, 78)]",
+   "C [rgb(244, 196, 78)]",
+   "AI [rgb(244, 196, 78)]"
+  ],
+  "overflowX": false
  },
- {
-  "route": "/hub/preflop-charts/tutorial",
+ "/hub/preflop-charts/tutorial": {
+  "ok": true,
+  "name": "preflop-charts_tutorial",
   "header": true,
   "art": "rules",
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Operate The Matrix"
+  ],
+  "wrongHelp": 1,
   "bad": [],
-  "h1": "Operate The Matrix",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/preflop-charts",
+ "/hub/preflop-charts": {
+  "ok": true,
+  "name": "preflop-charts",
   "header": true,
   "art": "series",
   "help": false,
-  "bad": [
-   "DAILY LOCAL PRACTICE",
-   "AI TRAINING LINK"
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Preflop Charts",
+   "About The Preflop Range Lab"
   ],
-  "h1": "Preflop Charts",
-  "missing": []
+  "wrongHelp": 1,
+  "bad": [
+   "DAILY LOCAL PRACTICE [rgb(192, 164, 90)]",
+   "AI TRAINING LINK [rgb(184, 151, 255)]"
+  ],
+  "overflowX": false
  },
- {
-  "route": "/hub/training/category/MTT",
+ "/hub/training/category/MTT": {
+  "ok": true,
+  "name": "training_category_MTT",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Tournaments",
+   "Filter & Sort Training Games"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "404",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/training/category/CASH",
+ "/hub/training/category/CASH": {
+  "ok": true,
+  "name": "training_category_CASH",
   "header": false,
   "art": null,
   "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Cash Games",
+   "Filter & Sort Training Games"
+  ],
+  "wrongHelp": 0,
   "bad": [],
-  "h1": "404",
-  "missing": []
+  "overflowX": false
  },
- {
-  "route": "/hub/bankroll-manager/export",
+ "/hub/bankroll-manager/export": {
+  "ok": true,
+  "name": "bankroll-manager_export",
   "header": true,
   "art": "export",
   "help": false,
-  "bad": [
-   "World Command",
-   "Connected",
-   "Sessions, Trips, Reports, Ru",
-   "Turn On Push Alerts For This",
-   "Bankroll Dashboard",
-   "Log A Session",
-   "Trip Tracker",
-   "Bankroll Reports"
+  "helpGap": null,
+  "backInside": true,
+  "backAbove": false,
+  "h1s": [
+   "Export Data"
   ],
-  "h1": "Export Data",
-  "missing": []
+  "wrongHelp": 1,
+  "bad": [],
+  "overflowX": false
  },
- {
-  "route": "/hub/toke-tracker/shift",
+ "/hub/toke-tracker/shift": {
+  "ok": true,
+  "name": "toke-tracker_shift",
   "header": true,
   "art": "toke-shift",
   "help": false,
-  "bad": [
-   "World Command",
-   "Connected",
-   "Shifts, Tokes, Taxes, Venues",
-   "Turn On Push Alerts For This",
-   "Toke Dashboard",
-   "Shift Tracker",
-   "Toke Analytics",
-   "Dealer Vault"
+  "helpGap": null,
+  "backInside": true,
+  "backAbove": false,
+  "h1s": [
+   "Shift Tracker"
   ],
-  "h1": "Shift Tracker",
-  "missing": []
+  "wrongHelp": 2,
+  "bad": [],
+  "overflowX": false
  },
- {
-  "route": "/hub/bankroll-manager?section=trips",
+ "/hub/bankroll-manager?section=trips": {
+  "ok": true,
+  "name": "bankroll-manager?section=trips",
   "header": true,
   "art": "bankroll",
   "help": false,
-  "bad": [
-   "World Command",
-   "Connected",
-   "Sessions, Trips, Reports, Ru",
-   "Turn On Push Alerts For This",
-   "Bankroll Dashboard",
-   "Log A Session",
-   "Trip Tracker",
-   "Bankroll Reports"
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Bankroll Manager"
   ],
-  "h1": "Bankroll Manager",
-  "missing": []
+  "wrongHelp": 1,
+  "bad": [],
+  "overflowX": false
  }
-]
+}
