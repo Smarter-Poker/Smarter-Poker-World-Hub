@@ -869,6 +869,8 @@ import './video-operations-phase10.test.mjs';
 import './news-sidebar-dock-sticks.test.mjs';
 // Dan 2026-10-11: four World Hub cards hidden from everyone but him.
 import './owner-only-hub-cards.test.mjs';
+// 2026-11-28: wrong PokerAtlas slugs and duplicate rooms fixed in the data (20261128080000, 20261128080100).
+import './venue-slug-and-duplicate-fixes.postgres.test.mjs';
 // Dan 2026-10-15: Share & Invite short links credit the sender.
 import './club-invite-short-links.test.mjs';
 import './club-invite-figures.test.mjs';
