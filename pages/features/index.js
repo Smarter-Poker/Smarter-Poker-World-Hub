@@ -442,7 +442,9 @@ export async function getServerSideProps({ req, res, query }) {
 
   if (isMarkdownRequested) {
     const { renderFeaturesIndexMarkdown } = await import('../../src/lib/seo/markdownIngestion.mjs');
-    const mdContent = renderFeaturesIndexMarkdown();
+    const { renderWithLiveVenueStats } = await import('../../src/lib/server/venueStats.mjs');
+    // The room counts state one live read (snapshot fallback), as /api/ai/facts does.
+    const mdContent = await renderWithLiveVenueStats(renderFeaturesIndexMarkdown);
     res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400');
     res.write(mdContent);

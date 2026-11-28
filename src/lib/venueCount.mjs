@@ -11,6 +11,11 @@
  *     (scripts/refresh-venue-claims.mjs rewrites public/ from live data at
  *     every production build; the committed copy is this snapshot).
  *
+ * The AI corpus (src/lib/seo/markdownIngestion.mjs, the .md routes, the
+ * llms-*.txt routes) reads its counts through src/lib/venueClaims.mjs, and its
+ * routes render inside renderWithLiveVenueStats() from venueStats, so it
+ * states the live read too; outside that scope it states this snapshot.
+ *
  * The snapshot must never claim more than the database holds. That is not a
  * promise kept by hand any more: scripts/check-venue-count-snapshot.mjs
  * compares every figure below with the live directory in CI (CHECK 25,

@@ -986,6 +986,8 @@ import './unlock-gate-shows-no-fabricated-data.law.test.mjs';
 import './the-room-count-is-real.law.test.mjs';
 import './the-venue-claims-are-real.law.test.mjs';
 import './the-room-counts-maintain-themselves.law.test.mjs';
+// The AI corpus (.md routes, llms-*.txt, markdownIngestion) states the live room count (2026-11-28).
+import './the-ai-corpus-room-count-is-live.law.test.mjs';
 import './the-research-figures-are-real.law.test.mjs';
 import './phase3-conversion-funnel-fortress-20261127.law.test.mjs';
 import './phase4-seo-ctr-and-activation-fortress-20261127.law.test.mjs';
