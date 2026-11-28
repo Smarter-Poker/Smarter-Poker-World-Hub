@@ -94,10 +94,30 @@ export function buildTrend(entries, startDate, endDate) {
       else cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
   }
+  // The running-net line is never bucketed: monthly buckets keep only each month's closing
+  // value, which erased intra-month peaks and drew a flat line at the final total.
+  // One point per recorded day on a time axis, anchored at zero before the first result
+  // and carried to the end of the range.
+  const line = [];
+  if (recorded.length) {
+    const stamp = (date) => Date.parse(date + 'T00:00:00Z');
+    const firstDay = stamp(recorded[0].date);
+    const anchor = Math.min(stamp(first), firstDay - DAY);
+    line.push({ date: new Date(anchor).toISOString().slice(0, 10), t: anchor, cumulative: 0, cents: 0, sessions: 0, synthetic: true });
+    let running = 0;
+    for (const day of recorded) {
+      running += day.cents;
+      line.push({ date: day.date, t: stamp(day.date), cumulative: running, cents: day.cents, sessions: day.sessions });
+    }
+    const close = stamp(endDate);
+    if (close > line[line.length - 1].t)
+      line.push({ date: endDate, t: close, cumulative: running, cents: 0, sessions: 0, synthetic: true });
+  }
   const sessions = rows.filter(isSession);
   return {
     rows,
     sessions,
+    line,
     total,
     high,
     low,
