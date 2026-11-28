@@ -25,6 +25,7 @@ import { netDollars, stakeTotals, timeBlockTotals, tripTotals } from '../src/lib
 import { sessionResults } from '../src/lib/bankroll/projectionMath.mjs';
 import { badgeMetrics } from '../src/lib/bankroll/bankrollBadges.mjs';
 import { parseLedgerDay } from '../src/lib/bankroll/localDates.mjs';
+import { statsFromTotals, totalsFromRows } from '../src/lib/bankroll/bankrollTotals.mjs';
 
 // ---------------------------------------------------------------------------
 // The ledger. Deterministic (a fixed LCG), built in cents so the expected
@@ -125,6 +126,7 @@ function makeLedger() {
       if (net > 0) y.winCents += net; else y.lossCents += -net;
       if (tripId) expected.tripCents[tripId] = (expected.tripCents[tripId] || 0) + net;
     }
+    row.is_revision = false; // the column is NOT NULL; every read returns it
     rows.push(row);
   }
   expected.resultsCents = expected.sessionCents - expected.expenseCents;
@@ -248,6 +250,24 @@ test('every results total agrees to the cent: tile, stats, chart, reports, trips
   // bankrollBadges: same session set.
   assert.equal(badgeMetrics(LEDGER).sessions, E.sessions);
   assert.equal(badgeMetrics(LEDGER).wins, E.wins);
+  // bankrollTotals: the client statement of fn_bankroll_totals, and the stats it maps to.
+  const totals = totalsFromRows({ ledgerRows: LEDGER, segments: SEGMENTS });
+  assert.equal(totals.period.results_cents, R);
+  assert.equal(totals.balance.lifetime_results_cents, R);
+  assert.equal(totals.period.poker_cents, E.pokerCents);
+  assert.equal(totals.period.non_poker_cents, E.nonPokerCents);
+  assert.equal(totals.period.expense_cents, E.expenseCents);
+  assert.equal(totals.period.session_count, E.sessions);
+  assert.equal(totals.period.win_count, E.wins);
+  assert.equal(Object.values(totals.period.by_category).reduce((a, b) => a + b, 0), R);
+  assert.equal(Object.values(totals.period.by_month).reduce((a, b) => a + b, 0), R);
+  assert.equal(totals.period.by_location.reduce((a, b) => a + b.cents, 0), R);
+  const mapped = statsFromTotals(totals);
+  for (const key of ['allInNet', 'pokerNet', 'nonPokerNet', 'expenseTotal', 'hourlyRate', 'sessionCount', 'winRate', 'leakRisk', 'totalBankroll']) {
+    const fromRows = key === 'totalBankroll' ? bankrollBalanceCents(LEDGER, SEGMENTS) / 100 : stats[key];
+    assert.equal(mapped[key], fromRows, `statsFromTotals.${key} matches the row path`);
+  }
+  assert.ok(Math.abs(mapped.totalHours - stats.totalHours) < 1e-9);
 });
 
 test('trip totals per trip agree with the rows each trip holds', () => {
@@ -263,6 +283,11 @@ test('trip totals per trip agree with the rows each trip holds', () => {
 test('the balance differs from results by exactly the starting bankroll and the movements', () => {
   const balance = bankrollBalanceCents(LEDGER, SEGMENTS);
   assert.equal(balance, E.balanceCents);
+  const totals = totalsFromRows({ ledgerRows: LEDGER, segments: SEGMENTS }).balance;
+  assert.equal(totals.balance_cents, E.balanceCents);
+  assert.equal(totals.starting_deposit_cents, E.startCents);
+  assert.equal(totals.deposit_cents, E.depositCents);
+  assert.equal(totals.withdrawal_cents, E.withdrawalCents);
   assert.equal(balance - resultsCents(LEDGER), E.startCents + E.depositCents - E.withdrawalCents);
   const summary = summarizeLedger(LEDGER);
   assert.equal(balance, E.startCents + cents(summary.netAfterExpenses) + cents(summary.deposits) - cents(summary.withdrawals));
@@ -283,6 +308,9 @@ test('the trend line: peak and low are the running extremes, and the line rises 
   }
   assert.equal(trend.high, high);
   assert.equal(trend.low, low);
+  const totals = totalsFromRows({ ledgerRows: LEDGER, segments: SEGMENTS });
+  assert.equal(totals.period.peak_cumulative_cents, high, 'fn_bankroll_totals peak = the chart peak');
+  assert.equal(totals.period.lowest_cumulative_cents, low, 'fn_bankroll_totals low = the chart low');
   const points = trend.line.filter((p) => !p.synthetic);
   assert.equal(points.length, byDay.size, 'one point per recorded day, never bucketed');
   assert.equal(Math.max(0, ...trend.line.map((p) => p.cumulative)), high);
