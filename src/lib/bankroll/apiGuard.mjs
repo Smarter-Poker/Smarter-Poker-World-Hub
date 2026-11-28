@@ -137,3 +137,15 @@ export function nearbyPoint(query) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return { error: 'Invalid position' };
   return { lat: Math.round(lat * 100) / 100, lng: Math.round(lng * 100) / 100 };
 }
+
+/**
+ * What a Bankroll Manager screen says for a refused request. Shared by every
+ * client caller so a rate limit or an outage is not reported as "failed".
+ */
+export function requestErrorMessage(status, fallback, { signIn = 'Please Sign In Again' } = {}) {
+  if (status === 401) return signIn;
+  if (status === 403) return 'Bankroll Pro Or VIP Access Is Required';
+  if (status === 429) return 'Too Many Requests. Wait A Minute And Try Again.';
+  if (status === 503) return 'Account Verification Is Unavailable. Try Again Shortly.';
+  return fallback;
+}

@@ -10,6 +10,7 @@
  */
 
 import { showVenueAlert } from './pushAlerts';
+import { getFreshAccessToken } from './authUtils';
 
 const GEOFENCE_PUSH_COOLDOWN_KEY = 'smarter-poker-geofence-push-cooldowns';
 const COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 hours — matches GeofenceService
@@ -39,9 +40,14 @@ export async function sendGeofenceNotification(venue, userId) {
     }
 
     try {
+        // The route verifies the JWT and refuses any other user's id. This
+        // call sent no token, so every push was a 401 and fell back to the
+        // browser alert the page had already shown.
+        const token = await getFreshAccessToken();
+        if (!token) return false;
         const res = await fetch('/api/notifications/geofence-alert', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({
                 userId,
                 venueId: venue.id,
@@ -50,10 +56,10 @@ export async function sendGeofenceNotification(venue, userId) {
             }),
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
         if (data.success) {
-            console.debug(`[GeofencePush] ✅ Push sent for venue: ${venue.name}`);
+            console.debug(`[GeofencePush] Push sent for venue: ${venue.name}`);
             _setPushCooldown(venue.id);
             return true;
         }

@@ -29,12 +29,12 @@ Worktree: /home/claude/wt-api. Local babel harness for route tests: NODE_PATH=/t
 - bankrollSelectors.ts createRevisionEntry marks the NEW row is_revision=true while every reader excludes
   is_revision rows (keeps the stale original). Dead code (no caller, 0 revision rows live). Report only.
 
-## Left
-- dealer-reference fixes; client callers (bankroll-manager geofence via helper, geofencePush token,
-  TaxReportPanel 429/503 + today param, DealerVault status messages, ReceiptScanner detail log,
-  DealerReference json catch, exportDownload 429).
-- tests: __tests__/bankroll-api-routes.test.mjs (+ import in _test-guards-exist), run, push fix/ branch, PR,
-  checks, merge, Vercel READY, curl live 401/405.
+## Left (updated)
+- All code + tests done (__tests__/bankroll-api-routes.test.mjs, 17 tests, pass with NODE_PATH babel).
+- 375px renders done (/tmp/rh/api: TaxReportPanel ok/429/503, DealerReference ok/429/504-html).
+- Remaining: rebase on origin/main, recompute docs/business-hub-guide-review.json hash for
+  pages/hub/bankroll-manager.js, drop this notes file from the ship branch, push fix/bankroll-api-routes,
+  open PR via REST, watch checks, merge, Vercel READY, curl live 401/405.
 
 ## Next command
-cd /home/claude/wt-api && git status
+cd /home/claude/wt-api && git fetch --depth=50 origin main && git rebase origin/main
