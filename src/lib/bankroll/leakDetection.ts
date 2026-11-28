@@ -3,6 +3,7 @@
  * Identifies financial leaks and patterns that harm bankroll EV
  */
 
+import { rowsOf } from './leakMath.mjs';
 import { supabase } from '../supabase';
 import { localDay } from './localDates.mjs';
 
@@ -20,6 +21,10 @@ export interface LeakAlert {
   title: string;
   message: string;
   value: string;
+  /** Signed USD total the finding is about (formatted by the view). */
+  amount?: number;
+  /** Signed USD per hour, for a stake leak. */
+  hourly?: number;
   locationId?: string;
   category?: string;
   data?: Record<string, unknown>;
@@ -62,10 +67,12 @@ export async function getCategoryLeakPercentage(
     totalQuery = totalQuery.eq('location_id', locationId);
   }
 
-  const [{ data: categoryData }, { data: totalData }] = await Promise.all([
+  const [categoryResult, totalResult] = await Promise.all([
     categoryQuery,
     totalQuery,
   ]);
+  const categoryData = rowsOf(categoryResult);
+  const totalData = rowsOf(totalResult);
 
   if (!categoryData || !totalData || totalData.length === 0) return 0;
 
@@ -84,17 +91,19 @@ export async function getCategoryLeakPercentage(
  */
 export async function detectStakeLeaks(
   userId: string,
-  minHours: number = 20
+  minHours: number = 20,
+  locationId?: string
 ): Promise<LeakAlert[]> {
-  const { data } = await supabase
+  let query = supabase
     .from('bankroll_ledger')
     .select('stakes, net_result, start_time, end_time, location_id')
     .eq('user_id', userId)
     .eq('category', 'poker_cash')
     .eq('is_revision', false)
     .not('stakes', 'is', null);
+  if (locationId) query = query.eq('location_id', locationId);
 
-  if (!data) return [];
+  const data = rowsOf(await query);
 
   // Group by stakes
   const stakeStats: Record<string, { net: number; hours: number; sessions: number }> = {};
@@ -125,7 +134,8 @@ export async function detectStakeLeaks(
         severity: hourlyRate < -20 ? 5 : hourlyRate < -10 ? 4 : 3,
         title: `${stakes} Risk`,
         message: `Losing at ${stakes} over ${Math.round(stats.hours)} hours`,
-        value: `${hourlyRate >= 0 ? '+' : ''}$${Math.round(hourlyRate)}/hr`,
+        value: `${hourlyRate < 0 ? '-' : '+'}$${Math.abs(Math.round(hourlyRate))}/hr`,
+        hourly: hourlyRate,
         data: { stakes, totalNet: stats.net, totalHours: stats.hours },
       });
     }
@@ -137,16 +147,17 @@ export async function detectStakeLeaks(
 /**
  * Detect time-of-day leaks
  */
-export async function detectTimeLeaks(userId: string): Promise<LeakAlert[]> {
-  const { data } = await supabase
+export async function detectTimeLeaks(userId: string, locationId?: string): Promise<LeakAlert[]> {
+  let query = supabase
     .from('bankroll_ledger')
     .select('net_result, start_time')
     .eq('user_id', userId)
     .eq('is_revision', false)
     .in('category', ['poker_cash', 'poker_mtt', 'casino_table', 'slots'])
     .not('start_time', 'is', null);
+  if (locationId) query = query.eq('location_id', locationId);
 
-  if (!data) return [];
+  const data = rowsOf(await query);
 
   // Group by time blocks
   const timeBlocks: Record<string, { net: number; count: number }> = {
@@ -187,6 +198,7 @@ export async function detectTimeLeaks(userId: string): Promise<LeakAlert[]> {
         title: `${blockLabels[block]} Sessions`,
         message: `Negative results during ${blockLabels[block].toLowerCase()}`,
         value: `-$${Math.abs(Math.round(stats.net)).toLocaleString()}`,
+        amount: stats.net,
         data: { timeBlock: block, sessions: stats.count },
       });
     }
@@ -215,8 +227,8 @@ export async function detectNonPokerLeaks(
 
     if (locationId) query = query.eq('location_id', locationId);
 
-    const { data } = await query;
-    if (!data || data.length === 0) continue;
+    const data = rowsOf(await query);
+    if (data.length === 0) continue;
 
     const totalNet = data.reduce((sum, e) => sum + (e.net_result || 0), 0);
     const leakPct = await getCategoryLeakPercentage(userId, category, locationId);
@@ -235,6 +247,7 @@ export async function detectNonPokerLeaks(
         title: `${labels[category]} Losses`,
         message: `${labels[category]} represent ${leakPct}% of total losses`,
         value: `-$${Math.abs(Math.round(totalNet)).toLocaleString()}`,
+        amount: totalNet,
         category,
         data: { totalNet, leakPercentage: leakPct, sessionCount: data.length },
       });
@@ -247,25 +260,24 @@ export async function detectNonPokerLeaks(
 /**
  * Detect expense leaks (trips that cost more than they made)
  */
-export async function detectExpenseLeaks(userId: string): Promise<LeakAlert[]> {
-  const { data: trips } = await supabase
+export async function detectExpenseLeaks(userId: string, locationId?: string): Promise<LeakAlert[]> {
+  let tripQuery = supabase
     .from('bankroll_trips')
     .select('id, name')
     .eq('user_id', userId);
+  if (locationId) tripQuery = tripQuery.eq('location_id', locationId);
 
-  if (!trips) return [];
+  const trips = rowsOf(await tripQuery, 'trips');
 
   const alerts: LeakAlert[] = [];
 
   for (const trip of trips) {
-    const { data: entries } = await supabase
+    const entries = rowsOf(await supabase
       .from('bankroll_ledger')
       .select('net_result, category')
       .eq('user_id', userId)
       .eq('trip_id', trip.id)
-      .eq('is_revision', false);
-
-    if (!entries) continue;
+      .eq('is_revision', false));
 
     let gambling = 0;
     let expenses = 0;
@@ -287,6 +299,7 @@ export async function detectExpenseLeaks(userId: string): Promise<LeakAlert[]> {
         title: `${trip.name} Loss`,
         message: `Trip expenses exceeded gambling profit`,
         value: `-$${Math.abs(Math.round(net)).toLocaleString()}`,
+        amount: net,
         data: { tripId: trip.id, gambling, expenses, net },
       });
     }
@@ -303,10 +316,12 @@ export async function runLeakAnalysis(
   locationId?: string
 ): Promise<LeakAnalysis> {
   const [stakeLeaks, timeLeaks, nonPokerLeaks, expenseLeaks] = await Promise.all([
-    detectStakeLeaks(userId),
-    detectTimeLeaks(userId),
+    // Every detector honours the venue: the view is headed "At <venue>" when
+    // the dashboard's Location filter is set, so none may read all venues.
+    detectStakeLeaks(userId, 20, locationId),
+    detectTimeLeaks(userId, locationId),
     detectNonPokerLeaks(userId, locationId),
-    detectExpenseLeaks(userId),
+    detectExpenseLeaks(userId, locationId),
   ]);
 
   const allLeaks = [...stakeLeaks, ...timeLeaks, ...nonPokerLeaks, ...expenseLeaks];

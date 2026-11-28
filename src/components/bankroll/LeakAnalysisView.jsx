@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { runLeakAnalysis } from '../../lib/bankroll/leakDetection';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
+import { leakValueText } from '../../lib/bankroll/leakMath.mjs';
 
 const RISK_TONE = {
   HIGH: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', word: 'Alert', label: 'High Risk' },
@@ -93,7 +94,7 @@ export default function LeakAnalysisView({ userId, locationId = null, locationNa
               <li key={leak.id || leak.title} style={styles.leak}>
                 <div style={styles.leakHead}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: '#fff', minWidth: 0 }}>{leak.title}</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, flexShrink: 0, color: leak.severity >= 4 ? '#ef4444' : leak.severity >= 3 ? '#61d0e8' : '#3b82f6' }}>{leak.value}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, flexShrink: 0, color: leak.severity >= 4 ? '#ef4444' : leak.severity >= 3 ? '#61d0e8' : '#3b82f6' }}>{leakValueText(leak, displayEUR)}</span>
                 </div>
                 <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{leak.message}</div>
               </li>
