@@ -15,8 +15,11 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import { openQuickSignup } from '../../../src/components/seo/SmarterQuickSignupSheet';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
+import { trackSeoFunnelEvent } from '../../../src/lib/seo/seoFunnelTelemetry';
+import seoKitStyles from '../../../src/components/seo/SmarterSeoKit.module.css';
 import {
   US_POKER_STATES,
   STATES_AS_OF,
@@ -120,6 +123,26 @@ export default function USStatePokerDetailPage({
     } catch {
       // Ignore clipboard failures
     }
+  };
+
+  const handleFollowLocalRooms = () => {
+    trackSeoFunnelEvent('seo_local_action_bar_click', {
+      vertical: 'state',
+      slug: stateGuide.slug,
+    });
+    openQuickSignup({
+      unlockKey: 'local-state-rooms',
+      source: 'local-state-action-bar',
+      redirectPath: canonicalPath,
+      eyebrow: `Free ${stateGuide.name} Poker Alerts`,
+      title: `Follow ${stateGuide.name} Poker Rooms Free`,
+      subtitle: 'Save Favorite Rooms, Get Tournament Start Reminders & Track Live Bankroll Sessions Free',
+      benefits: [
+        `Save Favorite ${stateGuide.name} Listed Poker Rooms & Quick Access`,
+        'Get Tournament Start Reminders & Series Alerts Free',
+        'Log Cash & Tournament Sessions In Free Bankroll Manager',
+      ],
+    });
   };
 
   const jsonLd = [
@@ -254,6 +277,126 @@ export default function USStatePokerDetailPage({
             </button>
           </div>
         </header>
+
+        {/* #SMARTERDESIGN Local Player Action Strip */}
+        <section
+          aria-label={`Follow ${stateGuide.name} Poker Rooms And Log Sessions`}
+          data-testid="local-player-action-strip"
+          className={seoKitStyles.kit}
+          style={{
+            marginBottom: '24px',
+            padding: '16px 18px',
+            background: 'linear-gradient(180deg, #111827 0%, #0b1120 100%)',
+            border: '1px solid #2563eb',
+            boxShadow: 'inset 0 1px 0 rgba(56, 189, 248, 0.35), 0 8px 20px rgba(0, 0, 0, 0.45)',
+            borderRadius: 0,
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '14px 16px',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+            <span className={seoKitStyles.eyebrowTag}>
+              Free {stateGuide.name} Player Action Bar
+            </span>
+            <h2
+              style={{
+                margin: '8px 0 4px 0',
+                fontSize: '17px',
+                fontWeight: 800,
+                color: '#f8fafc',
+                lineHeight: 1.25,
+              }}
+            >
+              Follow {stateGuide.name} Poker Rooms &amp; Log Live Sessions Free
+            </h2>
+            <p
+              style={{
+                margin: 0,
+                fontSize: '13.5px',
+                lineHeight: 1.5,
+                color: '#cbd5e1',
+              }}
+            >
+              Save Favorite Rooms, Get Tournament Start Reminders &amp; Track Live Bankroll Sessions Free.
+            </p>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: '10px',
+              flex: '1 1 260px',
+              justifyContent: 'flex-start',
+              maxWidth: '100%',
+              minWidth: 0,
+            }}
+          >
+            <button
+              type="button"
+              data-testid="local-follow-rooms-cta"
+              onClick={handleFollowLocalRooms}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '44px',
+                padding: '10px 16px',
+                background: '#2563eb',
+                border: '1px solid #38bdf8',
+                borderRadius: 0,
+                color: '#ffffff',
+                fontSize: '13.5px',
+                fontWeight: 800,
+                lineHeight: 1.25,
+                textAlign: 'center',
+                whiteSpace: 'normal',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                cursor: 'pointer',
+              }}
+            >
+              Follow {stateGuide.name} Poker Rooms Free
+            </button>
+            <Link
+              href="/hub/bankroll-manager"
+              data-testid="local-bankroll-cta"
+              onClick={() =>
+                trackSeoFunnelEvent('seo_local_action_bar_click', {
+                  vertical: 'state',
+                  slug: stateGuide.slug,
+                  action: 'bankroll',
+                })
+              }
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '44px',
+                padding: '10px 16px',
+                background: '#0b1120',
+                border: '1px solid #38bdf8',
+                borderRadius: 0,
+                color: '#38bdf8',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                lineHeight: 1.25,
+                textAlign: 'center',
+                textDecoration: 'none',
+                whiteSpace: 'normal',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+              }}
+            >
+              Log Tonight&apos;s Session Free
+            </Link>
+          </div>
+        </section>
 
         {/* Regulatory & Tax Details */}
         <section aria-label="Regulatory And Tax Breakdown" style={styles.sectionPlate}>
