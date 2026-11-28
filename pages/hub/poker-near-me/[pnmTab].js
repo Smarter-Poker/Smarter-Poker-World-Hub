@@ -75,6 +75,7 @@ import { fetchVenueDirectoryResilient } from '../../../src/lib/poker-near-me/ven
 import { isPokerDiscoveryRouteIndexable } from '../../../src/lib/poker-near-me/sitemapRoutes';
 import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
 import { capturePokerNearMeEvent } from '../../../src/lib/poker-near-me/activity';
+import { fetchShared } from '../../../src/lib/poker-near-me/sharedGet';
 import {
   buildLiveCashGameIndex,
   cashGameCountLabel,
@@ -107,6 +108,7 @@ import {
   trackSearchEvent,
   venueMatchesGameType,
   venueMatchesStakes,
+  mergeLiveVenuesIntoMapDirectory,
 } from '../../../src/components/poker-near-me/discoveryController';
 const GlobalSearchOverlay = dynamic(
   () => import('../../../src/components/poker-near-me/GlobalSearchOverlay'),
@@ -585,25 +587,41 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   // ratings trickling in over several seconds. The server caps a request at 50
   // ids (reviews.js), so chunking is required, but the chunks are now issued in
   // parallel with a small concurrency bound and merged in a single setState.
-  const reviewStatsInFlightRef = useRef(false);
+  // REQUEST FLOOD FIX (2026-11-28): the previous run was cancelled (and its
+  // answers thrown away) whenever `venues` changed identity mid-flight, and
+  // the next run asked for the same ids again - every venue poll and live
+  // merge restarted the whole rating fan-out. Each id is now requested once
+  // per page session (until it fails), and a response is kept even when the
+  // list changed underneath it; only an unmounted page drops it.
+  const requestedReviewIdsRef = useRef(new Set());
+  const reviewStatsMountedRef = useRef(true);
   useEffect(() => {
-    if (venues.length === 0) return undefined;
-    if (reviewStatsInFlightRef.current) return undefined;
-    const missing = venues
-      .map((v) => v.id)
+    reviewStatsMountedRef.current = true;
+    return () => {
+      reviewStatsMountedRef.current = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (venues.length === 0) return;
+    const requested = requestedReviewIdsRef.current;
+    const missing = [];
+    for (const v of venues) {
       // Social-page discovery entries use synthetic `sp-*` identifiers while
       // venue_reviews.venue_id is an integer FK. Keep those identities out of
       // the ratings request rather than asking Postgres to coerce them.
-      .filter((id) => /^\d+$/.test(String(id)) && !pnmReviewStatsRef.current[String(id)]);
-    if (missing.length === 0) return undefined;
+      const { id } = v;
+      if (!/^\d+$/.test(String(id))) continue;
+      const key = String(id);
+      if (pnmReviewStatsRef.current[key] || requested.has(key) || missing.includes(key)) continue;
+      missing.push(key);
+    }
+    if (missing.length === 0) return;
+    missing.forEach((id) => requested.add(id));
 
     const CHUNK = 50;
     const CONCURRENCY = 4;
     const chunks = [];
     for (let i = 0; i < missing.length; i += CHUNK) chunks.push(missing.slice(i, i + CHUNK));
-
-    let cancelled = false;
-    reviewStatsInFlightRef.current = true;
 
     const runChunk = (ids) =>
       fetch('/api/poker/reviews?stats_only=true&venue_ids=' + ids.join(','))
@@ -612,29 +630,28 @@ export default function PokerNearMePage({ initialDirectory = null }) {
         .catch((e) => {
           console.warn('[App] Handled promise rejection:', e?.message || e);
           return null;
+        })
+        .then((stats) => {
+          // A failed chunk may be asked for again by a later venue list.
+          if (!stats) ids.forEach((id) => requested.delete(id));
+          return stats;
         });
 
     (async () => {
       const merged = {};
       for (let i = 0; i < chunks.length; i += CONCURRENCY) {
-        if (cancelled) break;
+        if (!reviewStatsMountedRef.current) return;
         const batch = await Promise.all(chunks.slice(i, i + CONCURRENCY).map(runChunk));
         batch.forEach((stats) => {
           if (stats) Object.assign(merged, stats);
         });
       }
-      reviewStatsInFlightRef.current = false;
-      if (!cancelled && Object.keys(merged).length > 0) {
+      if (reviewStatsMountedRef.current && Object.keys(merged).length > 0) {
         setPnmReviewStatsMap((prev) => ({ ...prev, ...merged }));
       }
     })();
-
-    return () => {
-      cancelled = true;
-      reviewStatsInFlightRef.current = false;
-    };
-    // Deliberately NOT depending on pnmReviewStatsMap any more — every missing id
-    // is requested in this single pass, so there is no chunk-chaining re-run.
+    // Deliberately NOT depending on pnmReviewStatsMap - every missing id is
+    // requested in this single pass, so there is no chunk-chaining re-run.
   }, [venues]);
 
   // ─── Live Cash Game Data Merger ───
@@ -658,7 +675,8 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   }, []);
 
   const buildLiveDataMap = useCallback(() => {
-    fetch('/api/poker/live-tables')
+    // Shared with LiveGamesFeed's mount read: one request, two readers.
+    fetchShared('/api/poker/live-tables')
       .then((r) => {
         if (!r.ok) throw new Error(`Live table feed returned ${r.status}`);
         return r.json();
@@ -1836,39 +1854,12 @@ export default function PokerNearMePage({ initialDirectory = null }) {
   useEffect(() => {
     if (!venues || venues.length === 0) return;
 
-    // Extract social pages
-    const socialWithCoords = venues.filter((v) => v.is_social_page && v.latitude && v.longitude);
-    // GAP FIX (home groups): standalone home games arrive from the venues API's
-    // top-level `home_groups` key and are tagged `is_home_group` by fetchVenues.
-    // They are absent from the static all-venues.json the map is built from, so
-    // without this they showed on the card list but never got a pin.
-    const homeGroupsWithCoords = venues.filter(
-      (v) => v.is_home_group && v.latitude && v.longitude
-    );
-
-    // Build a map of updated standard venues from the live fetch
-    const liveUpdates = {};
-    venues.forEach((v) => {
-      if (!v.is_social_page && !v.is_home_group && v.id) {
-        liveUpdates[String(v.id)] = v;
-      }
-    });
-
-    setAllVenuesForMap((prev) => {
-      // 1. Remove previously merged social pages and home groups
-      const withoutSocial = prev.filter(
-        (v) => !String(v.id).startsWith('sp-') && !v.is_home_group
-      );
-
-      // 2. Overwrite standard venues with fresh live data (to sync has_tournaments, etc)
-      const syncedStandard = withoutSocial.map((v) => {
-        const fresh = liveUpdates[String(v.id)];
-        return fresh ? { ...v, ...fresh } : v;
-      });
-
-      // 3. Append fresh social pages + standalone home groups
-      return [...syncedStandard, ...socialWithCoords, ...homeGroupsWithCoords];
-    });
+    // REQUEST FLOOD FIX (2026-11-28): the merge keeps `prev` when nothing
+    // changed, so a re-fetch of the same venues no longer hands every
+    // directory consumer (map, geofence, the Discovery Tools) a new array.
+    // Social pages and standalone home groups (tagged by fetchVenues) still
+    // get pins, and fresh fields still overwrite catalog venues.
+    setAllVenuesForMap((prev) => mergeLiveVenuesIntoMapDirectory(prev, venues));
   }, [venues]);
 
   // --- NEW: Persist favorites to localStorage + bus sync ---

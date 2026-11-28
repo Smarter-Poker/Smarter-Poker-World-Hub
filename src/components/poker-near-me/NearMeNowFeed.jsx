@@ -3,7 +3,7 @@
  * Real-time scrolling feed combining live games, check-ins, tournament starts, and promotions.
  * v2.0 — Enhanced with CTA-rich empty states and skeleton loading
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { haversineMiles, timeAgo, getZonedNow, resolveVenueTimeZone } from './pnm-utils';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 
@@ -49,6 +49,19 @@ function parseStartMinutes(startTime) {
 }
 
 
+// The feed's identity: the venues it would show, nearest first. Venue ids are
+// numeric or short slugs, so the joined string stays small even for a
+// nationwide list, and it is equal across re-renders that only rebuilt the
+// array.
+export function nearMeFeedKey(venues, isWithinRadius, computeDistance) {
+    return (venues || [])
+        .filter(v => v && v.id != null && isWithinRadius(v))
+        .map(v => ({ id: String(v.id), d: computeDistance(v) }))
+        .sort((a, b) => (a.d === null ? Infinity : a.d) - (b.d === null ? Infinity : b.d))
+        .map(entry => entry.id)
+        .join(',');
+}
+
 // Skeleton placeholder for loading state
 function FeedSkeleton({ count = 3 }) {
     return (
@@ -85,10 +98,24 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
         };
     }, []);
 
+    // REQUEST FLOOD FIX (2026-11-28): the feed used to re-fetch whenever the
+    // `venues` ARRAY or the `userLocation` OBJECT changed identity. The page
+    // rebuilds both on every venue poll, live-data merge and GPS refresh, so a
+    // single phone session re-ran all four sources (including 20 per-venue
+    // check-in requests) many times a minute. The fetch is now keyed on what it
+    // actually reads: the user's coordinates as numbers, the radius, and the
+    // ids of the venues inside that radius (nearest first). A new array with
+    // the same venues is the same key and costs nothing.
+    const userLat = userLocation ? Number(userLocation.lat) : null;
+    const userLng = userLocation ? Number(userLocation.lng) : null;
+    const hasUserFix = Number.isFinite(userLat) && Number.isFinite(userLng);
+    const venuesRef = useRef(venues);
+    venuesRef.current = venues;
+
     const computeDistance = useCallback((venue) => {
-        if (!userLocation || !venue.latitude || !venue.longitude) return null;
-        return haversineMiles(userLocation.lat, userLocation.lng, parseFloat(venue.latitude), parseFloat(venue.longitude));
-    }, [userLocation]);
+        if (!hasUserFix || !venue.latitude || !venue.longitude) return null;
+        return haversineMiles(userLat, userLng, parseFloat(venue.latitude), parseFloat(venue.longitude));
+    }, [hasUserFix, userLat, userLng]);
 
     // Distance filter helper
     const isWithinRadius = useCallback((venue) => {
@@ -97,12 +124,15 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
         return dist <= radius;
     }, [computeDistance, radius]);
 
+    const feedKey = useMemo(() => nearMeFeedKey(venues, isWithinRadius, computeDistance), [venues, isWithinRadius, computeDistance]);
+
     // Fetch all feed data
     const fetchFeed = useCallback(async () => {
         if (abortRef.current) abortRef.current.abort();
         const ac = new AbortController();
         abortRef.current = ac;
         const signal = ac.signal;
+        const venues = venuesRef.current || [];
         // Each source fills its own list. The four sources are independent, so they
         // load concurrently (they used to run one after another, which held the
         // skeleton on screen for the sum of all four round trips). Every source keeps
@@ -150,7 +180,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
         };
         const loadCheckins = async (items) => {
             try {
-                // Recent check-ins (from all venues) — parallel fetch to avoid O(N) serial timeout
+                // Recent check-ins at the nearest catalog venues (one batched request).
                 const now = new Date();
                 const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString();
                 // BUG FIX: this used to be `venues.filter(isWithinRadius).slice(0, 20)`.
@@ -158,28 +188,30 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
                 // survivors, so the 20 sampled venues were whatever happened to sit first in
                 // array order — the user's own local room was frequently never queried while
                 // rooms 2,000 miles away filled the stream. Sort nearest-first (unknown last).
+                // Only catalog venues carry check-ins (venue_checkins.venue_id is the
+                // numeric poker_venues id); social pages, tour stops and home groups
+                // use synthetic ids the API rejects.
                 const nearbyVenues = venues
-                    .filter(isWithinRadius)
+                    .filter(v => v && /^\d+$/.test(String(v.id)) && isWithinRadius(v))
                     .map(v => ({ v, d: computeDistance(v) }))
                     .sort((a, b) => (a.d === null ? Infinity : a.d) - (b.d === null ? Infinity : b.d))
                     .slice(0, 20)
                     .map(entry => entry.v);
             
-                // [NMF1 FIX] Was a serial for-of loop that could fire setFeedItems after unmount between iterations.
-                // Now parallel via Promise.allSettled with a single isMounted guard after all settle.
-                const checkinResults = await Promise.allSettled(
-                    nearbyVenues.map(v =>
-                        fetch(`/api/poker/checkins?venue_id=${v.id}&count_only=false&since=${encodeURIComponent(twoHoursAgo)}`, { signal })
-                            .then(r => r.ok ? r.json() : { checkins: [] })
-                            .then(data => ({ v, checkins: data.checkins || [] }))
-                            .catch(() => ({ v, checkins: [] }))
-                    )
-                );
-            
+                // REQUEST FLOOD FIX (2026-11-28): one batched request for every
+                // nearby venue (it used to be one request PER venue, up to 20 per
+                // load). The window start is floored to the minute so repeat loads
+                // share one CDN-cacheable URL.
+                if (nearbyVenues.length === 0) return;
+                const sinceParam = new Date(Math.floor(Date.parse(twoHoursAgo) / 60000) * 60000).toISOString();
+                const ids = nearbyVenues.map(v => v.id).join(',');
+                const res = await fetch(`/api/poker/checkins?venue_ids=${ids}&since=${encodeURIComponent(sinceParam)}`, { signal });
+                if (!res.ok) throw new Error(`Check-ins: HTTP ${res.status}`);
+                const data = await res.json();
                 if (!isMounted.current || ac.signal.aborted) return;
-                checkinResults.forEach(result => {
-                    if (result.status !== 'fulfilled') return;
-                    const { v, checkins } = result.value;
+                const byVenue = (data && data.venues) || {};
+                nearbyVenues.forEach(v => {
+                    const checkins = (byVenue[String(v.id)] && byVenue[String(v.id)].checkins) || [];
                     checkins.forEach(c => {
                         items.push({
                             type: 'checkin',
@@ -306,7 +338,10 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
         setFeedItems(items);
         setLoading(false);
         setLastRefresh(new Date());
-    }, [venues, isWithinRadius]);
+    // feedKey stands in for `venues`: the fetch reads the latest list through
+    // venuesRef and re-runs only when the nearby venue set really changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [feedKey, isWithinRadius, computeDistance]);
 
     useEffect(() => {
         fetchFeed();
