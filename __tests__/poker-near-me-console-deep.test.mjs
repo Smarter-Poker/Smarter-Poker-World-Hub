@@ -182,7 +182,9 @@ test('venue schedule and live report states use complete painted panels without 
   assert.match(page, /<PokerNearMePanelShell as="section" className="live-games-section venue-console-body"/);
   assert.match(page, /onSubmit=\{handleReportGame\}/);
   assert.match(page, /disabled=\{reportSubmitting \|\| !reportForm.stakes.trim\(\)\}/);
-  assert.match(page, /venue.schedule_read_error \? 'Tournament Schedule Could Not Be Loaded/);
+  // 2026-11-28: the read-error branch moved into venueScheduleFreshnessCopy
+  // (pinned in poker-near-me-venue-schedule-freshness.test.mjs).
+  assert.match(page, /venueScheduleFreshnessCopy\(venue\.schedule_freshness, \{ readError: Boolean\(venue\.schedule_read_error\) \}\)\.emptyMessage/);
   const css = read('src/styles/worlds/poker-near-me-console-deep.css');
   assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');

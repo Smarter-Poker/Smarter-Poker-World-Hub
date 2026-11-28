@@ -3,11 +3,45 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import TrainingGameCard from './TrainingGameCard';
 import styles from './TrainingLobby.module.css';
 
+// FIRST PAINT CARRIES ONLY WHAT THE FIRST PAINT CAN SHOW (2026-11-27).
+// Six shelves hold all 107 games, and every card is a full article with its
+// artwork, four icons and three controls. Server-rendering all of them made
+// /hub/training ship about 700KB of HTML - 590KB of it cards the player cannot
+// see, because a shelf is a horizontal track that shows one card at 375px and
+// three at desktop width. The browser has to parse and lay out every one of
+// them before its first paint, which put mobile Largest Contentful Paint over
+// the 2500ms budget (e2e/mobile-budget.spec.ts). The server now renders the
+// first SHELF_FIRST_PAINT_CARDS of each shelf and the rest join the same track
+// straight after the first frame, so search, filters, counts and every card's
+// actions are unchanged - only when the off-screen cards are built moves.
+export const SHELF_FIRST_PAINT_CARDS = 4;
+
+function useAfterFirstPaint() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+      setReady(true);
+      return undefined;
+    }
+    let timer = 0;
+    const frame = window.requestAnimationFrame(() => {
+      timer = window.setTimeout(() => setReady(true), 0);
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, []);
+  return ready;
+}
+
 export default function TrainingGameShelf({ group, rowOffset = 0, onViewAll, ...cardProps }) {
   const trackRef = useRef(null);
   const measurements = useRef({ step: 1, maxLeft: 0 });
   const [position, setPosition] = useState({ page: 0, count: 1 });
   const headingId = `training-shelf-${group.id}`;
+  const afterFirstPaint = useAfterFirstPaint();
+  const shownItems = afterFirstPaint ? group.items : group.items.slice(0, SHELF_FIRST_PAINT_CARDS);
 
   const measure = useCallback(() => {
     const track = trackRef.current;
@@ -36,7 +70,7 @@ export default function TrainingGameShelf({ group, rowOffset = 0, onViewAll, ...
     }
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, [measure, group.items.length]);
+  }, [measure, shownItems.length]);
 
   const goTo = (page) => {
     const next = Math.min(position.count - 1, Math.max(0, page));
@@ -57,7 +91,7 @@ export default function TrainingGameShelf({ group, rowOffset = 0, onViewAll, ...
         </button>
       </div>
       <ol className={styles.shelfTrack} ref={trackRef} onScroll={measure} aria-label={`${group.label} Games`}>
-        {group.items.map((item, index) => (
+        {shownItems.map((item, index) => (
           <li key={item.game.id} className={styles.shelfSlot}>
             <TrainingGameCard item={item} index={rowOffset + index} {...cardProps} />
           </li>

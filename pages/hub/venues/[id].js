@@ -53,6 +53,7 @@ import { isPublishableStreetAddress } from '../../../src/lib/poker-near-me/struc
 import { venueTitle } from '../../../src/lib/seo/venueTitle';
 import { safeImageUrl } from '../../../src/lib/security/imageHosts.js';
 import { groupVenueDailyTournamentRows, qualifyVenueTournamentRows, readVenueTournamentRows } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
+import { describeVenueScheduleFreshness, venueScheduleFreshnessCopy } from '../../../src/lib/poker-near-me/venueScheduleFreshness.mjs';
 import {
   buildVenueFactKernel,
   buildVenuePaaQuestions,
@@ -539,6 +540,10 @@ export async function getServerSideProps({ params, query, req, res }) {
         if (qualifiedRows.length > 0) {
           overrides.last_scraped = qualifiedRows[0].last_scraped ?? null;
         }
+        // The badge and empty state read this, never the legacy last_scraped
+        // column the collector stopped writing (venueScheduleFreshness.mjs).
+        // Same derivation as /api/poker/venues so hydration does not change it.
+        overrides.schedule_freshness = describeVenueScheduleFreshness(data, qualifiedRows);
         // Read authentic non-flagged venue_reviews aggregates for SSR JSON-LD.
         // Fails closed (null / 0) on any error so ratings are never fabricated.
         try {
@@ -3304,7 +3309,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
               <PokerNearMePanelShell as="section" id="tournaments-section" className="tournaments-section venue-console-body">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="empty-tournaments">
-                  <p>{venue.schedule_read_error ? 'Tournament Schedule Could Not Be Loaded. Please Try Again.' : 'Tournament Schedule Data Is Being Collected For This Venue.'}</p>
+                  <p>{venueScheduleFreshnessCopy(venue.schedule_freshness, { readError: Boolean(venue.schedule_read_error) }).emptyMessage}</p>
                   {venue.poker_atlas_url && (
                     <a href={venue.poker_atlas_url} target="_blank" rel="noopener noreferrer" className="pa-link">
                       Check Venue Website For Current Schedule
@@ -3314,21 +3319,25 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
               </PokerNearMePanelShell>
             )}
 
-            {/* Last Scraped Badge */}
-            {venue.last_scraped && (
-              <div
-                className="last-scraped-badge"
-                // The date formats in the server's timezone first and the
-                // visitor's after hydration, which is not a real mismatch.
-                suppressHydrationWarning
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#86daff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                Data Last Updated: {new Date(venue.last_scraped).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </div>
-            )}
+            {/* Schedule Freshness Badge: cites the collector's last verified
+                read and says plainly when it is older than
+                SCHEDULE_STALE_AFTER_DAYS (venueScheduleFreshness.mjs). */}
+            {(function () {
+              var freshnessCopy = venueScheduleFreshnessCopy(venue.schedule_freshness);
+              if (!freshnessCopy.badge) return null;
+              return (
+                <div
+                  className={'last-scraped-badge' + (freshnessCopy.isStale ? ' is-stale' : '')}
+                  data-schedule-freshness={venue.schedule_freshness ? venue.schedule_freshness.status : 'unknown'}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#86daff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }} aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  {freshnessCopy.badge}
+                </div>
+              );
+            })()}
 
             {/* Venue News & Updates Section */}
             {venue.venue_news && venue.venue_news.length > 0 && (
@@ -4863,6 +4872,12 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           border-radius: 0;
           text-align: center;
           font-weight: 500;
+        }
+        /* An out-of-date schedule is called out in white over an ice-blue rim,
+           never warning yellow or orange (#SmarterDesign palette). */
+        .last-scraped-badge.is-stale {
+          color: #ffffff;
+          border-color: rgba(116, 223, 255, 0.55);
         }
 
         /* Venue News Section */

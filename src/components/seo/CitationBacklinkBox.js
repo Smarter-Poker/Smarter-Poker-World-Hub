@@ -8,7 +8,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { computeValidatedSolvedSpot } from '../../lib/seo/solvedSpotEngine';
+// The solved-spot engine (~90KB of source) is loaded on demand. It only
+// produces a result for a URL that carries a spot in its query string; for a
+// bare URL, which is every server render and most visits, every tool key
+// returns no validated spot and the box shows its static summary. Importing it
+// up front made every page that renders this box ship the whole engine at
+// first load (e2e/mobile-budget.spec.ts: /hub/poker-tools). 2026-11-28.
+const loadSolvedSpotEngine = () => import('../../lib/seo/solvedSpotEngine');
 
 export default function CitationBacklinkBox({
   title = 'Smarter.Poker Empirical Research Study',
@@ -23,6 +29,7 @@ export default function CitationBacklinkBox({
 }) {
   const [copiedKey, setCopiedKey] = useState(null);
   const [liveQuerySuffix, setLiveQuerySuffix] = useState('');
+  const [solvedSpot, setSolvedSpot] = useState(null);
 
   useEffect(() => {
     const syncSearchFromLocation = () => {
@@ -51,14 +58,20 @@ export default function CitationBacklinkBox({
     ? `${canonicalUrl}${liveQuerySuffix}`
     : canonicalUrl;
 
-  const parsedQueryParams = {};
-  if (liveQuerySuffix.startsWith('?')) {
-    const sp = new URLSearchParams(liveQuerySuffix.slice(1));
-    sp.forEach((v, k) => {
-      parsedQueryParams[k] = v;
-    });
-  }
-  const solvedSpot = computeValidatedSolvedSpot(slug || badgeType, parsedQueryParams);
+  const solvedSpotKey = slug || badgeType;
+  useEffect(() => {
+    if (!liveQuerySuffix.startsWith('?')) {
+      setSolvedSpot(null);
+      return undefined;
+    }
+    let live = true;
+    const params = {};
+    new URLSearchParams(liveQuerySuffix.slice(1)).forEach((v, k) => { params[k] = v; });
+    loadSolvedSpotEngine()
+      .then((engine) => { if (live) setSolvedSpot(engine.computeValidatedSolvedSpot(solvedSpotKey, params)); })
+      .catch(() => { if (live) setSolvedSpot(null); });
+    return () => { live = false; };
+  }, [liveQuerySuffix, solvedSpotKey]);
   const effectiveSummary = solvedSpot?.hasValidatedSpot && solvedSpot.summaryText
     ? solvedSpot.summaryText
     : summary;

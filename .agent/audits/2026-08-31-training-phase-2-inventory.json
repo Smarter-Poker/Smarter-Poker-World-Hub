@@ -48395,7 +48395,7 @@
         {
           "element": "a",
           "name": "All Webmaster Widgets & Badges",
-          "line": 212,
+          "line": 225,
           "handler": null,
           "destination": "/tools/embeds",
           "type": null,
@@ -48405,7 +48405,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 248,
+          "line": 261,
           "handler": "() => handleCopy('permalink', sharePermalink)",
           "destination": null,
           "type": "button",
@@ -48415,7 +48415,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 265,
+          "line": 278,
           "handler": "() => handleCopy('discord-quick', discordCitation)",
           "destination": null,
           "type": "button",
@@ -48425,7 +48425,7 @@
         {
           "element": "a",
           "name": "View Social OG Card",
-          "line": 284,
+          "line": 297,
           "handler": null,
           "destination": "dynamicOgPreviewUrl",
           "type": null,
@@ -48435,7 +48435,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 332,
+          "line": 345,
           "handler": "() => handleCopy(item.key, item.code)",
           "destination": null,
           "type": "button",
@@ -48475,15 +48475,23 @@
       "functions": [
         {
           "name": "CitationBacklinkBox",
-          "line": 13,
+          "line": 19,
           "references": 2,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
+          "name": "loadSolvedSpotEngine",
+          "line": 17,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "syncSearchFromLocation",
-          "line": 28,
+          "line": 35,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -48491,7 +48499,7 @@
         },
         {
           "name": "handleCopy",
-          "line": 158,
+          "line": 171,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -54901,7 +54909,7 @@
         {
           "element": "button",
           "name": "`View All ${group.label} Games`",
-          "line": 55,
+          "line": 89,
           "handler": "() => onViewAll(group)",
           "destination": null,
           "type": "button",
@@ -54911,7 +54919,7 @@
         {
           "element": "button",
           "name": "`Previous ${group.label} Games`",
-          "line": 68,
+          "line": 102,
           "handler": "() => goTo(position.page - 1)",
           "destination": null,
           "type": "button",
@@ -54921,7 +54929,7 @@
         {
           "element": "button",
           "name": "`${group.label} Page ${page + 1}`",
-          "line": 72,
+          "line": 106,
           "handler": "() => goTo(page)",
           "destination": null,
           "type": "button",
@@ -54931,7 +54939,7 @@
         {
           "element": "button",
           "name": "`Next ${group.label} Games`",
-          "line": 76,
+          "line": 110,
           "handler": "() => goTo(position.page + 1)",
           "destination": null,
           "type": "button",
@@ -54970,8 +54978,16 @@
       },
       "functions": [
         {
+          "name": "useAfterFirstPaint",
+          "line": 19,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "TrainingGameShelf",
-          "line": 6,
+          "line": 38,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -54979,7 +54995,7 @@
         },
         {
           "name": "goTo",
-          "line": 41,
+          "line": 75,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -94404,11 +94420,11 @@
       "effectRef": "src/components/seo/AiPromptLauncher.js"
     },
     {
-      "id": "src/components/seo/CitationBacklinkBox.js:212:1",
+      "id": "src/components/seo/CitationBacklinkBox.js:225:1",
       "file": "src/components/seo/CitationBacklinkBox.js",
       "element": "a",
       "name": "All Webmaster Widgets & Badges",
-      "line": 212,
+      "line": 225,
       "handler": null,
       "destination": "/tools/embeds",
       "type": null,
@@ -94417,11 +94433,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/CitationBacklinkBox.js:248:2",
+      "id": "src/components/seo/CitationBacklinkBox.js:261:2",
       "file": "src/components/seo/CitationBacklinkBox.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 248,
+      "line": 261,
       "handler": "() => handleCopy('permalink', sharePermalink)",
       "destination": null,
       "type": "button",
@@ -94430,11 +94446,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/CitationBacklinkBox.js:265:3",
+      "id": "src/components/seo/CitationBacklinkBox.js:278:3",
       "file": "src/components/seo/CitationBacklinkBox.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 265,
+      "line": 278,
       "handler": "() => handleCopy('discord-quick', discordCitation)",
       "destination": null,
       "type": "button",
@@ -94443,11 +94459,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/CitationBacklinkBox.js:284:4",
+      "id": "src/components/seo/CitationBacklinkBox.js:297:4",
       "file": "src/components/seo/CitationBacklinkBox.js",
       "element": "a",
       "name": "View Social OG Card",
-      "line": 284,
+      "line": 297,
       "handler": null,
       "destination": "dynamicOgPreviewUrl",
       "type": null,
@@ -94456,11 +94472,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/CitationBacklinkBox.js:332:5",
+      "id": "src/components/seo/CitationBacklinkBox.js:345:5",
       "file": "src/components/seo/CitationBacklinkBox.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 332,
+      "line": 345,
       "handler": "() => handleCopy(item.key, item.code)",
       "destination": null,
       "type": "button",
@@ -97069,11 +97085,11 @@
       "effectRef": "src/components/training/lobby/TrainingGamePreviewSheet.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGameShelf.jsx:55:1",
+      "id": "src/components/training/lobby/TrainingGameShelf.jsx:89:1",
       "file": "src/components/training/lobby/TrainingGameShelf.jsx",
       "element": "button",
       "name": "`View All ${group.label} Games`",
-      "line": 55,
+      "line": 89,
       "handler": "() => onViewAll(group)",
       "destination": null,
       "type": "button",
@@ -97082,11 +97098,11 @@
       "effectRef": "src/components/training/lobby/TrainingGameShelf.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGameShelf.jsx:68:2",
+      "id": "src/components/training/lobby/TrainingGameShelf.jsx:102:2",
       "file": "src/components/training/lobby/TrainingGameShelf.jsx",
       "element": "button",
       "name": "`Previous ${group.label} Games`",
-      "line": 68,
+      "line": 102,
       "handler": "() => goTo(position.page - 1)",
       "destination": null,
       "type": "button",
@@ -97095,11 +97111,11 @@
       "effectRef": "src/components/training/lobby/TrainingGameShelf.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGameShelf.jsx:72:3",
+      "id": "src/components/training/lobby/TrainingGameShelf.jsx:106:3",
       "file": "src/components/training/lobby/TrainingGameShelf.jsx",
       "element": "button",
       "name": "`${group.label} Page ${page + 1}`",
-      "line": 72,
+      "line": 106,
       "handler": "() => goTo(page)",
       "destination": null,
       "type": "button",
@@ -97108,11 +97124,11 @@
       "effectRef": "src/components/training/lobby/TrainingGameShelf.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGameShelf.jsx:76:4",
+      "id": "src/components/training/lobby/TrainingGameShelf.jsx:110:4",
       "file": "src/components/training/lobby/TrainingGameShelf.jsx",
       "element": "button",
       "name": "`Next ${group.label} Games`",
-      "line": 76,
+      "line": 110,
       "handler": "() => goTo(position.page + 1)",
       "destination": null,
       "type": "button",
@@ -132961,7 +132977,7 @@
       {
         "file": "src/components/training/lobby/TrainingGameShelf.jsx",
         "name": "TrainingGameShelf",
-        "line": 6,
+        "line": 38,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -145573,7 +145589,7 @@
       {
         "file": "src/components/training/lobby/TrainingGameShelf.jsx",
         "name": "TrainingGameShelf",
-        "line": 6,
+        "line": 38,
         "references": 1,
         "exported": true,
         "defaultExport": true,
