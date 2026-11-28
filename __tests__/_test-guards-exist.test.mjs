@@ -957,6 +957,7 @@ import './all-105-clicked-pages-hardening-20261127.law.test.mjs';
 import './smarterdesign-seo-kit-foundation.law.test.mjs';
 import './seo-aeo-geo-smarterdesign-and-conversion-fortress.law.test.mjs';
 import './phase2-seo-smarterdesign-fortress-20261127.law.test.mjs';
+import './unlock-gate-shows-no-fabricated-data.law.test.mjs';
 import './phase3-conversion-funnel-fortress-20261127.law.test.mjs';
 import './phase4-seo-ctr-and-activation-fortress-20261127.law.test.mjs';
 import './forensic-hardening-fortress-20261127.law.test.mjs';
