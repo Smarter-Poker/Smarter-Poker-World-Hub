@@ -309,8 +309,8 @@ export default function StudyGroupFinderPage() {
                 marginBottom: 14,
                 padding: '10px 14px',
                 borderRadius: 8,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
+                border: '1px solid rgba(86, 216, 255, 0.4)',
+                background: 'rgba(86, 216, 255, 0.08)',
                 color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,
@@ -489,6 +489,7 @@ export default function StudyGroupFinderPage() {
               <button
                 key={f}
                 type="button"
+                aria-pressed={filterFmt === f}
                 onClick={() => setFilterFmt(f)}
                 style={{
                   padding: '6px 14px',
@@ -499,6 +500,7 @@ export default function StudyGroupFinderPage() {
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {f}
@@ -507,28 +509,30 @@ export default function StudyGroupFinderPage() {
           </div>
 
           {/* Level + Sort */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 20, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 20, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12, color: 'var(--sp-fg-faint)', fontWeight: 600 }}>Level:</span>
             {LEVELS.map((l) => (
               <button
                 key={l}
                 type="button"
+                aria-pressed={filterLevel === l}
                 onClick={() => setFilterLevel(l)}
                 style={{
-                  padding: '4px 10px',
+                  padding: '4px 12px',
                   borderRadius: 4,
-                  border: `1px solid ${filterLevel === l ? 'var(--sp-accent-purple)' : 'transparent'}`,
-                  background: filterLevel === l ? 'rgba(168,85,247,0.06)' : 'transparent',
+                  border: `1px solid ${filterLevel === l ? 'rgba(86,216,255,0.45)' : 'transparent'}`,
+                  background: filterLevel === l ? 'rgba(86,216,255,0.12)' : 'transparent',
                   color: filterLevel === l ? '#86daff' : 'var(--sp-fg-faint)',
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {l}
               </button>
             ))}
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {[
                 { k: 'slots', l: 'Open' },
                 { k: 'members', l: 'Popular' },
@@ -537,9 +541,10 @@ export default function StudyGroupFinderPage() {
                 <button
                   key={s.k}
                   type="button"
+                  aria-pressed={sortBy === s.k}
                   onClick={() => setSortBy(s.k)}
                   style={{
-                    padding: '3px 8px',
+                    padding: '4px 10px',
                     borderRadius: 4,
                     background: sortBy === s.k ? 'rgba(255,255,255,0.06)' : 'transparent',
                     border: 'none',
@@ -547,6 +552,7 @@ export default function StudyGroupFinderPage() {
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {s.l}

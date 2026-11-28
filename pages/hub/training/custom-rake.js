@@ -216,6 +216,8 @@ export default function CustomRakePage() {
             {RAKE_PRESETS.map((r) => (
               <button
                 key={r.id}
+                type="button"
+                aria-pressed={preset.id === r.id}
                 onClick={() => setPreset(r)}
                 style={{
                   padding: '10px 12px',
@@ -435,9 +437,9 @@ export default function CustomRakePage() {
               marginTop: 16,
               padding: '14px 18px',
               borderRadius: 10,
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.04))',
-              border: '1px solid rgba(99,102,241,0.2)',
-              borderLeft: '3px solid #818cf8',
+              background: 'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(6,72,226,0.06))',
+              border: '1px solid rgba(86,216,255,0.22)',
+              borderLeft: '3px solid #56d8ff',
             }}
           >
             <div

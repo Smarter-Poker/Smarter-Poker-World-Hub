@@ -368,7 +368,7 @@ export default function IcmSimulatorPage() {
                   width: '100%',
                   marginTop: 24,
                   padding: 16,
-                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-blue-rgb), 1), #8b5cf6)',
+                  background: 'linear-gradient(135deg, #2298ff, #0648e2)',
                   border: 'none',
                   borderRadius: 12,
                   color: '#fff',

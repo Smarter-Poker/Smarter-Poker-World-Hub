@@ -274,10 +274,13 @@ export default function ShortDeckTrainerPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 10,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
             <button
+              type="button"
               onClick={() => router.push('/hub/training')}
               style={{
                 background: 'rgba(239,68,68,0.1)',
@@ -288,11 +291,13 @@ export default function ShortDeckTrainerPage() {
                 width: 36,
                 height: 36,
                 borderRadius: 8,
+                flexShrink: 0,
               }}
             >
               ←
             </button>
             <button
+              type="button"
               onClick={() => setInfoOpen(true)}
               aria-label="How Short Deck Trainer Works"
               style={{
@@ -306,6 +311,8 @@ export default function ShortDeckTrainerPage() {
                 cursor: 'pointer',
                 letterSpacing: 0.4,
                 textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               How It Works
@@ -322,6 +329,8 @@ export default function ShortDeckTrainerPage() {
             {['calc', 'quiz'].map((m) => (
               <button
                 key={m}
+                type="button"
+                aria-pressed={mode === m}
                 onClick={() => (m === 'quiz' ? startQuiz() : setMode('calc'))}
                 style={{
                   padding: '6px 14px',
@@ -333,6 +342,7 @@ export default function ShortDeckTrainerPage() {
                   fontWeight: 700,
                   cursor: 'pointer',
                   textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {m === 'calc' ? 'Equity' : 'Quiz'}

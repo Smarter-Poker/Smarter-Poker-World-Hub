@@ -829,7 +829,7 @@ export default function StudyPlanPage() {
               borderRadius: 14,
               marginBottom: 20,
               background:
-                'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(139,92,246,0.04) 100%)',
+                'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(6,72,226,0.06) 100%)',
               border: '1px solid rgba(0,212,255,0.12)',
             }}
           >

@@ -520,7 +520,7 @@ export default function WeaknessScannerPage() {
                           padding: '10px',
                           borderRadius: 8,
                           border: 'none',
-                          background: 'rgba(168,85,247,0.1)',
+                          background: 'rgba(86,216,255,0.1)',
                           color: '#86daff',
                           fontSize: 12,
                           fontWeight: 700,

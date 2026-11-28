@@ -372,20 +372,23 @@ export default function SessionNotesPage() {
               >
                 HOW DO YOU FEEL?
               </div>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
                 {MOOD_OPTIONS.map((m) => (
                   <motion.button
                     key={m.id}
+                    type="button"
+                    aria-pressed={mood === m.id}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setMood(m.id)}
                     style={{
-                      flex: 1,
-                      padding: '10px 4px',
+                      flex: '1 1 92px',
+                      padding: '10px 8px',
                       borderRadius: 8,
                       border: `1px solid ${mood === m.id ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                       background: mood === m.id ? 'rgba(0,212,255,0.06)' : 'rgba(0,0,0,0.15)',
                       cursor: 'pointer',
                       textAlign: 'center',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     <div style={{ fontSize: 18 }}>{m.emoji}</div>
@@ -522,6 +525,8 @@ export default function SessionNotesPage() {
                     return (
                       <button
                         key={tag}
+                        type="button"
+                        aria-pressed={isActive}
                         onClick={() =>
                           setSelectedTags(
                             isActive
@@ -624,8 +629,8 @@ export default function SessionNotesPage() {
                       minWidth: 80,
                       padding: '10px 12px',
                       borderRadius: 10,
-                      background: 'rgba(251,191,36,0.04)',
-                      border: '1px solid rgba(251,191,36,0.08)',
+                      background: 'rgba(86,216,255,0.05)',
+                      border: '1px solid rgba(86,216,255,0.14)',
                       textAlign: 'center',
                     }}
                   >
@@ -647,6 +652,8 @@ export default function SessionNotesPage() {
                   {topTags.map((tag) => (
                     <button
                       key={tag}
+                      type="button"
+                      aria-pressed={searchTerm === tag}
                       onClick={() => setSearchTerm(searchTerm === tag ? '' : tag)}
                       style={{
                         padding: '3px 8px',

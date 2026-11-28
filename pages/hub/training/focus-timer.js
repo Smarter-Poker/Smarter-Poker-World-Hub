@@ -260,6 +260,7 @@ export default function FocusTimerPage() {
           <div
             style={{
               display: 'flex',
+              flexWrap: 'wrap',
               gap: 6,
               marginBottom: 40,
               background: 'rgba(0,0,0,0.2)',
@@ -271,17 +272,20 @@ export default function FocusTimerPage() {
             {Object.values(PHASES || {}).map((p) => (
               <motion.button
                 key={p.id}
+                type="button"
+                aria-pressed={phase.id === p.id}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => changePhase(p)}
                 style={{
-                  flex: 1,
-                  padding: '10px 4px',
+                  flex: '1 1 80px',
+                  padding: '10px 6px',
                   borderRadius: 8,
                   border: 'none',
                   background: phase.id === p.id ? `${p.color}15` : 'transparent',
                   color: phase.id === p.id ? p.color : 'var(--sp-fg-dim)',
                   fontSize: 12,
                   fontWeight: 700,
+                  whiteSpace: 'nowrap',
                   cursor: 'pointer',
                 }}
               >

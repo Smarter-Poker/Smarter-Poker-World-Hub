@@ -800,7 +800,7 @@ export default function FlashcardsPage() {
                   cursor: flipped ? 'default' : 'pointer',
                   background: flipped
                     ? 'linear-gradient(135deg, rgba(34,197,94,0.06), rgba(34,197,94,0.02))'
-                    : 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(139,92,246,0.04))',
+                    : 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(6,72,226,0.06))',
                   border: `1px solid ${flipped ? 'rgba(34,197,94,0.15)' : 'rgba(0,212,255,0.12)'}`,
                   display: 'flex',
                   flexDirection: 'column',

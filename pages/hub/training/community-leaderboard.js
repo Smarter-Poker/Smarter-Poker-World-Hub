@@ -256,8 +256,8 @@ export default function CommunityLeaderboardPage() {
                 marginBottom: 14,
                 padding: '10px 14px',
                 borderRadius: 8,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
+                border: '1px solid rgba(86, 216, 255, 0.4)',
+                background: 'rgba(86, 216, 255, 0.08)',
                 color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,
@@ -296,7 +296,7 @@ export default function CommunityLeaderboardPage() {
           </div>
 
           {/* Category Tabs */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 20, overflowX: 'auto' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
             {CATEGORIES.map((c) => (
               <motion.button
                 key={c.id}
@@ -309,12 +309,13 @@ export default function CommunityLeaderboardPage() {
                   padding: '6px 12px',
                   borderRadius: 6,
                   flexShrink: 0,
-                  border: `1px solid ${category === c.id ? 'rgba(251,191,36,0.2)' : 'transparent'}`,
-                  background: category === c.id ? 'rgba(251,191,36,0.06)' : 'transparent',
+                  border: `1px solid ${category === c.id ? 'rgba(86,216,255,0.35)' : 'transparent'}`,
+                  background: category === c.id ? 'rgba(86,216,255,0.1)' : 'transparent',
                   color: category === c.id ? '#86daff' : 'var(--sp-fg-dim)',
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {/* TRAIN-COMMUNITY-A11Y-1: SVG CategoryIcon */}
@@ -345,7 +346,7 @@ export default function CommunityLeaderboardPage() {
               {[topThree[1], topThree[0], topThree[2]].map((p, i) => {
                 const heights = [80, 100, 65];
                 // TRAIN-COMMUNITY-A11Y-1: rank ordering for podium slots 0,1,2 = 2nd, 1st, 3rd
-                const medalColors = ['#C0C0C0', '#FFD700', '#CD7F32'];
+                const medalColors = ['#c8d8e6', '#56d8ff', '#8ea8bf'];
                 const medalLabels = ['Second place', 'First place', 'Third place'];
 
                 if (!p) return <div key={`empty-podium-${i}`} style={{ flex: 1 }} />;
