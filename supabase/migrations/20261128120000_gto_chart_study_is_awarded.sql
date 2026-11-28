@@ -96,9 +96,12 @@ CREATE POLICY chart_study_sessions_read_own ON public.chart_study_sessions
     FOR SELECT TO authenticated
     USING (user_id = (SELECT auth.uid()));
 
-REVOKE ALL ON public.chart_study_sessions FROM PUBLIC, anon, authenticated;
+-- Writes happen only inside fn_chart_study_event (SECURITY DEFINER), so no
+-- role needs a write grant. Players read their own rows; service_role reads
+-- for support.
+REVOKE ALL ON public.chart_study_sessions FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.chart_study_sessions TO authenticated;
-GRANT ALL ON public.chart_study_sessions TO service_role;
+GRANT SELECT ON public.chart_study_sessions TO service_role;
 
 -- 3. THE FUNCTION
 CREATE OR REPLACE FUNCTION public.fn_chart_study_event(

@@ -134,7 +134,8 @@ test('the migration records study on the server clock and pays once per session 
     assert.match(MIGRATION, /CREATE TABLE IF NOT EXISTS public\.chart_study_sessions/);
     assert.match(MIGRATION, /ENABLE ROW LEVEL SECURITY/);
     assert.match(MIGRATION, /FOR SELECT TO authenticated\s+USING \(user_id = \(SELECT auth\.uid\(\)\)\)/);
-    assert.match(MIGRATION, /REVOKE ALL ON public\.chart_study_sessions FROM PUBLIC, anon, authenticated;/);
+    assert.match(MIGRATION, /REVOKE ALL ON public\.chart_study_sessions FROM PUBLIC, anon, authenticated, service_role;/);
+    assert.doesNotMatch(MIGRATION, /GRANT (ALL|INSERT|UPDATE|DELETE)[^;]*ON public\.chart_study_sessions/);
     assert.match(MIGRATION, /REVOKE ALL ON FUNCTION public\.fn_chart_study_event\(uuid, text, uuid, text\) FROM PUBLIC, anon, authenticated;/);
     assert.match(MIGRATION, /GRANT EXECUTE ON FUNCTION public\.fn_chart_study_event\(uuid, text, uuid, text\) TO service_role;/);
     assert.match(MIGRATION, /SECURITY DEFINER/);
