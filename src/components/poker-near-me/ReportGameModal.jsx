@@ -786,7 +786,7 @@ export default function ReportGameModal({
                                     onChange={e => handleGameChange('notes', e.target.value)}
                                     placeholder="Any additional details about the game..."
                                     rows={2}
-                                    style={{ ...inputStyle, aspectRatio: 'auto', minHeight: 118, padding: '14px 7%', resize: 'vertical', backgroundImage: "url('/images/pnm-console/painted-panels-v1/panel-mid.png')", backgroundSize: '100% auto', backgroundRepeat: 'repeat-y', backgroundPosition: 'top center', backgroundColor: '#020507' }}
+                                    style={{ ...inputStyle, aspectRatio: 'auto', minHeight: 118, padding: '12px 14px', resize: 'vertical' }}
                                 />
                             </div>
 
@@ -836,7 +836,7 @@ export default function ReportGameModal({
             {/* ── Scoped CSS ── */}
             <style dangerouslySetInnerHTML={{ __html: `
                 .rgm-scrim { position: fixed; inset: 0; z-index: 10000; background: #000308; display: flex; align-items: center; justify-content: center; padding: 16px; padding-top: max(env(safe-area-inset-top, 0px), 16px); box-sizing: border-box; }
-                .rgm-panel { position: relative; background: #020507 url('/images/pnm-console/painted-panels-v1/panel-mid.png') top center / 100% auto repeat-y; border: 0; border-radius: 0; width: 100%; max-width: 500px; max-height: 92dvh; overflow: auto; outline: none; box-shadow: none; animation: rgm-slideUp 0.28s cubic-bezier(0.34,1.56,0.64,1); box-sizing: border-box; }
+                .rgm-panel { position: relative; background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) padding-box; border: 5px solid transparent; border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch; border-radius: 0; width: 100%; max-width: 500px; max-height: 92dvh; overflow: auto; outline: none; box-shadow: none; animation: rgm-slideUp 0.28s cubic-bezier(0.34,1.56,0.64,1); box-sizing: border-box; }
                 .rgm-handle { display: none; }
                 .rgm-panel input, .rgm-panel select, .rgm-panel textarea { min-height: 44px; }
                 .rgm-panel button { min-height: 44px; touch-action: manipulation; }
@@ -873,12 +873,13 @@ const labelStyle = {
 // The box carries the long well's own ratio, so the painted caps are never
 // stretched and never letterboxed inside a taller field.
 const inputStyle = {
-    width: '100%', aspectRatio: '1829 / 313', minHeight: 48,
-    padding: '0 7%', boxSizing: 'border-box',
-    backgroundColor: 'transparent',
-    backgroundImage: "url('/images/pnm-console/painted-controls-v1/search-well.webp')",
-    backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundSize: 'contain',
-    border: 0, borderRadius: 0, color: '#eef5fb', fontSize: 16, fontFamily: 'inherit',
+    width: '100%', minHeight: 48,
+    padding: '0 14px', boxSizing: 'border-box',
+    // #SMARTERDESIGN (2026-11-27): one chrome well, not the painted long well.
+    background: '#06111d padding-box',
+    border: '3px solid transparent',
+    borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
+    borderRadius: 0, color: '#eef5fb', fontSize: 16, fontFamily: 'inherit',
 };
 
 const selectStyle = {
@@ -889,12 +890,13 @@ const chipStyle = (active) => ({
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     minWidth: 96, minHeight: 44, padding: '0 14px', boxSizing: 'border-box',
     borderRadius: 0, fontSize: 13, fontWeight: 800, letterSpacing: '0.04em',
-    border: 0,
-    backgroundColor: 'transparent',
-    backgroundImage: active
-        ? "url('/images/pnm-console/painted-controls-v1/button-primary.png')"
-        : "url('/images/pnm-console/painted-controls-v1/button-secondary.png')",
-    backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundSize: 'contain',
-    color: active ? '#f5fbff' : '#b7c6d2',
+    border: '3px solid transparent',
+    borderImage: active
+        ? "url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch"
+        : "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
+    background: active
+        ? 'linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box'
+        : 'linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box',
+    color: active ? '#ffffff' : '#f2f7ff',
     cursor: 'pointer', fontFamily: 'inherit',
 });

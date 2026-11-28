@@ -83,37 +83,37 @@ export default function MemoryGamesStats() {
   return (
     <>
       <SEOHead title="Preflop Charts Local Practice History" description="Review Your Legacy Preflop Charts Local-Practice Archive On Smarter.Poker: What You Drilled And How It Scored, With No Ranked Standing And No Reward Claim Attached To Any Of It." canonical="/hub/preflop-charts/stats" />
-      <PreflopSubpageShell eyebrow="PERSONAL TELEMETRY // LOCAL ARCHIVE" title="Local Practice History" description="Review historical Range Lab practice signals. These browser-originated rows are not verified scores, ranks, rewards, or account progression." metric={metrics.count ? `${metrics.average.toFixed(0)}% Local Average` : null}>
+      <PreflopSubpageShell eyebrow="PERSONAL TELEMETRY // LOCAL ARCHIVE" title="Local Practice History" description="Review historical Range Lab practice signals. These browser-originated rows are not verified scores, ranks, rewards, or account progression." metric={metrics.count ? `${metrics.average.toFixed(0)}%` : null} metricLabel="Average Accuracy">
         {!user?.id ? <div className="preflop-subpage-empty preflop-auth-gate"><Target size={30} aria-hidden /><h2>Sign In To View Your Archive</h2><p>Signing In Reveals Your Historical Local-Practice Rows. New Local Drills Do Not Publish Ranked Or Rewarded Results.</p><Link href="/login?redirect=/hub/preflop-charts/stats">Sign In <ArrowRight size={16} aria-hidden /></Link></div> : <>
           {error && <div className="preflop-subpage-error" role="alert"><span>{error}</span><button type="button" onClick={fetchStats}><RefreshCw size={15} aria-hidden /> Retry</button></div>}
           <section className="preflop-daily-signal" aria-label="Local archive authority notice">
             <Archive size={22} aria-hidden />
-            <div><small>Legacy Local Archive</small><strong>No Verified Rank Or Reward</strong><span>These Rows Remain Visible For Personal Reference Only And Cannot Change Your Account.</span></div>
+            <div><small>LEGACY LOCAL ARCHIVE</small><strong>No Verified Rank Or Reward</strong><span>These Rows Remain Visible For Personal Reference Only And Cannot Change Your Account.</span></div>
             <Link href="/hub/preflop-charts">Practice Locally <ArrowRight size={14} aria-hidden /></Link>
           </section>
           <section className="preflop-stat-grid" aria-label="Training summary">
-            <Stat icon={Crosshair} label="Archived Runs" value={metrics.count} detail="Local-Practice Rows" />
-            <Stat icon={Gauge} label="Local Average" value={`${metrics.average.toFixed(1)}%`} detail="All Archived Modes" />
-            <Stat icon={ShieldCheck} label="Local Best" value={metrics.best.toLocaleString()} detail={`${metrics.perfect} Perfect Local Run${metrics.perfect === 1 ? '' : 's'}`} />
-            <Stat icon={Clock3} label="Average Time" value={`${Math.round(metrics.averageTime)}s`} detail="Per Archived Drill" />
-            <Stat icon={Sigma} label="Local Score Total" value={metrics.totalScore.toLocaleString()} detail="Not A Ranked Score" />
-            <Stat icon={Layers3} label="Highest Local Level" value={metrics.highestLevel ? `L${metrics.highestLevel}` : '-'} detail="Furthest Archived Station" />
-            <Stat icon={TrendingUp} label="Recent Trend" value={`${performance.delta >= 0 ? '+' : ''}${performance.delta.toFixed(1)}%`} detail="Recent Half Vs Prior Half" />
+            <Stat icon={Crosshair} label="Archived Runs" value={metrics.count} detail="local-practice rows" />
+            <Stat icon={Gauge} label="Local Average" value={`${metrics.average.toFixed(1)}%`} detail="all archived modes" />
+            <Stat icon={ShieldCheck} label="Local Best" value={metrics.best.toLocaleString()} detail={`${metrics.perfect} perfect local run${metrics.perfect === 1 ? '' : 's'}`} />
+            <Stat icon={Clock3} label="Average Time" value={`${Math.round(metrics.averageTime)}s`} detail="per archived drill" />
+            <Stat icon={Sigma} label="Local Score Total" value={metrics.totalScore.toLocaleString()} detail="not a ranked score" />
+            <Stat icon={Layers3} label="Highest Local Level" value={metrics.highestLevel ? `L${metrics.highestLevel}` : '-'} detail="furthest archived station" />
+            <Stat icon={TrendingUp} label="Recent trend" value={`${performance.delta >= 0 ? '+' : ''}${performance.delta.toFixed(1)}%`} detail="recent half vs prior half" />
           </section>
 
           <div className="preflop-analytics-layout">
             <section className="preflop-subpage-panel preflop-performance-signal" aria-labelledby="performance-signal-title">
-              <div className="preflop-panel-heading"><div><span>Last 12 Local Archive Runs</span><h2 id="performance-signal-title">Accuracy Signal</h2></div><strong data-positive={performance.delta >= 0}>{performance.delta >= 0 ? '+' : ''}{performance.delta.toFixed(1)}%</strong></div>
+              <div className="preflop-panel-heading"><div><span>LAST 12 LOCAL ARCHIVE RUNS</span><h2 id="performance-signal-title">Accuracy Signal</h2></div><strong data-positive={performance.delta >= 0}>{performance.delta >= 0 ? '+' : ''}{performance.delta.toFixed(1)}%</strong></div>
               {performance.chronological.length > 1 ? <div className="preflop-signal-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Accuracy trend across recent completed sessions"><defs><linearGradient id="preflopSignalArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#37d6ff" stopOpacity="0.35"/><stop offset="1" stopColor="#37d6ff" stopOpacity="0"/></linearGradient></defs><polygon points={`0,100 ${performance.points} 100,100`} fill="url(#preflopSignalArea)"/><polyline points={performance.points} fill="none" stroke="#62ddff" strokeWidth="2" vectorEffect="non-scaling-stroke"/></svg><div><span>Older</span><span>Recent</span></div></div> : <EmptyInline />}
             </section>
             <section className="preflop-subpage-panel preflop-weak-signal" aria-labelledby="weak-signal-title">
               <div className="preflop-panel-heading"><div><span>Lowest Recorded Accuracy</span><h2 id="weak-signal-title">Focus Stations</h2></div></div>
-              {weakSpots.length ? <div>{weakSpots.map((spot) => <article key={spot.level}><span>L{spot.level}</span><div><strong>{spot.accuracy.toFixed(1)}%</strong><small>{spot.attempts} Archived Run{spot.attempts === 1 ? '' : 's'}</small></div><i style={{ '--weak-accuracy': `${spot.accuracy}%` }} /></article>)}</div> : <EmptyInline />}
+              {weakSpots.length ? <div>{weakSpots.map((spot) => <article key={spot.level}><span>L{spot.level}</span><div><strong>{spot.accuracy.toFixed(1)}%</strong><small>{spot.attempts} Archived run{spot.attempts === 1 ? '' : 's'}</small></div><i style={{ '--weak-accuracy': `${spot.accuracy}%` }} /></article>)}</div> : <EmptyInline />}
             </section>
           </div>
 
           <div className="preflop-analytics-layout">
-            <section className="preflop-subpage-panel" aria-labelledby="level-accuracy-title"><div className="preflop-panel-heading"><div><span>Level Array 01-10</span><h2 id="level-accuracy-title">Accuracy By Level</h2></div></div><div className="preflop-level-telemetry">{levels.map((level) => <div key={level.level} data-empty={level.attempts === 0 || undefined}><span>L{level.level}</span><div><i style={{ '--level-accuracy': `${level.accuracy}%` }} /></div><strong>{level.attempts ? `${level.accuracy.toFixed(1)}%` : '-'}</strong><small>{level.attempts} Run{level.attempts === 1 ? '' : 's'}</small></div>)}</div></section>
+            <section className="preflop-subpage-panel" aria-labelledby="level-accuracy-title"><div className="preflop-panel-heading"><div><span>Levels 1 To 10</span><h2 id="level-accuracy-title">Accuracy By Level</h2></div></div><div className="preflop-level-telemetry">{levels.map((level) => <div key={level.level} data-empty={level.attempts === 0 || undefined}><span>L{level.level}</span><div><i style={{ '--level-accuracy': `${level.accuracy}%` }} /></div><strong>{level.attempts ? `${level.accuracy.toFixed(1)}%` : '-'}</strong><small>{`${level.attempts} ${level.attempts === 1 ? 'Run' : 'Runs'}`}</small></div>)}</div></section>
             <section className="preflop-subpage-panel" aria-labelledby="mode-title"><div className="preflop-panel-heading"><div><span>Mode Distribution</span><h2 id="mode-title">Training Mix</h2></div></div>{modes.length ? <div className="preflop-mode-metrics">{modes.map((mode) => <div key={mode.key}><span>{MODE_LABELS[mode.key] || mode.key.replaceAll('_', ' ')}</span><strong>{mode.average.toFixed(1)}%</strong><small>{mode.attempts} Sessions · Best {mode.best}%</small></div>)}</div> : <EmptyInline />}</section>
           </div>
 

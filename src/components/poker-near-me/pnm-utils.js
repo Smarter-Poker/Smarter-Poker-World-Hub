@@ -405,7 +405,7 @@ export function getCrowdLevel(venue, checkinCount = 0) {
     score = Math.min(Math.round(score), 100);
     
     if (score >= 80) return { score, label: 'Packed', color: '#ef4444' };
-    if (score >= 60) return { score, label: 'Busy', color: '#f59e0b' };
+    if (score >= 60) return { score, label: 'Busy', color: '#9fd8ff' };
     if (score >= 35) return { score, label: 'Active', color: '#3fb950' };
     if (score >= 10) return { score, label: 'Quiet', color: '#ffffff' };
     return { score, label: 'Empty', color: '#6b7280' };
@@ -481,13 +481,13 @@ const INITIALS_PALETTE = [
     { bg: 'rgba(0,212,255,0.2)', border: 'rgba(0,212,255,0.5)', text: '#00d4ff' },       // Cyan
     { bg: 'rgba(239,68,68,0.2)', border: 'rgba(239,68,68,0.5)', text: '#ef4444' },       // Red
     { bg: 'rgba(34,197,94,0.2)', border: 'rgba(34,197,94,0.5)', text: '#22c55e' },       // Green
-    { bg: 'rgba(139,92,246,0.2)', border: 'rgba(139,92,246,0.5)', text: '#8b5cf6' },     // Purple
+    { bg: 'rgba(79,156,255,0.2)', border: 'rgba(79,156,255,0.5)', text: '#4f9cff' },     // Purple
     { bg: 'rgba(59,130,246,0.2)', border: 'rgba(59,130,246,0.5)', text: '#3b82f6' },     // Blue
-    { bg: 'rgba(236,72,153,0.2)', border: 'rgba(236,72,153,0.5)', text: '#ec4899' },     // Pink
-    { bg: 'rgba(245,158,11,0.2)', border: 'rgba(245,158,11,0.5)', text: '#f59e0b' },     // Amber
+    { bg: 'rgba(72,181,236,0.2)', border: 'rgba(72,181,236,0.5)', text: '#5aa9ff' },     // Pink
+    { bg: 'rgba(159,216,255,0.2)', border: 'rgba(159,216,255,0.5)', text: '#9fd8ff' },     // Amber
     { bg: 'rgba(20,184,166,0.2)', border: 'rgba(20,184,166,0.5)', text: '#14b8a6' },     // Teal
     { bg: 'rgba(249,115,22,0.2)', border: 'rgba(249,115,22,0.5)', text: '#f97316' },     // Orange
-    { bg: 'rgba(168,85,247,0.2)', border: 'rgba(168,85,247,0.5)', text: '#a855f7' },     // Violet
+    { bg: 'rgba(90,169,255,0.2)', border: 'rgba(90,169,255,0.5)', text: '#5aa9ff' },     // Violet
     { bg: 'rgba(6,182,212,0.2)', border: 'rgba(6,182,212,0.5)', text: '#06b6d4' },       // Sky
 ];
 

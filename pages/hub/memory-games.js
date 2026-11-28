@@ -316,138 +316,143 @@ function isGradableRangeScenario(scenario) {
   );
 }
 
+// #SMARTERDESIGN (Dan, 2026-11-27): one ice-blue accent for every mode.
+// Selection is the cobalt key; per-mode gold, violet and pink are banned.
+const SD_ICE = '#86daff';
+const SD_COBALT = '#1981ec';
+
 const MODES = [
-  { key: 'range', label: 'Range', Icon: Target, color: '#00D4FF', desc: 'Authored Range Practice' },
-  { key: 'speed', label: 'Speed Drill', Icon: Zap, color: '#FFD700', desc: 'Beat The Clock' },
-  { key: 'pressure', label: 'Pressure', Icon: Bomb, color: '#FF4444', desc: 'Defuse The Bomb' },
-  { key: 'pattern', label: 'Pattern', Icon: Puzzle, color: '#3B82F6', desc: 'Read The Range' },
-  { key: 'mixed', label: 'Mixed', Icon: Dices, color: '#A855F7', desc: 'Dial Frequencies' },
+  { key: 'range', label: 'Range', Icon: Target, color: SD_ICE, desc: 'Authored Range Practice' },
+  { key: 'speed', label: 'Speed Drill', Icon: Zap, color: SD_ICE, desc: 'Beat The Clock' },
+  { key: 'pressure', label: 'Pressure', Icon: Bomb, color: SD_ICE, desc: 'Defuse The Bomb' },
+  { key: 'pattern', label: 'Pattern', Icon: Puzzle, color: SD_ICE, desc: 'Read The Range' },
+  { key: 'mixed', label: 'Mixed', Icon: Dices, color: SD_ICE, desc: 'Dial Frequencies' },
   {
     key: 'spot',
     label: 'Spot Trainer',
     Icon: Crosshair,
-    color: '#F97316',
+    color: SD_ICE,
     desc: 'Full Hand Trees',
   },
   {
     key: 'tournament',
     label: 'Local VS',
     Icon: Swords,
-    color: '#EC4899',
+    color: SD_ICE,
     desc: 'Simulated Practice',
   },
 ];
 const EXTRA_MODES = [
-  { key: 'daily', label: 'Daily', Icon: Calendar, color: '#00FF88', special: true },
-  { key: 'leaderboard', label: 'Rankings', Icon: Trophy, color: '#FFD700', special: true },
+  { key: 'daily', label: 'Daily', Icon: Calendar, color: SD_ICE, special: true },
+  { key: 'leaderboard', label: 'Rankings', Icon: Trophy, color: SD_ICE, special: true },
 ];
 
 const MODE_CARDS = {
   speed: {
     Icon: Zap,
-    title: 'SPEED DRILL',
-    color: '#FFD700',
-    gradient: ['#FFD700', '#F59E0B'],
-    difficulty: 'INTERMEDIATE',
-    diffColor: '#FFD700',
+    title: 'Speed Drill',
+    color: SD_ICE,
+    gradient: [SD_COBALT, SD_ICE],
+    difficulty: 'Intermediate',
+    diffColor: SD_ICE,
     desc: 'Flash A Hand, Pick The Action, Build Streaks. Time Gets Shorter The Better You Do. Three Lives, Do Not Lose Them.',
     stats: [
-      { label: 'FORMAT', value: '3 Lives' },
-      { label: 'SPEED', value: 'Accelerating' },
-      { label: 'SETTLEMENT', value: 'Free Local Practice' },
+      { label: 'Format', value: '3 Lives' },
+      { label: 'Speed', value: 'Accelerating' },
+      { label: 'Settlement', value: 'Free Local Practice' },
     ],
     mode: 'speed-drill',
-    btn: 'START SPEED DRILL',
+    btn: 'Start Speed Drill',
   },
   pressure: {
     Icon: Bomb,
-    title: 'PRESSURE COOKER',
-    color: '#FF4444',
-    gradient: ['#FF4444', '#FF0066'],
-    difficulty: 'HARD',
-    diffColor: '#FF4444',
+    title: 'Pressure Cooker',
+    color: SD_ICE,
+    gradient: [SD_COBALT, SD_ICE],
+    difficulty: 'Hard',
+    diffColor: SD_ICE,
     desc: 'Answer 10 Hands Before The Clock Runs Out. Correct Answers Add Time, Wrong Answers Cost You. Can You Defuse The Bomb?',
     stats: [
-      { label: 'FORMAT', value: '10 Hands' },
-      { label: 'CLOCK', value: '+/- 3-5 Sec' },
-      { label: 'SETTLEMENT', value: 'Free Local Practice' },
+      { label: 'Format', value: '10 Hands' },
+      { label: 'Clock', value: '+/- 3-5 Sec' },
+      { label: 'Settlement', value: 'Free Local Practice' },
     ],
     mode: 'pressure-cooker',
-    btn: 'START PRESSURE COOKER',
+    btn: 'Start Pressure Cooker',
   },
   pattern: {
     Icon: Puzzle,
-    title: 'PATTERN RECOGNITION',
-    color: '#3B82F6',
-    gradient: ['#3B82F6', '#0088ff'],
-    difficulty: 'ADVANCED',
-    diffColor: '#3B82F6',
+    title: 'Pattern Recognition',
+    color: SD_ICE,
+    gradient: [SD_COBALT, SD_ICE],
+    difficulty: 'Advanced',
+    diffColor: SD_ICE,
     desc: 'See A Partial Authored Range And Identify The Dominant Action. Is It A Raising, Calling, Or Folding Range? Train Your Range-Reading Instincts.',
     stats: [
-      { label: 'FORMAT', value: '8 Patterns' },
-      { label: 'SKILL', value: 'Range Reading' },
-      { label: 'SETTLEMENT', value: 'Free Local Practice' },
+      { label: 'Format', value: '8 Patterns' },
+      { label: 'Skill', value: 'Range Reading' },
+      { label: 'Settlement', value: 'Free Local Practice' },
     ],
     mode: 'pattern-recognition',
-    btn: 'START PATTERN RECOGNITION',
+    btn: 'Start Pattern Recognition',
   },
   mixed: {
     Icon: Dices,
-    title: 'MIXED STRATEGY',
-    color: '#A855F7',
-    gradient: ['#A855F7', '#D946EF'],
-    difficulty: 'EXPERT',
-    diffColor: '#A855F7',
+    title: 'Mixed Strategy',
+    color: SD_ICE,
+    gradient: [SD_COBALT, SD_ICE],
+    difficulty: 'Expert',
+    diffColor: SD_ICE,
     desc: 'Exact-Frequency Practice Requires A Verified Solver Source. Open This Mode To Continue In The Audited Training Arena.',
     stats: [
-      { label: 'FORMAT', value: '10 Rounds' },
-      { label: 'SKILL', value: 'Frequencies' },
-      { label: 'SETTLEMENT', value: 'Free Local Practice' },
+      { label: 'Format', value: '10 Rounds' },
+      { label: 'Skill', value: 'Frequencies' },
+      { label: 'Settlement', value: 'Free Local Practice' },
     ],
     mode: 'mixed-strategy',
-    btn: 'START MIXED TRAINER',
+    btn: 'Start Mixed Trainer',
   },
   spot: {
     Icon: Crosshair,
-    title: 'SPOT TRAINER',
-    color: '#F97316',
-    gradient: ['#F97316', '#EA580C'],
-    difficulty: 'ADVANCED',
-    diffColor: '#F97316',
+    title: 'Spot Trainer',
+    color: SD_ICE,
+    gradient: [SD_COBALT, SD_ICE],
+    difficulty: 'Advanced',
+    diffColor: SD_ICE,
     desc: 'Play Through Entire Hand Trees From Preflop To River. Learn How Ranges Evolve On Each Street And Compare Your EV To Optimal GTO Play.',
     stats: [
-      { label: 'FORMAT', value: 'Full Trees' },
-      { label: 'SKILL', value: 'EV Analysis' },
-      { label: 'SETTLEMENT', value: 'Verified Training Route' },
+      { label: 'Format', value: 'Full Trees' },
+      { label: 'Skill', value: 'EV Analysis' },
+      { label: 'Settlement', value: 'Verified Training Route' },
     ],
     mode: 'spot-trainer',
-    btn: 'START SPOT TRAINER',
+    btn: 'Start Spot Trainer',
   },
   tournament: {
     Icon: Swords,
-    title: 'LOCAL VS PRACTICE',
-    color: '#EC4899',
-    gradient: ['#EC4899', '#DB2777'],
-    difficulty: 'SIMULATED',
-    diffColor: '#EC4899',
+    title: 'Local VS Practice',
+    color: SD_ICE,
+    gradient: [SD_COBALT, SD_ICE],
+    difficulty: 'Simulated',
+    diffColor: SD_ICE,
     desc: 'Practice A Five-Round Range Drill Against A Scripted Browser Coach. There Is No Live Opponent, Matchmaking, Account Rank, Or Account Reward.',
     stats: [
-      { label: 'FORMAT', value: '5 Local Rounds' },
-      { label: 'OPPONENT', value: 'Simulated Coach' },
-      { label: 'SETTLEMENT', value: 'No Account Changes' },
+      { label: 'Format', value: '5 Local Rounds' },
+      { label: 'Opponent', value: 'Simulated Coach' },
+      { label: 'Settlement', value: 'No Account Changes' },
     ],
     mode: 'tournament',
-    btn: 'START LOCAL VS PRACTICE',
+    btn: 'Start Local VS Practice',
   },
 };
 
 const LEADERBOARD_MODES = [
-  { id: 'range-memory', label: 'Range', color: '#00D4FF' },
-  { id: 'speed-drill', label: 'Speed', color: '#FFD700' },
-  { id: 'pressure-cooker', label: 'Pressure', color: '#ff4444' },
-  { id: 'pattern-recognition', label: 'Pattern', color: '#3B82F6' },
-  { id: 'mixed-strategy', label: 'Mixed', color: '#A855F7' },
-  { id: 'spot-trainer', label: 'Spot', color: '#F97316' },
+  { id: 'range-memory', label: 'Range', color: SD_ICE },
+  { id: 'speed-drill', label: 'Speed', color: SD_ICE },
+  { id: 'pressure-cooker', label: 'Pressure', color: SD_ICE },
+  { id: 'pattern-recognition', label: 'Pattern', color: SD_ICE },
+  { id: 'mixed-strategy', label: 'Mixed', color: SD_ICE },
+  { id: 'spot-trainer', label: 'Spot', color: SD_ICE },
 ];
 
 const LEADERBOARD_COLUMNS = [
@@ -456,7 +461,7 @@ const LEADERBOARD_COLUMNS = [
     label: 'Rank',
     render: (row) => (
       <span
-        style={{ color: row.rank <= 3 ? '#FFD700' : '#fff', fontWeight: row.rank <= 3 ? 700 : 500 }}
+        style={{ color: row.rank <= 3 ? SD_ICE : '#fff', fontWeight: row.rank <= 3 ? 700 : 500 }}
       >
         #{row.rank}
       </span>
@@ -468,7 +473,7 @@ const LEADERBOARD_COLUMNS = [
     label: 'Score',
     align: 'right',
     render: (row) => (
-      <span style={{ color: '#00ff88', fontWeight: 600 }}>
+      <span style={{ color: '#f2f7ff', fontWeight: 700 }}>
         {Number(row.score || 0).toLocaleString()}
       </span>
     ),
@@ -477,7 +482,7 @@ const LEADERBOARD_COLUMNS = [
     key: 'streak',
     label: 'Streak',
     align: 'right',
-    render: (row) => <span style={{ color: '#FF6B00' }}>{row.streak || 0}</span>,
+    render: (row) => <span style={{ color: '#bdd0e2' }}>{row.streak || 0}</span>,
   },
 ];
 
@@ -534,7 +539,7 @@ function DailyLocalPracticeCard({ challenge, loading, onPlay }) {
           <Calendar size={21} />
         </div>
         <div className="preflop-daily-card-copy">
-          <span>DAILY LOCAL PRACTICE</span>
+          <span>Daily Local Practice</span>
           <h2 id="preflop-daily-title">No Practice Assignment Posted Yet</h2>
           <p>
             The Practice Assignment For Today Appears Here As Soon As It Is Published. Check Back
@@ -556,7 +561,7 @@ function DailyLocalPracticeCard({ challenge, loading, onPlay }) {
         <Calendar size={21} />
       </div>
       <div className="preflop-daily-card-copy">
-        <span>DAILY LOCAL PRACTICE</span>
+        <span>Daily Local Practice</span>
         <h2 id="preflop-daily-title">
           {challenge.title || `Level ${challenge.level || 1} Practice`}
         </h2>
@@ -1329,7 +1334,7 @@ export default function MemoryGamesPage() {
         particleCount: 200,
         spread: 120,
         origin: { y: 0.6 },
-        colors: ['#FFD700', '#00D4FF', '#00ff88'],
+        colors: ['#86daff', '#1981ec', '#39e9a5'],
       });
 
       // Update combo
@@ -1898,7 +1903,7 @@ export default function MemoryGamesPage() {
   // Timer color
   const getTimerColor = () => {
     if (timeRemaining > 30) return '#00ff88';
-    if (timeRemaining > 10) return '#ffaa00';
+    if (timeRemaining > 10) return '#ff8a3d';
     return '#ff4444';
   };
 
@@ -1982,7 +1987,7 @@ export default function MemoryGamesPage() {
         onMenuClick={() => setMenuOpen(true)}
       >
         <div
-          className="memory-games-page preflop-command-deck"
+          className="memory-games-page preflop-command-deck smarterdesign"
           ref={containerRef}
           style={{
             ...styles.container,
@@ -2058,7 +2063,7 @@ export default function MemoryGamesPage() {
                     </div>
                     <div className="preflop-smart-copy">
                       <div className="preflop-panel-kicker">
-                        <BrainCircuit size={15} aria-hidden /> AI TRAINING LINK
+                        <BrainCircuit size={15} aria-hidden /> AI Training Link
                       </div>
                       <h2 id="smart-practice-title">Smart Practice</h2>
                       <p>
@@ -2229,14 +2234,7 @@ export default function MemoryGamesPage() {
                         '--launch-to': launchCard.gradient[1],
                       }}
                     >
-                      <div
-                        className="preflop-launch-difficulty"
-                        style={{
-                          color: launchCard.diffColor,
-                          borderColor: `${launchCard.diffColor}66`,
-                          background: `${launchCard.diffColor}22`,
-                        }}
-                      >
+                      <div className="preflop-launch-difficulty">
                         {launchCard.difficulty}
                       </div>
                       <div className="preflop-launch-icon" aria-hidden="true">
@@ -2257,25 +2255,25 @@ export default function MemoryGamesPage() {
                       {personalBest && (
                         <div className="preflop-launch-best">
                           <Medal size={16} aria-hidden />
-                          <span>LOCAL BEST</span>
+                          <span>Local Best</span>
                           <strong>{personalBest.score}</strong>
                           {personalBest.grade && (
                             <em
                               style={{
                                 background:
                                   {
-                                    S: '#FFD70022',
+                                    S: '#86daff22',
                                     A: '#22C55E22',
                                     B: '#3B82F622',
-                                    C: '#F59E0B22',
+                                    C: '#bdd0e222',
                                     D: '#EF444422',
                                   }[personalBest.grade] || '#fff1',
                                 color:
                                   {
-                                    S: '#FFD700',
+                                    S: '#86daff',
                                     A: '#22C55E',
                                     B: '#3B82F6',
-                                    C: '#F59E0B',
+                                    C: '#bdd0e2',
                                     D: '#EF4444',
                                   }[personalBest.grade] || '#fff',
                               }}
@@ -2314,8 +2312,8 @@ export default function MemoryGamesPage() {
                     <div className="preflop-board-panel is-gold">
                       <div className="preflop-board-heading">
                         <Trophy size={40} aria-hidden />
-                        <h2>GLOBAL LEADERBOARD</h2>
-                        <p>Compete With Players Worldwide. Top Scores Win Prizes!</p>
+                        <h2>Local Practice Rankings</h2>
+                        <p>Browser Practice Scores By Mode. These Rankings Carry No Prizes, Rewards Or Account Rank.</p>
                       </div>
 
                       {/* Mode Toggle: wrapping row */}
@@ -2341,12 +2339,12 @@ export default function MemoryGamesPage() {
                       {userRank && (
                         <div className="preflop-board-rank">
                           <div>
-                            <span>YOUR RANK</span>
+                            <span>Your Rank</span>
                             <strong>#{userRank.rank || '-'}</strong>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <span>BEST SCORE</span>
-                            <strong style={{ color: '#fff', fontSize: 24 }}>
+                            <span>Best Score</span>
+                            <strong style={{ fontSize: 24 }}>
                               {userRank.score || 0}
                             </strong>
                           </div>
@@ -2389,7 +2387,7 @@ export default function MemoryGamesPage() {
                     <div className="preflop-board-panel is-green">
                       <div className="preflop-board-heading">
                         <Calendar size={40} aria-hidden />
-                        <h2 style={{ color: '#00ff88' }}>DAILY LOCAL PRACTICE</h2>
+                        <h2>Daily Local Practice</h2>
                         <p>
                           Practice The Posted Assignment For Today Without Changing Your Account
                           Progress.
@@ -2410,7 +2408,7 @@ export default function MemoryGamesPage() {
                                 Level {dailyChallenge.level || 1} /{' '}
                                 {(dailyChallenge.game_mode || 'range')
                                   .replace('-', ' ')
-                                  .toUpperCase()}
+                                  .replace(/\b\w/g, (c) => c.toUpperCase())}
                               </span>
                             </div>
                           </div>
@@ -2423,14 +2421,14 @@ export default function MemoryGamesPage() {
 
                           <div className="preflop-board-challenge-meta">
                             <div>
-                              <span>PRACTICE GOAL</span>
-                              <strong style={{ color: '#00ff88' }}>
+                              <span>Practice Goal</span>
+                              <strong>
                                 {accuracyToPercent(dailyChallenge.target_accuracy ?? 80)}%
                               </strong>
                             </div>
                             <div style={{ textAlign: 'right' }}>
-                              <span>SETTLEMENT</span>
-                              <strong style={{ color: '#FFD700' }}>NO ACCOUNT REWARD</strong>
+                              <span>Settlement</span>
+                              <strong>No Account Reward</strong>
                             </div>
                           </div>
 
@@ -2439,7 +2437,7 @@ export default function MemoryGamesPage() {
                             className="preflop-board-start"
                             onClick={startDailyPractice}
                           >
-                            START LOCAL PRACTICE
+                            Start Local Practice
                           </button>
                         </div>
                       ) : (
@@ -2450,7 +2448,7 @@ export default function MemoryGamesPage() {
                       )}
 
                       <div className="preflop-board-note">
-                        <strong>LOCAL PRACTICE ONLY</strong>
+                        <strong>Local Practice Only</strong>
                         <span>
                           This Launch Does Not Record Completion, Extend A Streak, Change Rankings,
                           Or Award Diamonds.
@@ -2465,7 +2463,7 @@ export default function MemoryGamesPage() {
                       {/* Filter Toggle Button + AI Generation Toggle (tutorial target: scenario) */}
                       <div className="preflop-level-toolbar" data-tutorial="scenario">
                         <div>
-                          <span className="preflop-panel-kicker">RANGE PROGRESSION</span>
+                          <span className="preflop-panel-kicker">Range Progression</span>
                           <h3>Select A Level</h3>
                         </div>
                         <div className="preflop-level-actions">
@@ -2545,7 +2543,7 @@ export default function MemoryGamesPage() {
 
                       <div className="preflop-circuit-status" aria-label="Range progression status">
                         <div className="preflop-circuit-label">
-                          <span>PROGRESSION CIRCUIT</span>
+                          <span>Progression Circuit</span>
                           <strong>Training Path Online</strong>
                         </div>
                         <div className="preflop-circuit-stat is-current">
@@ -2746,7 +2744,7 @@ export default function MemoryGamesPage() {
                   {sessionHistory.length > 0 && (
                     <div className="preflop-recent">
                       <div className="preflop-recent-head">
-                        <span>RECENT SESSIONS</span>
+                        <span>Recent Sessions</span>
                         <span>Last {Math.min(sessionHistory.length, 8)}</span>
                       </div>
 
@@ -2761,7 +2759,7 @@ export default function MemoryGamesPage() {
                               ? '#22C55E'
                               : (s.score || 0) >= 60
                                 ? '#3B82F6'
-                                : '#F59E0B';
+                                : '#bdd0e2';
                           return (
                             <div
                               key={i}
@@ -2805,10 +2803,10 @@ export default function MemoryGamesPage() {
                                       ? 'C'
                                       : 'D';
                             const gradeColor = {
-                              S: '#FFD700',
+                              S: '#86daff',
                               A: '#22C55E',
                               B: '#3B82F6',
-                              C: '#F59E0B',
+                              C: '#bdd0e2',
                               D: '#EF4444',
                             }[grade];
                             return (
@@ -2838,13 +2836,13 @@ export default function MemoryGamesPage() {
                       {/* Quick Stats Row */}
                       <div className="preflop-recent-stats">
                         {[
-                          { label: 'SESSIONS', value: sessionHistory.length },
+                          { label: 'Sessions', value: sessionHistory.length },
                           {
-                            label: 'AVG SCORE',
+                            label: 'Avg Score',
                             value: `${Math.round(sessionHistory.reduce((a, s) => a + (s.score || 0), 0) / sessionHistory.length)}%`,
                           },
                           {
-                            label: 'BEST',
+                            label: 'Best',
                             value: `${Math.max(...sessionHistory.map((s) => s.score || 0))}%`,
                           },
                         ].map((stat, i) => (
@@ -3092,7 +3090,7 @@ export default function MemoryGamesPage() {
                       <span>Choose Action</span>
                     </div>
                     <span>
-                      {markedHandCount} Hand{markedHandCount === 1 ? '' : 's'} Marked
+                      {`${markedHandCount} ${markedHandCount === 1 ? 'Hand' : 'Hands'} Marked`}
                     </span>
                   </div>
                   <div

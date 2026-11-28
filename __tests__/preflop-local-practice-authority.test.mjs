@@ -13,7 +13,7 @@ test('Preflop Charts has no paid entry gate or signed-in launch reward promise',
   assert.match(PAGE, /Free Local Practice \/ No Entry Fee/);
   assert.match(
     PAGE,
-    /stats:\s*\[[\s\S]*?\{ label: 'FORMAT', value: '5 Local Rounds' \}[\s\S]*?\{ label: 'SETTLEMENT', value: 'No Account Changes' \}[\s\S]*?\]/
+    /stats:\s*\[[\s\S]*?\{ label: 'Format', value: '5 Local Rounds' \}[\s\S]*?\{ label: 'Settlement', value: 'No Account Changes' \}[\s\S]*?\]/
   );
 });
 

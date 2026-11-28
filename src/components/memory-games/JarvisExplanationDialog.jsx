@@ -21,7 +21,7 @@ const FOCUSABLE = 'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"
 
 const ACTION_COLORS = {
   raise: '#39e9a5',
-  call: '#f4c44e',
+  call: '#5aa9ff',
   fold: '#ef6464',
 };
 

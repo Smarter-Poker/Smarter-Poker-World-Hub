@@ -151,9 +151,10 @@ test('every public page title fits a search result once SEOHead has added the si
 const SIZED_IMAGES = [
   { file: 'pages/index.js', asset: 'public/images/landing-hero-v3.webp', needle: 'src="/images/landing-hero-v3.webp"' },
   {
+    // #SMARTERDESIGN (2026-11-27): the lobby grid is twelve tiles of this size.
     file: 'src/components/poker-near-me/lobby/LobbyOverlay.jsx',
-    asset: 'public/images/lobby-pods/poker-near-me-grid.webp',
-    needle: 'src="/images/lobby-pods/poker-near-me-grid.webp"',
+    asset: 'public/images/smarterdesign/pnm/tile-nearme.webp',
+    needle: 'src={`/images/smarterdesign/pnm/tile-${hotspot.id}.webp`}',
   },
 ];
 

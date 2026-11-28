@@ -5,6 +5,7 @@ import SEOHead from '../seo/SEOHead';
 import UniversalHeader from '../ui/UniversalHeader';
 import HamburgerMenu from '../ui/HamburgerMenu';
 import PokerNearMeFamilyNav from './PokerNearMeFamilyNav';
+import PnmImageHeader from './PnmImageHeader';
 import DeepRouteSignalDeck from './DeepRouteSignalDeck';
 import PokerNearMeRecentRail from './PokerNearMeRecentRail';
 import { PokerNearMePanelShell } from './PokerNearMeConsole';
@@ -320,6 +321,9 @@ export default function PokerNearMeLocationPage({
       <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
       <PokerNearMeFamilyNav />
       <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+      <div className="smarterdesign pnm-sd-top">
+        <PnmImageHeader route="locations" heading="p" />
+      </div>
 
       {/* ONE FRAME, AND IT FITS WHAT IS IN IT (2026-09-30).
           The painted chassis is the hero's frame. A shared command-surface

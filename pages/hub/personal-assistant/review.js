@@ -84,6 +84,29 @@ const SUITS = ['c', 'd', 'h', 's'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 const SUIT_GLYPH = { s: '♠', h: '♥', d: '♦', c: '♣' };
 const GLYPH_TO_SUIT = { '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c' };
+const CARD_SUIT_ASSET_NAME = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
+const CARD_RANK_ASSET_NAME = {
+  A: 'a', 2: '2', 3: '3', 4: '4', 5: '5',
+  6: '6', 7: '7', 8: '8', 9: '9', T: '10',
+  J: 'j', Q: 'q', K: 'k',
+};
+const CARD_RANK_LABEL = {
+  A: 'A', 2: '2', 3: '3', 4: '4', 5: '5',
+  6: '6', 7: '7', 8: '8', 9: '9', T: '10',
+  J: 'J', Q: 'Q', K: 'K',
+};
+const CARD_SUIT_TITLE = {
+  s: 'Spades',
+  h: 'Hearts',
+  d: 'Diamonds',
+  c: 'Clubs',
+};
+const FOUR_COLOR_SUIT_INK = {
+  s: '#111827',
+  h: '#c81e2b',
+  d: '#0f52ba',
+  c: '#16794b',
+};
 
 const REVIEW_STATUS_LABELS = {
   saved: 'Saved',
@@ -191,21 +214,116 @@ function toStandardCardCode(card) {
   return `${rank}${suit}`;
 }
 
-function formatCardToken(card) {
-  let code = '';
-  if (typeof card === 'number' && Number.isInteger(card) && card >= 0 && card <= 51) {
-    code = `${RANKS[card % 13]}${SUITS[Math.floor(card / 13)]}`;
-  } else if (typeof card === 'string') {
-    code = card.trim();
-  }
-  const match = code.match(/^(10|[2-9TJQKA])([shdc♠♥♦♣])$/i);
-  if (!match) return { text: code || '?', red: false };
-  const rawRank = match[1].toUpperCase();
-  const rank = rawRank === 'T' ? '10' : rawRank;
-  const rawSuit = match[2].toLowerCase();
-  const glyph = SUIT_GLYPH[rawSuit] || match[2];
-  const red = glyph === '♥' || glyph === '♦';
-  return { text: `${rank}${glyph}`, red };
+function ArenaMiniCard({ card, size = 'md', overlapped = false, overlapTight = false }) {
+  const code = toStandardCardCode(card);
+  const [fallbackTier, setFallbackTier] = useState(0);
+
+  useEffect(() => {
+    setFallbackTier(0);
+  }, [code]);
+
+  if (!code) return null;
+
+  const rankChar = code[0];
+  const suitChar = code[1];
+  const suitName = CARD_SUIT_ASSET_NAME[suitChar];
+  const rankName = CARD_RANK_ASSET_NAME[rankChar];
+  const rankDisplay = CARD_RANK_LABEL[rankChar] || rankChar;
+  const suitGlyph = SUIT_GLYPH[suitChar] || '';
+  const cardAriaLabel = `${rankDisplay} Of ${CARD_SUIT_TITLE[suitChar] || 'Cards'}`;
+
+  const sizeClass = size === 'xs'
+    ? styles.arenaCardXs
+    : size === 'sm'
+      ? styles.arenaCardSm
+      : size === 'lg'
+        ? styles.arenaCardLg
+        : styles.arenaCardMd;
+  const overlapClass = overlapped
+    ? (overlapTight ? styles.arenaCardOverlapTight : styles.arenaCardOverlap)
+    : '';
+  const showTextFallback = fallbackTier >= 2 || !suitName || !rankName;
+  const imgSrc = fallbackTier === 0
+    ? `/hub/club-arena/cards/4color/${suitName}_${rankName}.webp`
+    : `/cards/${suitName}_${rankName}.png`;
+
+  return (
+    <span
+      className={`${styles.arenaCard} ${sizeClass} ${overlapClass}`.trim()}
+      data-review-card={code}
+      data-pa-verbatim="true"
+      aria-label={cardAriaLabel}
+    >
+      {showTextFallback ? (
+        <span
+          className={styles.arenaCardFallback}
+          style={{ color: FOUR_COLOR_SUIT_INK[suitChar] || '#111827' }}
+        >
+          <span className={styles.arenaCardFallbackRank}>{rankDisplay}</span>
+          <span className={styles.arenaCardFallbackSuit}>{suitGlyph}</span>
+        </span>
+      ) : (
+        <>
+          <img
+            src={imgSrc}
+            alt={cardAriaLabel}
+            className={styles.arenaCardImg}
+            onError={() => setFallbackTier((prev) => prev + 1)}
+            decoding="async"
+          />
+          <span
+            style={{
+              position: 'absolute',
+              width: 1,
+              height: 1,
+              padding: 0,
+              margin: -1,
+              overflow: 'hidden',
+              clip: 'rect(0, 0, 0, 0)',
+              whiteSpace: 'nowrap',
+              border: 0,
+            }}
+          >
+            {rankDisplay}{suitGlyph}
+          </span>
+        </>
+      )}
+    </span>
+  );
+}
+
+function ArenaMiniCardBack({ size = 'sm', overlapped = false }) {
+  const [fallbackTier, setFallbackTier] = useState(0);
+  const sizeClass = size === 'xs'
+    ? styles.arenaCardXs
+    : size === 'sm'
+      ? styles.arenaCardSm
+      : size === 'lg'
+        ? styles.arenaCardLg
+        : styles.arenaCardMd;
+  const overlapClass = overlapped ? styles.arenaCardOverlap : '';
+  const imgSrc = fallbackTier === 0
+    ? '/hub/club-arena/card-backs/classic_blue.webp'
+    : '/cards/back.webp';
+
+  return (
+    <span
+      className={`${styles.arenaCard} ${styles.arenaCardBack} ${sizeClass} ${overlapClass}`.trim()}
+      aria-hidden="true"
+    >
+      {fallbackTier >= 2 ? (
+        <span className={styles.arenaCardBackPattern} />
+      ) : (
+        <img
+          src={imgSrc}
+          alt=""
+          className={styles.arenaCardImg}
+          onError={() => setFallbackTier((prev) => prev + 1)}
+          decoding="async"
+        />
+      )}
+    </span>
+  );
 }
 
 function formatChips(value) {
@@ -837,13 +955,17 @@ export default function PersonalAssistantReviewPage() {
   const [sampleHandActive, setSampleHandActive] = useState(false);
   const [sampleStreetIdx, setSampleStreetIdx] = useState(1);
 
-  // Post-session Suggested Hands To Review
+  // Post-session Suggested Hands To Review + Bulk Club Arena Import
   const [suggestedLoading, setSuggestedLoading] = useState(false);
   const [suggestedRestricted, setSuggestedRestricted] = useState(false);
   const [suggestedNotice, setSuggestedNotice] = useState('');
   const [suggestedHands, setSuggestedHands] = useState([]);
+  const [totalUnsavedCount, setTotalUnsavedCount] = useState(0);
   const [savingSuggestedId, setSavingSuggestedId] = useState('');
   const [suggestedError, setSuggestedError] = useState('');
+  const [importingArena, setImportingArena] = useState(false);
+  const [importStatusMessage, setImportStatusMessage] = useState('');
+  const [importError, setImportError] = useState('');
 
   // Replayer state
   const [activeStreetIdx, setActiveStreetIdx] = useState(0);
@@ -891,6 +1013,8 @@ export default function PersonalAssistantReviewPage() {
   const saveAbortRef = useRef(null);
   const analysisAbortRef = useRef(null);
   const exportAbortRef = useRef(null);
+  const importAbortRef = useRef(null);
+  const autoImportAttemptedRef = useRef(false);
   const lastVisibilityRefreshRef = useRef(0);
   const selectedHandIdRef = useRef('');
   selectedHandIdRef.current = selectedHandId;
@@ -1014,6 +1138,7 @@ export default function PersonalAssistantReviewPage() {
   const loadSuggestedHands = useCallback(async () => {
     if (authInitializing || !user?.id) {
       setSuggestedHands([]);
+      setTotalUnsavedCount(0);
       setSuggestedRestricted(false);
       setSuggestedNotice('');
       setSuggestedLoading(false);
@@ -1034,6 +1159,7 @@ export default function PersonalAssistantReviewPage() {
       if (activeUserIdRef.current !== expectedUserId) return;
       if (!res.ok || !res.body?.success) {
         setSuggestedHands([]);
+        setTotalUnsavedCount(0);
         return;
       }
       if (res.body.activePlayRestricted) {
@@ -1042,14 +1168,23 @@ export default function PersonalAssistantReviewPage() {
           res.body.message || 'Suggested Hands Appear After You Leave Your Active Table.',
         );
         setSuggestedHands([]);
+        setTotalUnsavedCount(0);
         return;
       }
       setSuggestedRestricted(false);
       setSuggestedNotice('');
-      setSuggestedHands(Array.isArray(res.body.suggested) ? res.body.suggested.slice(0, 5) : []);
+      const nextSuggested = Array.isArray(res.body.suggested) ? res.body.suggested.slice(0, 5) : [];
+      setSuggestedHands(nextSuggested);
+      const serverUnsaved = Number(res.body.totalUnsavedCount);
+      setTotalUnsavedCount(
+        Number.isFinite(serverUnsaved) && serverUnsaved >= 0
+          ? Math.trunc(serverUnsaved)
+          : nextSuggested.length,
+      );
     } catch {
       if (activeUserIdRef.current === expectedUserId) {
         setSuggestedHands([]);
+        setTotalUnsavedCount(0);
       }
     } finally {
       if (activeUserIdRef.current === expectedUserId) {
@@ -1308,7 +1443,14 @@ export default function PersonalAssistantReviewPage() {
     analysisAbortRef.current?.abort?.();
     exportAbortRef.current?.abort?.();
     exportAbortRef.current = null;
+    importAbortRef.current?.abort?.();
+    importAbortRef.current = null;
+    autoImportAttemptedRef.current = false;
     setExportingFormat('');
+    setImportingArena(false);
+    setImportStatusMessage('');
+    setImportError('');
+    setTotalUnsavedCount(0);
 
     draftOwnerUserIdRef.current = null;
     draftHandIdRef.current = '';
@@ -1398,6 +1540,8 @@ export default function PersonalAssistantReviewPage() {
     analysisAbortRef.current?.abort?.();
     exportAbortRef.current?.abort?.();
     exportAbortRef.current = null;
+    importAbortRef.current?.abort?.();
+    importAbortRef.current = null;
     if (deleteTimerRef.current) {
       window.clearTimeout(deleteTimerRef.current);
       deleteTimerRef.current = null;
@@ -1804,6 +1948,7 @@ export default function PersonalAssistantReviewPage() {
       }
       const savedRow = res.body.hand;
       setSuggestedHands((prev) => prev.filter((s) => s.handId !== item.handId));
+      setTotalUnsavedCount((prev) => Math.max(0, prev - 1));
       setHands((prev) => {
         if (prev.some((row) => String(row.id) === String(savedRow.id))) return prev;
         return [savedRow, ...prev];
@@ -1832,6 +1977,123 @@ export default function PersonalAssistantReviewPage() {
       }
     }
   }, [user?.id, savingSuggestedId, handleSelectHand, hasActiveFilters]);
+
+  const handleImportClubArenaHands = useCallback(async ({ limit = 25, isAuto = false } = {}) => {
+    if (!user?.id || importingArena) return;
+    const expectedUserId = user.id;
+    const safeLimit = Math.max(1, Math.min(50, Math.trunc(Number(limit) || 25)));
+
+    importAbortRef.current?.abort?.();
+    const controller = new AbortController();
+    importAbortRef.current = controller;
+
+    setImportingArena(true);
+    setImportError('');
+    if (!isAuto) setImportStatusMessage('');
+
+    try {
+      const token = await getFreshAccessToken();
+      if (controller.signal.aborted || activeUserIdRef.current !== expectedUserId) return;
+      if (!token) {
+        if (!isAuto) setImportError('Sign In Again To Import Your Club Arena Hands.');
+        return;
+      }
+
+      const res = await fetchJsonWithTimeout('/api/poker/saved-hands', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          action: 'import_club_arena',
+          limit: safeLimit,
+        }),
+      }, 25000);
+      if (controller.signal.aborted || activeUserIdRef.current !== expectedUserId) return;
+
+      if (!res.ok || !res.body?.success) {
+        if (!isAuto) {
+          setImportError(res.body?.error || 'Could Not Import Club Arena Hands Right Now. Please Retry.');
+        }
+        return;
+      }
+
+      const importedCount = Number(res.body.importedCount || 0);
+      const alreadySavedCount = Number(res.body.alreadySavedCount || 0);
+      const remainingCount = Math.max(0, Number(res.body.remainingCount || 0));
+      const importedHands = Array.isArray(res.body.hands) ? res.body.hands : [];
+
+      setTotalUnsavedCount(remainingCount);
+
+      if (importedCount > 0) {
+        const handWord = importedCount === 1 ? 'Hand' : 'Hands';
+        const moreText = remainingCount > 0 ? ` (${remainingCount} More Available)` : '';
+        setImportStatusMessage(`Imported ${importedCount} Club Arena ${handWord} Into Review My Play${moreText}`);
+        broadcastSavedHandsSync({ type: 'saved-hand-updated', source: 'club-arena' });
+        await Promise.all([
+          loadSavedHands({ preferHandId: importedHands[0]?.id || selectedHandIdRef.current }),
+          loadSuggestedHands(),
+        ]);
+      } else {
+        if (!isAuto) {
+          setImportStatusMessage(
+            alreadySavedCount > 0
+              ? 'All Recent Club Arena Hands Are Already Imported Into Review My Play.'
+              : 'No Completed Club Arena Hands Found To Import Yet.',
+          );
+        }
+        await loadSuggestedHands();
+      }
+    } catch (err) {
+      if (controller.signal.aborted || activeUserIdRef.current !== expectedUserId) return;
+      if (!isAuto) {
+        setImportError(
+          err?.name === 'AbortError'
+            ? 'Importing Club Arena Hands Timed Out. Please Retry.'
+            : 'Could Not Import Club Arena Hands Right Now. Please Retry.',
+        );
+      }
+    } finally {
+      if (importAbortRef.current === controller) {
+        importAbortRef.current = null;
+      }
+      if (activeUserIdRef.current === expectedUserId) {
+        setImportingArena(false);
+      }
+    }
+  }, [user?.id, importingArena, loadSavedHands, loadSuggestedHands]);
+
+  // Automatic initial sync when a signed-in user has past Club Arena hands but zero saved hands yet.
+  useEffect(() => {
+    if (
+      !user?.id
+      || loadStatus !== 'ready'
+      || hands.length !== 0
+      || hasActiveFilters
+      || suggestedLoading
+      || suggestedRestricted
+      || suggestedHands.length === 0
+      || importingArena
+      || autoImportAttemptedRef.current
+    ) {
+      return;
+    }
+    autoImportAttemptedRef.current = true;
+    handleImportClubArenaHands({ limit: 25, isAuto: true });
+  }, [
+    user?.id,
+    loadStatus,
+    hands.length,
+    hasActiveFilters,
+    suggestedLoading,
+    suggestedRestricted,
+    suggestedHands.length,
+    importingArena,
+    handleImportClubArenaHands,
+  ]);
 
   const handleExploreInSandbox = useCallback(() => {
     if (!selectedHand?.id) return;
@@ -2284,6 +2546,20 @@ export default function PersonalAssistantReviewPage() {
                   <>
                     <button
                       type="button"
+                      className={styles.primaryBtn}
+                      data-import-club-arena-btn="true"
+                      disabled={importingArena}
+                      onClick={() => handleImportClubArenaHands({ limit: 25 })}
+                    >
+                      <Download size={15} aria-hidden="true" />
+                      {importingArena
+                        ? 'Importing Arena Hands…'
+                        : totalUnsavedCount > 0
+                          ? `Import ${Math.min(25, totalUnsavedCount)} Arena ${Math.min(25, totalUnsavedCount) === 1 ? 'Hand' : 'Hands'}`
+                          : 'Import Arena Hands'}
+                    </button>
+                    <button
+                      type="button"
                       className={styles.secondaryBtn}
                       data-testid="export-json-btn"
                       disabled={Boolean(exportingFormat)}
@@ -2335,6 +2611,28 @@ export default function PersonalAssistantReviewPage() {
               </div>
             </header>
 
+            {importStatusMessage && (
+              <div className={styles.importSuccessBanner} role="status" aria-live="polite" data-testid="import-status-banner">
+                <span>{importStatusMessage}</span>
+                {totalUnsavedCount > 0 && (
+                  <button
+                    type="button"
+                    className={styles.compactBtn}
+                    disabled={importingArena}
+                    onClick={() => handleImportClubArenaHands({ limit: 25 })}
+                  >
+                    {importingArena ? 'Importing…' : `Import Next ${Math.min(25, totalUnsavedCount)}`}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {importError && (
+              <div className={styles.alertBox} role="alert">
+                <span>{importError}</span>
+              </div>
+            )}
+
             {exportError && (
               <div className={styles.alertBox} role="alert">
                 <span>{exportError}</span>
@@ -2348,13 +2646,29 @@ export default function PersonalAssistantReviewPage() {
                   <h2>
                     <Sparkles size={15} aria-hidden="true" /> Suggested Hands To Review
                   </h2>
-                  <span className={styles.panelCount}>
-                    {suggestedRestricted
-                      ? 'Active Table Gate'
-                      : suggestedLoading
-                        ? 'Checking Recent Session…'
-                        : `${suggestedHands.length} Notable ${suggestedHands.length === 1 ? 'Hand' : 'Hands'}`}
-                  </span>
+                  <div className={styles.panelHeadActions}>
+                    <span className={styles.panelCount}>
+                      {suggestedRestricted
+                        ? 'Active Table Gate'
+                        : suggestedLoading
+                          ? 'Checking Recent Session…'
+                          : totalUnsavedCount > suggestedHands.length
+                            ? `${suggestedHands.length} Featured · ${totalUnsavedCount} Unsaved`
+                            : `${suggestedHands.length} Notable ${suggestedHands.length === 1 ? 'Hand' : 'Hands'}`}
+                    </span>
+                    {!suggestedRestricted && suggestedHands.length > 0 && (
+                      <button
+                        type="button"
+                        className={styles.primaryBtn}
+                        data-import-club-arena-btn="true"
+                        disabled={importingArena}
+                        onClick={() => handleImportClubArenaHands({ limit: Math.min(50, Math.max(25, totalUnsavedCount)) })}
+                      >
+                        <Download size={15} aria-hidden="true" />
+                        {importingArena ? 'Importing…' : 'Import All Available'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {suggestedError && (
@@ -2376,7 +2690,14 @@ export default function PersonalAssistantReviewPage() {
                       const netBb = Number(item.netBb ?? 0);
                       const isSaving = savingSuggestedId === item.handId;
                       return (
-                        <div key={item.handId} className={styles.suggestedCard}>
+                        <div
+                          key={item.handId}
+                          className={styles.suggestedCard}
+                          onClick={(event) => {
+                            if (event.target?.closest?.('a, button')) return;
+                            handleSaveSuggestedHand(item);
+                          }}
+                        >
                           <div className={styles.suggestedTop}>
                             <span>
                               {item.variant || 'NLH'} · {item.heroPosition || 'Hero'}
@@ -2390,36 +2711,37 @@ export default function PersonalAssistantReviewPage() {
                             {item.format && <span>· {item.format === 'tournament' ? 'Tournament' : 'Cash'}</span>}
                             {Number.isFinite(Number(item.potBb)) && <span>· Pot {item.potBb} BB</span>}
                           </div>
-                          {heroCards.length > 0 && (
-                            <div className={styles.cardsGroup} aria-label="Hero Cards">
-                              {heroCards.map((c, idx) => {
-                                const tok = formatCardToken(c);
-                                return (
-                                  <span
-                                    key={`sug-h-${item.handId}-${idx}`}
-                                    data-pa-verbatim="true"
-                                    className={`${styles.cardChip} ${heroCards.length >= 5 ? styles.cardChipMulti : ''} ${tok.red ? styles.cardRed : ''}`}
-                                  >
-                                    {tok.text}
-                                  </span>
-                                );
-                              })}
+                          {(heroCards.length > 0 || boardCards.length > 0) && (
+                            <div className={styles.arenaMiniFeltStage} data-suggested-card-stage="true">
+                              {heroCards.length > 0 && (
+                                <div className={styles.arenaMiniFeltGroup} aria-label="Your Hand">
+                                  <span className={styles.arenaMiniFeltLabel}>Your Hand</span>
+                                  <div className={styles.arenaCardRow}>
+                                    {heroCards.map((c, idx) => (
+                                      <ArenaMiniCard
+                                        key={`sug-h-${item.handId}-${idx}`}
+                                        card={c}
+                                        size={heroCards.length >= 5 ? 'sm' : 'md'}
+                                        overlapped={idx > 0}
+                                        overlapTight={heroCards.length >= 4}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                               {boardCards.length > 0 && (
-                                <>
-                                  <span className={styles.panelCount}>/</span>
-                                  {boardCards.map((c, idx) => {
-                                    const tok = formatCardToken(c);
-                                    return (
-                                      <span
+                                <div className={styles.arenaMiniFeltGroup} aria-label="Board">
+                                  <span className={styles.arenaMiniFeltLabel}>Board</span>
+                                  <div className={styles.arenaCardRow}>
+                                    {boardCards.slice(0, 5).map((c, idx) => (
+                                      <ArenaMiniCard
                                         key={`sug-b-${item.handId}-${idx}`}
-                                        data-pa-verbatim="true"
-                                        className={`${styles.cardChip} ${styles.cardChipMulti} ${tok.red ? styles.cardRed : ''}`}
-                                      >
-                                        {tok.text}
-                                      </span>
-                                    );
-                                  })}
-                                </>
+                                        card={c}
+                                        size="sm"
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
                               )}
                             </div>
                           )}
@@ -2427,7 +2749,7 @@ export default function PersonalAssistantReviewPage() {
                           <button
                             type="button"
                             className={styles.primaryBtn}
-                            disabled={Boolean(savingSuggestedId)}
+                            disabled={Boolean(savingSuggestedId) || importingArena}
                             onClick={() => handleSaveSuggestedHand(item)}
                           >
                             {isSaving ? 'Saving…' : 'Save & Review'}
@@ -2491,12 +2813,22 @@ export default function PersonalAssistantReviewPage() {
                 <div className={styles.emptyState}>
                   <h2>No Saved Hands Yet</h2>
                   <p>
-                    Tap Log This Hand Inside Club Arena Previous Hands, Or Log A Hand From Personal Assistant Home To Start Building Your Review Queue.
+                    Import Your Past Completed Club Arena Hands Instantly, Tap Log This Hand Inside Club Arena Previous Hands, Or Try A Sample Hand To Explore The Replayer.
                   </p>
                   <div className={styles.actionBar}>
                     <button
                       type="button"
                       className={styles.primaryBtn}
+                      data-import-club-arena-btn="true"
+                      disabled={importingArena}
+                      onClick={() => handleImportClubArenaHands({ limit: 25 })}
+                    >
+                      <Download size={15} aria-hidden="true" />
+                      <span>{importingArena ? 'Importing Arena Hands…' : 'Import Club Arena Hands'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.secondaryBtn}
                       data-sample-hand-trigger="true"
                       onClick={handleLoadSampleHand}
                     >
@@ -2582,18 +2914,15 @@ export default function PersonalAssistantReviewPage() {
                       <div className={styles.cardsGroup} aria-label={`${activeSampleStep.label} Community Cards`}>
                         <span className={styles.boardLabel}>{activeSampleStep.label} Board:</span>
                         {activeSampleStep.boardCards.length > 0 ? (
-                          activeSampleStep.boardCards.map((c, cIdx) => {
-                            const tok = formatCardToken(c);
-                            return (
-                              <span
+                          <div className={styles.arenaCardRow}>
+                            {activeSampleStep.boardCards.map((c, cIdx) => (
+                              <ArenaMiniCard
                                 key={`sample-c-${cIdx}`}
-                                data-pa-verbatim="true"
-                                className={`${styles.cardChip} ${tok.red ? styles.cardRed : ''}`}
-                              >
-                                {tok.text}
-                              </span>
-                            );
-                          })
+                                card={c}
+                                size="md"
+                              />
+                            ))}
+                          </div>
                         ) : (
                           <span className={styles.panelCount}>No Community Cards Dealt</span>
                         )}
@@ -2798,6 +3127,8 @@ export default function PersonalAssistantReviewPage() {
                           const meta = getReviewMeta(hand);
                           const isSelected = String(hand.id) === String(selectedHand?.id);
                           const heroNet = Number(hand.hand_data?.heroNet ?? hand.hand_data?.players?.find((p) => p.isHero)?.netResult ?? 0);
+                          const rowHeroCards = getHeroCards(hand);
+                          const rowBoardCards = getBoards(hand)[0]?.cards || [];
                           return (
                             <button
                               key={hand.id}
@@ -2814,6 +3145,40 @@ export default function PersonalAssistantReviewPage() {
                                   {formatSignedChips(heroNet)}
                                 </span>
                               </span>
+                              {(rowHeroCards.length > 0 || rowBoardCards.length > 0) && (
+                                <span className={styles.handRowCardsStage}>
+                                  {rowHeroCards.length > 0 && (
+                                    <span className={styles.handRowCardGroup} aria-label="Your Hand">
+                                      <span className={styles.handRowCardLabel}>Your Hand</span>
+                                      <span className={styles.arenaCardRow}>
+                                        {rowHeroCards.map((c, idx) => (
+                                          <ArenaMiniCard
+                                            key={`list-h-${hand.id}-${idx}`}
+                                            card={c}
+                                            size="xs"
+                                            overlapped={idx > 0}
+                                            overlapTight={rowHeroCards.length >= 4}
+                                          />
+                                        ))}
+                                      </span>
+                                    </span>
+                                  )}
+                                  {rowBoardCards.length > 0 && (
+                                    <span className={styles.handRowCardGroup} aria-label="Board">
+                                      <span className={styles.handRowCardLabel}>Board</span>
+                                      <span className={styles.arenaCardRow}>
+                                        {rowBoardCards.slice(0, 5).map((c, idx) => (
+                                          <ArenaMiniCard
+                                            key={`list-b-${hand.id}-${idx}`}
+                                            card={c}
+                                            size="xs"
+                                          />
+                                        ))}
+                                      </span>
+                                    </span>
+                                  )}
+                                </span>
+                              )}
                               <span className={styles.handRowMeta}>
                                 <span>{hand.small_blind}/{hand.big_blind}</span>
                                 <span>·</span>
@@ -2970,19 +3335,16 @@ export default function PersonalAssistantReviewPage() {
                             <span className={styles.heroCardsLabel}>
                               Your Hole Cards ({selectedHeroCards.length}-Card {selectedVariantInfo.label})
                             </span>
-                            <div className={styles.cardsGroup}>
-                              {selectedHeroCards.map((c, cIdx) => {
-                                const tok = formatCardToken(c);
-                                return (
-                                  <span
-                                    key={`hero-card-${cIdx}`}
-                                    data-pa-verbatim="true"
-                                    className={`${styles.cardChip} ${selectedHeroCards.length >= 5 ? styles.cardChipMulti : ''} ${tok.red ? styles.cardRed : ''}`}
-                                  >
-                                    {tok.text}
-                                  </span>
-                                );
-                              })}
+                            <div className={styles.arenaCardRow}>
+                              {selectedHeroCards.map((c, cIdx) => (
+                                <ArenaMiniCard
+                                  key={`hero-card-${cIdx}`}
+                                  card={c}
+                                  size={selectedHeroCards.length >= 5 ? 'md' : 'lg'}
+                                  overlapped={cIdx > 0 && selectedHeroCards.length >= 4}
+                                  overlapTight={selectedHeroCards.length >= 5}
+                                />
+                              ))}
                             </div>
                           </div>
                         )}
@@ -3057,18 +3419,15 @@ export default function PersonalAssistantReviewPage() {
                                           {activeStep.label} {board.label}:
                                         </span>
                                         {board.cards.length > 0 ? (
-                                          board.cards.map((c, cIdx) => {
-                                            const tok = formatCardToken(c);
-                                            return (
-                                              <span
+                                          <div className={styles.arenaCardRow}>
+                                            {board.cards.map((c, cIdx) => (
+                                              <ArenaMiniCard
                                                 key={`rep-b${board.index}-c-${cIdx}`}
-                                                data-pa-verbatim="true"
-                                                className={`${styles.cardChip} ${tok.red ? styles.cardRed : ''}`}
-                                              >
-                                                {tok.text}
-                                              </span>
-                                            );
-                                          })
+                                                card={c}
+                                                size="md"
+                                              />
+                                            ))}
+                                          </div>
                                         ) : (
                                           <span className={styles.panelCount}>No Community Cards Dealt</span>
                                         )}
@@ -3079,18 +3438,15 @@ export default function PersonalAssistantReviewPage() {
                                   <div className={styles.cardsGroup} aria-label={`${activeStep.label} Community Cards`}>
                                     <span className={styles.boardLabel}>{activeStep.label} Board:</span>
                                     {activeStep.boardCards.length > 0 ? (
-                                      activeStep.boardCards.map((c, cIdx) => {
-                                        const tok = formatCardToken(c);
-                                        return (
-                                          <span
+                                      <div className={styles.arenaCardRow}>
+                                        {activeStep.boardCards.map((c, cIdx) => (
+                                          <ArenaMiniCard
                                             key={`rep-c-${cIdx}`}
-                                            data-pa-verbatim="true"
-                                            className={`${styles.cardChip} ${tok.red ? styles.cardRed : ''}`}
-                                          >
-                                            {tok.text}
-                                          </span>
-                                        );
-                                      })
+                                            card={c}
+                                            size="md"
+                                          />
+                                        ))}
+                                      </div>
                                     ) : (
                                       <span className={styles.panelCount}>No Community Cards Dealt</span>
                                     )}
@@ -3173,18 +3529,15 @@ export default function PersonalAssistantReviewPage() {
                                 <div key={`board-${boardNumber}`} className={styles.boardRow}>
                                   <div className={styles.cardsGroup}>
                                     <span className={styles.boardLabel}>{board.label || `Board ${boardNumber}`}</span>
-                                    {(board.cards || []).map((c, cIdx) => {
-                                      const tok = formatCardToken(c);
-                                      return (
-                                        <span
+                                    <div className={styles.arenaCardRow}>
+                                      {(board.cards || []).map((c, cIdx) => (
+                                        <ArenaMiniCard
                                           key={`b${boardNumber}-c${cIdx}`}
-                                          data-pa-verbatim="true"
-                                          className={`${styles.cardChip} ${tok.red ? styles.cardRed : ''}`}
-                                        >
-                                          {tok.text}
-                                        </span>
-                                      );
-                                    })}
+                                          card={c}
+                                          size="md"
+                                        />
+                                      ))}
+                                    </div>
                                   </div>
                                   {boardWins.length > 0 && (
                                     <div className={styles.boardWinner}>
@@ -3236,21 +3589,24 @@ export default function PersonalAssistantReviewPage() {
                                   </div>
                                   <div className={styles.cardsGroup}>
                                     {cards.length > 0 ? (
-                                      cards.map((c, cIdx) => {
-                                        const tok = formatCardToken(c);
-                                        return (
-                                          <span
+                                      <div className={styles.arenaCardRow}>
+                                        {cards.map((c, cIdx) => (
+                                          <ArenaMiniCard
                                             key={`p${pIdx}-c${cIdx}`}
-                                            data-pa-verbatim="true"
-                                            className={`${styles.cardChip} ${cards.length >= 5 ? styles.cardChipMulti : ''} ${tok.red ? styles.cardRed : ''}`}
-                                          >
-                                            {tok.text}
-                                          </span>
-                                        );
-                                      })
+                                            card={c}
+                                            size="sm"
+                                            overlapped={cIdx > 0 && cards.length >= 4}
+                                            overlapTight={cards.length >= 5}
+                                          />
+                                        ))}
+                                      </div>
                                     ) : (
-                                      <span className={`${styles.cardChip} ${styles.cardHidden}`} aria-label="Hidden Cards">
-                                        Hidden
+                                      <span className={styles.hiddenCardsCluster} aria-label="Hidden Cards">
+                                        <span className={styles.arenaCardRow}>
+                                          <ArenaMiniCardBack size="xs" />
+                                          <ArenaMiniCardBack size="xs" overlapped />
+                                        </span>
+                                        <span className={styles.hiddenCardsLabel}>Hidden</span>
                                       </span>
                                     )}
                                   </div>
@@ -3342,7 +3698,7 @@ export default function PersonalAssistantReviewPage() {
                               className={styles.tagInput}
                               value={customTagInput}
                               maxLength={MAX_TAG_LENGTH}
-                              placeholder="Add Custom Tag (e.g. Check-Raise)"
+                              placeholder="Add Custom Tag (Example: Check-Raise)"
                               onChange={(e) => setCustomTagInput(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {

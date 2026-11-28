@@ -68,7 +68,7 @@ test('stats labels completed legacy rows as a local archive with no rank or rewa
   assert.doesNotMatch(STATS, /\.eq\('status', 'completed'\)/);
   assert.match(STATS, /accuracyToPercent\(session\.accuracy, session\.score\)/);
   assert.doesNotMatch(STATS, /getPlaceholderStats|getPlaceholderLevelAccuracy/);
-  for (const preservedSignal of ['Local Practice History', 'Legacy Local Archive', 'No Verified Rank Or Reward', 'Local Score Total', 'Highest Local Level', 'Recent Trend', 'Focus Stations', 'Not A Ranked Score']) {
+  for (const preservedSignal of ['Local Practice History', 'LEGACY LOCAL ARCHIVE', 'No Verified Rank Or Reward', 'Local Score Total', 'Highest Local Level', 'Recent trend', 'Focus Stations', 'not a ranked score']) {
     assert.match(STATS, new RegExp(preservedSignal));
   }
   assert.doesNotMatch(STATS, /Diamonds earned|label="(?:Verified|Global) Rank"|label="Reward Earned"/);

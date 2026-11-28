@@ -38,7 +38,7 @@ const SEAT_POSITIONS = [
 function getHeatColor(ratio) {
     if (ratio === 0) return 'rgba(255,255,255,0.06)';
     if (ratio < 0.25) return 'rgba(59,130,246,0.35)'; // blue — light mistakes
-    if (ratio < 0.5) return 'rgba(245,158,11,0.45)'; // amber — moderate
+    if (ratio < 0.5) return 'rgba(255, 138, 61,0.45)'; // orange: moderate
     if (ratio < 0.75) return 'rgba(239,68,68,0.55)'; // red — heavy
     return 'rgba(239,68,68,0.8)'; // dark red — critical
 }
@@ -46,7 +46,7 @@ function getHeatColor(ratio) {
 function getBorderColor(ratio) {
     if (ratio === 0) return 'rgba(255,255,255,0.1)';
     if (ratio < 0.25) return 'rgba(59,130,246,0.5)';
-    if (ratio < 0.5) return 'rgba(245,158,11,0.6)';
+    if (ratio < 0.5) return 'rgba(255, 138, 61,0.6)';
     if (ratio < 0.75) return 'rgba(239,68,68,0.6)';
     return 'rgba(239,68,68,0.9)';
 }
@@ -112,26 +112,26 @@ export default function PositionWeaknessHeatmap({ mistakes, totalAnswers, showCu
 
     return (
         <div style={{
-            background: 'rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 12,
-            padding: '14px 12px 10px',
+            border: '3px solid transparent',
+            borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
+            background: 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)',
+            padding: '12px 12px 10px',
             marginBottom: 16,
         }}>
             <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8,
             }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5 }}>
-                    {'\uD83D\uDD25'} POSITION WEAKNESS MAP
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#86daff', letterSpacing: 0.4, fontFamily: "var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif" }}>
+                    Position Weakness Map
                 </span>
                 {hasBothViews && (
                     <button
                         onClick={() => setViewMode(v => v === 'session' ? 'alltime' : 'session')}
                         style={{
                             padding: '2px 8px', fontSize: 12, fontWeight: 700, letterSpacing: 0.5,
-                            background: viewMode === 'alltime' ? 'rgba(168,139,250,0.2)' : 'rgba(255,255,255,0.06)',
-                            border: `1px solid ${viewMode === 'alltime' ? 'rgba(168,139,250,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                            borderRadius: 10, color: viewMode === 'alltime' ? '#A78BFA' : 'rgba(255,255,255,0.4)',
+                            background: viewMode === 'alltime' ? 'rgba(25, 129, 236,0.2)' : 'rgba(255,255,255,0.06)',
+                            border: `1px solid ${viewMode === 'alltime' ? 'rgba(25, 129, 236,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                            borderRadius: 10, color: viewMode === 'alltime' ? '#86daff' : 'rgba(255,255,255,0.4)',
                             cursor: 'pointer', transition: 'all 0.2s',
                         }}
                     >
@@ -199,11 +199,14 @@ export default function PositionWeaknessHeatmap({ mistakes, totalAnswers, showCu
             {/* Legend */}
             <div style={{
                 display: 'flex', justifyContent: 'center', gap: 12, marginTop: 4,
-                fontSize: 12, color: 'rgba(255,255,255,0.35)',
+                fontSize: 12, color: '#bdd0e2',
             }}>
-                <span>{'\uD83D\uDFE2'} Clean</span>
-                <span>{'\uD83D\uDFE1'} Weak</span>
-                <span>{'\uD83D\uDD34'} Leaking</span>
+                {[['Clean', '#39e9a5'], ['Weak', '#ff8a3d'], ['Leaking', '#ff5c74']].map(([name, dot]) => (
+                    <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <i aria-hidden="true" style={{ width: 9, height: 9, borderRadius: '50%', background: dot, display: 'inline-block' }} />
+                        {name}
+                    </span>
+                ))}
             </div>
         </div>
     );

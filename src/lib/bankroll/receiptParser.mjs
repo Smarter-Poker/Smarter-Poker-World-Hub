@@ -132,7 +132,11 @@ export function toLines(rawText) {
 export function moneyOn(line) {
     const out = [];
     const text = String(line || '');
-    const re = /(\$\s?)?(\d{1,3}(?:,\d{3})+|\d+)(\.(\d{2}))?/g;
+    // Bounded on both sides. Without the lookbehind and the lookahead the
+    // phone number "702.693.7111" printed under a casino's name read as two
+    // amounts, 702.69 and 3.71, and "12.345" read as 12.34: a header line
+    // becoming the "largest amount" files a receipt for the wrong money.
+    const re = /(?<!\d|\d[.,])(\$\s?)?(\d{1,3}(?:,\d{3})+|\d+)(\.(\d{2}))?(?!\d|[.,]\d)/g;
     let m;
     while ((m = re.exec(text)) !== null) {
         const hasSymbol = Boolean(m[1]);
@@ -149,8 +153,18 @@ const MONTHS = {
     JUL: 7, AUG: 8, SEP: 9, OCT: 10, NOV: 11, DEC: 12,
 };
 
+/** Days in a month of a year, leap years included. */
+function daysIn(y, m) {
+    return new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
+/**
+ * A real calendar day, or null. "02/30/2026" is not a day, and filing a
+ * session on it put it nowhere on any chart: the ledger refuses it or a
+ * browser rolls it into March, depending on which code read it first.
+ */
 function iso(y, m, d) {
-    if (!(y >= 1990 && y <= 2100) || !(m >= 1 && m <= 12) || !(d >= 1 && d <= 31)) return null;
+    if (!(y >= 1990 && y <= 2100) || !(m >= 1 && m <= 12) || !(d >= 1 && d <= daysIn(y, m))) return null;
     return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
@@ -170,7 +184,10 @@ export function dateOn(line) {
     const slash = text.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/);
     if (slash) {
         const year = slash[3].length === 2 ? 2000 + Number(slash[3]) : Number(slash[3]);
-        return iso(year, +slash[1], +slash[2]);
+        // US order first, because these rooms print it. A first number that
+        // cannot be a month ("27/11/2026", a European folio) can only be a day.
+        return iso(year, +slash[1], +slash[2])
+            || (+slash[1] > 12 ? iso(year, +slash[2], +slash[1]) : null);
     }
 
     const named = text.toUpperCase().match(/\b([A-Z]{3})[A-Z]*\.?\s+(\d{1,2}),?\s+(\d{4})\b/);
@@ -516,7 +533,13 @@ export function parseReceiptText(rawText, options = {}) {
     } else if (documentType === 'paystub') {
         out.amount = amountFor(lines, ['NET PAY', 'GROSS PAY', 'TOTAL']) ?? largestAmount(lines);
     } else if (documentType === 'expense') {
-        out.amount = amountFor(lines, ['GRAND TOTAL', 'AMOUNT DUE', 'BALANCE DUE', 'TOTAL', 'AMOUNT']) ?? largestAmount(lines);
+        // "TOTAL TAX 8.00" is printed above "TOTAL DUE 108.00" on plenty of
+        // folios, and a bare TOTAL label took the tax line: a 108 dinner filed
+        // as 8. The explicit totals are asked for first; a bare TOTAL never
+        // comes from a line that is about tax, tip or a discount.
+        out.amount = amountFor(lines, ['GRAND TOTAL', 'AMOUNT DUE', 'BALANCE DUE', 'TOTAL DUE', 'TOTAL CHARGES', 'TOTAL AMOUNT'])
+            ?? amountFor(lines, ['TOTAL', 'AMOUNT'], { notWith: ['TAX', 'TIP', 'GRATUITY', 'DISCOUNT', 'SAVINGS'] })
+            ?? largestAmount(lines);
         out.category = findExpenseCategory(lines);
     } else {
         out.amount = largestAmount(lines);

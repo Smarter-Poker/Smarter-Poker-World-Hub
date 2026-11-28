@@ -436,6 +436,37 @@ export function partitionForBulkFiling(receipts) {
     return { willFile, willKeep };
 }
 
+/**
+ * The ledger entry that already carries this receipt's image, or null.
+ *
+ * "File All Suggested" creates an entry and THEN marks the receipt assigned.
+ * When the mark failed (a dropped connection between the two writes) the
+ * receipt stayed in Receipts Waiting with its suggestion intact, and the next
+ * tap filed it a second time: a doubled buy-in. An entry that already holds
+ * the image IS the filing, so the receipt is marked against it instead.
+ */
+export function entryHoldingImage(entries, imageUrl) {
+    if (!imageUrl || !Array.isArray(entries)) return null;
+    return entries.find((e) => e && Array.isArray(e.media_urls) && e.media_urls.includes(imageUrl)) || null;
+}
+
+/**
+ * Rule 2 for the bulk path: the receipt whose venue names the trip that has
+ * to be started, or null when no trip is needed.
+ *
+ * The single-receipt sheet already started a trip for a buy-in when none was
+ * active. "File All Suggested" did not, so five buy-ins filed in one tap
+ * landed on no trip at all - the one outcome Dan's rule says can never happen.
+ */
+export function receiptNeedingTrip(receipts, activeTrip) {
+    if (activeTrip) return null;
+    return (Array.isArray(receipts) ? receipts : []).find((r) => {
+        const route = r && r.route;
+        return route && route.destination === DESTINATIONS.SESSION
+            && route.prefill && route.prefill.entryKind !== 'cashout';
+    }) || null;
+}
+
 function toNumber(value) {
     if (value === null || value === undefined || value === '') return null;
     const n = typeof value === 'number' ? value : parseFloat(String(value).replace(/[^0-9.-]/g, ''));

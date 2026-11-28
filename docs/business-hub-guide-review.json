@@ -9,8 +9,8 @@
     "pages/about.js": "7faeeaaf526c118a357ca41603c7f4293ac8094f3a521fe2ed03131c0e01a22b",
     "src/lib/businessHubJourney.mjs": "8adb19909591e0fdeee08d744e61287f28ff6cd42d0d104010f36da5a9b6b174",
     "pages/hub/commander/index.js": "7157da8adece8f9adc1a54b9b628308aa2c409e32f433eed70bcca0a56ac28b7",
-    "pages/hub/bankroll-manager.js": "bec8ed3c418609a6fd6ff0d18f48444261de436e290f64b907b1406edbdcbd89",
+    "pages/hub/bankroll-manager.js": "9b6d1b91a56a0e8149957a9cd91afcd8c638d0a36cc35244f02be9c4c95c887a",
     "pages/hub/training.js": "11b9723ac7c6b2ec7364e768fc8c2656409b1fb09f808de571a3883e7c879a09",
-    "pages/hub/poker-near-me/lobby.js": "5635e588762d9ef4c4e66c11332630cbfe0305c4b4038860485a3a0c26d8b0ca"
+    "pages/hub/poker-near-me/lobby.js": "e6ba841f9521ff203c1a7f087f4c0575707610aca48d342fffcb11dd17294e1d"
   }
 }

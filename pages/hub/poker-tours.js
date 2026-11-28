@@ -13,6 +13,7 @@ import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUt
 import TourCard from '../../src/components/poker-series/TourCard';
 import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../src/components/poker-near-me/PokerNearMeConsole';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PnmImageHeader from '../../src/components/poker-near-me/PnmImageHeader';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
@@ -59,18 +60,18 @@ function safeHref(url) {
 
 // ─── Tour Colors (matching TourCard.js) ───
 const TOUR_COLORS = {
-    'WSOP': { bg: 'linear-gradient(135deg, #38bdf8, #8b6914)', text: '#000', border: '#38bdf8', fill: '#38bdf8' },
+    'WSOP': { bg: 'linear-gradient(135deg, #38bdf8, #14638b)', text: '#000', border: '#38bdf8', fill: '#38bdf8' },
     'WPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#dc2626', fill: '#dc2626' },
-    'WSOPC': { bg: 'linear-gradient(135deg, #38bdf8, #8b6914)', text: '#000', border: '#38bdf8', fill: '#38bdf8' },
+    'WSOPC': { bg: 'linear-gradient(135deg, #38bdf8, #14638b)', text: '#000', border: '#38bdf8', fill: '#38bdf8' },
     'MSPT': { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6', fill: '#3b82f6' },
     'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981', fill: '#10b981' },
-    'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6', fill: '#8b5cf6' },
+    'PGT': { bg: 'linear-gradient(135deg, #2f7fe0, #2184b6)', text: '#fff', border: '#4f9cff', fill: '#4f9cff' },
     'TRITON': { bg: 'linear-gradient(135deg, #0891b2, #0e7490)', text: '#fff', border: '#06b6d4', fill: '#06b6d4' },
     'NAPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#f87171', fill: '#f87171' },
     'CPPT': { bg: 'linear-gradient(135deg, #0f766e, #134e4a)', text: '#fff', border: '#2dd4bf', fill: '#2dd4bf' },
     'FPN': { bg: 'linear-gradient(135deg, #4338ca, #312e81)', text: '#fff', border: '#818cf8', fill: '#818cf8' },
-    'LIPS': { bg: 'linear-gradient(135deg, #be185d, #831843)', text: '#fff', border: '#ec4899', fill: '#ec4899' },
-    'ROUGHRIDER': { bg: 'linear-gradient(135deg, #854d0e, #713f12)', text: '#fff', border: '#d97706', fill: '#d97706' },
+    'LIPS': { bg: 'linear-gradient(135deg, #1887be, #185f83)', text: '#fff', border: '#5aa9ff', fill: '#5aa9ff' },
+    'ROUGHRIDER': { bg: 'linear-gradient(135deg, #0e5d85, #125171)', text: '#fff', border: '#5fb8ec', fill: '#5fb8ec' },
     'PAT': { bg: 'linear-gradient(135deg, #15803d, #166534)', text: '#fff', border: '#22c55e', fill: '#22c55e' },
     'GCPT': { bg: 'linear-gradient(135deg, #0e7490, #155e75)', text: '#fff', border: '#06b6d4', fill: '#06b6d4' },
     'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563', fill: '#6b7280' }
@@ -79,10 +80,10 @@ const TOUR_COLORS = {
 const TOUR_TYPE_INFO = {
     major: { label: 'Major Tour', color: '#38bdf8' },
     circuit: { label: 'Circuit', color: '#3b82f6' },
-    high_roller: { label: 'High Roller', color: '#8b5cf6' },
+    high_roller: { label: 'High Roller', color: '#4f9cff' },
     regional: { label: 'Regional', color: '#10b981' },
     grassroots: { label: 'Grassroots', color: '#38bdf8' },
-    charity: { label: 'Charity', color: '#ec4899' },
+    charity: { label: 'Charity', color: '#5aa9ff' },
 };
 
 function formatMoney(amount) {
@@ -860,8 +861,8 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                 />
 
                 {/* ═══ PAGE TITLE ═══ */}
-                <div className="pnm-title-bar">
-                    <h1 className="pnm-title">POKER TOURS</h1>
+                <div className="pnm-title-bar pnm-sd-titlebar">
+                    <div className="smarterdesign"><PnmImageHeader route="tours" /></div>
                     <p className="pnm-subtitle">{tours.length} Tours &bull; {availableTypes.length} Types &bull; 2026 Season</p>
 
                     {/* ═══ MAIN SEARCH BAR + DATE DROPDOWN ═══ */}
@@ -872,7 +873,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                                 ref={searchInputRef}
                                 type="text"
                                 className="tours-search-bar-input"
-                                placeholder="Search Tours, Venues, Cities, States... (Ctrl+K)"
+                                placeholder="Search Tours, Venues Or Cities"
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
                                 onFocus={() => setSearchFocused(true)}
@@ -1919,10 +1920,6 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         align-items: center;
                         justify-content: center;
                         padding: 0 16px;
-                        border: 0;
-                        border-radius: 0;
-                        background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / 100% 100% no-repeat;
-                        box-shadow: none;
                         color: #e4e7ec;
                         font-size: 12px;
                         font-weight: 800;
@@ -1930,6 +1927,12 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         text-decoration: none;
                         text-shadow: 0 1px 0 #050607, 0 2px 4px rgba(0,0,0,0.85);
                         text-transform: uppercase;
+                        border: 3px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+                        background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box;
+                        border-radius: 0;
+                        box-shadow: none;
+                        color: #f2f7ff;
                     }
                     .tour-action-btn:active {
                         filter: brightness(1.2);
@@ -1939,11 +1942,15 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         outline-offset: -6px;
                     }
                     .tour-action-btn.primary {
-                        background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
-                        border: 0;
                         color: #f4f7fb;
                         font-weight: 800;
                         text-shadow: 0 0 8px rgba(140,210,255,0.85), 0 2px 4px rgba(0,0,0,0.7);
+                        border: 3px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch;
+                        background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box;
+                        border-radius: 0;
+                        box-shadow: none;
+                        color: #ffffff;
                     }
 
                     /* Favorite Button */
@@ -2036,7 +2043,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         inset: 0;
                         background:
                             radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
-                            radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                            radial-gradient(ellipse at 80% 80%, rgba(79,156,255, 0.08) 0%, transparent 50%),
                             radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
                             linear-gradient(180deg, #020408 0%, #0a1628 30%, #0d1b2a 50%, #0a1628 70%, #020408 100%);
                         z-index: -2;

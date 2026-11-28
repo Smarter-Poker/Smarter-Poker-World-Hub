@@ -25,7 +25,7 @@ import dynamic from 'next/dynamic';
 import { Camera, Upload, X, Loader2, Check, RefreshCw, Scan, Shield, AlertTriangle, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser, getFreshAccessToken, ensureAuthReady } from '../../lib/authUtils';
-import { uploadBankrollImage, isRetryableUploadError } from '../../lib/bankroll/receiptStorage';
+import { uploadBankrollImage, isRetryableUploadError, removeBankrollObject } from '../../lib/bankroll/receiptStorage';
 import { holdScan, heldRecord, shouldHold } from '../../lib/bankroll/receiptHold.mjs';
 import { downscaleForOcr } from '../../lib/docscan/imageSource';
 import { readText, releaseOcr, OcrUnavailableError } from '../../lib/docscan/ocr.mjs';
@@ -35,7 +35,6 @@ import { perceptualHash } from '../../lib/bankroll/receiptHash.mjs';
 import {
     normaliseScan, routeScan, DOC_TYPE_LABELS, DOC_TYPES,
 } from '../../lib/bankroll/receiptRouting.mjs';
-import { eventBus, EventType } from '../../engine/EventBus';
 import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
 
 // The scanner pulls in the whole image-processing pipeline and its worker, so
@@ -70,6 +69,13 @@ export default function ReceiptScanner({
     resumeScan = null,
     /** Told when a scan could not be sent and was written to the device. */
     onHeld,
+    /**
+     * Told when a save failed for a reason a retry will not fix (signed out,
+     * permission refused). The off-screen sender has nobody to press Retry,
+     * so without this it sat mounted forever and no other held scan was ever
+     * sent again.
+     */
+    onUploadFailed,
     /**
      * Confirm the scan as soon as it has uploaded and been read, with no tap.
      *
@@ -116,8 +122,11 @@ export default function ReceiptScanner({
     // also downloads the engine, which is worth showing rather than leaving
     // the user looking at a still screen.
     const [ocrProgress, setOcrProgress] = useState(null);
-    const [verified, setVerified] = useState(false);
-    const [verifying, setVerifying] = useState(false);
+    // The scan was handed to the page, which writes its bankroll_receipts row.
+    // Until then an UPLOADED scan is still unlisted: nothing on the dashboard
+    // knows it exists, so leaving now abandons it as surely as leaving before
+    // the upload did.
+    const [handedOver, setHandedOver] = useState(false);
 
     const fileInputRef = useRef(null);
     const previewUrlRef = useRef(null);
@@ -146,7 +155,7 @@ export default function ReceiptScanner({
      * pocket. So an unsaved scan is unrecoverable work, and every route out of
      * this component has to say so rather than silently binning it.
      */
-    const hasUnsavedScan = Boolean(approvedScan) && !uploadedUrl;
+    const hasUnsavedScan = Boolean(approvedScan || uploadedUrl) && !handedOver && !heldOnDevice;
 
     useEffect(() => {
         if (onPendingChange) onPendingChange(hasUnsavedScan);
@@ -163,10 +172,10 @@ export default function ReceiptScanner({
     const confirmDiscard = useCallback(() => {
         if (!hasUnsavedScan) return true;
         if (typeof window === 'undefined') return true;
-        return window.confirm(
-            'This Scan Has Not Been Saved Yet. The Receipt Image Will Be Lost. Discard It?',
-        );
-    }, [hasUnsavedScan]);
+        return window.confirm(uploadedUrl
+            ? 'This Receipt Is Not In Receipts Waiting Yet. Tap Save Receipt To Keep It. Discard It Instead?'
+            : 'This Scan Has Not Been Saved Yet. The Receipt Image Will Be Lost. Discard It?');
+    }, [hasUnsavedScan, uploadedUrl]);
 
     const computeConfidence = useCallback((data) => {
         if (!data) return 0;
@@ -203,12 +212,16 @@ export default function ReceiptScanner({
     const holdForLater = useCallback(async (scan, reason) => {
         try {
             const hash = await perceptualHash(scan.blob).catch(() => null);
+            // A held scan that failed again goes back under ITS OWN id. A new
+            // id made a second copy of the same photograph on every failed
+            // send, and each copy was later filed as its own receipt.
             const { held, dropped } = await holdScan(heldRecord({
+                id: scan.holdId || undefined,
                 userId,
                 blob: scan.blob,
                 mime: scan.blob.type || 'image/jpeg',
                 imageHash: hash,
-                capturedAt: Date.now(),
+                capturedAt: scan.capturedAt || Date.now(),
             }));
             if (!mountedRef.current) return true;
             setHeldOnDevice(true);
@@ -254,6 +267,7 @@ export default function ReceiptScanner({
         if (!uid || !accessToken) {
             setError('SIGN IN REQUIRED');
             setIsUploading(false);
+            if (typeof onUploadFailed === 'function') onUploadFailed({ reason: 'signed-out' });
             return;
         }
 
@@ -284,7 +298,6 @@ export default function ReceiptScanner({
 
                 // Only now is the previously saved receipt replaced.
                 setUploadedUrl(publicUrl);
-                setVerified(false);
                 setError(null);
                 imageHashRef.current = await hashPromise;
                 await ocrPromise;
@@ -317,9 +330,10 @@ export default function ReceiptScanner({
             );
             setIsUploading(false);
         }
+        if (typeof onUploadFailed === 'function') onUploadFailed({ reason: 'upload-failed' });
         // runOcr is stable.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userId, holdForLater]);
+    }, [userId, holdForLater, onUploadFailed]);
 
     const runOcr = useCallback(async (blob, accessToken) => {
         try {
@@ -435,15 +449,35 @@ export default function ReceiptScanner({
     }, [uploadApprovedScan]);
 
     // A held scan comes back in through the SAME door a fresh one does.
+    // Each held record is sent ONCE per mount. Without this the sender, which
+    // stays mounted until the page has written the row, saw an empty scanner
+    // after Confirm and uploaded the same photograph a second time.
+    const resumedRef = useRef(null);
     useEffect(() => {
         if (!resumeScan || !resumeScan.blob || approvedScan || uploadedUrl) return;
+        if (resumedRef.current === resumeScan) return;
+        resumedRef.current = resumeScan;
         if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
         const previewUrl = URL.createObjectURL(resumeScan.blob);
         previewUrlRef.current = previewUrl;
         setHeldOnDevice(false);
-        setApprovedScan({ blob: resumeScan.blob, ocrBlob: resumeScan.blob, previewUrl, width: null, height: null });
-        // The effect below this one is what uploads whatever approvedScan holds.
-    }, [resumeScan, approvedScan, uploadedUrl]);
+        const approved = {
+            blob: resumeScan.blob,
+            ocrBlob: resumeScan.blob,
+            previewUrl,
+            width: null,
+            height: null,
+            holdId: resumeScan.id || null,
+            capturedAt: resumeScan.capturedAt || null,
+        };
+        setApprovedScan(approved);
+        // And SEND it. Until 2026-11-27 this effect only put the photograph on
+        // screen and a comment claimed another effect uploaded it; none did.
+        // Every held scan - pressed Send or sent automatically - sat on a
+        // blank sheet forever, and the automatic sender never let go, so no
+        // other held scan was sent either.
+        uploadApprovedScan(approved);
+    }, [resumeScan, approvedScan, uploadedUrl, uploadApprovedScan]);
 
     /**
      * A HELD SCAN CONFIRMS ITSELF, ONCE.
@@ -483,6 +517,8 @@ export default function ReceiptScanner({
     }, [openScanner]);
 
     const resetScanner = useCallback(() => {
+        setHandedOver(false);
+        setHeldOnDevice(false);
         if (previewUrlRef.current) {
             URL.revokeObjectURL(previewUrlRef.current);
             previewUrlRef.current = null;
@@ -494,8 +530,6 @@ export default function ReceiptScanner({
         setScanKind(null);
         setTypeOverridden(false);
         setConfidenceScore(null);
-        setVerified(false);
-        setVerifying(false);
         setError(null);
         setScannerSeed(null);
         setScannerOpen(false);
@@ -506,14 +540,18 @@ export default function ReceiptScanner({
     /** Discard, but only after the user has been told what it costs. */
     const requestReset = useCallback(() => {
         if (!confirmDiscard()) return;
+        // An uploaded scan the player chose to throw away is never listed, so
+        // its image would sit in storage with nothing pointing at it.
+        if (uploadedUrl && !handedOver) removeBankrollObject(supabase, uploadedUrl);
         resetScanner();
-    }, [confirmDiscard, resetScanner]);
+    }, [confirmDiscard, resetScanner, uploadedUrl, handedOver]);
 
     // handleConfirm is declared below the auto-confirm effect, so the effect
     // reaches it through a ref rather than the file being reordered around it.
     const handleConfirmRef = useRef(() => {});
     const handleConfirm = useCallback(() => {
         if (uploadedUrl && onScanComplete) {
+            setHandedOver(true);
             onScanComplete({
                 imageUrl: uploadedUrl,
                 extractedData,
@@ -536,23 +574,8 @@ export default function ReceiptScanner({
     // above calls the handler that has today's extractedData in it.
     handleConfirmRef.current = handleConfirm;
 
-    const handleVerifyLock = async () => {
-        setVerifying(true);
-        try {
-            setVerified(true);
-            eventBus.emit(EventType.SESSION_END, {
-                source: 'ReceiptScanner',
-                action: 'receipt_verified',
-                confidence: confidenceScore,
-            }, 'ReceiptScanner');
-        } catch (e) {
-            console.warn('[ReceiptScanner] Verify error:', e);
-        } finally {
-            setVerifying(false);
-        }
-    };
-
     const idle = !approvedScan && !uploadedUrl && !isUploading;
+    const heldPanel = heldOnDevice && !isUploading && !uploadedUrl;
 
     return (
         <div style={styles.container}>
@@ -653,6 +676,29 @@ export default function ReceiptScanner({
                 </div>
             )}
 
+            {/* Held on the device. Until 2026-11-27 this state was set and
+                never drawn: the sheet went blank under a NEW SCAN button that
+                then warned the held photograph would be lost. */}
+            {heldPanel && (
+                <div style={styles.heldPanel} role="status" data-testid="scan-held-on-device">
+                    {approvedScan && (
+                        <img src={approvedScan.previewUrl} alt="Scan held on this device" style={styles.scanningImage} />
+                    )}
+                    <div style={styles.heldTitle}>
+                        <Shield size={16} />
+                        <span>SAVED ON THIS DEVICE</span>
+                    </div>
+                    <p style={styles.errorHint}>
+                        No Signal Right Now. It Is Sent And Listed Under Receipts Waiting As Soon As You Are Back Online.
+                    </p>
+                    <div style={styles.errorActions}>
+                        <button onClick={resetScanner} style={styles.confirmBtn} type="button">
+                            <Camera size={14} /> SCAN ANOTHER
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {ocrProgress !== null && (
                 <div style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -687,18 +733,6 @@ export default function ReceiptScanner({
                             </div>
                         );
                     })()}
-
-                    {verified && (
-                        <div style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            gap: 6, padding: '6px 12px',
-                            background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
-                            borderRadius: 20, width: 'fit-content', margin: '0 auto 16px',
-                        }}>
-                            <Shield size={12} style={{ color: '#4ade80' }} />
-                            <span style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 12, fontWeight: 800, color: '#4ade80', letterSpacing: '0.1em' }}>VERIFIED & LOCKED</span>
-                        </div>
-                    )}
 
                     <div style={styles.previewContainer}>
                         {/* The saved scan, not the source photograph. */}
@@ -787,26 +821,10 @@ export default function ReceiptScanner({
                     )}
 
                     <div style={styles.actions}>
-                        <button onClick={resetScanner} style={styles.cancelBtn} type="button">
+                        <button onClick={requestReset} style={styles.cancelBtn} type="button">
                             <X size={14} />
                             DISCARD
                         </button>
-                        {!verified && confidenceScore !== null && confidenceScore < 75 && (
-                            <button
-                                onClick={handleVerifyLock}
-                                disabled={verifying}
-                                type="button"
-                                style={{
-                                    ...styles.confirmBtn,
-                                    background: 'linear-gradient(135deg, #4795f3, #2563a8)',
-                                    color: '#fff',
-                                    flex: 1,
-                                }}
-                            >
-                                <Shield size={14} />
-                                {verifying ? 'VERIFYING...' : 'VERIFY & LOCK'}
-                            </button>
-                        )}
                         <button onClick={handleConfirm} style={styles.confirmBtn} type="button">
                             <Check size={14} />
                             SAVE RECEIPT
@@ -1012,6 +1030,27 @@ const styles = {
         color: METAL.textSecondary,
     },
     errorActions: { display: 'flex', gap: 10, width: '100%' },
+    heldPanel: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 10,
+        padding: 20,
+        margin: 16,
+        border: `1px solid ${METAL.primary}`,
+        borderRadius: 10,
+        textAlign: 'center',
+    },
+    heldTitle: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 15,
+        fontWeight: 700,
+        color: METAL.primary,
+        letterSpacing: '0.08em',
+    },
     errorBox: {
         display: 'flex',
         alignItems: 'center',

@@ -12,6 +12,8 @@
 .field input,.field select { width:100%; min-width:0; min-height:44px; padding:8px 10px; box-sizing:border-box; background:#06131f; border:1px solid #617b91; color:#f1f8ff; border-radius:4px; font:inherit; }
 .amount { display:flex; align-items:center; padding-inline:12px; background:#061421; border:1px solid #71b8f0; border-radius:4px; color:#afe3ff; font:700 31px/1.15 var(--sd-type,system-ui); }
 .amount input { border:0; background:transparent; font:inherit; }
+.adjustPreview { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 12px; margin:0; color:#a9c3d9; font-size:14px; }
+.adjustPreview strong { color:#edf6ff; font-variant-numeric:tabular-nums; }
 .actions { display:flex; align-items:stretch; flex-wrap:wrap; gap:8px; }
 .actions button { flex:1 1 120px; }
 .form :focus-visible,.tax :focus-visible { outline:2px solid #96dfff; outline-offset:2px; }

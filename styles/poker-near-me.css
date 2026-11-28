@@ -835,7 +835,7 @@
 .sidebar-gps-btn:active {
     background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(200,214,229,0.15) 100%);
     border-color: rgba(255,255,255,0.5);
-    color: #f0d48a;
+    color: #8acef0;
     transform: translateY(-1px);
     box-shadow: 0 4px 16px rgba(255,255,255,0.25);
 }
@@ -1200,7 +1200,7 @@
     inset: 0;
     background:
         radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(79,156,255, 0.08) 0%, transparent 50%),
         radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
         linear-gradient(180deg, #020408 0%, #0a1628 30%, #0d1b2a 50%, #0a1628 70%, #020408 100%);
     z-index: -2;
@@ -1666,7 +1666,7 @@
 }
 .vc3-badge-featured { background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(255,255,255,0.25); }
 .vc3-badge-newcomer { background: rgba(34,197,94,0.10); color: #4ade80; border-color: rgba(34,197,94,0.2); }
-.vc3-badge-promo { background: rgba(139,92,246,0.10); color: #a78bfa; border-color: rgba(139,92,246,0.2); }
+.vc3-badge-promo { background: rgba(79,156,255,0.10); color: #9fd3ff; border-color: rgba(79,156,255,0.2); }
 .vc3-badge-live {
     display: inline-flex; align-items: center; gap: 4px;
     background: rgba(239,68,68,0.12); color: #ef4444; border-color: rgba(239,68,68,0.3);
@@ -1890,8 +1890,8 @@
     color: #60a5fa;
 }
 .badge.tour-type {
-    background: rgba(139,92,246,0.2);
-    color: #a78bfa;
+    background: rgba(79,156,255,0.2);
+    color: #9fd3ff;
 }
 .badge.series-type {
     background: rgba(34,197,94,0.2);
@@ -1928,8 +1928,8 @@
     color: #60a5fa;
 }
 .tag.events {
-    background: rgba(139,92,246,0.15);
-    color: #a78bfa;
+    background: rgba(79,156,255,0.15);
+    color: #9fd3ff;
 }
 .tag.buyin {
     background: rgba(255,255,255,0.15);
@@ -2247,7 +2247,7 @@
 .map-preview-expand-badge:active {
     background: rgba(255,255,255,0.15);
     border-color: rgba(255,255,255,0.6);
-    color: #f0d48a;
+    color: #8acef0;
     box-shadow: 0 4px 24px rgba(255,255,255,0.2);
 }
 .venues-cards-section {
@@ -2467,9 +2467,9 @@
     border: 1px solid rgba(34,197,94,0.25);
 }
 .promo-badge {
-    background: rgba(139,92,246,0.15);
-    color: #a78bfa;
-    border: 1px solid rgba(139,92,246,0.25);
+    background: rgba(79,156,255,0.15);
+    color: #9fd3ff;
+    border: 1px solid rgba(79,156,255,0.25);
 }
 .tourney-badge {
     background: rgba(239,68,68,0.12);
@@ -2569,7 +2569,7 @@
     background: linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(200,214,229,0.10) 100%);
     border: 2px solid rgba(255,255,255,0.5);
     border-radius: 12px;
-    color: #f0d48a;
+    color: #8acef0;
     font-size: 15px;
     font-weight: 700;
     letter-spacing: 0.3px;
@@ -3588,7 +3588,7 @@
 .chip-dot.cash { background: #22c55e; }
 .chip-dot.mtt { background: #3b82f6; }
 .chip-dot.live { background: #ef4444; }
-.chip-dot.stakes { background: #f59e0b; }
+.chip-dot.stakes { background: #9fd8ff; }
 .chip-dot.rated { background: #ffffff; }
 
 /* Room List Below Map */
@@ -3922,7 +3922,7 @@
     transition: all 0.2s;
 }
 .view-mode-btn.active {
-    background: rgba(212, 168, 83, 0.2);
+    background: rgba(134,218,255, 0.2);
     color: #ffffff;
 }
 .view-mode-btn:hover:not(.active),
@@ -4544,7 +4544,7 @@ body.world-poker-near-me .pnm-filter-select.pnm-filter-select {
     align-items: center;
     gap: 12px;
     padding: 8px 12px 8px 20px;
-    border-bottom: 1px solid rgba(212,168,83,0.08);
+    border-bottom: 1px solid rgba(134,218,255,0.08);
 }
 .pnm-sheet__close {
     background: none;
