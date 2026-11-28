@@ -171,6 +171,7 @@ import './bankroll-export-download.test.mjs';
 import './bankroll-analytics-view.test.mjs';
 import './toke-tracker-pages.test.mjs';
 import './bankroll-live-suite.test.mjs';
+import './bankroll-write-live-suite.test.mjs';
 import './bankroll-phone-speed.test.mjs';
 import './bankroll-shell-wiring.test.mjs';
 import './bankroll-leak-view-honesty.test.mjs';

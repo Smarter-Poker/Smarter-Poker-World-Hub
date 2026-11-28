@@ -34,8 +34,8 @@ export default defineConfig({
       testMatch: /0.*\.spec\.ts/,
       // Channel SSR requires its own seeded provider. The mandatory footer job
       // runs it through videoLibraryChannelsBrowser.mjs after this same build.
-      // bankroll-live runs only against production, via its own config.
-      testIgnore: [/02[24]-world-menu-(visual|mobile-phase3)\.spec\.ts$/, /022-video-library-channels\.spec\.ts$/, /bankroll-live\.spec\.ts$/],
+      // bankroll-live and bankroll-write-live run only against production, via their own configs.
+      testIgnore: [/02[24]-world-menu-(visual|mobile-phase3)\.spec\.ts$/, /022-video-library-channels\.spec\.ts$/, /bankroll-live\.spec\.ts$/, /bankroll-write-live\.spec\.ts$/],
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'playwright/.auth/user.json',
@@ -47,8 +47,8 @@ export default defineConfig({
       testMatch: /0.*\.spec\.ts/,
       // Channel SSR requires its own seeded provider. The mandatory footer job
       // runs it through videoLibraryChannelsBrowser.mjs after this same build.
-      // bankroll-live runs only against production, via its own config.
-      testIgnore: [/02[24]-world-menu-(visual|mobile-phase3)\.spec\.ts$/, /022-video-library-channels\.spec\.ts$/, /bankroll-live\.spec\.ts$/],
+      // bankroll-live and bankroll-write-live run only against production, via their own configs.
+      testIgnore: [/02[24]-world-menu-(visual|mobile-phase3)\.spec\.ts$/, /022-video-library-channels\.spec\.ts$/, /bankroll-live\.spec\.ts$/, /bankroll-write-live\.spec\.ts$/],
       use: {
         ...devices['Pixel 5'],
         storageState: 'playwright/.auth/user.json',
