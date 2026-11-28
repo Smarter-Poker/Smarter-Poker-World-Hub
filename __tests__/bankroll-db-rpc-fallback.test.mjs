@@ -1,11 +1,12 @@
-// Wave 4 db lane: client code that works with or without the database change.
+// Wave 4 db lane: the Bankroll Manager's database functions (installed
+// 2026-11-28, supabase/migrations/20261128101635 and 20261128101707).
 //
 // 1. Toke Tracker preferences are saved through fn_profile_settings_set_key
-//    (one key merged in place) and fall back to the read-then-write update
-//    ONLY when PostgREST says the function does not exist.
-// 2. Dashboard totals come from fn_bankroll_totals and fall back to the paged
-//    client-side read ONLY on function-missing. The function's answer and the
-//    client-side computation map to the same BankrollStats.
+//    (one key merged in place). The PGRST202 fallback #3296 shipped for the
+//    hours before install is gone: every error is surfaced.
+// 2. Dashboard totals come from fn_bankroll_totals. Its answer and the
+//    client-side rules (totalsFromRows, periodStats) map to the same
+//    BankrollStats.
 //
 // The golden totals below were produced by the fn_bankroll_totals draft
 // itself, installed on a throwaway local PostgreSQL 16 and called as the
@@ -17,7 +18,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { isFunctionMissing, rpcOrFallback } from '../src/lib/bankroll/rpcFallback.mjs';
 import { saveTokePrefsToAccount, DEFAULT_TOKE_PREFS } from '../src/lib/bankroll/tokePrefs.mjs';
 import { diffTotals, readTotals, statsFromTotals, totalsFromRows } from '../src/lib/bankroll/bankrollTotals.mjs';
 import { periodStats } from '../src/lib/bankroll/bankrollStats.mjs';
@@ -28,30 +28,6 @@ const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 const MISSING = { data: null, status: 404, error: { code: 'PGRST202', message: 'Could not find the function public.fn_x in the schema cache' } };
 const DENIED = { data: null, status: 403, error: { code: '42501', message: 'permission denied for function fn_x' } };
-
-test('only PGRST202 or a bare 404 counts as a missing function', () => {
-  assert.equal(isFunctionMissing(MISSING), true);
-  assert.equal(isFunctionMissing({ status: 404, error: { message: 'Not Found' } }), true);
-  assert.equal(isFunctionMissing(DENIED), false);
-  assert.equal(isFunctionMissing({ status: 400, error: { code: '22023', message: 'invalid settings key' } }), false);
-  assert.equal(isFunctionMissing({ status: 404, error: { code: 'P0002', message: 'profile not found' } }), false);
-  assert.equal(isFunctionMissing({ status: 0, error: { message: 'Failed to fetch' } }), false);
-  assert.equal(isFunctionMissing({ status: 200, data: {}, error: null }), false);
-  assert.equal(isFunctionMissing(null), false);
-});
-
-test('rpcOrFallback uses the function, falls back on missing, throws everything else', async () => {
-  let fallbacks = 0;
-  const fallback = async () => { fallbacks += 1; return 'old path'; };
-  assert.deepEqual(await rpcOrFallback(async () => ({ data: 'new', error: null, status: 200 }), fallback), { data: 'new', via: 'rpc' });
-  assert.equal(fallbacks, 0);
-  assert.deepEqual(await rpcOrFallback(async () => MISSING, fallback), { data: 'old path', via: 'fallback' });
-  assert.equal(fallbacks, 1);
-  await assert.rejects(rpcOrFallback(async () => DENIED, fallback), (e) => e.code === '42501');
-  assert.equal(fallbacks, 1, 'a permission error is never answered by the old path');
-  await assert.rejects(rpcOrFallback(async () => { throw new Error('network'); }, fallback), /network/);
-  assert.equal(fallbacks, 1);
-});
 
 /** A supabase-js shaped fake: records every call, answers from `answers`. */
 function fakeClient(answers) {
@@ -74,48 +50,29 @@ function fakeClient(answers) {
   };
 }
 
-test('Toke prefs: the installed function saves one key and nothing is read or rewritten', async () => {
+test('Toke prefs: one key is saved by the function and nothing is read or rewritten', async () => {
   const client = fakeClient({ rpc: { data: { tokeTracker: {} }, error: null, status: 200 } });
-  const via = await saveTokePrefsToAccount(client, 'user-1', { downTimerAlerts: false });
-  assert.equal(via, 'rpc');
+  await saveTokePrefsToAccount(client, { downTimerAlerts: false });
   assert.deepEqual(client.calls, [{
     rpc: 'fn_profile_settings_set_key',
     args: { p_key: 'tokeTracker', p_value: { ...DEFAULT_TOKE_PREFS, downTimerAlerts: false } },
   }]);
 });
 
-test('Toke prefs: before the function exists, the read-then-write path keeps other settings keys', async () => {
-  const client = fakeClient({
-    rpc: MISSING,
-    select: { data: { settings: { theme: 'dark', tokeTracker: { shiftNotifications: false } } }, error: null },
-    update: { data: null, error: null },
-  });
-  const via = await saveTokePrefsToAccount(client, 'user-1', { autoSaveShifts: false });
-  assert.equal(via, 'fallback');
-  assert.equal(client.calls.length, 3);
-  assert.deepEqual(client.calls[1], { table: 'profiles', op: 'select', cols: 'settings', eq: ['id', 'user-1'] });
-  assert.deepEqual(client.calls[2].body, { settings: { theme: 'dark', tokeTracker: { ...DEFAULT_TOKE_PREFS, autoSaveShifts: false } } });
-  assert.deepEqual(client.calls[2].eq, ['id', 'user-1']);
-});
-
-test('Toke prefs: any other rpc error is surfaced and the old path does not run', async () => {
-  const client = fakeClient({ rpc: DENIED });
-  await assert.rejects(saveTokePrefsToAccount(client, 'user-1', {}), (e) => e.code === '42501');
-  assert.equal(client.calls.length, 1);
-});
-
-test('Toke prefs: a failed read or write on the fallback path is surfaced, never written over', async () => {
-  const readFails = fakeClient({ rpc: MISSING, select: { data: null, error: { code: 'PGRST301', message: 'jwt expired' } } });
-  await assert.rejects(saveTokePrefsToAccount(readFails, 'user-1', {}), (e) => e.message === 'jwt expired');
-  assert.equal(readFails.calls.filter((c) => c.op === 'update').length, 0, 'no blind write after a failed read');
-  const writeFails = fakeClient({ rpc: MISSING, select: { data: { settings: {} }, error: null }, update: { error: { message: 'denied' } } });
-  await assert.rejects(saveTokePrefsToAccount(writeFails, 'user-1', {}), (e) => e.message === 'denied');
+test('Toke prefs: every rpc error is surfaced, a missing function included, and nothing else runs', async () => {
+  for (const answer of [DENIED, MISSING, { data: null, status: 0, error: { message: 'Failed to fetch' } }]) {
+    const client = fakeClient({ rpc: answer });
+    await assert.rejects(saveTokePrefsToAccount(client, {}), (e) => e === answer.error);
+    assert.equal(client.calls.length, 1, 'no read-then-write fallback');
+  }
+  const src = read('src/lib/bankroll/tokePrefs.mjs');
+  assert.doesNotMatch(src, /from\('profiles'\)/, 'the read-whole/write-whole update is gone');
 });
 
 test('useTokePrefs saves through saveTokePrefsToAccount and keeps the #3266 stale-answer guard', () => {
   const hook = read('src/components/bankroll/toke/useTokePrefs.js');
-  assert.match(hook, /await saveTokePrefsToAccount\(supabase, userId, next\);/);
-  assert.doesNotMatch(hook, /\.update\(\{ settings:/, 'the read-then-write lives in tokePrefs.mjs only, as the fallback');
+  assert.match(hook, /await saveTokePrefsToAccount\(supabase, next\);/);
+  assert.doesNotMatch(hook, /\.update\(\{ settings:/, 'no read-then-write anywhere');
   assert.match(hook, /from\('profiles'\)\.select\('settings'\)/, 'the account read on load is unchanged');
   assert.match(hook, /prefsFromAccount\(prefsRef\.current, data\?\.settings\?\.tokeTracker, editsRef\.current !== editsAtRead\)/);
   assert.match(hook, /console\.warn\('\[TokeTracker\] Preference could not be saved to the account:'/);
@@ -225,18 +182,20 @@ test('an incomplete rpc answer throws instead of reading as zero', () => {
   assert.throws(() => statsFromTotals({ ...SQL_ALL_TIME, balance: { ...SQL_ALL_TIME.balance, balance_cents: 12.5 } }), /balance\.balance_cents/);
 });
 
-test('getBankrollStats asks fn_bankroll_totals first and keeps the paged read as its only fallback', () => {
+test('getBankrollStats reads fn_bankroll_totals and throws its error, with no row-paging fallback', () => {
   const calc = read('src/lib/bankroll/calculations.ts');
   const stats = calc.slice(calc.indexOf('export async function getBankrollStats'));
-  assert.match(stats, /rpcOrFallback\(/);
   assert.match(stats, /supabase\.rpc\('fn_bankroll_totals', \{\s*p_from: startDate \|\| null,\s*p_to: endDate \|\| null,\s*p_location_id: locationId \|\| null,\s*\}\)/);
-  assert.match(stats, /statsFromTotals\(response\.data\)/);
-  assert.match(stats, /\(\) => clientSideStats\(userId, startDate, endDate, locationId\)/);
+  assert.match(stats, /if \(error\) throw error;\s*return \{ \.\.\.statsFromTotals\(data\), travelROI \} as BankrollStats;/);
   assert.match(stats, /latestTripNet\(userId\)/);
-  const fallback = calc.slice(calc.indexOf('async function clientSideStats'), calc.indexOf('export async function getBankrollStats'));
-  assert.match(fallback, /fetchAllRows\(/);
-  assert.match(fallback, /\.eq\('is_revision', false\)/);
-  assert.match(fallback, /periodStats\(entries\)/);
+  assert.doesNotMatch(calc, /clientSideStats|rpcOrFallback|PGRST202\)/);
+  assert.equal(fs.existsSync(path.join(ROOT, 'src/lib/bankroll/rpcFallback.mjs')), false);
+});
+
+test('the installed functions are no longer allowlisted as phantoms', () => {
+  const allow = JSON.parse(read('scripts/ci/supabase-invariants.allowlist.json')).phantom_rpcs;
+  assert.equal('fn_bankroll_totals' in allow, false);
+  assert.equal('fn_profile_settings_set_key' in allow, false);
 });
 
 test('the read-only live suite lets the totals read through', async () => {

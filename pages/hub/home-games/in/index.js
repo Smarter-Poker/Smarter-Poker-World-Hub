@@ -301,7 +301,7 @@ export default function HomeGamesByStateIndex({ states, totalGames, directoryUna
             </p>
             <p className="text-[#94A3B8]">
               If You Run A Home Game And Want To Attract New Players, Listing is{' '}
-              <Link href="/commander" className="text-[#C4B5FD] underline hover:text-white">Free While In Beta</Link>.
+              <Link href="https://commander.smarter.poker/commander/register?tier=home_game&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate" className="text-[#C4B5FD] underline hover:text-white">Free While In Beta</Link>.
               Public Pages Are Discoverable On Google, Indexed On Smarter.Poker, And Shareable Via QR Code.
             </p>
           </section>

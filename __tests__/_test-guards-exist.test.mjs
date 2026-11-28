@@ -169,8 +169,10 @@ import './pg17-parallel-and-build-parity.law.test.mjs';
 import './api-routes-exist.test.mjs';
 import './bankroll-export-download.test.mjs';
 import './bankroll-analytics-view.test.mjs';
+import './bankroll-trend-axis.test.mjs';
 import './toke-tracker-pages.test.mjs';
 import './bankroll-live-suite.test.mjs';
+import './bankroll-write-live-suite.test.mjs';
 import './bankroll-phone-speed.test.mjs';
 import './bankroll-shell-wiring.test.mjs';
 import './bankroll-leak-view-honesty.test.mjs';
@@ -180,6 +182,7 @@ import './bankroll-ledger-math.test.mjs';
 import './bankroll-club-arena-sessions.test.mjs';
 import './bankroll-lib-w3.test.mjs';
 import './bankroll-db-rpc-fallback.test.mjs';
+import './bankroll-totals-sql-matches-ledger-math.test.mjs';
 import './bankroll-receipts-are-read-kept-and-sent.test.mjs';
 import './bankroll-one-number-everywhere.test.mjs';
 import './bankroll-trip-math.test.mjs';
@@ -1053,6 +1056,7 @@ import './otc-tier9-auth-og-sitemap-and-parity-20261128.law.test.mjs';
 import './site-wide-payload-budget.test.mjs';
 import './jarvis-photo-reader-removed.test.mjs';
 import './an-internal-link-reaches-a-page.law.test.mjs';
+import './every-internal-link-reaches-a-page-before-merge.law.test.mjs';
 import './bankroll-w4-cleanup.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {

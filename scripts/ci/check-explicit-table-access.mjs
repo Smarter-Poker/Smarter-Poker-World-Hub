@@ -50,8 +50,13 @@ function name(value) {
 }
 function same(a, b) { return a[0] === b[0] && a[1] === b[1]; }
 
-export function auditMigration(sql) {
+// `laterSql` is the SQL of the migrations that come after this one in the
+// same change. A table already installed by this file can complete its
+// boundary there (a creation migration is never edited after it is applied),
+// but row level security must still be enabled where the table is created.
+export function auditMigration(sql, { laterSql = '' } = {}) {
   const syntax = sqlSyntax(sql), issues = [];
+  const grantSyntax = laterSql ? syntax + ' ; ' + sqlSyntax(laterSql) : syntax;
   const tables = [...syntax.matchAll(new RegExp(`\\bCREATE\\s+(?:(TEMP(?:ORARY)?|UNLOGGED)\\s+)?TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?(${relation})`, 'gi'))]
     .filter(m => !/^temp/i.test(m[1] || ''))
     .map(m => ({ parts: name(m[2]), rls: true }));
@@ -59,7 +64,7 @@ export function auditMigration(sql) {
     .filter(m => !m[1]).map(m => ({ parts: name(m[2]), rls: false }));
   for (const { parts: table, rls } of [...tables, ...views].filter(entry => entry.parts[0] === 'public')) {
     const label = table.join('.');
-    const revokes = [...syntax.matchAll(/\bREVOKE\s+ALL(?:\s+PRIVILEGES)?\s+ON\s+(?:TABLE\s+)?([^;]+?)\s+FROM\s+([^;]+);/gi)];
+    const revokes = [...grantSyntax.matchAll(/\bREVOKE\s+ALL(?:\s+PRIVILEGES)?\s+ON\s+(?:TABLE\s+)?([^;]+?)\s+FROM\s+([^;]+);/gi)];
     const revoked = new Set();
     for (const revoke of revokes) {
       if (revoke[1].split(',').some(item => same(name(item.trim()), table))) {
@@ -79,10 +84,11 @@ export function auditMigration(sql) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const base = process.argv[2] || process.env.TABLE_ACCESS_BASE || 'origin/main';
   const paths = execFileSync('git', ['diff', '--name-only', '--diff-filter=ACMR', `${base}...HEAD`, '--', 'supabase/migrations'], { encoding: 'utf8' })
-    .trim().split('\n').filter(path => path.endsWith('.sql'));
+    .trim().split('\n').filter(path => path.endsWith('.sql')).sort();
   let failures = 0;
-  for (const path of paths) {
-    const issues = auditMigration(readFileSync(path, 'utf8'));
+  for (const [index, path] of paths.entries()) {
+    const laterSql = paths.slice(index + 1).map(later => readFileSync(later, 'utf8')).join('\n;\n');
+    const issues = auditMigration(readFileSync(path, 'utf8'), { laterSql });
     for (const issue of issues) { console.error(`${path}: ${issue}`); failures++; }
   }
   console.log(`Explicit table access: ${paths.length} changed migration(s), ${failures} finding(s).`);

@@ -207,3 +207,18 @@ Written 2026-11-27 23:20 Central (2026-11-28 05:20 UTC). Continue from here. Do 
   overflow.
 - A sign-up banner appears for signed-out visitors (main's #3236 growth work); this is expected.
 - PR #3171 (the old branch) was closed as superseded by #3204.
+
+## 7. Status update 2026-11-28 (continuation session)
+
+- A (seals) and C (Live HUD Sync title) SHIPPED: PR #3273, merge 4504861d,
+  Vercel dpl_FuVNbjYcx94jAoV7A1846oRPX1eL READY, /api/health reported
+  4504861d at 02:29 Central. Live seal bytes match the repo files. All 91
+  routes were captured at 393px before shipping, a sample at 1280px; every
+  emblem reads as one subject-matched icon, so no icon was swapped.
+- Preflop Charts Stats gold text: fixed on main by another agent in the
+  same hour; their version was kept.
+- B (leaderboard minimum) ships as its own PR. The database now also refuses
+  DDL during a nightly release schema freeze, 23:45-04:15 America/Chicago
+  (smarter_private.fn_ca_release_freeze_ddl_guard), in addition to the hourly
+  :50-:03 UTC window. The v3 migration is applied after 04:15 Central and
+  verified BEFORE the leaderboard PR is pushed.

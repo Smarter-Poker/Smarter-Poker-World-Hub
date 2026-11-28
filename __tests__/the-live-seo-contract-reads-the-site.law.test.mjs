@@ -161,3 +161,26 @@ test('the series page links Poker Near Me where it lives, not where it redirects
   assert.doesNotMatch(src, /'\/hub\/poker-near-me\?q='/);
   assert.match(src, /href="\/hub\/poker-near-me\/lobby"/);
 });
+
+test('after every Production deploy, Preflop Charts is rendered and held to its fonts', async () => {
+  const wf = read('.github/workflows/live-seo-contract.yml');
+  const job = wf.slice(wf.indexOf('  preflop-fonts:'));
+  assert.ok(job.length > 100, 'the preflop-fonts job exists');
+  assert.match(job, /deployment_status\.state == 'success'/);
+  assert.match(job, /contains\(github\.event\.deployment_status\.environment, 'Production'\)/);
+  assert.match(job, /node scripts\/ci\/check-live-preflop-fonts\.mjs --sha/);
+  assert.match(job, /packages\['node_modules\/playwright'\]\.version/, 'Playwright at the locked version');
+  const { fontViolation, PREFLOP_PAGES } = await import('../scripts/ci/check-live-preflop-fonts.mjs');
+  assert.deepEqual(PREFLOP_PAGES, [
+    '/hub/preflop-charts',
+    '/hub/preflop-charts/stats',
+    '/hub/preflop-charts/achievements',
+    '/hub/preflop-charts/leaderboard',
+    '/hub/preflop-charts/tutorial',
+  ]);
+  assert.equal(fontViolation('Orbitron, sans-serif'), 'Orbitron');
+  assert.equal(fontViolation('"Times New Roman"'), 'serif (Times New Roman)');
+  assert.equal(fontViolation('serif'), 'serif (serif)');
+  assert.equal(fontViolation('Rajdhani, "Rajdhani Fallback", "Arial Narrow", sans-serif'), null);
+  assert.equal(fontViolation('Inter, -apple-system, system-ui, sans-serif'), null);
+});

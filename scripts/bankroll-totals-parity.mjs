@@ -12,13 +12,17 @@
 //
 // Exit codes: 0 every window matches; 1 a difference (printed field by
 // field); 2 the function is not installed yet (PGRST202 / 404); 3 setup
-// error (missing environment, sign-in or read failure).
+// error (missing environment, sign-in or read failure). The function was
+// installed 2026-11-28 (supabase/migrations/20261128101707_fn_bankroll_totals.sql),
+// so exit 2 now means it was dropped.
 //
 // Environment: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
 // TEST_USER_EMAIL, TEST_USER_PASSWORD. Run: node scripts/bankroll-totals-parity.mjs
 
 import { diffTotals, totalsFromRows } from '../src/lib/bankroll/bankrollTotals.mjs';
-import { isFunctionMissing } from '../src/lib/bankroll/rpcFallback.mjs';
+
+// PostgREST's answer when the function does not exist.
+const isFunctionMissing = (response) => response?.error?.code === 'PGRST202' || (response?.status === 404 && !response?.error?.code);
 
 const fail = (code, message) => {
   console.error('[bankroll-totals-parity] ' + message);

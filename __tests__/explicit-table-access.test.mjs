@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { auditMigration } from '../scripts/ci/check-explicit-table-access.mjs';
 const boundary = `REVOKE ALL ON TABLE public.example FROM PUBLIC, anon, authenticated, service_role;
 ALTER TABLE public.example ENABLE ROW LEVEL SECURITY;`;
@@ -47,4 +48,38 @@ test('views and materialized views declare explicit access without table RLS', (
 });
 test('temporary views and non-public relations do not need API exposure declarations', () => {
   assert.deepEqual(auditMigration('CREATE TEMP VIEW example AS SELECT 1; CREATE VIEW private.example AS SELECT 1;'), []);
+});
+
+test('a later migration in the same change can complete an installed table\'s boundary, never an earlier one', () => {
+  const created = `CREATE TABLE public.example(id int);
+REVOKE ALL ON TABLE public.example FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.example ENABLE ROW LEVEL SECURITY;`;
+  assert.equal(auditMigration(created).length, 1);
+  assert.deepEqual(auditMigration(created, { laterSql: 'REVOKE ALL ON TABLE public.example FROM service_role;' }), []);
+  // A later file cannot switch on RLS for the creation file.
+  assert.equal(auditMigration('CREATE TABLE public.example(id int);', { laterSql: boundary }).length, 1);
+  // Later text inside a function body or a comment does not count.
+  assert.equal(auditMigration(created, { laterSql: '-- REVOKE ALL ON public.example FROM service_role;' }).length, 1);
+  assert.equal(auditMigration(created, { laterSql: 'CREATE FUNCTION f() RETURNS void LANGUAGE sql AS $$ REVOKE ALL ON public.example FROM service_role $$;' }).length, 1);
+});
+
+test('a later revoke only counts for the exact table and the exact roles it names', () => {
+  const created = `CREATE TABLE public.example(id int);
+REVOKE ALL ON TABLE public.example FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.example ENABLE ROW LEVEL SECURITY;`;
+  // A different table, a different schema, or a different role leaves the finding.
+  assert.equal(auditMigration(created, { laterSql: 'REVOKE ALL ON TABLE public.other FROM service_role;' }).length, 1);
+  assert.equal(auditMigration(created, { laterSql: 'REVOKE ALL ON TABLE private.example FROM service_role;' }).length, 1);
+  assert.equal(auditMigration(created, { laterSql: 'REVOKE ALL ON TABLE public.example FROM anon;' }).length, 1);
+  // A partial revoke is not REVOKE ALL.
+  assert.equal(auditMigration(created, { laterSql: 'REVOKE INSERT ON TABLE public.example FROM service_role;' }).length, 1);
+  // A revoke that is not part of this change (another PR, already on main) is never passed in.
+  assert.equal(auditMigration(created, { laterSql: '' }).length, 1);
+});
+
+test('the CLI hands each migration only the migrations after it in the same change', () => {
+  const cli = fs.readFileSync(new URL('../scripts/ci/check-explicit-table-access.mjs', import.meta.url), 'utf8');
+  assert.match(cli, /`\$\{base\}\.\.\.HEAD`, '--', 'supabase\/migrations'/);
+  assert.match(cli, /\.filter\(path => path\.endsWith\('\.sql'\)\)\.sort\(\);/);
+  assert.match(cli, /paths\.slice\(index \+ 1\)/);
 });

@@ -546,20 +546,37 @@ export default function DailyChallengePage() {
                   )}
 
                   <div className={styles.actionKeys} aria-label="Challenge Actions">
-                    {options.map((action, idx) => (
-                      <QuizAnswer
-                        key={action.id}
-                        label={action.text}
-                        shortcut={idx + 1}
-                        selected={selected === action.id}
-                        correct={showResult && action.id === correctAnswer}
-                        show={showResult}
-                        disabled={answered.current || submitting || signedOut}
-                        onClick={() => handleAnswer(action.id)}
-                        ariaLabel={`Choose ${action.text}`}
-                        size="md"
-                      />
-                    ))}
+                    {options.map((action, idx) => {
+                      const rawActionText = String(action?.text || '').toLowerCase();
+                      const semanticAction = !showResult
+                        ? (/\bfold\b/.test(rawActionText)
+                          ? 'fold'
+                          : /\b(all[\s-]?in|shove|jam)\b/.test(rawActionText)
+                            ? 'allin'
+                            : /\b(check)\b/.test(rawActionText)
+                              ? 'check'
+                              : /\b(call)\b/.test(rawActionText)
+                                ? 'call'
+                                : /\b(raise|3-bet|4-bet|bet|open)\b/.test(rawActionText)
+                                  ? 'raise'
+                                  : undefined)
+                        : undefined;
+                      return (
+                        <QuizAnswer
+                          key={action.id}
+                          label={action.text}
+                          shortcut={idx + 1}
+                          selected={selected === action.id}
+                          correct={showResult && action.id === correctAnswer}
+                          show={showResult}
+                          disabled={answered.current || submitting || signedOut}
+                          onClick={() => handleAnswer(action.id)}
+                          ariaLabel={`Choose ${action.text}`}
+                          size="md"
+                          data-action={semanticAction}
+                        />
+                      );
+                    })}
                   </div>
 
                   {submitting && !showResult && (

@@ -9,7 +9,7 @@
 // TRAIN-CSS-TOKENS-BATCH5-27 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH6-10 — hex sweep batch 6: extended palette literals routed
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -26,6 +26,7 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 import { useSWRConfig } from 'swr';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import { LEADERBOARD_MIN_QUESTIONS } from '../../../src/lib/training/leaderboardQualification.mjs';
 import sd from '../../../src/styles/training/training-smarterdesign.module.css';
 import {
   TRAINING_LEADERBOARD_DEFAULT_KEY,
@@ -120,6 +121,7 @@ export default function TrainingLeaderboard({ seed = null }) {
         if (!data.success) throw new Error(data.error || 'Failed to load leaderboard');
         return {
           leaderboard: data.leaderboard,
+          minQuestions: data.minQuestions ?? null,
           myRank: data.myRank,
           myEntry: data.myEntry,
         };
@@ -129,6 +131,13 @@ export default function TrainingLeaderboard({ seed = null }) {
   );
   const leaderboard = swrData?.leaderboard || [];
   const userRank = user ? swrData?.myRank ?? null : null;
+  // Accuracy is ranked only over a minimum sample; below it a player is
+  // provisional (src/lib/training/leaderboardQualification.mjs).
+  const minQuestions = swrData?.minQuestions ?? LEADERBOARD_MIN_QUESTIONS[period] ?? null;
+  const rankedCount = leaderboard.filter((entry) => entry.qualified !== false).length;
+  const firstProvisional = leaderboard.findIndex((entry) => entry.qualified === false);
+  const myEntry = user ? swrData?.myEntry ?? null : null;
+  const myProvisional = Boolean(myEntry && myEntry.qualified === false);
 
   return (
     <PageTransition disableInitialAnimation>
@@ -197,12 +206,12 @@ export default function TrainingLeaderboard({ seed = null }) {
           {user && userRank && (
             <div className={sd.metrics} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
               <div className={`sd-metric ${sd.metric}`}>
-                <span className={sd.metricLabel}>Your Rank</span>
+                <span className={sd.metricLabel}>{myProvisional ? 'Your Place (Provisional)' : 'Your Rank'}</span>
                 <strong className={sd.metricValue} data-tone="ice">#{userRank}</strong>
               </div>
               <div className={`sd-metric ${sd.metric}`}>
-                <span className={sd.metricLabel}>Players Ranked</span>
-                <strong className={sd.metricValue}>{leaderboard.length}</strong>
+                <span className={sd.metricLabel}>{myProvisional ? 'Answers To Rank' : 'Players Ranked'}</span>
+                <strong className={sd.metricValue}>{myProvisional ? myEntry.questionsToQualify : rankedCount}</strong>
               </div>
             </div>
           )}
@@ -226,16 +235,24 @@ export default function TrainingLeaderboard({ seed = null }) {
                 <h2 id="training-board-title" className={sd.sectionTitle}>
                   {(TIMEFRAMES.find((t) => t.id === timeframe) || TIMEFRAMES[2]).label} · {(CATEGORIES.find((c) => c.id === view) || CATEGORIES[0]).label}
                 </h2>
-                <span className={sd.metricLabel}>Ranked By Accuracy</span>
+                <span className={sd.metricLabel}>
+                  {minQuestions ? `Ranked By Accuracy · ${minQuestions}+ Answers` : 'Ranked By Accuracy'}
+                </span>
               </div>
               <div className={sd.board}>
-                {leaderboard.map((entry) => (
-                  <LeaderboardEntry
-                    key={entry.userId || `rank-${entry.rank}`}
-                    rank={entry.rank}
-                    {...entry}
-                    isCurrentUser={Boolean(user?.id) && user.id === entry.userId}
-                  />
+                {leaderboard.map((entry, index) => (
+                  <Fragment key={entry.userId || `rank-${entry.rank}`}>
+                    {index === firstProvisional && (
+                      <div className={sd.boardDivider} role="separator" data-provisional-divider="true">
+                        Provisional · Fewer Than {entry.minQuestions || minQuestions} Answers, Ordered By Correct Answers
+                      </div>
+                    )}
+                    <LeaderboardEntry
+                      rank={entry.rank}
+                      {...entry}
+                      isCurrentUser={Boolean(user?.id) && user.id === entry.userId}
+                    />
+                  </Fragment>
                 ))}
               </div>
             </section>
@@ -261,17 +278,20 @@ function LeaderboardEntry({
   questionsAnswered,
   questionsCorrect,
   accuracy,
+  qualified,
+  questionsToQualify,
   isCurrentUser,
 }) {
+  const provisional = qualified === false;
   // TRAIN-LEADERBOARD-A11Y-1: ranks 1-3 once rendered empty strings where the
   // stripped medal emoji had been. Every rank, podium included, now shows its
   // number in a labelled steel badge (podium ranks get the cobalt rim), and the
   // page title is the plain "Training Leaderboard" in the image header.
-  const podium = rank >= 1 && rank <= 3 ? String(rank) : undefined;
+  const podium = !provisional && rank >= 1 && rank <= 3 ? String(rank) : undefined;
   const initial = String(username || '?').trim().charAt(0).toUpperCase() || '?';
   return (
-    <div className={`${sd.boardRow} ${isCurrentUser ? sd.boardRowYou : ''}`}>
-      <span className={sd.rankBadge} data-podium={podium} aria-label={`Rank ${rank}`}>{rank}</span>
+    <div className={`${sd.boardRow} ${isCurrentUser ? sd.boardRowYou : ''}`} data-provisional={provisional ? 'true' : undefined}>
+      <span className={sd.rankBadge} data-podium={podium} aria-label={provisional ? `Provisional place ${rank}` : `Rank ${rank}`}>{rank}</span>
       {avatarUrl ? (
         <img src={avatarUrl} alt="" className={sd.avatar} loading="lazy" />
       ) : (
@@ -283,7 +303,10 @@ function LeaderboardEntry({
           {isCurrentUser && <span className={sd.you}>You</span>}
         </div>
         <div className={sd.sub}>
-          {Number(questionsAnswered || 0).toLocaleString()} Questions · {accuracy}% Accuracy
+          {Number(questionsAnswered || 0).toLocaleString()} {Number(questionsAnswered || 0) === 1 ? 'Question' : 'Questions'} · {accuracy}% Accuracy
+          {provisional && Number(questionsToQualify) > 0 && (
+            <span className={sd.provisionalNote}> · {Number(questionsToQualify).toLocaleString()} More To Rank</span>
+          )}
         </div>
       </div>
       <div className={sd.score}>

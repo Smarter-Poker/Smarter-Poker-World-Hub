@@ -16,7 +16,7 @@
  *  (timeframe all-time, view global), or the seed is never used. */
 export const TRAINING_LEADERBOARD_DEFAULT_KEY = '/api/training/leaderboard?period=alltime&limit=100';
 
-const PUBLIC_FIELDS = ['rank', 'username', 'avatarUrl', 'accuracy', 'questionsAnswered', 'questionsCorrect'];
+const PUBLIC_FIELDS = ['rank', 'username', 'avatarUrl', 'accuracy', 'questionsAnswered', 'questionsCorrect', 'qualified', 'questionsToQualify', 'minQuestions'];
 
 /**
  * Turn the API envelope into the exact shape the page's SWR fetcher returns,
@@ -34,7 +34,9 @@ export function publicTrainingLeaderboardSeed(json) {
       }
       return out;
     });
-  return { leaderboard, myRank: null, myEntry: null };
+  const seed = { leaderboard, myRank: null, myEntry: null };
+  if (Number.isInteger(json.minQuestions)) seed.minQuestions = json.minQuestions;
+  return seed;
 }
 
 /**
