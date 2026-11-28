@@ -39,7 +39,7 @@ function CardDisplay({ cards }) {
       {cards.map((card, idx) => (
         <span
           key={idx}
-          className="px-1.5 py-0.5 bg-[#0A1525] border border-[#4A5E78] rounded text-sm font-mono font-bold"
+          className="px-1.5 py-0.5 bg-[#0A1525] border border-[#445E77] rounded text-sm font-mono font-bold"
           style={{ color: getCardColor(card) }}
         >
           {formatCard(card)}
@@ -60,38 +60,38 @@ function HandCard({ hand, onClick }) {
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-medium text-[#64748B]">Hand #{hand.hand_number}</span>
+            <span className="text-sm font-medium text-[#9FB3C8]">Hand #{hand.hand_number}</span>
             {isWinner && (
               <span className="px-2 py-0.5 bg-[#10B981]/15 text-[#10B981] text-xs font-medium rounded border border-[#10B981]/30">
                 Won
               </span>
             )}
           </div>
-          <p className="text-sm text-[#64748B]">{hand.game_type}</p>
+          <p className="text-sm text-[#9FB3C8]">{hand.game_type}</p>
         </div>
         <div className="text-right">
           <p className={`font-semibold ${hand.profit >= 0 ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
             {hand.profit >= 0 ? '+' : ''}{hand.profit}
           </p>
-          <p className="text-xs text-[#64748B]">Pot: {hand.pot_size}</p>
+          <p className="text-xs text-[#9FB3C8]">Pot: {hand.pot_size}</p>
         </div>
       </div>
 
       {/* Player Cards */}
       <div className="mb-3">
-        <p className="text-xs text-[#64748B] mb-1">Your Hand</p>
+        <p className="text-xs text-[#9FB3C8] mb-1">Your Hand</p>
         <CardDisplay cards={hand.player_cards} />
       </div>
 
       {/* Board */}
       {hand.board && hand.board.length > 0 && (
         <div className="mb-3">
-          <p className="text-xs text-[#64748B] mb-1">Board</p>
+          <p className="text-xs text-[#9FB3C8] mb-1">Board</p>
           <CardDisplay cards={hand.board} />
         </div>
       )}
 
-      <div className="flex items-center justify-between text-xs text-[#64748B]">
+      <div className="flex items-center justify-between text-xs text-[#9FB3C8]">
         <span className="flex items-center gap-1">
           <Clock className="w-3 h-3" />
           {new Date(hand.created_at).toLocaleTimeString()}
@@ -115,29 +115,29 @@ function SessionCard({ session, onSelect }) {
 
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-semibold text-white">{session.venue_name}</h3>
-        <ChevronRight className="w-5 h-5 text-[#64748B]" />
+        <ChevronRight className="w-5 h-5 text-[#9FB3C8]" />
       </div>
 
-      <p className="text-sm text-[#64748B] mb-3">{session.game_type}</p>
+      <p className="text-sm text-[#9FB3C8] mb-3">{session.game_type}</p>
 
       <div className="grid grid-cols-3 gap-4 text-center">
         <div>
           <p className="text-lg font-bold text-white">{session.hands_played}</p>
-          <p className="text-xs text-[#64748B]">Hands</p>
+          <p className="text-xs text-[#9FB3C8]">Hands</p>
         </div>
         <div>
           <p className={`text-lg font-bold ${session.profit >= 0 ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
             {session.profit >= 0 ? '+' : ''}{session.profit}
           </p>
-          <p className="text-xs text-[#64748B]">Profit</p>
+          <p className="text-xs text-[#9FB3C8]">Profit</p>
         </div>
         <div>
           <p className="text-lg font-bold text-white">{session.duration_hours}h</p>
-          <p className="text-xs text-[#64748B]">Duration</p>
+          <p className="text-xs text-[#9FB3C8]">Duration</p>
         </div>
       </div>
 
-      <p className="text-xs text-[#64748B] mt-3">
+      <p className="text-xs text-[#9FB3C8] mt-3">
         {new Date(session.date).toLocaleDateString()}
       </p>
     </button>
@@ -241,14 +241,14 @@ export default function HandHistoryPage() {
                 onClick={selectedSession ? handleBackToSessions : () => router.push('/hub/commander')}
                 className="p-2 hover:bg-[#1A2E4A] rounded-lg transition-colors"
               >
-                <ChevronLeft className="w-5 h-5 text-[#64748B]" />
+                <ChevronLeft className="w-5 h-5 text-[#9FB3C8]" />
               </button>
               <div>
                 <h1 className="text-xl font-bold text-white flex items-center gap-2">
                   <FileText className="w-6 h-6 text-[#22D3EE]" />
                   {selectedSession ? selectedSession.venue_name : 'Hand History'}
                 </h1>
-                <p className="text-sm text-[#64748B]">
+                <p className="text-sm text-[#9FB3C8]">
                   {selectedSession
                     ? `${selectedSession.game_type} - ${selectedSession.hands_played} hands`
                     : 'Review your session hands'}
@@ -271,17 +271,17 @@ export default function HandHistoryPage() {
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <p className="text-2xl font-bold text-white">{selectedSession.hands_played}</p>
-                    <p className="text-sm text-[#64748B]">Hands</p>
+                    <p className="text-sm text-[#9FB3C8]">Hands</p>
                   </div>
                   <div>
                     <p className={`text-2xl font-bold ${selectedSession.profit >= 0 ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
                       {selectedSession.profit >= 0 ? '+' : ''}${Math.abs(selectedSession.profit)}
                     </p>
-                    <p className="text-sm text-[#64748B]">Profit</p>
+                    <p className="text-sm text-[#9FB3C8]">Profit</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-white">{selectedSession.duration_hours}h</p>
-                    <p className="text-sm text-[#64748B]">Duration</p>
+                    <p className="text-sm text-[#9FB3C8]">Duration</p>
                   </div>
                 </div>
               </div>
@@ -298,7 +298,7 @@ export default function HandHistoryPage() {
                     onClick={() => setFilter(f.id)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === f.id
                       ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
-                      : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78]'
+                      : 'bg-[#0F1C32] text-[#9FB3C8] border-2 border-[#445E77]'
                       }`}
                   >
                     {f.label}
@@ -324,9 +324,9 @@ export default function HandHistoryPage() {
               ) : (
                 <div className="cmd-panel p-8 text-center">
                   <div className="cmd-icon-box mx-auto mb-3">
-                    <Spade className="w-12 h-12 text-[#64748B]" />
+                    <Spade className="w-12 h-12 text-[#9FB3C8]" />
                   </div>
-                  <p className="text-[#64748B]">No Hands Match Your Filter</p>
+                  <p className="text-[#9FB3C8]">No Hands Match Your Filter</p>
                 </div>
               )}
             </div>
@@ -348,10 +348,10 @@ export default function HandHistoryPage() {
               ) : (
                 <div className="cmd-panel p-8 text-center">
                   <div className="cmd-icon-box mx-auto mb-3">
-                    <FileText className="w-12 h-12 text-[#64748B]" />
+                    <FileText className="w-12 h-12 text-[#9FB3C8]" />
                   </div>
-                  <p className="text-[#64748B]">No Sessions With Hand History</p>
-                  <p className="text-sm text-[#64748B] mt-1">
+                  <p className="text-[#9FB3C8]">No Sessions With Hand History</p>
+                  <p className="text-sm text-[#9FB3C8] mt-1">
                     Play At A Venue With RFID Tables To Capture Hands
                   </p>
                 </div>

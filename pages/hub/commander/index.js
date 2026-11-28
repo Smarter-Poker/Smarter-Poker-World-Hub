@@ -253,8 +253,8 @@ export default function CommanderHub() {
                 <Zap className="w-7 h-7" />
               </div>
               <div>
-                <h1 className="text-2xl font-extrabold text-white tracking-wider cmd-text-glow">LIVE POKER</h1>
-                <p className="text-sm text-[#64748B] font-medium tracking-wide">Find Games And Join Waitlists</p>
+                <h1 className="text-2xl font-extrabold text-white tracking-wider cmd-text-glow">Live Poker</h1>
+                <p className="text-sm text-[#9FB3C8] font-medium tracking-wide">Find Games And Join Waitlists</p>
               </div>
               {/* Rivets */}
               <div className="ml-auto flex gap-4 items-center">
@@ -300,7 +300,7 @@ export default function CommanderHub() {
                   <Icon className="w-7 h-7" />
                 </div>
                 <p className="font-bold text-white text-lg group-hover:text-[#22D3EE] transition-colors">{label}</p>
-                <p className="text-xs text-[#64748B] font-semibold uppercase tracking-widest mt-1">{sub}</p>
+                <p className="text-xs text-[#9FB3C8] font-semibold uppercase tracking-widest mt-1">{sub}</p>
               </Link>
             ))}
           </section>
@@ -344,22 +344,22 @@ export default function CommanderHub() {
                         <p className="font-semibold text-white">
                           {game.stakes} {game.game_type?.toUpperCase() || 'NLHE'}
                         </p>
-                        <p className="text-sm text-[#64748B]">
+                        <p className="text-sm text-[#9FB3C8]">
                           {game.poker_venues?.name || 'Unknown Venue'}
                           {game.poker_venues?.city && ` - ${game.poker_venues.city}, ${game.poker_venues.state}`}
                         </p>
-                        <div className="flex items-center gap-3 text-sm text-[#64748B] mt-1">
+                        <div className="flex items-center gap-3 text-sm text-[#9FB3C8] mt-1">
                           <span className="flex items-center gap-1">
                             <Users className="w-3 h-3" />
                             {game.player_count || 0}/{game.max_players || 9}
                           </span>
                           {game.waitlist_count > 0 && (
-                            <span className="text-[#F59E0B] flex items-center gap-1">
+                            <span className="text-[#22D3EE] flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {game.waitlist_count} Waiting
                             </span>
                           )}
-                          <span className={`text-xs font-medium ${game.status === 'running' ? 'text-[#10B981]' : 'text-[#F59E0B]'}`}>
+                          <span className={`text-xs font-medium ${game.status === 'running' ? 'text-[#10B981]' : 'text-[#22D3EE]'}`}>
                             {game.status === 'running' ? 'Running' : 'Starting'}
                           </span>
                         </div>
@@ -383,7 +383,7 @@ export default function CommanderHub() {
           <section>
             <div className="flex gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#64748B]" />
+                <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#9FB3C8]" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -492,7 +492,7 @@ export default function CommanderHub() {
 
           {/* Footer */}
           <div className="text-center pb-8">
-            <p className="text-xs text-[#64748B] uppercase tracking-[0.3em] mb-2">Powered By</p>
+            <p className="text-xs text-[#9FB3C8] uppercase tracking-[0.3em] mb-2">Powered By</p>
             <p className="text-xl font-extrabold cmd-text-chrome tracking-wider">CLUB COMMANDER</p>
           </div>
         </main>

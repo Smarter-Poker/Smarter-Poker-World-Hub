@@ -126,7 +126,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
       }}
     >
       <div className="cmd-panel cmd-corner-lights w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+        <div className="flex items-center justify-between p-4 border-b border-[#445E77]">
           <h3 id="schedule-home-game-title" className="text-lg font-semibold text-white">Schedule Game</h3>
           <button
             type="button"
@@ -135,7 +135,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
             disabled={submitting}
             aria-label="Close schedule dialog"
           >
-            <X className="w-5 h-5 text-[#64748B]" />
+            <X className="w-5 h-5 text-[#9FB3C8]" />
           </button>
         </div>
 
@@ -187,7 +187,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
                   className={`flex-1 h-10 rounded-lg border font-medium transition-colors ${
                     eventData.max_players === num
                       ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
-                      : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                      : 'border-[#445E77] text-[#9FB3C8] hover:bg-[#132240]'
                   }`}
                 >
                   {num}
@@ -209,7 +209,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
           </div>
         </div>
 
-        <div className="p-4 border-t border-[#4A5E78]">
+        <div className="p-4 border-t border-[#445E77]">
           <button
             type="button"
             onClick={handleSubmit}
@@ -236,7 +236,7 @@ function MemberRow({ member, isHost, onApprove, onRemove, onMessage }) {
   const memberName = member.profiles?.display_name || 'member';
 
   return (
-    <div className="flex items-center gap-3 p-4 border-b border-[#4A5E78] last:border-b-0">
+    <div className="flex items-center gap-3 p-4 border-b border-[#445E77] last:border-b-0">
       <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 flex items-center justify-center overflow-hidden">
         {/* 2026-07-25 audit fix: avatar_url lives on the nested profiles row. */}
         {member.profiles?.avatar_url ? (
@@ -250,7 +250,7 @@ function MemberRow({ member, isHost, onApprove, onRemove, onMessage }) {
         {/* 2026-07-25 audit fix: members API returns nested profiles:user_id
             (display_name, avatar_url) and joined_at - flat fields were undefined. */}
         <p className="font-medium text-white">{member.profiles?.display_name || 'Member'}</p>
-        <p className="text-sm text-[#64748B]">
+        <p className="text-sm text-[#9FB3C8]">
           {isPending ? 'Pending approval' : `Joined ${new Date(member.joined_at || member.created_at).toLocaleDateString()}`}
         </p>
       </div>
@@ -939,11 +939,11 @@ export default function ManageHomeGamePage() {
                 onClick={() => router.push(`/hub/commander/home-games/${id}`)}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
+                <ArrowLeft className="w-5 h-5 text-[#9FB3C8]" />
               </button>
               <div>
                 <h1 className="font-bold text-white">Manage Group</h1>
-                <p className="text-sm text-[#64748B]">{group?.name}</p>
+                <p className="text-sm text-[#9FB3C8]">{group?.name}</p>
               </div>
             </div>
 
@@ -958,7 +958,7 @@ export default function ManageHomeGamePage() {
         </header>
 
         {/* Tabs */}
-        <div className="bg-[#0F1C32] border-b border-[#4A5E78]">
+        <div className="bg-[#0F1C32] border-b border-[#445E77]">
           <div className="max-w-4xl mx-auto px-4">
             <div className="flex gap-6">
               {[
@@ -978,7 +978,7 @@ export default function ManageHomeGamePage() {
                   className={`flex items-center gap-2 py-3 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === tabId
                       ? 'border-[#22D3EE] text-[#22D3EE]'
-                      : 'border-transparent text-[#64748B] hover:text-white'
+                      : 'border-transparent text-[#9FB3C8] hover:text-white'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -1015,8 +1015,8 @@ export default function ManageHomeGamePage() {
               <div className="space-y-4">
                 {cashEvents.length === 0 ? (
                   <div className="cmd-panel p-8 text-center">
-                    <Calendar className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                    <p className="text-[#64748B]">No Games Scheduled</p>
+                    <Calendar className="w-12 h-12 text-[#8FA6BE] mx-auto mb-3" />
+                    <p className="text-[#9FB3C8]">No Games Scheduled</p>
                     <button
                       onClick={() => setShowScheduleModal(true)}
                       className="mt-4 cmd-btn cmd-btn-primary"
@@ -1037,7 +1037,7 @@ export default function ManageHomeGamePage() {
                           <p className="font-semibold text-white">
                             {eventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                           </p>
-                          <div className="flex items-center gap-4 mt-1 text-sm text-[#64748B]">
+                          <div className="flex items-center gap-4 mt-1 text-sm text-[#9FB3C8]">
                             <span className="flex items-center gap-1">
                               <Clock className="w-4 h-4" />
                               {eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
@@ -1085,7 +1085,7 @@ export default function ManageHomeGamePage() {
                         </div>
                       </div>
                       {expandedEventId === event.id && (
-                        <div className="mt-4 pt-4 border-t border-[#4A5E78] space-y-6">
+                        <div className="mt-4 pt-4 border-t border-[#445E77] space-y-6">
                           <HomeGamesSeatReservation
                             key={`seat-res-${event.id}-${seatRefreshKey}`}
                             gameId={event.id}
@@ -1152,7 +1152,7 @@ export default function ManageHomeGamePage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-white">Tournaments</h2>
-                  <p className="text-sm text-[#64748B] mt-0.5">
+                  <p className="text-sm text-[#9FB3C8] mt-0.5">
                     {tournaments.filter((t) => t.status === 'scheduled').length} Upcoming
                     {tournaments.filter((t) => t.status === 'cancelled').length > 0 &&
                       ` · ${tournaments.filter((t) => t.status === 'cancelled').length} cancelled`}
@@ -1170,9 +1170,9 @@ export default function ManageHomeGamePage() {
 
               {tournaments.length === 0 ? (
                 <div className="cmd-panel p-8 text-center">
-                  <Trophy className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                  <p className="text-[#64748B]">No Tournaments Scheduled</p>
-                  <p className="text-xs text-[#64748B] mt-1">
+                  <Trophy className="w-12 h-12 text-[#8FA6BE] mx-auto mb-3" />
+                  <p className="text-[#9FB3C8]">No Tournaments Scheduled</p>
+                  <p className="text-xs text-[#9FB3C8] mt-1">
                     Tournaments Inherit The RSVP And Seat-Reservation Systems Automatically Once Created.
                   </p>
                   <button
@@ -1215,7 +1215,7 @@ export default function ManageHomeGamePage() {
             <div className="space-y-4">
               {pendingMembers.length > 0 && (
                 <div className="cmd-panel">
-                  <div className="p-4 border-b border-[#4A5E78]">
+                  <div className="p-4 border-b border-[#445E77]">
                     <h3 className="font-semibold text-white">
                       Pending Requests ({pendingMembers.length})
                     </h3>
@@ -1241,7 +1241,7 @@ export default function ManageHomeGamePage() {
               )}
 
               <div className="cmd-panel">
-                <div className="p-4 border-b border-[#4A5E78]">
+                <div className="p-4 border-b border-[#445E77]">
                   <h3 className="font-semibold text-white">
                     Members ({approvedMembers.length})
                   </h3>
@@ -1272,22 +1272,22 @@ export default function ManageHomeGamePage() {
           {activeTab === 'saves' && (
             <div className="space-y-4">
               <div className="cmd-panel">
-                <div className="p-4 border-b border-[#4A5E78]">
+                <div className="p-4 border-b border-[#445E77]">
                   <h3 className="font-semibold text-white">
                     Saves / Favorites ({saves.length})
                   </h3>
-                  <p className="text-sm text-[#64748B] mt-1">Users Who Tapped The Heart Button On Your Home Game.</p>
+                  <p className="text-sm text-[#9FB3C8] mt-1">Users Who Tapped The Heart Button On Your Home Game.</p>
                 </div>
                 {saves.length === 0 ? (
                   <div className="p-8 text-center">
-                    <Heart className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                    <p className="text-[#64748B]">No Saves Yet</p>
-                    <p className="text-sm text-[#4A5E78] mt-1">
+                    <Heart className="w-12 h-12 text-[#8FA6BE] mx-auto mb-3" />
+                    <p className="text-[#9FB3C8]">No Saves Yet</p>
+                    <p className="text-sm text-[#8FA6BE] mt-1">
                       When Players Find And Heart Your Game On Poker Near Me, They Appear Here.
                     </p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-[#4A5E78]">
+                  <div className="divide-y divide-[#445E77]">
                     {saves.map((saveItem) => {
                       const profile = saveItem.profiles || {};
                       return (
@@ -1301,7 +1301,7 @@ export default function ManageHomeGamePage() {
                           </div>
                           <div className="flex-1">
                             <p className="font-medium text-white">{profile.display_name || 'Anonymous Poker Player'}</p>
-                            <p className="text-sm text-[#64748B]">
+                            <p className="text-sm text-[#9FB3C8]">
                               Saved On {new Date(saveItem.created_at).toLocaleDateString()}
                             </p>
                           </div>
@@ -1326,7 +1326,7 @@ export default function ManageHomeGamePage() {
                     <span className="text-2xl font-bold text-[#10B981]">${totalHeld.toFixed(2)}</span>
                   </div>
                 </div>
-                <p className="text-sm text-[#64748B]">
+                <p className="text-sm text-[#9FB3C8]">
                   Funds Held In Escrow For Upcoming Games. Release After Games Are Completed.
                 </p>
               </div>
@@ -1334,21 +1334,21 @@ export default function ManageHomeGamePage() {
               {/* Pending Transactions */}
               {pendingEscrow.length > 0 && (
                 <div className="cmd-panel">
-                  <div className="p-4 border-b border-[#4A5E78]">
+                  <div className="p-4 border-b border-[#445E77]">
                     <h3 className="font-semibold text-white">Pending Transactions ({pendingEscrow.length})</h3>
                   </div>
-                  <div className="divide-y divide-[#4A5E78]">
+                  <div className="divide-y divide-[#445E77]">
                     {pendingEscrow.map((transaction) => (
                       <div key={transaction.id} className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#F59E0B]/10 flex items-center justify-center">
-                            <ArrowDownLeft className="w-5 h-5 text-[#F59E0B]" />
+                          <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 flex items-center justify-center">
+                            <ArrowDownLeft className="w-5 h-5 text-[#22D3EE]" />
                           </div>
                           <div>
                             <p className="font-medium text-white">
                               {transaction.player_name || 'Player'} - Buy-In
                             </p>
-                            <p className="text-sm text-[#64748B]">
+                            <p className="text-sm text-[#9FB3C8]">
                               {new Date(transaction.created_at).toLocaleDateString()}
                             </p>
                           </div>
@@ -1398,19 +1398,19 @@ export default function ManageHomeGamePage() {
 
               {/* Transaction History */}
               <div className="cmd-panel">
-                <div className="p-4 border-b border-[#4A5E78]">
+                <div className="p-4 border-b border-[#445E77]">
                   <h3 className="font-semibold text-white">Transaction History</h3>
                 </div>
                 {completedEscrow.length === 0 && pendingEscrow.length === 0 ? (
                   <div className="p-8 text-center">
-                    <Wallet className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                    <p className="text-[#64748B]">No Transactions Yet</p>
-                    <p className="text-sm text-[#4A5E78] mt-1">
+                    <Wallet className="w-12 h-12 text-[#8FA6BE] mx-auto mb-3" />
+                    <p className="text-[#9FB3C8]">No Transactions Yet</p>
+                    <p className="text-sm text-[#8FA6BE] mt-1">
                       Player Buy-Ins Will Appear Here When Escrow Is Enabled
                     </p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-[#4A5E78]">
+                  <div className="divide-y divide-[#445E77]">
                     {completedEscrow.map((transaction) => (
                       <div key={transaction.id} className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -1429,7 +1429,7 @@ export default function ManageHomeGamePage() {
                             <p className="font-medium text-white">
                               {transaction.player_name || 'Player'}
                             </p>
-                            <p className="text-sm text-[#64748B]">
+                            <p className="text-sm text-[#9FB3C8]">
                               {transaction.status === 'released' ? 'Released' : 'Refunded'} - {new Date(transaction.updated_at || transaction.created_at).toLocaleDateString()}
                             </p>
                           </div>
@@ -1446,11 +1446,11 @@ export default function ManageHomeGamePage() {
               </div>
 
               {/* Info Note */}
-              <div className="bg-[#F59E0B]/10 rounded-xl p-4 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-[#F59E0B] flex-shrink-0 mt-0.5" />
+              <div className="bg-[#22D3EE]/10 rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-[#22D3EE] flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium text-[#F59E0B]">How Escrow Works</p>
-                  <p className="text-sm text-[#F59E0B]/80 mt-1">
+                  <p className="font-medium text-[#22D3EE]">How Escrow Works</p>
+                  <p className="text-sm text-[#22D3EE]/80 mt-1">
                     Players Deposit Buy-Ins Before The Game. After The Game Ends, Release Funds To Pay Winners Or Refund If A Player Couldn't Attend.
                   </p>
                 </div>
@@ -1470,15 +1470,15 @@ export default function ManageHomeGamePage() {
                 >
                   <Users className="w-6 h-6 text-[#22D3EE]" />
                   <span className="text-sm font-semibold text-white">Database Of Players</span>
-                  <span className="text-xs text-[#64748B]">View And Manage Full Roster</span>
+                  <span className="text-xs text-[#9FB3C8]">View And Manage Full Roster</span>
                 </button>
                 <button
                   onClick={() => setBroadcastOpen(true)}
                   className="cmd-panel p-4 flex flex-col items-center gap-2 hover:bg-[#1A2E4A] transition-colors text-center"
                 >
-                  <Megaphone className="w-6 h-6 text-[#F59E0B]" />
+                  <Megaphone className="w-6 h-6 text-[#22D3EE]" />
                   <span className="text-sm font-semibold text-white">Broadcast</span>
-                  <span className="text-xs text-[#64748B]">Message All Players</span>
+                  <span className="text-xs text-[#9FB3C8]">Message All Players</span>
                 </button>
               </div>
 
@@ -1540,7 +1540,7 @@ export default function ManageHomeGamePage() {
               {/* Contact Info - optional public contact details */}
               <div className="cmd-panel p-6">
                 <h3 className="font-semibold text-white mb-1">Contact Info</h3>
-                <p className="text-sm text-[#64748B] mb-4">
+                <p className="text-sm text-[#9FB3C8] mb-4">
                   These Are Shown Publicly On Your Home Game Card And Details Page So Players Can Reach You Directly.
                 </p>
 
@@ -1556,7 +1556,7 @@ export default function ManageHomeGamePage() {
                       maxLength={30}
                       className="w-full h-10 px-3 cmd-input"
                     />
-                    <p className="text-xs text-[#4A5E78] mt-1">Appears As A Clickable Tel: Link On Mobile.</p>
+                    <p className="text-xs text-[#8FA6BE] mt-1">Appears As A Clickable Tel: Link On Mobile.</p>
                   </div>
 
                   <div>
@@ -1570,7 +1570,7 @@ export default function ManageHomeGamePage() {
                       maxLength={255}
                       className="w-full h-10 px-3 cmd-input"
                     />
-                    <p className="text-xs text-[#4A5E78] mt-1">Link To Your Facebook Group, Website, Or Any Other URL.</p>
+                    <p className="text-xs text-[#8FA6BE] mt-1">Link To Your Facebook Group, Website, Or Any Other URL.</p>
                   </div>
                 </div>
               </div>
@@ -1584,13 +1584,13 @@ export default function ManageHomeGamePage() {
                   <label className="flex items-center justify-between p-3 bg-[#0D192E] rounded-lg cursor-pointer">
                     <div>
                       <p className="font-medium text-white">Require Approval</p>
-                      <p className="text-sm text-[#64748B]">New Members Must Be Approved Before Joining</p>
+                      <p className="text-sm text-[#9FB3C8]">New Members Must Be Approved Before Joining</p>
                     </div>
                     <input
                       type="checkbox"
                       checked={group?.requires_approval ?? true}
                       onChange={(e) => handleUpdateSettings({ requires_approval: e.target.checked })}
-                      className="w-5 h-5 text-[#22D3EE] border-[#4A5E78] rounded focus:ring-[#22D3EE]"
+                      className="w-5 h-5 text-[#22D3EE] border-[#445E77] rounded focus:ring-[#22D3EE]"
                     />
                   </label>
 
@@ -1604,7 +1604,7 @@ export default function ManageHomeGamePage() {
                       <option value="private">Private - Invite Only</option>
                       <option value="public">Public - Anyone Can Find</option>
                     </select>
-                    <p className="text-xs text-[#4A5E78] mt-1">
+                    <p className="text-xs text-[#8FA6BE] mt-1">
                       Private Groups Require An Invitation. Public Groups Can Appear In Poker Near Me.
                     </p>
                   </div>
@@ -1641,7 +1641,7 @@ export default function ManageHomeGamePage() {
                 {copySuccess && (
                   <p className="text-sm text-[#10B981] mt-2 font-medium">Invite Code Copied To Clipboard</p>
                 )}
-                <p className="text-sm text-[#64748B] mt-2">Share This Code With Players You Want To Invite</p>
+                <p className="text-sm text-[#9FB3C8] mt-2">Share This Code With Players You Want To Invite</p>
               </div>
 
               {/* Public Page - shown only for public groups that have a social page */}
@@ -1650,7 +1650,7 @@ export default function ManageHomeGamePage() {
                   <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
                     <div>
                       <h3 className="font-semibold text-white mb-1">Your Public Page</h3>
-                      <p className="text-sm text-[#64748B]">
+                      <p className="text-sm text-[#9FB3C8]">
                         Share This URL Anywhere - Players Can View Your Game, RSVP, And Follow For Updates Without An Account.
                       </p>
                     </div>
@@ -1715,7 +1715,7 @@ export default function ManageHomeGamePage() {
                           WhatsApp
                         </button>
                       </div>
-                      <p className="text-xs text-[#64748B] leading-relaxed">
+                      <p className="text-xs text-[#9FB3C8] leading-relaxed">
                         This Page Is Indexed By Search Engines And Carries Open Graph Metadata - It'll Render A Rich Preview Card When Shared On Social Media, IMessage, WhatsApp, And Slack.
                       </p>
                     </div>
@@ -1736,7 +1736,7 @@ export default function ManageHomeGamePage() {
               {/* Danger Zone */}
               <div className="cmd-panel border border-[#EF4444]/30 p-6">
                 <h3 className="font-semibold text-[#EF4444] mb-4">Danger Zone</h3>
-                <p className="text-sm text-[#64748B] mb-4">
+                <p className="text-sm text-[#9FB3C8] mb-4">
                   Once You Delete A Group, There Is No Going Back. All Scheduled Games And Member Data Will Be Permanently Removed.
                 </p>
                 <button
@@ -1847,7 +1847,7 @@ export default function ManageHomeGamePage() {
           maxLength={2000}
           placeholder="Game time, table, or location update..."
         />
-        <div className="mt-2 text-right text-xs text-[#64748B]">{broadcastMessage.length} / 2000</div>
+        <div className="mt-2 text-right text-xs text-[#9FB3C8]">{broadcastMessage.length} / 2000</div>
       </CasinoActionDialog>
     </>
     </CommanderPageShell>

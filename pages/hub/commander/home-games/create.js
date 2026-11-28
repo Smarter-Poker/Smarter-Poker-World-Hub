@@ -659,18 +659,18 @@ export default function CreateHomeGamePage() {
             Removed that class and added an opaque background to the fixed wrapper
             so content never bleeds through. Spacer bumped from 61 to 80 to match
             real rendered height (header + progress bar). */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-[#0F1C32] border-b border-[#4A5E78]">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-[#0F1C32] border-b border-[#445E77]">
           <header className="bg-[#0F1C32]">
             <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
               <button
                 onClick={() => router.back()}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
+                <ArrowLeft className="w-5 h-5 text-[#9FB3C8]" />
               </button>
               <div>
                 <h1 className="font-bold text-white">Host A Home Game</h1>
-                <p className="text-sm text-[#64748B]">
+                <p className="text-sm text-[#9FB3C8]">
                   {step <= 3 ? `Step ${step} of 3` : 'Schedule First Game'}
                 </p>
               </div>
@@ -678,13 +678,13 @@ export default function CreateHomeGamePage() {
           </header>
 
           {/* Progress Bar */}
-          <div className="bg-[#0F1C32] border-b border-[#4A5E78]">
+          <div className="bg-[#0F1C32] border-b border-[#445E77]">
             <div className="max-w-2xl mx-auto px-4">
               <div className="flex">
                 {[1, 2, 3].map((s) => (
                   <div
                     key={s}
-                    className={`flex-1 h-1 ${s <= step ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'}`}
+                    className={`flex-1 h-1 ${s <= step ? 'bg-[#22D3EE]' : 'bg-[#445E77]'}`}
                   />
                 ))}
               </div>
@@ -737,7 +737,7 @@ export default function CreateHomeGamePage() {
                       );
                     })()}
                   </div>
-                  <p className="text-sm text-[#94A3B8] mt-1">
+                  <p className="text-sm text-[#A9BDD1] mt-1">
                     Signup Complete. Let's Create Your First Home Game - This 3-Step Form Sets Up
                     Your Group Details, Location, And Schedule. The Same Flow No Matter Where You
                     Started.
@@ -762,7 +762,7 @@ export default function CreateHomeGamePage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 className="font-semibold text-white">Add Another Home Game</h2>
-                  <p className="text-sm text-[#94A3B8] mt-1">
+                  <p className="text-sm text-[#A9BDD1] mt-1">
                     You Already host{' '}
                     {existingGroupCount === 1
                       ? '1 home group'
@@ -842,14 +842,14 @@ export default function CreateHomeGamePage() {
                       className={`p-4 rounded-lg border text-left transition-colors ${
                         formData.visibility === 'private'
                           ? 'border-[#22D3EE] bg-[#22D3EE]/10'
-                          : 'border-[#4A5E78] hover:bg-[#132240]'
+                          : 'border-[#445E77] hover:bg-[#132240]'
                       }`}
                     >
                       <Lock
-                        className={`w-5 h-5 mb-2 ${formData.visibility === 'private' ? 'text-[#22D3EE]' : 'text-[#64748B]'}`}
+                        className={`w-5 h-5 mb-2 ${formData.visibility === 'private' ? 'text-[#22D3EE]' : 'text-[#9FB3C8]'}`}
                       />
                       <p className="font-medium text-white">Private</p>
-                      <p className="text-sm text-[#64748B]">Invite Only</p>
+                      <p className="text-sm text-[#9FB3C8]">Invite Only</p>
                     </button>
                     <button
                       type="button"
@@ -857,14 +857,14 @@ export default function CreateHomeGamePage() {
                       className={`p-4 rounded-lg border text-left transition-colors ${
                         formData.visibility === 'public'
                           ? 'border-[#22D3EE] bg-[#22D3EE]/10'
-                          : 'border-[#4A5E78] hover:bg-[#132240]'
+                          : 'border-[#445E77] hover:bg-[#132240]'
                       }`}
                     >
                       <Globe
-                        className={`w-5 h-5 mb-2 ${formData.visibility === 'public' ? 'text-[#22D3EE]' : 'text-[#64748B]'}`}
+                        className={`w-5 h-5 mb-2 ${formData.visibility === 'public' ? 'text-[#22D3EE]' : 'text-[#9FB3C8]'}`}
                       />
                       <p className="font-medium text-white">Public</p>
-                      <p className="text-sm text-[#64748B]">Anyone Can Find</p>
+                      <p className="text-sm text-[#9FB3C8]">Anyone Can Find</p>
                     </button>
                   </div>
                 </div>
@@ -873,7 +873,7 @@ export default function CreateHomeGamePage() {
                   <div className="flex items-center justify-between p-4 bg-[#0D192E] rounded-lg">
                     <div>
                       <p className="font-medium text-white">Require Approval</p>
-                      <p className="text-sm text-[#64748B]">
+                      <p className="text-sm text-[#9FB3C8]">
                         Review Join Requests Before Accepting
                       </p>
                     </div>
@@ -881,7 +881,7 @@ export default function CreateHomeGamePage() {
                       type="button"
                       onClick={() => updateField('requires_approval', !formData.requires_approval)}
                       className={`w-12 h-6 rounded-full transition-colors ${
-                        formData.requires_approval ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
+                        formData.requires_approval ? 'bg-[#22D3EE]' : 'bg-[#445E77]'
                       }`}
                     >
                       <div
@@ -955,20 +955,20 @@ export default function CreateHomeGamePage() {
                         className={`flex-1 min-w-[44px] h-10 rounded-lg border font-medium transition-colors ${
                           formData.tables_count === n
                             ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
-                            : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                            : 'border-[#445E77] text-[#9FB3C8] hover:bg-[#132240]'
                         }`}
                       >
                         {n}
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-[#64748B] mt-2">
+                  <p className="text-xs text-[#9FB3C8] mt-2">
                     {formData.tables_count === 1
                       ? 'Single table - pick the game type and stakes below.'
                       : `Running ${formData.tables_count} tables - set the game type and stakes for each table below.`}
                   </p>
                   {formData.tables_count > 1 && (
-                    <p className="text-[10px] text-[#64748B]/70 mt-1 italic">
+                    <p className="text-[10px] text-[#9FB3C8]/70 mt-1 italic">
                       Tip: Reducing The Count Will Discard The Higher-Numbered Tables' Settings.
                     </p>
                   )}
@@ -987,7 +987,7 @@ export default function CreateHomeGamePage() {
                             className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
                               formData.game_type === value
                                 ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
-                                : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                                : 'border-[#445E77] text-[#9FB3C8] hover:bg-[#132240]'
                             }`}
                           >
                             {label}
@@ -1007,7 +1007,7 @@ export default function CreateHomeGamePage() {
                             className={`p-2 rounded-lg border text-sm font-medium transition-colors ${
                               formData.stakes === stake
                                 ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
-                                : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                                : 'border-[#445E77] text-[#9FB3C8] hover:bg-[#132240]'
                             }`}
                           >
                             {stake}
@@ -1032,7 +1032,7 @@ export default function CreateHomeGamePage() {
                     {formData.tables.map((tbl, idx) => (
                       <div
                         key={tbl.id || `tbl-fallback-${idx}`}
-                        className="p-4 rounded-lg border border-[#4A5E78]/40 bg-[#0D192E] space-y-3"
+                        className="p-4 rounded-lg border border-[#445E77]/40 bg-[#0D192E] space-y-3"
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-semibold text-[#22D3EE]">
@@ -1040,7 +1040,7 @@ export default function CreateHomeGamePage() {
                           </span>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-[#94A3B8] mb-1.5">
+                          <label className="block text-xs font-medium text-[#A9BDD1] mb-1.5">
                             Game Type
                           </label>
                           <div className="grid grid-cols-2 gap-2">
@@ -1058,7 +1058,7 @@ export default function CreateHomeGamePage() {
                                 className={`p-2.5 rounded-lg border text-xs font-medium transition-colors ${
                                   tbl.game_type === value
                                     ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
-                                    : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                                    : 'border-[#445E77] text-[#9FB3C8] hover:bg-[#132240]'
                                 }`}
                               >
                                 {label}
@@ -1067,7 +1067,7 @@ export default function CreateHomeGamePage() {
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-[#94A3B8] mb-1.5">
+                          <label className="block text-xs font-medium text-[#A9BDD1] mb-1.5">
                             Stakes
                           </label>
                           <div className="grid grid-cols-4 gap-2">
@@ -1085,7 +1085,7 @@ export default function CreateHomeGamePage() {
                                 className={`p-2 rounded-lg border text-xs font-medium transition-colors ${
                                   tbl.stakes === stake
                                     ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
-                                    : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                                    : 'border-[#445E77] text-[#9FB3C8] hover:bg-[#132240]'
                                 }`}
                               >
                                 {stake}
@@ -1147,7 +1147,7 @@ export default function CreateHomeGamePage() {
                         className={`flex-1 h-10 rounded-lg border font-medium transition-colors ${
                           formData.max_players === num
                             ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
-                            : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                            : 'border-[#445E77] text-[#9FB3C8] hover:bg-[#132240]'
                         }`}
                       >
                         {num}
@@ -1184,10 +1184,10 @@ export default function CreateHomeGamePage() {
                   <MapPin className="w-5 h-5 text-[#EF4444]" />
                   Approximate Location
                 </h2>
-                <div className="p-3 bg-[#0D192E] rounded-lg border border-[#4A5E78]/40 flex items-start gap-3">
+                <div className="p-3 bg-[#0D192E] rounded-lg border border-[#445E77]/40 flex items-start gap-3">
                   <MapPin className="w-4 h-4 text-[#EF4444] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-sm text-[#94A3B8]">
+                    <p className="text-sm text-[#A9BDD1]">
                       Drag The Pin To Set Your Approximate Area. Your Exact Address Is Never Shared.
                     </p>
                     {formData.neighborhood && (
@@ -1241,20 +1241,20 @@ export default function CreateHomeGamePage() {
 
               <div className="cmd-panel p-6 space-y-4">
                 <h2 className="font-semibold text-white flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-[#8B5CF6]" />
+                  <Calendar className="w-5 h-5 text-[#5AA9FF]" />
                   Schedule
                 </h2>
 
                 <div className="flex items-center justify-between p-4 bg-[#0D192E] rounded-lg">
                   <div>
                     <p className="font-medium text-white">Recurring Game</p>
-                    <p className="text-sm text-[#64748B]">Set A Regular Schedule</p>
+                    <p className="text-sm text-[#9FB3C8]">Set A Regular Schedule</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => updateField('recurring', !formData.recurring)}
                     className={`w-12 h-6 rounded-full transition-colors ${
-                      formData.recurring ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
+                      formData.recurring ? 'bg-[#22D3EE]' : 'bg-[#445E77]'
                     }`}
                   >
                     <div
@@ -1279,8 +1279,8 @@ export default function CreateHomeGamePage() {
                             onClick={() => toggleDay(value)}
                             className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${
                               formData.schedule_days.includes(value)
-                                ? 'border-[#8B5CF6] bg-[#8B5CF6]/15 text-[#C4B5FD] shadow-[0_0_8px_rgba(139,92,246,0.2)]'
-                                : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                                ? 'border-[#5AA9FF] bg-[#5AA9FF]/15 text-[#C4B5FD] shadow-[0_0_8px_rgba(90, 169, 255,0.2)]'
+                                : 'border-[#445E77] text-[#9FB3C8] hover:bg-[#132240]'
                             }`}
                           >
                             {label}
@@ -1313,7 +1313,7 @@ export default function CreateHomeGamePage() {
                       </div>
                     </div>
                     {getScheduleSummary() && (
-                      <div className="p-3 bg-[#8B5CF6]/10 rounded-lg border border-[#8B5CF6]/25 flex items-center gap-2">
+                      <div className="p-3 bg-[#5AA9FF]/10 rounded-lg border border-[#5AA9FF]/25 flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-[#C4B5FD]" />
                         <span className="text-sm text-[#C4B5FD] font-medium">
                           {getScheduleSummary()}
@@ -1330,15 +1330,15 @@ export default function CreateHomeGamePage() {
                   Persists to settings.tournaments as an array of objects. */}
               <div className="cmd-panel p-6 space-y-4">
                 <h2 className="font-semibold text-white flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-[#F59E0B]" />
+                  <Trophy className="w-5 h-5 text-[#22D3EE]" />
                   Schedule Tournaments
-                  <span className="text-xs font-normal text-[#64748B]">· Optional</span>
+                  <span className="text-xs font-normal text-[#9FB3C8]">· Optional</span>
                 </h2>
 
                 <div className="flex items-center justify-between p-4 bg-[#0D192E] rounded-lg">
                   <div>
                     <p className="font-medium text-white">Tournaments?</p>
-                    <p className="text-sm text-[#64748B]">
+                    <p className="text-sm text-[#9FB3C8]">
                       Run Scheduled Tournaments At This Home Game
                     </p>
                   </div>
@@ -1366,7 +1366,7 @@ export default function CreateHomeGamePage() {
                       }
                     }}
                     aria-pressed={formData.schedules_tournaments}
-                    className={`w-12 h-6 rounded-full transition-colors ${formData.schedules_tournaments ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'}`}
+                    className={`w-12 h-6 rounded-full transition-colors ${formData.schedules_tournaments ? 'bg-[#22D3EE]' : 'bg-[#445E77]'}`}
                   >
                     <div
                       className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.schedules_tournaments ? 'translate-x-6' : 'translate-x-0.5'}`}
@@ -1379,7 +1379,7 @@ export default function CreateHomeGamePage() {
                     {formData.tournaments.map((t, idx) => (
                       <div
                         key={idx}
-                        className="p-4 bg-[#0D192E] rounded-lg border border-[#4A5E78]/40 space-y-3"
+                        className="p-4 bg-[#0D192E] rounded-lg border border-[#445E77]/40 space-y-3"
                       >
                         <div className="flex items-center justify-between">
                           <p className="font-medium text-white">Tournament {idx + 1}</p>
@@ -1392,7 +1392,7 @@ export default function CreateHomeGamePage() {
                                   formData.tournaments.filter((_, i) => i !== idx)
                                 );
                               }}
-                              className="text-xs text-[#EF4444] hover:text-[#FBBF24]"
+                              className="text-xs text-[#EF4444] hover:text-[#22D3EE]"
                             >
                               Remove
                             </button>
@@ -1511,7 +1511,7 @@ export default function CreateHomeGamePage() {
                         <div>
                           <label className="block text-sm font-medium text-white mb-1">
                             Max Entries{' '}
-                            <span className="text-xs text-[#64748B]">(Blank = Unlimited)</span>
+                            <span className="text-xs text-[#9FB3C8]">(Blank = Unlimited)</span>
                           </label>
                           <input
                             type="number"
@@ -1531,7 +1531,7 @@ export default function CreateHomeGamePage() {
                         <div className="flex items-center justify-between p-3 bg-[#101D33] rounded-lg">
                           <div>
                             <p className="text-sm font-medium text-white">Recurring Tournament</p>
-                            <p className="text-xs text-[#64748B]">Set A Regular Schedule</p>
+                            <p className="text-xs text-[#9FB3C8]">Set A Regular Schedule</p>
                           </div>
                           <button
                             type="button"
@@ -1541,7 +1541,7 @@ export default function CreateHomeGamePage() {
                               updateField('tournaments', arr);
                             }}
                             aria-pressed={!!t.recurring}
-                            className={`w-12 h-6 rounded-full transition-colors ${t.recurring ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'}`}
+                            className={`w-12 h-6 rounded-full transition-colors ${t.recurring ? 'bg-[#22D3EE]' : 'bg-[#445E77]'}`}
                           >
                             <div
                               className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${t.recurring ? 'translate-x-6' : 'translate-x-0.5'}`}
@@ -1578,8 +1578,8 @@ export default function CreateHomeGamePage() {
                                     }}
                                     className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
                                       sel
-                                        ? 'border-[#8B5CF6] bg-[#8B5CF6]/15 text-[#C4B5FD] shadow-[0_0_8px_rgba(139,92,246,0.2)]'
-                                        : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                                        ? 'border-[#5AA9FF] bg-[#5AA9FF]/15 text-[#C4B5FD] shadow-[0_0_8px_rgba(90, 169, 255,0.2)]'
+                                        : 'border-[#445E77] text-[#9FB3C8] hover:bg-[#132240]'
                                     }`}
                                   >
                                     {label}
@@ -1591,7 +1591,7 @@ export default function CreateHomeGamePage() {
                                 first date never become real events - tell the
                                 host the date above is required to schedule. */}
                             {!t.scheduled_date && (
-                              <p className="text-xs text-[#F59E0B] mt-2">
+                              <p className="text-xs text-[#22D3EE] mt-2">
                                 Recurring Days Are Saved As Preferences Only. Choose A Date And Time To Publish One Occurrence. Additional Occurrences Must Be Scheduled From Manage.
                               </p>
                             )}
@@ -1618,7 +1618,7 @@ export default function CreateHomeGamePage() {
                           },
                         ]);
                       }}
-                      className="w-full h-10 rounded-lg border-2 border-dashed border-[#4A5E78] text-[#94A3B8] hover:border-[#22D3EE] hover:text-[#22D3EE] flex items-center justify-center gap-2 transition"
+                      className="w-full h-10 rounded-lg border-2 border-dashed border-[#445E77] text-[#A9BDD1] hover:border-[#22D3EE] hover:text-[#22D3EE] flex items-center justify-center gap-2 transition"
                     >
                       <Plus className="w-4 h-4" /> Add Another Tournament
                     </button>
@@ -1628,10 +1628,10 @@ export default function CreateHomeGamePage() {
 
               <div className="cmd-panel p-6 space-y-4">
                 <h2 className="font-semibold text-white flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5 text-[#F59E0B]" />
-                  Group Logo <span className="text-xs font-normal text-[#F59E0B]">· Required</span>
+                  <ImageIcon className="w-5 h-5 text-[#22D3EE]" />
+                  Group Logo <span className="text-xs font-normal text-[#22D3EE]">· Required</span>
                 </h2>
-                <p className="text-sm text-[#94A3B8]">
+                <p className="text-sm text-[#A9BDD1]">
                   Upload A Logo That Represents Your Home Game. This Appears On Your Public Page, In
                   Push Notifications To Followers, And Across Poker Near Me / Daily Tournaments When
                   Your Games Surface There. A Real Image Is Required Before You Can Finish Creating
@@ -1651,16 +1651,16 @@ export default function CreateHomeGamePage() {
                     type="button"
                     onClick={() => logoInputRef.current?.click()}
                     disabled={uploadingLogo}
-                    className="cmd-btn cmd-btn-secondary w-full h-14 flex items-center justify-center gap-2 border-dashed border-2 border-[#F59E0B]/50 hover:border-[#F59E0B] transition-colors"
+                    className="cmd-btn cmd-btn-secondary w-full h-14 flex items-center justify-center gap-2 border-dashed border-2 border-[#22D3EE]/50 hover:border-[#22D3EE] transition-colors"
                   >
                     {uploadingLogo ? (
                       <>
-                        <Loader2 className="w-5 h-5 animate-spin text-[#F59E0B]" />
+                        <Loader2 className="w-5 h-5 animate-spin text-[#22D3EE]" />
                         <span>Uploading…</span>
                       </>
                     ) : (
                       <>
-                        <Upload className="w-5 h-5 text-[#F59E0B]" />
+                        <Upload className="w-5 h-5 text-[#22D3EE]" />
                         <span>Choose Logo Image</span>
                       </>
                     )}
@@ -1683,7 +1683,7 @@ export default function CreateHomeGamePage() {
                         <Check className="w-4 h-4" />
                         Logo Uploaded
                       </p>
-                      <p className="text-xs text-[#64748B] truncate">
+                      <p className="text-xs text-[#9FB3C8] truncate">
                         Click Replace To Pick A Different Image
                       </p>
                     </div>
@@ -1753,7 +1753,7 @@ export default function CreateHomeGamePage() {
                   <Check className="w-8 h-8 text-[#10B981]" />
                 </div>
                 <h2 className="text-xl font-bold text-white">Creation Not Confirmed</h2>
-                <p className="text-[#64748B] mt-1">
+                <p className="text-[#9FB3C8] mt-1">
                   The Server Did Not Return A Group Record. Check Your Dashboard Before
                   Creating Another Group To Avoid A Duplicate.
                 </p>
@@ -1776,7 +1776,7 @@ export default function CreateHomeGamePage() {
                   <Check className="w-8 h-8 text-[#10B981]" />
                 </div>
                 <h2 className="text-xl font-bold text-white">Group Created</h2>
-                <p className="text-[#64748B] mt-1">
+                <p className="text-[#9FB3C8] mt-1">
                   {createdGroup.name} Is Created. {createdGroup.is_private ? 'Private Membership Is Required.' : 'Review Your Published Schedule Below.'}
                   {createdSocialPage ? ' Your Linked Social Page Is Ready.' : ' Linked Social Page Confirmation Is Unavailable. Check Manage Before Sharing.'}
                 </p>
@@ -1785,15 +1785,15 @@ export default function CreateHomeGamePage() {
               {tournamentPublication && (
                 <div className="cmd-panel p-5 space-y-3" role="status" aria-live="polite">
                   <h3 className="font-semibold text-white">Tournament Publication</h3>
-                  <p className="text-sm text-[#94A3B8]">{tournamentPublication.confirmed.length} Occurrences Confirmed.</p>
+                  <p className="text-sm text-[#A9BDD1]">{tournamentPublication.confirmed.length} Occurrences Confirmed.</p>
                   {tournamentPublication.unconfirmed.length > 0 && (
-                    <p className="text-sm text-[#FBBF24]">
+                    <p className="text-sm text-[#22D3EE]">
                       {tournamentPublication.unconfirmed.length} Occurrences Are Not Confirmed: {tournamentPublication.unconfirmed.map((plan) => plan.name).join(', ')}.
                       Check Your Saved Schedule Before Adding Them Again. A Connection Failure May Have Occurred After Saving.
                     </p>
                   )}
                   {tournamentPublication.unscheduled.length > 0 && (
-                    <p className="text-sm text-[#FBBF24]">
+                    <p className="text-sm text-[#22D3EE]">
                       {tournamentPublication.unscheduled.length} Named Plans Have No Complete Date And Time And Were Not Published.
                     </p>
                   )}
@@ -1827,12 +1827,12 @@ export default function CreateHomeGamePage() {
                   return (
                     <div className="cmd-panel p-5 space-y-4">
                       <div className="flex items-center gap-3">
-                        <Share2 className="w-5 h-5 text-[#8B5CF6]" />
+                        <Share2 className="w-5 h-5 text-[#5AA9FF]" />
                         <div className="flex-1">
                           <h3 className="font-semibold text-white text-sm">
                             Social Page: {sp.name}
                           </h3>
-                          <p className="text-xs text-[#64748B] mt-0.5">
+                          <p className="text-xs text-[#9FB3C8] mt-0.5">
                             Complete Your Page So Players Can Follow And Find Your Game
                           </p>
                         </div>
@@ -1847,7 +1847,7 @@ export default function CreateHomeGamePage() {
                             background:
                               pct === 100
                                 ? 'linear-gradient(90deg, #10B981, #22D3EE)'
-                                : 'linear-gradient(90deg, #8B5CF6, #C4B5FD)',
+                                : 'linear-gradient(90deg, #5AA9FF, #C4B5FD)',
                           }}
                         />
                       </div>
@@ -1873,7 +1873,7 @@ export default function CreateHomeGamePage() {
                             {item.done ? (
                               <Check className="w-4 h-4 text-[#10B981]" />
                             ) : (
-                              <item.icon className="w-4 h-4 text-[#64748B]" />
+                              <item.icon className="w-4 h-4 text-[#9FB3C8]" />
                             )}
                             <span
                               className={`text-sm ${item.done ? 'text-[#10B981] line-through' : 'text-white'}`}
@@ -1881,7 +1881,7 @@ export default function CreateHomeGamePage() {
                               {item.label}
                             </span>
                             {!item.done && (
-                              <ChevronRight className="w-3 h-3 text-[#64748B] ml-auto" />
+                              <ChevronRight className="w-3 h-3 text-[#9FB3C8] ml-auto" />
                             )}
                           </div>
                         ))}
@@ -2043,7 +2043,7 @@ export default function CreateHomeGamePage() {
 
               <button
                 onClick={() => router.push(`/hub/commander/home-games/${createdGroup.id}`)}
-                className="w-full text-center text-sm text-[#64748B] hover:text-white transition-colors py-2 flex items-center justify-center gap-2"
+                className="w-full text-center text-sm text-[#9FB3C8] hover:text-white transition-colors py-2 flex items-center justify-center gap-2"
               >
                 Skip - Go To Group
                 <ChevronRight className="w-4 h-4" />

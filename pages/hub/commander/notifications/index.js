@@ -26,10 +26,10 @@ const NOTIFICATION_ICONS = {
 
 const NOTIFICATION_COLORS = {
   seat_available: '#10B981',
-  promotion: '#F59E0B',
-  tournament: '#8B5CF6',
+  promotion: '#22D3EE',
+  tournament: '#5AA9FF',
   announcement: '#22D3EE',
-  waitlist: '#64748B',
+  waitlist: '#9FB3C8',
   alert: '#EF4444'
 };
 
@@ -52,11 +52,11 @@ function NotificationCard({ notification, onMarkRead, onDelete }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className={`font-medium ${isUnread ? 'text-white' : 'text-[#64748B]'}`}>
+              <p className={`font-medium ${isUnread ? 'text-white' : 'text-[#9FB3C8]'}`}>
                 {notification.title}
               </p>
               {notification.venue_name && (
-                <p className="text-sm text-[#64748B] flex items-center gap-1">
+                <p className="text-sm text-[#9FB3C8] flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
                   {notification.venue_name}
                 </p>
@@ -68,11 +68,11 @@ function NotificationCard({ notification, onMarkRead, onDelete }) {
           </div>
 
           {notification.message && (
-            <p className="text-sm text-[#64748B] mt-2">{notification.message}</p>
+            <p className="text-sm text-[#9FB3C8] mt-2">{notification.message}</p>
           )}
 
           <div className="flex items-center justify-between mt-3">
-            <span className="text-xs text-[#64748B]">
+            <span className="text-xs text-[#9FB3C8]">
               {date.toLocaleDateString()} At {date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
             </span>
 
@@ -80,7 +80,7 @@ function NotificationCard({ notification, onMarkRead, onDelete }) {
               {isUnread && (
                 <button
                   onClick={() => onMarkRead?.(notification)}
-                  className="p-1.5 text-[#64748B] hover:text-[#10B981] hover:bg-[#10B981]/10 rounded transition-colors"
+                  className="p-1.5 text-[#9FB3C8] hover:text-[#10B981] hover:bg-[#10B981]/10 rounded transition-colors"
                   title="Mark As Read"
                 >
                   <Check className="w-4 h-4" />
@@ -88,7 +88,7 @@ function NotificationCard({ notification, onMarkRead, onDelete }) {
               )}
               <button
                 onClick={() => onDelete?.(notification)}
-                className="p-1.5 text-[#64748B] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded transition-colors"
+                className="p-1.5 text-[#9FB3C8] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded transition-colors"
                 title="Delete"
               >
                 <Trash2 className="w-4 h-4" />
@@ -242,7 +242,7 @@ export default function PlayerNotificationsPage() {
                   <Bell className="w-6 h-6" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-extrabold text-white tracking-wider">NOTIFICATIONS</h1>
+                  <h1 className="text-xl font-extrabold text-white tracking-wider">Notifications</h1>
                   {unreadCount > 0 && (
                     <span className="cmd-badge cmd-badge-live text-xs mt-1">
                       {unreadCount} UNREAD
@@ -274,7 +274,7 @@ export default function PlayerNotificationsPage() {
                 onClick={() => setFilter(value)}
                 className={`px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wide transition-colors border-2 ${filter === value
                   ? 'bg-[#132240] text-[#22D3EE] border-[#22D3EE]'
-                  : 'bg-[#0F1C32] text-[#64748B] border-[#4A5E78] hover:border-[#7A8EA8]'
+                  : 'bg-[#0F1C32] text-[#9FB3C8] border-[#445E77] hover:border-[#7A8EA8]'
                   }`}
               >
                 {label}
@@ -288,10 +288,10 @@ export default function PlayerNotificationsPage() {
               <div className="cmd-icon-box mx-auto mb-3">
                 <Bell className="w-7 h-7" />
               </div>
-              <p className="text-[#64748B] font-medium">
+              <p className="text-[#9FB3C8] font-medium">
                 {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
               </p>
-              <p className="text-sm text-[#64748B] mt-1">
+              <p className="text-sm text-[#9FB3C8] mt-1">
                 Join A Waitlist To Receive Updates
               </p>
             </div>

@@ -18,12 +18,12 @@ function ToggleSetting({ label, description, value, onChange }) {
     <div className="flex items-center justify-between py-3">
       <div>
         <p className="font-medium text-white text-sm">{label}</p>
-        {description && <p className="text-xs text-[#64748B] mt-0.5">{description}</p>}
+        {description && <p className="text-xs text-[#9FB3C8] mt-0.5">{description}</p>}
       </div>
       <button
         onClick={() => onChange(!value)}
         className={`w-11 h-6 rounded-full transition-colors relative ${
-          value ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
+          value ? 'bg-[#22D3EE]' : 'bg-[#445E77]'
         }`}
       >
         <div
@@ -114,7 +114,7 @@ export default function ProfileSettingsPage() {
         <header className="cmd-header-bar">
           <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-4">
             <button onClick={() => router.push('/hub/commander/profile')} className="p-2 rounded-lg hover:bg-[#132240]">
-              <ArrowLeft size={20} className="text-[#64748B]" />
+              <ArrowLeft size={20} className="text-[#9FB3C8]" />
             </button>
             <h1 className="text-lg font-bold text-white">Settings</h1>
           </div>
@@ -127,7 +127,7 @@ export default function ProfileSettingsPage() {
               <Bell size={18} className="text-[#22D3EE]" />
               <h2 className="font-bold text-white text-sm uppercase tracking-wide">Notifications</h2>
             </div>
-            <div className="divide-y divide-[#4A5E78]/50">
+            <div className="divide-y divide-[#445E77]/50">
               <ToggleSetting
                 label="Waitlist Updates"
                 description="Get Notified When Your Position Changes"
@@ -167,7 +167,7 @@ export default function ProfileSettingsPage() {
               <Shield size={18} className="text-[#10B981]" />
               <h2 className="font-bold text-white text-sm uppercase tracking-wide">Privacy</h2>
             </div>
-            <div className="divide-y divide-[#4A5E78]/50">
+            <div className="divide-y divide-[#445E77]/50">
               <ToggleSetting
                 label="Show Stats On Profile"
                 description="Let Others See Your Session Stats"
@@ -192,10 +192,10 @@ export default function ProfileSettingsPage() {
           {/* Display */}
           <section className="cmd-panel p-4">
             <div className="flex items-center gap-2 mb-3">
-              <Eye size={18} className="text-[#8B5CF6]" />
+              <Eye size={18} className="text-[#5AA9FF]" />
               <h2 className="font-bold text-white text-sm uppercase tracking-wide">Display</h2>
             </div>
-            <div className="divide-y divide-[#4A5E78]/50">
+            <div className="divide-y divide-[#445E77]/50">
               <ToggleSetting
                 label="Compact Mode"
                 description="Use Smaller Cards And Tighter Spacing"

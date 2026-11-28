@@ -189,7 +189,7 @@ export default function CreateSquadPage() {
                 onClick={() => router.back()}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <ChevronLeft className="w-5 h-5 text-[#64748B]" />
+                <ChevronLeft className="w-5 h-5 text-[#9FB3C8]" />
               </button>
               <h1 className="text-xl font-bold text-white">Create Squad</h1>
             </div>
@@ -197,19 +197,19 @@ export default function CreateSquadPage() {
         </header>
 
         {/* Progress */}
-        <div className="bg-[#0F1C32] border-b border-[#4A5E78]">
+        <div className="bg-[#0F1C32] border-b border-[#445E77]">
           <div className="max-w-lg mx-auto px-4 py-3">
             <div className="flex gap-2">
               {[1, 2, 3].map(s => (
                 <div
                   key={s}
                   className={`flex-1 h-1 rounded-full ${
-                    s <= step ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
+                    s <= step ? 'bg-[#22D3EE]' : 'bg-[#445E77]'
                   }`}
                 />
               ))}
             </div>
-            <p className="text-sm text-[#64748B] mt-2">
+            <p className="text-sm text-[#9FB3C8] mt-2">
               Step {step} Of 3: {step === 1 ? 'Choose Venue' : step === 2 ? 'Game Details' : 'Invite Members'}
             </p>
           </div>
@@ -228,13 +228,13 @@ export default function CreateSquadPage() {
                     className={`w-full p-4 rounded-xl border text-left transition-colors ${
                       formData.venue_id === venue.id
                         ? 'border-[#22D3EE] bg-[#22D3EE]/10'
-                        : 'border-[#4A5E78] bg-[#132240] hover:border-[#22D3EE]'
+                        : 'border-[#445E77] bg-[#132240] hover:border-[#22D3EE]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium text-white">{venue.name}</p>
-                        <p className="text-sm text-[#64748B] flex items-center gap-1">
+                        <p className="text-sm text-[#9FB3C8] flex items-center gap-1">
                           <MapPin className="w-4 h-4" />
                           {venue.city}
                         </p>
@@ -260,7 +260,7 @@ export default function CreateSquadPage() {
           {step === 2 && (
             <div className="space-y-6">
               <div className="cmd-panel p-4">
-                <p className="text-sm text-[#64748B]">Playing At</p>
+                <p className="text-sm text-[#9FB3C8]">Playing At</p>
                 <p className="font-medium text-white">{selectedVenue?.name}</p>
               </div>
 
@@ -289,7 +289,7 @@ export default function CreateSquadPage() {
                       className={`p-3 rounded-xl border text-sm font-medium transition-colors ${
                         formData.game_type === type.value
                           ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
-                          : 'border-[#4A5E78] text-[#64748B] hover:border-[#22D3EE]'
+                          : 'border-[#445E77] text-[#9FB3C8] hover:border-[#22D3EE]'
                       }`}
                     >
                       {type.label}
@@ -317,11 +317,11 @@ export default function CreateSquadPage() {
                     type="checkbox"
                     checked={formData.prefer_same_table}
                     onChange={(e) => setFormData(prev => ({ ...prev, prefer_same_table: e.target.checked }))}
-                    className="w-5 h-5 rounded border-[#4A5E78] text-[#22D3EE] focus:ring-[#22D3EE]"
+                    className="w-5 h-5 rounded border-[#445E77] text-[#22D3EE] focus:ring-[#22D3EE]"
                   />
                   <div>
                     <p className="font-medium text-white">Prefer Same Table</p>
-                    <p className="text-sm text-[#64748B]">Wait Longer To Sit Together</p>
+                    <p className="text-sm text-[#9FB3C8]">Wait Longer To Sit Together</p>
                   </div>
                 </label>
 
@@ -330,11 +330,11 @@ export default function CreateSquadPage() {
                     type="checkbox"
                     checked={formData.accept_split}
                     onChange={(e) => setFormData(prev => ({ ...prev, accept_split: e.target.checked }))}
-                    className="w-5 h-5 rounded border-[#4A5E78] text-[#22D3EE] focus:ring-[#22D3EE]"
+                    className="w-5 h-5 rounded border-[#445E77] text-[#22D3EE] focus:ring-[#22D3EE]"
                   />
                   <div>
                     <p className="font-medium text-white">Accept Split If Needed</p>
-                    <p className="text-sm text-[#64748B]">Get Seated Faster At Different Tables</p>
+                    <p className="text-sm text-[#9FB3C8]">Get Seated Faster At Different Tables</p>
                   </div>
                 </label>
               </div>
@@ -361,7 +361,7 @@ export default function CreateSquadPage() {
           {step === 3 && (
             <div className="space-y-6">
               <div className="cmd-panel p-4">
-                <p className="text-sm text-[#64748B]">{selectedVenue?.name}</p>
+                <p className="text-sm text-[#9FB3C8]">{selectedVenue?.name}</p>
                 <p className="font-medium text-white">{formData.stakes} {formData.game_type?.toUpperCase()}</p>
               </div>
 
@@ -383,7 +383,7 @@ export default function CreateSquadPage() {
                         <span className="text-white">{member.name}</span>
                         <button
                           onClick={() => handleRemoveMember(member.id)}
-                          className="text-[#64748B] hover:text-[#EF4444]"
+                          className="text-[#9FB3C8] hover:text-[#EF4444]"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -399,7 +399,7 @@ export default function CreateSquadPage() {
                   Invite Friends
                 </label>
                 <div className="relative mb-3">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#4A5E78]" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8FA6BE]" />
                   <input
                     type="text"
                     value={searchQuery}
@@ -418,22 +418,22 @@ export default function CreateSquadPage() {
                         className={`w-full flex items-center justify-between p-3 rounded-lg border transition-colors ${
                           isSelected
                             ? 'border-[#22D3EE] bg-[#22D3EE]/10'
-                            : 'border-[#4A5E78] hover:border-[#22D3EE]'
+                            : 'border-[#445E77] hover:border-[#22D3EE]'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-[#0D192E] rounded-full flex items-center justify-center">
-                            <Users className="w-5 h-5 text-[#64748B]" />
+                            <Users className="w-5 h-5 text-[#9FB3C8]" />
                           </div>
                           <div className="text-left">
                             <p className="font-medium text-white">{friend.name}</p>
-                            <p className="text-sm text-[#64748B]">@{friend.username}</p>
+                            <p className="text-sm text-[#9FB3C8]">@{friend.username}</p>
                           </div>
                         </div>
                         {isSelected ? (
                           <Check className="w-5 h-5 text-[#22D3EE]" />
                         ) : (
-                          <Plus className="w-5 h-5 text-[#64748B]" />
+                          <Plus className="w-5 h-5 text-[#9FB3C8]" />
                         )}
                       </button>
                     );

@@ -263,14 +263,14 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="cmd-panel cmd-corner-lights w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+        <div className="flex items-center justify-between p-4 border-b border-[#445E77]">
           <div className="flex items-center gap-3">
             {step === 2 && (
               <button
                 onClick={() => setStep(1)}
                 className="p-1.5 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <ChevronLeft className="w-5 h-5 text-[#64748B]" />
+                <ChevronLeft className="w-5 h-5 text-[#9FB3C8]" />
               </button>
             )}
             <div className="w-10 h-10 bg-[#22D3EE] rounded-lg flex items-center justify-center">
@@ -281,7 +281,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                 {step === 1 ? 'Choose Template' : 'Create Tournament'}
               </h2>
               {step === 1 && (
-                <p className="text-xs text-[#64748B]">Select A Template Or Start From Scratch</p>
+                <p className="text-xs text-[#9FB3C8]">Select A Template Or Start From Scratch</p>
               )}
             </div>
           </div>
@@ -289,7 +289,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
             onClick={() => { resetForm(); onClose(); }}
             className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#64748B]" />
+            <X className="w-5 h-5 text-[#9FB3C8]" />
           </button>
         </div>
 
@@ -302,16 +302,16 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
               className="w-full p-3 bg-[#0D192E] hover:bg-[#132240] border border-[#1E3A5F] rounded-lg transition-colors flex items-center gap-3 text-left"
             >
               <div className="w-10 h-10 bg-[#1E3A5F] rounded-lg flex items-center justify-center">
-                <Settings className="w-5 h-5 text-[#94A3B8]" />
+                <Settings className="w-5 h-5 text-[#A9BDD1]" />
               </div>
               <div>
                 <p className="text-sm font-medium text-white">Start From Scratch</p>
-                <p className="text-xs text-[#64748B]">Build A Custom Tournament With Default Blinds</p>
+                <p className="text-xs text-[#9FB3C8]">Build A Custom Tournament With Default Blinds</p>
               </div>
             </button>
 
             <div className="py-1">
-              <p className="text-xs font-medium text-[#64748B] uppercase tracking-wider">Pre-built Templates</p>
+              <p className="text-xs font-medium text-[#9FB3C8] uppercase tracking-wider">Pre-built Templates</p>
             </div>
 
             {/* Template Cards */}
@@ -331,11 +331,11 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white">{template.name}</p>
-                    <p className="text-xs text-[#64748B]">
+                    <p className="text-xs text-[#9FB3C8]">
                       {formatBuyin(template.buyin_amount, template.buyin_fee, template.bounty_amount)} | {formatChips(template.starting_chips)} chips | {template.estimated_duration}
                     </p>
                   </div>
-                  <ChevronLeft className="w-4 h-4 text-[#64748B] rotate-180" />
+                  <ChevronLeft className="w-4 h-4 text-[#9FB3C8] rotate-180" />
                 </button>
               );
             })}
@@ -353,7 +353,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
 
             {/* Template badge */}
             {selectedTemplate && (
-              <div className="flex items-center gap-2 text-xs text-[#64748B]">
+              <div className="flex items-center gap-2 text-xs text-[#9FB3C8]">
                 <Check className="w-3.5 h-3.5 text-[#10B981]" />
                 <span>Based On: <strong className="text-white">{selectedTemplate.name}</strong></span>
               </div>
@@ -448,7 +448,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                     onChange={(e) => setBuyinAmount(parseInt(e.target.value) || 0)}
                     className="cmd-input w-full h-10 text-center"
                   />
-                  <p className="text-xs text-[#64748B] text-center mt-1">Buy-in</p>
+                  <p className="text-xs text-[#9FB3C8] text-center mt-1">Buy-in</p>
                 </div>
                 <div>
                   <input
@@ -457,7 +457,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                     onChange={(e) => setBuyinFee(parseInt(e.target.value) || 0)}
                     className="cmd-input w-full h-10 text-center"
                   />
-                  <p className="text-xs text-[#64748B] text-center mt-1">Fee</p>
+                  <p className="text-xs text-[#9FB3C8] text-center mt-1">Fee</p>
                 </div>
               </div>
             </div>
@@ -527,19 +527,19 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                 {allowsRebuys && (
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-[#64748B]">Rebuy Cost</label>
+                      <label className="text-xs text-[#9FB3C8]">Rebuy Cost</label>
                       <input type="number" value={rebuyAmount} onChange={(e) => setRebuyAmount(parseInt(e.target.value) || 0)} className="cmd-input w-full h-8 text-sm text-center" />
                     </div>
                     <div>
-                      <label className="text-xs text-[#64748B]">Rebuy Chips</label>
+                      <label className="text-xs text-[#9FB3C8]">Rebuy Chips</label>
                       <input type="number" value={rebuyChips} onChange={(e) => setRebuyChips(parseInt(e.target.value) || 0)} className="cmd-input w-full h-8 text-sm text-center" />
                     </div>
                     <div>
-                      <label className="text-xs text-[#64748B]">Max Rebuys</label>
+                      <label className="text-xs text-[#9FB3C8]">Max Rebuys</label>
                       <input type="number" value={maxRebuys} onChange={(e) => setMaxRebuys(parseInt(e.target.value) || 0)} className="cmd-input w-full h-8 text-sm text-center" />
                     </div>
                     <div>
-                      <label className="text-xs text-[#64748B]">End Level</label>
+                      <label className="text-xs text-[#9FB3C8]">End Level</label>
                       <input type="number" value={rebuyEndLevel} onChange={(e) => setRebuyEndLevel(parseInt(e.target.value) || 0)} className="cmd-input w-full h-8 text-sm text-center" />
                     </div>
                   </div>
@@ -550,7 +550,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                   <button
                     type="button"
                     onClick={() => setAllowsAddon(!allowsAddon)}
-                    className={`w-10 h-6 rounded-full transition-colors ${allowsAddon ? 'bg-[#A855F7]' : 'bg-[#1E3A5F]'}`}
+                    className={`w-10 h-6 rounded-full transition-colors ${allowsAddon ? 'bg-[#5AA9FF]' : 'bg-[#1E3A5F]'}`}
                   >
                     <div className={`w-4 h-4 bg-white rounded-full transition-transform ${allowsAddon ? 'translate-x-5' : 'translate-x-1'}`}></div>
                   </button>
@@ -558,11 +558,11 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                 {allowsAddon && (
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-[#64748B]">Add-on Cost</label>
+                      <label className="text-xs text-[#9FB3C8]">Add-on Cost</label>
                       <input type="number" value={addonAmount} onChange={(e) => setAddonAmount(parseInt(e.target.value) || 0)} className="cmd-input w-full h-8 text-sm text-center" />
                     </div>
                     <div>
-                      <label className="text-xs text-[#64748B]">Add-on Chips</label>
+                      <label className="text-xs text-[#9FB3C8]">Add-on Chips</label>
                       <input type="number" value={addonChips} onChange={(e) => setAddonChips(parseInt(e.target.value) || 0)} className="cmd-input w-full h-8 text-sm text-center" />
                     </div>
                   </div>
@@ -640,7 +640,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
 
             {/* Receipt Settings */}
             <div className="p-3 bg-[#0D192E] rounded-lg space-y-2">
-              <p className="text-xs font-medium text-[#64748B] uppercase tracking-wider mb-2">Registration Receipts</p>
+              <p className="text-xs font-medium text-[#9FB3C8] uppercase tracking-wider mb-2">Registration Receipts</p>
               {[
                 { label: 'Player Receipt', desc: 'Print copy for the player', value: printPlayerReceipt, setter: setPrintPlayerReceipt },
                 { label: 'Dealer Receipt', desc: 'Print copy for the table dealer', value: printDealerReceipt, setter: setPrintDealerReceipt },
@@ -649,7 +649,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                 <div key={opt.label} className="flex items-center justify-between py-1">
                   <div>
                     <p className="text-sm font-medium text-white">{opt.label}</p>
-                    <p className="text-xs text-[#64748B]">{opt.desc}</p>
+                    <p className="text-xs text-[#9FB3C8]">{opt.desc}</p>
                   </div>
                   <button
                     type="button"
@@ -666,16 +666,16 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
             <div className="p-3 bg-[#0D192E] rounded-lg space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-[#F59E0B]" />
+                  <CalendarDays className="w-4 h-4 text-[#22D3EE]" />
                   <div>
                     <p className="text-sm font-medium text-white">Multi-Day Event</p>
-                    <p className="text-xs text-[#64748B]">Enable Flights And Bag-And-Tag</p>
+                    <p className="text-xs text-[#9FB3C8]">Enable Flights And Bag-And-Tag</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsMultiDay(!isMultiDay)}
-                  className={`w-10 h-6 rounded-full transition-colors ${isMultiDay ? 'bg-[#F59E0B]' : 'bg-[#1E3A5F]'}`}
+                  className={`w-10 h-6 rounded-full transition-colors ${isMultiDay ? 'bg-[#22D3EE]' : 'bg-[#1E3A5F]'}`}
                 >
                   <div className={`w-4 h-4 bg-white rounded-full transition-transform ${isMultiDay ? 'translate-x-5' : 'translate-x-1'}`}></div>
                 </button>
@@ -684,7 +684,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                 <div className="space-y-3 pt-2 border-t border-[#1E3A5F]">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-[#64748B]">Total Days</label>
+                      <label className="text-xs text-[#9FB3C8]">Total Days</label>
                       <div className="grid grid-cols-3 gap-1 mt-1">
                         {[2, 3, 4].map((d) => (
                           <button
@@ -692,7 +692,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                             type="button"
                             onClick={() => setTotalDays(d)}
                             className={`h-8 rounded text-sm font-medium transition-colors ${totalDays === d
-                              ? 'bg-[#F59E0B] text-white'
+                              ? 'bg-[#22D3EE] text-white'
                               : 'bg-[#132240] text-white hover:bg-[#1E3A5F]'
                               }`}
                           >
@@ -702,7 +702,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-[#64748B]">Flight Label</label>
+                      <label className="text-xs text-[#9FB3C8]">Flight Label</label>
                       <input
                         type="text"
                         value={flightLabel}
@@ -713,7 +713,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-[#64748B]">Day 2 Resume Time</label>
+                    <label className="text-xs text-[#9FB3C8]">Day 2 Resume Time</label>
                     <input
                       type="datetime-local"
                       value={resumeTime}
@@ -721,7 +721,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                       className="cmd-input w-full h-10 mt-1"
                     />
                   </div>
-                  <p className="text-xs text-[#F59E0B]/80">
+                  <p className="text-xs text-[#22D3EE]/80">
                     Players will be notified when the next flight resumes. Bag-and-tag chip counts can be recorded from the Tournament Manager.
                   </p>
                 </div>
@@ -732,7 +732,7 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
             <div className="flex items-center justify-between p-3 bg-[#0D192E] rounded-lg">
               <div>
                 <p className="text-sm font-medium text-white">Post To Club Page</p>
-                <p className="text-xs text-[#64748B]">Auto-add To Your Club Page Schedule</p>
+                <p className="text-xs text-[#9FB3C8]">Auto-add To Your Club Page Schedule</p>
               </div>
               <button
                 type="button"

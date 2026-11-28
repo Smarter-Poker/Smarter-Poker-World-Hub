@@ -30,12 +30,12 @@ import {
 function MemberCard({ member, isLeader, onRemove, canRemove }) {
   const statusColors = {
     confirmed: 'bg-[#10B981]/10 text-[#10B981]',
-    pending: 'bg-[#F59E0B]/10 text-[#F59E0B]',
+    pending: 'bg-[#22D3EE]/10 text-[#22D3EE]',
     declined: 'bg-[#EF4444]/10 text-[#EF4444]'
   };
 
   return (
-    <div className="flex items-center justify-between p-3 bg-[#132240] rounded-lg border border-[#4A5E78]">
+    <div className="flex items-center justify-between p-3 bg-[#132240] rounded-lg border border-[#445E77]">
       <div className="flex items-center gap-3">
         {member.profiles?.avatar_url ? (
           <img src={member.profiles.avatar_url} alt="" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" style={{borderRadius:'50%'}} />
@@ -59,7 +59,7 @@ function MemberCard({ member, isLeader, onRemove, canRemove }) {
       {canRemove && !member.is_leader && (
         <button
           onClick={() => onRemove(member.player_id)}
-          className="p-2 text-[#64748B] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
+          className="p-2 text-[#9FB3C8] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
@@ -283,7 +283,7 @@ export default function SquadDetailPage() {
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-[#EF4444] mx-auto mb-4" />
           <h1 className="text-xl font-bold text-white mb-2">Squad Not Found</h1>
-          <p className="text-[#64748B] mb-4">{error}</p>
+          <p className="text-[#9FB3C8] mb-4">{error}</p>
           <button
             onClick={() => router.push('/hub/commander/squads')}
             className="cmd-btn cmd-btn-primary"
@@ -302,11 +302,11 @@ export default function SquadDetailPage() {
   const canJoinWaitlist = squad?.group_status === 'forming' && confirmedCount >= 2;
 
   const statusColors = {
-    forming: 'bg-[#F59E0B]/10 text-[#F59E0B]',
+    forming: 'bg-[#22D3EE]/10 text-[#22D3EE]',
     waiting: 'bg-[#22D3EE]/10 text-[#22D3EE]',
     called: 'bg-[#10B981]/10 text-[#10B981]',
     seated: 'bg-[#10B981]/10 text-[#10B981]',
-    expired: 'bg-[#4A5E78]/10 text-[#4A5E78]'
+    expired: 'bg-[#445E77]/10 text-[#8FA6BE]'
   };
 
   return (
@@ -335,7 +335,7 @@ export default function SquadDetailPage() {
                   onClick={() => router.push('/hub/commander/squads')}
                   className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
                 >
-                  <ChevronLeft className="w-5 h-5 text-[#64748B]" />
+                  <ChevronLeft className="w-5 h-5 text-[#9FB3C8]" />
                 </button>
                 <div>
                   <h1 className="text-xl font-bold text-white">{squad?.name || 'Squad'}</h1>
@@ -348,7 +348,7 @@ export default function SquadDetailPage() {
                 onClick={handleShare}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <Share2 className="w-5 h-5 text-[#64748B]" />
+                <Share2 className="w-5 h-5 text-[#9FB3C8]" />
               </button>
             </div>
           </div>
@@ -362,7 +362,7 @@ export default function SquadDetailPage() {
                 <p className="text-2xl font-bold text-white">
                   {squad?.stakes} {squad?.game_type?.toUpperCase()}
                 </p>
-                <p className="text-[#64748B] flex items-center gap-1 mt-1">
+                <p className="text-[#9FB3C8] flex items-center gap-1 mt-1">
                   <MapPin className="w-4 h-4" />
                   {squad?.poker_venues?.name || 'Unknown Venue'}
                 </p>
@@ -370,13 +370,13 @@ export default function SquadDetailPage() {
               {squad?.position && squad?.group_status === 'waiting' && (
                 <div className="text-right">
                   <p className="text-2xl font-bold text-[#22D3EE]">#{squad.position}</p>
-                  <p className="text-sm text-[#64748B]">In Line</p>
+                  <p className="text-sm text-[#9FB3C8]">In Line</p>
                 </div>
               )}
             </div>
 
             {squad?.estimated_wait && squad?.group_status === 'waiting' && (
-              <div className="flex items-center gap-2 mt-3 text-sm text-[#64748B]">
+              <div className="flex items-center gap-2 mt-3 text-sm text-[#9FB3C8]">
                 <Clock className="w-4 h-4" />
                 Estimated Wait: ~{squad.estimated_wait} Min
               </div>
@@ -386,9 +386,9 @@ export default function SquadDetailPage() {
           {/* Invite Code */}
           {squad?.group_status === 'forming' && (
             <div className="bg-[#22D3EE]/5 rounded-xl p-4">
-              <p className="text-sm text-[#64748B] mb-2">Share This Code With Friends</p>
+              <p className="text-sm text-[#9FB3C8] mb-2">Share This Code With Friends</p>
               <div className="flex items-center gap-3">
-                <div className="flex-1 bg-[#0D192E] rounded-lg px-4 py-3 font-mono text-xl text-center text-white border border-[#4A5E78]">
+                <div className="flex-1 bg-[#0D192E] rounded-lg px-4 py-3 font-mono text-xl text-center text-white border border-[#445E77]">
                   {squad?.invite_code}
                 </div>
                 <button
@@ -422,7 +422,7 @@ export default function SquadDetailPage() {
             {isLeader && squad?.group_status === 'forming' && (
               <button
                 onClick={handleShare}
-                className="w-full mt-3 py-3 border-2 border-dashed border-[#4A5E78] text-[#64748B] rounded-xl hover:border-[#22D3EE] hover:text-[#22D3EE] transition-colors flex items-center justify-center gap-2"
+                className="w-full mt-3 py-3 border-2 border-dashed border-[#445E77] text-[#9FB3C8] rounded-xl hover:border-[#22D3EE] hover:text-[#22D3EE] transition-colors flex items-center justify-center gap-2"
               >
                 <UserPlus className="w-5 h-5" />
                 Invite More Friends
@@ -452,11 +452,11 @@ export default function SquadDetailPage() {
 
             {/* Waiting for confirmations message */}
             {isLeader && squad?.group_status === 'forming' && !canJoinWaitlist && (
-              <div className="bg-[#F59E0B]/10 rounded-xl p-4 text-center">
-                <p className="text-[#F59E0B] font-medium">
+              <div className="bg-[#22D3EE]/10 rounded-xl p-4 text-center">
+                <p className="text-[#22D3EE] font-medium">
                   Waiting For {members.length - confirmedCount} Member(S) To Confirm
                 </p>
-                <p className="text-sm text-[#64748B] mt-1">
+                <p className="text-sm text-[#9FB3C8] mt-1">
                   Need At Least 2 Confirmed Members To Join Waitlist
                 </p>
               </div>
@@ -490,16 +490,16 @@ export default function SquadDetailPage() {
           {squad && (
             <section className="bg-[#0D192E] rounded-xl p-4">
               <h3 className="font-medium text-white mb-2">Squad Preferences</h3>
-              <ul className="space-y-2 text-sm text-[#64748B]">
+              <ul className="space-y-2 text-sm text-[#9FB3C8]">
                 <li className="flex items-center justify-between">
                   <span>Prefer Same Table</span>
-                  <span className={squad.prefer_same_table ? 'text-[#10B981]' : 'text-[#64748B]'}>
+                  <span className={squad.prefer_same_table ? 'text-[#10B981]' : 'text-[#9FB3C8]'}>
                     {squad.prefer_same_table ? 'Yes' : 'No'}
                   </span>
                 </li>
                 <li className="flex items-center justify-between">
                   <span>Accept Split Seating</span>
-                  <span className={squad.accept_split ? 'text-[#10B981]' : 'text-[#64748B]'}>
+                  <span className={squad.accept_split ? 'text-[#10B981]' : 'text-[#9FB3C8]'}>
                     {squad.accept_split ? 'Yes' : 'No'}
                   </span>
                 </li>
