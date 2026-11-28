@@ -57,6 +57,8 @@ const steps = receipt.steps as Record<string, unknown>;
 function writeReceipt() {
   fs.mkdirSync(path.dirname(RECEIPT), { recursive: true });
   fs.writeFileSync(RECEIPT, JSON.stringify(receipt, null, 2));
+  // The same sanitized receipt in the job log (method + path and figures only).
+  process.stdout.write('\nBANKROLL-WRITE-LIVE RECEIPT ' + JSON.stringify(receipt) + '\n');
 }
 
 async function readHealth() {
@@ -210,16 +212,18 @@ async function readTrend(page: Page) {
 
 async function logCashSession(page: Page, { date, buyIn, cashOut, notes }: { date: string; buyIn: number; cashOut: number; notes: string }) {
   await page.goto('/hub/bankroll-manager?view=log-session', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  const dialog = page.getByRole('dialog').filter({ hasText: /Log Session|Set Your Starting Bankroll/ }).first();
-  await expect(dialog).toBeVisible({ timeout: 45_000 });
-  await expect(dialog, 'the starting-bankroll step blocked Log Entry').not.toContainText('Set Your Starting Bankroll');
+  // The log sheet (its heading changes from "Log Session" to "Log Cash Games").
+  const dialog = page.locator('.bankroll-modal[role="dialog"]').filter({ hasNotText: 'Set Your Starting Bankroll' });
+  await expect(page.getByRole('dialog').filter({ hasText: /Log Session|Set Your Starting Bankroll/ }).first()).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByRole('dialog').filter({ hasText: 'Set Your Starting Bankroll' }), 'the starting-bankroll step blocked Log Entry').toHaveCount(0);
   await dialog.getByRole('button', { name: 'Cash Games' }).click();
+  await expect(dialog).toContainText('Log Cash Games');
   await dialog.getByLabel('Buy-In ($)').fill(String(buyIn));
   await dialog.getByLabel('Cash-Out ($)').fill(String(cashOut));
   await dialog.getByLabel('Date', { exact: true }).fill(date);
   await dialog.getByLabel('Session Notes').fill(notes);
   await dialog.getByRole('button', { name: 'Log Entry', exact: true }).click();
-  await expect(page.getByRole('dialog').filter({ hasText: 'Log Cash Games' }), 'Log Entry did not save').toHaveCount(0, { timeout: 30_000 });
+  await expect(page.locator('.bankroll-modal[role="dialog"]').filter({ hasText: 'Log Cash Games' }), 'Log Entry did not save').toHaveCount(0, { timeout: 30_000 });
 }
 
 async function adjust(page: Page, kind: 'Deposit' | 'Withdraw', amount: number, note: string) {

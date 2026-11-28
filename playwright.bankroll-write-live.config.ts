@@ -22,6 +22,8 @@ export default defineConfig({
   reporter: [['list'], ['json', { outputFile: 'test-results/bankroll-write-live/report.json' }]],
   use: {
     baseURL: 'https://smarter.poker',
+    actionTimeout: 30_000,
+    navigationTimeout: 60_000,
     trace: 'off',
     video: 'off',
     screenshot: 'only-on-failure',
