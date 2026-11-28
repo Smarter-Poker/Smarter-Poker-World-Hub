@@ -321,7 +321,7 @@ test('Tournament entry records the entered buy-in and applies each bounty once a
   await form.getByLabel('Tournament Type', { exact: true }).selectOption('pko');
   await form.getByLabel('Bounties Collected ($)', { exact: true }).fill('20');
   await expect(form.getByText('Total Buy-In:')).toContainText('$205');
-  await expect(form.getByText('Net: +$65', { exact: true })).toBeVisible();
+  await expect(form.getByText('Net (USD): +$65', { exact: true })).toBeVisible();
   await form.getByRole('button', { name: 'Log Entry', exact: true }).click();
   await expect.poll(() => writes.length).toBe(1);
   expect(writes[0]).toMatchObject({
