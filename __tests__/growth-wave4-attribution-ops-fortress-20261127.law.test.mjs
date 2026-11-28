@@ -473,6 +473,7 @@ test('pages/api/health/signup.js handler preserves 200/503 status codes and atta
       if (name === '@supabase/supabase-js') return { createClient: () => mockSupabase };
       if (name.endsWith('apiErrorHandler')) return { reportApiError: () => {} };
       if (name.endsWith('attributionSummary.mjs')) return { loadRecentSignupAttribution, summarizeSignupAttribution };
+      if (name.endsWith('authDoorProbe.mjs')) return { evaluateAuthDoors: () => ({ supabaseAuthConfigured: true, callbackPath: '/auth/callback' }) };
       return {};
     },
   });
