@@ -69,7 +69,7 @@ export default function BlindStructureEditor({ structure, onChange, readOnly = f
         <div className="space-y-3">
             {/* Summary bar */}
             <div className="flex items-center justify-between px-3 py-2 bg-[#0D192E] rounded-lg">
-                <span className="text-sm text-[#94A3B8]">
+                <span className="text-sm text-[#A9BDD1]">
                     {playLevels} levels, {structure.filter(l => l.is_break).length} breaks
                 </span>
                 <span className="text-sm font-medium text-[#22D3EE]">
@@ -82,11 +82,11 @@ export default function BlindStructureEditor({ structure, onChange, readOnly = f
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="border-b border-[#1E3A5F]">
-                            <th className="px-2 py-2 text-left text-[#64748B] font-medium w-12">Lvl</th>
-                            <th className="px-2 py-2 text-right text-[#64748B] font-medium">SB</th>
-                            <th className="px-2 py-2 text-right text-[#64748B] font-medium">BB</th>
-                            <th className="px-2 py-2 text-right text-[#64748B] font-medium">Ante</th>
-                            <th className="px-2 py-2 text-right text-[#64748B] font-medium w-16">Min</th>
+                            <th className="px-2 py-2 text-left text-[#9FB3C8] font-medium w-12">Lvl</th>
+                            <th className="px-2 py-2 text-right text-[#9FB3C8] font-medium">SB</th>
+                            <th className="px-2 py-2 text-right text-[#9FB3C8] font-medium">BB</th>
+                            <th className="px-2 py-2 text-right text-[#9FB3C8] font-medium">Ante</th>
+                            <th className="px-2 py-2 text-right text-[#9FB3C8] font-medium w-16">Min</th>
                             {!readOnly && <th className="px-2 py-2 w-20"></th>}
                         </tr>
                     </thead>
@@ -97,11 +97,11 @@ export default function BlindStructureEditor({ structure, onChange, readOnly = f
                                     <tr key={`break-${idx}`} className="bg-[#1E3A5F]/30">
                                         <td colSpan={readOnly ? 5 : 4} className="px-2 py-2">
                                             <div className="flex items-center gap-2">
-                                                <Coffee className="w-4 h-4 text-[#F59E0B]" />
-                                                <span className="text-[#F59E0B] font-medium">{item.label || 'Break'}</span>
+                                                <Coffee className="w-4 h-4 text-[#22D3EE]" />
+                                                <span className="text-[#22D3EE] font-medium">{item.label || 'Break'}</span>
                                             </div>
                                         </td>
-                                        <td className="px-2 py-2 text-right text-[#F59E0B]">
+                                        <td className="px-2 py-2 text-right text-[#22D3EE]">
                                             {readOnly ? (
                                                 `${item.duration}m`
                                             ) : (
@@ -109,7 +109,7 @@ export default function BlindStructureEditor({ structure, onChange, readOnly = f
                                                     type="number"
                                                     value={item.duration}
                                                     onChange={(e) => updateLevel(idx, 'duration', parseInt(e.target.value) || 5)}
-                                                    className="w-14 h-7 bg-[#0D192E] border border-[#1E3A5F] rounded text-center text-[#F59E0B] text-sm"
+                                                    className="w-14 h-7 bg-[#0D192E] border border-[#1E3A5F] rounded text-center text-[#22D3EE] text-sm"
                                                 />
                                             )}
                                         </td>
@@ -135,7 +135,7 @@ export default function BlindStructureEditor({ structure, onChange, readOnly = f
                                     className={`border-b border-[#1E3A5F]/50 hover:bg-[#132240]/50 transition-colors ${isEditing ? 'bg-[#132240]' : ''}`}
                                     onClick={() => !readOnly && setEditingIndex(isEditing ? null : idx)}
                                 >
-                                    <td className="px-2 py-2 text-[#64748B] font-mono">{item.level}</td>
+                                    <td className="px-2 py-2 text-[#9FB3C8] font-mono">{item.level}</td>
                                     <td className="px-2 py-2 text-right text-white">
                                         {!readOnly && isEditing ? (
                                             <input
@@ -162,14 +162,14 @@ export default function BlindStructureEditor({ structure, onChange, readOnly = f
                                             item.big_blind.toLocaleString()
                                         )}
                                     </td>
-                                    <td className="px-2 py-2 text-right text-[#94A3B8]">
+                                    <td className="px-2 py-2 text-right text-[#A9BDD1]">
                                         {!readOnly && isEditing ? (
                                             <input
                                                 type="number"
                                                 value={item.ante}
                                                 onChange={(e) => updateLevel(idx, 'ante', parseInt(e.target.value) || 0)}
                                                 onClick={(e) => e.stopPropagation()}
-                                                className="w-16 h-7 bg-[#0D192E] border border-[#1E3A5F] rounded text-right text-[#94A3B8] text-sm px-2"
+                                                className="w-16 h-7 bg-[#0D192E] border border-[#1E3A5F] rounded text-right text-[#A9BDD1] text-sm px-2"
                                             />
                                         ) : (
                                             item.ante > 0 ? item.ante.toLocaleString() : '-'
@@ -193,10 +193,10 @@ export default function BlindStructureEditor({ structure, onChange, readOnly = f
                                             <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                                                 <button
                                                     onClick={() => addBreak(idx)}
-                                                    className="p-1 hover:bg-[#F59E0B]/20 rounded transition-colors"
+                                                    className="p-1 hover:bg-[#22D3EE]/20 rounded transition-colors"
                                                     title="Insert Break After"
                                                 >
-                                                    <Coffee className="w-3.5 h-3.5 text-[#F59E0B]" />
+                                                    <Coffee className="w-3.5 h-3.5 text-[#22D3EE]" />
                                                 </button>
                                                 <button
                                                     onClick={() => removeLevel(idx)}
@@ -219,7 +219,7 @@ export default function BlindStructureEditor({ structure, onChange, readOnly = f
             {!readOnly && (
                 <button
                     onClick={addLevel}
-                    className="w-full py-2 border border-dashed border-[#1E3A5F] rounded-lg text-sm text-[#64748B] hover:text-[#22D3EE] hover:border-[#22D3EE] transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-2 border border-dashed border-[#1E3A5F] rounded-lg text-sm text-[#9FB3C8] hover:text-[#22D3EE] hover:border-[#22D3EE] transition-colors flex items-center justify-center gap-2"
                 >
                     <Plus className="w-4 h-4" />
                     Add Level

@@ -53,11 +53,11 @@ export default function AchievementsPage() {
         <header className="cmd-header-bar">
           <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-4">
             <button onClick={() => router.push('/hub/commander/profile')} className="p-2 rounded-lg hover:bg-[#132240]">
-              <ArrowLeft size={20} className="text-[#64748B]" />
+              <ArrowLeft size={20} className="text-[#9FB3C8]" />
             </button>
             <div>
               <h1 className="text-lg font-bold text-white">Achievements</h1>
-              <p className="text-xs text-[#64748B]">{unlocked.length}/{achievements.length} Unlocked</p>
+              <p className="text-xs text-[#9FB3C8]">{unlocked.length}/{achievements.length} Unlocked</p>
             </div>
           </div>
         </header>
@@ -66,7 +66,7 @@ export default function AchievementsPage() {
           {/* Progress Bar */}
           <div className="cmd-panel p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[#64748B]">Progress</span>
+              <span className="text-sm text-[#9FB3C8]">Progress</span>
               <span className="text-sm font-medium text-[#22D3EE]">
                 {achievements.length > 0 ? Math.round((unlocked.length / achievements.length) * 100) : 0}%
               </span>
@@ -92,7 +92,7 @@ export default function AchievementsPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   filter === f.key
                     ? 'bg-[#22D3EE]/20 text-[#22D3EE] border border-[#22D3EE]/30'
-                    : 'text-[#64748B] border border-[#4A5E78] hover:border-[#64748B]'
+                    : 'text-[#9FB3C8] border border-[#445E77] hover:border-[#9FB3C8]'
                 }`}
               >
                 {f.label}
@@ -112,38 +112,38 @@ export default function AchievementsPage() {
                   <div
                     className={`w-14 h-14 rounded-full flex items-center justify-center border-2 flex-shrink-0 ${
                       isUnlocked
-                        ? 'bg-[#F59E0B] border-[#F59E0B]'
-                        : 'bg-[#132240] border-[#4A5E78]'
+                        ? 'bg-[#22D3EE] border-[#22D3EE]'
+                        : 'bg-[#132240] border-[#445E77]'
                     }`}
                   >
                     {isUnlocked ? (
                       <Award size={24} className="text-white" />
                     ) : (
-                      <Lock size={20} className="text-[#64748B]" />
+                      <Lock size={20} className="text-[#9FB3C8]" />
                     )}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className={`font-medium ${isUnlocked ? 'text-white' : 'text-[#64748B]'}`}>
+                      <p className={`font-medium ${isUnlocked ? 'text-white' : 'text-[#9FB3C8]'}`}>
                         {achievement.name}
                       </p>
-                      {isUnlocked && <Star size={14} className="text-[#F59E0B] fill-[#F59E0B]" />}
+                      {isUnlocked && <Star size={14} className="text-[#22D3EE] fill-[#22D3EE]" />}
                     </div>
-                    <p className="text-sm text-[#64748B]">{achievement.description}</p>
+                    <p className="text-sm text-[#9FB3C8]">{achievement.description}</p>
                     {achievement.progress !== undefined && !isUnlocked && (
                       <div className="mt-2">
                         <div className="w-full h-1.5 bg-[#0B1426] rounded-full overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-[#4A5E78]"
+                            className="h-full rounded-full bg-[#445E77]"
                             style={{ width: `${Math.min(achievement.progress, 100)}%` }}
                           />
                         </div>
-                        <p className="text-xs text-[#4A5E78] mt-1">{achievement.progress}% Complete</p>
+                        <p className="text-xs text-[#8FA6BE] mt-1">{achievement.progress}% Complete</p>
                       </div>
                     )}
                   </div>
                   {isUnlocked && achievement.unlocked_at && (
-                    <p className="text-xs text-[#4A5E78] flex-shrink-0">
+                    <p className="text-xs text-[#8FA6BE] flex-shrink-0">
                       {new Date(achievement.unlocked_at).toLocaleDateString()}
                     </p>
                   )}
@@ -152,8 +152,8 @@ export default function AchievementsPage() {
             })}
             {filtered.length === 0 && (
               <div className="cmd-panel p-8 text-center">
-                <Award size={40} className="mx-auto text-[#4A5E78] mb-2" />
-                <p className="text-[#64748B]">No Achievements Found</p>
+                <Award size={40} className="mx-auto text-[#8FA6BE] mb-2" />
+                <p className="text-[#9FB3C8]">No Achievements Found</p>
               </div>
             )}
           </div>

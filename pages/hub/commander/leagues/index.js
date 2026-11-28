@@ -49,7 +49,7 @@ function LeagueCard({ league, onView }) {
           </div>
           <div>
             <h3 className="font-semibold text-white">{league.name}</h3>
-            <p className="text-sm text-[#64748B]">{league.organizer_name || 'League Organizer'}</p>
+            <p className="text-sm text-[#9FB3C8]">{league.organizer_name || 'League Organizer'}</p>
           </div>
         </div>
         <span className={`${badge.className} capitalize`}>
@@ -57,9 +57,9 @@ function LeagueCard({ league, onView }) {
         </span>
       </div>
 
-      <p className="text-sm text-[#64748B] mb-3 line-clamp-2">{league.description}</p>
+      <p className="text-sm text-[#9FB3C8] mb-3 line-clamp-2">{league.description}</p>
 
-      <div className="flex items-center gap-4 text-sm text-[#64748B] mb-3">
+      <div className="flex items-center gap-4 text-sm text-[#9FB3C8] mb-3">
         <span className="flex items-center gap-1">
           <Users className="w-4 h-4" />
           {league.player_count || 0} Players
@@ -77,10 +77,10 @@ function LeagueCard({ league, onView }) {
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-sm text-[#64748B]">
+        <span className="text-sm text-[#9FB3C8]">
           {league.season_start ? new Date(league.season_start).toLocaleDateString() : 'TBD'} - {league.season_end ? new Date(league.season_end).toLocaleDateString() : 'TBD'}
         </span>
-        <ChevronRight className="w-5 h-5 text-[#64748B]" />
+        <ChevronRight className="w-5 h-5 text-[#9FB3C8]" />
       </div>
     </button>
   );
@@ -193,7 +193,7 @@ export default function LeaguesPage() {
                 <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">
                   POKER LEAGUES
                 </h1>
-                <p className="text-sm text-[#64748B] font-medium tracking-wide">Compete For Points And Prizes</p>
+                <p className="text-sm text-[#9FB3C8] font-medium tracking-wide">Compete For Points And Prizes</p>
               </div>
               {/* Rivets */}
               <div className="ml-auto flex gap-2">
@@ -225,7 +225,7 @@ export default function LeaguesPage() {
           {/* Search & Filter */}
           <div className="space-y-3">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9FB3C8]" />
               <input
                 type="text"
                 value={searchQuery}
@@ -245,7 +245,7 @@ export default function LeaguesPage() {
                   onClick={() => setFilter(f.value)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium ${filter === f.value
                       ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
-                      : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78]'
+                      : 'bg-[#0F1C32] text-[#9FB3C8] border-2 border-[#445E77]'
                     }`}
                 >
                   {f.label}
@@ -275,7 +275,7 @@ export default function LeaguesPage() {
               <div className="cmd-icon-box mx-auto mb-3">
                 <Trophy className="w-7 h-7" />
               </div>
-              <p className="text-[#64748B]">No Leagues Found</p>
+              <p className="text-[#9FB3C8]">No Leagues Found</p>
             </div>
           )}
         </main>

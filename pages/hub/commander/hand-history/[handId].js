@@ -44,7 +44,7 @@ function CardDisplay({ cards, size = 'md' }) {
       {cards.map((card, idx) => (
         <span
           key={idx}
-          className={`bg-[#132240] border border-[#4A5E78] rounded font-mono font-bold shadow-sm ${sizeClasses[size]}`}
+          className={`bg-[#132240] border border-[#445E77] rounded font-mono font-bold shadow-sm ${sizeClasses[size]}`}
           style={{ color: getCardColor(card) }}
         >
           {formatCard(card)}
@@ -56,17 +56,17 @@ function CardDisplay({ cards, size = 'md' }) {
 
 function ActionLine({ action, isLast }) {
   const actionColors = {
-    fold: '#64748B',
-    check: '#64748B',
+    fold: '#9FB3C8',
+    check: '#9FB3C8',
     call: '#22D3EE',
-    bet: '#F59E0B',
+    bet: '#22D3EE',
     raise: '#EF4444',
     'all-in': '#DC2626'
   };
 
   return (
-    <div className={`flex items-center gap-3 py-2 ${!isLast ? 'border-b border-[#4A5E78]' : ''}`}>
-      <div className="w-8 h-8 bg-[#0D192E] rounded-full flex items-center justify-center text-sm font-medium text-[#64748B]">
+    <div className={`flex items-center gap-3 py-2 ${!isLast ? 'border-b border-[#445E77]' : ''}`}>
+      <div className="w-8 h-8 bg-[#0D192E] rounded-full flex items-center justify-center text-sm font-medium text-[#9FB3C8]">
         {action.seat}
       </div>
       <div className="flex-1">
@@ -77,10 +77,10 @@ function ActionLine({ action, isLast }) {
           {action.action}
         </span>
         {action.amount && (
-          <span className="text-[#64748B] ml-2">${action.amount}</span>
+          <span className="text-[#9FB3C8] ml-2">${action.amount}</span>
         )}
       </div>
-      <span className="text-xs text-[#4A5E78]">{action.pot_after && `Pot: $${action.pot_after}`}</span>
+      <span className="text-xs text-[#8FA6BE]">{action.pot_after && `Pot: $${action.pot_after}`}</span>
     </div>
   );
 }
@@ -106,7 +106,7 @@ function StreetSection({ street, actions, board }) {
           {board && board.length > 0 && <CardDisplay cards={board} size="sm" />}
         </div>
         <ChevronDown
-          className={`w-5 h-5 text-[#64748B] transition-transform ${expanded ? '' : '-rotate-90'}`}
+          className={`w-5 h-5 text-[#9FB3C8] transition-transform ${expanded ? '' : '-rotate-90'}`}
         />
       </button>
 
@@ -231,20 +231,20 @@ export default function HandDetailPage() {
                   onClick={() => router.back()}
                   className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
                 >
-                  <ChevronLeft className="w-5 h-5 text-[#64748B]" />
+                  <ChevronLeft className="w-5 h-5 text-[#9FB3C8]" />
                 </button>
                 <div>
                   <h1 className="text-xl font-bold text-white">
                     Hand #{hand.hand_number}
                   </h1>
-                  <p className="text-sm text-[#64748B]">{hand.venue_name}</p>
+                  <p className="text-sm text-[#9FB3C8]">{hand.venue_name}</p>
                 </div>
               </div>
               <button
                 onClick={handleShare}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <Share2 className="w-5 h-5 text-[#64748B]" />
+                <Share2 className="w-5 h-5 text-[#9FB3C8]" />
               </button>
             </div>
           </div>
@@ -256,7 +256,7 @@ export default function HandDetailPage() {
             }`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[#64748B]">{hand.game_type}</p>
+                <p className="text-sm text-[#9FB3C8]">{hand.game_type}</p>
                 <p className={`text-2xl font-bold ${hand.profit >= 0 ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
                   {hand.profit >= 0 ? '+' : ''}${Math.abs(hand.profit)}
                 </p>
@@ -265,7 +265,7 @@ export default function HandDetailPage() {
                 )}
               </div>
               <div className="text-right">
-                <p className="text-sm text-[#64748B]">Pot Size</p>
+                <p className="text-sm text-[#9FB3C8]">Pot Size</p>
                 <p className="text-xl font-bold text-white">${hand.pot_size}</p>
               </div>
             </div>
@@ -273,14 +273,14 @@ export default function HandDetailPage() {
 
           {/* Your Cards */}
           <div className="cmd-panel p-4">
-            <p className="text-sm text-[#64748B] mb-2">Your Hand (Seat {hand.player_seat})</p>
+            <p className="text-sm text-[#9FB3C8] mb-2">Your Hand (Seat {hand.player_seat})</p>
             <CardDisplay cards={hand.player_cards} size="lg" />
           </div>
 
           {/* Final Board */}
           {hand.board && hand.board.length > 0 && (
             <div className="cmd-panel p-4">
-              <p className="text-sm text-[#64748B] mb-2">Board</p>
+              <p className="text-sm text-[#9FB3C8] mb-2">Board</p>
               <CardDisplay cards={hand.board} size="lg" />
             </div>
           )}
@@ -334,13 +334,13 @@ export default function HandDetailPage() {
                 </>
               )}
             </button>
-            <p className="text-center text-xs text-[#64748B] mt-2">
+            <p className="text-center text-xs text-[#9FB3C8] mt-2">
               Get AI-Powered Analysis Of Your Decisions
             </p>
           </div>
 
           {/* Metadata */}
-          <div className="flex items-center justify-center gap-4 text-xs text-[#4A5E78] pt-4">
+          <div className="flex items-center justify-center gap-4 text-xs text-[#8FA6BE] pt-4">
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {new Date(hand.created_at).toLocaleString()}

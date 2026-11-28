@@ -19,10 +19,10 @@ function StandingRow({ entry, rank, isCurrentUser }) {
   return (
     <div className={`flex items-center justify-between p-3 ${isCurrentUser ? 'bg-[#22D3EE]/10 rounded-lg' : ''}`}>
       <div className="flex items-center gap-3">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${rank === 1 ? 'bg-[#F59E0B] text-white' :
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${rank === 1 ? 'bg-[#22D3EE] text-white' :
           rank === 2 ? 'bg-[#9CA3AF] text-white' :
             rank === 3 ? 'bg-[#CD7F32] text-white' :
-              'bg-[#0D192E] text-[#64748B]'
+              'bg-[#0D192E] text-[#9FB3C8]'
           }`}>
           {rank}
         </div>
@@ -31,7 +31,7 @@ function StandingRow({ entry, rank, isCurrentUser }) {
             {entry.player_name}
             {isCurrentUser && <span className="text-xs ml-1">(You)</span>}
           </p>
-          <p className="text-xs text-[#64748B]">{entry.events_played} Events</p>
+          <p className="text-xs text-[#9FB3C8]">{entry.events_played} Events</p>
         </div>
       </div>
       <div className="text-right">
@@ -48,18 +48,18 @@ function EventCard({ event }) {
   const isPast = new Date(event.date) < new Date();
 
   return (
-    <div className={`p-3 rounded-lg border ${isPast ? 'bg-[#0D192E] border-[#4A5E78]' : 'bg-[#132240] border-[#22D3EE]'}`}>
+    <div className={`p-3 rounded-lg border ${isPast ? 'bg-[#0D192E] border-[#445E77]' : 'bg-[#132240] border-[#22D3EE]'}`}>
       <div className="flex items-start justify-between mb-2">
         <div>
-          <p className={`font-medium ${isPast ? 'text-[#64748B]' : 'text-white'}`}>{event.name}</p>
-          <p className="text-sm text-[#64748B]">{event.venue_name}</p>
+          <p className={`font-medium ${isPast ? 'text-[#9FB3C8]' : 'text-white'}`}>{event.name}</p>
+          <p className="text-sm text-[#9FB3C8]">{event.venue_name}</p>
         </div>
-        <span className={`px-2 py-1 rounded text-xs font-medium ${isPast ? 'bg-[#4A5E78]/10 text-[#4A5E78]' : 'bg-[#22D3EE]/10 text-[#22D3EE]'
+        <span className={`px-2 py-1 rounded text-xs font-medium ${isPast ? 'bg-[#445E77]/10 text-[#8FA6BE]' : 'bg-[#22D3EE]/10 text-[#22D3EE]'
           }`}>
           {isPast ? 'Completed' : 'Upcoming'}
         </span>
       </div>
-      <div className="flex items-center gap-4 text-sm text-[#64748B]">
+      <div className="flex items-center gap-4 text-sm text-[#9FB3C8]">
         <span className="flex items-center gap-1">
           <Calendar className="w-4 h-4" />
           {new Date(event.date).toLocaleDateString()}
@@ -159,7 +159,7 @@ export default function LeagueDetailPage() {
   if (!league) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <p className="text-[#64748B]">League Not Found</p>
+        <p className="text-[#9FB3C8]">League Not Found</p>
       </div>
     );
   }
@@ -218,11 +218,11 @@ export default function LeagueDetailPage() {
             <div className="cmd-panel p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-[#64748B]">Your Position</p>
+                  <p className="text-sm text-[#9FB3C8]">Your Position</p>
                   <p className="text-2xl font-bold text-white">#{myRank}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-[#64748B]">Points</p>
+                  <p className="text-sm text-[#9FB3C8]">Points</p>
                   <p className="text-2xl font-bold text-[#22D3EE]">
                     {standings[myRank - 1]?.points.toLocaleString()}
                   </p>
@@ -235,8 +235,8 @@ export default function LeagueDetailPage() {
         <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
           {/* Description */}
           <section className="cmd-panel p-4">
-            <p className="text-[#64748B]">{league.description}</p>
-            <div className="flex items-center gap-2 mt-3 text-sm text-[#4A5E78]">
+            <p className="text-[#9FB3C8]">{league.description}</p>
+            <div className="flex items-center gap-2 mt-3 text-sm text-[#8FA6BE]">
               <Calendar className="w-4 h-4" />
               {new Date(league.season_start).toLocaleDateString()} - {new Date(league.season_end).toLocaleDateString()}
             </div>
@@ -254,7 +254,7 @@ export default function LeagueDetailPage() {
           )}
 
           {/* Tabs */}
-          <div className="flex border-b border-[#4A5E78]">
+          <div className="flex border-b border-[#445E77]">
             {[
               { key: 'standings', label: 'Standings' },
               { key: 'events', label: 'Events' },
@@ -265,7 +265,7 @@ export default function LeagueDetailPage() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key
                   ? 'border-[#22D3EE] text-[#22D3EE]'
-                  : 'border-transparent text-[#64748B]'
+                  : 'border-transparent text-[#9FB3C8]'
                   }`}
               >
                 {tab.label}
@@ -277,7 +277,7 @@ export default function LeagueDetailPage() {
           {activeTab === 'standings' && (
             <section className="cmd-panel overflow-hidden">
               {standings.length > 0 ? (
-                <div className="divide-y divide-[#4A5E78]">
+                <div className="divide-y divide-[#445E77]">
                   {standings.map((entry, index) => (
                     <StandingRow
                       key={entry.player_id}
@@ -288,7 +288,7 @@ export default function LeagueDetailPage() {
                   ))}
                 </div>
               ) : (
-                <div className="p-6 text-center text-[#64748B]">
+                <div className="p-6 text-center text-[#9FB3C8]">
                   No Standings Yet
                 </div>
               )}
@@ -305,7 +305,7 @@ export default function LeagueDetailPage() {
                     <EventCard key={event.id} event={event} />
                   ))
               ) : (
-                <div className="cmd-panel p-6 text-center text-[#64748B]">
+                <div className="cmd-panel p-6 text-center text-[#9FB3C8]">
                   No Events Scheduled
                 </div>
               )}
@@ -319,14 +319,14 @@ export default function LeagueDetailPage() {
               {league.scoring_system ? (
                 <div className="space-y-2">
                   {Object.entries(league.scoring_system || {}).map(([place, points]) => (
-                    <div key={place} className="flex items-center justify-between py-2 border-b border-[#4A5E78] last:border-0">
-                      <span className="text-[#64748B]">{place}</span>
+                    <div key={place} className="flex items-center justify-between py-2 border-b border-[#445E77] last:border-0">
+                      <span className="text-[#9FB3C8]">{place}</span>
                       <span className="font-medium text-white">{points} Pts</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-[#64748B]">Scoring Details Not Available</p>
+                <p className="text-[#9FB3C8]">Scoring Details Not Available</p>
               )}
             </section>
           )}

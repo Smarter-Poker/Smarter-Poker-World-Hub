@@ -80,7 +80,7 @@ export default function RateTable() {
   const RatingSlider = ({ label, value, onChange, config }) => {
     const Icon = config.icon;
     return (
-      <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E4E6EB' }}>
+      <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #F2F7FF' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <Icon size={18} color={config.color} />
           <span style={{ fontWeight: 700, fontSize: 15, color: '#1C2526' }}>{label}</span>
@@ -96,7 +96,7 @@ export default function RateTable() {
                 flex: 1, height: 44, border: '2px solid', borderRadius: 10, fontSize: 18, fontWeight: 800,
                 cursor: 'pointer', transition: 'all 0.15s',
                 background: value === n ? config.color : 'white',
-                borderColor: value === n ? config.color : '#E4E6EB',
+                borderColor: value === n ? config.color : '#F2F7FF',
                 color: value === n ? 'white' : '#65676B'
               }}>
               {n}
@@ -121,7 +121,7 @@ export default function RateTable() {
             <div style={{ fontSize: 22, fontWeight: 800, color: '#1C2526', marginBottom: 6 }}>Thanks For Rating!</div>
             <div style={{ fontSize: 14, color: '#65676B', marginBottom: 24 }}>Your Feedback Helps Other Players Find The Right Game.</div>
             <button onClick={() => router.back()}
-              style={{ background: '#1877F2', color: 'white', border: 'none', borderRadius: 10, padding: '12px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+              style={{ background: '#1981EC', color: 'white', border: 'none', borderRadius: 10, padding: '12px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
               Done
             </button>
           </div>
@@ -135,7 +135,7 @@ export default function RateTable() {
     <>
       <Head><title>Rate Table | Smarter.Poker</title></Head>
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
-        <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ background: '#1981EC', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 4 }}>
             <ArrowLeft size={22} />
           </button>
@@ -153,7 +153,7 @@ export default function RateTable() {
           <RatingSlider label="Friendliness" value={friendly} onChange={setFriendly} config={LABELS.friendliness} />
           <RatingSlider label="Pace" value={pace} onChange={setPace} config={LABELS.pace} />
 
-          <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E4E6EB' }}>
+          <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #F2F7FF' }}>
             <div style={{ fontWeight: 600, fontSize: 14, color: '#1C2526', marginBottom: 6 }}>Comment (Optional)</div>
             <textarea value={comment} onChange={e => setComment(e.target.value)} rows={2}
               placeholder="How Was The Table?"
@@ -168,7 +168,7 @@ export default function RateTable() {
           )}
 
           <button onClick={handleSubmit} disabled={submitting}
-            style={{ background: '#1877F2', color: 'white', border: 'none', borderRadius: 10, padding: '14px 0', fontSize: 16, fontWeight: 700, cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            style={{ background: '#1981EC', color: 'white', border: 'none', borderRadius: 10, padding: '14px 0', fontSize: 16, fontWeight: 700, cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             {submitting ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
             Submit Rating
           </button>

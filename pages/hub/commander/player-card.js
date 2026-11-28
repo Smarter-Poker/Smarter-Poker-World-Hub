@@ -13,11 +13,11 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
 
 const TIER_COLORS = {
-  bronze: { bg: 'linear-gradient(135deg, #92400E, #D97706)', text: '#FFFBEB' },
+  bronze: { bg: 'linear-gradient(135deg, #92400E, #0EA5C6)', text: '#FFFBEB' },
   silver: { bg: 'linear-gradient(135deg, #6B7280, #D1D5DB)', text: '#F9FAFB' },
-  gold: { bg: 'linear-gradient(135deg, #B45309, #FCD34D)', text: '#FFFBEB' },
+  gold: { bg: 'linear-gradient(135deg, #0E7490, #FCD34D)', text: '#FFFBEB' },
   platinum: { bg: 'linear-gradient(135deg, #1E3A5F, #60A5FA)', text: '#EBF5FF' },
-  diamond: { bg: 'linear-gradient(135deg, #4C1D95, #A78BFA)', text: '#F5F3FF' },
+  diamond: { bg: 'linear-gradient(135deg, #4C1D95, #93C5FD)', text: '#F5F3FF' },
 };
 
 export default function PlayerCard() {
@@ -77,9 +77,9 @@ export default function PlayerCard() {
   };
 
   const quickActions = [
-    { label: 'Join Waitlist', icon: Users, href: '/hub/commander/venues', color: '#1877F2' },
-    { label: 'My Rewards', icon: Gift, href: '/hub/commander/rewards', color: '#F59E0B' },
-    { label: 'Tournaments', icon: Trophy, href: '/hub/commander/tournaments', color: '#8B5CF6' },
+    { label: 'Join Waitlist', icon: Users, href: '/hub/commander/venues', color: '#1981EC' },
+    { label: 'My Rewards', icon: Gift, href: '/hub/commander/rewards', color: '#22D3EE' },
+    { label: 'Tournaments', icon: Trophy, href: '/hub/commander/tournaments', color: '#5AA9FF' },
     { label: 'Session History', icon: Clock, href: '/hub/commander/history', color: '#10B981' },
     { label: 'Rate Table', icon: Star, href: '/hub/commander/rate-table', color: '#EF4444' },
     { label: 'Request Service', icon: CreditCard, href: '/hub/commander/services', color: '#3B82F6' },
@@ -91,7 +91,7 @@ export default function PlayerCard() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 size={32} color="#1877F2" className="spin" />
+        <Loader2 size={32} color="#1981EC" className="spin" />
       </div>
     );
   }

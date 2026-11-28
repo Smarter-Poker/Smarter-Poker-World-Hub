@@ -260,7 +260,7 @@ export default function TournamentLivePage() {
         {/* Header */}
         <header className="text-center px-4 pt-6 pb-4 relative">
           <h1 className="text-2xl sm:text-4xl font-bold text-white">{tournament.name}</h1>
-          <p className="text-base sm:text-xl text-[#64748B] mt-2">
+          <p className="text-base sm:text-xl text-[#9FB3C8] mt-2">
             ${(tournament.buyin_amount ?? 0).toLocaleString()} + ${(tournament.buyin_fee ?? 0).toLocaleString()} {tournament.tournament_type?.toUpperCase()}
           </p>
           {!clockState.isRunning && tournament.status === 'running' && (
@@ -272,13 +272,13 @@ export default function TournamentLivePage() {
 
         {/* Floor Announcement Banner */}
         {currentMessage && (
-          <div className="mx-4 mb-3 px-4 py-3 rounded-lg bg-[#F59E0B]/15 border-2 border-[#F59E0B] text-[#F59E0B] text-center font-semibold text-sm sm:text-base">
+          <div className="mx-4 mb-3 px-4 py-3 rounded-lg bg-[#22D3EE]/15 border-2 border-[#22D3EE] text-[#22D3EE] text-center font-semibold text-sm sm:text-base">
             {currentMessage}
           </div>
         )}
 
         {/* Tab Bar */}
-        <div className="border-b-2 border-[#4A5E78] bg-[#0F1C32]">
+        <div className="border-b-2 border-[#445E77] bg-[#0F1C32]">
           <div className="max-w-4xl mx-auto px-2 sm:px-4">
             <div className="flex gap-1 sm:gap-2 overflow-x-auto py-2">
               {TABS.map(tab => (
@@ -288,7 +288,7 @@ export default function TournamentLivePage() {
                   className={`flex-1 min-w-[80px] px-3 py-2 rounded-lg text-sm font-bold uppercase tracking-wide transition-colors border-2 whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'bg-[#132240] text-[#22D3EE] border-[#22D3EE]'
-                      : 'bg-[#0F1C32] text-[#64748B] border-[#4A5E78] hover:border-[#7A8EA8]'
+                      : 'bg-[#0F1C32] text-[#9FB3C8] border-[#445E77] hover:border-[#7A8EA8]'
                   }`}
                 >
                   {tab.label}
@@ -332,24 +332,24 @@ function ClockTab({ clockState, currentBlind, nextBlind, playersRemaining, curre
     <div className="flex flex-col items-center">
       {clockState.isOnBreak ? (
         <div className="text-center py-6">
-          <p className="text-2xl sm:text-3xl text-[#F59E0B] font-semibold mb-4">
+          <p className="text-2xl sm:text-3xl text-[#22D3EE] font-semibold mb-4">
             {currentBlind?.label || 'Break'}
           </p>
-          <div className="text-7xl sm:text-9xl font-bold leading-none text-[#F59E0B]">
+          <div className="text-7xl sm:text-9xl font-bold leading-none text-[#22D3EE]">
             {formatTime(clockState.secondsRemaining)}
           </div>
         </div>
       ) : (
         <div className="text-center py-6">
           {/* Level Number (break-aware, from currentBlind.level) */}
-          <p className="text-xl sm:text-3xl text-[#64748B] mb-2">
+          <p className="text-xl sm:text-3xl text-[#9FB3C8] mb-2">
             LEVEL {currentBlind?.level ?? clockState.currentLevel}
           </p>
 
           {/* Time Remaining */}
           <div className={`text-7xl sm:text-9xl font-bold leading-none ${
             clockState.secondsRemaining <= 60 ? 'text-[#EF4444]' :
-            clockState.secondsRemaining <= 300 ? 'text-[#F59E0B]' :
+            clockState.secondsRemaining <= 300 ? 'text-[#22D3EE]' :
             'text-white'
           }`}>
             {formatTime(clockState.secondsRemaining)}
@@ -362,18 +362,18 @@ function ClockTab({ clockState, currentBlind, nextBlind, playersRemaining, curre
                 {(currentBlind.smallBlind ?? 0).toLocaleString()} / {(currentBlind.bigBlind ?? 0).toLocaleString()}
                 {currentBlind.ante > 0 && ` / ${currentBlind.ante.toLocaleString()}`}
               </p>
-              <p className="text-lg sm:text-2xl text-[#64748B] mt-2">BLINDS</p>
+              <p className="text-lg sm:text-2xl text-[#9FB3C8] mt-2">BLINDS</p>
             </div>
           )}
         </div>
       )}
 
       {/* Next Level Preview */}
-      <div className="w-full max-w-md mx-auto mt-2 mb-6 px-4 py-3 rounded-lg bg-[#132240] border-2 border-[#4A5E78] text-center">
-        <p className="text-xs text-[#64748B] uppercase tracking-wide font-bold mb-1">Next Level</p>
+      <div className="w-full max-w-md mx-auto mt-2 mb-6 px-4 py-3 rounded-lg bg-[#132240] border-2 border-[#445E77] text-center">
+        <p className="text-xs text-[#9FB3C8] uppercase tracking-wide font-bold mb-1">Next Level</p>
         {nextBlind ? (
           nextBlind.isBreak ? (
-            <p className="text-lg font-bold text-[#F59E0B]">{nextBlind.label || 'Break'}</p>
+            <p className="text-lg font-bold text-[#22D3EE]">{nextBlind.label || 'Break'}</p>
           ) : (
             <p className="text-lg font-bold text-white">
               {(nextBlind.smallBlind ?? 0).toLocaleString()} / {(nextBlind.bigBlind ?? 0).toLocaleString()}
@@ -415,17 +415,17 @@ function ClockTab({ clockState, currentBlind, nextBlind, playersRemaining, curre
 function StructureTab({ blindStructure }) {
   if (!Array.isArray(blindStructure) || blindStructure.length === 0) {
     return (
-      <div className="text-center py-12 text-[#64748B]">
+      <div className="text-center py-12 text-[#9FB3C8]">
         Blind Structure Is Not Available Yet
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border-2 border-[#4A5E78] overflow-hidden">
+    <div className="rounded-xl border-2 border-[#445E77] overflow-hidden">
       <table className="w-full text-sm sm:text-base">
         <thead>
-          <tr className="bg-[#0F1C32] text-[#64748B] uppercase tracking-wide text-xs">
+          <tr className="bg-[#0F1C32] text-[#9FB3C8] uppercase tracking-wide text-xs">
             <th className="px-3 py-3 text-left font-bold">Level</th>
             <th className="px-3 py-3 text-right font-bold">Blinds</th>
             <th className="px-3 py-3 text-right font-bold">Ante</th>
@@ -438,12 +438,12 @@ function StructureTab({ blindStructure }) {
               return (
                 <tr
                   key={`break-${idx}`}
-                  className={`bg-[#F59E0B]/10 border-t border-[#4A5E78]/50 ${lvl.isCurrent ? 'outline outline-2 outline-[#22D3EE] -outline-offset-2' : ''}`}
+                  className={`bg-[#22D3EE]/10 border-t border-[#445E77]/50 ${lvl.isCurrent ? 'outline outline-2 outline-[#22D3EE] -outline-offset-2' : ''}`}
                 >
-                  <td colSpan={3} className="px-3 py-3 font-bold text-[#F59E0B]">
+                  <td colSpan={3} className="px-3 py-3 font-bold text-[#22D3EE]">
                     {lvl.label || 'Break'}
                   </td>
-                  <td className="px-3 py-3 text-right text-[#F59E0B] font-semibold">
+                  <td className="px-3 py-3 text-right text-[#22D3EE] font-semibold">
                     {lvl.duration ? `${lvl.duration} Min` : ''}
                   </td>
                 </tr>
@@ -452,7 +452,7 @@ function StructureTab({ blindStructure }) {
             return (
               <tr
                 key={`level-${lvl.level}-${idx}`}
-                className={`border-t border-[#4A5E78]/50 ${
+                className={`border-t border-[#445E77]/50 ${
                   lvl.isCurrent
                     ? 'bg-[#132240] text-[#22D3EE] font-bold outline outline-2 outline-[#22D3EE] -outline-offset-2'
                     : 'text-[#CBD5E1]'
@@ -484,8 +484,8 @@ function ChipsTab({ chips }) {
   if (players.length === 0) {
     return (
       <div className="text-center py-12">
-        <Trophy className="w-10 h-10 text-[#64748B] mx-auto mb-3" />
-        <p className="text-[#64748B]">Chip Counts Will Appear Once Players Are Seated</p>
+        <Trophy className="w-10 h-10 text-[#9FB3C8] mx-auto mb-3" />
+        <p className="text-[#9FB3C8]">Chip Counts Will Appear Once Players Are Seated</p>
       </div>
     );
   }
@@ -493,14 +493,14 @@ function ChipsTab({ chips }) {
   return (
     <div>
       {updated && (
-        <p className="text-xs text-[#64748B] uppercase tracking-wide font-bold mb-3 text-right">
+        <p className="text-xs text-[#9FB3C8] uppercase tracking-wide font-bold mb-3 text-right">
           Last Updated: {updated}
         </p>
       )}
-      <div className="rounded-xl border-2 border-[#4A5E78] overflow-hidden">
+      <div className="rounded-xl border-2 border-[#445E77] overflow-hidden">
         <table className="w-full text-sm sm:text-base">
           <thead>
-            <tr className="bg-[#0F1C32] text-[#64748B] uppercase tracking-wide text-xs">
+            <tr className="bg-[#0F1C32] text-[#9FB3C8] uppercase tracking-wide text-xs">
               <th className="px-3 py-3 text-left font-bold">Rank</th>
               <th className="px-3 py-3 text-left font-bold">Player</th>
               <th className="px-3 py-3 text-right font-bold">Table / Seat</th>
@@ -509,7 +509,7 @@ function ChipsTab({ chips }) {
           </thead>
           <tbody>
             {players.map((p, idx) => (
-              <tr key={`${p.player_name}-${idx}`} className="border-t border-[#4A5E78]/50 text-[#CBD5E1]">
+              <tr key={`${p.player_name}-${idx}`} className="border-t border-[#445E77]/50 text-[#CBD5E1]">
                 <td className="px-3 py-3 font-bold text-white">{idx + 1}</td>
                 <td className="px-3 py-3">{p.player_name}</td>
                 <td className="px-3 py-3 text-right">
@@ -541,17 +541,17 @@ function PayoutsTab({ payouts, fallbackPrizePool }) {
     <div>
       {/* Prize Pool Headline */}
       <div className="text-center mb-6">
-        <p className="text-xs text-[#64748B] uppercase tracking-wide font-bold mb-1">Prize Pool</p>
+        <p className="text-xs text-[#9FB3C8] uppercase tracking-wide font-bold mb-1">Prize Pool</p>
         <p className="text-4xl sm:text-5xl font-bold text-[#10B981]">
           ${prizePool.toLocaleString()}
         </p>
         {guaranteed > 0 && (
-          <p className="text-sm text-[#64748B] mt-2">
+          <p className="text-sm text-[#9FB3C8] mt-2">
             ${guaranteed.toLocaleString()} Guaranteed
           </p>
         )}
         {overlay > 0 && (
-          <p className="text-sm text-[#F59E0B] mt-1 font-semibold">
+          <p className="text-sm text-[#22D3EE] mt-1 font-semibold">
             Overlay: ${overlay.toLocaleString()}
           </p>
         )}
@@ -565,14 +565,14 @@ function PayoutsTab({ payouts, fallbackPrizePool }) {
       {/* Places Table */}
       {places.length === 0 ? (
         <div className="text-center py-8">
-          <DollarSign className="w-10 h-10 text-[#64748B] mx-auto mb-3" />
-          <p className="text-[#64748B]">Payouts Will Be Posted Once The Prize Pool Is Set</p>
+          <DollarSign className="w-10 h-10 text-[#9FB3C8] mx-auto mb-3" />
+          <p className="text-[#9FB3C8]">Payouts Will Be Posted Once The Prize Pool Is Set</p>
         </div>
       ) : (
-        <div className="rounded-xl border-2 border-[#4A5E78] overflow-hidden max-w-md mx-auto">
+        <div className="rounded-xl border-2 border-[#445E77] overflow-hidden max-w-md mx-auto">
           <table className="w-full text-sm sm:text-base">
             <thead>
-              <tr className="bg-[#0F1C32] text-[#64748B] uppercase tracking-wide text-xs">
+              <tr className="bg-[#0F1C32] text-[#9FB3C8] uppercase tracking-wide text-xs">
                 <th className="px-3 py-3 text-left font-bold">Place</th>
                 {hasPercentages && (
                   <th className="px-3 py-3 text-right font-bold">Share</th>
@@ -582,7 +582,7 @@ function PayoutsTab({ payouts, fallbackPrizePool }) {
             </thead>
             <tbody>
               {places.map((p, idx) => (
-                <tr key={`place-${p.position}-${idx}`} className="border-t border-[#4A5E78]/50 text-[#CBD5E1]">
+                <tr key={`place-${p.position}-${idx}`} className="border-t border-[#445E77]/50 text-[#CBD5E1]">
                   <td className="px-3 py-3 font-bold text-white">{ordinal(p.position)}</td>
                   {hasPercentages && (
                     <td className="px-3 py-3 text-right">
@@ -605,9 +605,9 @@ function PayoutsTab({ payouts, fallbackPrizePool }) {
 function StatCard({ icon: Icon, label, value }) {
   return (
     <div className="text-center">
-      <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-[#64748B] mx-auto mb-2" />
+      <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-[#9FB3C8] mx-auto mb-2" />
       <p className="text-xl sm:text-3xl font-bold text-white">{value}</p>
-      <p className="text-xs sm:text-sm text-[#64748B] uppercase tracking-wide">{label}</p>
+      <p className="text-xs sm:text-sm text-[#9FB3C8] uppercase tracking-wide">{label}</p>
     </div>
   );
 }
