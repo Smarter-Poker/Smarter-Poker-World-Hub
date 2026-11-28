@@ -2112,7 +2112,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
               pillInk="red"
               crest="locator"
               body={isGone ? 'This venue listing has been permanently withdrawn.' : 'This venue profile could not be opened.'}
-              detail={error?.message || 'Explore active live poker rooms and daily tournament schedules across the country.'}
+              detail={error?.message || 'Explore live poker rooms and daily tournament schedules across the country.'}
               links={[
                 { href: '/hub/poker-near-me/venues', label: 'All Poker Venues' },
                 { href: '/hub/poker-near-me/in', label: 'Browse By State' },

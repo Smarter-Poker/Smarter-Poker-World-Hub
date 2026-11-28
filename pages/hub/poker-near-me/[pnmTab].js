@@ -3785,7 +3785,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
       datasetSchema({
         path: `/hub/poker-near-me/${canonicalSlug}`,
         name: routeMeta.title || 'Smarter.Poker Live Poker Rooms & Venues Directory Dataset',
-        description: routeMeta.description || 'Verified North American Live Poker Venues, Casino Cardrooms, Active Cash Game Stakes, And Weekly Tournament Schedules.',
+        description: routeMeta.description || 'US Live Poker Venues, Casino Cardrooms, Active Cash Game Stakes, And Weekly Tournament Schedules.',
         keywords: ['Live Poker Rooms', 'Casino Cardrooms', 'Poker Near Me', 'United States Poker Venues', 'Cash Game Waitlists'],
         variableMeasured: ['Active Poker Tables', 'Cash Game Stakes', 'Weekly Tournament Count', 'Room Amenities & Coordinates'],
       }),

@@ -223,7 +223,7 @@ function formatIsoTournamentStartDate(tournament) {
 export function buildDailyTournamentSchema(tournaments = [], generatedAt, options = {}) {
   const canonical = options.canonical || `${SITE_ORIGIN}/hub/daily-tournaments`;
   const pageName = options.pageName || 'Daily Poker Tournaments';
-  const pageDescription = options.pageDescription || 'Browse recurring daily poker tournament schedules from verified poker venues and home games.';
+  const pageDescription = options.pageDescription || 'Browse recurring daily poker tournament schedules from listed poker venues and home games.';
   // Google requires startDate and location for Event rich results, and a row
   // the page shows without a date or a venue supports neither. Such a row is
   // left out of the markup entirely rather than published with invented

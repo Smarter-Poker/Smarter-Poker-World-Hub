@@ -26,7 +26,7 @@ import {
   stateGuidePath,
 } from '../../../src/content/guides/states';
 import venueDirectorySnapshot from '../../../data/poker-venue-directory-snapshot.json';
-import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
+import { VENUE_COUNT_LABEL, listedVenueLabel } from '../../../src/lib/venueCount.mjs';
 
 const STATES_WITH_LIVE_VENUES = new Set(
   (venueDirectorySnapshot?.venues || [])
@@ -101,8 +101,8 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
 
   const stateAssumptions = '2026 US State Gaming Commission Statutes & IRS/State Form W-2G Tax Code';
-  const discordFactSheet = `[Smarter.Poker US State Poker Law & Tax Fact Sheet: ${stateGuide.name} (${stateGuide.code})] Status: ${stateGuide.legalStatus} | Min Age: ${stateGuide.minAge} | State Tax: ${stateGuide.stateIncomeTaxRate} | Live Rooms: ${stateGuide.approxLiveRooms} | Rake Model: ${stateGuide.rakeModel} | Assumptions: ${stateAssumptions} | Source: ${canonicalUrl}`;
-  const redditFactSheet = `**${stateGuide.name} (${stateGuide.code}) - Live & Online Poker Legality, Rake & Tax Fact Sheet**\n- **Legal Cardroom Status:** ${stateGuide.legalStatus}\n- **Minimum Gaming Age:** ${stateGuide.minAge}\n- **State Income Tax / W-2G Rate:** ${stateGuide.stateIncomeTaxRate}\n- **Active Live Poker Rooms:** ${stateGuide.approxLiveRooms}\n- **Standard Rake Model:** ${stateGuide.rakeModel}\n- **Statutory Assumptions:** ${stateAssumptions}\n- *Source: [Smarter.Poker ${stateGuide.name} Poker Guide](${canonicalUrl})*`;
+  const discordFactSheet = `[Smarter.Poker US State Poker Law & Tax Fact Sheet: ${stateGuide.name} (${stateGuide.code})] Status: ${stateGuide.legalStatus} | Min Age: ${stateGuide.minAge} | State Tax: ${stateGuide.stateIncomeTaxRate} | Listed Rooms: ${listedVenueLabel(stateGuide.code)} | Rake Model: ${stateGuide.rakeModel} | Assumptions: ${stateAssumptions} | Source: ${canonicalUrl}`;
+  const redditFactSheet = `**${stateGuide.name} (${stateGuide.code}) - Live & Online Poker Legality, Rake & Tax Fact Sheet**\n- **Legal Cardroom Status:** ${stateGuide.legalStatus}\n- **Minimum Gaming Age:** ${stateGuide.minAge}\n- **State Income Tax / W-2G Rate:** ${stateGuide.stateIncomeTaxRate}\n- **Listed Poker Rooms:** ${listedVenueLabel(stateGuide.code)}\n- **Standard Rake Model:** ${stateGuide.rakeModel}\n- **Statutory Assumptions:** ${stateAssumptions}\n- *Source: [Smarter.Poker ${stateGuide.name} Poker Guide](${canonicalUrl})*`;
 
   const handleCopyFactSheet = async (type, text) => {
     try {
@@ -216,8 +216,8 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
               <div style={styles.metricValueEmerald}>{stateGuide.stateIncomeTaxRate}</div>
             </div>
             <div style={styles.metricCard}>
-              <div style={styles.metricLabel}>Active Live Poker Rooms</div>
-              <div style={styles.metricValueCyan}>{stateGuide.approxLiveRooms}</div>
+              <div style={styles.metricLabel}>Listed Poker Rooms</div>
+              <div style={styles.metricValueCyan}>{listedVenueLabel(stateGuide.code)}</div>
             </div>
             <div style={styles.metricCard}>
               <div style={styles.metricLabel}>Standard Rake Model</div>
@@ -283,7 +283,7 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
 
           {topStateVenues.length > 0 && (
             <div style={{ marginTop: '20px', paddingTop: '18px', borderTop: '1px solid #2b4663' }}>
-              <h3 style={styles.h3}>Top Verified Live Poker Rooms In {stateGuide.name}</h3>
+              <h3 style={styles.h3}>Top Listed Live Poker Rooms In {stateGuide.name}</h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
                 {topStateVenues.map((venue) => (
                   <Link
@@ -317,7 +317,7 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
               <span style={styles.peerName}>
                 {hasLiveStateDirectory ? `Live Poker Rooms In ${stateGuide.name}` : 'Browse Nationwide Live Poker Rooms'}
               </span>
-              <span style={styles.peerTax}>Verified Rooms, Cash Games &amp; Schedules</span>
+              <span style={styles.peerTax}>Listed Rooms, Cash Games &amp; Schedules</span>
             </Link>
             <Link href={`/hub/home-games/in/${stateGuide.code.toLowerCase()}`} style={styles.peerCard}>
               <span style={styles.peerCode}>HOME GAMES</span>

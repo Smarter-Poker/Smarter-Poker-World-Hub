@@ -71,7 +71,7 @@ function promptCopyForPath(path) {
     return {
       eyebrow: 'Free Live Poker Intel',
       title: 'Unlock Live Waitlists, Peak Hours & Seat Alerts',
-      body: `Track ${VENUE_COUNT_LABEL} Verified Poker Rooms, Save Favorite Venues & Sync Live Series Schedules To Your Free Account.`,
+      body: `Track ${VENUE_COUNT_LABEL} Poker Rooms, Save Favorite Venues & Sync Live Series Schedules To Your Free Account.`,
       cta: 'Unlock Live Intel Free',
       unlockKey: 'engaged-venues',
     };

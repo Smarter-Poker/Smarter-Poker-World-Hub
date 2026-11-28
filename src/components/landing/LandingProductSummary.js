@@ -152,7 +152,7 @@ export const LANDING_GUIDES = [
     id: 'poker-tours',
     name: 'Traveling Poker Tours & Circuits',
     href: '/hub/poker-tours',
-    summary: 'Track Every Major Traveling Poker Tour Stop, Circuit Schedule, And Championship Main Event Across Verified US Card Rooms.',
+    summary: 'Track Every Major Traveling Poker Tour Stop, Circuit Schedule, And Championship Main Event Across US Card Rooms.',
   },
   {
     id: 'events-calendar',

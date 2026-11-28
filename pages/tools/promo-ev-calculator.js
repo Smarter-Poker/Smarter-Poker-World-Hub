@@ -589,7 +589,7 @@ export default function PromoEvCalculatorPage({
               compact
               eyebrow="Free Smarter.Poker Account"
               title="Save High-Hand & Jackpot EV Spots & Find Best Rooms Free"
-              description={`Compare Bad Beat Jackpot And High-Hand Value Across ${VENUE_COUNT_LABEL} Verified Live Poker Rooms And Track Sessions Free.`}
+              description={`Compare Bad Beat Jackpot And High-Hand Value Across ${VENUE_COUNT_LABEL} Live Poker Rooms And Track Sessions Free.`}
               primaryLabel="Create Free Account"
               primaryHref="/auth/signup?redirect=/tools/promo-ev-calculator&src=promo-ev"
               secondaryLabel="Sign In"

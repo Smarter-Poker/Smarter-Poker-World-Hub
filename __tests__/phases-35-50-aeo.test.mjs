@@ -136,7 +136,7 @@ test('Phase 39 & 40: First-party Research Reports and Editorial Standards render
   const satelliteStudy = findResearchReport('satellite-tournament-milestone-and-bubble-survival-math-study');
   assert.ok(satelliteStudy);
   assert.ok(renderResearchIndexMarkdown().includes('First-Party Statistical Research Reports'));
-  assert.ok(renderResearchReportMarkdown(rakeReport).includes(`${VENUE_COUNT_LABEL} Verified`));
+  assert.ok(renderResearchReportMarkdown(rakeReport).includes(`${VENUE_COUNT_LABEL} US`));
   assert.ok(renderResearchReportMarkdown(dealerReport).includes('Down'));
   assert.ok(renderResearchReportMarkdown(ploReport).includes('PLO4'));
   assert.ok(renderResearchReportMarkdown(taxReport).includes('W-2G'));

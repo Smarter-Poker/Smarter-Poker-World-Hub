@@ -971,6 +971,7 @@ import './phase2-seo-smarterdesign-fortress-20261127.law.test.mjs';
 import './unlock-gate-shows-no-fabricated-data.law.test.mjs';
 // The site's room count is the database's, from src/lib/venueCount.mjs (2026-11-27).
 import './the-room-count-is-real.law.test.mjs';
+import './the-venue-claims-are-real.law.test.mjs';
 import './phase3-conversion-funnel-fortress-20261127.law.test.mjs';
 import './phase4-seo-ctr-and-activation-fortress-20261127.law.test.mjs';
 import './forensic-hardening-fortress-20261127.law.test.mjs';

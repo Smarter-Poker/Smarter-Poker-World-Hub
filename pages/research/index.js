@@ -188,7 +188,7 @@ export default function ResearchIndexPage() {
         </div>
 
         <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
-          First-Party Empirical Studies And Structured Datasets Compiled From Smarter.Poker&apos;S National Directory Of {VENUE_COUNT_LABEL} Verified US Poker Rooms, 4,500+ Weekly Tournament Schedules, And 100+ GTO Solver Training Baselines.
+          First-Party Empirical Studies And Structured Datasets Compiled From Smarter.Poker&apos;S National Directory Of {VENUE_COUNT_LABEL} US Poker Rooms, 4,500+ Weekly Tournament Schedules, And 100+ GTO Solver Training Baselines.
         </p>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>

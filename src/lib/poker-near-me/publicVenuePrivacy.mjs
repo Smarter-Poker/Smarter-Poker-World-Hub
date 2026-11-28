@@ -16,7 +16,7 @@
  * 2. A self-registered listing that has not been verified is not a confirmed
  *    business, so its street address, ZIP, phone and coordinates stay private
  *    until it is verified. City and state remain, so it is still findable.
- *    Verified venues keep their business address and phone.
+ *    Venues with a verified record keep their business address and phone.
  *
  * __tests__/public-venue-privacy.test.mjs holds both rules in place.
  */

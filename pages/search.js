@@ -558,7 +558,7 @@ const AUTHORITY_HUB_ITEMS = [
     title: 'Best Live Poker Rooms By Game Variant (PLO, Big O, Mixed, Stud & High-Stakes)',
     href: '/poker-rooms/by-game',
     badge: '6 Variant Directories',
-    summary: `Curated Directory Grouping ${VENUE_COUNT_LABEL} North American Poker Rooms By PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, And Daily MTTs.`,
+    summary: `Curated Directory Grouping ${VENUE_COUNT_LABEL} US Poker Rooms By PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, And Daily MTTs.`,
   },
   {
     category: 'Regional Poker Markets',
