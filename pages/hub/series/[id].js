@@ -886,6 +886,41 @@ export default function SeriesDetailPage({ seoSeries = null }) {
     const seriesLabel = series?.name ? decodeHtml(series.name) : 'This Poker Series';
     const redirectTarget = `/hub/series/${id || series?.id || ''}`;
     try {
+      const seriesIdSlug = String(id || series?.id || 'series')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'series';
+      const rawEventKey =
+        evt?.event_number != null && String(evt.event_number).trim() !== ''
+          ? String(evt.event_number)
+          : eventLabel;
+      const eventNumOrSlug = rawEventKey
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 40) || 'event';
+      const reminderEntry = {
+        id: `series-reminder-${seriesIdSlug}-${eventNumOrSlug}`.slice(0, 80),
+        toolSlug: 'series-event-reminder',
+        toolName: 'Tournament Event Reminder',
+        summaryText: `${eventLabel} (${buyInLabel} · ${dateLabel}) At ${seriesLabel}`.slice(0, 320),
+        url: redirectTarget,
+        savedAt: new Date().toISOString(),
+      };
+      const rawSaved = window.localStorage?.getItem('sp_saved_spots_v1');
+      const parsedSaved = rawSaved ? JSON.parse(rawSaved) : [];
+      const existingSaved = Array.isArray(parsedSaved) ? parsedSaved : [];
+      const nextSaved = [
+        reminderEntry,
+        ...existingSaved.filter((item) => item && item.id !== reminderEntry.id),
+      ].slice(0, 25);
+      window.localStorage?.setItem('sp_saved_spots_v1', JSON.stringify(nextSaved));
+    } catch (_) {
+      /* ignore storage restrictions */
+    }
+    try {
       window.dispatchEvent(
         new CustomEvent('sp:seo-tool-engaged', {
           detail: {

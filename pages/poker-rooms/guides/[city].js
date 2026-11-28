@@ -15,7 +15,10 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import { openQuickSignup } from '../../../src/components/seo/SmarterQuickSignupSheet';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
+import { trackSeoFunnelEvent } from '../../../src/lib/seo/seoFunnelTelemetry';
+import seoKitStyles from '../../../src/components/seo/SmarterSeoKit.module.css';
 import { SITE_URL, ORGANIZATION_ID } from '../../../src/lib/learn/learnSite.js';
 import {
   MARKET_GUIDES_AS_OF,
@@ -38,10 +41,46 @@ export async function getStaticProps({ params }) {
   return { props: { guide } };
 }
 
+const CITY_CONTEXT_LABELS = {
+  'las-vegas-nevada': 'Las Vegas',
+  'los-angeles-california': 'Los Angeles',
+  'south-florida-miami-hollywood': 'South Florida',
+  'houston-texas': 'Houston',
+  'dallas-fort-worth-texas': 'Dallas-Fort Worth',
+  'austin-san-antonio-texas': 'Austin & San Antonio',
+  'tampa-central-florida': 'Tampa & Central Florida',
+  'atlantic-city-new-jersey': 'Atlantic City',
+  'philadelphia-pennsylvania': 'Philadelphia',
+  'phoenix-scottsdale-arizona': 'Phoenix & Scottsdale',
+  'chicagoland-midwest': 'Chicagoland',
+  'new-england-connecticut-boston': 'New England',
+};
+
 export default function PokerMarketCityGuidePage({ guide }) {
   const [copiedMarketEmbed, setCopiedMarketEmbed] = useState('');
   const canonicalPath = marketGuidePath(guide.slug);
   const canonicalUrl = `${SITE_URL}${canonicalPath}`;
+  const cityContextLabel = CITY_CONTEXT_LABELS[guide.slug] || guide.regionShort || guide.regionName;
+
+  const handleFollowLocalRooms = () => {
+    trackSeoFunnelEvent('seo_local_action_bar_click', {
+      vertical: 'city',
+      slug: guide.slug,
+    });
+    openQuickSignup({
+      unlockKey: 'local-city-rooms',
+      source: 'local-city-action-bar',
+      redirectPath: canonicalPath,
+      eyebrow: `Free ${cityContextLabel} Poker Alerts`,
+      title: `Follow ${cityContextLabel} Poker Rooms Free`,
+      subtitle: 'Save Favorite Rooms, Get Tournament Start Reminders & Track Live Bankroll Sessions Free',
+      benefits: [
+        `Save Favorite ${cityContextLabel} Listed Poker Rooms & Quick Access`,
+        'Get Tournament Start Reminders & Series Alerts Free',
+        'Log Cash & Tournament Sessions In Free Bankroll Manager',
+      ],
+    });
+  };
   const otherGuides = POKER_MARKET_GUIDES.filter((g) => g.slug !== guide.slug);
   const badgeSvgUrl = `${SITE_URL}/api/seo/badge?type=directory-listing&label=${encodeURIComponent(`Listed In ${guide.regionName} Directory`)}&value=${encodeURIComponent('Smarter.Poker Public Guide')}`;
   const venueBadgeHtml = `<a href="${canonicalUrl}" target="_blank" rel="noopener" title="${guide.h1}"><img src="${badgeSvgUrl}" alt="Publicly Listed In ${guide.regionName} Poker Room Directory On Smarter.Poker" height="28" style="border:0;height:28px;" /></a>`;
@@ -177,6 +216,126 @@ export default function PokerMarketCityGuidePage({ guide }) {
             <div style={{ fontSize: 15, fontWeight: 700, color: '#34d399', marginTop: 6 }}>
               {guide.peakSeasonAndSeries}
             </div>
+          </div>
+        </section>
+
+        {/* #SMARTERDESIGN Local Player Action Strip */}
+        <section
+          aria-label={`Follow ${cityContextLabel} Poker Rooms And Log Sessions`}
+          data-testid="local-player-action-strip"
+          className={seoKitStyles.kit}
+          style={{
+            marginBottom: 32,
+            padding: '16px 18px',
+            background: 'linear-gradient(180deg, #111827 0%, #0b1120 100%)',
+            border: '1px solid #2563eb',
+            boxShadow: 'inset 0 1px 0 rgba(56, 189, 248, 0.35), 0 8px 20px rgba(0, 0, 0, 0.45)',
+            borderRadius: 0,
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '14px 16px',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+            <span className={seoKitStyles.eyebrowTag}>
+              Free {cityContextLabel} Player Action Bar
+            </span>
+            <h2
+              style={{
+                margin: '8px 0 4px 0',
+                fontSize: 17,
+                fontWeight: 800,
+                color: '#f8fafc',
+                lineHeight: 1.25,
+              }}
+            >
+              Follow {cityContextLabel} Poker Rooms &amp; Log Live Sessions Free
+            </h2>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 13.5,
+                lineHeight: 1.5,
+                color: '#cbd5e1',
+              }}
+            >
+              Save Favorite Rooms, Get Tournament Start Reminders &amp; Track Live Bankroll Sessions Free.
+            </p>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: 10,
+              flex: '1 1 260px',
+              justifyContent: 'flex-start',
+              maxWidth: '100%',
+              minWidth: 0,
+            }}
+          >
+            <button
+              type="button"
+              data-testid="local-follow-rooms-cta"
+              onClick={handleFollowLocalRooms}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: 44,
+                padding: '10px 16px',
+                background: '#2563eb',
+                border: '1px solid #38bdf8',
+                borderRadius: 0,
+                color: '#ffffff',
+                fontSize: 13.5,
+                fontWeight: 800,
+                lineHeight: 1.25,
+                textAlign: 'center',
+                whiteSpace: 'normal',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                cursor: 'pointer',
+              }}
+            >
+              Follow {cityContextLabel} Poker Rooms Free
+            </button>
+            <Link
+              href="/hub/bankroll-manager"
+              data-testid="local-bankroll-cta"
+              onClick={() =>
+                trackSeoFunnelEvent('seo_local_action_bar_click', {
+                  vertical: 'city',
+                  slug: guide.slug,
+                  action: 'bankroll',
+                })
+              }
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: 44,
+                padding: '10px 16px',
+                background: '#0b1120',
+                border: '1px solid #38bdf8',
+                borderRadius: 0,
+                color: '#38bdf8',
+                fontSize: 13.5,
+                fontWeight: 700,
+                lineHeight: 1.25,
+                textAlign: 'center',
+                textDecoration: 'none',
+                whiteSpace: 'normal',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+              }}
+            >
+              {"Log Tonight's Session Free"}
+            </Link>
           </div>
         </section>
 
