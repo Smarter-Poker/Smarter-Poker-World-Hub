@@ -182,7 +182,7 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font: 750 clamp(10px, 1.1cqi, 12px)/1.2 'Barlow Condensed', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  font: 750 12px/1.2 'Barlow Condensed', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   color: #a2dfff;
   letter-spacing: 0.16em;
 }

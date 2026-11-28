@@ -27,6 +27,46 @@ async function openMenu(page: Page, world: WorldMenuVisualCase) {
   await expect(drawer).toHaveAttribute('data-world-menu-scheme', world.scheme);
   await expect(drawer).toHaveAttribute('data-world-menu-texture', world.texture);
   await expect(drawer.locator(`[data-world-primary-commands="${world.id}"] .sp-grid-tile`)).toHaveCount(6);
+  // The open drawer is a modal: it must paint above the portaled global
+  // header, the guest bar and the footer. A page wrapper that creates a
+  // stacking context (the Training route shell is isolated) caps every
+  // descendant at the wrapper's own level, so compare the layers where the
+  // two elements' stacking paths diverge (Video Library's header area at z 40
+  // trapped it too).
+  // A pixel snapshot alone missed this: the header and guest bar covered the
+  // Training drawer's title and close controls for days while the ratio
+  // stayed under its tolerance at 1440px.
+  const layers = await drawer.evaluate((element) => {
+    // Stacking contexts from the outermost (under <body>) to the node itself.
+    const chain = (node: Element) => {
+      const contexts: Array<{ element: Element; z: number }> = [];
+      for (let current: Element | null = node; current && current !== document.body && current !== document.documentElement; current = current.parentElement) {
+        const style = getComputedStyle(current);
+        const creates = (style.position !== 'static' && style.zIndex !== 'auto')
+          || style.position === 'fixed' || style.position === 'sticky'
+          || style.isolation === 'isolate' || style.transform !== 'none'
+          || style.filter !== 'none' || Number(style.opacity) < 1;
+        if (creates) contexts.unshift({ element: current, z: style.zIndex === 'auto' ? 0 : Number(style.zIndex) });
+      }
+      return contexts;
+    };
+    // Paint order between two nodes is decided by the first stacking contexts
+    // on their chains that differ, inside the context they share.
+    const compare = (other: Element | null) => {
+      if (!other) return null;
+      const a = chain(element);
+      const b = chain(other);
+      let i = 0;
+      while (i < a.length && i < b.length && a[i].element === b[i].element) i += 1;
+      return { drawer: a[i]?.z ?? 0, other: b[i]?.z ?? 0 };
+    };
+    return {
+      header: compare(document.querySelector('.approved-global-header')),
+      guestBar: compare(document.querySelector('[data-testid="guest-conversion-bar"]')),
+    };
+  });
+  if (layers.header) expect(layers.header.drawer, `${world.label} drawer paints under the global header`).toBeGreaterThan(layers.header.other);
+  if (layers.guestBar) expect(layers.guestBar.drawer, `${world.label} drawer paints under the guest bar`).toBeGreaterThan(layers.guestBar.other);
   await page.addStyleTag({
     content: '*,*::before,*::after{animation:none!important;caret-color:transparent!important;font-family:Arial,sans-serif!important;}',
   });

@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { Maximize2, X, Mic, MicOff, Video, VideoOff } from 'lucide-react';
-import { liveStreamService } from '../../services/LiveStreamService';
+// Never import LiveStreamService here: it pulls the LiveKit SDK into every
+// page. The service registers itself once a streaming surface loads it.
+import { getLiveStreamService } from '../../services/activeLiveStream';
 
 export default function GlobalPiPManager() {
     const router = useRouter();
@@ -27,7 +29,10 @@ export default function GlobalPiPManager() {
         const checkStream = () => {
             // BUG-FIX-13: don't re-activate if user dismissed this session's PiP
             if (dismissedRef.current) return;
-            const hasStream = liveStreamService.room !== null && liveStreamService.currentStreamId !== null;
+            const liveStreamService = getLiveStreamService();
+            const hasStream = Boolean(liveStreamService)
+                && liveStreamService.room !== null
+                && liveStreamService.currentStreamId !== null;
             const isLiveRoute = router.pathname.includes('/social-media') || router.pathname.includes('/hub/live');
             
             // Activate PiP if there's a stream and we are NOT on the social/live page
@@ -55,7 +60,8 @@ export default function GlobalPiPManager() {
         // autoplay-restricted browsers and detach on cleanup.
         const bind = () => {
             const el = videoRef.current;
-            if (!el) return;
+            const liveStreamService = getLiveStreamService();
+            if (!el || !liveStreamService) return;
             const stream = liveStreamService.isBroadcaster
                 ? liveStreamService.localStream
                 : liveStreamService._remoteMediaStream;
@@ -114,6 +120,12 @@ export default function GlobalPiPManager() {
     };
 
     const handleEndOrLeave = async () => {
+        const liveStreamService = getLiveStreamService();
+        if (!liveStreamService) {
+            dismissedRef.current = true;
+            setIsActive(false);
+            return;
+        }
         if (streamContext?.isBroadcaster) {
             // AUDIT-FIX: only set dismissed+inactive AFTER the user confirms.
             // Previously setIsActive(false) fired unconditionally before the
@@ -186,7 +198,7 @@ export default function GlobalPiPManager() {
                 <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4 z-10">
                     <button 
                         onClick={async () => {
-                            const muted = await liveStreamService.toggleMute();
+                            const muted = await getLiveStreamService()?.toggleMute();
                             setIsMuted(muted);
                         }}
                         className={`p-3 rounded-full backdrop-blur-md transition-all ${isMuted ? 'bg-red-500/80 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}
@@ -195,7 +207,7 @@ export default function GlobalPiPManager() {
                     </button>
                     <button 
                         onClick={async () => {
-                            const muted = await liveStreamService.toggleVideo();
+                            const muted = await getLiveStreamService()?.toggleVideo();
                             setIsVideoMuted(muted);
                         }}
                         className={`p-3 rounded-full backdrop-blur-md transition-all ${isVideoMuted ? 'bg-red-500/80 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}
