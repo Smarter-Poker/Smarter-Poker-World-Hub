@@ -37,20 +37,19 @@ const REELS_CSS = between(
     'CLUB ARENA NEWS REELS CSS END'
 );
 
-test('News Reels surfaces use one exact shared console master per surface', () => {
+test('News Reels listings are open sections; only the viewer keeps the console master', () => {
+    // Owner, 2026-11-27: the thick painted console frame comes off the Reels
+    // listings. They are open sections with a plain h2, like Poker Videos.
     assert.match(NEWS, /from '\.\.\/\.\.\/src\/components\/video-library\/console'/);
 
-    for (const [name, surface] of Object.entries({ PREVIEW, FULL, VIEWER })) {
-        assert.equal(
-            (surface.match(/<VideoLibraryConsole\b/g) || []).length,
-            1,
-            `${name} must contain exactly one console master`
-        );
-        assert.match(surface, /titleAs="h2"/);
+    for (const [name, surface] of Object.entries({ PREVIEW, FULL })) {
+        assert.equal((surface.match(/<VideoLibraryConsole\b/g) || []).length, 0, `${name} must not wear the console frame`);
+        assert.match(surface, /<section\b/);
+        assert.match(surface, /<h2 className="section-title"/);
     }
 
-    assert.match(PREVIEW, /foot="foot"/);
-    assert.match(FULL, /foot="foot"/);
+    assert.equal((VIEWER.match(/<VideoLibraryConsole\b/g) || []).length, 1, 'VIEWER keeps one console master');
+    assert.match(VIEWER, /titleAs="h2"/);
     assert.match(VIEWER, /plates=\{\{/);
     assert.match(VIEWER, /titleId="news-reels-viewer-title"/);
     assert.match(NEWS, /aria-labelledby="news-reels-viewer-title"/);
