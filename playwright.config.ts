@@ -117,6 +117,19 @@ export default defineConfig({
       },
     },
     {
+      // Poker Near Me #SmarterDesign on rendered styles. Offline fixtures and
+      // a synthetic session (no setup dependency); each test sets its own
+      // viewport. The push worker is blocked for the reason footer-webkit gives.
+      name: 'pnm-smarterdesign-chromium',
+      testMatch: /pnm-smarterdesign-render\.spec\.ts$/,
+      use: { ...devices['Desktop Chrome'], serviceWorkers: 'block' },
+    },
+    {
+      name: 'pnm-smarterdesign-webkit',
+      testMatch: /pnm-smarterdesign-render\.spec\.ts$/,
+      use: { ...devices['Desktop Safari'], serviceWorkers: 'block' },
+    },
+    {
       name: 'world-menu-visual',
       testMatch: /022-world-menu-visual\.spec\.ts$/,
       fullyParallel: false,
