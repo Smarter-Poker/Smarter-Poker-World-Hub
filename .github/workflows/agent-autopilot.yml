@@ -11,9 +11,11 @@ name: Agent Autopilot
 
 on:
   pull_request_target:
-    # converted_to_draft is listed so a PR that goes back to draft has any
-    # armed auto-merge taken off it by the hold-unfinished-work job below.
-    types: [opened, reopened, ready_for_review, synchronize, converted_to_draft]
+    # converted_to_draft and labeled are listed so a PR that goes back to
+    # draft, or is given the do-not-ship label, has any armed auto-merge taken
+    # off it by the hold-unfinished-work job below. unlabeled is listed so
+    # removing that label queues the PR normally again.
+    types: [opened, reopened, ready_for_review, synchronize, converted_to_draft, labeled, unlabeled]
 
 permissions:
   contents: read
@@ -26,10 +28,10 @@ concurrency:
 
 jobs:
   # Unfinished work is never armed (PR #3170, 2026-11-27): a handoff bookmark
-  # was opened and squash auto-merged into production. A draft, a bookmark/,
-  # handoff/ or wip/ branch, or a head commit whose subject starts with wip or
-  # says bookmark or unfinished is held. No credential is minted here; the
-  # verdict comes from main's own reviewed guard script.
+  # was opened and squash auto-merged into production. A draft, a PR labelled
+  # do-not-ship, a bookmark/, handoff/ or wip/ branch, or a head commit marked
+  # wip, bookmark:, handoff: or [do-not-ship] is held. No credential is minted
+  # here; the verdict comes from main's own reviewed guard script.
   classify:
     name: Classify unfinished work
     if: github.event.pull_request.head.repo.full_name == github.repository
@@ -52,6 +54,7 @@ jobs:
           BRANCH: ${{ github.event.pull_request.head.ref }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           DRAFT: ${{ github.event.pull_request.draft }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
         run: |
           set -euo pipefail
           [[ "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] \
@@ -59,7 +62,7 @@ jobs:
           SUBJECT=$(gh api "repos/$REPO/commits/$PR_HEAD_SHA" \
             --jq '.commit.message | split("\n")[0]')
           set +e
-          REASON=$(bash .github/scripts/unfinished-work-guard.sh "$BRANCH" "$SUBJECT" "$DRAFT")
+          REASON=$(bash .github/scripts/unfinished-work-guard.sh "$BRANCH" "$SUBJECT" "$DRAFT" "$LABELS")
           RC=$?
           set -e
           case "$RC" in
@@ -161,8 +164,9 @@ jobs:
           esac
           bash .github/scripts/queue-pr.sh "$REPO" "$PR"
 
-  # A held PR that already has auto-merge armed (a wip commit pushed onto it, or
-  # converted back to draft) has it disabled, so it cannot merge on green.
+  # A held PR that already has auto-merge armed (a wip commit pushed onto it,
+  # converted back to draft, or labelled do-not-ship) has it disabled, so it
+  # cannot merge on green.
   hold-unfinished-work:
     name: Keep unfinished work from auto-merging
     needs: classify
