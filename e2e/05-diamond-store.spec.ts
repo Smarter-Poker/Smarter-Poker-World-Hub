@@ -1045,9 +1045,10 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       'background-position',
       '50% 50%'
     );
+    // An unknown package falls back to the #SmarterDesign store scene (#3201).
     await expect(page.locator('[data-diamond-package="titan"] [data-package-media]')).toHaveCSS(
       'background-image',
-      /diamond-vault-hero/
+      /\/images\/smarterdesign\/headers\/store-diamonds-scene\.webp/
     );
 
     catalog = [PAGE1_DIAMOND_PACKAGES[0], PAGE1_DIAMOND_PACKAGES[1], unknownPackage];
