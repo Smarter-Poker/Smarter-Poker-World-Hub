@@ -967,6 +967,7 @@ import './trivia-ops-perf-timeout-laws.test.mjs';
 import './trivia-wave5-spectator-club-laws.test.mjs';
 import './trivia-wave5-stats-calendar-laws.test.mjs';
 import './trivia-phase3-enhancements.test.mjs';
+import './trivia-hardening-audit.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

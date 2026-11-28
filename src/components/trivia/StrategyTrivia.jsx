@@ -12,6 +12,7 @@
  */
 
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
@@ -28,6 +29,7 @@ import {
     getCategoryName,
 } from '../../../src/lib/trivia/triviaEngine';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
+import useTriviaKeyboardControls from '../../hooks/useTriviaKeyboardControls';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
@@ -269,6 +271,7 @@ export default function StrategyTrivia({ mode }) {
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [showResult, setShowResult] = useState(false);
     const [correctCount, setCorrectCount] = useState(0);
+    const [questionOutcomes, setQuestionOutcomes] = useState([]);
 
     // Current question's server verdict (wasCorrect / correctDisplayIndex /
     // explanation); null until session-answer resolves, cleared on advance.
@@ -404,6 +407,7 @@ export default function StrategyTrivia({ mode }) {
             setSelectedAnswer(null);
             setShowResult(false);
             setCorrectCount(0);
+            setQuestionOutcomes([]);
             setVerdict(null);
             setAnswerPending(false);
             setAnswerFailure(null);
@@ -522,6 +526,13 @@ export default function StrategyTrivia({ mode }) {
         setGameState('playing');
         setCurrentQuestionIndex(progress.firstUnanswered >= 0 ? progress.firstUnanswered : Math.max(0, set.length - 1));
         setCorrectCount(restoredCorrect);
+        setQuestionOutcomes(set.map((question) => {
+            const state = question?.answerState || question?.answer || null;
+            if (!state) return null;
+            if (state?.voided === true || state?.outcome === 'voided') return null;
+            if (typeof state?.wasCorrect === 'boolean') return state.wasCorrect ? 'correct' : 'wrong';
+            return null;
+        }));
         setVerdict(null);
         setSelectedAnswer(null);
         setAnswerPending(false);
@@ -736,10 +747,20 @@ export default function StrategyTrivia({ mode }) {
             if (v?.voided === true || v?.outcome === 'voided') {
                 setResumeNotice('The Server Verified This Question As Unavailable. It Was Voided And Does Not Count Against The Run.');
             } else if (v?.wasCorrect === true) {
+                setQuestionOutcomes((prev) => {
+                    const next = [...prev];
+                    next[currentQuestionIndex] = 'correct';
+                    return next;
+                });
                 setCorrectCount(prev => prev + 1);
                 triggerTriviaHaptic('correct');
                 busEmit.decisionCorrect(correctCount + 1);
             } else {
+                setQuestionOutcomes((prev) => {
+                    const next = [...prev];
+                    next[currentQuestionIndex] = 'wrong';
+                    return next;
+                });
                 triggerTriviaHaptic('wrong');
                 busEmit.decisionIncorrect(correctCount);
                 busEmit.screenShake('light');
@@ -992,28 +1013,18 @@ export default function StrategyTrivia({ mode }) {
     // Keyboard shortcuts are scoped to the focused strategy surface. A key
     // pressed in the global header, report dialog or any interactive control
     // can never answer or advance a question behind that control.
-    function handleGameKeyDown(event) {
-        if (gameState !== 'playing' || event.metaKey || event.ctrlKey || event.altKey) return;
-        const target = event.target;
-        if (!gameSurfaceRef.current?.contains(target)) return;
-        if (target?.closest?.('button, a, input, textarea, select, [contenteditable="true"], [role="dialog"]')) return;
-
-        if (!showResult && selectedAnswer === null && !answerFailure && currentQuestionIntegrity.ok) {
-            let index = -1;
-            if (/^[1-9]$/.test(event.key)) index = Number(event.key) - 1;
-            else if (/^[a-jA-J]$/.test(event.key)) index = event.key.toLowerCase().charCodeAt(0) - 97;
-            if (index >= 0 && index < (currentQuestion?.options?.length || 0)) {
-                event.preventDefault();
-                gradeAnswer(index);
-            }
-            return;
-        }
-
-        if (showResult && (event.key === 'Enter' || event.key === ' ')) {
-            event.preventDefault();
-            nextQuestion();
-        }
-    }
+    useTriviaKeyboardControls({
+        enabled: gameState === 'playing' && Boolean(currentQuestion),
+        optionCount: currentQuestion?.options?.length || 0,
+        canSelect: !showResult && selectedAnswer === null && !answerFailure && currentQuestionIntegrity.ok && !answerPending,
+        canAdvance: showResult && Boolean(verdict),
+        onSelectOption: (index) => {
+            void gradeAnswer(index);
+        },
+        onAdvance: () => {
+            void nextQuestion();
+        },
+    });
 
 
     if (isLoading) {
@@ -1231,7 +1242,6 @@ export default function StrategyTrivia({ mode }) {
                             ref={gameSurfaceRef}
                             className="game-area"
                             tabIndex={-1}
-                            onKeyDown={handleGameKeyDown}
                         >
                             {/* The contract rail never invents a clock. These
                                 four strategy modes are untimed today; a live
@@ -1274,6 +1284,7 @@ export default function StrategyTrivia({ mode }) {
                             <TriviaQuestionProgress
                                 total={questions.length}
                                 currentIndex={currentQuestionIndex}
+                                outcomes={questionOutcomes}
                                 label={`Question ${currentQuestionIndex + 1} Of ${questions.length}`}
                             />
                             <section className="strategy-context" aria-labelledby="strategy-context-heading">
@@ -1674,6 +1685,18 @@ export default function StrategyTrivia({ mode }) {
                                     <p className="results-note tc-ink--cyan" role="status">
                                         Settlement Is Confirmed, But The Wallet Balance Refresh Is Delayed. The Transaction Receipt Above Remains Authoritative.
                                     </p>
+                                )}
+
+                                {!settlementPending && (summary.total - summary.correct > 0) && (
+                                    <div className="results-study-cta" style={{ marginTop: '14px', textAlign: 'center' }}>
+                                        <Link
+                                            href="/hub/trivia/study"
+                                            className="tc-word tc-ink--blue"
+                                            data-strategy-study-misses="true"
+                                        >
+                                            Study Your Misses
+                                        </Link>
+                                    </div>
                                 )}
 
                                 {resultAwardError && (

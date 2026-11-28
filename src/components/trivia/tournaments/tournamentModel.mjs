@@ -700,3 +700,67 @@ export function buildNextWeekFreerollDraft(night) {
         questionCount,
     };
 }
+
+const TOURNAMENT_IMMINENT_START_WINDOW_MS = 180_000;
+
+/**
+ * Base poll interval for the Nightly Trivia Tournament console.
+ * Transitions to 3s polling during the final 3 minutes before 8 PM CT start
+ * (and while waiting for the PostgreSQL scheduler to flip registration -> live)
+ * so registered players enter Round 1 immediately at lock.
+ */
+export function tournamentPollDelay({
+    state = null,
+    activeRun = false,
+    startsAt = null,
+    nowMs = Date.now(),
+} = {}) {
+    if (activeRun) return 3_000;
+    const normalized = String(state || '').toLowerCase();
+    if (['held', 'live', 'settling'].includes(normalized)) return 5_000;
+    if (normalized === 'registration' && startsAt) {
+        const startMs = asTime(startsAt);
+        if (startMs !== null && Number.isFinite(nowMs) && (startMs - nowMs) <= TOURNAMENT_IMMINENT_START_WINDOW_MS) {
+            return 3_000;
+        }
+    }
+    return 45_000;
+}
+
+/**
+ * Safety-net poll interval when Supabase Realtime is connected.
+ * Because tournament start and round transitions are executed inside PostgreSQL
+ * by the fenced scheduler worker, polling must stay brisk near start time and
+ * while rounds are live instead of backing off to 135 seconds.
+ */
+export function tournamentConnectedPollDelay({
+    state = null,
+    activeRun = false,
+    startsAt = null,
+    nowMs = Date.now(),
+} = {}) {
+    const base = tournamentPollDelay({ state, activeRun, startsAt, nowMs });
+    if (activeRun) return 4_000;
+    const normalized = String(state || '').toLowerCase();
+    if (normalized === 'registration' && base <= 3_000) return 4_000;
+    if (['held', 'live', 'settling'].includes(normalized)) return 8_000;
+    return Math.max(base * 2, 15_000);
+}
+
+/**
+ * Formats the Smarter Horse count in the Event Ledger.
+ * Before start time, horses ramp toward `horseTarget` while leaving open seats
+ * for humans (`entered / target`). Once full-bracket fill admits horses past
+ * `horseTarget` (or once registration closes), displays the exact entered count
+ * so the UI never prints an overflow ratio like `256 / 97`.
+ */
+export function formatTournamentHorseCount(tournament) {
+    const entered = Math.max(0, Number(tournament?.horsesEntered) || 0);
+    const target = Math.max(0, Number(tournament?.horseTarget) || 0);
+    const state = String(tournament?.state || '').toLowerCase();
+    const isPreStart = state === 'registration' || state === 'scheduled' || state === 'upcoming';
+    if (isPreStart && target > 0 && entered <= target) {
+        return `${exactDiamonds(entered)} / ${exactDiamonds(target)}`;
+    }
+    return exactDiamonds(entered);
+}

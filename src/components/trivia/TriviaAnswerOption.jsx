@@ -28,10 +28,13 @@
 // TRAIN-TRIVIA-ANSWER-OPTION-1 - audit-marker registry token
 
 import React from 'react';
+import TriviaCardText from './TriviaCardText';
 
 const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
   index,
   option,
+  rawOption,
+  formatText,
   selectedAnswer,
   correctIndex,
   showResult,
@@ -97,7 +100,12 @@ const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
   return (
     <button {...commonProps} className={className}>
       <span className="option-letter" aria-hidden="true">{letter}</span>
-      <span className="option-text" aria-hidden={eliminated || undefined}>{option}</span>
+      <span className="option-text" aria-hidden={eliminated || undefined}>
+        <TriviaCardText
+          text={rawOption !== undefined ? rawOption : option}
+          formatText={rawOption !== undefined ? formatText : undefined}
+        />
+      </span>
       {visibleStatus ? <span className="trivia-answer-option__status" aria-hidden="true">{visibleStatus}</span> : null}
       {srResult ? <span className="trivia-sr-only">{srResult}</span> : null}
     </button>

@@ -228,6 +228,51 @@ export function pvpPollDelay(dto) {
     return 2_000;
 }
 
+/**
+ * Effective client poll interval for PvP matchmaking and active matches.
+ *
+ * Critical invariant: while `state === 'searching'`, Smarter Horse fallback at
+ * `horseEligibleAt` (15..30s) is triggered by the client's heartbeat poll and
+ * keeps the server presence lease alive. Realtime must NEVER throttle searching
+ * polls, and when `horseEligibleAt` is approaching we aim directly at it so a
+ * solo human matches a Smarter Horse on-time (<= 30s) without overshooting.
+ */
+export function effectivePvpPollDelay(dto, {
+    realtimeConnected = false,
+    realtimePollMs = null,
+    serverClockAnchor = null,
+    nowMs = Date.now(),
+} = {}) {
+    const baseDelay = pvpPollDelay(dto);
+    if (baseDelay == null) return null;
+
+    if (dto.state === 'searching') {
+        const heartbeatMs = Number(dto.heartbeatSeconds) * 1000;
+        const safeCap = Number.isFinite(heartbeatMs) && heartbeatMs > 0
+            ? Math.min(baseDelay, Math.max(500, Math.floor(heartbeatMs)))
+            : baseDelay;
+
+        if (dto.ticket?.horseFallbackEnabled === true && dto.ticket?.horseEligibleAt) {
+            const eligibleMs = Date.parse(dto.ticket.horseEligibleAt);
+            const serverNow = estimatedPvpServerNow(serverClockAnchor, nowMs);
+            const currentMs = Number.isFinite(serverNow) ? serverNow : nowMs;
+            if (Number.isFinite(eligibleMs) && Number.isFinite(currentMs)) {
+                const untilEligible = eligibleMs - currentMs;
+                if (untilEligible <= 0) return 250;
+                if (untilEligible < safeCap) {
+                    return Math.max(250, Math.min(safeCap, Math.ceil(untilEligible) + 50));
+                }
+            }
+        }
+        return safeCap;
+    }
+
+    if (realtimeConnected && Number.isFinite(realtimePollMs) && realtimePollMs >= baseDelay) {
+        return Math.min(10_000, Math.floor(realtimePollMs));
+    }
+    return baseDelay;
+}
+
 export function isActivePvpState(state) {
     return ACTIVE_PVP_STATES.has(state);
 }

@@ -48,7 +48,7 @@ test('operations snapshot turns domain outcomes and scheduler ownership into one
         tournamentHealth: { healthy: true, alerts: [], upcoming_public_instances: 7 },
         pvpMetrics: {
             fallback: { horse_before_deadline: 0 },
-            join_to_match_ms: { horse_p95: 44_999 },
+            join_to_match_ms: { horse_p95: 29_999 },
             settlement_latency_ms: { p95: 9_999 },
             matches: { settlement_failures: 0 },
             ledger_variance: { terminal_matches_with_open_settlement: 0, terminal_escrow_abs_total: 0 },
@@ -88,7 +88,7 @@ test('operations snapshot turns domain outcomes and scheduler ownership into one
         tournamentHealth: { healthy: false },
         pvpMetrics: {
             fallback: { horse_before_deadline: 1 },
-            join_to_match_ms: { horse_p95: 45_001 },
+            join_to_match_ms: { horse_p95: 30_001 },
             settlement_latency_ms: { p95: 10_000 },
             matches: { settlement_failures: 2 },
             ledger_variance: { terminal_matches_with_open_settlement: 1, terminal_escrow_abs_total: 5 },
