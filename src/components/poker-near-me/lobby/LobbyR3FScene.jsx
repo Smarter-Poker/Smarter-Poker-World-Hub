@@ -22,10 +22,10 @@ const FEATURE_PODS = [
   { id: 'nearme',    label: 'NEAR ME',       angle: 40,  color: '#00d2ff' },
   { id: 'livegames', label: 'LIVE GAMES',    angle: 80,  color: '#ff4444' },
   { id: 'mapview',   label: 'MAP VIEW',      angle: 120, color: '#3b82f6' },
-  { id: 'tours',     label: 'TOURS',         angle: 160, color: '#c9a227' },
-  { id: 'calendar',  label: 'CALENDAR',      angle: 200, color: '#8b5cf6' },
+  { id: 'tours',     label: 'TOURS',         angle: 160, color: '#86daff' },
+  { id: 'calendar',  label: 'CALENDAR',      angle: 200, color: '#4f9cff' },
   { id: 'daily',     label: 'DAILY',         angle: 240, color: '#22c55e' },
-  { id: 'series',    label: 'SERIES',        angle: 280, color: '#f59e0b' },
+  { id: 'series',    label: 'SERIES',        angle: 280, color: '#9fd8ff' },
   { id: 'wallet',    label: 'REWARDS',       angle: 320, color: '#ffffff' },
 ];
 
@@ -381,9 +381,9 @@ function SceneEnvironment() {
       {/* Back: blue circle — rim light reflections */}
       <Lightformer form="circle" intensity={0.35} position={[0, 3, -8]} scale={[6, 6, 1]} color="#3b82f6" />
       {/* Ground: warm ring for pedestal reflections */}
-      <Lightformer form="ring" intensity={0.25} position={[0, -3, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[10, 10, 1]} color="#ff8c00" />
+      <Lightformer form="ring" intensity={0.25} position={[0, -3, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[10, 10, 1]} color="#13a4ec" />
       {/* Accent: purple for iridescence color variety */}
-      <Lightformer form="circle" intensity={0.2} position={[-5, 4, 2]} scale={[4, 4, 1]} color="#8b5cf6" />
+      <Lightformer form="circle" intensity={0.2} position={[-5, 4, 2]} scale={[4, 4, 1]} color="#4f9cff" />
     </Environment>
   );
 }
@@ -843,7 +843,7 @@ function SceneContent({ propsRef, quality, setQuality }) {
       {/* Center pod area light — key for pod illumination */}
       <pointLight position={[0, 4, 0]} intensity={0.5} color="#6ee7ef" distance={12} decay={2} />
       {/* Warm underlight for pedestal glow */}
-      <pointLight position={[0, -0.5, 0]} intensity={0.15} color="#ff8c00" distance={5} decay={2} />
+      <pointLight position={[0, -0.5, 0]} intensity={0.15} color="#13a4ec" distance={5} decay={2} />
 
       {/* ═══ ENVIRONMENT-BASED LIGHTING (lazy) ═══ */}
       <SceneEnvironment />

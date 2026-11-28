@@ -12,7 +12,7 @@ body.world-poker-near-me {
   --pnc-blue: #45adff;
   --pnc-green: #c8ffd2;
   --pnc-red: #ff5b6e;
-  --pnc-gold: #ffd700;
+  --pnc-gold: #86daff;
   --pnc-muted: #9aa5b3;
 }
 
@@ -186,7 +186,7 @@ body.world-poker-near-me {
 .pnc-ink--gold {
   color: var(--pnc-gold);
   -webkit-text-fill-color: var(--pnc-gold);
-  text-shadow: 0 0 1cqw rgb(255 215 0 / 70%), 0 0 2cqw rgb(255 215 0 / 30%),
+  text-shadow: 0 0 1cqw rgb(19 164 236 / 70%), 0 0 2cqw rgb(19 164 236 / 30%),
     0 0.25cqw 0 rgb(0 0 0 / 70%);
 }
 
@@ -406,8 +406,8 @@ p.pnc-label {
 }
 
 .pnc-panel__head {
-  aspect-ratio: 1000 / 112;
-  background: url('/images/pnm-console/painted-panels-v1/panel-head.png') top center / 100% auto no-repeat;
+  background: none;
+  display: none;
 }
 
 .pnc-panel__body {
@@ -426,12 +426,16 @@ p.pnc-label {
   flex: 1 1 auto;
   flex-direction: column;
   padding: 0 7.5%;
-  background: url('/images/pnm-console/painted-panels-v1/panel-mid.png') top center / 100% auto repeat-y;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) padding-box;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .pnc-panel__foot {
-  aspect-ratio: 1000 / 72;
-  background: url('/images/pnm-console/painted-panels-v1/panel-foot.png') bottom center / 100% auto no-repeat;
+  background: none;
+  display: none;
 }
 
 .pnc-panel:focus-visible {

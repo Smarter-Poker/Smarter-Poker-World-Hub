@@ -57,6 +57,7 @@ import '../src/styles/worlds/poker-near-me-console-tools.css';
 import '../src/styles/worlds/poker-near-me-console-pods.css';
 import '../src/styles/worlds/poker-near-me-console-menu.css';
 import '../src/styles/worlds/poker-near-me-home-games-directory.css';
+import '../src/styles/worlds/poker-near-me-smarterdesign.css';
 import '../src/styles/single-field-focus.css';
 import '../src/components/magazine/magazine-print.css';
 import { installSingleFieldFocus } from '../src/lib/singleFieldFocus.mjs';

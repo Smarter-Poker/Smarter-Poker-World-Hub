@@ -136439,6 +136439,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/hub/bankroll-manager.js",
+          "src/components/poker-near-me/PnmImageHeader.jsx",
           "src/components/ui/HamburgerMenu.jsx"
         ]
       },
@@ -148745,6 +148746,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/hub/bankroll-manager.js",
+          "src/components/poker-near-me/PnmImageHeader.jsx",
           "src/components/ui/HamburgerMenu.jsx"
         ]
       },

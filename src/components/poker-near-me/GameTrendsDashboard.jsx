@@ -73,17 +73,17 @@ export default function GameTrendsDashboard() {
     return (
       <div style={{
         background: '#080b10',
-        borderRadius: 3, padding: 24, border: '1px solid rgba(245,158,11,0.32)',
+        borderRadius: 3, padding: 24, border: '1px solid rgba(159,216,255,0.32)',
       }}>
         <h3 style={{ color: '#fff', margin: '0 0 8px', fontSize: 16 }}>Game Type Trends</h3>
-        <div style={{ color: '#f59e0b', fontSize: 13, marginBottom: 14 }}>
+        <div style={{ color: '#9fd8ff', fontSize: 13, marginBottom: 14 }}>
           Trend Data Could Not Be Loaded.
         </div>
         <button
           onClick={() => { setError(null); setLoading(true); setReloadKey(k => k + 1); }}
           style={{
             minHeight: 44, padding: '8px 16px', borderRadius: 2, background: '#11151b',
-            border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b',
+            border: '1px solid rgba(159,216,255,0.3)', color: '#9fd8ff',
             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
@@ -125,16 +125,16 @@ export default function GameTrendsDashboard() {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
         <h3 style={{ color: '#fff', margin: 0, fontSize: 16 }}>{heading}</h3>
-        <div style={{ color: isEstimated ? '#d8bb7d' : '#8fdcfb', fontSize: 12 }}>
+        <div style={{ color: isEstimated ? '#7dbad8' : '#8fdcfb', fontSize: 12 }}>
           {isCatalog ? (data?.catalog_game_count || 0) : (data?.total_games_now || 0)} {totalLabel}
         </div>
       </div>
 
       {(isEstimated || isMixed) && (
         <div style={{
-          background: 'rgba(216,187,125,0.08)', border: '1px solid rgba(216,187,125,0.3)',
+          background: 'rgba(125,186,216,0.08)', border: '1px solid rgba(125,186,216,0.3)',
           borderRadius: 2, padding: '8px 12px', marginBottom: 12, fontSize: 12,
-          color: '#d8bb7d',
+          color: '#7dbad8',
         }}>
           {isEstimated
             ? 'Modeled From Saved Cash-Game Activity. These Are Not Live Observations.'
@@ -144,9 +144,9 @@ export default function GameTrendsDashboard() {
 
       {!data?.has_historical_data && dataMode !== 'none' && !isCatalog && (
         <div style={{
-          background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)',
+          background: 'rgba(191,230,255,0.1)', border: '1px solid rgba(191,230,255,0.3)',
           borderRadius: 2, padding: '8px 12px', marginBottom: 12, fontSize: 12,
-          color: '#fbbf24',
+          color: '#bfe6ff',
         }}>
           Historical Comparison Is Not Yet Available Under The Verified Data Contract.
         </div>

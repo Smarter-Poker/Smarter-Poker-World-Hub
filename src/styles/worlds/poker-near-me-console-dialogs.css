@@ -38,30 +38,36 @@
   width: 100%;
 }
 
-/* The control prints into the header's existing painted pill. Its transparent
-   hit target is enlarged on phones without painting a second button shell. */
+/* #SMARTERDESIGN (2026-11-27): a labeled chrome Close control in the upper-right
+   corner of the dialog, a 44px target, with the title kept clear of it. */
 .pnm-console-dialog__close {
   all: unset;
   position: absolute;
-  top: calc(21.7cqw - max(22px, 4.4cqw));
-  left: 66%;
+  top: 12px;
+  right: 12px;
   z-index: 2;
   display: grid;
-  width: 22%;
-  min-width: 44px;
-  height: max(44px, 8.8cqw);
+  box-sizing: border-box;
+  min-width: 72px;
   min-height: 44px;
+  padding: 4px 12px;
   place-items: center;
-  color: var(--pnc-blue, #45adff);
-  font: 800 max(12px, 3cqw) / 1 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif;
-  letter-spacing: 0.06em;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box;
+  color: #f2f7ff;
+  font: 700 15px / 1 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif;
   cursor: pointer;
   touch-action: manipulation;
 }
 
+.pnm-console-dialog-shell .pnc[data-pnm-console='painted-chassis-v1'] > .pnc__head {
+  padding-right: 84px;
+}
+
 .pnm-console-dialog__close:focus-visible {
-  outline: max(2px, 0.45cqw) solid #8fd4ff;
-  outline-offset: min(-2px, -0.35cqw);
+  outline: 2px solid #9ee3ff;
+  outline-offset: 2px;
 }
 
 .pnm-console-dialog__close:disabled {

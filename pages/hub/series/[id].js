@@ -1793,10 +1793,6 @@ const styles = `
     justify-content: center;
     gap: 8px;
     padding: 0 20px !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / 100% 100% no-repeat !important;
-    box-shadow: none !important;
     color: #e4e7ec !important;
     cursor: pointer;
     font-size: 13px;
@@ -1804,11 +1800,22 @@ const styles = `
     letter-spacing: 0.1em;
     text-shadow: 0 1px 0 #050607, 0 2px 4px rgba(0,0,0,0.85);
     text-transform: uppercase;
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+    background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: #f2f7ff !important;
   }
   body.world-poker-near-me .series-header .action-btn.follow-btn {
-    background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
     color: #f4f7fb !important;
     text-shadow: 0 0 8px rgba(140,210,255,0.85), 0 2px 4px rgba(0,0,0,0.7);
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch !important;
+    background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
   }
   body.world-poker-near-me .series-header .action-btn:active {
     filter: brightness(1.2);

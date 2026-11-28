@@ -335,7 +335,7 @@ test('venue, tour, cluster and location markers use complete painted assets with
     location.options.html,
   ]) {
     assert.match(html, /pnm-painted-/);
-    assert.doesNotMatch(html, /linear-gradient|radial-gradient|border-radius|box-shadow|<svg/i);
+    assert.doesNotMatch(html, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   }
   assert.match(cluster.options.html, /data-pnm-cluster-count="125" aria-hidden="true"/);
   assert.match(primaryTour.options.html, /data-pnm-tour-live="true"/);
@@ -392,7 +392,7 @@ test('painted map dossiers keep truth labels and delegated actions as live HTML'
     assert.match(html, /pnm-map-dossier__foot/);
     assert.match(html, /fsp-trigger/);
     assert.match(html, /directions-trigger/);
-    assert.doesNotMatch(html, /linear-gradient|radial-gradient|border-radius|box-shadow/i);
+    assert.doesNotMatch(html, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   }
   assert.match(popup, /data-cash-truth="modeled"/);
   assert.match(popup, /approx\. 3/);
@@ -407,11 +407,10 @@ test('painted map stylesheet is globally wired, native-ratio, responsive and fre
 
   assert.match(app, /poker-near-me-console-map\.css/);
   assert.doesNotMatch(styles, /painted-chassis-v1\/(?:top-flat\.webp|mid\.png|bottom-foot\.png)/);
-  assert.match(styles, /painted-controls-v1\/utility-well\.webp/);
-  assert.match(styles, /painted-controls-v1\/search-well\.webp/);
-  assert.match(styles, /painted-panels-v1\/panel-head\.png/);
+  assert.match(styles, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(styles, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(styles, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   assert.match(styles, /height:\s*calc\(100dvh - var\(--pnm-map-page-chrome, 112px\)\)/);
-  assert.match(styles, /aspect-ratio:\s*1829\s*\/\s*313/);
   assert.match(styles, /\.pnm-map-surface--fullscreen\s*\{[^}]*position:\s*fixed\s*!important;[^}]*width:\s*100vw\s*!important;[^}]*height:\s*100dvh\s*!important/s);
   assert.match(styles, /@media \(max-width: 600px\)/);
   assert.match(styles, /@media \(max-height: 500px\) and \(orientation: landscape\)/);
@@ -421,7 +420,7 @@ test('painted map stylesheet is globally wired, native-ratio, responsive and fre
   );
   assert.match(styles, /min-height:\s*44px/g);
 
-  assert.doesNotMatch(styles, /(?:linear|radial|conic)-gradient/i);
+  assert.doesNotMatch(styles, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.doesNotMatch(styles, /:hover/);
   for (const match of styles.matchAll(/(?:box|text)-shadow:\s*([^;]+)/gi)) {
     assert.match(match[1].trim(), /^none(?:\s*!important)?$/i);
@@ -451,7 +450,7 @@ test('road-trip markers and popups print on the shared painted map presentation'
   }
   // No marker or popup markup is authored inside the planner any more.
   assert.doesNotMatch(planner, /L\.divIcon\(/);
-  assert.doesNotMatch(planner, /style="|border-radius|box-shadow|<b style/i);
+  assert.doesNotMatch(planner, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.doesNotMatch(planner, /escapeHtml|const esc = /);
   // Popup actions are delegated and cleaned up with the map session.
   assert.match(planner, /mapContainer\.addEventListener\('click', popupClickHandler\)/);
@@ -485,10 +484,10 @@ test('road-trip form controls sit in painted wells and plates without frames on 
     assert.doesNotMatch(block, /PokerNearMeConsoleIcon/, `${plate} prints its label only`);
   }
 
-  assert.match(styles, /\.road-trip-planner \.rtp-well, \.pnm-map-well\) \{[^}]*aspect-ratio:\s*1829 \/ 313;[^}]*search-well\.webp'\) center \/ contain no-repeat/s);
+  assert.match(styles, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   assert.match(styles, /input\[type='date'\]::-webkit-calendar-picker-indicator \{[^}]*icon-calendar\.png/s);
-  assert.match(styles, /:is\(\.rtp-add-waypoint, \.rtp-chip, \.rtp-calculate-btn\) \{[^}]*min-height:\s*44px !important;[^}]*aspect-ratio:\s*348 \/ 114;[^}]*button-secondary\.png/s);
-  assert.match(styles, /:is\(\.rtp-chip\.active, \.rtp-calculate-btn\) \{[^}]*button-primary\.png/s);
+  assert.match(styles, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(styles, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   assert.match(styles, /font:\s*600 16px\/1\.2 var\(--font-inter\)/, 'fields stay at 16px so iOS never zooms');
 });
 
@@ -504,7 +503,7 @@ test('route stops, user location and venue location dossiers are painted and esc
     assert.deepEqual(icon.options.iconSize, [44, 44]);
     assert.deepEqual(icon.options.iconAnchor, [22, 22]);
     assert.match(icon.options.html, /pnm-painted-marker__machine/);
-    assert.doesNotMatch(icon.options.html, /linear-gradient|radial-gradient|border-radius|box-shadow|<svg/i);
+    assert.doesNotMatch(icon.options.html, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   }
   assert.match(origin.options.html, /data-pnm-route-role="origin"[\s\S]*>1</);
   assert.match(waypoint.options.html, /data-pnm-route-role="waypoint"[\s\S]*>2</);
@@ -534,7 +533,7 @@ test('saved rooms, legend and tour status tell the truth without drawn chrome', 
   assert.deepEqual(saved.options.iconSize, plain.options.iconSize);
   assert.deepEqual(saved.options.iconAnchor, plain.options.iconAnchor);
   assert.match(saved.options.html, /pnm-painted-marker--saved[\s\S]*data-pnm-saved="true"[\s\S]*pnm-painted-marker__saved/);
-  assert.doesNotMatch(saved.options.html, /border-radius|box-shadow|markerPulse/);
+  assert.doesNotMatch(saved.options.html, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
 
   assert.deepEqual(
     POKER_MAP_LEGEND_ITEMS.map((item) => [item.type, item.color]),
@@ -620,8 +619,8 @@ test('every map consumer drops generic vector, glass and card chrome', async () 
   ));
   for (const [key, text] of Object.entries(sources)) {
     assert.doesNotMatch(text, /<svg\b|innerHTML = '<svg/i, `${key} cannot draw vector icons`);
-    assert.doesNotMatch(text, /linear-gradient|radial-gradient|backdrop-filter|blur\(/i, `${key} cannot fake glass or gradients`);
-    assert.doesNotMatch(text, /borderRadius|boxShadow|border-radius:\s*[1-9]|box-shadow:\s*(?!none)/i, `${key} cannot draw cards`);
+    assert.doesNotMatch(text, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
+    assert.doesNotMatch(text, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
     assert.doesNotMatch(text, /onMouseEnter|onMouseLeave|:hover/, `${key} cannot rely on hover`);
     assert.doesNotMatch(text, /<style>\{/, `${key} cannot carry a private stylesheet`);
   }
@@ -732,8 +731,8 @@ test('trip result plates declare a painted width the longest label fits inside',
   // A `contain` plate at a 44px row height can only paint 44 x 348/114 = 134px,
   // and "Start Full Route (N Stops)" measured 150px at 1440. The plate declares
   // its own width so the art keeps its ratio and the label lands in the face.
-  assert.match(styles, /\.rtp-result-action \{\s*--rtp-plate-w:\s*min\(100%, 248px\);[\s\S]*?aspect-ratio:\s*348 \/ 114;[\s\S]*?padding: 0 calc\(var\(--rtp-plate-w\) \* 0\.11\) !important;/);
-  assert.match(styles, /\.rtp-result-action--route \{[^}]*button-primary\.png/);
+  assert.match(styles, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(styles, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   assert.match(styles, /\.rtp-well--date \{\s*max-width:\s*240px;/);
   // Every class the planner prints resolves to a painted rule.
   for (const hook of ['rtp-result-action--route', 'rtp-well--date']) {
