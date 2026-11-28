@@ -258,6 +258,20 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
+      # Preflop Charts signed in and signed out, at phone, tablet and desktop
+      # widths (2026-11-28). The #SmarterDesign pass on Preflop Charts was
+      # checked by a throwaway harness that never ran in CI; it is what found
+      # the last gold tokens and the "RunS"/"40S" capitalisation bugs. This
+      # spec is that harness made permanent. It fabricates its session and
+      # answers every request itself, so it needs no secrets and no account.
+      - name: Verify Preflop Charts signed in and signed out at three widths
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
+        run: npx playwright test e2e/036-preflop-charts.spec.ts --project=chromium --no-deps --workers=2
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
       # Every other image header with the painted "?" (Poker Tools, Memory
       # Games, Training calculators, VIP, the store's VIP tab): icon, corner
       # clearance, and no page skin boxing it at rest or on keyboard focus.
