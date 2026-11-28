@@ -104,6 +104,7 @@ const TriviaAnswerOption = React.memo(function TriviaAnswerOption({
         <TriviaCardText
           text={rawOption !== undefined ? rawOption : option}
           formatText={rawOption !== undefined ? formatText : undefined}
+          cardStyle="mini"
         />
       </span>
       {visibleStatus ? <span className="trivia-answer-option__status" aria-hidden="true">{visibleStatus}</span> : null}

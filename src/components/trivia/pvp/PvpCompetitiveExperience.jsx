@@ -6,6 +6,9 @@ import useServerGradedRun from '../../../hooks/useServerGradedRun';
 import useTriviaKeyboardControls from '../../../hooks/useTriviaKeyboardControls';
 import { TRIVIA_INTRO_ART_PVP } from '../../../config/triviaIntroArt.mjs';
 import { createCompetitiveJourneyTracker } from '../../../lib/trivia/competitiveJourneyAnalytics.mjs';
+import { preloadTriviaDeckAhead } from '../../../lib/trivia/preloadTriviaCards';
+import { cardDealWhoosh } from '../../../lib/trivia/triviaAudio';
+import { triggerTriviaHaptic } from '../../../lib/trivia/triviaHaptics';
 import ResponsiveModeArt from '../console/ResponsiveModeArt';
 import TriviaConsole, { TriviaGlassAction } from '../console/TriviaConsole';
 import TriviaCardText from '../TriviaCardText';
@@ -578,6 +581,7 @@ export default function PvpCompetitiveExperience({
     const loadingMatchRef = useRef(null);
     const finishingMatchRef = useRef(null);
     const answerTransitionRef = useRef(null);
+    const prevEffectiveStateRef = useRef('idle');
     const terminalQuoteRef = useRef(null);
     const historySettlementRef = useRef(null);
     const historyRequestSequenceRef = useRef(0);
@@ -1396,6 +1400,20 @@ export default function PvpCompetitiveExperience({
     const matchSeconds = pvpSecondsUntil(dto?.match?.deadlineAt, serverAnchor, clockNow);
     const currentQuestion = questions[questionIndex] || null;
     const pvpAnswerLocked = answerState === 'sending' || answerState === 'recorded' || finishing || matchSeconds === 0;
+
+    useEffect(() => {
+        const prev = prevEffectiveStateRef.current;
+        prevEffectiveStateRef.current = effectiveState;
+        if (prev === 'searching' && (effectiveState === 'dealing' || effectiveState === 'playing')) {
+            try { cardDealWhoosh(); } catch (_err) { /* audio optional */ }
+            triggerTriviaHaptic('correct');
+        }
+    }, [effectiveState]);
+
+    useEffect(() => {
+        if (effectiveState !== 'playing') return;
+        preloadTriviaDeckAhead(questions, questionIndex);
+    }, [effectiveState, questions, questionIndex]);
     useTriviaKeyboardControls({
         enabled: effectiveState === 'playing' && Boolean(currentQuestion),
         optionCount: currentQuestion?.options?.length || 0,
@@ -1646,17 +1664,33 @@ export default function PvpCompetitiveExperience({
             disabled: busyAction !== null,
             onClick: handleCancel,
         };
+        const totalWait = Math.max(1, Number(dto.ticket?.horseWaitSeconds) || 30);
+        const remainingWait = Number.isFinite(horseSeconds) ? Math.max(0, Math.min(totalWait, horseSeconds)) : totalWait;
+        const radarPct = dto.ticket?.horseFallbackEnabled
+            ? Math.max(6, Math.min(100, Math.round(((totalWait - remainingWait) / totalWait) * 100)))
+            : 50;
         body = (
             <div className="trivia-pvp-layout trivia-pvp-layout--active">
                 <PvpArt priority />
                 <section className="trivia-pvp-main">
                     <h2 className="trivia-pvp-section-title">Search Is Live</h2>
-                    <p className="trivia-pvp-copy">No Stake Is Taken Until The Server Commits A Match.</p>
+                    <p className="trivia-pvp-copy">Searching Human Tables First. No Stake Is Taken Until A Match Is Made.</p>
+                    <div className="trivia-pvp-radar" data-pvp-radar="true">
+                        <div
+                            className="trivia-pvp-radar__track"
+                            role="progressbar"
+                            aria-label="Smarter Horse Matchmaking Progress"
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={radarPct}
+                        >
+                            <div className="trivia-pvp-radar__fill" style={{ width: `${radarPct}%` }} />
+                        </div>
+                    </div>
                     <LiveNotices {...reconnectProps} />
                     <dl className="trivia-pvp-data">
                         <DataRow label="Stake" value={`${formatDiamonds(dto.ticket?.stake)} Diamonds`} ink="blue" />
-                        <DataRow label="Presence" value={dto.ticket?.presence || 'Awaiting Server'} />
-                        <DataRow label="Ticket" value={dto.ticket?.id || 'Unavailable'} />
+                        <DataRow label="Status" value={dto.ticket?.presence === 'live' ? 'Connected' : (dto.ticket?.presence || 'Awaiting Server')} />
                     </dl>
                 </section>
                 <aside className="trivia-pvp-side">
@@ -1700,7 +1734,6 @@ export default function PvpCompetitiveExperience({
                         <DataRow label="Opponent" value={displayOpponent(match)} />
                         <DataRow label="Stake" value={`${formatDiamonds(match?.stake)} Diamonds`} ink="blue" />
                         <DataRow label="Questions" value={formatDiamonds(match?.questionCount)} />
-                        <DataRow label="Match" value={match?.id || 'Unavailable'} />
                     </dl>
                 </aside>
             </div>
@@ -1743,7 +1776,7 @@ export default function PvpCompetitiveExperience({
                                         onClick={() => handleAnswer(index)}
                                     >
                                         <span>{String.fromCharCode(65 + index)}</span>
-                                        <strong>{option}</strong>
+                                        <strong><TriviaCardText text={option} cardStyle="mini" /></strong>
                                     </button>
                                 ))}
                             </div>
@@ -1802,7 +1835,6 @@ export default function PvpCompetitiveExperience({
                     <dl className="trivia-pvp-data">
                         <DataRow label="You" value={match?.me?.finished ? 'Submitted' : `${formatDiamonds(match?.me?.answered)} Locked`} ink={match?.me?.finished ? 'green' : 'silver'} />
                         <DataRow label={displayOpponent(match)} value={match?.opponent?.finished ? 'Submitted' : `${formatDiamonds(match?.opponent?.answered)} Locked`} />
-                        <DataRow label="Match" value={match?.id || 'Unavailable'} />
                     </dl>
                 </aside>
             </div>

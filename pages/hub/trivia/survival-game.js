@@ -39,6 +39,7 @@ import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAu
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import TriviaCardText from '../../../src/components/trivia/TriviaCardText';
+import { preloadTriviaDeckAhead } from '../../../src/lib/trivia/preloadTriviaCards';
 import TriviaQuestionProgress from '../../../src/components/trivia/TriviaQuestionProgress';
 import useTriviaKeyboardControls from '../../../src/hooks/useTriviaKeyboardControls';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
@@ -146,6 +147,11 @@ export default function SurvivalGamePage() {
 
     // TRAIN-WIRE-TRIVIA-HOOK-5 — selectedAnswer/showResult managed by shared hook
     const currentQuestion = questions[currentQuestionIndex];
+    useEffect(() => {
+        if (gameState === 'playing' && questions.length > 0) {
+            preloadTriviaDeckAhead(questions, currentQuestionIndex, 2);
+        }
+    }, [gameState, questions, currentQuestionIndex]);
     const trivia = useTriviaQuestion(currentQuestion);
 
     // TRAIN-WIRE-TRIVIA-TIMER-5 — shared shot-clock hook (autoResumeOnVisible=false: explicit Resume UI)
@@ -1805,46 +1811,23 @@ export default function SurvivalGamePage() {
                                             </section>
                                         )}
 
-                                        <progress
-                                            className="trivia-challenge-progress"
-                                            value={currentQuestionIndex + 1}
-                                            max={QUESTIONS_PER_LEVEL}
-                                            aria-label={`Question ${currentQuestionIndex + 1} Of ${QUESTIONS_PER_LEVEL}`}
-                                        />
-                                        <p className="trivia-challenge-progress-label">
-                                            Level {formatTriviaDisplayNumber(currentLevel)}
-                                            {' | Question '}
-                                            {formatTriviaDisplayNumber(currentQuestionIndex + 1)}
-                                            {' Of '}
-                                            {formatTriviaDisplayNumber(QUESTIONS_PER_LEVEL)}
-                                        </p>
-
-                                        <dl className="trivia-challenge-stats trivia-challenge-stats--threshold">
-                                            <div className="trivia-challenge-stat">
-                                                <dt>Required</dt>
-                                                <dd>
-                                                    {formatTriviaDisplayNumber(config.minCorrect)}
-                                                    {' Of '}
-                                                    {formatTriviaDisplayNumber(QUESTIONS_PER_LEVEL)}
-                                                    {' | '}
-                                                    {formatTriviaDisplayNumber(config.accuracyRequired)}%
-                                                </dd>
+                                        <div className="trivia-play-topbar">
+                                            <div className="trivia-play-topbar__row">
+                                                <span className="trivia-play-topbar__count trivia-challenge-progress-label">
+                                                    Level {formatTriviaDisplayNumber(currentLevel)} · Question {formatTriviaDisplayNumber(currentQuestionIndex + 1)} Of {formatTriviaDisplayNumber(QUESTIONS_PER_LEVEL)}
+                                                </span>
+                                                <div className="trivia-play-topbar__badges">
+                                                    <span className="trivia-play-topbar__badge">
+                                                        {formatTriviaDisplayNumber(correctCount)} / {formatTriviaDisplayNumber(config.minCorrect)} Needed
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div className="trivia-challenge-stat">
-                                                <dt>Current</dt>
-                                                <dd>
-                                                    {formatTriviaDisplayNumber(correctCount)}
-                                                    {' Of '}
-                                                    {formatTriviaDisplayNumber(currentQuestionIndex + (trivia.showResult ? 1 : 0))}
-                                                </dd>
-                                            </div>
-                                        </dl>
-
-                                        <TriviaQuestionProgress
-                                            total={QUESTIONS_PER_LEVEL}
-                                            currentIndex={currentQuestionIndex}
-                                            label={`Question ${currentQuestionIndex + 1} Of ${QUESTIONS_PER_LEVEL}`}
-                                        />
+                                            <TriviaQuestionProgress
+                                                total={QUESTIONS_PER_LEVEL}
+                                                currentIndex={currentQuestionIndex}
+                                                label={`Question ${currentQuestionIndex + 1} Of ${QUESTIONS_PER_LEVEL}`}
+                                            />
+                                        </div>
                                         <h2 id="survival-question-title" className="trivia-challenge-question">
                                             <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} structured />
                                         </h2>
