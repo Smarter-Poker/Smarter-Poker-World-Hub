@@ -155,17 +155,6 @@ test('Toke destinations retain readable navigation and an accessible tax sheet',
   await expect(tax).toBeHidden();
 });
 
-// #3256: a category view's Add + now goes through the page's own gates
-// (Bankroll Pro, starting bankroll), the same as the dashboard's Add +. A
-// test that expects the log form to open has to be a Pro member whose
-// bankroll is already initialised, or it correctly meets the gate instead.
-async function installInitialisedProBankroll(page: Page, userId: string) {
-  await page.route('**/api/vip/check-status?*', route => route.fulfill({ json: { isVip: true } }));
-  await page.route('**/rest/v1/bankroll_segments*', route => route.fulfill({ json: [{
-    user_id: userId, segment_type: 'poker', initial_deposit: 1000, current_balance: 1000,
-  }] }));
-}
-
 async function installBankrollSession(page: Page) {
   const user = { id: '1ad77cca-ddcb-4000-9777-b1fdce8e7381', email: 'layout@example.invalid', role: 'authenticated', user_metadata: {} };
   await page.addInitScript(({ user }) => {
@@ -286,7 +275,6 @@ test('Tournament entry names its controls and keeps optional fields linked to th
 
 test('Tournament entry records the entered buy-in and applies each bounty once across edits', async ({ page }) => {
   const user = await installBankrollSession(page);
-  await installInitialisedProBankroll(page, user.id);
   await page.addInitScript(() => localStorage.setItem('bankroll_tutorial_seen_v1:prompt', '1'));
   const id = '84159925-e03a-4bf0-bbac-5041cb551b10';
   let saved: Record<string, unknown> | undefined;
@@ -344,8 +332,8 @@ test('Tournament entry records the entered buy-in and applies each bounty once a
 });
 
 test('Bankroll entry screens open their own real form from the masthead', async ({ page }) => {
-  const user = await installBankrollSession(page);
-  await installInitialisedProBankroll(page, user.id);
+  await installBankrollSession(page);
+  await page.route('**/api/vip/check-status?*', route => route.fulfill({ json: { isVip: true } }));
   const cases = [
     ['view=trips', 'Trip Tracker', 'Start A New Trip', 'New Trip'],
     ['view=series', 'Series Tracker', 'Start A New Series', 'New Series'],
@@ -490,10 +478,9 @@ for (const format of ['CSV', 'JSON', 'PDF']) {
       const app = window as Window & { next?: { router?: { isReady: boolean; pathname: string } } };
       return app.next?.router?.isReady && app.next.router.pathname === '/hub/bankroll-manager/export';
     });
-    // #3252 seats a hashed 192px derivative of the default portrait
-    // (HEADER_DEFAULT_AVATAR in UniversalHeader.js), so match the family, not
-    // one file name: the signal is that the mounted header preloaded it.
-    await expect(page.locator('link[rel="preload"][as="image"][href*="default-avatar"]').first()).toBeAttached();
+    // The header preloads its portrait only after mount; with no saved portrait
+    // that is the hashed default avatar (HEADER_DEFAULT_AVATAR, #3252).
+    await expect(page.locator('link[rel="preload"][as="image"][href^="/images/global-header/header-default-avatar-"]').first()).toBeAttached();
     const button = page.getByRole('button', { name: 'Export ' + format, exact: true });
     await expect(button).toBeVisible();
     await context.setOffline(true);
