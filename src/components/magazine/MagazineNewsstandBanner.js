@@ -49,7 +49,7 @@ function MagazineCover({ issue }) {
           position: relative;
           display: block;
           flex: none;
-          width: clamp(96px, 26vw, 132px);
+          width: clamp(116px, 31vw, 156px);
           aspect-ratio: 3 / 4;
           overflow: hidden;
           border: 3px solid transparent;
@@ -73,43 +73,50 @@ function MagazineCover({ issue }) {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          object-position: 50% 55%;
+          object-position: 50% 45%;
         }
         .spm-mini-cover__shade {
           position: absolute;
           inset: 0;
           background:
-            linear-gradient(180deg, rgba(3, 9, 16, 0.86) 0%, rgba(3, 9, 16, 0.2) 30%, rgba(3, 9, 16, 0) 48%, rgba(3, 9, 16, 0.55) 68%, rgba(3, 9, 16, 0.94) 100%);
+            linear-gradient(180deg, rgba(3, 9, 16, 0.82) 0%, rgba(3, 9, 16, 0.25) 26%, rgba(3, 9, 16, 0) 42%, rgba(3, 9, 16, 0) 58%, rgba(3, 9, 16, 0.6) 76%, rgba(3, 9, 16, 0.92) 100%);
+        }
+        /* Mast, issue line and headline flow in one column over the photo,
+           so the issue line can never collide with the wordmark and the
+           photo keeps the middle of the cover, as a real newsstand cover does. */
+        .spm-mini-cover__mast,
+        .spm-mini-cover__issue,
+        .spm-mini-cover__headline {
+          position: relative;
+          z-index: 1;
+        }
+        .spm-mini-cover {
+          display: flex;
+          flex-direction: column;
+          box-sizing: border-box;
+          padding: 7% 7% 6%;
         }
         .spm-mini-cover__mast {
-          position: absolute;
-          top: 7%;
-          left: 7%;
-          width: 86%;
+          display: block;
+          width: 100%;
           height: auto;
         }
         .spm-mini-cover__issue {
-          position: absolute;
-          top: 21%;
-          left: 7%;
-          right: 7%;
+          margin-top: 4px;
           color: #f2f7ff;
-          font: 700 clamp(7px, 2vw, 9px) / 1.1 var(--sd-type, 'Arial Narrow'), sans-serif;
+          font: 700 clamp(6.5px, 1.8vw, 8.5px) / 1.15 var(--sd-type, 'Arial Narrow'), sans-serif;
           letter-spacing: 0.03em;
           text-align: center;
           text-shadow: 0 1px 2px #000;
         }
         .spm-mini-cover__headline {
-          position: absolute;
-          left: 7%;
-          right: 7%;
-          bottom: 6%;
+          margin-top: auto;
           display: -webkit-box;
           overflow: hidden;
           color: #ffffff;
-          font: 700 clamp(9px, 2.6vw, 12px) / 1.12 var(--sd-type, 'Arial Narrow'), sans-serif;
-          text-shadow: 0 1px 3px #000;
-          -webkit-line-clamp: 4;
+          font: 700 clamp(8.5px, 2.35vw, 11px) / 1.14 var(--sd-type, 'Arial Narrow'), sans-serif;
+          text-shadow: 0 1px 3px #000, 0 0 8px rgba(0, 0, 0, 0.8);
+          -webkit-line-clamp: 3;
           -webkit-box-orient: vertical;
         }
       `}</style>
