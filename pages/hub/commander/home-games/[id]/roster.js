@@ -43,9 +43,9 @@ function AnnounceModal({ isOpen, onClose, onSend, sending }) {
   return (
     <CasinoActionDialog
       open={isOpen}
-      eyebrow="Group communications"
+      eyebrow="Group Communications"
       title="Broadcast Announcement"
-      message="Send one urgent update to all opted-in players."
+      message="Send One Urgent Update To All Opted-In Players."
       confirmLabel="Send Broadcast"
       busy={sending}
       confirmDisabled={!message.trim()}
@@ -60,7 +60,7 @@ function AnnounceModal({ isOpen, onClose, onSend, sending }) {
         value={message}
         onChange={(event) => setMessage(event.target.value)}
         maxLength={2000}
-        placeholder="Game time, table, or location update..."
+        placeholder="Game Time, Table, Or Location Update..."
       />
       <div className="mt-2 text-right text-xs text-[#9FB3C8]">{message.length} / 2000</div>
     </CasinoActionDialog>
@@ -97,7 +97,7 @@ export default function HomeGameRosterPage() {
       // enforces admin/host ownership server-side and returns 403 if not authorized.
 
       const res = await fetch(`/api/commander/home-games/groups/${id}/roster`, { headers });
-      if (!res.ok) throw new Error('Not authorized');
+      if (!res.ok) throw new Error('Not Authorized');
       
       const data = await res.json();
       if (data.success) {
@@ -116,7 +116,7 @@ export default function HomeGameRosterPage() {
         setRoster(sorted);
       }
     } catch (err) {
-      toast.error('Failed to load roster or access denied');
+      toast.error('Failed To Load Roster Or Access Denied');
       router.push(`/hub/commander/home-games/${id}`);
     } finally {
       setLoading(false);
@@ -155,10 +155,10 @@ export default function HomeGameRosterPage() {
       if (data.success && data.dm_url) {
         router.push(data.dm_url);
       } else {
-        toast.error(data.error?.message || data.error || 'Failed to start message');
+        toast.error(data.error?.message || data.error || 'Failed To Start Message');
       }
     } catch (err) {
-      toast.error('Failed to start message');
+      toast.error('Failed To Start Message');
     }
   }
 
@@ -176,14 +176,14 @@ export default function HomeGameRosterPage() {
         body: JSON.stringify({ member_id: normalizedMemberId })
       });
       if (res.ok) {
-        toast.success('Player removed');
+        toast.success('Player Removed');
         fetchRoster();
       } else {
         const data = await res.json().catch(() => null);
-        toast.error(data?.error?.message || data?.error || 'Failed to remove player');
+        toast.error(data?.error?.message || data?.error || 'Failed To Remove Player');
       }
     } catch (err) {
-      toast.error('Failed to remove player');
+      toast.error('Failed To Remove Player');
     }
   }
 
@@ -224,11 +224,11 @@ export default function HomeGameRosterPage() {
         toast.success(`Announcement sent! Notified ${members_notified || 0} members and ${followers_notified || 0} followers.`);
         setShowAnnounce(false);
       } else {
-        toast.error(data.error?.message || data.error || 'Broadcast failed');
+        toast.error(data.error?.message || data.error || 'Broadcast Failed');
       }
     } catch (err) {
       console.warn(err);
-      toast.error('Failed to broadcast message');
+      toast.error('Failed To Broadcast Message');
     } finally {
       setSending(false);
     }
@@ -354,9 +354,9 @@ export default function HomeGameRosterPage() {
       />
       <CasinoActionDialog
         open={!!removeTarget}
-        eyebrow="Roster control"
+        eyebrow="Roster Control"
         title={`Remove ${removeTarget?.name || 'This Player'}?`}
-        message="This player will lose group access until they join again."
+        message="This Player Will Lose Group Access Until They Join Again."
         confirmLabel="Remove Player"
         destructive
         busy={removing}

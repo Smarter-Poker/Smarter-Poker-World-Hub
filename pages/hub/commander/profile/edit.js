@@ -42,7 +42,7 @@ export default function ProfileEditPage() {
 
   async function handleSave(signal) {
     if (!formData.display_name.trim()) {
-      setError('Display name is required');
+      setError('Display Name Is Required');
       return;
     }
     setSaving(true);
@@ -64,10 +64,10 @@ export default function ProfileEditPage() {
         setSuccess(true);
         setTimeout(() => router.push('/hub/commander/profile'), 1000);
       } else {
-        setError(data.error || 'Failed to save');
+        setError(data.error || 'Failed To Save');
       }
     } catch (err) {
-      setError('Failed to save profile');
+      setError('Failed To Save Profile');
     } finally {
       setSaving(false);
     }

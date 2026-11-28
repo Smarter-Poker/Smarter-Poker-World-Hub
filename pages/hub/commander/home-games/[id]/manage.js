@@ -99,12 +99,12 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
         if (errMsg.includes('PAST_SCHEDULED_DATE') || errMsg.includes('past')) {
           toast.error('Cannot schedule a game in the past - please choose a future date');
         } else {
-          toast.error(errMsg || 'Failed to schedule game');
+          toast.error(errMsg || 'Failed To Schedule Game');
         }
       }
     } catch (error) {
       console.warn('Failed to schedule event:', error);
-      toast.error(error.message || 'Failed to schedule game');
+      toast.error(error.message || 'Failed To Schedule Game');
     } finally {
       setSubmitting(false);
     }
@@ -133,7 +133,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
             onClick={onClose}
             className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
             disabled={submitting}
-            aria-label="Close schedule dialog"
+            aria-label="Close Schedule Dialog"
           >
             <X className="w-5 h-5 text-[#9FB3C8]" />
           </button>
@@ -251,7 +251,7 @@ function MemberRow({ member, isHost, onApprove, onRemove, onMessage }) {
             (display_name, avatar_url) and joined_at - flat fields were undefined. */}
         <p className="font-medium text-white">{member.profiles?.display_name || 'Member'}</p>
         <p className="text-sm text-[#9FB3C8]">
-          {isPending ? 'Pending approval' : `Joined ${new Date(member.joined_at || member.created_at).toLocaleDateString()}`}
+          {isPending ? 'Pending Approval' : `Joined ${new Date(member.joined_at || member.created_at).toLocaleDateString()}`}
         </p>
       </div>
 
@@ -405,11 +405,11 @@ export default function ManageHomeGamePage() {
       if (data.success && data.dm_url) {
         router.push(data.dm_url);
       } else {
-        toast.error(data.error?.message || data.error || 'Failed to start message');
+        toast.error(data.error?.message || data.error || 'Failed To Start Message');
       }
     } catch (err) {
       console.warn('DM start failed:', err);
-      toast.error('Failed to start message');
+      toast.error('Failed To Start Message');
     }
   }
 
@@ -498,7 +498,7 @@ export default function ManageHomeGamePage() {
 
     } catch (error) {
       console.warn('Failed to fetch data:', error);
-      toast.error(error?.message || 'Failed to load management data');
+      toast.error(error?.message || 'Failed To Load Management Data');
     } finally {
       setLoading(false);
     }
@@ -558,7 +558,7 @@ export default function ManageHomeGamePage() {
       fetchData();
     } catch (error) {
       console.warn('Approve failed:', error);
-      toast.error(error.message || 'Approve failed');
+      toast.error(error.message || 'Approve Failed');
     }
   }
 
@@ -590,7 +590,7 @@ export default function ManageHomeGamePage() {
       fetchData();
     } catch (error) {
       console.warn('Remove failed:', error);
-      toast.error(error.message || 'Remove failed');
+      toast.error(error.message || 'Remove Failed');
     }
   }
 
@@ -610,7 +610,7 @@ export default function ManageHomeGamePage() {
       // bug-hunt-zero/B-MGR-5: an empty RSVP list could mean "no RSVPs yet"
       // OR "load failed". Without a toast the host can't tell which, so
       // they might think nobody's coming when really the request 500'd.
-      toast.error(err && err.message ? `Couldn't load RSVPs: ${err.message}` : 'Failed to load RSVPs');
+      toast.error(err && err.message ? `Couldn't load RSVPs: ${err.message}` : 'Failed To Load RSVPs');
     } finally {
       setRsvpLoading(false);
     }
@@ -639,7 +639,7 @@ export default function ManageHomeGamePage() {
     } catch (err) {
       setRsvpLoading(false);
       console.warn('RSVP action failed:', err);
-      toast.error(err && err.message ? err.message : 'Failed to update RSVP');
+      toast.error(err && err.message ? err.message : 'Failed To Update RSVP');
     }
   }
 
@@ -659,12 +659,12 @@ export default function ManageHomeGamePage() {
         const msg = data?.error?.message || (typeof data?.error === 'string' ? data.error : '') || `Couldn't delete event (${res.status})`;
         throw new Error(msg);
       }
-      toast.success('Event deleted');
+      toast.success('Event Deleted');
       fetchData();
     } catch (error) {
       setRsvpLoading(false);
       console.warn('Delete failed:', error);
-      toast.error(error.message || 'Delete failed');
+      toast.error(error.message || 'Delete Failed');
     }
   }
 
@@ -694,11 +694,11 @@ export default function ManageHomeGamePage() {
         busEmit.dataMutated('home-games');
         fetchData();
       } else {
-        toast.error(data.error?.message || data.error || 'Failed to release escrow');
+        toast.error(data.error?.message || data.error || 'Failed To Release Escrow');
       }
     } catch (error) {
       console.warn('Release failed:', error);
-      toast.error(error.message || 'Release failed');
+      toast.error(error.message || 'Release Failed');
     } finally {
       setProcessingEscrow(null);
     }
@@ -729,11 +729,11 @@ export default function ManageHomeGamePage() {
         busEmit.dataMutated('home-games');
         fetchData();
       } else {
-        toast.error(data.error?.message || data.error || 'Failed to refund escrow');
+        toast.error(data.error?.message || data.error || 'Failed To Refund Escrow');
       }
     } catch (error) {
       console.warn('Refund failed:', error);
-      toast.error(error.message || 'Refund failed');
+      toast.error(error.message || 'Refund Failed');
     } finally {
       setProcessingEscrow(null);
     }
@@ -766,11 +766,11 @@ export default function ManageHomeGamePage() {
         busEmit.dataMutated('home-games');
         router.push('/hub/commander/home-games');
       } else {
-        setDeleteError(data.error?.message || 'Failed to delete group');
+        setDeleteError(data.error?.message || 'Failed To Delete Group');
       }
     } catch (error) {
       console.warn('Delete group failed:', error);
-      setDeleteError(error && error.message ? error.message : 'Failed to delete group');
+      setDeleteError(error && error.message ? error.message : 'Failed To Delete Group');
     } finally {
       deletingGroupRef.current = false;
     }
@@ -801,7 +801,7 @@ export default function ManageHomeGamePage() {
       setBroadcastOpen(false);
       setBroadcastMessage('');
     } catch (error) {
-      toast.error(error?.message || 'Broadcast failed');
+      toast.error(error?.message || 'Broadcast Failed');
     } finally {
       broadcastingRef.current = false;
       setBroadcasting(false);
@@ -837,10 +837,10 @@ export default function ManageHomeGamePage() {
       } else if (data.success) {
         setGroup(prev => ({ ...prev, ...newSettings }));
       }
-      toast.success('Settings updated');
+      toast.success('Settings Updated');
     } catch (error) {
       console.warn('Update settings failed:', error);
-      toast.error(error && error.message ? error.message : 'Failed to update settings');
+      toast.error(error && error.message ? error.message : 'Failed To Update Settings');
     }
   }
 
@@ -1072,7 +1072,7 @@ export default function ManageHomeGamePage() {
                           <button
                             type="button"
                             onClick={() => requestAction({
-                              eyebrow: 'Schedule control',
+                              eyebrow: 'Schedule Control',
                               title: 'Delete This Scheduled Game?',
                               message: 'The event and its current RSVP view will be removed. This action cannot be undone.',
                               confirmLabel: 'Delete Game',
@@ -1204,7 +1204,7 @@ export default function ManageHomeGamePage() {
                       // explicit refetch avoids any race on the toast → render).
                       fetchData();
                     } catch (ex) {
-                      toast.error(ex?.message || 'Failed to cancel tournament');
+                      toast.error(ex?.message || 'Failed To Cancel Tournament');
                     }
                   }}
                 />
@@ -1229,7 +1229,7 @@ export default function ManageHomeGamePage() {
                       isHost={false}
                       onApprove={handleApproveMember}
                       onRemove={(member) => requestAction({
-                        eyebrow: 'Roster control',
+                        eyebrow: 'Roster Control',
                         title: `Remove ${member.profiles?.display_name || 'This Member'}?`,
                         message: 'This player will lose access to the group until they join again.',
                         confirmLabel: 'Remove Member',
@@ -1256,7 +1256,7 @@ export default function ManageHomeGamePage() {
                     // owner_id, not host_id - host badge never rendered.
                     isHost={member.user_id === group?.owner_id}
                     onRemove={(member) => requestAction({
-                      eyebrow: 'Roster control',
+                      eyebrow: 'Roster Control',
                       title: `Remove ${member.profiles?.display_name || 'This Member'}?`,
                       message: 'This player will lose access to the group until they join again.',
                       confirmLabel: 'Remove Member',
@@ -1360,7 +1360,7 @@ export default function ManageHomeGamePage() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => requestAction({
-                                eyebrow: 'Escrow control',
+                                eyebrow: 'Escrow Control',
                                 title: `Release $${transaction.amount}?`,
                                 message: `Release these funds to ${transaction.player_name || 'the player'}? The server will process this as an idempotent financial action.`,
                                 confirmLabel: 'Release Funds',
@@ -1378,7 +1378,7 @@ export default function ManageHomeGamePage() {
                             </button>
                             <button
                               onClick={() => requestAction({
-                                eyebrow: 'Escrow control',
+                                eyebrow: 'Escrow Control',
                                 title: `Refund $${transaction.amount}?`,
                                 message: `Return these funds to ${transaction.player_name || 'the player'}? The server will process this as an idempotent financial action.`,
                                 confirmLabel: 'Refund Funds',
@@ -1724,7 +1724,7 @@ export default function ManageHomeGamePage() {
                     <div className="flex flex-col items-center gap-2 bg-white p-3 rounded-lg self-start">
                       <img
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=0&format=png&data=${encodeURIComponent(`https://smarter.poker/hub/home-games/${pageSlug}`)}`}
-                        alt="QR code to public page"
+                        alt="QR Code To Public Page"
                         width={140}
                         height={140}
                         style={{ display: 'block' }}
@@ -1743,7 +1743,7 @@ export default function ManageHomeGamePage() {
                 </p>
                 <button
                   onClick={() => requestAction({
-                    eyebrow: 'Danger zone',
+                    eyebrow: 'Danger Zone',
                     title: 'Delete This Group?',
                     message: 'All scheduled games and member data will be permanently removed. This action cannot be undone.',
                     confirmLabel: 'Delete Group',
@@ -1806,7 +1806,7 @@ export default function ManageHomeGamePage() {
         onClose={() => setTournamentModal({ open: false, mode: 'create', target: null })}
         onSaved={() => {
           setTournamentModal({ open: false, mode: 'create', target: null });
-          toast.success(tournamentModal.mode === 'create' ? 'Tournament created' : 'Tournament saved');
+          toast.success(tournamentModal.mode === 'create' ? 'Tournament Created' : 'Tournament Saved');
           fetchData();
         }}
       />
@@ -1825,9 +1825,9 @@ export default function ManageHomeGamePage() {
 
       <CasinoActionDialog
         open={broadcastOpen}
-        eyebrow="Group communications"
+        eyebrow="Group Communications"
         title="Broadcast Announcement"
-        message="Send one announcement to all opted-in group members and followers."
+        message="Send One Announcement To All Opted-In Group Members And Followers."
         confirmLabel="Send Broadcast"
         busy={broadcasting}
         confirmDisabled={!broadcastMessage.trim()}
@@ -1847,7 +1847,7 @@ export default function ManageHomeGamePage() {
           value={broadcastMessage}
           onChange={(event) => setBroadcastMessage(event.target.value)}
           maxLength={2000}
-          placeholder="Game time, table, or location update..."
+          placeholder="Game Time, Table, Or Location Update..."
         />
         <div className="mt-2 text-right text-xs text-[#9FB3C8]">{broadcastMessage.length} / 2000</div>
       </CasinoActionDialog>

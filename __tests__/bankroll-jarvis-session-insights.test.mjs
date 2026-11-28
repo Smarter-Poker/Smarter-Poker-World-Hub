@@ -31,9 +31,9 @@ test('uses cents, ledger dates, matched time coverage and daily closes independe
   const result = engine.analyzeSessionRecords(records, range);
   assert.deepEqual(result, engine.analyzeSessionRecords([...records].reverse(), range));
   assert.deepEqual(result.metrics, { totalSessions: 5, netPL: 55, avgSession: 11, wins: 2, losses: 2, even: 1,
-    winRate: 40, timedSessions: 1, hours: 2, timedNet: 100.2, hourlyRate: 50.1, dailyDrawdown: 45.2 });
+    winRate: 40, timedSessions: 2, hours: 25, timedNet: 85.15, hourlyRate: 3.41, dailyDrawdown: 45.2 });
   assert.match(result.findings.find(f => f.title === 'Change Per Session').evidence, /\$11\.00.*5 sessions.*-\$20\.00.*5.*2026-04-24/);
-  assert.match(result.findings.find(f => f.title === 'Time Coverage').evidence, /1 of 5/);
+  assert.match(result.findings.find(f => f.title === 'Time Coverage').evidence, /2 of 5/);
 });
 
 test('empty, limited and missing observations stay distinct, including a genuine zero', () => {

@@ -64,7 +64,7 @@ export default function JoinHomeGame() {
       try {
         const r = await fetch(`/api/public/home-games/${encodeURIComponent(rawSlug)}`);
         const j = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error('Home game lookup unavailable');
+        if (!r.ok) throw new Error('Home Game Lookup Unavailable');
         const g = j?.data?.group || j?.group || null;
         // club_code only. invite_code was removed from the public payload
         // (it is the membership credential; club_code is the share code) and
@@ -93,7 +93,7 @@ export default function JoinHomeGame() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const denied = homeGameJoinOutcome({ success: false, error: data?.error || 'Failed to join group' });
+        const denied = homeGameJoinOutcome({ success: false, error: data?.error || 'Failed To Join Group' });
         setState(denied.state);
         setMessage(denied.message);
         return denied;
@@ -116,7 +116,7 @@ export default function JoinHomeGame() {
     if (!router.isReady || authChecking) return;
     if (!rawCode && !rawSlug) {
       setState('error');
-      setMessage('This link is missing an invite code.');
+      setMessage('This Link Is Missing An Invite Code.');
       return;
     }
     doJoin();

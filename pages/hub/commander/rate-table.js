@@ -72,7 +72,7 @@ export default function RateTable() {
       }
     } catch (err) {
       console.warn(err);
-      setError('Connection error. Please try again.');
+      setError('Connection Error. Please Try Again.');
     }
     finally { setSubmitting(false); }
   };

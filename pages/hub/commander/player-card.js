@@ -167,7 +167,7 @@ export default function PlayerCard() {
                         decorative SVG dot pattern scanners couldn't read. */}
                     <img
                       src={qrImageUrl}
-                      alt="Player check-in QR code"
+                      alt="Player Check-In QR Code"
                       width={180}
                       height={180}
                       style={{ display: 'block' }}
