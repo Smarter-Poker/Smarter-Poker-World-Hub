@@ -392,7 +392,9 @@ test('Reports count filtered ledger sessions across pages and preserve signed cu
   const user = await installBankrollSession(page);
   const rows = Array.from({ length: 501 }, (_, i) => ({
     id: 'fixture-' + i, user_id: user.id, category: 'poker_cash', is_revision: false, entry_date: '2026-10-10',
-    gross_in: 20, gross_out: 20, net_result: i === 500 ? -125.25 : 0,
+    // One rule for every total since #3289: a session's result is gross_out -
+    // gross_in (ledgerMath entryCents). The losing row says so in both fields.
+    gross_in: i === 500 ? 145.25 : 20, gross_out: 20, net_result: i === 500 ? -125.25 : 0,
   }));
   const offsets: number[] = [];
   await answerBankrollTotals(page, rows);
@@ -549,7 +551,9 @@ test('Ledger chart modes, venue ordering, history and staking privacy use the di
   await page.goto('/hub/bankroll-manager');
   const trend = page.getByRole('region',{name:'Bankroll Trend'});
   await expect(trend).toContainText('+$15.25');
-  await expect(trend.locator('.recharts-area-curve')).toBeVisible();
+  // #3309 adds a dashed, shaded tail ("No sessions since <date>") after the
+  // last session; the plotted results are the solid curve.
+  await expect(trend.locator('.recharts-area-curve:not([stroke-dasharray])')).toBeVisible();
   const shots = (locator:Locator,name:string) => captureBankrollPanel(page,locator,info,name);
   await shots(trend,'ledger-trend');
   let previous='Line Chart';
