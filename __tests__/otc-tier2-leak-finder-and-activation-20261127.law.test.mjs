@@ -6,7 +6,7 @@
  * Permanent regression locks for:
  *   1. src/content/tools/gtoLeakFinderSpots.js — 5 mathematically valid GTO
  *      decision spots + pure deterministic scoreGtoLeakFinder(answers).
- *   2. pages/tools/gto-leak-finder.js — #SMARTERDESIGN masthead, SEOHead
+ *   2. pages/tools/gto-leak-finder/index.js — #SMARTERDESIGN masthead, SEOHead
  *      (<= 60 char title, <= 158 char description, dynamic OG card, canonical,
  *      WebApplication + FAQPage JSON-LD matching visible FaqSection), 5-hand
  *      interactive flow, sp:seo-tool-engaged + trackSeoFunnelEvent wiring,
@@ -120,8 +120,8 @@ test('OTC-T2 LAW 1: gtoLeakFinderSpots.js exports 5 solver-accurate spots and pu
   assert.deepEqual(scoreGtoLeakFinder(arrayInput), mixedScore);
 });
 
-test('OTC-T2 LAW 2: pages/tools/gto-leak-finder.js wires SEO, JSON-LD, funnel telemetry, guest unlock gate & valid CSS module classes', () => {
-  const src = read('pages/tools/gto-leak-finder.js');
+test('OTC-T2 LAW 2: pages/tools/gto-leak-finder/index.js wires SEO, JSON-LD, funnel telemetry, guest unlock gate & valid CSS module classes', () => {
+  const src = read('pages/tools/gto-leak-finder/index.js');
   const dataSrc = read('src/content/tools/gtoLeakFinderSpots.js');
 
   // SEO title <= 60 chars and meta description <= 158 chars

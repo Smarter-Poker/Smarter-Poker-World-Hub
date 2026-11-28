@@ -335,6 +335,13 @@ const TOOL_ITEMS = [
         pubDate: LEARN_MODIFIED,
     },
     {
+        title: '60-Second GTO Poker Leak Finder Diagnostic',
+        link: `${SITE_URL}/tools/gto-leak-finder`,
+        description: 'Play 5 Solver-Graded 100BB Cash And ICM Hands To Measure Your GTO Accuracy, Estimated BB/100 Leak Rate, And Primary Strategy Leak Free.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
         title: 'PLO4 & PLO5 Straight Wrap Outs & Nut Equity Calculator',
         link: `${SITE_URL}/tools/plo-outs-calculator`,
         description: 'Compute 13, 16, 17, And 20-Out Omaha Straight Wrap Plus Flush Redraw Hypergeometric Turn-And-River Equity.',

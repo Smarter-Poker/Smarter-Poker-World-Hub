@@ -323,6 +323,14 @@ export const TOOL_OG_PRESETS = Object.freeze({
     statLabel: 'DIAGNOSTIC ENGINE',
     statValue: 'GTO IQ PERCENTILE',
   },
+  'gto-leak-finder': {
+    tool: 'gto-leak-finder',
+    badge: '60-SECOND GTO LEAK FINDER',
+    title: '60-Second GTO Poker Leak Finder Diagnostic',
+    subtitle: '5-Hand 100BB Cash & ICM Solver Diagnostic With Estimated BB/100 Leak Breakdown',
+    statLabel: 'SOLVER DIAGNOSTIC',
+    statValue: '5-HAND LEAK SCORE',
+  },
   'side-pot-calculator': {
     tool: 'side-pot-calculator',
     badge: 'MULTI-WAY SIDE POTS',

@@ -18,19 +18,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
-import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
-import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
-import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
-import FaqSection from '../../src/components/seo/FaqSection';
-import { openQuickSignup } from '../../src/components/seo/SmarterQuickSignupSheet';
-import { SAVED_SPOTS_STORAGE_KEY } from '../../src/components/seo/SmarterUnlockedWelcomeBanner';
-import { trackSeoFunnelEvent } from '../../src/lib/seo/seoFunnelTelemetry';
+import SEOHead, { schemas } from '../../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
+import SmarterSeoMasthead from '../../../src/components/seo/SmarterSeoMasthead';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import FaqSection from '../../../src/components/seo/FaqSection';
+import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
+import { openQuickSignup } from '../../../src/components/seo/SmarterQuickSignupSheet';
+import { SAVED_SPOTS_STORAGE_KEY } from '../../../src/components/seo/SmarterUnlockedWelcomeBanner';
+import { trackSeoFunnelEvent } from '../../../src/lib/seo/seoFunnelTelemetry';
 import {
   GTO_LEAK_FINDER_SPOTS,
   scoreGtoLeakFinder,
-} from '../../src/content/tools/gtoLeakFinderSpots';
-import styles from '../../src/components/seo/SmarterSeoKit.module.css';
+} from '../../../src/content/tools/gtoLeakFinderSpots';
+import styles from '../../../src/components/seo/SmarterSeoKit.module.css';
 
 const CANONICAL_PATH = '/tools/gto-leak-finder';
 const OG_IMAGE_URL =
@@ -163,6 +165,15 @@ export default function GtoLeakFinderPage() {
   const [showReport, setShowReport] = useState(false);
   const [hasDispatchedEngaged, setHasDispatchedEngaged] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const rawSpot = Array.isArray(router.query?.spot) ? router.query.spot[0] : router.query?.spot;
+    if (rawSpot) {
+      const idx = GTO_LEAK_FINDER_SPOTS.findIndex((s) => s.id === String(rawSpot));
+      if (idx >= 0) setCurrentIndex(idx);
+    }
+  }, [router.isReady, router.query]);
 
   const schemaNodes = useMemo(
     () =>
@@ -973,6 +984,22 @@ export default function GtoLeakFinderPage() {
           </div>
 
           <FaqSection faqs={LEAK_FINDER_FAQS} title="60-Second GTO Leak Finder FAQ" />
+
+          <CitationBacklinkBox
+            title="60-Second GTO Poker Leak Finder Diagnostic"
+            canonicalUrl={`https://smarter.poker${CANONICAL_PATH}`}
+            badgeType="gto"
+            badgeLabel="GTO Leak Diagnostic"
+            badgeValue="5-Hand Solver Assessment"
+            summary="Interactive 5-Hand 100BB Cash And Final-Table ICM Solver Diagnostic Measuring GTO Accuracy, Estimated BB/100 Leak Rate, And Primary Strategy Leaks."
+            slug="gto-leak-finder"
+          />
+
+          <AiPromptLauncher
+            title="60-Second GTO Poker Leak Finder Diagnostic"
+            canonicalUrl={`https://smarter.poker${CANONICAL_PATH}`}
+            markdownUrl={`https://smarter.poker${CANONICAL_PATH}.md`}
+          />
         </div>
       </main>
     </>

@@ -48203,7 +48203,7 @@
       "functions": [
         {
           "name": "toAbsoluteMediaUrl",
-          "line": 130,
+          "line": 131,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48211,7 +48211,7 @@
         },
         {
           "name": "enrichArticleNodeImage",
-          "line": 139,
+          "line": 140,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48219,7 +48219,7 @@
         },
         {
           "name": "enrichArticleJsonLdImages",
-          "line": 164,
+          "line": 165,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -48227,7 +48227,7 @@
         },
         {
           "name": "normalizeJsonLdGraph",
-          "line": 185,
+          "line": 186,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -48235,7 +48235,7 @@
         },
         {
           "name": "usePathname",
-          "line": 219,
+          "line": 220,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48243,7 +48243,7 @@
         },
         {
           "name": "SEOHead",
-          "line": 232,
+          "line": 233,
           "references": 5,
           "exported": true,
           "defaultExport": true,
@@ -48251,7 +48251,7 @@
         },
         {
           "name": "safeMarkdownFallback",
-          "line": 272,
+          "line": 273,
           "references": 12,
           "exported": false,
           "defaultExport": false,
@@ -71559,7 +71559,7 @@
       "functions": [
         {
           "name": "clampNum",
-          "line": 544,
+          "line": 552,
           "references": 173,
           "exported": false,
           "defaultExport": false,
@@ -71567,7 +71567,7 @@
         },
         {
           "name": "computeMalmuthHarvilleIcm",
-          "line": 551,
+          "line": 559,
           "references": 5,
           "exported": true,
           "defaultExport": false,
@@ -71575,7 +71575,7 @@
         },
         {
           "name": "recurse",
-          "line": 558,
+          "line": 566,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -71583,7 +71583,7 @@
         },
         {
           "name": "computeValidatedSolvedSpot",
-          "line": 583,
+          "line": 591,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -71591,7 +71591,7 @@
         },
         {
           "name": "buildSolvedSpotOgImageUrl",
-          "line": 1735,
+          "line": 1743,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -71599,7 +71599,7 @@
         },
         {
           "name": "useSolvedSpotUrlSync",
-          "line": 1761,
+          "line": 1769,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -71612,7 +71612,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 544,
+          "line": 552,
           "excerpt": "function clampNum(val, min, max, fallback = null) {",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -71620,7 +71620,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 545,
+          "line": 553,
           "excerpt": "if (val === undefined || val === null || String(val).trim() === '') return fallback;",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -71628,7 +71628,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 547,
+          "line": 555,
           "excerpt": "if (!Number.isFinite(n)) return fallback;",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -71636,7 +71636,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 1451,
+          "line": 1459,
           "excerpt": "summaryText: `${game.toUpperCase()} Combinatorial Equity Simulation: ${hand1} Vs. ${hand2}${board ? ` On Board [${board}]` : ' (52-Card Pre-Flop Enumeration)'}.`,",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -71812,7 +71812,7 @@
         },
         {
           "name": "resolveToolWikidataLinks",
-          "line": 532,
+          "line": 533,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -124491,6 +124491,7 @@
         "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
         "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+        "__tests__/otc-tier2-leak-finder-and-activation-20261127.law.test.mjs",
         "__tests__/pa-forensic-review-auth.law.test.mjs",
         "__tests__/pa-review-workstation.test.mjs",
         "__tests__/page-tutorials.test.mjs",
@@ -127417,7 +127418,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 544,
+        "line": 552,
         "excerpt": "function clampNum(val, min, max, fallback = null) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -127426,7 +127427,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 545,
+        "line": 553,
         "excerpt": "if (val === undefined || val === null || String(val).trim() === '') return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -127435,7 +127436,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 547,
+        "line": 555,
         "excerpt": "if (!Number.isFinite(n)) return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -127444,7 +127445,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "SIMULATION",
-        "line": 1451,
+        "line": 1459,
         "excerpt": "summaryText: `${game.toUpperCase()} Combinatorial Equity Simulation: ${hand1} Vs. ${hand2}${board ? ` On Board [${board}]` : ' (52-Card Pre-Flop Enumeration)'}.`,",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -130743,7 +130744,7 @@
           "pages/tools/embeds.js",
           "pages/tools/format-quiz.js",
           "pages/tools/geometric-bet-calculator.js",
-          "pages/tools/gto-leak-finder.js",
+          "pages/tools/gto-leak-finder/index.js",
           "pages/tools/hand-converter.js",
           "pages/tools/heads-up-push-fold-calculator.js",
           "pages/tools/home-game-director.js",
@@ -130911,7 +130912,7 @@
         "externalReferenceFiles": [
           "pages/hub/bankroll-manager.js",
           "pages/learn/hands/[hand].js",
-          "pages/tools/gto-leak-finder.js",
+          "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
@@ -133494,7 +133495,7 @@
           "pages/tools/embeds.js",
           "pages/tools/format-quiz.js",
           "pages/tools/geometric-bet-calculator.js",
-          "pages/tools/gto-leak-finder.js",
+          "pages/tools/gto-leak-finder/index.js",
           "pages/tools/hand-converter.js",
           "pages/tools/heads-up-push-fold-calculator.js",
           "pages/tools/home-game-director.js",
@@ -133659,7 +133660,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "pages/tools/gto-leak-finder.js",
+          "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
           "src/components/seo/SmarterGoogleOneTap.jsx",
@@ -133686,7 +133687,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "name": "buildSolvedSpotOgImageUrl",
-        "line": 1735,
+        "line": 1743,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133753,7 +133754,7 @@
       {
         "file": "src/lib/seo/wikidataRegistry.mjs",
         "name": "resolveToolWikidataLinks",
-        "line": 532,
+        "line": 533,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -139789,7 +139790,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 544,
+        "line": 552,
         "excerpt": "function clampNum(val, min, max, fallback = null) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -139798,7 +139799,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 545,
+        "line": 553,
         "excerpt": "if (val === undefined || val === null || String(val).trim() === '') return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -139807,7 +139808,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 547,
+        "line": 555,
         "excerpt": "if (!Number.isFinite(n)) return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -139816,7 +139817,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "SIMULATION",
-        "line": 1451,
+        "line": 1459,
         "excerpt": "summaryText: `${game.toUpperCase()} Combinatorial Equity Simulation: ${hand1} Vs. ${hand2}${board ? ` On Board [${board}]` : ' (52-Card Pre-Flop Enumeration)'}.`,",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -143115,7 +143116,7 @@
           "pages/tools/embeds.js",
           "pages/tools/format-quiz.js",
           "pages/tools/geometric-bet-calculator.js",
-          "pages/tools/gto-leak-finder.js",
+          "pages/tools/gto-leak-finder/index.js",
           "pages/tools/hand-converter.js",
           "pages/tools/heads-up-push-fold-calculator.js",
           "pages/tools/home-game-director.js",
@@ -143283,7 +143284,7 @@
         "externalReferenceFiles": [
           "pages/hub/bankroll-manager.js",
           "pages/learn/hands/[hand].js",
-          "pages/tools/gto-leak-finder.js",
+          "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
@@ -145866,7 +145867,7 @@
           "pages/tools/embeds.js",
           "pages/tools/format-quiz.js",
           "pages/tools/geometric-bet-calculator.js",
-          "pages/tools/gto-leak-finder.js",
+          "pages/tools/gto-leak-finder/index.js",
           "pages/tools/hand-converter.js",
           "pages/tools/heads-up-push-fold-calculator.js",
           "pages/tools/home-game-director.js",
@@ -146031,7 +146032,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "pages/tools/gto-leak-finder.js",
+          "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
           "src/components/seo/SmarterGoogleOneTap.jsx",
@@ -146058,7 +146059,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "name": "buildSolvedSpotOgImageUrl",
-        "line": 1735,
+        "line": 1743,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -146125,7 +146126,7 @@
       {
         "file": "src/lib/seo/wikidataRegistry.mjs",
         "name": "resolveToolWikidataLinks",
-        "line": 532,
+        "line": 533,
         "references": 1,
         "exported": true,
         "defaultExport": false,

@@ -2011,6 +2011,11 @@ const nextConfig = {
           destination: '/api/hub-tool-markdown?path=/tools/poker-iq-test',
         },
         {
+          source: '/tools/gto-leak-finder',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/gto-leak-finder',
+        },
+        {
           source: '/tools/plo-outs-calculator',
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/hub-tool-markdown?path=/tools/plo-outs-calculator',
@@ -2730,6 +2735,10 @@ const nextConfig = {
         {
           source: '/tools/poker-iq-test.md',
           destination: '/api/hub-tool-markdown?path=/tools/poker-iq-test',
+        },
+        {
+          source: '/tools/gto-leak-finder.md',
+          destination: '/api/hub-tool-markdown?path=/tools/gto-leak-finder',
         },
         {
           source: '/tools/plo-outs-calculator.md',
