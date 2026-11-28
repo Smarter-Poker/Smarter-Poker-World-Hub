@@ -28,6 +28,7 @@ async function loadRoute(path, dependencies, routeSource = read(path)) {
     console: { warn() {} },
     process: { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://example.invalid', SUPABASE_SERVICE_ROLE_KEY: 'fixture' } },
   });
+  assert.ok(vm.SourceTextModule, 'run with node --experimental-vm-modules, as build-safety-gate CHECK 8 does');
   const route = new vm.SourceTextModule(routeSource, { context });
   await route.link(specifier => {
     const exports = dependencies[specifier];
@@ -166,6 +167,7 @@ test('saved/profile mirrors inherit current Home Game privacy and fail closed on
 test('public profile Reel handler forwards validated collection inputs and fails closed', async () => {
   let received;
   const context = vm.createContext({ console: { warn() {} } });
+  assert.ok(vm.SourceTextModule, 'run with node --experimental-vm-modules, as build-safety-gate CHECK 8 does');
   const route = new vm.SourceTextModule(read('pages/api/reels/profile.js'), { context });
   await route.link(specifier => {
     if (specifier.endsWith('/apiRateLimit')) return synthetic(context, { applyRateLimit: () => true, LIMITS: { read: {} } });

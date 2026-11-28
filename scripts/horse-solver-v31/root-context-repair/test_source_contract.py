@@ -8,6 +8,30 @@ import numpy as np
 from context_scope import at_depth,game_key,require_bracket,stack_only_matrix
 from range_features import root_mass,features,SP
 from models import conditional_targets,table
+def _without_privilege(tree,check):
+ # The premise of a "non-readable parent" is a mode bit, and root ignores mode
+ # bits (CAP_DAC_OVERRIDE): run as root, the parent stayed readable, nothing was
+ # refused, and the case failed for a reason that has nothing to do with
+ # SafeInputs (2026-11-28, a root container). As an ordinary user the check runs
+ # directly, exactly as before. As root it runs in a child that owns the
+ # fixture tree and has dropped to an unprivileged uid, so the premise holds.
+ if os.geteuid()!=0:return check()
+ nobody=65534
+ for base,dirs,files in os.walk(tree):
+  for n in [base]+[os.path.join(base,x) for x in dirs+files]:os.chown(n,nobody,nobody)
+ r,w=os.pipe();pid=os.fork()
+ if pid==0:
+  os.close(r);status=1
+  try:
+   os.setgroups([]);os.setgid(nobody);os.setuid(nobody);check();status=0
+  except BaseException as e:os.write(w,repr(e).encode()[:4000])
+  finally:os._exit(status)
+ os.close(w)
+ with os.fdopen(r,'rb') as f:detail=f.read().decode()
+ _,code=os.waitpid(pid,0)
+ for base,dirs,files in os.walk(tree):
+  for n in [base]+[os.path.join(base,x) for x in dirs+files]:os.chown(n,0,0)
+ if os.waitstatus_to_exitcode(code)!=0:raise AssertionError('unprivileged check failed: '+detail)
 class InputContracts(unittest.TestCase):
  def test_unknown_before_any_open_even_with_anchor(self):
   g=SafeInputs({},anchors=[dict(root='/synthetic/volume',device=7,inode=2)])
@@ -18,10 +42,11 @@ class InputContracts(unittest.TestCase):
  def test_verified_child_below_nonreadable_parent(self):
   with tempfile.TemporaryDirectory() as td:
    parent=Path(td)/'scaffold';root=parent/'mounted-child';root.mkdir(parents=True);p=root/'TRAIN.bin';p.write_bytes(b'TRAIN ONLY');st=root.stat();entries={str(p):dict(role='TRAIN',sha256=hashlib.sha256(p.read_bytes()).hexdigest())}
-   parent.chmod(0o100)
-   try:
+   def check():
     with self.assertRaises(PermissionError):SafeInputs(entries).read(p,'TRAIN')
     g=SafeInputs(entries,anchors=[dict(root=str(root),device=st.st_dev,inode=st.st_ino)]);self.assertEqual(g.read(p,'TRAIN'),b'TRAIN ONLY')
+   parent.chmod(0o100)
+   try:_without_privilege(td,check)
    finally:parent.chmod(0o700)
  def test_changed_anchor_and_symlink_and_digest_fail_closed(self):
   with tempfile.TemporaryDirectory() as td:

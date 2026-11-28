@@ -348,6 +348,11 @@ export function formatValidSignupReferralCode(raw) {
     return clean;
 }
 
+// The private-address refusal below must always run. Callers that inject
+// `fetchImpl` (tests) inject `lookupImpl` beside it, so the refusal is still
+// exercised against an answer they control instead of the machine's resolver.
+const defaultHostLookup = (hostname, options) => dns.promises.lookup(hostname, options);
+
 /**
  * SSRF-hardened editorial metadata fetcher to backfill missing/echoed summaries
  * AND missing/broken `og:image` thumbnails on selected digest stories in one pass.
@@ -355,14 +360,14 @@ export function formatValidSignupReferralCode(raw) {
 export async function fetchArticleEditorialMetadata(
     sourceUrl,
     title,
-    { fetchImpl = fetch, timeoutMs = 2800 } = {}
+    { fetchImpl = fetch, lookupImpl = defaultHostLookup, timeoutMs = 2800 } = {}
 ) {
     try {
         const parsed = new URL(String(sourceUrl || '').trim());
         if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
             return { summary: '', imageUrl: '' };
         }
-        const lookup = await dns.promises.lookup(parsed.hostname, { all: true });
+        const lookup = await lookupImpl(parsed.hostname, { all: true });
         if (!lookup?.length || lookup.some((entry) => isPrivateIp(entry.address))) {
             return { summary: '', imageUrl: '' };
         }
@@ -431,13 +436,16 @@ export async function fetchCleanArticleMetaDescription(sourceUrl, title, opts = 
     return meta.summary || '';
 }
 
-export async function verifyUpstreamImageReachable(imageUrl, { fetchImpl = fetch, timeoutMs = 2200 } = {}) {
+export async function verifyUpstreamImageReachable(
+    imageUrl,
+    { fetchImpl = fetch, lookupImpl = defaultHostLookup, timeoutMs = 2200 } = {}
+) {
     const clean = normalizeCandidateImageUrl(imageUrl);
     if (!clean) return false;
     try {
         const parsed = new URL(clean);
         if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
-        const lookup = await dns.promises.lookup(parsed.hostname, { all: true });
+        const lookup = await lookupImpl(parsed.hostname, { all: true });
         if (!lookup?.length || lookup.some((entry) => isPrivateIp(entry.address))) return false;
 
         const headRes = await fetchImpl(parsed.toString(), {
@@ -951,6 +959,7 @@ export async function curateWeeklyWireEdition(
         excludedArticleIds = [],
         enrichMetaDescriptions = true,
         fetchImpl = fetch,
+        lookupImpl = defaultHostLookup,
         nowMs = Date.now(),
         siteUrl = 'https://smarter.poker',
         fetchTournamentsFn = null,
@@ -1093,18 +1102,18 @@ export async function curateWeeklyWireEdition(
 
             if (enrichMetaDescriptions) {
                 let imageHealthy = cleanImageUrl
-                    ? await verifyUpstreamImageReachable(cleanImageUrl, { fetchImpl })
+                    ? await verifyUpstreamImageReachable(cleanImageUrl, { fetchImpl, lookupImpl })
                     : false;
                 const needsMetaFetch = Boolean(article.source_url && (!cleanSummary || !imageHealthy));
                 if (needsMetaFetch) {
-                    const meta = await fetchArticleEditorialMetadata(article.source_url, normalizedTitle, { fetchImpl });
+                    const meta = await fetchArticleEditorialMetadata(article.source_url, normalizedTitle, { fetchImpl, lookupImpl });
                     const dbPatch = {};
                     if (!cleanSummary && meta.summary) {
                         cleanSummary = meta.summary;
                         dbPatch.summary = meta.summary;
                     }
                     if (!imageHealthy && meta.imageUrl) {
-                        const backfilledOk = await verifyUpstreamImageReachable(meta.imageUrl, { fetchImpl });
+                        const backfilledOk = await verifyUpstreamImageReachable(meta.imageUrl, { fetchImpl, lookupImpl });
                         if (backfilledOk) {
                             cleanImageUrl = meta.imageUrl;
                             imageHealthy = true;

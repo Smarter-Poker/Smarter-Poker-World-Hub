@@ -201,6 +201,7 @@ async function invoke(options = {}) {
     console: { info: log('info'), warn: log('warn'), error: log('error') },
     fetch: () => unexpected('Network is prohibited'),
   });
+  assert.ok(vm.SourceTextModule, 'run with node --experimental-vm-modules, as build-safety-gate CHECK 8 does');
   const module = new vm.SourceTextModule(await readFile(new URL(ROUTE, ROOT), 'utf8'), {
     context,
     identifier: ROUTE,
