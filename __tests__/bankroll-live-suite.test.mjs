@@ -70,3 +70,18 @@ test('the live spec runs only through its own production config', () => {
   assert.match(spec, /expect\(guard\.writes/);
   assert.doesNotMatch(spec, /TEST_USER_PASSWORD|console\.log/);
 });
+
+test('shell side effects and create-only provisioning are blocked but classified apart', () => {
+  assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/rpc/fn_update_presence`), 'shell');
+  assert.equal(classifyRequest('POST', `${APP}/api/auth/ensure-profile`), 'shell');
+  assert.equal(classifyRequest('POST', `${APP}/api/rewards/eggs/evaluate`), 'shell');
+  assert.equal(classifyRequest('POST', `${APP}/api/messenger/get-conversations`), 'read');
+  const createOnly = { prefer: 'resolution=ignore-duplicates,return=minimal' };
+  assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/bankroll_segments?on_conflict=user_id%2Csegment_type`, createOnly), 'provision');
+  assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/bankroll_rules?on_conflict=user_id%2Crule_type`, createOnly), 'provision');
+  // A merge upsert, a plain insert, or any other table is still a failing write.
+  assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/bankroll_segments?on_conflict=user_id%2Csegment_type`, { prefer: 'resolution=merge-duplicates' }), 'data-write');
+  assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/bankroll_segments`, createOnly), 'data-write');
+  assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/bankroll_ledger?on_conflict=id`, createOnly), 'data-write');
+  assert.equal(classifyRequest('PATCH', `${SUPABASE}/rest/v1/bankroll_segments?user_id=eq.x`), 'data-write');
+});

@@ -70,7 +70,7 @@ const CHART_TYPES: Array<{ id: string; label: string; title: string }> = [
 const TIME_FILTERS = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year', 'All Time'];
 const HONEST_EMPTY = ['No Data For This Period', 'Every Category Is Even For This Period.', 'No Gaming Sessions In This Period.'];
 
-type Guard = { pageErrors: string[]; writes: string[]; telemetry: number; sessionRefreshes: number; consoleErrors: number };
+type Guard = { pageErrors: string[]; writes: string[]; shell: string[]; provision: string[]; telemetry: number; sessionRefreshes: number; consoleErrors: number };
 
 function sectionUrl(entry: { view: string; query?: string }) {
   if (entry.query) return `/hub/bankroll-manager?${entry.query}`;
@@ -84,7 +84,7 @@ async function readHealth() {
 }
 
 async function guardPage(page: Page): Promise<Guard> {
-  const guard: Guard = { pageErrors: [], writes: [], telemetry: 0, sessionRefreshes: 0, consoleErrors: 0 };
+  const guard: Guard = { pageErrors: [], writes: [], shell: [], provision: [], telemetry: 0, sessionRefreshes: 0, consoleErrors: 0 };
   await installRealtimeSessionGuard(page.context());
   // The page tutorial prompt is a local-only first-visit card; mark it seen so
   // it never covers a control. No server state is involved.
@@ -96,10 +96,13 @@ async function guardPage(page: Page): Promise<Guard> {
   });
   await page.context().route('**/*', (route) => {
     const request = route.request();
-    const kind = classifyRequest(request.method(), request.url());
+    const kind = classifyRequest(request.method(), request.url(), request.headers());
     if (kind === 'read') return route.continue();
     if (kind === 'session') { guard.sessionRefreshes += 1; return route.continue(); }
-    if (kind === 'data-write') guard.writes.push(describeRequest(request.method(), request.url()));
+    const label = describeRequest(request.method(), request.url());
+    if (kind === 'data-write') guard.writes.push(label);
+    else if (kind === 'shell') guard.shell.push(label);
+    else if (kind === 'provision') guard.provision.push(label);
     else guard.telemetry += 1;
     return route.abort('blockedbyclient');
   });
@@ -216,6 +219,8 @@ function finish(info: TestInfo, guard: Guard, extra: Record<string, unknown> = {
     expectedSha: EXPECTED_SHA,
     pageErrors: guard.pageErrors,
     blockedWrites: guard.writes,
+    blockedShellSideEffects: [...new Set(guard.shell)],
+    blockedCreateOnlyProvisioning: [...new Set(guard.provision)],
     blockedTelemetry: guard.telemetry,
     sessionRefreshes: guard.sessionRefreshes,
     consoleErrors: guard.consoleErrors,
