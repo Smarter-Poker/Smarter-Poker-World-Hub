@@ -394,7 +394,7 @@ The full shared brief the agents worked from is `SWARM-BRIEF-WAVE2.md`, next to 
 - **toke: DONE, LIVE.** Finished 23:3x CT. PR #3250 merged as `f68928248924b8ba2524c165146db252fdc4688f`; deployment `dpl_2q4n48ABcEYgJG7qRP6Y1p9APHFC`, and /api/health reported f6892824.
   - Fixed 17 defects: Venue Intel hours/tokes-per-hour now use tokeReport (labelled "Paid Hours"); breaks removed from game types; buy-in bracket gaps; 1099-NEC threshold is $2,000 from 2026 (`src/lib/bankroll/dealerTax.mjs`); Tax Summary uses per-date IRS mileage and no longer sticks on an empty year; vault load state, orphaned upload files, year jump after upload, stray "0", double delete, files with empty MIME types, HEIC fallback; license-expiry day math; calendar delete verifies the row was deleted; multi-event calendar days; toke preferences follow the account (`useTokePrefs.js` + `tokePrefs.mjs`).
   - Test: `__tests__/toke-tracker-pages.test.mjs` (15).
-  - Its WIP branch `bookmark/bankroll-toke-wip` was deleted after the merge.
+  - Its WIP branch `bookmark/bankroll-toke-wip` (b7b9f9de) is now obsolete; its work shipped in #3250. Deleting it was refused from this session (the push hung up, and the API refused write access). Delete it when you can; it is harmless meanwhile, because bookmark/ branches never auto-merge.
   - Not verified: signed-in uploads, real HEIC on a phone.
 - live, api, shell: still running at the time of this update. Use the §6 discovery commands.
 
