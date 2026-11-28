@@ -860,6 +860,8 @@ const CI_UNREACHABLE_ON_PURPOSE = {
 };
 
 import './video-operations-phase10.test.mjs';
+// 2026-11-28: the News desktop sidebar dock sticks (overflow-x clip, not hidden).
+import './news-sidebar-dock-sticks.test.mjs';
 // Dan 2026-10-11: four World Hub cards hidden from everyone but him.
 import './owner-only-hub-cards.test.mjs';
 // Dan 2026-10-15: Share & Invite short links credit the sender.
