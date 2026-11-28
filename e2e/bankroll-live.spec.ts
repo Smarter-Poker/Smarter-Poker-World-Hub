@@ -245,21 +245,27 @@ test.afterAll(async () => {
 for (const entry of SECTIONS) {
   test(`section ${entry.view}`, async ({ page }, info) => {
     const guard = await guardPage(page);
-    const response = await page.goto(sectionUrl(entry), { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    expect(response?.status(), 'page response').toBeLessThan(400);
-    await waitForSection(page, entry.title);
-    await assertSignedIn(page);
-    let trend: string | null = null;
-    if (entry.view === 'dashboard' || entry.query) {
-      const region = page.getByRole('region', { name: 'Bankroll Trend' });
-      await expect(region).toBeVisible();
-      trend = (await region.innerText()).split('\n').slice(0, 3).join(' | ').slice(0, 160);
+    const extra: Record<string, unknown> = { url: sectionUrl(entry), title: entry.title };
+    try {
+      const response = await page.goto(sectionUrl(entry), { waitUntil: 'domcontentloaded', timeout: 60_000 });
+      expect(response?.status(), 'page response').toBeLessThan(400);
+      await waitForSection(page, entry.title);
+      await assertSignedIn(page);
+      if (entry.view === 'dashboard') {
+        // Category dashboards (?type=) render CategoryOverview, which has no trend.
+        const region = page.getByRole('region', { name: 'Bankroll Trend' });
+        await expect(region).toBeVisible();
+        extra.trend = (await region.innerText()).split('\n').slice(0, 3).join(' | ').slice(0, 160);
+      }
+      extra.errorStates = await errorStates(page);
+      expect(extra.errorStates, 'error or retry state shown').toEqual([]);
+      await checkLayout(page);
+      expect(guard.pageErrors, 'uncaught page errors').toEqual([]);
+      expect(guard.writes, 'the page attempted a write (aborted before it left the browser)').toEqual([]);
+      extra.passed = true;
+    } finally {
+      finish(info, guard, extra);
     }
-    expect(await errorStates(page), 'error or retry state shown').toEqual([]);
-    await checkLayout(page);
-    expect(guard.pageErrors, 'uncaught page errors').toEqual([]);
-    expect(guard.writes, 'the page attempted a write (aborted before it left the browser)').toEqual([]);
-    finish(info, guard, { url: sectionUrl(entry), title: entry.title, trend });
   });
 }
 
@@ -280,6 +286,7 @@ for (const chart of CHART_TYPES) {
     const chartLabels = new RegExp(`^(${CHART_TYPES.map((c) => c.label).join('|')})`);
     await pickFromDropdown(page, chartLabels, chart.label);
     const results: Record<string, string> = {};
+    try {
     let current = /^(Last 7 Days|Last 30 Days|Last 90 Days|This Year|All Time)/;
     for (const filter of TIME_FILTERS) {
       await pickFromDropdown(page, current, filter);
@@ -311,6 +318,9 @@ for (const chart of CHART_TYPES) {
     await checkLayout(page);
     expect(guard.pageErrors, 'uncaught page errors').toEqual([]);
     expect(guard.writes, 'the dashboard attempted a write (aborted before it left the browser)').toEqual([]);
-    finish(info, guard, { chartType: chart.id, results });
+    results.passed = 'true';
+    } finally {
+      finish(info, guard, { chartType: chart.id, results });
+    }
   });
 }
