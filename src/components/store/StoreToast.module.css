@@ -50,7 +50,7 @@
   align-self: stretch;
   color: var(--status-ink);
   font:
-    800 clamp(10px, 1.7vw, 14px) / 1 var(--font-roboto-condensed),
+    800 clamp(12px, 1.7vw, 14px) / 1 var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -84,7 +84,7 @@
   background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   color: #f2f7ff;
   font:
-    800 11px/1 var(--font-roboto-condensed),
+    800 12px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -138,7 +138,7 @@
 
   .dismiss {
     min-height: 44px;
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 

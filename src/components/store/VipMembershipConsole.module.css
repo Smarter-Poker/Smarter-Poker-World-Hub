@@ -1,3 +1,7 @@
+/* VIP membership console on #SMARTERDESIGN: chrome-readout panels,
+   chrome-stat wells for each readout and plan, chrome-row controls, and
+   chrome-active over cobalt for the primary and the current plan. Square
+   corners, white/silver/ice text; red only for a real error. */
 .console {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
@@ -8,16 +12,10 @@
 .panel {
   position: relative;
   padding: clamp(20px, 3vw, 30px);
-  border: 1px solid #365468;
-  background: #07131b;
-  box-shadow:
-    inset 0 1px 0 rgba(155, 179, 192, .14),
-    0 16px 34px rgba(0, 0, 0, .26);
-}
-
-.panelGold {
-  color: #e9e2bd;
-  border-color: #806b2b;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, .26);
 }
 
 .panel h2 {
@@ -48,17 +46,17 @@
   align-items: center;
   min-height: 84px;
   padding: 15px 17px;
-  border: 1px solid #294757;
-  background: #07131b;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
 }
 
 .statusLine span,
 .planLabel {
   display: block;
-  color: #9db6c2;
+  color: #bdd0e2;
   font:
-    800 10px/1.1 var(--font-roboto-condensed),
+    800 12px/1.1 var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -109,14 +107,21 @@
   justify-content: flex-start;
   min-height: 210px;
   padding: 20px;
-  border: 1px solid #314b5c;
-  background: #07131b;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+}
+
+/* The current plan: chrome-active over cobalt, white lettering. */
+.planActive {
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
 }
 
 .planActive .planLabel,
-.planActive strong {
-  color: #ffe45e;
+.planActive strong,
+.planActive p {
+  color: #fff;
 }
 
 .plan p {
@@ -135,12 +140,10 @@
   align-items: center;
   justify-content: center;
   padding: 10px 22px;
-  border: 1px solid #18c9ee;
-  background: #063446;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .18),
-    inset 0 -1px 0 rgba(69, 173, 255, .22);
-  color: #eafaff;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  color: #fff;
   font:
     800 13px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -158,26 +161,32 @@
 .dangerButton:disabled,
 .secondaryButton:disabled {
   cursor: not-allowed;
-  filter: grayscale(0.75);
-  opacity: 0.52;
+  color: #a7b7c8;
+  filter: grayscale(0.6) brightness(0.72);
+}
+
+.button:active:not(:disabled),
+.dangerButton:active:not(:disabled),
+.secondaryButton:active:not(:disabled) {
+  filter: brightness(0.89);
 }
 
 .secondaryButton,
 .dangerButton {
-  border-color: #456174;
-  background: #0a151d;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
 }
 
 .dangerButton {
   margin-top: 16px;
-  color: #ff5b6e;
 }
 
 .finePrint {
   margin: 14px 0 0;
-  color: #78909b;
+  color: #bdd0e2;
   font:
-    700 10px/1.55 var(--font-inter),
+    700 12px/1.55 var(--font-inter),
     Inter,
     Arial,
     sans-serif;
@@ -197,8 +206,9 @@
   width: min(560px, 100%);
   margin-inline: auto;
   padding: 28px 24px;
-  border: 1px solid #23394a;
-  background: #070e15;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
   text-align: center;
 }
 
@@ -252,9 +262,10 @@
   flex-direction: column;
   overflow-y: auto;
   padding: 26px 24px;
-  border: 1px solid #627f8f;
-  background: #07131b;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 24px 64px rgba(0, 0, 0, .55);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, .55);
 }
 
 .dialog h2 {
@@ -271,9 +282,9 @@
 .dialog label {
   display: block;
   margin-top: 18px;
-  color: #c7d7de;
+  color: #bdd0e2;
   font:
-    800 11px/1.1 var(--font-roboto-condensed),
+    800 12px/1.1 var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -287,8 +298,9 @@
   min-height: 46px;
   margin-top: 8px;
   padding: 10px 16px;
-  border: 1px solid #456174;
-  background: #061019;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   color: #effdff;
   font:
     800 13px/1 var(--font-roboto-condensed),
@@ -303,8 +315,9 @@
   min-height: 72px;
   margin-top: 8px;
   padding: 10px 16px;
-  border: 1px solid #456174;
-  background: #061019;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   color: #effdff;
   font:
     600 14px/1.4 var(--font-roboto-condensed),
@@ -319,9 +332,9 @@
 .dialogList {
   margin: 16px 0 0;
   padding: 12px 14px 12px 30px;
-  border: 1px solid #456174;
-  background: #061019;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
   color: #dcecf2;
   font:
     700 13px/1.5 var(--font-roboto-condensed),
@@ -337,7 +350,7 @@
 
 .dialogNote {
   margin: 14px 0 0;
-  color: #c7d7de;
+  color: #bdd0e2;
   font:
     600 13px/1.5 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -347,7 +360,7 @@
 }
 
 .dialogNote a {
-  color: #8befff;
+  color: #86daff;
 }
 
 .dialogActions {
@@ -376,8 +389,8 @@
    exact reason; these follow it so a keyboard user can see where they are. */
 .console :is(button, a, select):focus-visible,
 .dialog :is(button, select, textarea, a):focus-visible {
-  outline: 2px solid #8befff !important;
-  outline-offset: 3px !important;
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }
 
 @media (max-width: 760px) {

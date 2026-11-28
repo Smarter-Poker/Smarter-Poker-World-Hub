@@ -52,7 +52,7 @@
 .total > span {
   color: #bdd0e2;
   font:
-    700 10px var(--font-roboto-condensed),
+    700 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -180,7 +180,7 @@
 .shipping label span {
   color: #bdd0e2;
   font:
-    700 10px var(--font-roboto-condensed),
+    700 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -225,7 +225,7 @@
 .notice {
   margin: 13px 0 0;
   color: #bdd0e2;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.55;
 }
 
@@ -311,7 +311,7 @@
 
   .close {
     min-height: 44px;
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .panelBody {
@@ -353,7 +353,7 @@
 
   .actions button {
     padding-inline: 8px;
-    font-size: 10px;
+    font-size: 12px;
   }
 }
 

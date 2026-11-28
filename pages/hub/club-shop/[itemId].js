@@ -26,6 +26,7 @@ import {
 } from '../../../src/lib/store/verifiedCheckoutUrl.mjs';
 import { getVerifiedCheckoutAuthorization } from '../../../src/lib/store/checkoutAuthorization';
 import { leaveForCheckout } from '../../../src/lib/store/leaveForCheckout.mjs';
+import { formatUsd } from '../../../src/lib/store/formatStoreMoney.mjs';
 import {
   classifyClubPurchaseRefusal,
   clubPurchaseRefusalNotice,
@@ -1173,7 +1174,7 @@ export default function ClubShopItemDetail({ routeItemId = null }) {
                   : hasDiamondDebt
                     ? 'Card Checkout Paused'
                     : 'Card Checkout Unavailable'
-                : `Buy With Card: $${cardCharge.toFixed(2)}`}
+                : `Buy With Card: ${formatUsd(cardCharge)}`}
             </button>
           </>
         ) : (
@@ -1251,7 +1252,7 @@ export default function ClubShopItemDetail({ routeItemId = null }) {
         )}
         {cardQuote && (
           <p>
-            Card Checkout Charges <strong>${cardCharge.toFixed(2)}</strong> For{' '}
+            Card Checkout Charges <strong>{formatUsd(cardCharge)}</strong> For{' '}
             <strong>{cardDiamonds.toLocaleString()} New Diamonds</strong>, Redeems{' '}
             <strong>{Number(item.price || 0).toLocaleString()} Diamonds</strong> For This Item, And
             Leaves A Projected <strong>{cardPurchaseBalance.toLocaleString()} Diamonds</strong> In

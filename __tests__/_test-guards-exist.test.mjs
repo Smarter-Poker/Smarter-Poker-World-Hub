@@ -1014,6 +1014,7 @@ import './trivia-hardening-audit.test.mjs';
 import './jarvis-hand-vision.test.mjs';
 import './trivia-phase4-polish.test.mjs';
 import './a-dropped-connection-is-not-a-stale-build.law.test.mjs';
+import './render-marketplace-fixtures.test.mjs';
 import './the-live-stream-sdk-stays-off-pages-that-never-stream.law.test.mjs';
 import './the-open-command-menu-paints-above-the-header.law.test.mjs';
 import './otc-tier1-overlay-attribution-onetap-20261127.law.test.mjs';

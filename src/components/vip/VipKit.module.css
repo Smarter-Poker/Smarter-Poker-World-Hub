@@ -3,11 +3,12 @@
  * pitches VIP: the storefront, the product pages, Compare, the popups and the
  * upgrade prompts.
  *
- * Paint what never changes, print what does. The rims are the approved Club
- * Arena console nine-slices (public/images/smarterdesign/chrome-*.webp), the
- * actions are the approved painted plates (marketplace-console-v1/shark-panel
- * button-primary / button-secondary), the crown is the approved VIP master
- * (store-v3/vip-hero.webp and its seal crop). Every word and figure is live.
+ * Paint what never changes, print what does. Every rim is an approved Club
+ * Arena console nine-slice (public/images/smarterdesign/chrome-*.webp):
+ * chrome-readout for a surface, chrome-stat for a readout well, chrome-row
+ * for a control and chrome-active over cobalt for the primary action. The
+ * crown is the approved VIP master (headers/vip-*.webp). Every word and figure
+ * is live. Square corners; the only round thing is the seal.
  *
  * Text inks: white, silver, ice blue only.
  */
@@ -37,12 +38,9 @@
   min-width: 0;
   border: 6px solid transparent;
   border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
-  background:
-    radial-gradient(120% 70% at 50% -10%, #1b426e 0%, transparent 62%),
-    linear-gradient(160deg, #15293e 0%, #0a1a2b 44%, #040d18 100%);
-  box-shadow:
-    0 18px 34px rgb(0 0 0 / 72%),
-    0 0 0 1px #02070d;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  box-shadow: 0 18px 34px rgb(0 0 0 / 72%);
 }
 
 /* ── Masthead: seal, live title, crown scene, help ───────────────────── */
@@ -136,11 +134,11 @@
   outline: 2px solid #9ee3ff !important;
   outline-offset: 2px !important;
 }
-/* The plates are clipped to their chamfer, so their focus ring sits inside. */
+/* Square chrome controls: the ring sits outside the rim. */
 .cta:focus-visible,
 .ghost:focus-visible {
-  outline: 2px solid #d9f3ff !important;
-  outline-offset: -6px !important;
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }
 
 /* ── Price readout: the price this account pays, as the largest thing ── */
@@ -151,35 +149,17 @@
   gap: 8px;
   min-width: 0;
   padding: 18px 14px 15px;
-  border: 4px solid transparent;
-  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 5px stretch;
-  background:
-    radial-gradient(110% 80% at 50% 0%, #153f6c 0%, #08192c 52%, #030a13 100%);
-  box-shadow:
-    inset 0 3px 12px rgb(0 0 0 / 85%),
-    inset 0 -1px 0 rgb(72 126 178 / 35%);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  box-shadow: inset 0 3px 12px rgb(0 0 0 / 85%);
   text-align: center;
 }
-.price::before {
-  content: '';
-  position: absolute;
-  top: 1px;
-  left: 20%;
-  right: 20%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #58c4ff, #dff5ff, #58c4ff, transparent);
-  box-shadow: 0 0 12px 1px rgb(45 157 255 / 80%);
-}
+/* A printed label inside the well, never a second frame. */
 .offerTag {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 3px 12px;
-  border: 1px solid #3a7fbd;
-  background: linear-gradient(180deg, #12406f, #082341);
-  box-shadow:
-    inset 0 1px 0 rgb(134 218 255 / 45%),
-    0 1px 0 #010509;
   color: var(--vk-ice);
   font: 700 12px/1.2 var(--vk-type);
   letter-spacing: 0.08em;
@@ -259,7 +239,7 @@
   font-size: 13px;
 }
 
-/* ── Actions: the approved painted plates, live lettering ───────────── */
+/* ── Actions: chrome-active over cobalt (primary), chrome-row (secondary) ── */
 .cta,
 .ghost {
   display: inline-flex;
@@ -269,13 +249,13 @@
   gap: 1px;
   width: 100%;
   min-width: 0;
-  min-height: 58px;
+  min-height: 56px;
   margin: 0;
-  padding: 0 6px;
-  border-style: solid;
-  border-color: transparent;
-  border-width: 15px 20px;
-  background: none;
+  padding: 7px 14px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   color: #fff;
   font: 800 18px/1.12 var(--vk-type);
   letter-spacing: 0.03em;
@@ -284,47 +264,39 @@
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  /* The painted plate is an octagon on a dark backing: clip to the chamfer. */
-  clip-path: polygon(13px 0, calc(100% - 13px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 13px) 100%, 13px 100%, 0 calc(100% - 12px), 0 12px);
   transition:
     transform 0.12s ease,
     filter 0.12s ease;
 }
 .cta {
-  /* The blue plate is cut to its own painted octagon, so it needs no clip:
-     a clip drawn over the painted chamfer broke the chrome at every corner. */
-  clip-path: none;
-  border-width: 15px 22px;
-  border-image: url('/images/smarterdesign/plates/vip-button-primary.png') 30 44 fill / 15px 22px stretch;
-  text-shadow:
-    0 1px 2px #001230,
-    0 0 12px rgb(124 200 255 / 60%);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  text-shadow: 0 1px 2px #001230;
 }
 .ghost {
   min-height: 50px;
-  border-width: 13px 18px;
-  border-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png') 36 44 fill /
-    13px 18px stretch;
-  color: #dbe7f2;
+  color: #f2f7ff;
   font-size: 16px;
   text-shadow: 0 1px 2px #000;
 }
 .ctaSub {
-  color: #cfeaff;
+  color: #f2f7ff;
   font: 600 12px/1.2 var(--vk-body);
   letter-spacing: 0;
   text-shadow: 0 1px 2px #001230;
 }
 .cta:active:not(:disabled),
 .ghost:active:not(:disabled) {
-  transform: translateY(2px);
-  filter: brightness(0.86);
+  transform: translateY(1px);
+  filter: brightness(0.89);
 }
 .cta:disabled,
 .ghost:disabled,
 .cta[aria-disabled='true'] {
   cursor: not-allowed;
-  filter: grayscale(0.75) brightness(0.62);
+  color: #a7b7c8;
+  filter: grayscale(0.6) brightness(0.72);
 }
 
 /* ── Inline upgrade prompt ──────────────────────────────────────────── */
@@ -385,9 +357,7 @@
   place-items: center;
   padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
-  background:
-    radial-gradient(90% 60% at 50% 40%, rgb(16 52 92 / 55%), transparent 70%),
-    rgb(2 8 15 / 90%);
+  background: rgb(2 8 15 / 90%);
 }
 .dialog {
   width: min(100%, 460px);
@@ -399,9 +369,7 @@
 .backdrop > .dialog:focus-visible {
   outline: none !important;
   /* A global focus ring is drawn as a box-shadow; keep the chassis shadow. */
-  box-shadow:
-    0 18px 34px rgb(0 0 0 / 72%),
-    0 0 0 1px #02070d !important;
+  box-shadow: 0 18px 34px rgb(0 0 0 / 72%) !important;
 }
 .dialogHead .scene {
   width: 52%;
@@ -421,7 +389,8 @@
   text-align: center;
   overflow: hidden;
   border-bottom: 1px solid var(--vk-line);
-  background: radial-gradient(ellipse at 18% 110%, #23466f 0, #0f2338 42%, #06111d 82%);
+  /* The same image-header backdrop as the VIP masthead. */
+  background: radial-gradient(ellipse at 18% 104%, #23466f 0, #0f2338 40%, #06111d 80%);
 }
 .dialogTitle {
   margin: 0;
@@ -433,34 +402,33 @@
     0 2px 3px #020911,
     0 0 8px #061321;
 }
+/* A square chrome-row control with a 44px target. */
 .close {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 6px;
+  right: 6px;
   display: grid;
   place-items: center;
+  width: 44px;
   min-width: 44px;
+  height: 44px;
   min-height: 44px;
   padding: 0;
-  border: 0;
-  background: none;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   color: #f2f7ff;
   cursor: pointer;
   touch-action: manipulation;
 }
+.close:active {
+  filter: brightness(0.89);
+}
 .close span {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  border: 2px solid #b9cbdb;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #35506b, #0a1826 70%);
-  box-shadow:
-    0 0 0 1px #09121c,
-    0 2px 5px #000,
-    inset 0 1px 0 #ffffff55;
-  font: 700 17px/1 var(--vk-body);
+  font: 700 18px/1 var(--vk-body);
 }
 .dialogBody {
   display: grid;
@@ -536,11 +504,7 @@
   padding: 16px 14px 16px;
 }
 .planFeatured {
-  border-image-source: url('/images/smarterdesign/chrome-active-v2.webp');
-  border-image-slice: 11;
-  box-shadow:
-    0 18px 34px rgb(0 0 0 / 72%),
-    0 0 26px rgb(45 157 255 / 30%);
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 8px stretch;
 }
 .planHead {
   display: flex;
@@ -578,8 +542,7 @@
   width: 9px;
   height: 9px;
   transform: rotate(45deg);
-  background: linear-gradient(135deg, #e6f6ff, #4fb6ff 60%, #1d5d9b);
-  box-shadow: 0 0 8px rgb(79 182 255 / 70%);
+  background: #86daff;
 }
 .facts {
   display: grid;
@@ -593,8 +556,9 @@
   min-width: 0;
   padding: 12px 8px;
 }
+/* A divider between facts, drawn as a hairline shadow, not an edge bar. */
 .facts > div + div {
-  border-left: 1px solid var(--vk-line);
+  box-shadow: inset 1px 0 0 var(--vk-line);
 }
 .facts strong {
   color: var(--vk-ice);
@@ -629,8 +593,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
   .facts > div + div {
-    border-left: 0;
-    border-top: 1px solid var(--vk-line);
+    box-shadow: inset 0 1px 0 var(--vk-line);
   }
 }
 
@@ -651,20 +614,14 @@
 
 /* ── Phone verification welcome offer (Dan, 2026-11-27) ─────────────────
    Shown before the VIP price to an account that has not claimed it. Same
-   rim, seal, price plate and painted plates as every other prompt; only the
-   diamond bonus row is new, and it is a printed readout on the plate. */
+   rim, seal, price well and chrome actions as every other prompt; only the
+   diamond bonus row is new, and it is printed in the well with no frame of
+   its own (one frame per surface). */
 .phoneBonus {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   min-height: 34px;
-  padding: 4px 14px 4px 8px;
-  border: 3px solid transparent;
-  border-image: url('/images/smarterdesign/chrome-row.webp') 9 / 4px stretch;
-  background: linear-gradient(180deg, #0d2c4d, #061628);
-  box-shadow:
-    inset 0 1px 0 rgb(134 218 255 / 30%),
-    0 0 14px rgb(45 157 255 / 28%);
   color: var(--vk-text);
   font: 800 17px/1.1 var(--vk-type);
   letter-spacing: 0.04em;
@@ -673,7 +630,7 @@
   width: 24px;
   height: 24px;
   object-fit: contain;
-  filter: drop-shadow(0 0 6px rgb(88 196 255 / 75%));
+  filter: drop-shadow(0 1px 2px #000);
 }
 .phoneSkip {
   margin: 0;

@@ -59,7 +59,7 @@ import {
 } from '../../lib/store/checkoutIntentStore';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 import { formatWalletDescriptionParts } from '../../lib/store/walletDescription.mjs';
-// #SMARTERCASINOREALISM. Same tokens as the Club Arena vault; see the header.
+// #SMARTERDESIGN: chrome nine-slice surfaces, cobalt selection; see the header.
 import styles from './DiamondWalletModal.module.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -70,8 +70,8 @@ const MARKETPLACE_ANALYTICS_COLORS = [
   '#58d9ff',
   '#3b82f6',
   '#8aa8b8',
-  '#f59e0b',
-  '#ef4444',
+  '#1981ec',
+  '#67e8f9',
   '#c4d3da',
   '#06b6d4',
 ];
@@ -320,8 +320,8 @@ const DonutChart = ({ data }) => {
         fill="none"
         stroke={d.color}
         strokeWidth={donutWidth}
-        strokeLinecap="round"
-        opacity="0.85"
+        strokeLinecap="butt"
+        opacity="0.9"
       />
     );
   });
@@ -335,23 +335,23 @@ const DonutChart = ({ data }) => {
           cy={cy}
           r={r}
           fill="none"
-          stroke="rgba(255,255,255,0.04)"
+          stroke="#13263a"
           strokeWidth={donutWidth}
         />
         {slices}
         {/* Center text */}
         <text
           x={cx}
-          y={cy - 4}
+          y={cy - 3}
           textAnchor="middle"
-          fill="rgba(255,255,255,0.6)"
-          fontSize="10"
+          fill="#f2f7ff"
+          fontSize="13"
           fontWeight="700"
           fontFamily="var(--font-roboto-condensed), 'Roboto Condensed', Arial, sans-serif"
         >
           {total.toLocaleString()}
         </text>
-        <text x={cx} y={cy + 8} textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="7">
+        <text x={cx} y={cy + 11} textAnchor="middle" fill="#bdd0e2" fontSize="12">
           Total
         </text>
       </svg>

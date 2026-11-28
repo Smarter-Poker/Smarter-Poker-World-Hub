@@ -182,8 +182,11 @@ test('VIP owns its surface and excludes unrelated marketplace navigation', () =>
   // #SMARTERDESIGN ink-navy canvas (Dan, 2026-11-27: no flat pages).
   assert.match(VIP_STYLES, /\.page \{[\s\S]*?background:[\s\S]*?#040d18;/);
   assert.match(VIP_STYLES, /@media \(max-width: 640px\)[\s\S]*?\.plans \{ grid-template-columns: 1fr;/);
-  // Actions are the approved painted plates, not drawn bevels.
-  assert.match(VIP_STYLES, /smarterdesign\/plates\/vip-button-primary\.png/);
+  // #SMARTERDESIGN: actions are chrome-row controls and the primary is
+  // chrome-active over cobalt; the retired painted plates do not return.
+  assert.match(VIP_STYLES, /\.primaryAction \{[^}]*chrome-active\.webp[^}]*#1981ec/);
+  assert.match(VIP_STYLES, /\.action, \.heroAction[^{]*\{[^}]*chrome-row\.webp/);
+  assert.doesNotMatch(VIP_STYLES, /vip-button-primary\.png|shark-panel|marketplace-console-v1|clip-path/);
 });
 
 // Exercise the page's real event handler with isolated provider boundaries.

@@ -842,12 +842,99 @@
   text-shadow: 0 1px 2px #000;
 }
 
+/* Page intro rows. A store page never floats a centred paragraph on the bare
+   page: the Club Shop balance and description sit in one compact readout
+   panel (balance well on the left, copy beside it), and a sentence-only intro
+   sits in a chrome-stat well. Phones stack the balance full width. */
+.storeIntroPanel {
+  display: flex;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  margin: 0 0 20px;
+  padding: 14px 18px;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  text-align: left;
+}
+
+.storeIntroBalance {
+  display: flex;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.storeIntroText,
+.introWell {
+  margin: 0;
+  color: #bdd0e2;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.storeIntroText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.introWell {
+  display: block;
+  box-sizing: border-box;
+  max-width: none;
+  margin: 0 0 4px;
+  padding: 12px 16px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+}
+
+@media (max-width: 640px) {
+  .storeIntroPanel {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .storeIntroBalance > span {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* Club Shop catalog (signed in) and the signed-out preview share one grid:
+   one column on phones, two from 700px, three from 1080px. The card media
+   stays square on phones and is capped on wider cards so a card never grows
+   taller than the viewport needs. */
 .clubItemGrid {
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 20px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: stretch;
+  gap: 16px !important;
+}
+
+@media (min-width: 700px) {
+  .clubItemGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 18px !important;
+  }
+}
+
+@media (min-width: 1080px) {
+  .clubItemGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 20px !important;
+  }
 }
 
 .clubItemCard {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   overflow: hidden;
   border: 5px solid transparent !important;
@@ -864,6 +951,7 @@
   display: flex;
   height: auto !important;
   aspect-ratio: 1;
+  max-height: 260px;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -871,9 +959,13 @@
   background: transparent !important;
 }
 
+/* The atlas cell stays square inside a capped (wider than tall) media box. */
 .clubProductAtlas {
   position: absolute;
-  inset: 0;
+  inset: 0 auto auto 50%;
+  height: 100%;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
   background-image: url('/images/store-v3/club-shop-product-atlas-v2.png');
   background-image: image-set(
     url('/images/store-v3/club-shop-product-atlas-v2.webp') type('image/webp'),
@@ -959,6 +1051,7 @@
 /* The 190px floor never applied: measured content is 237-241px. */
 .clubItemBody {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   padding: 18px !important;
 }
@@ -1498,10 +1591,6 @@ button.clubAdminManagedStatus[aria-pressed='true'] {
     font-size: 13px;
   }
 
-  .clubItemGrid {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-
   .clubRecoveryNotice {
     padding: 20px 16px;
   }
@@ -1528,10 +1617,6 @@ button.clubAdminManagedStatus[aria-pressed='true'] {
 @media (min-width: 641px) and (max-width: 960px) {
   .vipBenefits .responsiveGrid {
     grid-template-columns: minmax(0, 1fr) !important;
-  }
-
-  .clubItemGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 
