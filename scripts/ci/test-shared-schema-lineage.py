@@ -142,6 +142,68 @@ class LineageAdmissionTests(unittest.TestCase):
             migration.write_bytes(b'SELECT 1;\n')
             self.assertNotEqual(result, lineage.fingerprint(root))
 
+    def installed_doc(self, **overrides):
+        entry = {'path': 'supabase/migrations/20261128101707_fn_bankroll_totals.sql', 'sha256': 'e' * 64,
+                 'installedVersion': '20261128101707', 'installedName': 'fn_bankroll_totals'}
+        entry.update(overrides)
+        return {'schemaVersion': 1, 'purpose': 'test', 'files': [entry]}
+
+    def test_a_recorded_installed_migration_is_admitted_as_immutable_history(self):
+        installed = lineage.installed_history(self.installed_doc())
+        self.actual['supabase/migrations/20261128101707_fn_bankroll_totals.sql'] = 'e' * 64
+        result = lineage.extend_inventory(self.inventory, self.forward, self.actual, self.proof,
+                                          self.report_proof, self.marketplace_proof, installed)
+        self.assertIn({'path': 'supabase/migrations/20261128101707_fn_bankroll_totals.sql', 'sha256': 'e' * 64},
+                      result['repositories']['hub']['files'])
+
+    def test_a_recorded_migration_whose_bytes_change_or_vanish_is_refused(self):
+        installed = lineage.installed_history(self.installed_doc())
+        path = 'supabase/migrations/20261128101707_fn_bankroll_totals.sql'
+        for digest in (None, 'f' * 64):
+            with self.subTest(digest=digest):
+                if digest is None:
+                    self.actual.pop(path, None)
+                else:
+                    self.actual[path] = digest
+                with self.assertRaises(ValueError):
+                    lineage.validate_inputs(self.inventory, self.forward, self.actual, installed)
+
+    def test_an_entry_without_an_installed_version_never_admits_sql(self):
+        for overrides in ({'installedVersion': None}, {'installedVersion': ''}, {'installedVersion': '2026112810170'},
+                          {'installedVersion': 'pending'}, {'installedName': 'something_else'},
+                          {'sha256': 'E' * 64}, {'sha256': 'e' * 63}, {'path': 'supabase/seeds/x.sql'}):
+            with self.subTest(overrides=overrides):
+                with self.assertRaises(ValueError):
+                    lineage.installed_history(self.installed_doc(**overrides))
+        doc = self.installed_doc()
+        doc['files'] *= 2
+        with self.assertRaises(ValueError):
+            lineage.installed_history(doc)
+        for doc in ({}, {'schemaVersion': 2, 'files': []}, {'schemaVersion': 1, 'files': {}}):
+            with self.assertRaises(ValueError):
+                lineage.installed_history(doc)
+
+    def test_installed_history_cannot_restate_pinned_or_qualified_files(self):
+        for path, digest in [('supabase/migrations/old.sql', 'a' * 64), lineage.TRANSITIONS[0]]:
+            with self.subTest(path=path):
+                with self.assertRaises(ValueError):
+                    lineage.validate_inputs(self.inventory, self.forward, self.actual, {path: digest})
+
+    def test_an_unrecorded_new_migration_is_still_refused_by_name(self):
+        installed = lineage.installed_history(self.installed_doc())
+        self.actual['supabase/migrations/20261128101707_fn_bankroll_totals.sql'] = 'e' * 64
+        self.actual['supabase/migrations/20261129000000_not_installed.sql'] = 'c' * 64
+        with self.assertRaisesRegex(ValueError, 'Not recorded: supabase/migrations/20261129000000_not_installed.sql'):
+            lineage.validate_inputs(self.inventory, self.forward, self.actual, installed)
+
+    def test_the_committed_installed_history_is_well_formed(self):
+        root = Path(__file__).resolve().parents[2]
+        entries = lineage.installed_history(json.loads((root / lineage.INSTALLED_HISTORY).read_text()))
+        self.assertGreater(len(entries), 0)
+        actual = lineage.fingerprint(root)
+        for path, digest in entries.items():
+            self.assertEqual(actual.get(path), digest, path)
+
 
 if __name__ == '__main__':
     unittest.main()

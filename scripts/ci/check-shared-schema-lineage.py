@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Keep pinned history immutable; admit three exact, freshly qualified DML transitions."""
+"""Keep pinned history immutable; admit exact, freshly qualified DML transitions and
+migrations recorded as installed after the pinned baseline (supabase/history)."""
 import argparse
 import copy
 import hashlib
@@ -44,6 +45,39 @@ TRANSITIONS = (
      'b6deee756e3426b8a9fa67e74cb490a3aaf68f53ebea7fe6df58bf234979ed8d'),
 )
 EVIDENCE_PREFIX = 'Phase 6 Training solver catalog verification passed: '
+# The pinned baseline (Club Arena 672c582d, 2026-10-22) is a frozen snapshot
+# with no refresh route: its source lives on a Club Arena commit that never
+# reached that repository's main. From 2026-11-12 every ordinary Hub migration
+# failed here as "unqualified", main stayed red for sixteen days, and the check
+# stopped protecting anything. The refreshed baseline is this Hub-owned record
+# of migrations that production's own history says were installed. Each entry
+# is held immutable exactly like the pinned files; a file not recorded is still
+# refused. Unexecuted SQL is never admitted: an entry needs an installed version.
+INSTALLED_HISTORY = 'supabase/history/installed-after-baseline.json'
+VERSION_DIGITS = 14
+
+
+def installed_history(document):
+    if not isinstance(document, dict) or document.get('schemaVersion') != 1 or not isinstance(document.get('files'), list):
+        raise ValueError('Installed history must be schemaVersion 1 with a files list')
+    entries = {}
+    for entry in document['files']:
+        path, digest, version, name = (entry.get(k) if isinstance(entry, dict) else None
+                                       for k in ('path', 'sha256', 'installedVersion', 'installedName'))
+        if not (isinstance(path, str) and path.startswith('supabase/migrations/') and path.endswith('.sql')):
+            raise ValueError('Installed history entry has no migration path')
+        if not (isinstance(digest, str) and len(digest) == 64 and all(c in '0123456789abcdef' for c in digest)):
+            raise ValueError(f'Installed history entry {path} has no exact sha256')
+        if not (isinstance(version, str) and len(version) == VERSION_DIGITS and version.isdigit()):
+            raise ValueError(f'Installed history entry {path} has no installed version: unexecuted SQL is never admitted')
+        if not (isinstance(name, str) and name and path.endswith('_' + name + '.sql')):
+            raise ValueError(f'Installed history entry {path} does not name the installed migration')
+        if path in entries:
+            raise ValueError(f'Duplicate installed history entry {path}')
+        entries[path] = digest
+    return entries
+
+
 REQUIRED_CHECKS = (
     'exactTwoTargets', 'schemaUnchanged', 'm2Unchanged',
     'receiptsAndArtifactsPreserved', 'duplicateRefused', 'guardDriftRefused',
@@ -58,7 +92,8 @@ def fingerprint(root):
             for p in (root / 'supabase/migrations').rglob('*.sql')}
 
 
-def validate_inputs(inventory, forward, actual):
+def validate_inputs(inventory, forward, actual, installed=None):
+    installed = {} if installed is None else installed
     if forward.get('hub') != []:
         raise ValueError('A different Hub forward transition requires independent qualification')
     records = inventory['repositories']['hub']['files']
@@ -69,13 +104,27 @@ def validate_inputs(inventory, forward, actual):
         raise ValueError('Historical migration missing')
     if any(actual[p] != digest for p, digest in expected.items()):
         raise ValueError('Historical migration bytes changed')
-    new = set(actual) - set(expected)
-    if new != set(dict(TRANSITIONS + REPORT_TRANSITIONS + MARKETPLACE_TRANSITIONS)) or any(actual.get(p) != digest for p, digest in TRANSITIONS + REPORT_TRANSITIONS + MARKETPLACE_TRANSITIONS):
-        raise ValueError('Only exact independently qualified M1, digest and marketplace transitions are admitted')
+    qualified = dict(TRANSITIONS + REPORT_TRANSITIONS + MARKETPLACE_TRANSITIONS)
+    overlap = sorted(set(installed) & (set(expected) | set(qualified)))
+    if overlap:
+        raise ValueError('Installed history repeats pinned or qualified history: ' + ', '.join(overlap))
+    missing = sorted(set(installed) - set(actual))
+    if missing:
+        raise ValueError('Installed migration missing: ' + ', '.join(missing))
+    changed = sorted(p for p, digest in installed.items() if actual[p] != digest)
+    if changed:
+        raise ValueError('Installed migration bytes changed: ' + ', '.join(changed))
+    new = set(actual) - set(expected) - set(installed)
+    if new != set(qualified) or any(actual.get(p) != digest for p, digest in qualified.items()):
+        unrecorded = sorted(new - set(qualified))
+        raise ValueError('Only exact independently qualified M1, digest and marketplace transitions, and migrations '
+                         'recorded as installed in ' + INSTALLED_HISTORY + ', are admitted'
+                         + ('. Not recorded: ' + ', '.join(unrecorded) if unrecorded else ''))
 
 
-def extend_inventory(inventory, forward, actual, proof, report_proof=None, marketplace_proof=None):
-    validate_inputs(inventory, forward, actual)
+def extend_inventory(inventory, forward, actual, proof, report_proof=None, marketplace_proof=None, installed=None):
+    installed = {} if installed is None else installed
+    validate_inputs(inventory, forward, actual, installed)
     if not isinstance(proof, list) or len(proof) != len(TRANSITIONS):
         raise ValueError('Native proof must cover all three transitions in order')
     for item, (migration, digest) in zip(proof, TRANSITIONS):
@@ -94,6 +143,8 @@ def extend_inventory(inventory, forward, actual, proof, report_proof=None, marke
     admitted = copy.deepcopy(inventory)
     admitted['repositories']['hub']['files'].extend(
         {'path': migration, 'sha256': digest} for migration, digest in TRANSITIONS + REPORT_TRANSITIONS + MARKETPLACE_TRANSITIONS)
+    admitted['repositories']['hub']['files'].extend(
+        {'path': migration, 'sha256': digest} for migration, digest in sorted(installed.items()))
     return admitted
 
 
@@ -115,7 +166,8 @@ def main():
     forward_path = shared / 'supabase/bootstrap/forward-schema.json'
     forward = json.loads(forward_path.read_text())
     actual = fingerprint(root)
-    validate_inputs(inventory, forward, actual)
+    installed = installed_history(json.loads((root / INSTALLED_HISTORY).read_text()))
+    validate_inputs(inventory, forward, actual, installed)
     # No production connection settings or credentials reach the disposable verifier.
     allowed = ('PATH', 'HOME', 'USER', 'LANG', 'LC_ALL', 'TMPDIR', 'TMP', 'TEMP',
                'SYSTEMROOT', 'PHASE6_POSTGRES_BIN')
@@ -142,7 +194,8 @@ def main():
         raise ValueError('Expected one fresh marketplace native qualification receipt')
     marketplace_proof = json.loads(receipts[0])
     # Re-read migration bytes after execution so the receipt cannot admit changed input.
-    admitted = extend_inventory(inventory, forward, fingerprint(root), proof, report_proof, marketplace_proof)
+    installed = installed_history(json.loads((root / INSTALLED_HISTORY).read_text()))
+    admitted = extend_inventory(inventory, forward, fingerprint(root), proof, report_proof, marketplace_proof, installed)
     with tempfile.TemporaryDirectory(prefix='training-qualified-lineage-') as scratch:
         derived = Path(scratch) / 'qualified-inventory.json'
         derived.write_text(json.dumps(admitted), encoding='utf-8')

@@ -10,8 +10,9 @@ import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 import { motion } from 'framer-motion';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import { formatCurrency, formatCurrencyWithSign } from '../../lib/bankroll/currencyUtils';
+import StakeAffordability from './StakeAffordability';
 
-export default function BankrollProjection({ userId, currentBankroll = 0, onClose, displayEUR = false }) {
+export default function BankrollProjection({ userId, currentBankroll = 0, bankrollKnown = true, onClose, displayEUR = false }) {
     const money = (value) => formatCurrency(value, displayEUR);
     const signedMoney = (value) => formatCurrencyWithSign(value, displayEUR);
     const [isLoading, setIsLoading] = useState(false);
@@ -248,6 +249,17 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                             Adjust Settings
                         </button>
                     </>
+                )}
+
+                {/* The same answer as the dashboard card, from the same
+                    sessions, rules and Bankroll Balance. */}
+                {userId && (
+                    <StakeAffordability
+                        userId={userId}
+                        bankroll={bankrollKnown ? currentBankroll : null}
+                        displayEUR={displayEUR}
+                        variant="section"
+                    />
                 )}
                 </div>
             </motion.div>

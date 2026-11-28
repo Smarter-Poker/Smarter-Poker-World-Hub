@@ -142,6 +142,7 @@ const BankrollExportFormats = lazySection(() => import('../../src/components/ban
 const LedgerTimeline = lazySection(() => import('../../src/components/bankroll/LedgerTimeline'));
 const LocationAnalytics = lazySection(() => import('../../src/components/bankroll/LocationAnalytics'));
 const BankrollProjection = lazySection(() => import('../../src/components/bankroll/BankrollProjection'));
+const StakeAffordability = dynamic(() => import('../../src/components/bankroll/StakeAffordability'), { ssr: false });
 const PlayerNotes = lazySection(() => import('../../src/components/bankroll/PlayerNotes'));
 const HistoricalComparison = lazySection(() => import('../../src/components/bankroll/HistoricalComparison'));
 const VarianceCalculator = lazySection(() => import('../../src/components/bankroll/VarianceCalculator'));
@@ -2086,6 +2087,12 @@ export default function BankrollManagerPage() {
                   </div>
                   )}
 
+                  {userId && !(isLoading && !hasLoadedOnce) && (
+                    <HubErrorBoundary name="Stake Affordability">
+                      <StakeAffordability userId={userId} bankroll={stats ? stats.totalBankroll : null} displayEUR={preferences.currencyEUR} refreshKey={refreshTrigger} />
+                    </HubErrorBoundary>
+                  )}
+
                   {/* Recent Activity Section */}
                   <div className={`sd-panel ${layout.panel}`}>
                     <div
@@ -2960,6 +2967,7 @@ export default function BankrollManagerPage() {
             userId={userId}
             currentBankroll={stats?.totalBankroll || 0}
             displayEUR={preferences.currencyEUR}
+            bankrollKnown={Boolean(stats)}
             onClose={() => { clearActionView('projection'); setShowProjection(false); }}
           />
         )}

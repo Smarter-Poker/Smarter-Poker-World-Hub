@@ -203,6 +203,7 @@ import './bankroll-session-import.test.mjs';
 import './bankroll-data-io.test.mjs';
 import './bankroll-tax-packet.test.mjs';
 import './bankroll-ledger-batch.test.mjs';
+import './bankroll-stake-affordability.test.mjs';
 import './club-stats-maintenance-runtime-budget.test.mjs';
 // 2026-09-22: the same route schedules only its periodic steps. Runs the real
 // handler through vm.SourceTextModule (CHECK 8 passes --experimental-vm-modules).

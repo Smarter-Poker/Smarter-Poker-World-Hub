@@ -233,8 +233,16 @@ export function venueBreakdown(entries, sort) {
   for (const entry of entries.filter(isSession)) {
     const name = entry.location_name || entry.location?.name || 'Unspecified Venue';
     const id = entry.location_id || name;
-    const venue = venues.get(id) || { id, name, count: 0, net: 0, wins: 0 };
+    const venue = venues.get(id) || { id, name, count: 0, net: 0, wins: 0, hours: 0, timed: 0, timedNet: 0 };
     const net = netCents(entry);
+    // Hours and the hourly rate come from timed sessions only, so an untimed
+    // session never drags the rate toward zero.
+    const hours = sessionHours(entry.start_time, entry.end_time);
+    if (hours > 0) {
+      venue.hours += hours;
+      venue.timed++;
+      venue.timedNet += net;
+    }
     venue.count++;
     venue.net += net;
     venue.wins += Number(net > 0);
