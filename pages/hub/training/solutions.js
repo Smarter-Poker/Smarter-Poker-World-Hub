@@ -11,11 +11,13 @@
 // TRAIN-CSS-TOKENS-BATCH5-54 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-47 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import RangeGrid from '../../../src/components/training/RangeGrid';
 import { classifyAllHands, groupByClassification } from '../../../src/utils/pokerHandEvaluator';
+
+const RangeGrid = dynamic(() => import('../../../src/components/training/RangeGrid'), { ssr: false });
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus } from '../../../src/engine/EventBus';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';

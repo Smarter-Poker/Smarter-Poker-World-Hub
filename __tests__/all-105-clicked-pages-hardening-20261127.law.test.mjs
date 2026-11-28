@@ -57,10 +57,10 @@ test('starting hand pages wrap tables in overflowX auto to eliminate 90px mobile
 });
 
 test('preflop-ranges index uses 6-column responsive grid so SB tab never clips on 390px mobile', () => {
-  const src = read('pages/tools/preflop-ranges/index.js');
+  const src = read('src/components/seo/PreflopRangeMatrixHub.jsx');
   assert.ok(
     src.includes("repeat(6, minmax(0, 1fr))"),
-    'pages/tools/preflop-ranges/index.js must use repeat(6, minmax(0, 1fr)) for position tabs',
+    'src/components/seo/PreflopRangeMatrixHub.jsx must use repeat(6, minmax(0, 1fr)) for position tabs',
   );
 });
 

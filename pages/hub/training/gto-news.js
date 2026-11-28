@@ -588,6 +588,7 @@ export default function GtoNewsPage() {
                       <button
                         type="button"
                         className={s.newsTitle}
+                        data-training-raw-control="true"
                         data-read={readArticles.has(a.id) ? 'true' : undefined}
                         aria-expanded={expanded === a.id}
                         aria-label={`${a.title}${a.isSample ? ' (Sample Content)' : ''}${readArticles.has(a.id) ? ' (Read)' : ''}`}

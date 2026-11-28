@@ -17,7 +17,7 @@ const PERIODS = [
 ];
 
 const RANK_COLORS = {
-    1: '#ffd700', // Gold
+    1: '#56d8ff', // Gold
     2: '#c0c0c0', // Silver
     3: '#cd7f32', // Bronze
 };
@@ -197,9 +197,9 @@ export default function LeaderboardPanel({ userId, gameId }) {
 const styles = {
     container: {
         marginBottom: 16, padding: '14px',
-        background: 'linear-gradient(180deg, rgba(255,215,0,0.04) 0%, rgba(0,0,0,0.15) 100%)',
+        background: 'linear-gradient(180deg, rgba(86, 216, 255,0.04) 0%, rgba(0,0,0,0.15) 100%)',
         borderRadius: 14,
-        border: '1px solid rgba(255,215,0,0.1)',
+        border: '1px solid rgba(86, 216, 255,0.1)',
     },
     header: {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -221,8 +221,8 @@ const styles = {
         cursor: 'pointer', transition: 'all 0.15s',
     },
     periodBtnActive: {
-        background: 'rgba(255,215,0,0.1)',
-        borderColor: 'rgba(255,215,0,0.25)',
+        background: 'rgba(86, 216, 255,0.1)',
+        borderColor: 'rgba(86, 216, 255,0.25)',
         color: '#86daff',
     },
     loadingText: {

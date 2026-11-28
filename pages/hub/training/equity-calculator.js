@@ -1,4 +1,4 @@
-import PlayingCard from '../../../src/components/poker/PlayingCard';
+import PlayingCard, { preloadArenaDeckCards } from '../../../src/components/poker/PlayingCard';
 import { runLocalTrainingEquity } from '../../../src/lib/poker/runLocalTrainingEquity';
 /**
  * Equity Calculator — Monte Carlo Hand vs Hand Equity Tool
@@ -107,7 +107,7 @@ function CardGrid({ title, usedCards, onPick, onClose }) {
                 disabled={used}
                 aria-label={`${rank} Of ${suit.name}`}
               >
-                <PlayingCard arena card={card} width={32} />
+                <PlayingCard arena priority card={card} width={32} />
               </button>
             );
           })}
@@ -346,6 +346,7 @@ export default function EquityCalculatorPage() {
   const [offlineFallbackUsed, setOfflineFallbackUsed] = useState(false);
 
   useEffect(() => {
+    preloadArenaDeckCards();
     if (typeof window === 'undefined') return undefined;
     setIsOffline(navigator.onLine === false);
     const handleOnline = () => setIsOffline(false);

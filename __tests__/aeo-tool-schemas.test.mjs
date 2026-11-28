@@ -103,7 +103,7 @@ test('Tournament ICM Calculator ships complete Schema.org graph with FAQPage and
 });
 
 test('GTO Preflop Ranges Matrix ships complete Schema.org graph with FAQPage and Speakable', () => {
-  const src = read('pages/tools/preflop-ranges/index.js');
+  const src = read('src/components/seo/PreflopRangeMatrixHub.jsx');
   assert.ok(src.includes('jsonLd={schema}'), 'preflop-ranges index.js must pass jsonLd to SEOHead');
   assert.ok(src.includes('Frequently Asked Questions'), 'preflop-ranges must render FAQ section in DOM');
 

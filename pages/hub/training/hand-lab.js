@@ -17,7 +17,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { runLocalTrainingEquity } from '../../../src/lib/poker/runLocalTrainingEquity';
-import PlayingCard from '../../../src/components/poker/PlayingCard';
+import PlayingCard, { preloadArenaDeckCards } from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import { SPOT_OF_THE_WEEK_CATALOG } from '../../../src/lib/newsletter/weeklyWireCatalog.mjs';
 // TRAIN-WIRE-FX-2c — adoption: hand-lab card-pick + analyze feedback
@@ -159,6 +159,11 @@ export default function HandLabV2() {
   const spotVotes = spotVoteState.slug === activeSpotSlug ? spotVoteState.votes : EMPTY_SPOT_VOTES;
   const spotVoteFailed = Boolean(activeSpotSlug) && spotVoteFailedSlug === activeSpotSlug;
   activeSpotSlugRef.current = activeSpotSlug;
+
+  // Preload 52-card arena deck assets on idle so the card picker opens instantaneously
+  useEffect(() => {
+    preloadArenaDeckCards();
+  }, []);
 
   // Hydrate Weekly Wire Spot Of The Week (?spot=<slug>&pick=<A|B|C>) when linked from email or /hub/wire
   useEffect(() => {
@@ -744,7 +749,7 @@ export default function HandLabV2() {
                         disabled={isUsed || !selectedSlot}
                         aria-label={`${rank}${suit}`}
                       >
-                        <PlayingCard arena card={card} width={32} />
+                        <PlayingCard arena priority card={card} width={32} />
                       </button>
                     );
                   })}

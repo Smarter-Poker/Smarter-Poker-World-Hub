@@ -154,7 +154,7 @@
         { "href": "/hub/bankroll-manager?view=log-session", "label": "Log", "title": "Log A Session", "icon": "plus" },
         { "href": "/hub/bankroll-manager?view=trips", "label": "Trips", "title": "Trip Tracker", "icon": "route" },
         { "href": "/hub/bankroll-manager?view=reports", "label": "Reports", "title": "Bankroll Reports", "icon": "chart" },
-        { "href": "/hub/bankroll-manager?view=rules", "label": "Rules", "title": "Bankroll Rules", "icon": "shield" },
+        { "href": "/hub/bankroll-manager?view=badges", "label": "Badges", "title": "Bankroll Badges", "icon": "shield" },
         { "href": "/hub/bankroll-manager/export", "label": "Export", "title": "Export Bankroll Data", "icon": "download" }
       ]
     },

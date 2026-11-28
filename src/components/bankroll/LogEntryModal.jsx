@@ -1378,7 +1378,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 value={formData.trip_id}
                 onChange={(e) => {
                   if (e.target.value === '__new__') {
-                    window.open('/hub/bankroll-manager?view=trip-tracker', '_blank');
+                    window.open('/hub/bankroll-manager?view=trips', '_blank');
                   } else {
                     handleInputChange('trip_id', e.target.value);
                   }

@@ -11,6 +11,7 @@ import {
   BANKROLL_RULE_UPSERT,
   BANKROLL_SEGMENT_CREATE_ONLY,
 } from './naturalKeys.mjs';
+import { RECEIPT_UNASSIGN } from './receiptGallery.mjs';
 import { localDay, localDayOffset } from './localDates.mjs';
 import {
   linkableStakingEntries,
@@ -454,6 +455,18 @@ export async function deleteLedgerEntry(
 
   if (error) throw error;
   if (!data || data.length === 0) throw new Error('Entry Not Found');
+
+  // A receipt filed to this entry would otherwise stay `assigned` to a row that
+  // no longer exists: listed nowhere, assignable from nowhere. Dan's rule
+  // (2026-09-08) is that a scanned receipt is never abandoned, so it goes back
+  // to Receipts Waiting. The entry is already gone, so a failure here is
+  // reported, not thrown.
+  const { error: receiptError } = await supabase
+    .from('bankroll_receipts')
+    .update(RECEIPT_UNASSIGN)
+    .eq('user_id', userId)
+    .eq('assigned_id', entryId);
+  if (receiptError) console.warn('[Bankroll] Receipt not returned to Receipts Waiting:', receiptError.message);
 
   try {
     await recalculateSegmentBalance(userId, categoryToSegment(data[0].category || 'poker_cash'));

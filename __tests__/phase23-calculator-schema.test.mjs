@@ -8,7 +8,7 @@ test('Phase 23: all interactive calculators and range labs emit hubProductSchema
     'pages/hub/training/icm-calculator.js',
     'pages/hub/training/equity-calculator.js',
     'pages/hub/poker-tools.js',
-    'pages/tools/preflop-ranges/index.js',
+    'src/components/seo/PreflopRangeMatrixHub.jsx',
     'pages/hub/memory-games.js',
   ];
 

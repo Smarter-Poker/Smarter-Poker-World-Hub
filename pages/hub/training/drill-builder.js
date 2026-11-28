@@ -36,6 +36,7 @@ function getSupabase() {
     const { createClient } = require('@supabase/supabase-js');
     const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
     const key = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+    if (!url || !key) return null;
     _supabase = typeof window !== 'undefined' ? hardenSupabaseRealtime(createClient(url, key, { realtime: { transport: createResilientWebSocketTransport() } })) : null;
   }
   return _supabase;

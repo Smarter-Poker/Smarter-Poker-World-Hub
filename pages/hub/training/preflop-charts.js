@@ -11,6 +11,7 @@
 // TRAIN-CSS-TOKENS-BATCH5-39 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-32 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
@@ -22,7 +23,9 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import useVIPGate from '../../../src/hooks/useVIPGate';
-import VIPGateModal from '../../../src/components/ui/VIPGateModal';
+
+const BottomSheet = dynamic(() => import('../../../src/components/ui/BottomSheet'), { ssr: false });
+const VIPGateModal = dynamic(() => import('../../../src/components/ui/VIPGateModal'), { ssr: false });
 
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 import at from '../../../src/styles/training/analysis-tools.module.css';
