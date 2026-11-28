@@ -17,7 +17,7 @@ import SEOHead, { schemas } from '../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
 import SmarterSeoMasthead from '../src/components/seo/SmarterSeoMasthead';
 import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
-import { VENUE_COUNT_LABEL } from '../src/lib/venueCount.mjs';
+import { VENUE_COUNT_LABEL, VERIFIED_VENUE_COUNT } from '../src/lib/venueCount.mjs';
 
 const SITE_URL = 'https://smarter.poker';
 const CANONICAL_PATH = '/verification-methodology';
@@ -33,7 +33,7 @@ export function renderVerificationMethodologyMarkdown() {
     'Smarter.Poker Is Operated By Smarter Software Inc. Every Dataset, Comparison Table, Live Poker Venue Profile, And Strategy Calculation Published On Smarter.Poker Follows Strict Primary-Source Provenance Rules. Unknown Facts Are Printed As Not Published Rather Than Estimated, And Every Mathematical Figure Is Derived From Deterministic Formulas.',
     '',
     '## 1. Live Poker Venue & Tournament Schedule Verification',
-    `- **Verified Venue Profiles**: Smarter.Poker Tracks ${VENUE_COUNT_LABEL} Licensed Casino Poker Rooms, Cardrooms, And Charity Poker Rooms Across North America With Source URLs, Scrape Hashes, And Verification Timestamps.`,
+    `- **Venue Profiles**: Smarter.Poker Lists ${VENUE_COUNT_LABEL} Licensed Casino Poker Rooms, Cardrooms, And Charity Poker Rooms Across The United States. ${VERIFIED_VENUE_COUNT} Of Them Carry A Recorded Verification Date; The Rest Show Their Source.`,
     '- **Recurring Daily Tournaments & Series**: Tournament Series (/hub/poker-series) And Daily Tournaments (/hub/daily-tournaments) Record Explicit Data Quality Classifications And Primary Operator Sources.',
     '',
     '## 2. Competitor & Cardroom Comparison Provenance (/compare)',
@@ -140,7 +140,8 @@ export default function VerificationMethodologyPage() {
               title={title}
               lead="Every Live Venue Profile, Software Comparison Matrix & GTO Calculation Verified Against Primary Sources & Zenodo DOIs."
               stats={[
-                { label: 'Verified Venues', value: `${VENUE_COUNT_LABEL} Rooms` },
+                { label: 'Listed Venues', value: `${VENUE_COUNT_LABEL} Rooms` },
+                { label: 'Verified Venues', value: `${VERIFIED_VENUE_COUNT} Rooms` },
                 { label: 'Zenodo Deposits', value: '6 Archives' },
                 { label: 'CFR Precision', value: '<= 0.05% Pot' },
                 { label: 'Open License', value: 'CC BY 4.0' },
@@ -165,9 +166,9 @@ export default function VerificationMethodologyPage() {
               Our Live Discovery Hubs (<Link href="/hub/poker-near-me/venues" style={styles.link}>Poker Venues</Link>,{' '}
               <Link href="/hub/daily-tournaments" style={styles.link}>Daily Tournaments</Link>,{' '}
               <Link href="/hub/poker-series" style={styles.link}>Poker Series</Link>, And{' '}
-              <Link href="/hub/poker-tours" style={styles.link}>Poker Tours</Link>) Track Over 324 Licensed Casino Poker
-              Rooms And Cardrooms Across North America. Each Record Stores Its Primary Operator Source URL, Content
-              Verification Hash, And Timestamp.
+              <Link href="/hub/poker-tours" style={styles.link}>Poker Tours</Link>) List {VENUE_COUNT_LABEL} Licensed Casino Poker
+              Rooms And Cardrooms Across The United States. Each Record Stores Its Primary Operator Source, And{' '}
+              {VERIFIED_VENUE_COUNT} Carry A Recorded Verification Date.
             </p>
           </section>
 

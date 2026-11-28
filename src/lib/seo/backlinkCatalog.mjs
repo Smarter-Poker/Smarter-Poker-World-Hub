@@ -97,7 +97,7 @@ export const DEAD_TOOL_REPLACEMENTS = [
     ],
     outreachSubject: 'Updated 2026 Live Poker Room & Waitlist Directory Resource',
     outreachTemplate:
-      'Hi - I saw your live poker travel guide and wanted to share our continuously verified US Poker Room & Tournament Series directory (https://smarter.poker/hub/poker-near-me/lobby) along with our Las Vegas (https://smarter.poker/compare/best-poker-rooms-in-las-vegas), Texas (https://smarter.poker/compare/best-poker-rooms-in-texas), and Airport Layover (https://smarter.poker/compare/best-poker-rooms-near-major-airports) benchmarks.',
+      'Hi - I saw your live poker travel guide and wanted to share our continuously updated US Poker Room & Tournament Series directory (https://smarter.poker/hub/poker-near-me/lobby) along with our Las Vegas (https://smarter.poker/compare/best-poker-rooms-in-las-vegas), Texas (https://smarter.poker/compare/best-poker-rooms-in-texas), and Airport Layover (https://smarter.poker/compare/best-poker-rooms-near-major-airports) benchmarks.',
   },
   {
     id: 'propokertools-oracle',
@@ -281,7 +281,7 @@ export const JOURNALIST_PR_ANGLES = [
     researchUrl: 'https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark',
     targetBeats: ['Casino Industry', 'Las Vegas Travel', 'Texas Business', 'Personal Finance'],
     quotableStat:
-      `Smarter.Poker's benchmark of ${VENUE_COUNT_LABEL} verified US poker rooms compares standard 10% capped casino rake in Las Vegas and California against time-collection ($10-$15/hr) membership models in Texas social clubs.`,
+      `Smarter.Poker's benchmark of ${VENUE_COUNT_LABEL} US poker rooms compares standard 10% capped casino rake in Las Vegas and California against time-collection ($10-$15/hr) membership models in Texas social clubs.`,
   },
   {
     id: 'pr-tax-w2g',
@@ -297,7 +297,7 @@ export const JOURNALIST_PR_ANGLES = [
     researchUrl: 'https://smarter.poker/compare/best-poker-rooms-near-major-airports',
     targetBeats: ['Travel & Aviation Media', 'Lifestyle', 'Hospitality'],
     quotableStat:
-      'Smarter.Poker mapped the closest verified live poker rooms to major US airports including LAS, LAX, DFW, IAH, MIA, FLL, PHX, and BWI for layover travelers.',
+      'Smarter.Poker mapped the closest live poker rooms to major US airports including LAS, LAX, DFW, IAH, MIA, FLL, PHX, and BWI for layover travelers.',
   },
   {
     id: 'pr-waitlist-turnover',

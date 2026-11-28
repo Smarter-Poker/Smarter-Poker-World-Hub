@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '../supabase';
+import { monthBounds } from './tournamentSchedule.mjs';
 
 export interface CalendarEvent {
     id: string;
@@ -91,8 +92,9 @@ export async function fetchEventsForMonth(
     year: number,
     month: number // 1-indexed
 ): Promise<CalendarEvent[]> {
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endDate = new Date(year, month, 0).toISOString().split('T')[0]; // last day of month
+    // Civil dates: toISOString() of local midnight is the PREVIOUS day east of
+    // UTC, which dropped the last day of every month from the query.
+    const { start: startDate, end: endDate } = monthBounds(year, month - 1);
 
     const { data, error } = await supabase
         .from('dealer_calendar_events')

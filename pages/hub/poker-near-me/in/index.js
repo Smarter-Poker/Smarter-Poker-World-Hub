@@ -17,7 +17,7 @@ export async function getServerSideProps({ req, res, query }) {
       const { renderLocationDirectoryMarkdown } = await import('../../../../src/lib/seo/markdownIngestion.mjs');
       const mdContent = renderLocationDirectoryMarkdown({
         title: 'Live Poker Rooms By State And City',
-        description: 'Browse Verified Casino Poker Rooms And Cardrooms By State, Then Move Into City-Level Venue Profiles, Schedules, And Live Player Signals.',
+        description: 'Browse Casino Poker Rooms And Cardrooms By State, Then Move Into City-Level Venue Profiles, Schedules, And Live Player Signals.',
         canonicalUrl: venueLocationCanonical(),
         states,
         resultCount: result.venues.length,

@@ -14,6 +14,10 @@ function readRuntimePreferences() {
     }
 }
 
+export function isTriviaAutoAdvanceEnabled() {
+    return readRuntimePreferences().autoAdvanceOnCorrect === true;
+}
+
 export function applyTriviaPreferenceRuntime(preferences = readRuntimePreferences()) {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;

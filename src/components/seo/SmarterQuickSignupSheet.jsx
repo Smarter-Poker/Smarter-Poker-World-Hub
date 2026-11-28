@@ -474,7 +474,7 @@ export default function SmarterQuickSignupSheet() {
           data-testid="quick-signup-live-proof"
           style={{ borderColor: '#2c5278', color: '#86daff' }}
         >
-          <span>{`${socialProof.verifiedRooms.toLocaleString()} Verified Poker Rooms`}</span>
+          <span>{`${socialProof.verifiedRooms.toLocaleString()} Listed Poker Rooms`}</span>
           {socialProof.liveTables ? (
             <span>{`${socialProof.liveTables.toLocaleString()} Live Tables Running`}</span>
           ) : null}

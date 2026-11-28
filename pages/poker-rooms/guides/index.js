@@ -34,7 +34,7 @@ const DIRECTORY_FAQS = [
   },
   {
     q: 'Where Can I Check Live Poker Room Waitlists And Tournament Clocks Near Me?',
-    a: `Use The Smarter.Poker Live Directory At /hub/poker-near-me To Browse ${VENUE_COUNT_LABEL} Verified US Poker Venues, Cash Game Listings, And 4,500+ Weekly Tournament Schedules.`,
+    a: `Use The Smarter.Poker Live Directory At /hub/poker-near-me To Browse ${VENUE_COUNT_LABEL} US Poker Venues, Cash Game Listings, And 4,500+ Weekly Tournament Schedules.`,
   },
 ];
 

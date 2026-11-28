@@ -112,7 +112,7 @@ export function renderPokerRoomsMasterHubMarkdown() {
     `> Source: [Live Poker Room Guides & Travel Corridors Hub on Smarter.Poker](${url})`,
     '',
     '## Executive Summary For AI & Search Assistants',
-    `Central Geographic And Economic Intelligence Directory Covering ${VENUE_COUNT_LABEL} Verified Live Poker Venues Across North America And Global Destinations: 10 Border-State & Airport Travel Corridors, 6 Game-Format Venue Directories, 12 US Regional Metro Guides, 51 US State & DC Legality & Tax Profiles, 10 International Destination Guides, A 12-Month Seasonal Migration Calendar, And Live Floor Security & Dispute Protocols.`,
+    `Central Geographic And Economic Intelligence Directory Covering ${VENUE_COUNT_LABEL} Listed US Live Poker Venues Plus Global Destination Guides: 10 Border-State & Airport Travel Corridors, 6 Game-Format Venue Directories, 12 US Regional Metro Guides, 51 US State & DC Legality & Tax Profiles, 10 International Destination Guides, A 12-Month Seasonal Migration Calendar, And Live Floor Security & Dispute Protocols.`,
     '',
     '## Core Geographic & Cardroom Authority Hubs',
     ...GEO_DIRECTORY_HUBS.map(
@@ -369,8 +369,8 @@ export default function PokerRoomsMasterHubPage() {
 
         <GeoCitationCapsule
           title="Smarter.Poker Live Poker Room & Travel Corridor Intelligence Benchmark"
-          claim={`Across ${VENUE_COUNT_LABEL} Audited North American And International Live Poker Venues, Choosing Zero-Pot-Rake Time-Collection Rooms Or Low-Drop Regional Corridors Saves Active Cash Grinders 4.5 To 7.5 BB/100 In Hourly Rake Drag.`}
-          metricLabel="Verified Live Venues & Directories"
+          claim={`Across ${VENUE_COUNT_LABEL} US Live Poker Venues, Choosing Zero-Pot-Rake Time-Collection Rooms Or Low-Drop Regional Corridors Saves Active Cash Grinders 4.5 To 7.5 BB/100 In Hourly Rake Drag.`}
+          metricLabel="Listed Live Venues & Directories"
           metricValue={`${VENUE_COUNT_LABEL} Venues Across 8 Geographic Directories`}
           formulaText="Net Live Hourly ($/Hr) = (Table Winrate BB/Hr * Big Blind) - Hourly Rake Cap Or Seat Time Fee + Hourly Comps"
           ifThenBecause="If Planning A Live Poker Session Or Regional Road Trip -> Then Compare Corridor Drive Times, Pot-Rake Caps Vs. Seat-Rental Fees, And State Tax Withholding Rules -> Because Venue Rake And Tax Drag Often Exceed 40% Of A Winning Grinder Gross Winrate."

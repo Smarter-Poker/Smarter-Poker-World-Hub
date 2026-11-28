@@ -531,11 +531,11 @@ export const EMBEDDABLE_TOOLS = WIDGETS;
 export const PARTNER_BADGES = [
   {
     id: 'badge-venue',
-    title: 'Verified Live Poker Room Badge',
+    title: 'Listed Live Poker Room Badge',
     description: 'For casinos, Texas social poker clubs, and charity rooms listed in the Smarter.Poker directory.',
     badgeUrl: 'https://smarter.poker/api/seo/badge?type=venue',
     targetUrl: 'https://smarter.poker/hub/poker-near-me/lobby',
-    altText: 'Verified Poker Room: Smarter.Poker Directory',
+    altText: 'Listed Poker Room: Smarter.Poker Directory',
   },
   {
     id: 'badge-directory-listing',
@@ -2347,7 +2347,7 @@ export default function WebmasterEmbedPortal() {
             compact
             eyebrow="Free Smarter.Poker Account"
             title="Unlock All 52 Poker Calculators, 107 GTO Drills & Live Room Data"
-            description={`Create A Free Smarter.Poker Account To Save Custom Calculator Presets, Track Bankroll Sessions, And Access ${VENUE_COUNT_LABEL} Verified Poker Rooms.`}
+            description={`Create A Free Smarter.Poker Account To Save Custom Calculator Presets, Track Bankroll Sessions, And Access ${VENUE_COUNT_LABEL} Poker Rooms.`}
             primaryLabel="Create Free Account"
             primaryHref="/auth/signup?redirect=/tools/embeds&src=tools-embeds"
             secondaryLabel="Sign In"

@@ -150,7 +150,7 @@ const AUTHORITY_WHITEPAPER_FEED_ITEMS = [
     slug: 'annual-state-of-poker-2026',
     url: `${SITE_URL}/research/annual-state-of-poker-2026`,
     title: '2026 Annual State Of Live & Online Poker Industry Whitepaper (DOI: 10.5281/zenodo.15129481)',
-    summary: `Flagship 2026 quantitative industry report synthesizing ${VENUE_COUNT_LABEL} verified North American poker venues, 4,500+ weekly tournaments, all 50 US states and DC tax regimes, and 10M+ simulated GTO hands.`,
+    summary: `Flagship 2026 quantitative industry report synthesizing ${VENUE_COUNT_LABEL} US poker venues, 4,500+ weekly tournaments, all 50 US states and DC tax regimes, and 10M+ simulated GTO hands.`,
     category: 'Annual Industry Whitepaper',
   },
   {
@@ -213,7 +213,7 @@ const AUTHORITY_WHITEPAPER_FEED_ITEMS = [
     slug: 'by-game',
     url: `${SITE_URL}/poker-rooms/by-game`,
     title: 'Best Live Poker Rooms By Game Variant (PLO, Big O, Mixed, Stud & High-Stakes NLH)',
-    summary: `Curated directory grouping ${VENUE_COUNT_LABEL} verified North American poker venues by PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, and Daily MTTs.`,
+    summary: `Curated directory grouping ${VENUE_COUNT_LABEL} US poker venues by PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, and Daily MTTs.`,
     category: 'Geographic Venue Intelligence',
   },
   {

@@ -508,6 +508,7 @@ const PA_ARENA_CACHE_FIRST_PREFIXES = [
     '/hub/table-theme/tables/',
     '/hub/table-theme/backgrounds/',
     '/hub/club-arena/cards/',
+    '/cards/optimized/',
 ];
 const PA_ARENA_SWR_PREFIXES = [
     '/images/personal-assistant/',

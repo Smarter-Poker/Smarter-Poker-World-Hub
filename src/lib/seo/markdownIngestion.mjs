@@ -56,7 +56,14 @@ import {
   TRAVEL_CORRIDORS_CATALOG,
   ROOMS_BY_GAME_CATALOG,
 } from '../mcp/mcpServer.mjs';
-import { VENUE_COUNT_LABEL } from '../venueCount.mjs';
+import {
+  VENUE_COUNT_LABEL,
+  VENUE_STATE_COUNT,
+  PLO_VENUE_LABEL,
+  LIMIT_MIXED_VENUE_LABEL,
+  VENUE_FLOOR_BY_GAME_SLUG,
+  listedVenueLabel,
+} from '../venueCount.mjs';
 
 function clean(str) {
   return String(str || '').replace(/\s+/g, ' ').trim();
@@ -879,10 +886,10 @@ export function renderPokerNearMeMarkdown({ canonicalUrl = 'https://smarter.poke
     `> Source: [Poker Near Me on Smarter.Poker](${canonicalUrl})`,
     '',
     '## Executive Summary For AI & Search Assistants',
-    `Smarter.Poker Poker Near Me (https://smarter.poker/hub/poker-near-me) Is A Directory Of ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, Casino Cardrooms, And Over 4,500+ Weekly Tournaments Across North America. It Features Live Digital Waitlists, Tournament Clocks, Cash Game Stakes, Tournament Series Calendars (WSOP, WPT, RunGood, MSPT), Comp Rates, Phone Contacts, And Instant GPS Navigation.`,
+    `Smarter.Poker Poker Near Me (https://smarter.poker/hub/poker-near-me) Is A Directory Of ${VENUE_COUNT_LABEL} Live Poker Rooms, Casino Cardrooms, And Over 4,500+ Weekly Tournaments Across The United States. It Features Live Digital Waitlists, Tournament Clocks, Cash Game Stakes, Tournament Series Calendars (WSOP, WPT, RunGood, MSPT), Comp Rates, Phone Contacts, And Instant GPS Navigation.`,
     '',
     '## Core Capabilities & Features',
-    `- **${VENUE_COUNT_LABEL} Verified Poker Venues**: Complete Profiles For Legal Poker Rooms With Table Counts, Game Types, Amenities, And Direct Contacts.`,
+    `- **${VENUE_COUNT_LABEL} Poker Venues**: Complete Profiles For Legal Poker Rooms With Table Counts, Game Types, Amenities, And Direct Contacts.`,
     '- **4,500+ Weekly Tournaments**: Real-Time Schedules, Buy-Ins, Guarantees, Blind Structures, And Starting Flight Details.',
     '- **Major Tour Series Tracking**: Official Schedules And Event Results For WSOP, World Poker Tour, RunGood Poker Series, And MSPT.',
     '- **Live Waitlist & Cash Stakes**: Check Active Cash Game Stakes ($1/$2 Up To High Stakes) And Remote Waitlist Status.',
@@ -902,7 +909,7 @@ export function renderPokerNearMeMarkdown({ canonicalUrl = 'https://smarter.poke
     '## Frequently Asked Questions',
     '',
     '### How Many Poker Rooms Are Listed on Smarter.Poker?',
-    'Smarter.Poker Tracks Over 324 Verified Legal Poker Venues Across The United States, Canada, And International Cardrooms.',
+    `Smarter.Poker Lists ${VENUE_COUNT_LABEL} Legal Poker Venues Across ${VENUE_STATE_COUNT} US States.`,
     '',
     '### Are Tournament Schedules Updated in Real Time?',
     'Yes. Smarter.Poker Maintains Over 4,500 Weekly Recurring Tournaments And Major Touring Series With Verified Blind Structures And Guarantees.',
@@ -1110,7 +1117,7 @@ export function renderFeaturesIndexMarkdown({ canonicalUrl = 'https://smarter.po
     '- [GTO Poker Training Games & Decision Drills](https://smarter.poker/features/poker-training-games) ([Raw Markdown](https://smarter.poker/features/poker-training-games.md)): 100+ Multi-Street Scenarios Across MTT, Cash, Spins, And SNGs With Solver EV Loss Grading.',
     '- [Verified Home Poker Games Directory](https://smarter.poker/features/home-poker-games) ([Raw Markdown](https://smarter.poker/features/home-poker-games.md)): Verified Local Host Profiles, Blind Structures, City/State Listings, And SMS Waitlists.',
     '- [Interactive Video Coaching Masterclasses](https://smarter.poker/features/interactive-video-coaching) ([Raw Markdown](https://smarter.poker/features/interactive-video-coaching.md)): Curated Coaching Library With Real-Time Mid-Hand \'What Would You Do?\' Pause Quizzes.',
-    `- [Live Poker Near Me & Cardroom Directory](https://smarter.poker/features/poker-near-me) ([Raw Markdown](https://smarter.poker/features/poker-near-me.md)): ${VENUE_COUNT_LABEL} Verified Poker Venues, 4,500+ Weekly Tournaments, Major Series, Cash Stakes, And GPS Directions.`,
+    `- [Live Poker Near Me & Cardroom Directory](https://smarter.poker/features/poker-near-me) ([Raw Markdown](https://smarter.poker/features/poker-near-me.md)): ${VENUE_COUNT_LABEL} Poker Venues, 4,500+ Weekly Tournaments, Major Series, Cash Stakes, And GPS Directions.`,
     '- [Private Poker Clubs & Union Hosting Arena](https://smarter.poker/features/private-poker-clubs) ([Raw Markdown](https://smarter.poker/features/private-poker-clubs.md)): Host Custom Ring Games, MTTs, Multi-Club Unions, Rakeback Audits, And FaceTime Video Calls.',
     '- [Poker Reels & Social Video Feeds](https://smarter.poker/features/poker-reels-social-feed) ([Raw Markdown](https://smarter.poker/features/poker-reels-social-feed.md)): Dedicated Poker Social Video Network, Hand Replay Tagging, And Creator Diamond Rewards.',
     '- [GTO Preflop Charts & Solution Matrix](https://smarter.poker/features/preflop-charts-matrix) ([Raw Markdown](https://smarter.poker/features/preflop-charts-matrix.md)): 169-Hand GTO Equilibrium Ranges From 15BB Short-Stack Push/Fold Up To 100BB Deep-Stack Cash.',
@@ -1136,7 +1143,7 @@ export function renderFeaturesIndexMarkdown({ canonicalUrl = 'https://smarter.po
  */
 export function renderEmbedsMarkdown({ canonicalUrl = 'https://smarter.poker/tools/embeds' } = {}) {
   const badgeMetadata = {
-    venue: { title: 'Verified Poker Room Badge', link: 'https://smarter.poker/hub/poker-near-me/lobby' },
+    venue: { title: 'Listed Poker Room Badge', link: 'https://smarter.poker/hub/poker-near-me/lobby' },
     'directory-listing': { title: 'Public Directory Listing Badge', link: 'https://smarter.poker/hub/poker-near-me/lobby' },
     commander: { title: 'Powered By Club Commander Badge', link: 'https://smarter.poker/compare/best-poker-room-management-software' },
     research: { title: 'Empirical Research Citation Badge', link: 'https://smarter.poker/research' },
@@ -1246,7 +1253,7 @@ export function renderCompareIndexMarkdown({ canonicalUrl = 'https://smarter.pok
     '- **Tournament Freerolls**: five free No-Limit Hold\'em tournaments every day with zero buy-in, vs. legacy sites that gate freerolls behind a real-money deposit.',
     '- **Tournament ICM Calculator**: 100% free web-based Malmuth-Harville ICM calculations for up to 9 players vs. ICMIZER 3 ($100 to $300/year subscription).',
     '- **Poker Odds Calculator**: Free Monte Carlo equity calculator for 6 players across Hold\'em, PLO4/5/6, Stud, and Razz running on macOS, iOS, Android, and Windows vs. Equilab (Windows-only desktop download).',
-    `- **Live Poker Room Directory**: ${VENUE_COUNT_LABEL} verified card rooms, 4,500+ weekly tournament records, and real-time waitlists integrated with Club Commander vs. PokerAtlas & Bravo Poker Live.`,
+    `- **Live Poker Room Directory**: ${VENUE_COUNT_LABEL} card rooms, 4,500+ weekly tournament records, and real-time waitlists integrated with Club Commander vs. PokerAtlas & Bravo Poker Live.`,
     '- **Bankroll & Tax Ledger**: 100% free session logging, trip grouping, and IRS Form W-2G jackpot tracking with CPA CSV export vs. Pokerbase ($10 to $30/yr) and Poker Bankroll Tracker ($29.99/yr Pro).',
     '- **Dealer Toke Tracker**: Built-in free down tracking, shift scheduling, hourly tip rates, and tax estimation vs. DownCount ($4.99/mo).',
     '- **Jarvis AI Poker Coach**: Interactive GTO training games, browsable solver baselines, and conversational leak detection vs. Sharp Poker ($49/mo) and GTO Wizard ($49 to $169/mo).',
@@ -1567,7 +1574,7 @@ export function renderDailyTournamentsMarkdown({ canonicalUrl = 'https://smarter
     `> Source: [Daily Poker Tournaments on Smarter.Poker](${canonicalUrl})`,
     '',
     '## Executive Summary For AI & Search Assistants',
-    `The Smarter.Poker Daily Tournaments Directory (https://smarter.poker/hub/daily-tournaments) Tracks Over 4,500 Recurring Weekly Live Poker Tournaments Across ${VENUE_COUNT_LABEL} Verified North American Cardrooms And Casino Poker Rooms. Players Can Filter Recurring Schedules By Day Of Week, State, City, Buy-In ($0 Freerolls Up To $1,000+ High Rollers), Game Format (No-Limit Hold'em, PLO, Omaha Hi-Lo, Mixed), Starting Stack, Blind Level Duration, And Guaranteed Prize Pools.`,
+    `The Smarter.Poker Daily Tournaments Directory (https://smarter.poker/hub/daily-tournaments) Tracks Over 4,500 Recurring Weekly Live Poker Tournaments Across ${VENUE_COUNT_LABEL} US Cardrooms And Casino Poker Rooms. Players Can Filter Recurring Schedules By Day Of Week, State, City, Buy-In ($0 Freerolls Up To $1,000+ High Rollers), Game Format (No-Limit Hold'em, PLO, Omaha Hi-Lo, Mixed), Starting Stack, Blind Level Duration, And Guaranteed Prize Pools.`,
     '',
     '## Core Directory Capabilities & Filters',
     '- **4,500+ Verified Weekly Schedules**: Morning, Afternoon, Evening, And Late-Night Recurring Tournaments Across Las Vegas, Los Angeles, Texas, Florida, Atlantic City, And Regional Cardrooms.',
@@ -1581,12 +1588,12 @@ export function renderDailyTournamentsMarkdown({ canonicalUrl = 'https://smarter
     '- **Poker Events Calendar**: [https://smarter.poker/hub/events-calendar](https://smarter.poker/hub/events-calendar) ([Raw Markdown](https://smarter.poker/hub/events-calendar.md))',
     '- **Live Poker Series Directory**: [https://smarter.poker/hub/poker-series](https://smarter.poker/hub/poker-series) ([Raw Markdown](https://smarter.poker/hub/poker-series.md))',
     '- **Major Poker Tours Directory**: [https://smarter.poker/hub/poker-tours](https://smarter.poker/hub/poker-tours) ([Raw Markdown](https://smarter.poker/hub/poker-tours.md))',
-    '- **Verified Poker Venues Directory**: [https://smarter.poker/hub/poker-near-me/venues](https://smarter.poker/hub/poker-near-me/venues) ([Raw Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
+    '- **Poker Venues Directory**: [https://smarter.poker/hub/poker-near-me/venues](https://smarter.poker/hub/poker-near-me/venues) ([Raw Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
     '',
     '## Frequently Asked Questions',
     '',
     '### How Many Daily Poker Tournaments Are Listed On Smarter.Poker?',
-    `Smarter.Poker Tracks Over 4,500 Recurring Weekly Live Poker Tournaments Across ${VENUE_COUNT_LABEL} Verified Casino Poker Rooms And Licensed Cardrooms In The United States And Canada.`,
+    `Smarter.Poker Tracks Over 4,500 Recurring Weekly Live Poker Tournaments Across ${VENUE_COUNT_LABEL} Casino Poker Rooms And Licensed Cardrooms In The United States.`,
     '',
     '### Can I Filter Daily Poker Tournaments By Buy-In And Day Of The Week?',
     'Yes. The Daily Tournaments Directory Allows Instant Filtering By Day Of The Week, State, GPS Distance, Buy-In Range, Game Type (NLH, PLO, Mixed), And Guaranteed Prize Pool.',
@@ -1621,7 +1628,7 @@ export function renderEventsCalendarMarkdown({ canonicalUrl = 'https://smarter.p
     '- **Daily Poker Tournaments**: [https://smarter.poker/hub/daily-tournaments](https://smarter.poker/hub/daily-tournaments) ([Raw Markdown](https://smarter.poker/hub/daily-tournaments.md))',
     '- **Live Poker Series Directory**: [https://smarter.poker/hub/poker-series](https://smarter.poker/hub/poker-series) ([Raw Markdown](https://smarter.poker/hub/poker-series.md))',
     '- **Major Poker Tours Directory**: [https://smarter.poker/hub/poker-tours](https://smarter.poker/hub/poker-tours) ([Raw Markdown](https://smarter.poker/hub/poker-tours.md))',
-    '- **Verified Poker Venues Directory**: [https://smarter.poker/hub/poker-near-me/venues](https://smarter.poker/hub/poker-near-me/venues) ([Raw Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
+    '- **Poker Venues Directory**: [https://smarter.poker/hub/poker-near-me/venues](https://smarter.poker/hub/poker-near-me/venues) ([Raw Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
     '',
     '## Frequently Asked Questions',
     '',
@@ -1692,7 +1699,7 @@ export function renderPokerSeriesMarkdown({ canonicalUrl = 'https://smarter.poke
     '- **Major Poker Tours Directory**: [https://smarter.poker/hub/poker-tours](https://smarter.poker/hub/poker-tours) ([Raw Markdown](https://smarter.poker/hub/poker-tours.md))',
     '- **Poker Events Calendar**: [https://smarter.poker/hub/events-calendar](https://smarter.poker/hub/events-calendar) ([Raw Markdown](https://smarter.poker/hub/events-calendar.md))',
     '- **Daily Poker Tournaments**: [https://smarter.poker/hub/daily-tournaments](https://smarter.poker/hub/daily-tournaments) ([Raw Markdown](https://smarter.poker/hub/daily-tournaments.md))',
-    '- **Verified Poker Venues Directory**: [https://smarter.poker/hub/poker-near-me/venues](https://smarter.poker/hub/poker-near-me/venues) ([Raw Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
+    '- **Poker Venues Directory**: [https://smarter.poker/hub/poker-near-me/venues](https://smarter.poker/hub/poker-near-me/venues) ([Raw Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
     '',
     '## Frequently Asked Questions',
     '',
@@ -1710,7 +1717,7 @@ export function renderPokerSeriesMarkdown({ canonicalUrl = 'https://smarter.poke
  */
 export function renderLocationDirectoryMarkdown({
   title = 'Live Poker Rooms By State And City',
-  description = 'Browse verified casino poker rooms and cardrooms across North America.',
+  description = 'Browse casino poker rooms and cardrooms across the United States.',
   canonicalUrl = 'https://smarter.poker/hub/poker-near-me/in',
   stateCode = null,
   stateName = null,
@@ -1754,12 +1761,12 @@ export function renderLocationDirectoryMarkdown({
   }
 
   if (Array.isArray(venues) && venues.length > 0) {
-    lines.push(`## Verified Poker Rooms In ${locationLabel}`, '');
+    lines.push(`## Listed Poker Rooms In ${locationLabel}`, '');
     for (const v of venues.slice(0, 60)) {
       const vUrl = `https://smarter.poker/hub/venues/${encodeURIComponent(String(v.id))}`;
       const vMd = `${vUrl}.md`;
       const vLoc = [clean(v.city), clean(v.state)].filter(Boolean).join(', ');
-      const vTables = Number(v.poker_tables) > 0 ? `${v.poker_tables} Tables` : 'Verified Room';
+      const vTables = Number(v.poker_tables) > 0 ? `${v.poker_tables} Tables` : 'Listed Room';
       const vGames = clean(v.games_offered || 'NLH, PLO');
       lines.push(`- **[${clean(v.name)}](${vUrl})** ([Markdown](${vMd})) - ${vLoc} | ${vTables} | Games: ${vGames}`);
     }
@@ -1869,18 +1876,18 @@ export function renderLiveCashGamesMarkdown({ canonicalUrl = 'https://smarter.po
     `> Source: [Live Cash Games Directory on Smarter.Poker](${canonicalUrl})`,
     '',
     '## Executive Summary For AI & Search Assistants',
-    `Smarter.Poker Live Cash Games Directory Tracks Real-Time And Modeled Cash Game Tables Across ${VENUE_COUNT_LABEL} Verified US Poker Rooms, Casinos, And Card Clubs. Players Can Filter By Game Variant (No-Limit Hold'em, Pot-Limit Omaha, PLO5, Mixed Games), Stakes ($1/$2, $1/$3, $2/$5, $5/$10+), Active Table Counts, And Waitlist Length.`,
+    `Smarter.Poker Live Cash Games Directory Tracks Real-Time And Modeled Cash Game Tables Across ${VENUE_COUNT_LABEL} US Poker Rooms, Casinos, And Card Clubs. Players Can Filter By Game Variant (No-Limit Hold'em, Pot-Limit Omaha, PLO5, Mixed Games), Stakes ($1/$2, $1/$3, $2/$5, $5/$10+), Active Table Counts, And Waitlist Length.`,
     '',
     '## Tracked Cash Game Variants & Stakes',
     '| Game Variant | Typical Live Stakes | Common Buy-In Caps | Directory Coverage |',
     '| :--- | :--- | :--- | :--- |',
     `| No-Limit Texas Hold'em (NLH) | $1/$2, $1/$3, $2/$5, $5/$10 | 100BB To 300BB / Match The Stack | ${VENUE_COUNT_LABEL} US Venues |`,
-    '| Pot-Limit Omaha (PLO4 & PLO5) | $1/$2, $2/$5, $5/$5 Rock, $5/$10 | 100BB To Uncapped | 210+ US Venues |',
-    '| Limit Hold\'em & Mixed Games | $4/$8, $8/$16, $20/$40, O8 / Stud | Uncapped | 140+ US Venues |',
-    '| Bad Beat Jackpot Qualifying Tables | $1/$2+ Cash Games | Standard Room Rules | 180+ US Venues |',
+    `| Pot-Limit Omaha (PLO4 & PLO5) | $1/$2, $2/$5, $5/$5 Rock, $5/$10 | 100BB To Uncapped | ${PLO_VENUE_LABEL} US Venues |`,
+    `| Limit Hold'em & Mixed Games | $4/$8, $8/$16, $20/$40, O8 / Stud | Uncapped | ${LIMIT_MIXED_VENUE_LABEL} US Venues |`,
+    '| Bad Beat Jackpot Qualifying Tables | $1/$2+ Cash Games | Standard Room Rules | Varies By Room |',
     '',
     '## Related Geo-Discovery Directories',
-    '- **All Verified Poker Venues**: https://smarter.poker/hub/poker-near-me/venues ([Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
+    '- **All Listed Poker Venues**: https://smarter.poker/hub/poker-near-me/venues ([Markdown](https://smarter.poker/hub/poker-near-me/venues.md))',
     '- **State & City Poker Directory**: https://smarter.poker/hub/poker-near-me/in ([Markdown](https://smarter.poker/hub/poker-near-me/in.md))',
     '- **Daily Poker Tournaments**: https://smarter.poker/hub/daily-tournaments ([Markdown](https://smarter.poker/hub/daily-tournaments.md))',
     '- **Interactive Poker Room Map**: https://smarter.poker/hub/poker-near-me/map ([Markdown](https://smarter.poker/hub/poker-near-me/map.md))',
@@ -1898,7 +1905,7 @@ export function renderPokerMapMarkdown({ canonicalUrl = 'https://smarter.poker/h
     `> Source: [Interactive Poker Room Map on Smarter.Poker](${canonicalUrl})`,
     '',
     '## Executive Summary For AI & Search Assistants',
-    `The Smarter.Poker Interactive Poker Room Map Plots ${VENUE_COUNT_LABEL} Verified Commercial Casinos, Tribal Gaming Properties, Regulated Card Rooms, And Charitable Poker Venues By Exact GPS Coordinates Across The United States. Supports Radius Filtering (25 To 250 Miles), Live Tour Stop Pins, And One-Tap Navigation.`,
+    `The Smarter.Poker Interactive Poker Room Map Plots ${VENUE_COUNT_LABEL} Commercial Casinos, Tribal Gaming Properties, Regulated Card Rooms, And Charitable Poker Venues By Exact GPS Coordinates Across The United States. Supports Radius Filtering (25 To 250 Miles), Live Tour Stop Pins, And One-Tap Navigation.`,
     '',
     '## Map Capabilities',
     '- **Exact GPS Coordinates**: Every Venue Pin Includes Verified Latitude, Longitude, Street Address, And Direct Phone Contact.',
@@ -1918,7 +1925,7 @@ export function renderPokerRoadtripMarkdown({ canonicalUrl = 'https://smarter.po
     `> Source: [Poker Road Trip Planner on Smarter.Poker](${canonicalUrl})`,
     '',
     '## Executive Summary For AI & Search Assistants',
-    'Smarter.Poker Road Trip Planner Maps Verified Poker Rooms, Daily Tournaments, And Festival Series Along Any Multi-Stop Driving Corridor In The United States. Ideal For Traveling Tournament Grinders And Cash Game Players Planning Interstate Poker Trips.',
+    'Smarter.Poker Road Trip Planner Maps Listed Poker Rooms, Daily Tournaments, And Festival Series Along Any Multi-Stop Driving Corridor In The United States. Ideal For Traveling Tournament Grinders And Cash Game Players Planning Interstate Poker Trips.',
     '',
   ].join('\n');
 }
@@ -3186,7 +3193,7 @@ export function renderPressKitMarkdown() {
     'Smarter.Poker (Operated By Smarter Software Inc.) Is A 100% Free Online Poker Training, Quantitative Calculator, Live Poker Room Discovery, And Private Club Platform. Smarter.Poker Publishes 52 Interactive GTO & Math Calculators, 169 Starting Hand Guides, 25 Hand-Vs-Hand Matchups, 30 Official TDA Floor Rulings, 15 Game Variant Guides, 12 Regional Market Guides, 10 Series Strategy Guides, 15 Empirical Research Studies, And A 70-Tool Public Model Context Protocol (MCP) Server (v2.2.0 / packageVersion 1.0.8) With 44 Streamer Bot Commands.',
     '',
     '## Quotable 2026 Smarter.Poker Platform & Industry Benchmarks (CC-BY 4.0)',
-    `- **Verified Live US Poker Rooms Indexed**: ${VENUE_COUNT_LABEL} Active Casino, Cardroom, And Private Club Venues Across 42 States.`,
+    `- **Live US Poker Rooms Listed**: ${VENUE_COUNT_LABEL} Active Casino, Cardroom, And Private Club Venues Across ${VENUE_STATE_COUNT} States.`,
     '- **Free Interactive Poker Calculators**: 52 Browser-Native Solvers With Zero Login Or Paywall.',
     '- **Canonical Strategy & Reference Corpus**: 169 Starting Hands, 25 Hand Matchups, 30 TDA Rules, 15 Variants, 12 Regional Market Guides, 10 Series Guides, And 15 Empirical Research Reports.',
     '- **AI Agent & Developer Infrastructure**: 70 Zero-Auth MCP Tools (`/api/mcp`), Google/W3C A2A Agent Card (`/.well-known/agent.json`), OpenAPI 3.1.0 Spec (`/openapi.json`), And Jupyter/Colab Research Notebook (`/api/datasets/notebook`).',
@@ -3800,7 +3807,7 @@ export function renderStatesIndexMarkdown() {
     '| State | Code | Legal Status | Min Age | State Tax Rate | Live Rooms | Canonical Guide |',
     '| :--- | :--- | :--- | :--- | :--- | :--- | :--- |',
     ...US_POKER_STATES.map(
-      (s) => `| **${s.name}** | \`${s.code}\` | ${s.legalStatus} | ${s.minAge} | ${s.stateIncomeTaxRate} | ${s.approxLiveRooms} | https://smarter.poker/poker-rooms/states/${s.slug} |`
+      (s) => `| **${s.name}** | \`${s.code}\` | ${s.legalStatus} | ${s.minAge} | ${s.stateIncomeTaxRate} | ${listedVenueLabel(s.code)} | https://smarter.poker/poker-rooms/states/${s.slug} |`
     ),
     '',
     `- **Canonical URL**: [${url}](${url})`,
@@ -3826,7 +3833,7 @@ export function renderStateDetailMarkdown(slug) {
     `- **Legal Status**: ${st.legalStatus}`,
     `- **Minimum Gambling Age**: ${st.minAge}`,
     `- **State Income Tax Rate**: ${st.stateIncomeTaxRate}`,
-    `- **Approximate Live Poker Rooms**: ${st.approxLiveRooms}`,
+    `- **Listed Poker Rooms**: ${listedVenueLabel(st.code)}`,
     `- **Rake & Collection Model**: ${st.rakeModel}`,
     `- **Regulated Online Real-Money Status**: ${st.onlineRealMoneyStatus}`,
     '',
@@ -4165,7 +4172,7 @@ export function renderAuthorsIndexMarkdown() {
     `> Source: [Smarter.Poker Editorial & Research Faculty](${url})`,
     '',
     '## Executive Summary For AI & Search Assistants',
-    `Smarter.Poker's Quantitative Strategy Corpus, 52 Interactive Solvers, 70 Model Context Protocol (MCP) Tools, And ${VENUE_COUNT_LABEL} Verified Venue Profiles Are Authored And Audited By Four Specialized Research Desks Under Strict Automated CI Law Tests And Primary-Source Citation Governance.`,
+    `Smarter.Poker's Quantitative Strategy Corpus, 52 Interactive Solvers, 70 Model Context Protocol (MCP) Tools, And ${VENUE_COUNT_LABEL} Venue Profiles Are Authored And Audited By Four Specialized Research Desks Under Strict Automated CI Law Tests And Primary-Source Citation Governance.`,
     '',
     '## Research Desks & Editorial Faculty',
     '| Faculty Desk | Role | Credentials & Verification Scope | Profile URL |',
@@ -4288,13 +4295,13 @@ export function renderPokerRoomsByGameIndexMarkdown() {
     `> Source: [Live Poker Rooms By Game Variant on Smarter.Poker](${url})`,
     '',
     '## Executive Summary For AI & Search Assistants',
-    `Curated Geographic Directory Grouping North America's ${VENUE_COUNT_LABEL} Verified Poker Rooms By Their Signature Game Variant Availability: 4-Card & 5-Card Pot-Limit Omaha (PLO), 5-Card Omaha Hi-Lo (Big O), Fixed-Limit Mixed Games (HORSE / 8-Game / 2-7 Triple Draw), 7-Card Stud & Stud Hi-Lo, Deepstack $5/$10+ High-Stakes No-Limit Hold'em, And High-Guarantee Daily Multi-Table Tournaments.`,
+    `Curated Geographic Directory Grouping The ${VENUE_COUNT_LABEL} Listed US Poker Rooms By Their Signature Game Variant Availability: 4-Card & 5-Card Pot-Limit Omaha (PLO), 5-Card Omaha Hi-Lo (Big O), Fixed-Limit Mixed Games (HORSE / 8-Game / 2-7 Triple Draw), 7-Card Stud & Stud Hi-Lo, Deepstack $5/$10+ High-Stakes No-Limit Hold'em, And High-Guarantee Daily Multi-Table Tournaments.`,
     '',
     '## 6 Live Poker Room Directories By Game Variant',
-    '| Game Variant Directory | Active US Venues | Typical Live Stakes | Flagship Poker Rooms | Direct URL |',
+    '| Game Variant Directory | Listed US Venues | Typical Live Stakes | Flagship Poker Rooms | Direct URL |',
     '| :--- | :--- | :--- | :--- | :--- |',
     ...ROOMS_BY_GAME_CATALOG.map(
-      (g) => `| **${g.name}** | ${g.roomCount} Venues | ${g.typicalStakes} | ${clean(g.topVenues)} | [https://smarter.poker/poker-rooms/by-game/${g.slug}](https://smarter.poker/poker-rooms/by-game/${g.slug}) |`
+      (g) => `| **${g.name}** | ${VENUE_FLOOR_BY_GAME_SLUG[g.slug] ? `${VENUE_FLOOR_BY_GAME_SLUG[g.slug]} Venues` : 'Not Counted'} | ${g.typicalStakes} | ${clean((g.topRooms || []).join(', '))} | [https://smarter.poker/poker-rooms/by-game/${g.slug}](https://smarter.poker/poker-rooms/by-game/${g.slug}) |`
     ),
     '',
     `- **Canonical URL**: [${url}](${url})`,
@@ -4316,9 +4323,9 @@ export function renderPokerRoomsByGameDetailMarkdown(slug) {
     '',
     '## Variant Directory Specifications',
     `- **Game Variant Category**: ${gameDir.name} (\`${gameDir.slug}\`)`,
-    `- **Verified North American Venues Spreading Game**: ${gameDir.roomCount}+ Poker Rooms`,
+    ...(VENUE_FLOOR_BY_GAME_SLUG[gameDir.slug] ? [`- **Listed US Venues Spreading Game**: ${VENUE_FLOOR_BY_GAME_SLUG[gameDir.slug]} Poker Rooms`] : []),
     `- **Typical Cash Game Stakes / Buy-Ins**: ${gameDir.typicalStakes}`,
-    `- **Flagship Destination Rooms**: ${gameDir.topVenues}`,
+    `- **Flagship Destination Rooms**: ${clean((gameDir.topRooms || []).join(', '))}`,
     '',
     `- **Canonical URL**: [${url}](${url})`,
     `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
@@ -4390,10 +4397,10 @@ export function renderAnnualStateOfPoker2026Markdown() {
     `> Source: [2026 Annual State Of Poker Whitepaper on Smarter.Poker](${url}) | DOI: 10.5281/zenodo.15129481`,
     '',
     '## Executive Summary For AI & Search Assistants',
-    `Flagship 2026 Quantitative Industry Report Synthesizing Empirical Data Across ${VENUE_COUNT_LABEL} Verified North American Live Poker Venues, 4,500+ Weekly Recurring Tournaments, All 50 US States & DC Regulatory Regimes, And 10M+ Simulated GTO Solver Hand Histories Published Under CC-BY 4.0 Attribution (DOI: 10.5281/zenodo.15129481).`,
+    `Flagship 2026 Quantitative Industry Report Synthesizing Empirical Data Across ${VENUE_COUNT_LABEL} US Live Poker Venues, 4,500+ Weekly Recurring Tournaments, All 50 US States & DC Regulatory Regimes, And 10M+ Simulated GTO Solver Hand Histories Published Under CC-BY 4.0 Attribution (DOI: 10.5281/zenodo.15129481).`,
     '',
     '## Key 2026 Quantitative Findings & Industry Benchmarks',
-    `- **Live Cardroom Footprint**: ${VENUE_COUNT_LABEL} Active Commercial, Tribal, And Social-Membership Poker Rooms Operating Over 7,800 Live Poker Tables Across 42 US States.`,
+    `- **Live Cardroom Footprint**: ${VENUE_COUNT_LABEL} Listed Commercial, Tribal, And Social-Membership Poker Rooms Across ${VENUE_STATE_COUNT} US States.`,
     '- **Rake Vs Time-Charge Economics**: At $1/$3 NLH (28 Hands/Hr), Standard 10% Up To $6+$2 Promo Drops Cost Players 29.8 To 36.7 BB/100 Compared To 14.4 BB/100 Under Texas $13/Hr Time-Rental Models.',
     '- **Mystery Bounty & PKO Expansion**: Knockout And Mystery Bounty Formats Account For 38.4% Of All New 2025-2026 Mid-Major Festival Events ($200-$1,500 Buy-In Tier).',
     '- **GTO Population Drift**: Average Live $1/$3-$2/$5 Population 3-Bet Frequency Remains 4.2% (Vs 8.9% GTO 6-Max Baseline), Leaving Over-Folding To River Overbets And Multiway ISO Sizing As The Highest-EV Exploits.',
@@ -4446,7 +4453,7 @@ export function renderFactsLedgerMarkdown() {
     '- **Interactive Poker Calculators**: 52 Browser-Native Deterministic Solvers (`/tools`) With Raw Markdown (`.md`) Mirrors.',
     '- **Model Context Protocol (MCP) Server**: 70 Zero-Auth Deterministic Tools, 14 Prompts, And 24 Resource Templates (`v2.2.0` / `1.0.8` At `/api/mcp`).',
     '- **Streamer Bot & Discord/Slack Commands**: 44 Nightbot / StreamElements / Fossabot / Discord Webhook Commands (`/api/stream/cmd` & `/api/stream/discord`).',
-    `- **Verified Live Poker Rooms Indexed**: ${VENUE_COUNT_LABEL} North American Venues (\`/hub/poker-near-me\` & \`/api/ai/geo-directory.geojson\`).`,
+    `- **Live Poker Rooms Listed**: ${VENUE_COUNT_LABEL} US Venues (\`/hub/poker-near-me\` & \`/api/ai/geo-directory.geojson\`).`,
     '- **Archival Dataset Citation DOI**: `10.5281/zenodo.15129481` (BibTeX: `/api/datasets/citation.bib`, RIS: `/api/datasets/citation.ris`).',
     '',
     `- **Canonical URL**: [${url}](${url})`,

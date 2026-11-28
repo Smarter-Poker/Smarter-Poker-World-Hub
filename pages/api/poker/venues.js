@@ -1,5 +1,5 @@
 /**
- * Poker Venues API - Serves ALL verified poker venues (uncapped)
+ * Poker Venues API - Serves ALL listed poker venues (uncapped)
  * Supports filtering, GPS-based search, and daily tournament schedule lookups
  *
  * Query params:

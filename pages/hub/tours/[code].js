@@ -12,6 +12,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PnmImageHeader from '../../../src/components/poker-near-me/PnmImageHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import StopScheduleModal from '../../../src/components/tours/StopScheduleModal';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
@@ -24,9 +25,9 @@ import tourSourceRegistry from '../../../data/tour-source-registry.json';
 
 
 const TOUR_COLORS = {
-  'WSOP': { bg: '#b9943f', text: '#05080c', tone: 'gold' },
+  'WSOP': { bg: '#3f90b9', text: '#05080c', tone: 'gold' },
   'WPT': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
-  'WSOPC': { bg: '#b9943f', text: '#05080c', tone: 'gold' },
+  'WSOPC': { bg: '#3f90b9', text: '#05080c', tone: 'gold' },
   'MSPT': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
   'RGPS': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
   'PGT': { bg: '#123753', text: '#f4f7fb', tone: 'blue' },
@@ -613,6 +614,9 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
         }}
       />
       <PokerNearMeFamilyNav />
+      <div className="smarterdesign pnm-sd-top">
+        <PnmImageHeader route="tours" title="Poker Tour" heading="p" />
+      </div>
 
       <HamburgerMenu
           isOpen={menuOpen}
@@ -1179,7 +1183,7 @@ const styles = `
     --tour-dim: #65717f;
     --tour-blue: #31a8ff;
     --tour-blue-soft: #8fd4ff;
-    --tour-gold: #d6b76a;
+    --tour-gold: #6ab2d6;
     --tour-alert: #ff5b6e;
   }
 

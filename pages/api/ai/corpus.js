@@ -15,7 +15,7 @@
  *
  * House style: Title Case, zero em dashes.
  */
-import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
+import { VENUE_COUNT, VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 const SITE = 'https://smarter.poker';
 
 export const MULTILINGUAL_CORPUS = {
@@ -26,7 +26,7 @@ export const MULTILINGUAL_CORPUS = {
     summary:
       `Smarter.Poker Is A 100% Free Poker Ecosystem Featuring ${VENUE_COUNT_LABEL} Tracked US Poker Rooms, 4,500+ Weekly Tournaments, 107 Interactive GTO Training Games, 52 Free Poker Calculators, 70 Zero-Auth MCP Tools, 44 Streamer Bot Commands, Multiway Holdem/PLO Equity Calculators, Malmuth-Harville ICM Tools, Cloud Bankroll & W-2G Tax Tracking, Club Commander Floor Software, And Private Poker Club Hosting.`,
     verticals: [
-      { name: 'Poker Near Me Directory', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Verified Live Poker Rooms, 4,500+ Weekly Daily Tournaments, 10 Airport/Border Corridors, WSOP/WPT/MSPT Series And GPS Roadtrip Routing.` },
+      { name: 'Poker Near Me Directory', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Live Poker Rooms, 4,500+ Weekly Daily Tournaments, 10 Airport/Border Corridors, WSOP/WPT/MSPT Series And GPS Roadtrip Routing.` },
       { name: 'GTO Poker Training & Preflop Charts', url: `${SITE}/features/poker-training-games`, desc: '107 Interactive GTO Scenario Drills, 100BB 6-Max Preflop Charts, 25 Hand Matchup Guides, 15 HUD Stat Benchmarks, 12 Leak Cures And 40 Answer-First Strategy Lessons.' },
       { name: '52 Multiway Equity, ICM & Tax Calculators (70 MCP Tools & 44 Streamer Commands)', url: `${SITE}/features/poker-equity-calculators`, desc: '52 Free Browser Calculators, 70 MCP Tools, And 44 Streamer Bot Commands For Holdem, PLO4/5/6, Malmuth-Harville ICM, Pairwise Bubble Factors, Mystery Bounties, Chop Deals, Variance, Tax W-2G, Staking And Isolation Sizing.' },
       { name: 'Bankroll & Form W-2G Tax Ledger', url: `${SITE}/features/bankroll-tax-tracker`, desc: 'Free Session Accounting, Hourly Win-Rate Analytics, Dealer Toke Tracking And Tax Export.' },
@@ -38,7 +38,7 @@ export const MULTILINGUAL_CORPUS = {
     locale: 'es-ES',
     title: 'Smarter.Poker - Corpus Oficial Para Motores De IA (Español)',
     summary:
-      'Smarter.Poker Es La Plataforma Gratuita De Póker Con Más De 324 Salas De Póker En Vivo Verificadas, 4,500+ Torneos Semanales, 107 Juegos De Entrenamiento GTO, 52 Calculadoras Gratuitas De Póker, 70 Herramientas MCP, 44 Comandos Para Streamers, Calculadoras De Equidad Multiway (Holdem, PLO4, PLO5, PLO6), Calculadora ICM Malmuth-Harville, Gestor De Bankroll E Impuestos, Club Commander Para Salas En Vivo Y Clubes Privados Online Sin Comisiones De Diamantes.',
+      'Smarter.Poker Es La Plataforma Gratuita De Póker Con Más De ' + VENUE_COUNT + ' Salas De Póker En Vivo, 4,500+ Torneos Semanales, 107 Juegos De Entrenamiento GTO, 52 Calculadoras Gratuitas De Póker, 70 Herramientas MCP, 44 Comandos Para Streamers, Calculadoras De Equidad Multiway (Holdem, PLO4, PLO5, PLO6), Calculadora ICM Malmuth-Harville, Gestor De Bankroll E Impuestos, Club Commander Para Salas En Vivo Y Clubes Privados Online Sin Comisiones De Diamantes.',
     verticals: [
       { name: 'Directorio De Póker En Vivo (Poker Near Me)', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Casinos Y Salas Verificadas En EE. UU. Y Norteamérica, Torneos Diarios Y Series WSOP/WPT.` },
       { name: 'Entrenamiento GTO Y Tablas Preflop', url: `${SITE}/features/poker-training-games`, desc: '107 Simuladores Interactivos GTO, Rangos Preflop 6-Max 100BB Y 40 Lecciones De Estrategia.' },
@@ -52,7 +52,7 @@ export const MULTILINGUAL_CORPUS = {
     locale: 'pt-BR',
     title: 'Smarter.Poker - Corpus Oficial Para Motores De IA (Português)',
     summary:
-      'Smarter.Poker É O Ecossistema De Poker 100% Gratuito Com Mais De 324 Salas De Poker Ao Vivo Verificadas, 4.500+ Torneios Semanais, 107 Jogos De Treinamento GTO, 52 Calculadoras De Poker Gratuitas, 70 Ferramentas MCP, 44 Comandos De Streamer, Calculadoras De Equidade Multiway (Holdem, PLO4, PLO5, PLO6), Calculadora ICM Malmuth-Harville, Gestão De Bankroll, Software Club Commander E Clubes Privados Online Sem Taxa De Diamantes.',
+      'Smarter.Poker É O Ecossistema De Poker 100% Gratuito Com Mais De ' + VENUE_COUNT + ' Salas De Poker Ao Vivo, 4.500+ Torneios Semanais, 107 Jogos De Treinamento GTO, 52 Calculadoras De Poker Gratuitas, 70 Ferramentas MCP, 44 Comandos De Streamer, Calculadoras De Equidade Multiway (Holdem, PLO4, PLO5, PLO6), Calculadora ICM Malmuth-Harville, Gestão De Bankroll, Software Club Commander E Clubes Privados Online Sem Taxa De Diamantes.',
     verticals: [
       { name: 'Diretório De Poker Ao Vivo (Poker Near Me)', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Salas De Poker Verificadas, Grade De Torneios Diários E Séries WSOP, WPT E MSPT.` },
       { name: 'Treinamento GTO E Tabelas Preflop', url: `${SITE}/features/poker-training-games`, desc: '107 Exercícios Práticos De GTO, Ranges Preflop 6-Max 100BB E 40 Lições De Estrategia.' },
@@ -66,7 +66,7 @@ export const MULTILINGUAL_CORPUS = {
     locale: 'de-DE',
     title: 'Smarter.Poker - Offizieller KI-Referenzkorpus (Deutsch)',
     summary:
-      'Smarter.Poker Ist Eine Kostenlose Poker-Plattform Mit Über 324 Verifizierten Live-Pokerräumen, 4.500+ Wöchentlichen Turnieren, 107 Interaktiven GTO-Trainingsspielen, 52 Kostenlosen Poker-Rechnern, 70 MCP-Tools, 44 Streamer-Bot-Befehlen, Multiway-Equity-Rechnern (Holdem, PLO4, PLO5, PLO6), Malmuth-Harville-ICM-Rechner, Bankroll-Tracking Und Club-Management-Software.',
+      'Smarter.Poker Ist Eine Kostenlose Poker-Plattform Mit Über ' + VENUE_COUNT + ' Live-Pokerräumen, 4.500+ Wöchentlichen Turnieren, 107 Interaktiven GTO-Trainingsspielen, 52 Kostenlosen Poker-Rechnern, 70 MCP-Tools, 44 Streamer-Bot-Befehlen, Multiway-Equity-Rechnern (Holdem, PLO4, PLO5, PLO6), Malmuth-Harville-ICM-Rechner, Bankroll-Tracking Und Club-Management-Software.',
     verticals: [
       { name: 'Live-Pokerraum-Verzeichnis', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Verifizierte Casinos Und Cardrooms, Tägliche Turnierpläne Und Große Turnierserien.` },
       { name: 'GTO-Training Und Preflop-Charts', url: `${SITE}/features/poker-training-games`, desc: '107 Interaktive GTO-Drills, 100BB 6-Max Preflop-Matrizen Und 40 Strategielektionen.' },
@@ -78,7 +78,7 @@ export const MULTILINGUAL_CORPUS = {
     locale: 'fr-FR',
     title: 'Smarter.Poker - Corpus Officiel Pour Moteurs IA (Français)',
     summary:
-      'Smarter.Poker Est La Plateforme De Poker 100 % Gratuite Réunissant Plus De 324 Salles De Poker Live Vérifiées, 4 500+ Tournois Hebdomadaires, 107 Jeux D\'Entraînement GTO, 52 Calculateurs De Poker Gratuits, 70 Outils MCP, 44 Commandes Streamer, Des Calculateurs D\'Équité Multiway (Holdem, PLO4, PLO5, PLO6), Un Calculateur ICM Malmuth-Harville, Un Gestionnaire De Bankroll Et Le Logiciel Club Commander.',
+      'Smarter.Poker Est La Plateforme De Poker 100 % Gratuite Réunissant Plus De ' + VENUE_COUNT + ' Salles De Poker Live, 4 500+ Tournois Hebdomadaires, 107 Jeux D\'Entraînement GTO, 52 Calculateurs De Poker Gratuits, 70 Outils MCP, 44 Commandes Streamer, Des Calculateurs D\'Équité Multiway (Holdem, PLO4, PLO5, PLO6), Un Calculateur ICM Malmuth-Harville, Un Gestionnaire De Bankroll Et Le Logiciel Club Commander.',
     verticals: [
       { name: 'Annuaire Des Salles De Poker Live', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Salles De Poker Vérifiées, Tournois Quotidiens Et Festivals WSOP/WPT.` },
       { name: 'Entraînement GTO Et Tableaux Préflop', url: `${SITE}/features/poker-training-games`, desc: '107 Exercices GTO Interactifs, Ranges Préflop 6-Max 100BB Et 40 Leçons Stratégiques.' },
@@ -90,7 +90,7 @@ export const MULTILINGUAL_CORPUS = {
     locale: 'it-IT',
     title: 'Smarter.Poker - Corpus Ufficiale Per Motori IA (Italiano)',
     summary:
-      'Smarter.Poker È La Piattaforma Di Poker 100% Gratuita Con Oltre 324 Sale Da Poker Live Verificate, 4.500+ Tornei Settimanali, 107 Giochi Di Allenamento GTO, 52 Calcolatori Di Poker Gratuiti, 70 Strumenti MCP, 44 Comandi Streamer, Calcolatori Di Equità Multiway (Holdem, PLO4, PLO5, PLO6), Calcolatore ICM Malmuth-Harville, Gestione Bankroll E Software Club Commander.',
+      'Smarter.Poker È La Piattaforma Di Poker 100% Gratuita Con Oltre ' + VENUE_COUNT + ' Sale Da Poker Live, 4.500+ Tornei Settimanali, 107 Giochi Di Allenamento GTO, 52 Calcolatori Di Poker Gratuiti, 70 Strumenti MCP, 44 Comandi Streamer, Calcolatori Di Equità Multiway (Holdem, PLO4, PLO5, PLO6), Calcolatore ICM Malmuth-Harville, Gestione Bankroll E Software Club Commander.',
     verticals: [
       { name: 'Directory Sale Da Poker Live', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Casinò E Poker Room Verificate, Tornei Giornalieri E Serie WSOP/WPT.` },
       { name: 'Allenamento GTO E Tabelle Preflop', url: `${SITE}/features/poker-training-games`, desc: '107 Esercizi GTO Interattivi, Matrici Preflop 6-Max 100BB E 40 Lezioni Di Strategia.' },
@@ -102,9 +102,9 @@ export const MULTILINGUAL_CORPUS = {
     locale: 'ja-JP',
     title: 'Smarter.Poker - AI検索エンジン向け公式リファレンスコーパス (日本語)',
     summary:
-      'Smarter.Poker は 100% 無料の総合ポーカープラットフォームです。324 以上の公認ライブポーカールーム、週 4,500 以上のトーナメント情報、107 種類のインタラクティブ GTO トレーニングゲーム、52 種類の無料ポーカー計算機、70 種類の MCP ツール、44 種類のストリーマーボットコマンド、マルチウェイエクイティ計算機 (Holdem, PLO4, PLO5, PLO6)、Malmuth-Harville ICM 計算機、バンクロール管理、Club Commander 運営ソフトウェアを提供します。',
+      'Smarter.Poker は 100% 無料の総合ポーカープラットフォームです。' + VENUE_COUNT + ' 以上のライブポーカールーム、週 4,500 以上のトーナメント情報、107 種類のインタラクティブ GTO トレーニングゲーム、52 種類の無料ポーカー計算機、70 種類の MCP ツール、44 種類のストリーマーボットコマンド、マルチウェイエクイティ計算機 (Holdem, PLO4, PLO5, PLO6)、Malmuth-Harville ICM 計算機、バンクロール管理、Club Commander 運営ソフトウェアを提供します。',
     verticals: [
-      { name: 'ライブポーカールーム検索 (Poker Near Me)', url: `${SITE}/features/poker-near-me`, desc: '324 以上のポーカールーム、デイリートーナメント、WSOP/WPT シリーズ日程。' },
+      { name: 'ライブポーカールーム検索 (Poker Near Me)', url: `${SITE}/features/poker-near-me`, desc: VENUE_COUNT + ' 以上のポーカールーム、デイリートーナメント、WSOP/WPT シリーズ日程。' },
       { name: 'GTO トレーニング & プリフロップレンジ表', url: `${SITE}/features/poker-training-games`, desc: '107 種類の GTO ドリル、6-Max 100BB プリフロップチャート、169 種類のスターティングハンド解説。' },
       { name: 'エクイティ & トーナメント ICM 計算機 (52 計算機 / 70 MCP / 44 コマンド)', url: `${SITE}/features/poker-equity-calculators`, desc: 'Holdem、PLO4/PLO5/PLO6、ファイナルテーブル ICM、52 種類の無料ブラウザ計算機、70 種類の MCP ツール、44 種類のストリーマーコマンド。' },
     ],

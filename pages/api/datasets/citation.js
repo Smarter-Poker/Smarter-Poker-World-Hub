@@ -31,7 +31,7 @@ const ANNUAL_WHITEPAPER_STUDY = {
   modifiedDate: '2026-11-24',
   category: 'Flagship Industry Synthesis Whitepaper',
   summary:
-    `Flagship 2026 Quantitative State Of Poker Industry And GTO Benchmark Whitepaper Uniting 15 Zenodo-Archived Studies (DOI: 10.5281/zenodo.15129481), ${VENUE_COUNT_LABEL} Verified Live Poker Venues, 52 Solver Calculators, 70 MCP Tools, And 25 Empirical Statistics.`,
+    `Flagship 2026 Quantitative State Of Poker Industry And GTO Benchmark Whitepaper Uniting 15 Zenodo-Archived Studies (DOI: 10.5281/zenodo.15129481), ${VENUE_COUNT_LABEL} Live Poker Venues, 52 Solver Calculators, 70 MCP Tools, And 25 Empirical Statistics.`,
   doi: PRIMARY_DOI,
 };
 

@@ -11,6 +11,7 @@ export const DEFAULT_TRIVIA_PREFERENCES = Object.freeze({
     soundEffects: true,
     timerEnabled: true,
     hintsEnabled: false,
+    autoAdvanceOnCorrect: false,
     difficulty: 'medium',
     haptics: true,
     screenShake: true,
@@ -21,7 +22,7 @@ export const DEFAULT_TRIVIA_PREFERENCES = Object.freeze({
 });
 
 const BOOLEAN_KEYS = Object.freeze([
-    'soundEffects', 'timerEnabled', 'hintsEnabled', 'haptics', 'screenShake',
+    'soundEffects', 'timerEnabled', 'hintsEnabled', 'autoAdvanceOnCorrect', 'haptics', 'screenShake',
     'reducedMotion', 'highContrast', 'largerText',
 ]);
 const DIFFICULTIES = new Set(['easy', 'medium', 'hard']);
