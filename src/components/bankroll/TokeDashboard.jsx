@@ -13,6 +13,7 @@ import { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import ResponsiveTable from '../ui/ResponsiveTable';
 import { getTokeAnalytics } from '../../lib/bankroll/tokeSelectors';
+import { localDay } from '../../lib/bankroll/localDates.mjs';
 
 const TokeEarningsChart = dynamic(() => import('./toke/TokeEarningsChart'), { ssr: false });
 
@@ -265,7 +266,7 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                                     const url = URL.createObjectURL(blob);
                                     const link = document.createElement('a');
                                     link.href = url;
-                                    link.download = `toke-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+                                    link.download = `toke-analytics-${localDay()}.csv`;
                                     link.click();
                                     URL.revokeObjectURL(url);
                                     setFeedback('Earnings CSV Download Requested.');

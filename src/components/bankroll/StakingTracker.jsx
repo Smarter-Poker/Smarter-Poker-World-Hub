@@ -21,6 +21,7 @@ import {
 } from '../../lib/bankroll/bankrollSelectors';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 import toast from '../../stores/toastStore';
+import { localDay, parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
 
 export default function StakingTracker({ userId, refreshTrigger }) {
     const [arrangements, setArrangements] = useState([]);
@@ -51,7 +52,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
         split_percentage: 50,
         markup_percentage: 0,
         starting_makeup: 0,
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: localDay(),
         notes: '',
     });
 
@@ -80,7 +81,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                     const unlinked = allEntries.filter(e =>
                         !linkedIds.has(e.id) &&
                         e.category !== 'expense' &&
-                        new Date(e.entry_date) >= new Date(active.start_date)
+                        parseLedgerDay(e.entry_date) >= parseLedgerDay(active.start_date)
                     );
                     setUnlinkedEntries(unlinked);
                 } catch { setUnlinkedEntries([]); }
@@ -109,7 +110,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             split_percentage: 50,
             markup_percentage: 0,
             starting_makeup: 0,
-            start_date: new Date().toISOString().split('T')[0],
+            start_date: localDay(),
             notes: '',
         });
         setShowModal(true);
@@ -124,7 +125,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             split_percentage: arr.split_percentage || 50,
             markup_percentage: arr.markup_percentage || 0,
             starting_makeup: arr.starting_makeup || 0,
-            start_date: arr.start_date || new Date().toISOString().split('T')[0],
+            start_date: arr.start_date || localDay(),
             notes: arr.notes || '',
         });
         setShowModal(true);
@@ -176,7 +177,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
         try {
             await updateStakingArrangement(activeArrangement.id, {
                 is_active: false,
-                end_date: new Date().toISOString().split('T')[0],
+                end_date: localDay(),
             });
             toast.success('Arrangement completed');
             setConfirmEnd(false);
@@ -354,7 +355,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                         <div key={entry.id} style={styles.sessionRow}>
                                             <div style={styles.sessionInfo}>
                                                 <span style={styles.sessionDate}>
-                                                    {new Date(entry.entry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                    {parseLedgerDay(entry.entry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                                 </span>
                                                 <span style={styles.sessionCat}>
                                                     {CATEGORY_LABELS[entry.category] || entry.category}
