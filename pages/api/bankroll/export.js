@@ -8,22 +8,21 @@ import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase'
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { clientDay, exportRequest, guardBankrollRequest } from '../../../src/lib/bankroll/apiGuard.mjs';
 import { exportRow, fetchAllRows, ledgerCsv, summarizeLedger } from '../../../src/lib/bankroll/ledgerReport.mjs';
 
 
 export default async function handler(req, res) {
   try {
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-          if (!applyRateLimit(req, res, LIMITS.write)) return;
-      }
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
 
-      // BUG #249 FIX: Require JWT auth — prevent IDOR on bankroll data
-      const _token = req.headers.authorization?.replace('Bearer ', '');
-      if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-      const _authUser = authData?.user;
-      if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+      // Method, token and identity in one place (src/lib/bankroll/apiGuard.mjs):
+      // a GET is 405 with Allow, a session-service outage is 503, not "sign in".
+      const _authUser = await guardBankrollRequest(req, res, {
+          methods: ['POST'],
+          verify: (request) => getServerUserWithFallback(request, getSupabase()),
+      });
+      if (!_authUser) return;
 
       // ═══ PREMIUM GATE ═══
       const access = await checkServerFeatureAccess(getSupabase(), _authUser.id, 'bankroll_pro');
@@ -31,11 +30,10 @@ export default async function handler(req, res) {
           return res.status(403).json({ success: false, error: 'Premium feature access required' });
       }
 
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
-
-      const { format = 'csv', dateRange } = req.body;
+      // A bad date used to reach PostgREST and come back as a 500.
+      const input = exportRequest(req.body);
+      if (input.error) return res.status(400).json({ success: false, error: input.error });
+      const { format } = input;
 
       // BUG #239 FIX: Use JWT user_id, not client-submitted userId (IDOR prevention)
       const userId = _authUser.id;
@@ -49,8 +47,8 @@ export default async function handler(req, res) {
                   .select('*')
                   .eq('user_id', userId)
                   .eq('is_revision', false);
-              if (dateRange?.start) query = query.gte('entry_date', dateRange.start);
-              if (dateRange?.end) query = query.lte('entry_date', dateRange.end);
+              if (input.start) query = query.gte('entry_date', input.start);
+              if (input.end) query = query.lte('entry_date', input.end);
               return query
                   .order('entry_date', { ascending: false })
                   .order('created_at', { ascending: false })
@@ -67,7 +65,7 @@ export default async function handler(req, res) {
           const exportData = entries.map(exportRow);
           const totals = summarizeLedger(entries);
           // The client names the file with the player's own calendar day.
-          const day = /^\d{4}-\d{2}-\d{2}$/.test(String(req.body?.today || '')) ? req.body.today : new Date().toISOString().slice(0, 10);
+          const day = clientDay(req.body?.today);
           const summary = {
               entries: entries.length,
               sessions: totals.sessions,

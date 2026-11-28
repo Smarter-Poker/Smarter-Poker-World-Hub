@@ -81,6 +81,8 @@ const HEADER_CACHE_FRESH_MS = 60 * 1000;
 // hydrations (ensure-profile, vip/check-status, get-header-stats,
 // get-conversations) keyed by authenticated user identity.
 const HEADER_SINGLEFLIGHT_TTL_MS = 10_000;
+export const HEADER_DEFAULT_AVATAR = '/images/global-header/header-default-avatar-192.62d36efb33.png';
+
 const HEADER_SINGLEFLIGHT_PATHS = new Set([
   '/api/auth/ensure-profile',
   '/api/vip/check-status',
@@ -461,7 +463,11 @@ export default function UniversalHeader({
     arenaAvatarUrl,
     user?.useAvatarAsProfilePic === true
   );
-  const displayAvatar = isMounted ? resolvedPortrait || '/default-avatar.png' : null;
+  // The header seats the fallback portrait at under 70 CSS px, so it reads a
+  // 192px derivative of /default-avatar.png (25 KB instead of 70 KB on every
+  // signed-out page). Same artwork, same crop; onError still falls back to
+  // the full file. Pinned by __tests__/site-wide-payload-budget.test.mjs.
+  const displayAvatar = isMounted ? resolvedPortrait || HEADER_DEFAULT_AVATAR : null;
   const safeUnreadCount = isMounted ? unreadCount : 0;
   const safeNotificationCount = isMounted ? liveNotificationCount : 0;
   const safeIsVip = isMounted ? isVip : false;
@@ -1770,7 +1776,17 @@ export default function UniversalHeader({
       <header className="approved-global-header" data-artwork="approved-global-header" ref={publishHeaderHeight}>
         <picture className="approved-global-header__picture">
           {/* Lossless, responsive derivatives preserve the byte-pinned approved
-              artwork while phones stop downloading the full desktop PNG. */}
+              artwork while phones stop downloading the full desktop PNG.
+              AVIF first: same widths, 4:4:4 at q90, PSNR 47.3-47.9 dB and SSIM
+              0.993-0.994 against the lossless WebP (max 10/255 on any channel),
+              about a third of the bytes. The composition is unchanged; the
+              profile disc still masks the ring (CLAUDE.md 10.4). Budget pinned
+              by __tests__/site-wide-payload-budget.test.mjs. */}
+          <source
+            type="image/avif"
+            srcSet="/images/global-header/global-header-desktop-824.0ecdd8c0c2.avif 824w, /images/global-header/global-header-desktop-1200.91e724a2ee.avif 1200w, /images/global-header/global-header-desktop-1648.8b4c719189.avif 1648w"
+            sizes="100vw"
+          />
           <source
             type="image/webp"
             srcSet="/images/global-header/global-header-desktop-824.625ee4e7dd.webp 824w, /images/global-header/global-header-desktop-1200.c58360aee1.webp 1200w, /images/global-header/global-header-desktop-1648.0660349552.webp 1648w"

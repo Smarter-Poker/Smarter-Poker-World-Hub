@@ -178,6 +178,7 @@ import './bankroll-trip-math.test.mjs';
 import './bankroll-tournament-schedule.test.mjs';
 import './bankroll-reports-audit.test.mjs';
 import './bankroll-local-dates.test.mjs';
+import './bankroll-api-routes.test.mjs';
 import './bankroll-deleted-entry-frees-receipts.test.mjs';
 import './bankroll-jarvis-session-insights.test.mjs';
 import './toke-dealer-reference.test.mjs';
@@ -1013,6 +1014,7 @@ import './otc-tier4-live-funnel-telemetry-20261127.law.test.mjs';
 import './otc-tier4-reminder-sync-and-viral-loop-20261127.law.test.mjs';
 import './otc-tier4-local-geo-conversion-20261127.law.test.mjs';
 import './otc-tier4-100-matchups-and-live-drip-20261127.law.test.mjs';
+import './site-wide-payload-budget.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

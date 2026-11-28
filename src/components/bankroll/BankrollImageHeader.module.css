@@ -101,8 +101,10 @@
   grid-template-columns: minmax(0, 1fr);
 }
 /* Opt-in: title first, larger, with the parent line under it. */
+/* !important: a site-wide phone rule sets every h1 to 1.75rem !important;
+   this more specific rule must outrank it for the title-first header. */
 .header.titleFirst .title {
-  font-size: clamp(2.2rem, 5.4vw, 4rem);
+  font-size: clamp(2.2rem, 5.4vw, 4rem) !important;
 }
 .header.titleFirst .parent {
   margin: 6px 0 0;
@@ -126,6 +128,6 @@
 }
 @media (max-width: 600px) {
   .header.titleFirst .title {
-    font-size: clamp(2.05rem, 9.5vw, 2.9rem);
+    font-size: clamp(2.05rem, 9.5vw, 2.9rem) !important;
   }
 }

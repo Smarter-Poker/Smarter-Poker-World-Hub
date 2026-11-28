@@ -865,6 +865,19 @@ export function useSignInOpening() {
         audio.current?.pause();
         resolve.current?.();
     }, []);
+    // The intro track is not fetched on page load (SoundEngine preload: false).
+    // The first touch, focus or key on the sign-in page means a sign-in gesture
+    // is close, so fetch it then and the opening plays from cache.
+    useEffect(() => {
+        if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return undefined;
+        const events = ['pointerdown', 'focusin', 'keydown'];
+        const warm = () => {
+            events.forEach(name => document.removeEventListener(name, warm, true));
+            try { SoundEngine.warm('cinematicIntro'); } catch { /* optional warm-up */ }
+        };
+        events.forEach(name => document.addEventListener(name, warm, true));
+        return () => events.forEach(name => document.removeEventListener(name, warm, true));
+    }, []);
     return {
         beginOpening: begin,
         cancelOpening: () => finish(false),
