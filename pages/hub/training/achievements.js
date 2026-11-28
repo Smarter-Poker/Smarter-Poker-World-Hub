@@ -7,7 +7,7 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-1 - hex sweep batch 5: literals routed to --sp-* tokens
 import SEOHead from '../../../src/components/seo/SEOHead';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import { TrainingConsoleSkeleton } from '../../../src/components/training/console/TrainingConsoleStates';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -20,17 +20,19 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
-import casinoStyles from '../../../src/styles/training/achievements-casino.module.css';
+import sd from '../../../src/styles/training/training-journey-sd.module.css';
+import TrainingPageHead, { TrainingDailyNav } from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-EMPTY-2c - adoption: shared empty-state primitive
 
 
 
-const RARITY_COLORS = {
-  common: 'var(--sp-fg-muted)',
-  uncommon: 'var(--sp-accent-green)',
-  rare: 'var(--sp-accent-blue)',
-  epic: '#86daff',
-  legendary: '#67e8f9',
+// Rarity is a label, not a colour: ice for every tier, muted for common.
+const RARITY_TONE = {
+  common: 'muted',
+  uncommon: 'ice',
+  rare: 'ice',
+  epic: 'ice',
+  legendary: 'ice',
 };
 
 // BUG FIX (TRAIN-ACHIEVEMENTS-A11Y-1): replaced emoji map with SVG icon
@@ -91,17 +93,6 @@ function CategoryIcon({ kind, size = 14 }) {
   return null;
 }
 
-function MedalIcon({ size = 22 }) {
-  // header medal (replaces ★)
-  const props = { ...ICON_PROPS, width: size, height: size };
-  return (
-    <svg {...props}>
-      <circle cx="12" cy="14" r="7" />
-      <path d="M8.21 13.89 6 22l6-3 6 3-2.21-8.12" />
-      <path d="M9 7h6" />
-    </svg>
-  );
-}
 
 function TrophyIcon({ size = 32 }) {
   // ach card fallback icon (replaces ★)
@@ -197,99 +188,52 @@ export default function TrainingAchievements() {
         canonical="/hub/training/achievements"
       />
 
-      <div className={`sp-training-journey sp-training-journey--achievements ${casinoStyles.shell}`} style={styles.container}>
+      <div className={`sp-training-journey sp-training-journey--achievements ${sd.root}`}>
         <UniversalHeader pageDepth={2} />
 
-        <header className={casinoStyles.marquee}>
-          <div className={casinoStyles.marqueeArtwork} aria-hidden="true" />
-          <div className={casinoStyles.marqueeContent}>
-            <span className={casinoStyles.eyebrow}>Casino Realism Vault · Milestone Ledger</span>
-            {/* TRAIN-ACHIEVEMENTS-A11Y-1: semantic h1 with SVG medal icon replaces
-                the prior bare '★ Training Achievements' string. Icon has
-                aria-hidden so the heading reads cleanly as 'Training Achievements'. */}
-            <h1 className="sp-journey-title" style={styles.title}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
-                <MedalIcon size={26} />
-                Training Achievements
-              </span>
-            </h1>
+        <TrainingPageHead slug="training-achievements" nav={<TrainingDailyNav current="/hub/training/achievements" />} />
 
-            <nav className={casinoStyles.subpageNav} aria-label="Daily Challenges And Goals Subpages">
-              <Link href="/hub/training/daily-challenge" className={casinoStyles.navPlate}>
-                Hand Of The Day
-              </Link>
-              <Link href="/hub/training/daily-goals" className={casinoStyles.navPlate}>
-                Daily Goals Vault
-              </Link>
-              <Link href="/hub/training/challenges" className={casinoStyles.navPlate}>
-                Weekly &amp; Monthly Goals
-              </Link>
-              <Link href="/hub/training/achievements" className={`${casinoStyles.navPlate} ${casinoStyles.navPlateActive}`}>
-                Achievements Vault
-              </Link>
-              <Link href="/hub/training/streaks" className={casinoStyles.navPlate}>
-                Streaks Vault
-              </Link>
-            </nav>
-          </div>
-        </header>
-
-        <div className={`sp-journey-main ${casinoStyles.mainDeck}`} style={styles.content}>
+        <div className={`sp-journey-main ${sd.main}`}>
           {!isOnline && (
-            <div
-              role="status"
-              data-offline-banner="true"
-              style={{
-                marginBottom: 16,
-                padding: '10px 14px',
-                borderRadius: 2,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
-                color: '#86daff',
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
+            <div role="status" data-offline-banner="true" className={sd.notice}>
               Offline. Achievement Ledger Sync Will Resume After Reconnection.
             </div>
           )}
 
-
           {/* Stats Overview */}
-          <div className="sp-journey-stat-grid sp-journey-stat-grid--compact" style={styles.statsRow}>
-            <div className={`sp-journey-stat-card ${casinoStyles.statCard}`} style={styles.statBox}>
+          <div className={`sp-journey-stat-grid sp-journey-stat-grid--compact ${sd.metrics}`}>
+            <div className={`sp-journey-stat-card ${sd.metric}`}>
               {/* TRAIN-ACHIEVEMENTS-A11Y-1: role=status so screen readers
                   announce unlock-count updates after SESSION_END refetch. */}
-              <div style={styles.statValue} role="status" aria-label={`${historicalUnlockedCount} historical achievement snapshots`}>
+              <div className={sd.metricValue} role="status" aria-label={`${historicalUnlockedCount} historical achievement snapshots`}>
                 {historicalUnlockedCount}/{achievements.length}
               </div>
-              <div style={styles.statLabel}>Historical Snapshots</div>
+              <div className={sd.metricLabel}>Historical Snapshots</div>
             </div>
-            <div className={`sp-journey-stat-card ${casinoStyles.statCard}`} style={styles.statBox}>
-              <div style={{ ...styles.statValue, color: '#25c8ff', fontSize: 16 }} role="status">Paused</div>
-              <div style={styles.statLabel}>New Achievement Awards</div>
+            <div className={`sp-journey-stat-card ${sd.metric}`}>
+              <div className={`${sd.metricValue} ${sd.ice}`} role="status">Paused</div>
+              <div className={sd.metricLabel}>New Achievement Awards</div>
             </div>
           </div>
 
           {/* Category Filter */}
-          <div className="sp-journey-filter-rail" style={styles.filters} role="group" aria-label="Filter Achievements By Category">
+          <div className={`sp-journey-filter-rail ${sd.chips}`} role="group" aria-label="Filter Achievements By Category">
             {categories.map((cat) => (
               <button
                 key={cat}
                 type="button"
-                className={activeCategory === cat ? `${casinoStyles.filterPlate} ${casinoStyles.filterPlateActive}` : casinoStyles.filterPlate}
-                style={activeCategory === cat ? styles.filterActive : styles.filterBtn}
+                className={sd.chip}
                 onClick={() => setActiveCategory(cat)}
                 aria-label={`Filter by ${cat === 'all' ? 'all categories' : cat}`}
                 aria-pressed={activeCategory === cat}
               >
                 {/* TRAIN-ACHIEVEMENTS-A11Y-1: SVG CategoryIcon replaces emoji
-                    map. Label remains the uppercase category name. */}
+                    map. Label remains the title-case category name. */}
                 {cat === 'all' ? 'All' : (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    <CategoryIcon kind={cat} size={12} />
+                  <>
+                    <CategoryIcon kind={cat} size={14} />
                     {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </span>
+                  </>
                 )}
               </button>
             ))}
@@ -302,51 +246,43 @@ export default function TrainingAchievements() {
 
           {/* Achievement List */}
           {loading ? (
-            <div style={{ padding: '20px 0' }} role="status" aria-label="Loading achievements">
-              <SkeletonLoader variant="rows" rows={6} />
-            </div>
+            <TrainingConsoleSkeleton label="Loading Achievements" panels={3} rows={2} />
           ) : (
-            <div className="sp-journey-achievement-grid" style={styles.grid}>
+            <div className={`sp-journey-achievement-grid ${sd.list}`}>
               {filteredAchievements.map((ach) => (
                 <div
                   key={ach.id}
-                  className={`sp-journey-achievement-card ${casinoStyles.achCard}`}
-                  style={{
-                    ...styles.achCard,
-                    opacity: ach.historicallyUnlocked ? 0.92 : 0.65,
-                    borderColor: ach.historicallyUnlocked ? RARITY_COLORS[ach.rarity] : '#465d6a',
-                  }}
+                  className={`sp-journey-achievement-card ${sd.card} ${sd.achievement}`}
+                  data-tone={ach.historicallyUnlocked ? 'good' : 'muted'}
                 >
                   {/* TRAIN-ACHIEVEMENTS-A11Y-1: ach.icon may be an emoji string
                       from the DB. We render it inside an aria-hidden wrapper
                       so the screen reader announces the name instead, and
                       fall back to the TrophyIcon SVG when no icon is set. */}
-                  <div style={styles.achIcon} aria-hidden>
-                    {ach.icon ? ach.icon : <TrophyIcon size={32} />}
+                  <div className={sd.achievementIcon} aria-hidden>
+                    {ach.icon ? ach.icon : <TrophyIcon size={30} />}
                   </div>
-                  <div style={styles.achInfo}>
-                    <div style={styles.achName}>{ach.name}</div>
-                    <div style={styles.achDesc}>{ach.description}</div>
-                    <div style={{ ...styles.achRarity, color: RARITY_COLORS[ach.rarity] }}>
-                      {ach.rarity ? ach.rarity.charAt(0).toUpperCase() + ach.rarity.slice(1) : ''}
-                    </div>
+                  <div className={sd.achievementInfo}>
+                    <div className={sd.title}>{ach.name}</div>
+                    <div className={sd.copy}>{ach.description}</div>
+                    {ach.rarity && (
+                      <div className={`${sd.eyebrow} ${RARITY_TONE[ach.rarity] === 'muted' ? sd.muted : ''}`}>
+                        {ach.rarity.charAt(0).toUpperCase() + ach.rarity.slice(1)}
+                      </div>
+                    )}
                   </div>
-                  <div style={styles.reward}>
+                  <div className={sd.achievementState}>
                     {ach.historicallyUnlocked ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <>
                         {/* TRAIN-ACHIEVEMENTS-A11Y-1: SVG CheckIcon + aria-label
-                            replaces bare '✓' text. */}
-                        <span style={styles.unlocked} role="img" aria-label="Historical achievement snapshot">
+                            replaces bare check text. */}
+                        <span className={sd.good} role="img" aria-label="Historical achievement snapshot">
                           <CheckIcon size={18} />
                         </span>
-                        <span style={{ color: 'var(--sp-fg-muted)', fontSize: 12, fontWeight: 700 }}>
-                          Historical Snapshot
-                        </span>
-                      </div>
+                        <span>Historical Snapshot</span>
+                      </>
                     ) : (
-                      <span style={{ color: 'var(--sp-fg-dim)', fontSize: 12, fontWeight: 700 }}>
-                        Earning Paused
-                      </span>
+                      <span>Earning Paused</span>
                     )}
                   </div>
                 </div>
@@ -355,8 +291,8 @@ export default function TrainingAchievements() {
               {filteredAchievements.length === 0 && (
                 <TrainerEmptyState
                   variant={user ? 'no-data' : 'locked'}
-                  title={user ? 'No achievements yet' : 'Sign in required'}
-                  message={user ? 'No historical achievement definitions are available in this category.' : 'Sign in to view historical achievement snapshots.'}
+                  title={user ? 'No Achievements Yet' : 'Sign In Required'}
+                  message={user ? 'No Historical Achievement Definitions Are Available In This Category.' : 'Sign In To View Historical Achievement Snapshots.'}
                   compact
                 />
               )}
@@ -369,152 +305,3 @@ export default function TrainingAchievements() {
   );
 }
 
-const styles = {
-  container: {
-    minHeight: '100dvh',
-    paddingBottom: 70,
-    width: '100%',
-    maxWidth: '100vw',
-    overflowX: 'clip',
-    boxSizing: 'border-box',
-    background: '#020608',
-    color: '#eef6f9',
-  },
-  content: {
-    maxWidth: '1040px',
-    margin: '0 auto',
-    padding: '24px 20px 44px',
-  },
-  title: {
-    fontSize: '30px',
-    fontWeight: 800,
-    marginBottom: '8px',
-    textAlign: 'left',
-    color: '#f4f8fa',
-  },
-  statsRow: {
-    display: 'flex',
-    gap: '16px',
-    justifyContent: 'center',
-    marginBottom: '24px',
-    flexWrap: 'wrap',
-  },
-  statBox: {
-    padding: '18px 32px',
-    background: 'linear-gradient(180deg, #101a20, #050b0f)',
-    border: '1px solid #536a76',
-    borderLeft: '3px solid #25c8ff',
-    borderRadius: '2px',
-    textAlign: 'center',
-  },
-  statValue: {
-    fontSize: '24px',
-    fontWeight: 800,
-    color: '#86daff',
-  },
-  statLabel: {
-    fontSize: '12px',
-    color: 'var(--sp-fg-muted)',
-    marginTop: '4px',
-  },
-  filters: {
-    display: 'flex',
-    gap: '8px',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginBottom: '24px',
-  },
-  filterBtn: {
-    minHeight: '44px',
-    padding: '8px 16px',
-    background: 'linear-gradient(180deg, #1e2c34 0%, #071016 52%, #111e25 100%)',
-    border: '1px solid #536a76',
-    borderRadius: '2px',
-    color: 'var(--sp-fg-muted)',
-    fontSize: '12px',
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  filterActive: {
-    minHeight: '44px',
-    padding: '8px 16px',
-    background: 'linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%)',
-    border: '1px solid #25c8ff',
-    borderRadius: '2px',
-    color: '#ffffff',
-    fontSize: '12px',
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  loading: {
-    textAlign: 'center',
-    padding: '40px',
-    color: 'var(--sp-fg-muted)',
-  },
-  grid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-  },
-  achCard: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    padding: '18px',
-    background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
-    border: '1px solid #58717f',
-    borderLeft: '3px solid #25c8ff',
-    borderRadius: '2px',
-  },
-  achIcon: {
-    fontSize: '32px',
-    color: '#86daff',
-  },
-  achInfo: {
-    flex: 1,
-  },
-  achName: {
-    fontSize: '16px',
-    fontWeight: 700,
-    color: '#f2f7fa',
-  },
-  achDesc: {
-    fontSize: '13px',
-    color: 'var(--sp-fg-muted)',
-    marginTop: '4px',
-  },
-  achRarity: {
-    fontSize: '12px',
-    fontWeight: 700,
-    marginTop: '4px',
-  },
-  reward: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-  },
-  diamonds: {
-    fontSize: '18px',
-    fontWeight: 700,
-    color: '#25c8ff',
-  },
-  unlocked: {
-    color: 'var(--sp-accent-green)',
-    fontSize: '20px',
-    marginTop: '4px',
-    display: 'inline-flex',
-    alignItems: 'center',
-  },
-  empty: {
-    textAlign: 'center',
-    padding: '40px',
-    color: '#8ca4b0',
-  },
-  backLink: {
-    display: 'block',
-    textAlign: 'center',
-    marginTop: '32px',
-    color: '#25c8ff',
-    textDecoration: 'none',
-  },
-};

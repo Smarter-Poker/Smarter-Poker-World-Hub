@@ -17,10 +17,11 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import st from '../../../src/styles/training/study-tools.module.css';
 function buildHeatmap(sessions) {
   const dayMap = {};
   if (!sessions) return dayMap;
@@ -43,12 +44,13 @@ function getIntensity(hands) {
 }
 
 const INTENSITY_COLORS = [
-  'rgba(255,255,255,0.02)', // 0 - none
-  'rgba(0,212,255,0.15)', // 1 - light
-  'rgba(0,212,255,0.30)', // 2 - medium
-  'rgba(0,212,255,0.50)', // 3 - heavy
-  'rgba(0,212,255,0.75)', // 4 - extreme
+  '#0a1828', // 0 - none
+  'rgba(73,198,255,0.28)', // 1 - light
+  'rgba(73,198,255,0.48)', // 2 - medium
+  'rgba(73,198,255,0.70)', // 3 - heavy
+  'rgba(134,218,255,0.95)', // 4 - extreme
 ];
+const INTENSITY_LABELS = ['No Hands', '1-9 Hands', '10-29 Hands', '30-59 Hands', '60+ Hands'];
 
 // BUG FIX (TRAIN-CALENDAR-A11Y-1): SVG icon components replacing the
 // goal-met ★ indicator and the bare ← back arrow entity. Heatmap cells
@@ -72,16 +74,9 @@ function StarSparkleIcon({ size=12 }) {
     </svg>
   );
 }
-function BackArrowIcon({ size=18 }) {
-  return (
-    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
-      <line x1="19" y1="12" x2="5" y2="12"/>
-      <polyline points="12 19 5 12 12 5"/>
-    </svg>
-  );
-}
 
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function computeStreak(dayMap) {
@@ -214,94 +209,29 @@ export default function TrainingCalendarPage() {
         <title>Training Calendar | Smarter.Poker GTO Training</title>
               <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <div
-        className="sp-training-journey sp-training-journey--calendar"
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        <div
-          className="sp-journey-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back To Training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-CALENDAR-A11Y-1: SVG back arrow */}
-            <BackArrowIcon size={18} />
-          </button>
-          <div>
-            {/* TRAIN-CALENDAR-A11Y-1: semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Training Calendar</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Your Activity Heatmap</div>
-          </div>
-        </div>
-        <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+      <div className={`sp-training-journey sp-training-journey--calendar ${st.shell}`}>
+        <TrainingPageHead slug="training-training-calendar" note="Your Activity Heatmap" />
+        <div className={`sp-journey-main ${st.page} ${st.journey}`}>
 
           {loading && (
-            <div style={{ padding: '20px 0' }} role="status" aria-label="Loading Calendar">
-              <SkeletonLoader variant="rows" rows={6} />
-            </div>
+            <section className={`sd-panel ${st.panel}`} role="status" aria-label="Loading Calendar">
+              <div className={st.skeleton} aria-hidden><span /><span /><span /><span /><span /><span /></div>
+              <p className={st.small}>Loading Verified Training History...</p>
+            </section>
           )}
 
           {!loading && signedOut && (
-            <div
-              role="status"
-              style={{
-                padding: '18px 16px',
-                borderRadius: 12,
-                border: '1px solid rgba(0,212,255,0.18)',
-                background: 'rgba(0,212,255,0.05)',
-                color: 'var(--sp-fg-muted)',
-                lineHeight: 1.6,
-              }}
-            >
-              <strong style={{ display: 'block', color: 'var(--sp-fg)', marginBottom: 4 }}>
-                Sign In To View Your Training Calendar
-              </strong>
-              Your Verified Sessions, Activity Heatmap, And Streak Appear After You Sign In.
+            <section role="status" className={`sd-panel ${st.panel} ${st.state}`}>
+              <h2 className={st.title}>Sign In To View Your Training Calendar</h2>
+              <p className={st.copy}>Your Verified Sessions, Activity Heatmap, And Streak Appear After You Sign In.</p>
               <button
                 type="button"
                 onClick={() => router.push('/auth/login?redirect=/hub/training/training-calendar')}
-                style={{
-                  display: 'block',
-                  marginTop: 12,
-                  padding: '9px 14px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(0,212,255,0.3)',
-                  background: 'rgba(0,212,255,0.1)',
-                  color: 'var(--sp-accent-cyan)',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                }}
+                className="sd-button sd-primary"
               >
                 Sign In
               </button>
-            </div>
+            </section>
           )}
 
           {!loading && !signedOut && (fetchError || !authoritativeDataReady) && (
@@ -314,279 +244,137 @@ export default function TrainingCalendarPage() {
           {!loading && !signedOut && !fetchError && authoritativeDataReady && (
             <>
               {/* Stats Row */}
-              <div
-                className="sp-journey-stat-grid sp-journey-stat-grid--three"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr 1fr',
-                  gap: 8,
-                  marginBottom: 20,
-                }}
-              >
-                <div
-                  style={{
-                    padding: '14px',
-                    borderRadius: 12,
-                    background: 'rgba(0,212,255,0.04)',
-                    border: '1px solid rgba(0,212,255,0.1)',
-                    textAlign: 'center',
-                  }}
-                >
-                  <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-cyan)' }} role="status" aria-label={`${streak} day streak`}>{streak}</div>
-                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                    Day Streak
-                  </div>
+              <section className={st.metrics} style={{ '--cols': 3 }} aria-label="Calendar Summary">
+                <div className={`sd-metric ${st.metric}`}>
+                  <strong className={st.metricValue} data-tone="ice" role="status" aria-label={`${streak} day streak`}>{streak}</strong>
+                  <span className={st.metricLabel}>Day Streak</span>
                 </div>
-                <div
-                  style={{
-                    padding: '14px',
-                    borderRadius: 12,
-                    background: 'rgba(0,212,255,0.04)',
-                    border: '1px solid rgba(0,212,255,0.1)',
-                    textAlign: 'center',
-                  }}
-                >
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#86daff' }}>{totalDays}</div>
-                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                    Active Days
-                  </div>
+                <div className={`sd-metric ${st.metric}`}>
+                  <strong className={st.metricValue}>{totalDays}</strong>
+                  <span className={st.metricLabel}>Active Days</span>
                 </div>
-                <div
-                  style={{
-                    padding: '14px',
-                    borderRadius: 12,
-                    background: 'rgba(0,212,255,0.04)',
-                    border: '1px solid rgba(0,212,255,0.1)',
-                    textAlign: 'center',
-                  }}
-                >
-                  <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-green)' }}>
-                    {totalHands}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                    Total Hands
-                  </div>
+                <div className={`sd-metric ${st.metric}`}>
+                  <strong className={st.metricValue}>{totalHands}</strong>
+                  <span className={st.metricLabel}>Total Hands</span>
                 </div>
-              </div>
+              </section>
 
               {/* Heatmap Grid */}
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', gap: 2, marginBottom: 4, paddingLeft: 18 }}>
-                  {DAYS.map((d, i) => (
-                    <div
-                      key={i}
-                      style={{ width: 16, textAlign: 'center', fontSize: 12, color: 'var(--sp-fg-faint)' }}
-                    >
-                      {d}
-                    </div>
-                  ))}
+              <section className={`sd-panel ${st.panel}`} aria-labelledby="calendar-heatmap-title">
+                <div className={st.panelHead}>
+                  <h2 id="calendar-heatmap-title" className={st.title}>Last 16 Weeks</h2>
+                  <span className={st.small}>Tap A Day For Details</span>
                 </div>
-                <div style={{ display: 'flex', gap: 2, overflow: 'hidden' }}>
-                  {weeks.map((week, wIdx) => (
-                    <div key={wIdx} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {week.map((cell) => (
-                        <motion.button
-                          key={cell.key}
-                          type="button"
-                          disabled={cell.isFuture}
-                          aria-label={cell.isFuture ? `${cell.date.toDateString()} (future)` : `${cell.date.toDateString()}: ${cell.data?.hands || 0} hands, ${cell.data?.sessions || 0} sessions${cell.isToday ? ' - today' : ''}`}
-                          aria-pressed={selectedDay === cell.key}
-                          whileTap={!cell.isFuture ? { scale: 0.8 } : {}}
-                          onClick={() =>
-                            !cell.isFuture &&
-                            setSelectedDay(cell.key === selectedDay ? null : cell.key)
-                          }
-                          style={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: 3,
-                            border: 'none',
-                            background: cell.isFuture
-                              ? 'transparent'
-                              : cell.isToday
-                                ? 'rgba(251,191,36,0.4)'
-                                : INTENSITY_COLORS[getIntensity(cell.data?.hands || 0)],
-                            cursor: cell.isFuture ? 'default' : 'pointer',
-                            outline: selectedDay === cell.key ? '1px solid #00d4ff' : 'none',
-                            padding: 0,
-                          }}
-                        />
-                      ))}
-                    </div>
-                  ))}
+                <div className={st.heatmap}>
+                  <div className={st.heatDays} aria-hidden>
+                    {DAYS.map((d, i) => (
+                      <span key={i} title={DAY_NAMES[i]}>{i % 2 === 1 ? d : ''}</span>
+                    ))}
+                  </div>
+                  <div className={st.heatWeeks}>
+                    {weeks.map((week, wIdx) => (
+                      <div key={wIdx} className={st.heatWeek}>
+                        {week.map((cell) => (
+                          <button
+                            key={cell.key}
+                            type="button"
+                            disabled={cell.isFuture}
+                            aria-label={cell.isFuture ? `${cell.date.toDateString()} (future)` : `${cell.date.toDateString()}: ${cell.data?.hands || 0} hands, ${cell.data?.sessions || 0} sessions${cell.isToday ? ' - today' : ''}`}
+                            aria-pressed={selectedDay === cell.key}
+                            onClick={() =>
+                              !cell.isFuture &&
+                              setSelectedDay(cell.key === selectedDay ? null : cell.key)
+                            }
+                            className={st.heatCell}
+                            data-today={cell.isToday ? 'true' : undefined}
+                            data-future={cell.isFuture ? 'true' : undefined}
+                            data-level={getIntensity(cell.data?.hands || 0)}
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 {/* Legend */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    marginTop: 8,
-                    justifyContent: 'flex-end',
-                  }}
-                >
-                  <span style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>Less</span>
+                <div className={st.heatLegend}>
+                  <span>Less</span>
                   {INTENSITY_COLORS.map((c, i) => (
-                    <div
-                      key={i}
-                      style={{ width: 10, height: 10, borderRadius: 2, background: c }}
-                    />
+                    <span key={c} className={st.heatSwatch} data-level={i} title={INTENSITY_LABELS[i]} aria-label={INTENSITY_LABELS[i]} role="img" />
                   ))}
-                  <span style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>More</span>
+                  <span>More</span>
                 </div>
-              </div>
+              </section>
 
               {/* Selected Day Detail */}
               {selectedDay && (
-                <motion.div
+                <motion.section
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  style={{
-                    padding: '14px 16px',
-                    borderRadius: 12,
-                    background: 'rgba(0,0,0,0.2)',
-                    border: '1px solid rgba(0,212,255,0.1)',
-                    marginBottom: 16,
-                  }}
+                  className={`sd-panel ${st.panel}`}
+                  aria-live="polite"
+                  aria-labelledby="calendar-day-title"
                 >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 6 }}>
-                    {new Date(selectedDay + 'T12:00:00').toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
+                  <div className={st.panelHead}>
+                    <h2 id="calendar-day-title" className={st.title}>
+                      {new Date(selectedDay + 'T12:00:00').toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </h2>
+                    <button type="button" className={`sd-button ${st.close}`} aria-label="Close Day Details" onClick={() => setSelectedDay(null)}>✕</button>
                   </div>
                   {selectedData ? (
-                    <div style={{ display: 'flex', gap: 16 }}>
+                    <dl className={st.facts3}>
+                      <div><dt>Hands</dt><dd className={st.ice}>{selectedData.hands}</dd></div>
+                      <div><dt>Sessions</dt><dd>{selectedData.sessions}</dd></div>
                       <div>
-                        <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
-                          {selectedData.hands}
-                        </span>{' '}
-                        <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Hands</span>
-                      </div>
-                      <div>
-                        <span style={{ fontSize: 16, fontWeight: 800, color: '#86daff' }}>
-                          {selectedData.sessions}
-                        </span>{' '}
-                        <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Sessions</span>
-                      </div>
-                      <div>
-                        <span
-                          style={{
-                            fontSize: 16,
-                            fontWeight: 800,
-                            color:
-                              selectedData.hands > 0
-                                ? Math.round((selectedData.correct / selectedData.hands) * 100) >=
-                                  75
-                                  ? 'var(--sp-accent-green)'
-                                  : 'var(--sp-accent-amber)'
-                                : 'var(--sp-fg-dim)',
-                          }}
-                        >
+                        <dt>Accuracy</dt>
+                        <dd>
                           {selectedData.hands > 0
                             ? Math.round((selectedData.correct / selectedData.hands) * 100)
                             : 0}
                           %
-                        </span>{' '}
-                        <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Accuracy</span>
+                        </dd>
                       </div>
-                    </div>
+                    </dl>
                   ) : (
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>No Training On This Day</div>
+                    <p className={st.small}>No Training On This Day</p>
                   )}
-                </motion.div>
+                </motion.section>
               )}
 
-              {/* Daily Goal & Weekly Summary */}
-              <div style={{ marginTop: 24, display: 'flex', gap: 16, flexDirection: 'column' }}>
-                {/* Daily Goal */}
-                <div
-                  style={{
-                    padding: '16px',
-                    background: 'rgba(255,255,255,0.03)',
-                    borderRadius: 12,
-                    border: '1px solid rgba(255,255,255,0.08)',
-                  }}
-                >
-                  <div
-                    style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}
-                  >
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
-                      Daily Training Goal
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>
-                      {todayHands} / 50 Hands
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      height: 8,
-                      background: 'rgba(0,0,0,0.3)',
-                      borderRadius: 4,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, (todayHands / 50) * 100)}%` }}
-                      style={{
-                        height: '100%',
-                        background: 'linear-gradient(90deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
-                      }}
-                    />
-                  </div>
-                  {todayHands >= 50 && (
-                    <div style={{ fontSize: 12, color: 'var(--sp-accent-green)', marginTop: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      {/* TRAIN-CALENDAR-A11Y-1: SVG sparkle replaces ★ */}
-                      <span style={{ display: 'inline-flex' }} aria-hidden><StarSparkleIcon size={12} /></span>
-                      Goal Met! +1 To Streak
-                    </div>
-                  )}
+              {/* Daily Goal */}
+              <section className={`sd-panel ${st.panel}`} aria-labelledby="calendar-goal-title">
+                <div className={st.panelHead}>
+                  <h2 id="calendar-goal-title" className={st.title}>Daily Training Goal</h2>
+                  <strong className={st.ice}>{todayHands} / 50 Hands</strong>
                 </div>
+                <div className={st.track} role="progressbar" aria-label="Daily Training Goal" aria-valuenow={Math.min(50, todayHands)} aria-valuemin={0} aria-valuemax={50}>
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, (todayHands / 50) * 100)}%` }}
+                    className={st.fill}
+                  />
+                </div>
+                {todayHands >= 50 && (
+                  <p className={`${st.small} ${st.ice}`}>
+                    {/* TRAIN-CALENDAR-A11Y-1: SVG sparkle replaces ★ */}
+                    <span style={{ display: 'inline-flex', verticalAlign: '-1px', marginRight: 6 }} aria-hidden><StarSparkleIcon size={12} /></span>
+                    Goal Met! +1 To Streak
+                  </p>
+                )}
+              </section>
 
-                {/* Weekly Summary */}
-                <div
-                  style={{
-                    padding: '16px',
-                    background: 'rgba(255,255,255,0.03)',
-                    borderRadius: 12,
-                    border: '1px solid rgba(255,255,255,0.08)',
-                  }}
-                >
-                  <div
-                    style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 12 }}
-                  >
-                    Last 7 Days Summary
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Sessions</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: '#86daff' }}>
-                        {weeklyStats.sessions}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Hands Played</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-green)' }}>
-                        {weeklyStats.hands}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Avg Accuracy</div>
-                      <div
-                        style={{
-                          fontSize: 16,
-                          fontWeight: 800,
-                          color: weeklyStats.accuracy >= 75 ? 'var(--sp-accent-green)' : '#86daff',
-                        }}
-                      >
-                        {weeklyStats.accuracy}%
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Weekly Summary */}
+              <section className={`sd-panel ${st.panel}`} aria-labelledby="calendar-week-title">
+                <h2 id="calendar-week-title" className={st.title}>Last 7 Days Summary</h2>
+                <dl className={st.facts3}>
+                  <div><dt>Sessions</dt><dd>{weeklyStats.sessions}</dd></div>
+                  <div><dt>Hands Played</dt><dd>{weeklyStats.hands}</dd></div>
+                  <div><dt>Avg Accuracy</dt><dd className={st.ice}>{weeklyStats.accuracy}%</dd></div>
+                </dl>
+              </section>
             </>
           )}
         </div>

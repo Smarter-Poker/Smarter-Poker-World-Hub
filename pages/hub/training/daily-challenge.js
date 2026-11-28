@@ -31,6 +31,7 @@ import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox
 import { trainingSourcePresentation } from '../../../src/lib/training/cacheTruthContract.mjs';
 import styles from '../../../src/styles/training/daily-challenge-casino.module.css';
 
+import TrainingPageHead, { TrainingDailyNav } from '../../../src/components/training/TrainingPageHead';
 // TRAIN-WIRE-FX-4d - adoption: feedback hook for daily-challenge.fresh.js
 
 /**
@@ -454,48 +455,15 @@ export default function DailyChallengePage() {
         canonical="/hub/training/daily-challenge"
       />
 
-      <main className={`sp-training-command sp-training-command--daily ${styles.shell}`}>
-        <header className={`sp-command-header ${styles.marquee}`}>
-          <div className={styles.marqueeArtwork} aria-hidden="true" />
-          <div className={styles.marqueeContent}>
-            <button
-              type="button"
-              onClick={() => router.push('/hub/training')}
-              aria-label="Back To Training"
-              className={styles.backButton}
-            >
-              <span aria-hidden="true">‹</span> Training
-            </button>
-            <div className={styles.titleBlock}>
-              <span className={styles.eyebrow} title={sourceBadge.title}>{sourceBadge.label} · One Seat · One Shot</span>
-              <h1>Daily Challenge</h1>
-              <p>Read The Table. Lock Your Decision. Review The Verified Result When You Are Ready.</p>
-              <nav className={styles.subpageNav} aria-label="Daily Challenges Subpages">
-                <Link href="/hub/training/daily-challenge" className={`${styles.navPlate} ${styles.navPlateActive}`}>
-                  Hand Of The Day
-                </Link>
-                <Link href="/hub/training/daily-goals" className={styles.navPlate}>
-                  Daily Goals Vault
-                </Link>
-                <Link href="/hub/training/challenges" className={styles.navPlate}>
-                  Weekly &amp; Monthly Goals
-                </Link>
-                <Link href="/hub/training/achievements" className={styles.navPlate}>
-                  Achievements Vault
-                </Link>
-                <Link href="/hub/training/streaks" className={styles.navPlate}>
-                  Streaks Vault
-                </Link>
-              </nav>
-            </div>
-            <div className={styles.clockBay}>
-              <span>Table Resets</span>
-              {expiresAt ? <CountdownTimer expiresAt={expiresAt} /> : <strong>Awaiting Dealer</strong>}
-            </div>
-          </div>
-        </header>
+      <main className={styles.shell}>
+        <TrainingPageHead slug="training-daily-challenge" nav={<TrainingDailyNav current="/hub/training/daily-challenge" />}>
+          <p className="sp-head-note">
+            <span>Table Resets</span>{' '}
+            {expiresAt ? <CountdownTimer expiresAt={expiresAt} /> : <strong>Awaiting Dealer</strong>}
+          </p>
+        </TrainingPageHead>
 
-        <div className={`sp-command-main ${styles.commandDeck}`}>
+        <div className={styles.commandDeck}>
 
           <section className={styles.metrics} aria-label="Daily Challenge Status">
             <div><span>Current Run</span><strong>{currentStreak}</strong><small>Day Streak</small></div>

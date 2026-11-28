@@ -17,7 +17,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import { TrainingConsoleSkeleton } from '../../../src/components/training/console/TrainingConsoleStates';
+import sd from '../../../src/styles/training/training-journey-sd.module.css';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
@@ -25,6 +26,7 @@ import useSWR, { useSWRConfig } from 'swr';
 
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CATEGORIES
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -61,7 +63,6 @@ function MedalIcon({ size=18 })   {
     </svg>
   );
 }
-function BackArrowIcon({ size=18 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function CategoryIcon({ kind, size=14 }) {
   switch (kind) {
     case 'trophy': return <TrophyIcon size={size}/>;
@@ -86,7 +87,8 @@ function getAvatarColor(str) {
   if (!str) return 'var(--sp-accent-cyan)';
   let hash = 0;
   for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  return `hsl(${Math.abs(hash) % 360}, 55%, 50%)`;
+  // Steel-blue family only (#SMARTERDESIGN): identity by lightness, never a rainbow hue.
+  return `hsl(${200 + (Math.abs(hash) % 25)}, ${40 + (Math.abs(hash) % 20)}%, ${28 + (Math.abs(hash) % 18)}%)`;
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -199,77 +201,18 @@ export default function CommunityLeaderboardPage() {
   return (
     <>
       {pageHead}
-      <div
-        className="sp-training-intelligence sp-training-intelligence--community"
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="sp-intelligence-header sd-masthead"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-COMMUNITY-A11Y-1: SVG back arrow */}
-            <BackArrowIcon size={18} />
-          </button>
-          <div>
-            {/* TRAIN-COMMUNITY-A11Y-1: semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Community Leaderboard</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Global GTO Rankings</div>
-          </div>
-        </div>
+      <div className={`sp-training-intelligence sp-training-intelligence--community ${sd.root}`}>
+        <TrainingPageHead slug="training-community-leaderboard" note="Global GTO Rankings" />
 
-        <div className="sp-intelligence-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={`sp-intelligence-main ${sd.main}`}>
           {!isOnline && (
-            <div
-              role="status"
-              data-offline-banner="true"
-              style={{
-                marginBottom: 14,
-                padding: '10px 14px',
-                borderRadius: 8,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
-                color: '#86daff',
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
+            <div role="status" data-offline-banner="true" className={sd.notice}>
               Offline. Community Leaderboard Rankings Will Resume After Reconnection.
             </div>
           )}
 
-
           {/* Period Toggle */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+          <div className={`${sd.chips} ${sd.chipsEven}`} role="group" aria-label="Ranking Period">
             {['weekly', 'alltime'].map((p) => (
               <motion.button
                 key={p}
@@ -278,25 +221,15 @@ export default function CommunityLeaderboardPage() {
                 onClick={() => setPeriod(p)}
                 aria-label={p === 'weekly' ? 'Show weekly rankings' : 'Show all-time rankings'}
                 aria-pressed={period === p}
-                style={{
-                  flex: 1,
-                  padding: '8px',
-                  borderRadius: 8,
-                  border: `1px solid ${period === p ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
-                  background: period === p ? 'rgba(0,212,255,0.06)' : 'transparent',
-                  color: period === p ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
+                className={sd.chip}
               >
                 {p === 'weekly' ? 'This Week' : 'All Time'}
               </motion.button>
             ))}
           </div>
 
-          {/* Category Tabs */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 20, overflowX: 'auto' }}>
+          {/* Category Tabs: a wrapping row so every category stays visible. */}
+          <div className={`${sd.chips} ${sd.chipsThree}`} role="group" aria-label="Leaderboard Category">
             {CATEGORIES.map((c) => (
               <motion.button
                 key={c.id}
@@ -305,22 +238,11 @@ export default function CommunityLeaderboardPage() {
                 aria-label={`Filter by ${c.label}`}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setCategory(c.id)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 6,
-                  flexShrink: 0,
-                  border: `1px solid ${category === c.id ? 'rgba(251,191,36,0.2)' : 'transparent'}`,
-                  background: category === c.id ? 'rgba(251,191,36,0.06)' : 'transparent',
-                  color: category === c.id ? '#86daff' : 'var(--sp-fg-dim)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
+                className={sd.chip}
               >
                 {/* TRAIN-COMMUNITY-A11Y-1: SVG CategoryIcon */}
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, verticalAlign: 'middle' }} aria-hidden>
-                  <CategoryIcon kind={c.iconKind} size={12} /> {c.label}
-                </span>
+                <CategoryIcon kind={c.iconKind} size={14} />
+                <span>{c.label}</span>
               </motion.button>
             ))}
           </div>
@@ -333,22 +255,13 @@ export default function CommunityLeaderboardPage() {
 
           {/* Top 3 Podium */}
           {!loading && topThree.length > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-end',
-                justifyContent: 'center',
-                gap: 6,
-                marginBottom: 20,
-              }}
-            >
+            <div className={sd.podium}>
               {[topThree[1], topThree[0], topThree[2]].map((p, i) => {
-                const heights = [80, 100, 65];
                 // TRAIN-COMMUNITY-A11Y-1: rank ordering for podium slots 0,1,2 = 2nd, 1st, 3rd
-                const medalColors = ['#C0C0C0', '#FFD700', '#CD7F32'];
                 const medalLabels = ['Second place', 'First place', 'Third place'];
+                const podiumPlace = ['second', 'first', 'third'][i];
 
-                if (!p) return <div key={`empty-podium-${i}`} style={{ flex: 1 }} />;
+                if (!p) return <div key={`empty-podium-${i}`} />;
 
                 return (
                   <motion.div
@@ -356,37 +269,16 @@ export default function CommunityLeaderboardPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    style={{
-                      flex: 1,
-                      textAlign: 'center',
-                      padding: '12px 6px',
-                      borderRadius: 12,
-                      height: heights[i],
-                      background: p.isYou ? 'rgba(0,212,255,0.06)' : 'rgba(0,0,0,0.2)',
-                      border: `1px solid ${p.isYou ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)'}`,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'flex-end',
-                    }}
+                    className={`${sd.card} ${sd.podiumSlot}`}
+                    data-place={podiumPlace}
+                    data-tone={p.isYou ? 'ice' : undefined}
                   >
-                    {/* TRAIN-COMMUNITY-A11Y-1: SVG medal replaces ●/●/● */}
-                    <div style={{ fontSize: 18, marginBottom: 4, display: 'inline-flex', justifyContent: 'center', color: medalColors[i] }} role="img" aria-label={medalLabels[i]}>
-                      <MedalIcon size={18} />
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        marginBottom: 2,
-                        color: p.isYou ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'normal',
-                      }}
-                    >
-                      {p.name}
-                    </div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#86daff' }}>{p.score}</div>
+                    {/* TRAIN-COMMUNITY-A11Y-1: SVG medal */}
+                    <span className={sd.podiumMedal} role="img" aria-label={medalLabels[i]}>
+                      <MedalIcon size={20} />
+                    </span>
+                    <span className={`${sd.podiumName} ${p.isYou ? sd.ice : ''}`}>{p.name}</span>
+                    <span className={sd.value}>{p.score}</span>
                   </motion.div>
                 );
               })}
@@ -395,124 +287,51 @@ export default function CommunityLeaderboardPage() {
 
           {/* Your Position */}
           {userEntry && (
-            <div
-              style={{
-                padding: '10px 14px',
-                borderRadius: 10,
-                marginBottom: 16,
-                background: 'rgba(0,212,255,0.04)',
-                border: '1px solid rgba(0,212,255,0.12)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 7,
-                    background: 'rgba(0,212,255,0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: 'var(--sp-accent-cyan)',
-                  }}
-                >
-                  #{userEntry.rank}
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>Your Rank</div>
+            <div className={`${sd.card} ${sd.row}`} data-tone="ice">
+              <div className={sd.inline}>
+                <span className={sd.rankChip}>#{userEntry.rank}</span>
+                <span className={`${sd.title} ${sd.ice}`}>Your Rank</span>
               </div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
+              <span className={sd.value}>
                 {userEntry.score}
                 %
-              </div>
+              </span>
             </div>
           )}
 
           {/* Remaining Entries */}
-          {!loading &&
-            restEntries.map((entry, i) => (
-              <motion.div
-                key={entry.id}
-                initial={{ opacity: 0, x: -6 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.03 }}
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  marginBottom: 4,
-                  background: entry.isYou ? 'rgba(0,212,255,0.04)' : 'transparent',
-                  border: `1px solid ${entry.isYou ? 'rgba(0,212,255,0.1)' : 'transparent'}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div
-                    style={{
-                      width: 24,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-faint)',
-                      textAlign: 'center',
-                    }}
-                  >
-                    {entry.rank}
-                  </div>
-                  <div
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      background: entry.avatarColor,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: '#fff',
-                    }}
-                  >
-                    {entry.name.charAt(0)}
-                  </div>
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: entry.isYou ? 800 : 600,
-                        color: entry.isYou ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)',
-                      }}
-                    >
-                      {entry.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>
-                      {entry.correctAnswers} Correct Answers · {entry.sessions} Sessions
-                    </div>
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 800,
-                    color:
-                      entry.score >= 80 ? 'var(--sp-accent-green)' : entry.score >= 65 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
-                  }}
+          {!loading && restEntries.length > 0 && (
+            <div className={sd.list}>
+              {restEntries.map((entry, i) => (
+                <motion.div
+                  key={entry.id}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className={`${sd.card} ${sd.rankRow}`}
+                  data-tone={entry.isYou ? 'ice' : undefined}
                 >
-                  {entry.score}
-                  %
-                </div>
-              </motion.div>
-            ))}
+                  <span className={sd.rankNumber}>{entry.rank}</span>
+                  <span className={sd.avatar} style={{ background: entry.avatarColor }} aria-hidden>
+                    {entry.name.charAt(0)}
+                  </span>
+                  <span className={sd.rankIdentity}>
+                    <span className={`${sd.title} ${entry.isYou ? sd.ice : ''}`}>{entry.name}</span>
+                    <span className={sd.skillNodeHint}>
+                      {entry.correctAnswers} Correct Answers · {entry.sessions} Sessions
+                    </span>
+                  </span>
+                  <span className={`${sd.value} ${entry.score >= 80 ? sd.good : entry.score >= 65 ? sd.ice : sd.muted}`}>
+                    {entry.score}
+                    %
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+          )}
 
           {loading && (
-            <div style={{ padding: '20px 0' }}>
-              <SkeletonLoader variant="leaderboard" />
-            </div>
+            <TrainingConsoleSkeleton label="Loading Rankings" panels={4} rows={1} />
           )}
         </div>
       </div>

@@ -179,3 +179,113 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* A Back To Dashboard control never sits inside an image header; it gets its
+   own row directly above it (#SMARTERDESIGN, 2026-11-27). */
+.sd-back-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 10px;
+  min-width: 0;
+}
+.sd-back-row > :is(a, button) { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Training page head: back row, image header, optional sub-page tabs. */
+.sp-training-head {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 12px clamp(10px, 3vw, 24px) 4px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.sp-training-head > .sd-back-row { margin: 0; }
+.sp-training-head .sd-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sp-training-head .sd-tabs > * { flex: 1 1 auto; }
+.sp-head-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 4px 0 0;
+  color: #bdd0e2;
+  font: 650 0.86rem / 1.2 var(--font-inter, Inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.sp-head-note strong { color: #86daff; font-weight: 750; }
+
+/* The page head keeps its own console treatment inside every legacy Training
+   shell (command deck, intelligence rail, analysis tool), whose blanket
+   button rules would otherwise flatten the chrome rims and repaint the
+   painted help icon with a bordered box. */
+body.world-training .sp-training-head :is(a, button).sd-button {
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) !important;
+  color: #f2f7ff !important;
+  box-shadow: none !important;
+  clip-path: none !important;
+}
+body.world-training .sp-training-head :is(a, button).sd-button:is(.sd-primary, [aria-pressed='true'], [aria-current='page']) {
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) !important;
+  color: #fff !important;
+}
+body.world-training .sp-training-head button[aria-haspopup='dialog'][aria-label^='Help For'] {
+  border: 0 !important;
+  border-image: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  min-height: 44px;
+  padding: 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   #SMARTERDESIGN interior layer for Training pages that carry the image header
+   (2026-11-27). Legacy inline-styled surfaces get one continuous steel rim, an
+   ink-navy fill and square corners; inline-styled controls become console
+   buttons with cobalt selection. Round controls, image buttons (cards, chips)
+   and the painted help icon are left alone.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.sp-training-page-stage:has(.sp-training-head) :is(div, section, article, form, li):is([style*="border-radius: 1"], [style*="border-radius: 2"]):is([style*="border: 1px"], [style*="border: 2px"], [style*="border-width"]):not([style*="50%"], [style*="aspect-ratio"]) {
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32) !important;
+}
+.sp-training-page-stage:has(.sp-training-head) :is(div, section, article, form, li):is([style*="border-radius: 1"], [style*="border-radius: 2"]):is([style*="rgba(255, 255, 255, 0.0"], [style*="rgba(255,255,255,0.0"]):not([style*="50%"], [style*="aspect-ratio"]) {
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+}
+.sp-training-page-stage:has(.sp-training-head) :is(div, section, article):is([style*="border-radius: 6px"], [style*="border-radius: 8px"]):is([style*="border: 1px"]):not([style*="50%"], [style*="aspect-ratio"]) {
+  border-radius: 0 !important;
+}
+.sp-training-page-stage:has(.sp-training-head) button[style]:not(.sd-button, [aria-label^="Help For"], [style*="50%"], :has(img)) {
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) !important;
+  color: #f2f7ff !important;
+  box-shadow: none !important;
+  text-shadow: 0 1px 1px #000;
+}
+.sp-training-page-stage:has(.sp-training-head) button[style]:is([aria-pressed="true"], [aria-selected="true"], [aria-current="page"]):not(.sd-button, [style*="50%"], :has(img)) {
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) !important;
+  color: #fff !important;
+}
+.sp-training-page-stage:has(.sp-training-head) button[style]:disabled:not(.sd-button) {
+  color: #a7b7c8 !important;
+  background: #13202c !important;
+}
+.sp-training-page-stage:has(.sp-training-head) :is(input, select, textarea)[style] {
+  border-radius: 0 !important;
+}

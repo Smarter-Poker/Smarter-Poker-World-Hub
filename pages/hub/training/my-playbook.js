@@ -17,9 +17,14 @@ import { useOnlineStatus } from '../../../src/hooks/useOnlineStatus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import st from '../../../src/styles/training/study-tools.module.css';
 // TRAIN-WIRE-EMPTY-3b - adoption: shared empty-state primitive
 
-const TAG_COLORS = ['var(--sp-accent-red)', 'var(--sp-accent-orange)', 'var(--sp-accent-amber)', 'var(--sp-accent-emerald)', '#0ea5e9', 'var(--sp-accent-purple)'];
+// Tag swatches are fills that label a play, never text colours. Earlier
+// entries keep whatever colour they were saved with.
+const TAG_COLORS = ['#86daff', '#1981ec', '#5ee08a', '#ff7a86', '#bdd0e2', '#2ec8d8'];
+const TAG_COLOR_NAMES = { '#86daff': 'Ice', '#1981ec': 'Cobalt', '#5ee08a': 'Green', '#ff7a86': 'Red', '#bdd0e2': 'Silver', '#2ec8d8': 'Cyan' };
 
 
 async function syncPlaybook(plays) {
@@ -69,14 +74,6 @@ function CloseIcon({ size=16 }) {
     <_Svg size={size}>
       <line x1="18" y1="6" x2="6" y2="18"/>
       <line x1="6" y1="6" x2="18" y2="18"/>
-    </_Svg>
-  );
-}
-function BackArrowIcon({ size=18 }) {
-  return (
-    <_Svg size={size}>
-      <line x1="19" y1="12" x2="5" y2="12"/>
-      <polyline points="12 19 5 12 12 5"/>
     </_Svg>
   );
 }
@@ -187,74 +184,23 @@ export default function MyPlaybookPage() {
         <title>My Playbook | Smarter.Poker Training</title>
               <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', sans-serif",
-        }}
-      >
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              type="button"
-              aria-label="Back to training"
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 18,
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {/* TRAIN-PLAYBOOK-A11Y-1: SVG back arrow */}
-              <BackArrowIcon size={18} />
-            </button>
-            <div>
-              {/* TRAIN-PLAYBOOK-A11Y-1: semantic h1 */}
-              <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>My Playbook</h1>
-              {!online && <div role="status">Offline. Cloud Sync Is Unavailable.</div>}
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${plays.length} plays saved`}>{plays.length} Plays Saved</div>
-            </div>
-          </div>
+      <div className={st.shell}>
+        <TrainingPageHead slug="training-my-playbook">
+          {!online && <p className="sp-head-note" role="status">Offline. Cloud Sync Is Unavailable.</p>}
+          <p className="sp-head-note" role="status" aria-label={`${plays.length} plays saved`}><strong>{plays.length}</strong> {plays.length === 1 ? 'Play' : 'Plays'} Saved</p>
           {view === 'list' && (
             <button
               type="button"
               aria-label="Create a new playbook entry"
               onClick={() => setView('form')}
-              style={{
-                background: 'var(--sp-accent-blue)',
-                color: '#fff',
-                border: 'none',
-                padding: '6px 12px',
-                borderRadius: 6,
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
+              className="sd-button sd-primary"
             >
               + New Play
             </button>
           )}
-        </div>
+        </TrainingPageHead>
 
-        <div style={{ padding: '20px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={st.page}>
 
           {/* Search (list mode only) */}
           {view === 'list' && plays.length > 0 && (
@@ -264,201 +210,82 @@ export default function MyPlaybookPage() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search plays..."
               aria-label="Search saved plays"
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: 8,
-                background: 'rgba(0,0,0,0.3)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: 'var(--sp-fg)',
-                fontSize: 13,
-                outline: 'none',
-                marginBottom: 16,
-                boxSizing: 'border-box',
-              }}
+              className={st.input}
             />
           )}
           {view === 'form' ? (
-            <motion.div
+            <motion.section
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                padding: 24,
-                borderRadius: 16,
-                border: '1px solid rgba(255,255,255,0.05)',
-              }}
+              className={`sd-panel ${st.panel}`}
+              aria-labelledby="new-play-title"
             >
-              <div style={{ marginBottom: 16 }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-muted)',
-                    textTransform: 'uppercase',
-                    marginBottom: 6,
-                  }}
-                >
-                  Play Name
+              <h2 id="new-play-title" className={st.title}>New Play</h2>
+                <label className={st.field}>
+                  <span className={st.label}>Play Name</span>
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="e.g., Exploiting OMC Opens"
+                    className={st.input}
+                  />
                 </label>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Exploiting OMC Opens"
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#fff',
-                    borderRadius: 8,
-                    fontSize: 15,
-                    outline: 'none',
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-                <div style={{ flex: 1 }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-muted)',
-                      textTransform: 'uppercase',
-                      marginBottom: 6,
-                    }}
-                  >
-                    Relevant Range
-                  </label>
+              <div className={st.grid2}>
+                <label className={st.field}>
+                  <span className={st.label}>Relevant Range</span>
                   <input
                     value={hands}
                     onChange={(e) => setHands(e.target.value)}
                     placeholder="e.g., 87s+, 55+"
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      background: 'rgba(0,0,0,0.3)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: '#fff',
-                      borderRadius: 8,
-                      fontSize: 14,
-                      outline: 'none',
-                    }}
+                    className={st.input}
                   />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-muted)',
-                      textTransform: 'uppercase',
-                      marginBottom: 6,
-                    }}
-                  >
-                    Board Texture
-                  </label>
+                </label>
+                <label className={st.field}>
+                  <span className={st.label}>Board Texture</span>
                   <input
                     value={board}
                     onChange={(e) => setBoard(e.target.value)}
                     placeholder="e.g., A-high dry"
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      background: 'rgba(0,0,0,0.3)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: '#fff',
-                      borderRadius: 8,
-                      fontSize: 14,
-                      outline: 'none',
-                    }}
+                    className={st.input}
                   />
-                </div>
+                </label>
               </div>
 
-              <div style={{ marginBottom: 24 }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-muted)',
-                    textTransform: 'uppercase',
-                    marginBottom: 6,
-                  }}
-                >
-                  Tag Color
-                </label>
-                <div style={{ display: 'flex', gap: 10 }}>
+              <fieldset className={st.fieldset}>
+                <legend className={st.label}>Tag Color</legend>
+                <div className={st.swatches}>
                   {TAG_COLORS.map((c) => (
                     <button
                       key={c}
+                      type="button"
                       onClick={() => setColor(c)}
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        background: c,
-                        border: `3px solid ${color === c ? '#fff' : 'transparent'}`,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                      }}
-                    />
+                      aria-pressed={color === c}
+                      aria-label={`${TAG_COLOR_NAMES[c] || 'Tag'} Tag`}
+                      className={st.swatch}
+                    >
+                      <span className={st.swatchDot} style={{ background: c }} aria-hidden />
+                    </button>
                   ))}
                 </div>
-              </div>
+              </fieldset>
 
-              <div style={{ marginBottom: 24 }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-muted)',
-                    textTransform: 'uppercase',
-                    marginBottom: 6,
-                  }}
-                >
-                  Strategy Notes
-                </label>
+              <label className={st.field}>
+                <span className={st.label}>Strategy Notes</span>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Describe the exploit and conditions..."
-                  style={{
-                    width: '100%',
-                    padding: 16,
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    color: 'var(--sp-fg)',
-                    borderRadius: 8,
-                    minHeight: 120,
-                    fontSize: 14,
-                    resize: 'none',
-                    outline: 'none',
-                  }}
+                  rows={5}
+                  className={st.input}
                 />
-              </div>
+              </label>
 
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div className={st.formFoot}>
                 <button
                   type="button"
                   aria-label="Cancel and return to playbook list"
                   onClick={() => setView('list')}
-                  style={{
-                    flex: 1,
-                    padding: 14,
-                    background: 'rgba(255,255,255,0.05)',
-                    color: 'var(--sp-fg)',
-                    border: 'none',
-                    borderRadius: 8,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
+                  className="sd-button"
                 >
                   Cancel
                 </button>
@@ -466,28 +293,20 @@ export default function MyPlaybookPage() {
                   type="button"
                   aria-label="Save playbook entry"
                   onClick={savePlay}
-                  style={{
-                    flex: 2,
-                    padding: 14,
-                    background: 'var(--sp-accent-blue)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 8,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
+                  className="sd-button sd-primary"
                 >
                   Save Playbook Entry
                 </button>
               </div>
-            </motion.div>
+            </motion.section>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className={st.list}>
               {plays.length === 0 ? (
                 <TrainerEmptyState
                   variant="no-data"
-                  title="Your Playbook is empty"
-                  message="Create custom exploits and strategies to reference before live sessions."
+                  title="Your Playbook Is Empty"
+                  message="Create Custom Exploits And Strategies To Reference Before Live Sessions."
+                  cta={{ label: '+ New Play', onClick: () => setView('form') }}
                 />
               ) : null}
 
@@ -496,99 +315,44 @@ export default function MyPlaybookPage() {
                   key={p.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  style={{
-                    background: 'rgba(0,0,0,0.2)',
-                    border: `1px solid ${p.pinned ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.05)'}`,
-                    borderRadius: 16,
-                    overflow: 'hidden',
-                  }}
+                  transition={{ delay: Math.min(i, 8) * 0.05 }}
+                  className={`sd-panel ${st.panel} ${st.playCard}`}
+                  style={{ '--play-tag': p.color }}
                 >
-                  <div
-                    style={{
-                      padding: '16px 20px',
-                      borderBottom: `2px solid ${p.color}`,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div className={st.playHead}>
+                    <span className={st.playDot} aria-hidden />
+                    <h2 className={st.itemTitle}>
                       {/* TRAIN-PLAYBOOK-A11Y-1: SVG pin replaces ● marker */}
-                      {p.pinned && <span style={{ display: 'inline-flex', color: '#86daff' }} aria-label="Pinned"><PinIcon size={12} filled /></span>}
-                      <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{p.title}</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button
-                        type="button"
-                        aria-label={p.pinned ? `Unpin ${p.title}` : `Pin ${p.title}`}
-                        aria-pressed={p.pinned}
-                        onClick={() => togglePin(p.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: p.pinned ? '#86daff' : 'var(--sp-fg-faint)',
-                          fontSize: 14,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                        }}
-                      >
-                        {/* TRAIN-PLAYBOOK-A11Y-1: SVG pin toggle replaces ● */}
-                        <PinIcon size={14} filled={p.pinned} />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Delete playbook entry: ${p.title}`}
-                        onClick={() => deletePlay(p.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--sp-fg-dim)',
-                          fontSize: 16,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                        }}
-                      >
-                        {/* TRAIN-PLAYBOOK-A11Y-1: SVG close replaces ✕ */}
-                        <CloseIcon size={16} />
-                      </button>
-                    </div>
+                      {p.pinned && <span className={st.ice} style={{ display: 'inline-flex', marginRight: 6 }} aria-label="Pinned"><PinIcon size={12} filled /></span>}
+                      {p.title}
+                    </h2>
+                    <button
+                      type="button"
+                      aria-label={p.pinned ? `Unpin ${p.title}` : `Pin ${p.title}`}
+                      aria-pressed={p.pinned}
+                      onClick={() => togglePin(p.id)}
+                      className={`sd-button ${st.close}`}
+                    >
+                      {/* TRAIN-PLAYBOOK-A11Y-1: SVG pin toggle replaces ● */}
+                      <PinIcon size={16} filled={p.pinned} />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Delete playbook entry: ${p.title}`}
+                      onClick={() => deletePlay(p.id)}
+                      className={`sd-button ${st.close}`}
+                    >
+                      {/* TRAIN-PLAYBOOK-A11Y-1: SVG close replaces ✕ */}
+                      <CloseIcon size={16} />
+                    </button>
                   </div>
-                  <div style={{ padding: '20px' }}>
-                    <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-                      {p.hands && (
-                        <div
-                          style={{
-                            background: 'rgba(255,255,255,0.05)',
-                            padding: '6px 12px',
-                            borderRadius: 6,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: 'var(--sp-fg)',
-                          }}
-                        >
-                          <span style={{ color: 'var(--sp-fg-muted)', marginRight: 6 }}>Range:</span>
-                          {p.hands}
-                        </div>
-                      )}
-                      {p.board && (
-                        <div
-                          style={{
-                            background: 'rgba(255,255,255,0.05)',
-                            padding: '6px 12px',
-                            borderRadius: 6,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: 'var(--sp-fg)',
-                          }}
-                        >
-                          <span style={{ color: 'var(--sp-fg-muted)', marginRight: 6 }}>Board:</span>
-                          {p.board}
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>{p.notes}</div>
-                  </div>
+                  {(p.hands || p.board) && (
+                    <dl className={st.facts}>
+                      {p.hands && <div><dt>Range</dt><dd className="no-capitalize">{p.hands}</dd></div>}
+                      {p.board && <div><dt>Board</dt><dd>{p.board}</dd></div>}
+                    </dl>
+                  )}
+                  {p.notes && <p className={`${st.copy} no-capitalize`}>{p.notes}</p>}
                 </motion.div>
               ))}
             </div>

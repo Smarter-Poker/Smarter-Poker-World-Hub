@@ -10,7 +10,7 @@ import TrainingFavoritesNotice from '../../../../src/components/training/lobby/T
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import PageTransition from '../../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
-import TrainingGameArt from '../../../../src/components/training/TrainingGameArt';
+import TrainingImageHeader from '../../../../src/components/training/TrainingImageHeader';
 import TrainingLobbyResults from '../../../../src/components/training/lobby/TrainingLobbyResults';
 import TrainingFiltersSheet from '../../../../src/components/training/lobby/TrainingFiltersSheet';
 import TrainingSortBar from '../../../../src/components/training/lobby/TrainingSortBar';
@@ -108,7 +108,6 @@ export default function CategoryPage() {
 
   if (!router.isReady) return pageHead;
 
-  const heroArtId = games[0]?.id || 'quiz-gauntlet';
   const featuredGame = games[0] || null;
   const featuredPreset = featuredGame ? resolvePresetForGame(featuredGame) : null;
 
@@ -126,7 +125,6 @@ export default function CategoryPage() {
     );
   }
 
-  const Icon = category.Icon;
   const playGame = (game, overrides = variant !== 'ALL' && game.category !== 'PSYCHOLOGY'
     ? { variant, bettingStructure: VARIANT_METADATA[variant]?.defaultStructure }
     : null) => {
@@ -155,65 +153,48 @@ export default function CategoryPage() {
         <UniversalHeader pageDepth={2} />
 
         <main className={`sp-arena-lobby-shell ${lobbyStyles.shell}`}>
-          <section
-            className={`sp-arena-masthead sp-category-hero sd-masthead ${lobbyStyles.lobbyHeader}`}
-            data-category-hero-launch={featuredGame?.id || undefined}
-            onClick={(event) => {
-              if (!featuredGame) return;
-              if (event.target?.closest?.('button, a, input, select, textarea, [role="button"]')) return;
-              playGame(featuredGame);
-            }}
-          >
-            <div className="sp-category-hero-art" aria-hidden="true">
-              <TrainingGameArt
-                gameId={heroArtId}
-                sizes="(max-width: 700px) 100vw, 1000px"
-                loading="eager"
-              />
-            </div>
-            <div className="sp-category-hero-shade" aria-hidden="true" />
-
-            <div className="sp-cat-topbar">
+          <div className="sp-training-head">
+            <div className="sd-back-row">
               <button
                 className={`sd-button sp-cat-back-btn ${lobbyStyles.chromeButton}`}
                 type="button"
                 onClick={() => router.push('/hub/training')}
               >
-                <ArrowLeft size={15} aria-hidden="true" />
+                <ArrowLeft size={16} aria-hidden="true" />
                 <span>All Training Games</span>
               </button>
-              <span className="sp-arena-deck__count sp-num">{games.length} Games</span>
             </div>
+            <TrainingImageHeader slug={`training-category-${String(categoryId).toLowerCase()}`} title={category.title} help={category.description}>
+              <p className="sp-head-note"><strong className="sp-num">{games.length}</strong> Games</p>
+            </TrainingImageHeader>
+          </div>
 
-            <div className="sp-cat-banner">
-              <div className="sp-cat-banner__copy">
-                <div className="sp-cat-banner__title-row">
-                  <Icon size={18} aria-hidden="true" />
-                  <h1>{category.title}</h1>
-                </div>
-                <p>{category.description}</p>
+          {featuredGame && (
+            <section
+              className="sp-category-hero-launch sp-arena-quickbar sp-cat-quickbar"
+              data-category-preset-summary="true"
+              data-category-hero-launch={featuredGame.id}
+              onClick={(event) => {
+                if (event.target?.closest?.('button, a, input, select, textarea, [role="button"]')) return;
+                playGame(featuredGame);
+              }}
+            >
+              <div className="sp-arena-quickbar__copy">
+                <span className="sp-arena-quickbar__tag">Top Drill</span>
+                <span className="sp-arena-quickbar__text">
+                  {featuredGame.name} · {featuredPreset?.summary || 'Preset Ready'}
+                </span>
               </div>
-            </div>
-
-            {featuredGame && (
-              <div className="sp-arena-quickbar sp-cat-quickbar" data-category-preset-summary="true">
-                <div className="sp-arena-quickbar__copy">
-                  <span className="sp-arena-quickbar__tag">Top Drill</span>
-                  <span className="sp-arena-quickbar__text">
-                    {featuredGame.name} · {featuredPreset?.summary || 'Preset Ready'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  data-category-quick-start="true"
-                  className={`sp-arena-quickbar__cta sd-button sd-primary ${lobbyStyles.chromeButton} ${lobbyStyles.primaryButton}`}
-                  onClick={() => playGame(featuredGame)}
-                >
-                  Play Now
-                </button>
-              </div>
-            )}
-          </section>
+              <button
+                type="button"
+                data-category-quick-start="true"
+                className={`sp-arena-quickbar__cta sd-button sd-primary ${lobbyStyles.chromeButton} ${lobbyStyles.primaryButton}`}
+                onClick={() => playGame(featuredGame)}
+              >
+                Play Now
+              </button>
+            </section>
+          )}
 
           <section className={`sp-arena-lobby-section ${lobbyStyles.library}`} aria-labelledby="category-library-title">
             <div className={`sp-arena-deck ${lobbyStyles.controls}`} ref={controlsRef}>
@@ -359,49 +340,18 @@ export default function CategoryPage() {
           color: #f2f7ff;
           background: #040d18;
         }
-        .sp-category-hero {
-          position: relative;
-          overflow: hidden;
-          border: 2px solid transparent;
-          border-radius: 16px;
-          background:
-            linear-gradient(165deg, #0c2031 0%, #040d18 100%) padding-box,
-            linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box;
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
-          cursor: pointer;
-          transition: box-shadow 160ms ease, transform 160ms ease;
-        }
-        .sp-category-hero:hover {
-          box-shadow: 0 16px 38px rgba(0, 0, 0, 0.68), 0 0 22px rgba(0, 154, 227, 0.25);
-        }
-        .sp-category-hero-art { position: absolute; inset: 0; overflow: hidden; }
-        .sp-category-hero-art :global(.training-art),
-        .sp-category-hero-art :global(picture) { display: block; width: 100%; height: 100%; }
-        .sp-category-hero-art :global(.training-art-scene) { object-fit: cover; object-position: center; filter: saturate(1.02) contrast(1.08) brightness(0.45); transition: transform 220ms ease; }
-        .sp-category-hero:hover .sp-category-hero-art :global(.training-art-scene) { transform: scale(1.02); }
         .sp-cat-filter-actions {
           display: inline-flex;
           align-items: center;
           gap: 8px;
           flex-shrink: 0;
         }
-        .sp-category-hero-shade {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(180deg, rgba(4, 13, 24, 0.72) 0%, rgba(4, 13, 24, 0.92) 100%);
-          pointer-events: none;
-        }
-        .sp-cat-topbar,
-        .sp-cat-banner,
         .sp-cat-quickbar {
-          position: relative;
-          z-index: 2;
+          margin-top: 10px;
+          cursor: pointer;
         }
-        .sp-cat-topbar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
+        .sp-cat-quickbar__text {
+          min-width: 0;
         }
         .sp-cat-back-btn {
           display: inline-flex;
@@ -411,36 +361,6 @@ export default function CategoryPage() {
           padding: 0 12px;
           font-size: 13px;
           font-weight: 800;
-          text-transform: uppercase;
-        }
-        .sp-cat-banner {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .sp-cat-banner__copy {
-          min-width: 0;
-          flex: 1;
-        }
-        .sp-cat-banner__title-row {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: #86daff;
-        }
-        .sp-cat-banner__title-row h1 {
-          margin: 0;
-          font-family: var(--font-orbitron, 'Orbitron'), var(--font-rajdhani, sans-serif);
-          font-size: clamp(20px, 4.5vw, 28px);
-          font-weight: 800;
-          color: #f2f7ff;
-          text-transform: uppercase;
-        }
-        .sp-cat-banner__copy p {
-          margin: 4px 0 0;
-          font-size: 13px;
-          line-height: 1.4;
-          color: #bdd0e2;
         }
         .sp-category-missing {
           min-height: calc(100dvh - 60px);

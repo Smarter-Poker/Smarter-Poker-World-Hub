@@ -37,6 +37,8 @@ function loadComponent(name) {
     if (specifier === '../TrainingGameArt') return { default: ({ gameId }) => React.createElement('div', { 'data-art-game': gameId }) };
     if (specifier === './TrainingLobbyDialog') return { default: ({ open, children, labelledBy }) => open
       ? React.createElement('dialog', { open: true, 'aria-labelledby': labelledBy }, children) : null };
+    // The lobby's header help is the shared #SMARTERDESIGN chrome "?" icon.
+    if (specifier === '../../smarterdesign/headerHelp') return { SD_HEADER_HELP_ICON: '/images/smarterdesign/header-help.webp' };
     if (specifier.endsWith('/trainingLobbyFilter.mjs')) return lobbyFilters;
     if (specifier.endsWith('/trainingPresets.mjs')) return trainingPresets;
     if (specifier.startsWith('./')) return loadComponent(specifier.slice(2));

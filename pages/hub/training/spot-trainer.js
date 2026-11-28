@@ -20,6 +20,8 @@ import { authedFetch } from '../../../src/lib/authUtils';
 import { trainingSourcePresentation } from '../../../src/lib/training/cacheTruthContract.mjs';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/training-play.module.css';
 const FORMAT_OPTIONS = [
   { value: '', label: 'All' },
   { value: 'cash', label: 'Cash' },
@@ -60,7 +62,7 @@ function HandBadge({ cards }) {
     : null;
   if (!physicalCards) return null;
   return (
-    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+    <div className={s.cardRow}>
       {physicalCards.map((card, index) => (
         <Card key={`${card}-${index}`} rank={card[0]} suit={card[1]} size="small" />
       ))}
@@ -68,19 +70,6 @@ function HandBadge({ cards }) {
   );
 }
 
-const filterButtonStyle = (active) => ({
-  padding: '6px 10px',
-  borderRadius: 6,
-  fontSize: 12,
-  fontWeight: 800,
-  cursor: 'pointer',
-  border: active ? '1px solid rgba(103,232,249,0.70)' : '1px solid rgba(255,255,255,0.10)',
-  background: active
-    ? 'linear-gradient(180deg, rgba(8,145,178,0.70), rgba(3,50,74,0.90))'
-    : 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
-  color: active ? '#e8fbff' : 'var(--sp-fg-muted)',
-  boxShadow: active ? '0 0 16px rgba(34,211,238,0.20), inset 0 1px rgba(255,255,255,0.20)' : 'none',
-});
 
 export default function SpotTrainerPage() {
   const router = useRouter();
@@ -159,231 +148,115 @@ export default function SpotTrainerPage() {
         canonical="/hub/training/spot-trainer"
       />
 
-      <main
-        style={{
-          minHeight: '100dvh',
-          width: '100%',
-          maxWidth: '100vw',
-          overflowX: 'clip',
-          boxSizing: 'border-box',
-          paddingBottom: 70,
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        <div style={{ padding: '20px 24px 12px', borderBottom: '1px solid rgba(103,232,249,0.20)' }}>
-          <div data-pills-row style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              aria-label={isPaSource ? 'Back To Personal Assistant' : 'Back To Training'}
-              onClick={() => router.push(backHref)}
-              style={{
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03))',
-                border: '1px solid rgba(255,255,255,0.16)',
-                borderRadius: 8,
-                padding: '7px 12px',
-                color: 'var(--sp-fg-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
-              {isPaSource ? '← Back To Personal Assistant' : '← Training'}
-            </button>
-            <h1
-              style={{
-                fontSize: 20,
-                fontWeight: 900,
-                margin: 0,
-                color: '#dff9ff',
-                textShadow: '0 0 18px rgba(34,211,238,0.35)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Solver Spot Study
-            </h1>
-            <span
-              style={{
-                fontSize: 12,
-                color: '#a5f3fc',
-                background: 'rgba(8,145,178,0.16)',
-                padding: '4px 8px',
-                borderRadius: 12,
-                fontWeight: 800,
-                border: '1px solid rgba(103,232,249,0.30)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Answer-Revealed Study
+      <div className={s.shell}>
+        <main className={s.page}>
+          <TrainingPageHead slug="training-spot-trainer" note="Answer-Revealed Study" backHref={backHref} backLabel={isPaSource ? 'Back To Personal Assistant' : 'Training'} />
+
+          <p className={s.note}>
+            <span>
+              This Is An Answer-Revealed Solver Study Utility. It Is Intentionally Not Scored And
+              Cannot Change Training Progress, Streaks, Leaderboards, Achievements, Or Rewards.
             </span>
-          </div>
-        </div>
+          </p>
 
-        <div style={{ padding: '16px 20px', maxWidth: 650, margin: '0 auto' }}>
-          <section
-            style={{
-              color: 'var(--sp-fg-muted)',
-              fontSize: 12,
-              lineHeight: 1.6,
-              textAlign: 'center',
-              background: 'linear-gradient(180deg, rgba(7,89,133,0.16), rgba(2,20,31,0.65))',
-              border: '1px solid rgba(103,232,249,0.22)',
-              borderRadius: 10,
-              padding: '11px 14px',
-              marginBottom: 14,
-              boxShadow: 'inset 0 1px rgba(255,255,255,0.08), 0 8px 28px rgba(0,0,0,0.25)',
-            }}
-          >
-            This Is An Answer-Revealed Solver Study Utility. It Is Intentionally Not Scored And
-            Cannot Change Training Progress, Streaks, Leaderboards, Achievements, Or Rewards.
-          </section>
-
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          <section className={`sd-panel ${s.panel}`} aria-labelledby="spot-filters-title">
+            <h2 id="spot-filters-title" className={s.subTitle}>Filter Spots</h2>
+            <div className={s.chips} role="group" aria-label="Format">
               {FORMAT_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
+                  aria-pressed={format === option.value}
                   onClick={() => setFormat(option.value)}
-                  style={filterButtonStyle(format === option.value)}
+                  className={`sd-button ${s.button}`}
                 >
                   {option.label}
                 </button>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <div className={s.chips} role="group" aria-label="Position">
               {POSITION_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
+                  aria-pressed={position === option.value}
                   onClick={() => setPosition(option.value)}
-                  style={filterButtonStyle(position === option.value)}
+                  className={`sd-button ${s.button}`}
                 >
                   {option.label}
                 </button>
               ))}
             </div>
-          </div>
+          </section>
 
           {error && (
-            <div
-              role="alert"
-              style={{
-                padding: '11px 14px',
-                background: 'rgba(239,68,68,0.10)',
-                border: '1px solid rgba(248,113,113,0.35)',
-                borderRadius: 8,
-                color: '#fca5a5',
-                fontSize: 12,
-                fontWeight: 700,
-                marginBottom: 14,
-              }}
-            >
-              {error}
-              <button type="button" onClick={fetchSpot} style={{ ...filterButtonStyle(false), marginLeft: 12 }}>
+            <div role="alert" className={`${s.error} ${s.row}`}>
+              <span>{error}</span>
+              <button type="button" onClick={fetchSpot} className={`sd-button ${s.button}`}>
                 Retry
               </button>
             </div>
           )}
 
           {loading && (
-            <div
-              aria-live="polite"
-              style={{ textAlign: 'center', padding: 40, color: 'var(--sp-fg-dim)', fontSize: 12, fontWeight: 800 }}
-            >
+            <p aria-live="polite" className={`sd-panel ${s.panel} ${s.loadingPanel}`}>
               Loading Audited Solver Spot...
-            </div>
+            </p>
           )}
 
           <AnimatePresence mode="wait">
             {spot && !loading && (
-              <motion.section
+              <motion.div
                 key={`${spot.id}-${spot.heroHand}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
+                className={s.page0}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                    {[spot.heroPosition, spot.street, `${spot.stackDepth}BB`, spot.gameType?.replace('_', ' ')].filter(Boolean).map((label) => (
-                      <span
-                        key={label}
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 800,
-                          color: '#cffafe',
-                          background: 'rgba(8,145,178,0.13)',
-                          border: '1px solid rgba(103,232,249,0.18)',
-                          padding: '4px 8px',
-                          borderRadius: 6,
-                        }}
-                      >
-                        {label}
-                      </span>
-                    ))}
+                <section className={`sd-panel ${s.panel}`} aria-label="Spot">
+                  <div className={s.row}>
+                    <div className={s.pills}>
+                      {[spot.heroPosition, spot.street, `${spot.stackDepth} BB`, spot.gameType?.replace('_', ' ')].filter(Boolean).map((label) => (
+                        <span key={label} className={s.pill}>{label}</span>
+                      ))}
+                    </div>
+                    <button type="button" onClick={fetchSpot} className={`sd-button ${s.button}`}>
+                      Load Another
+                    </button>
                   </div>
-                  <button type="button" onClick={fetchSpot} style={filterButtonStyle(false)}>
-                    Load Another
-                  </button>
-                </div>
-
-                <div
-                  style={{
-                    background: 'linear-gradient(145deg, rgba(5,22,34,0.96), rgba(1,8,14,0.98))',
-                    border: '1px solid rgba(103,232,249,0.24)',
-                    borderRadius: 14,
-                    padding: '20px 24px',
-                    marginBottom: 14,
-                    textAlign: 'center',
-                    boxShadow: 'inset 0 1px rgba(255,255,255,0.10), 0 14px 40px rgba(0,0,0,0.42)',
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg-dim)', letterSpacing: 1.5, marginBottom: 10 }}>
-                    Board
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
+                  <p className={`${s.eyebrow} ${s.center}`}>Board</p>
+                  <div className={s.cardRow}>
                     {(spot.board || []).map((card, index) => (
                       <Card key={`${card}-${index}`} rank={card[0]?.toUpperCase()} suit={card[1]?.toLowerCase()} size="small" />
                     ))}
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg-dim)', letterSpacing: 1.5, marginBottom: 8 }}>
-                    Your Hand
-                  </div>
+                  <p className={`${s.eyebrow} ${s.center}`}>Your Hand</p>
                   <HandBadge cards={spot.heroCards} />
-                </div>
+                </section>
 
-                <div
-                  title={sourceBadge.title}
-                  style={{
-                    width: 'fit-content',
-                    margin: '0 auto 10px',
-                    padding: '4px 9px',
-                    borderRadius: 999,
-                    border: `1px solid ${sourceBadge.border}`,
-                    background: sourceBadge.bg,
-                    color: sourceBadge.fg,
-                    fontSize: 12,
-                    fontWeight: 800,
-                    letterSpacing: 0.8,
-                  }}
-                >
-                  {sourceBadge.label}
-                </div>
-                <div
-                  style={{
-                    background: 'linear-gradient(145deg, rgba(14,116,144,0.14), rgba(2,14,24,0.92))',
-                    border: '1px solid rgba(103,232,249,0.28)',
-                    borderRadius: 12,
-                    padding: 15,
-                    marginBottom: 14,
-                    boxShadow: 'inset 0 1px rgba(255,255,255,0.08), 0 10px 30px rgba(0,0,0,0.28)',
-                  }}
-                >
-                  <div style={{ color: '#a5f3fc', fontSize: 12, fontWeight: 900, marginBottom: 10 }}>
-                    Audited PioSOLVER Artifact
+                <section className={`sd-panel ${s.panel}`} aria-labelledby="spot-answer-title">
+                  <p className={s.eyebrow}>Primary Solver Action</p>
+                  <h2 id="spot-answer-title" className={s.sectionTitle}>{spot.gtoAction}</h2>
+                  <p className={s.copy}>{spot.gtoFrequency}% In This Policy</p>
+                  <div className={s.pills}>
+                    {Object.entries(spot.actionBreakdown || {})
+                      .sort(([, left], [, right]) => right - left)
+                      .map(([action, frequency]) => (
+                        <span key={action} className={s.pill} data-on={action === spot.gtoAction ? 'true' : undefined}>
+                          {action}: {frequency}%
+                        </span>
+                      ))}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: 8 }}>
+                </section>
+
+                <section className={`sd-panel ${s.panel}`} aria-labelledby="spot-artifact-title">
+                  <div className={s.panelHead}>
+                    <h2 id="spot-artifact-title" className={s.subTitle}>Audited PioSOLVER Artifact</h2>
+                    <span title={sourceBadge.title} className={s.tag}>
+                      {sourceBadge.label}
+                    </span>
+                  </div>
+                  <div className={s.metrics}>
                     {[
                       ['Decision Node', spot.decisionNode?.node],
                       ['Actor', `${spot.decisionNode?.actorRole || '-'} · ${spot.heroPosition || '-'}`],
@@ -399,101 +272,35 @@ export default function SpotTrainerPage() {
                         ? `${String(spot.policyChecksum).slice(0, 12)}…`
                         : '-'],
                     ].map(([label, value]) => (
-                      <div key={label} style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '7px 9px' }}>
-                        <div style={{ color: 'var(--sp-fg-dim)', fontSize: 12, fontWeight: 800, letterSpacing: 0.8 }}>{label}</div>
-                        <div style={{ color: '#dff9ff', fontSize: 12, fontWeight: 800, marginTop: 3, overflowWrap: 'anywhere' }}>{value || '-'}</div>
+                      <div key={label} className={`sd-metric ${s.metric} ${s.metricLeft}`}>
+                        <span className={s.metricLabel}>{label}</span>
+                        <strong className={s.metricSmall}>{value || '-'}</strong>
                       </div>
                     ))}
                   </div>
-                  <div style={{ color: 'var(--sp-fg-dim)', fontSize: 12, lineHeight: 1.5, marginTop: 10, overflowWrap: 'anywhere' }}>
+                  <p className={s.small}>
                     Scenario: {spot.scenarioHash} · Pipeline: {spot.provenance?.pipelineCommit} · Audited: {spot.provenance?.auditedAt}
-                  </div>
-                </div>
+                  </p>
+                </section>
 
-                <div
-                  style={{
-                    background: 'linear-gradient(145deg, rgba(34,197,94,0.10), rgba(2,20,16,0.80))',
-                    border: '1px solid rgba(74,222,128,0.30)',
-                    borderRadius: 12,
-                    padding: 16,
-                    marginBottom: 16,
-                    boxShadow: 'inset 0 1px rgba(255,255,255,0.08), 0 10px 34px rgba(0,0,0,0.30)',
-                  }}
-                >
-                  <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                    <div style={{ color: 'var(--sp-fg-muted)', fontSize: 12, fontWeight: 800, marginBottom: 5 }}>
-                      Primary Solver Action
-                    </div>
-                    <div style={{ color: '#86efac', fontSize: 22, fontWeight: 900 }}>{spot.gtoAction}</div>
-                    <div style={{ color: 'var(--sp-fg-muted)', fontSize: 12 }}>{spot.gtoFrequency}% In This Policy</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-                    {Object.entries(spot.actionBreakdown || {})
-                      .sort(([, left], [, right]) => right - left)
-                      .map(([action, frequency]) => (
-                        <span
-                          key={action}
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: action === spot.gtoAction ? '#86efac' : 'var(--sp-fg-muted)',
-                            background: 'rgba(255,255,255,0.05)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            padding: '5px 9px',
-                            borderRadius: 6,
-                          }}
-                        >
-                          {action}: {frequency}%
-                        </span>
-                      ))}
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={fetchSpot}
-                  style={{
-                    width: '100%',
-                    padding: '13px 0',
-                    background: 'linear-gradient(180deg, #67e8f9 0%, #0891b2 48%, #075985 100%)',
-                    border: '1px solid rgba(207,250,254,0.70)',
-                    borderRadius: 9,
-                    color: '#021018',
-                    fontSize: 12,
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                    boxShadow: 'inset 0 1px #fff, 0 0 22px rgba(34,211,238,0.22)',
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  }}
-                >
+                <button type="button" onClick={fetchSpot} className={`sd-button sd-primary ${s.primaryAction}`}>
                   Load Another Audited Spot
                 </button>
-              </motion.section>
+              </motion.div>
             )}
           </AnimatePresence>
 
-
-          <section
-            style={{
-              marginTop: 20,
-              padding: '14px 18px',
-              background: 'rgba(255,255,255,0.025)',
-              borderRadius: 10,
-              border: '1px solid rgba(255,255,255,0.08)',
-            }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg-dim)', letterSpacing: 1, marginBottom: 6 }}>
-              About Solver Spot Study
-            </div>
-            <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
+          <section className={`sd-panel ${s.panel}`} aria-labelledby="spot-about-title">
+            <h2 id="spot-about-title" className={s.subTitle}>About Solver Spot Study</h2>
+            <p className={s.copy}>
               Review Provenance-Audited Postflop Policies By Format And Position. The Primary Action
               And Full Frequency Mix Are Revealed Immediately, So This Page Is A Study Reference,
               Not A Quiz. Use The Canonical Training Games For Blind Four-Choice Decisions,
               Server-Verified Feedback, Progress, Streaks, Leaderboards, And Rewards.
             </p>
           </section>
-        </div>
-      </main>
+        </main>
+      </div>
       <HubPageSummary page="training-spot-trainer" />
     </>
   );

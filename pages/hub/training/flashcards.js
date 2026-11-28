@@ -21,6 +21,8 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/horseBrainTrainingAdapter';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import st from '../../../src/styles/training/study-tools.module.css';
 const DEFAULT_MISTAKE_QUEUE = [
   {
     questionId: 'cash-002-flop-btn-bb-ak',
@@ -442,8 +444,6 @@ const CARDS = [
   },
 ];
 
-const CAT_COLORS = { Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: '#86daff', Theory: '#7dd3fc', PLO8: 'var(--sp-accent-cyan)' };
-
 function calculateSM2(quality, prevInterval = 0, prevEase = 2.5) {
   let ease = prevEase;
   let interval = prevInterval;
@@ -652,6 +652,16 @@ export default function FlashcardsPage() {
     if (currentIdx < sessionDeck.length) setCurrentIdx(currentIdx + 1);
   };
 
+  const masteredPct = CARDS.length > 0 ? (stats.mastered / CARDS.length) * 100 : 0;
+  const visibleMistakes = mistakeCards.filter((card) => (catFilter === 'PLO8' || activeVariant === 'plo8' ? (card.variant === 'plo8' || String(card.questionId || '').startsWith('plo8')) : true));
+  const statusFor = (cardId) => {
+    const s = sm2Data[cardId];
+    if (!s) return 'New';
+    if (s.interval >= 21) return 'Mastered';
+    if (s.interval >= 3) return 'Review';
+    return 'Learning';
+  };
+
   return (
     <>
       <SEOHead
@@ -659,104 +669,40 @@ export default function FlashcardsPage() {
         description="Memorize GTO Preflop Ranges, Pot Odds Math, And Postflop Strategy Using SuperMemo SM-2 Spaced-Repetition Poker Flashcards On Smarter.Poker."
         canonical="/hub/training/flashcards"
       />
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>GTO Flashcards</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Spaced Repetition (SM-2)</div>
-          </div>
-        </div>
+      <div className={st.shell}>
+        <TrainingPageHead slug="training-flashcards" note="Spaced Repetition (SM-2)" />
 
-        {/* Stats Bar */}
-        <div
-          style={{
-            background: 'rgba(0,0,0,0.2)',
-            padding: '12px 20px',
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 24,
-            borderBottom: '1px solid rgba(255,255,255,0.04)',
-          }}
-        >
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-blue)' }}>{stats.newCount}</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>New</div>
-          </div>
-          <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#86daff' }}>{stats.learning}</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-              Learning
+        <div className={st.page}>
+          {/* Stats Bar */}
+          <section className={st.metrics} aria-label="Deck Summary">
+            <div className={`sd-metric ${st.metric}`}>
+              <strong className={st.metricValue} data-tone="ice">{stats.newCount}</strong>
+              <span className={st.metricLabel}>New</span>
             </div>
-          </div>
-          <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-green)' }}>{stats.mastered}</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-              Mastered
+            <div className={`sd-metric ${st.metric}`}>
+              <strong className={st.metricValue}>{stats.learning}</strong>
+              <span className={st.metricLabel}>Learning</span>
             </div>
-          </div>
-          <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#86daff' }}>{stats.dueCount}</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-              Due
+            <div className={`sd-metric ${st.metric}`}>
+              <strong className={st.metricValue}>{stats.mastered}</strong>
+              <span className={st.metricLabel}>Mastered</span>
             </div>
-          </div>
-        </div>
+            <div className={`sd-metric ${st.metric}`}>
+              <strong className={st.metricValue} data-tone="ice">{stats.dueCount}</strong>
+              <span className={st.metricLabel}>Due</span>
+            </div>
+          </section>
 
-        <div style={{ padding: '20px 16px', maxWidth: 500, margin: '0 auto' }}>
           {/* Category Filter */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+          <div className={st.chips} role="group" aria-label="Card Category">
             {['all', 'Preflop', 'Postflop', 'Math', 'Theory', 'PLO8'].map((c) => (
               <motion.button
                 key={c}
+                type="button"
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setCatFilter(c)}
-                style={{
-                  flex: 1,
-                  padding: '6px',
-                  borderRadius: 6,
-                  border: `1px solid ${catFilter === c ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
-                  background: catFilter === c ? 'rgba(0,212,255,0.06)' : 'transparent',
-                  color: catFilter === c ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
+                className="sd-button"
+                aria-pressed={catFilter === c}
               >
                 {c === 'all' ? 'All' : c}
               </motion.button>
@@ -765,13 +711,14 @@ export default function FlashcardsPage() {
 
           {/* Progress (TRAIN-WIRE-PROGRESS-STRIP-2: shared ProgressStrip) */}
           {sessionDeck.length > 0 && currentIdx < sessionDeck.length ? (
-            <ProgressStrip
-              current={currentIdx + 1}
-              total={sessionDeck.length}
-              difficulty="intermediate"
-              compact
-              style={{ marginBottom: 20 }}
-            />
+            <div className={st.progressStrip}>
+              <ProgressStrip
+                current={currentIdx + 1}
+                total={sessionDeck.length}
+                difficulty="intermediate"
+                compact
+              />
+            </div>
           ) : null}
 
           {/* Card */}
@@ -789,76 +736,39 @@ export default function FlashcardsPage() {
                     setFlipped(true);
                   }
                 }}
-                style={{
-                  minHeight: 220,
-                  padding: '28px 24px',
-                  borderRadius: 18,
-                  cursor: flipped ? 'default' : 'pointer',
-                  background: flipped
-                    ? 'linear-gradient(135deg, rgba(34,197,94,0.06), rgba(34,197,94,0.02))'
-                    : 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(139,92,246,0.04))',
-                  border: `1px solid ${flipped ? 'rgba(34,197,94,0.15)' : 'rgba(0,212,255,0.12)'}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
+                role={flipped ? undefined : 'button'}
+                tabIndex={flipped ? undefined : 0}
+                onKeyDown={(e) => {
+                  if (!flipped && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    userInteractedRef.current = true;
+                    setFlipped(true);
+                  }
                 }}
+                aria-label={flipped ? undefined : 'Reveal Answer'}
+                className={`sd-panel ${st.flashcard}`}
+                data-flipped={flipped ? 'true' : 'false'}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <span
-                    style={{
-                      padding: '2px 8px',
-                      borderRadius: 4,
-                      background: `${CAT_COLORS[current.cat] || 'var(--sp-fg-dim)'}15`,
-                      color: CAT_COLORS[current.cat] || 'var(--sp-fg-dim)',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {current.cat}
-                  </span>
-                  <span style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>
-                    {currentIdx + 1}/{sessionDeck.length} Today
-                  </span>
-                  {(() => {
-                    const s = sm2Data[current.id];
-                    let label = 'New', bg = 'rgba(59,130,246,0.1)', clr = 'var(--sp-accent-blue)';
-                    if (s) {
-                      if (s.interval >= 21) { label = 'Mastered'; bg = 'rgba(34,197,94,0.1)'; clr = 'var(--sp-accent-green)'; }
-                      else if (s.interval >= 3) { label = 'Review'; bg = 'rgba(134,218,255,0.12)'; clr = '#86daff'; }
-                      else { label = 'Learning'; bg = 'rgba(134,218,255,0.12)'; clr = '#86daff'; }
-                    }
-                    return (
-                      <span style={{ padding: '2px 6px', borderRadius: 4, background: bg, color: clr, fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>
-                        {label}
-                      </span>
-                    );
-                  })()}
+                <div className={st.flashMeta}>
+                  <span className={st.tag}>{current.cat}</span>
+                  <span className={st.small}>{currentIdx + 1}/{sessionDeck.length} Today</span>
+                  <span className={`${st.tag} ${statusFor(current.id) === 'New' ? st.tagActive : ''}`}>{statusFor(current.id)}</span>
                 </div>
                 {!flipped ? (
                   <>
-                    <div
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 700,
-                        color: 'var(--sp-fg)',
-                        lineHeight: 1.5,
-                        marginBottom: 16,
-                      }}
-                    >
-                      {current.q}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', textAlign: 'center' }}>
-                      Tap To Reveal Answer
-                    </div>
+                    <div className={st.flashQuestion}>{current.q}</div>
+                    <div className={st.flashHint}>Tap To Reveal Answer</div>
                   </>
                 ) : (
-                  <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>{current.a}</div>
+                  <>
+                    <div className={st.eyebrow}>Answer</div>
+                    <div className={st.flashAnswer}>{current.a}</div>
+                  </>
                 )}
               </motion.div>
             </AnimatePresence>
           ) : (
-            <div>
+            <div className={st.list}>
               <TrainerEmptyState
                 variant="complete"
                 title="All Caught Up"
@@ -866,188 +776,52 @@ export default function FlashcardsPage() {
                 compact
               />
               {/* Mastery Progress */}
-              <div
-                style={{
-                  marginTop: 24,
-                  padding: '14px 16px',
-                  borderRadius: 12,
-                  background: 'rgba(0,0,0,0.2)',
-                  border: '1px solid rgba(74,222,128,0.1)',
-                  textAlign: 'left',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-accent-green)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    marginBottom: 8,
-                  }}
-                >
-                  Mastery Progress
+              <section className={`sd-panel ${st.panel}`} aria-label="Mastery Progress">
+                <h2 className={st.title}>Mastery Progress</h2>
+                <div className={st.track} role="progressbar" aria-label="Cards Mastered" aria-valuenow={Math.round(masteredPct)} aria-valuemin={0} aria-valuemax={100}>
+                  <div className={st.fill} style={{ width: `${masteredPct}%` }} />
                 </div>
-                <div
-                  style={{
-                    height: 6,
-                    borderRadius: 3,
-                    background: 'rgba(255,255,255,0.06)',
-                    overflow: 'hidden',
-                    marginBottom: 6,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${CARDS.length > 0 ? (stats.mastered / CARDS.length) * 100 : 0}%`,
-                      height: '100%',
-                      borderRadius: 3,
-                      background: 'linear-gradient(90deg, rgba(var(--sp-accent-green-rgb), 1), rgba(var(--sp-accent-green-rgb), 1))',
-                    }}
-                  />
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>
+                <p className={st.small}>
                   {stats.mastered}/{CARDS.length} Cards Mastered (21+ Day Interval)
-                </div>
-              </div>
+                </p>
+              </section>
             </div>
           )}
 
           {/* SM-2 Rating Buttons */}
           {current && flipped && currentIdx < sessionDeck.length && (
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <motion.button
-                whileTap={{ scale: 0.96 }}
-                onClick={() => manualAdvance(0)}
-                style={{
-                  flex: 1,
-                  padding: '14px 4px',
-                  borderRadius: 12,
-                  border: '1px solid rgba(239,68,68,0.2)',
-                  background: 'rgba(239,68,68,0.06)',
-                  color: 'var(--sp-accent-red)',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
+            <div className={st.grid3} role="group" aria-label="Rate Your Recall">
+              <motion.button type="button" whileTap={{ scale: 0.96 }} onClick={() => manualAdvance(0)} className={`sd-button ${st.rateButton}`}>
                 Hard
-                <span
-                  style={{
-                    fontSize: 12,
-                    display: 'block',
-                    color: 'rgba(248,113,113,0.6)',
-                    marginTop: 2,
-                  }}
-                >
-                  {current ? previewInterval(0, sm2Data, current.id) : 'Today'}
-                </span>
+                <span className={st.rateNext}>{current ? previewInterval(0, sm2Data, current.id) : 'Today'}</span>
               </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.96 }}
-                onClick={() => manualAdvance(1)}
-                style={{
-                  flex: 1,
-                  padding: '14px 4px',
-                  borderRadius: 12,
-                  border: '1px solid rgba(251,191,36,0.2)',
-                  background: 'rgba(251,191,36,0.06)',
-                  color: '#86daff',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
+              <motion.button type="button" whileTap={{ scale: 0.96 }} onClick={() => manualAdvance(1)} className={`sd-button ${st.rateButton}`}>
                 Good
-                <span
-                  style={{
-                    fontSize: 12,
-                    display: 'block',
-                    color: '#86daff',
-                    marginTop: 2,
-                  }}
-                >
-                  {current ? previewInterval(1, sm2Data, current.id) : '1 day'}
-                </span>
+                <span className={st.rateNext}>{current ? previewInterval(1, sm2Data, current.id) : '1 day'}</span>
               </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.96 }}
-                onClick={() => manualAdvance(2)}
-                style={{
-                  flex: 1,
-                  padding: '14px 4px',
-                  borderRadius: 12,
-                  border: '1px solid rgba(34,197,94,0.2)',
-                  background: 'rgba(34,197,94,0.06)',
-                  color: 'var(--sp-accent-green)',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
+              <motion.button type="button" whileTap={{ scale: 0.96 }} onClick={() => manualAdvance(2)} className={`sd-button sd-primary ${st.rateButton}`}>
                 Easy
-                <span
-                  style={{
-                    fontSize: 12,
-                    display: 'block',
-                    color: 'rgba(74,222,128,0.6)',
-                    marginTop: 2,
-                  }}
-                >
-                  {current ? previewInterval(2, sm2Data, current.id) : '2 days'}
-                </span>
+                <span className={st.rateNext}>{current ? previewInterval(2, sm2Data, current.id) : '2 days'}</span>
               </motion.button>
             </div>
           )}
 
           {/* My Live Session Mistake Flashcards (SM-2 Queue) */}
-          <div
-            data-mistake-srs-queue="true"
-            style={{
-              marginTop: 24,
-              padding: 18,
-              borderRadius: 14,
-              border: '1px solid rgba(248, 113, 113, 0.3)',
-              background: 'rgba(15, 23, 42, 0.75)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 8,
-                marginBottom: 12,
-              }}
-            >
+          <section data-mistake-srs-queue="true" className={`sd-panel ${st.panel}`} aria-labelledby="mistake-queue-title">
+            <div className={st.panelHead}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#fca5a5' }}>
+                <h2 id="mistake-queue-title" className={st.title}>
                   My Live Session Mistake Flashcards (SM-2 Queue)
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
+                </h2>
+                <p className={st.small}>
                   Auto-Enqueued Hands With 0.50+ BB EV Loss From Live Training Sessions
-                </div>
+                </p>
               </div>
-              <span
-                style={{
-                  padding: '3px 8px',
-                  borderRadius: 6,
-                  background: 'rgba(239, 68, 68, 0.14)',
-                  border: '1px solid rgba(239, 68, 68, 0.35)',
-                  color: '#fca5a5',
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
-              >
-                {mistakeCards.length} Queued Cards
-              </span>
+              <span className={st.tag}>{mistakeCards.length} Queued Cards</span>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {mistakeCards
-                .filter((card) => (catFilter === 'PLO8' || activeVariant === 'plo8' ? (card.variant === 'plo8' || String(card.questionId || '').startsWith('plo8')) : true))
-                .map((card) => {
+            <div className={st.list}>
+              {visibleMistakes.map((card) => {
                 const cardVariant = card.variant || activeVariant;
                 const drillHref = buildCustomTrainingArenaHref(
                   {
@@ -1059,67 +833,25 @@ export default function FlashcardsPage() {
                   'flashcards-mistake-srs',
                 );
                 return (
-                  <div
-                    key={card.questionId}
-                    data-mistake-srs-card={card.questionId}
-                    style={{
-                      padding: 12,
-                      borderRadius: 10,
-                      background: 'rgba(2, 6, 23, 0.65)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: 8,
-                        marginBottom: 6,
-                      }}
-                    >
-                      <span style={{ fontSize: 12, fontWeight: 800, color: '#7dd3fc' }}>
+                  <div key={card.questionId} data-mistake-srs-card={card.questionId} className={st.item}>
+                    <div className={st.panelHead}>
+                      <span className={st.eyebrow}>
                         {String(card.gameId || 'cash-002').toUpperCase()} · Level {card.level || 1}
                       </span>
-                      <span
-                        data-mistake-ev-loss-bb={card.evLossBb}
-                        style={{
-                          padding: '2px 7px',
-                          borderRadius: 4,
-                          background: 'rgba(239, 68, 68, 0.16)',
-                          color: '#f87171',
-                          fontSize: 12,
-                          fontWeight: 800,
-                        }}
-                      >
+                      <span data-mistake-ev-loss-bb={card.evLossBb} className={`${st.tag} ${st.tagLoss}`}>
                         -{Number(card.evLossBb || 0).toFixed(2)} BB EV Loss
                       </span>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 4 }}>
-                      {card.prompt}
+                    <div className={st.itemTitle}>{card.prompt}</div>
+                    <div className={st.mistakeMeta}>
+                      Optimal Action: <strong>{String(card.correctAction || '').toUpperCase()}</strong> · Interval: {card.intervalDays}d · Ease: {Number(card.easeFactor || 2.5).toFixed(1)}
                     </div>
-                    <div style={{ fontSize: 12, color: '#86efac', fontWeight: 700, marginBottom: 4 }}>
-                      Optimal Action: {String(card.correctAction || '').toUpperCase()} · Interval: {card.intervalDays}d · Ease: {Number(card.easeFactor || 2.5).toFixed(1)}
-                    </div>
-                    {card.explanation ? (
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 10, lineHeight: 1.45 }}>
-                        {card.explanation}
-                      </div>
-                    ) : null}
+                    {card.explanation ? <p className={st.small}>{card.explanation}</p> : null}
                     <button
                       type="button"
                       data-drill-mistake-card-cta="true"
                       onClick={() => router.push(drillHref)}
-                      style={{
-                        padding: '7px 12px',
-                        borderRadius: 8,
-                        border: '1px solid rgba(56, 189, 248, 0.45)',
-                        background: 'rgba(56, 189, 248, 0.16)',
-                        color: '#e0f2fe',
-                        fontSize: 12,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                      }}
+                      className={`sd-button ${st.block}`}
                     >
                       Drill This Mistake On Club Arena Felt →
                     </button>
@@ -1127,7 +859,7 @@ export default function FlashcardsPage() {
                 );
               })}
             </div>
-          </div>
+          </section>
 
           {/* 4-Variant Horse Brain Spot Preview & 1-Click Club Arena Launcher */}
         </div>

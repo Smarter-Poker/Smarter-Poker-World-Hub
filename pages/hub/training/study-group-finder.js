@@ -21,6 +21,8 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 import TrainingSignInPrompt from '../../../src/components/training/TrainingSignInPrompt';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import st from '../../../src/styles/training/study-tools.module.css';
 // TRAIN-WIRE-EMPTY-9b — adoption: shared empty-state primitive
 
 
@@ -50,7 +52,6 @@ function BookIcon({ size=24 })     { return <_Svg size={size}><path d="M4 19.5A2
 function BoltIcon({ size=24 })     { return <_Svg size={size}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></_Svg>; }
 function TargetIcon({ size=24 })   { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></_Svg>; }
 function SwordsIcon({ size=24 })   { return <_Svg size={size}><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><polyline points="19 21 21 21 21 19 14 12"/></_Svg>; }
-function BackArrowIcon({ size=18 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function AvatarIcon({ kind, size=24 }) {
   switch (kind) {
     case 'shark':  return <SharkIcon size={size}/>;
@@ -228,54 +229,13 @@ export default function StudyGroupFinderPage() {
         description="Find Poker Study Partners And Accountability Cohorts By Stakes, Game Format, Skill Level, And Time Zone In The Study Group Directory On Smarter.Poker."
         canonical="/hub/training/study-group-finder"
       />
-      <div
-        className="sp-training-command sp-training-command--group-finder"
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="sp-command-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              type="button"
-              aria-label="Back to training"
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 18,
-                cursor: 'pointer',
-                padding: '6px 10px',
-                borderRadius: 6,
-              }}
-            >
-              {/* TRAIN-STUDYFINDER-A11Y-1: SVG back arrow */}
-              <BackArrowIcon size={18} />
-            </button>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>Study Group Finder</div>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-                {groups.length} Live {groups.length === 1 ? 'Group' : 'Groups'}
-              </div>
-            </div>
-          </div>
-          <motion.button
+      <div className={st.shell}>
+        <TrainingPageHead slug="training-study-group-finder">
+          <p className="sp-head-note"><strong>{groups.length}</strong> Live {groups.length === 1 ? 'Group' : 'Groups'}</p>
+          <button
             type="button"
-            whileTap={{ scale: 0.95 }}
+            className="sd-button sd-primary"
+            aria-expanded={showCreate}
             onClick={() => {
               if (signedOut) {
                 setShowCreate(false);
@@ -284,40 +244,16 @@ export default function StudyGroupFinderPage() {
               }
               setShowCreate(!showCreate);
             }}
-            style={{
-              background: 'var(--sp-accent-blue)',
-              color: '#fff',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(59,130,246,0.3)',
-            }}
           >
             + Create Group
-          </motion.button>
-        </div>
+          </button>
+        </TrainingPageHead>
 
-        <div className="sp-command-main" style={{ maxWidth: 800, margin: '0 auto', padding: '20px 16px' }}>
+        <div className={st.page}>
           {!isOnline && (
-            <div
-              role="status"
-              data-offline-banner="true"
-              style={{
-                marginBottom: 14,
-                padding: '10px 14px',
-                borderRadius: 8,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
-                color: '#86daff',
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
+            <p role="status" data-offline-banner="true" className={st.notice}>
               Offline. Study Group Directory Sync Will Resume After Reconnection.
-            </div>
+            </p>
           )}
 
 
@@ -329,9 +265,9 @@ export default function StudyGroupFinderPage() {
             />
           )}
           {notice && (
-            <div role="status" style={{ marginBottom: 12, color: notice.type === 'error' ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)', fontSize: 12 }}>
+            <p role="status" className={notice.type === 'error' ? st.error : st.notice}>
               {notice.text}
-            </div>
+            </p>
           )}
           {/* Create Group Form */}
           <AnimatePresence>
@@ -340,125 +276,74 @@ export default function StudyGroupFinderPage() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                style={{ overflow: 'hidden', marginBottom: 16 }}
+                style={{ overflow: 'hidden' }}
               >
-                <div
-                  style={{
-                    padding: 20,
-                    borderRadius: 12,
-                    background: 'rgba(59,130,246,0.05)',
-                    border: '1px solid rgba(59,130,246,0.15)',
-                  }}
-                >
-                  <div
-                    style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-blue)', marginBottom: 12 }}
-                  >
-                    Create New Study Group
-                  </div>
-                  <div
-                    style={{ fontSize: 12, color: 'var(--sp-fg-dim)', lineHeight: 1.5, marginBottom: 12 }}
-                  >
+                <section className={`sd-panel ${st.panel}`} aria-labelledby="create-group-title">
+                  <h2 id="create-group-title" className={st.title}>Create New Study Group</h2>
+                  <p className={st.copy}>
                     Create A Persistent Smarter.Poker Room. Members Can Join From This Finder And
                     Participate In The Room Discussion.
+                  </p>
+                  <div className={st.grid2}>
+                    <label className={st.field}>
+                      <span className={st.label}>Group Name</span>
+                      <input
+                        placeholder="Group Name"
+                        value={form.name}
+                        onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                        className={st.input}
+                      />
+                    </label>
+                    <label className={st.field}>
+                      <span className={st.label}>Format</span>
+                      <select
+                        value={form.format}
+                        onChange={(event) => setForm((current) => ({ ...current, format: event.target.value }))}
+                        className={st.input}
+                      >
+                        {FORMATS.filter((f) => f !== 'All').map((f) => (
+                          <option key={f}>{f}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className={st.field}>
+                      <span className={st.label}>Stakes Range</span>
+                      <input
+                        placeholder="Stakes Range"
+                        value={form.stakes}
+                        onChange={(event) => setForm((current) => ({ ...current, stakes: event.target.value }))}
+                        className={st.input}
+                      />
+                    </label>
+                    <label className={st.field}>
+                      <span className={st.label}>Timezone (e.g., EST)</span>
+                      <input
+                        placeholder="Timezone (e.g., EST)"
+                        value={form.timezone}
+                        onChange={(event) => setForm((current) => ({ ...current, timezone: event.target.value }))}
+                        className={st.input}
+                      />
+                    </label>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <label className={st.field}>
+                    <span className={st.label}>Study Focus</span>
                     <input
-                      placeholder="Group Name"
-                      value={form.name}
-                      onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                      style={{
-                        padding: '10px',
-                        borderRadius: 8,
-                        background: 'rgba(0,0,0,0.3)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        color: 'var(--sp-fg)',
-                        fontSize: 12,
-                        outline: 'none',
-                      }}
-                    />
-                    <select
-                      value={form.format}
-                      onChange={(event) => setForm((current) => ({ ...current, format: event.target.value }))}
-                      style={{
-                        padding: '10px',
-                        borderRadius: 8,
-                        background: 'rgba(0,0,0,0.3)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        color: 'var(--sp-fg)',
-                        fontSize: 12,
-                        outline: 'none',
-                      }}
-                    >
-                      {FORMATS.filter((f) => f !== 'All').map((f) => (
-                        <option key={f}>{f}</option>
-                      ))}
-                    </select>
-                    <input
-                      placeholder="Stakes Range"
-                      value={form.stakes}
-                      onChange={(event) => setForm((current) => ({ ...current, stakes: event.target.value }))}
-                      style={{
-                        padding: '10px',
-                        borderRadius: 8,
-                        background: 'rgba(0,0,0,0.3)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        color: 'var(--sp-fg)',
-                        fontSize: 12,
-                        outline: 'none',
-                      }}
-                    />
-                    <input
-                      placeholder="Timezone (e.g., EST)"
-                      value={form.timezone}
-                      onChange={(event) => setForm((current) => ({ ...current, timezone: event.target.value }))}
-                      style={{
-                        padding: '10px',
-                        borderRadius: 8,
-                        background: 'rgba(0,0,0,0.3)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        color: 'var(--sp-fg)',
-                        fontSize: 12,
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
-                  <input
-                    placeholder="Study Focus"
-                    value={form.focus}
-                    onChange={(event) => setForm((current) => ({ ...current, focus: event.target.value }))}
-                    style={{
-                      marginTop: 8,
-                      width: '100%',
-                      boxSizing: 'border-box',
-                      padding: '10px',
-                      borderRadius: 8,
-                      background: 'rgba(0,0,0,0.3)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: 'var(--sp-fg)',
-                      fontSize: 12,
-                      outline: 'none',
-                    }}
-                  />
+                        placeholder="Study Focus"
+                        value={form.focus}
+                        onChange={(event) => setForm((current) => ({ ...current, focus: event.target.value }))}
+                        className={st.input}
+                      />
+                  </label>
                   <button
                     type="button"
                     onClick={createGroup}
                     disabled={busy === 'create' || form.name.trim().length < 3}
-                    style={{
-                      marginTop: 12,
-                      padding: '10px 20px',
-                      borderRadius: 8,
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      color: 'var(--sp-fg-dim)',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: busy === 'create' || form.name.trim().length < 3 ? 'not-allowed' : 'pointer',
-                      width: '100%',
-                    }}
+                    className={`sd-button sd-primary ${st.block}`}
                   >
                     {busy === 'create' ? 'Creating Group...' : 'Create Study Group'}
                   </button>
-                </div>
+                  {form.name.trim().length < 3 && <p className={st.small}>Group Names Need At Least 3 Characters.</p>}
+                </section>
               </motion.div>
             )}
           </AnimatePresence>
@@ -469,95 +354,56 @@ export default function StudyGroupFinderPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search groups by name, focus, or tool..."
-            style={{
-              width: '100%',
-              padding: '10px 14px',
-              borderRadius: 8,
-              background: 'rgba(0,0,0,0.3)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'var(--sp-fg)',
-              fontSize: 13,
-              outline: 'none',
-              marginBottom: 12,
-              boxSizing: 'border-box',
-            }}
+            aria-label="Search Study Groups"
+            className={st.input}
           />
 
           {/* Filters Row */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-            {FORMATS.map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setFilterFmt(f)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 16,
-                  border: `1px solid ${filterFmt === f ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.08)'}`,
-                  background: filterFmt === f ? 'rgba(59,130,246,0.08)' : 'transparent',
-                  color: filterFmt === f ? 'var(--sp-accent-blue)' : 'var(--sp-fg-dim)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
+          <section className={`sd-panel ${st.panel}`} aria-label="Study Group Filters">
+            <fieldset className={st.fieldset}>
+              <legend className={st.label}>Format</legend>
+              <div className={st.chips}>
+                {FORMATS.map((f) => (
+                  <button key={f} type="button" onClick={() => setFilterFmt(f)} aria-pressed={filterFmt === f} className="sd-button">
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
 
-          {/* Level + Sort */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 20, alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: 'var(--sp-fg-faint)', fontWeight: 600 }}>Level:</span>
-            {LEVELS.map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setFilterLevel(l)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: 4,
-                  border: `1px solid ${filterLevel === l ? 'var(--sp-accent-purple)' : 'transparent'}`,
-                  background: filterLevel === l ? 'rgba(168,85,247,0.06)' : 'transparent',
-                  color: filterLevel === l ? '#86daff' : 'var(--sp-fg-faint)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {l}
-              </button>
-            ))}
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
-              {[
-                { k: 'slots', l: 'Open' },
-                { k: 'members', l: 'Popular' },
-                { k: 'name', l: 'A-Z' },
-              ].map((s) => (
-                <button
-                  key={s.k}
-                  type="button"
-                  onClick={() => setSortBy(s.k)}
-                  style={{
-                    padding: '3px 8px',
-                    borderRadius: 4,
-                    background: sortBy === s.k ? 'rgba(255,255,255,0.06)' : 'transparent',
-                    border: 'none',
-                    color: sortBy === s.k ? 'var(--sp-fg-muted)' : 'var(--sp-fg-faint)',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {s.l}
-                </button>
-              ))}
-            </div>
-          </div>
+            {/* Level + Sort */}
+            <fieldset className={st.fieldset}>
+              <legend className={st.label}>Level</legend>
+              <div className={st.chips}>
+                {LEVELS.map((l) => (
+                  <button key={l} type="button" onClick={() => setFilterLevel(l)} aria-pressed={filterLevel === l} className="sd-button">
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset className={st.fieldset}>
+              <legend className={st.label}>Sort By</legend>
+              <div className={st.chips}>
+                {[
+                  { k: 'slots', l: 'Open Slots' },
+                  { k: 'members', l: 'Popular' },
+                  { k: 'name', l: 'A-Z' },
+                ].map((s) => (
+                  <button key={s.k} type="button" onClick={() => setSortBy(s.k)} aria-pressed={sortBy === s.k} className="sd-button">
+                    {s.l}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          </section>
 
           {/* Group Cards */}
           {loading && (
-            <div style={{ padding: 24, textAlign: 'center', color: 'var(--sp-fg-dim)' }}>Loading Study Groups...</div>
+            <section className={`sd-panel ${st.panel}`} role="status" aria-label="Loading Study Groups">
+              <div className={st.skeleton} aria-hidden><span /><span /><span /></div>
+              <p className={st.small}>Loading Study Groups...</p>
+            </section>
           )}
           {!loading && filtered.length === 0 && (
             <TrainerEmptyState
@@ -567,7 +413,7 @@ export default function StudyGroupFinderPage() {
               compact
             />
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className={st.list}>
             {filtered.map((g, i) => {
               const isFull = g.members >= g.max;
               const slotsLeft = g.max - g.members;
@@ -577,96 +423,41 @@ export default function StudyGroupFinderPage() {
                   key={g.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  style={{
-                    background: 'rgba(255,255,255,0.02)',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                    borderRadius: 14,
-                    padding: 20,
-                  }}
+                  transition={{ delay: Math.min(i, 8) * 0.04 }}
+                  className={`sd-panel ${st.panel}`}
                 >
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
-                    {/* Group Info */}
-                    <div style={{ flex: 1, minWidth: 200 }}>
-                      <div
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}
-                      >
-                        {/* TRAIN-STUDYFINDER-A11Y-1: SVG AvatarIcon */}
-                        <span style={{ fontSize: 24, display: 'inline-flex' }} aria-hidden>
-                          <AvatarIcon kind={g.avatarKind} size={24} />
-                        </span>
-                        <div>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>
-                            {g.name}
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{g.focus}</div>
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: 12,
-                          fontSize: 12,
-                          color: 'var(--sp-fg-muted)',
-                          flexWrap: 'wrap',
-                          marginTop: 8,
-                        }}
-                      >
-                        <span
-                          style={{
-                            padding: '2px 8px',
-                            borderRadius: 4,
-                            background: 'rgba(59,130,246,0.08)',
-                            color: 'var(--sp-accent-blue)',
-                            fontWeight: 600,
-                          }}
-                        >
-                          {g.format}
-                        </span>
-                        <span>Stakes: {g.stakes}</span>
-                        <span>TZ: {g.tz}</span>
-                        <span>Tool: {g.tool}</span>
-                        <span>Schedule: {g.schedule}</span>
-                      </div>
+                  <div className={st.groupHead}>
+                    {/* TRAIN-STUDYFINDER-A11Y-1: SVG AvatarIcon */}
+                    <span className={st.groupIcon} aria-hidden>
+                      <AvatarIcon kind={g.avatarKind} size={22} />
+                    </span>
+                    <div className={st.dayText}>
+                      <h3 className={st.itemTitle}>{g.name}</h3>
+                      <p className={st.small}>{g.focus}</p>
                     </div>
-
-                    {/* Slots + Apply */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                      <div style={{ textAlign: 'center' }}>
-                        <div
-                          style={{
-                            fontSize: 20,
-                            fontWeight: 900,
-                            color: isFull ? 'var(--sp-accent-red)' : slotsLeft <= 2 ? '#86daff' : 'var(--sp-accent-green)',
-                          }}
-                        >
-                          {g.members}/{g.max}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>
-                          {slotsLeft} {slotsLeft === 1 ? 'slot' : 'slots'} Left
-                        </div>
-                      </div>
-                      <motion.button
-                        type="button"
-                        onClick={() => joinGroup(g)}
-                        disabled={isFull && !g.joined || busy === g.id}
-                        aria-label={`${g.joined ? 'Open' : 'Join'} ${g.name}`}
-                        style={{
-                          padding: '10px 20px',
-                          borderRadius: 8,
-                          background: g.joined ? 'rgba(34,197,94,0.1)' : 'rgba(59,130,246,0.1)',
-                          border: `1px solid ${g.joined ? 'rgba(34,197,94,0.35)' : 'rgba(59,130,246,0.35)'}`,
-                          color: g.joined ? 'var(--sp-accent-green)' : 'var(--sp-accent-blue)',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: isFull && !g.joined || busy === g.id ? 'not-allowed' : 'pointer',
-                          minWidth: 120,
-                        }}
-                      >
-                        {busy === g.id ? 'Joining...' : g.joined ? 'Open Room' : isFull ? 'Group Full' : signedOut ? 'Sign In To Join' : 'Join Group'}
-                      </motion.button>
+                    <div className={st.areaGoal}>
+                      <strong className={isFull ? st.down : undefined}>{g.members}/{g.max}</strong>
+                      <span>{slotsLeft} {slotsLeft === 1 ? 'Slot' : 'Slots'} Left</span>
                     </div>
                   </div>
+                  <div className={st.chips}>
+                    <span className={st.tag}>{g.format}</span>
+                  </div>
+                  <dl className={st.facts}>
+                    <div><dt>Stakes</dt><dd>{g.stakes}</dd></div>
+                    <div><dt>Time Zone</dt><dd>{g.tz}</dd></div>
+                    <div><dt>Tool</dt><dd>{g.tool}</dd></div>
+                    <div><dt>Schedule</dt><dd>{g.schedule}</dd></div>
+                  </dl>
+                  <motion.button
+                    type="button"
+                    onClick={() => joinGroup(g)}
+                    disabled={isFull && !g.joined || busy === g.id}
+                    aria-label={`${g.joined ? 'Open' : 'Join'} ${g.name}`}
+                    className={`sd-button ${g.joined ? '' : 'sd-primary'} ${st.block}`}
+                  >
+                    {busy === g.id ? 'Joining...' : g.joined ? 'Open Room' : isFull ? 'Group Full' : signedOut ? 'Sign In To Join' : 'Join Group'}
+                  </motion.button>
                 </motion.div>
               );
             })}

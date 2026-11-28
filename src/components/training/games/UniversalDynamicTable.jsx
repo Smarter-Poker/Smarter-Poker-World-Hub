@@ -53,7 +53,7 @@ import {
     resolveClubArenaTableBox,
     seatPodPx,
 } from '../../../lib/training/clubArenaTableGeometry.mjs';
-import PokerSoundManager, * as PokerSoundManagerModule from '../../poker/PokerSoundManager';
+import PokerSoundManager from '../../poker/PokerSoundManager';
 import {
     parseStakesToBlinds,
     computeClubArenaParityState,
@@ -95,7 +95,7 @@ import {
 } from '../../../lib/training/trainingPresets.mjs';
 
 const soundManager = typeof window !== 'undefined'
-    ? (PokerSoundManagerModule.soundManager || new PokerSoundManager())
+    ? new PokerSoundManager()
     : null;
 
 // ═══════════════════════════════════════════════════════════════════════════

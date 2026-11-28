@@ -1,0 +1,1727 @@
+{
+ "/hub/training/aggregate": {
+  "ok": true,
+  "name": "training_aggregate",
+  "header": true,
+  "art": "training-aggregate",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Aggregate Reports"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/achievements": {
+  "ok": true,
+  "name": "training_achievements",
+  "header": true,
+  "art": "training-achievements",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Achievements"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/autopilot": {
+  "ok": true,
+  "name": "training_autopilot",
+  "header": true,
+  "art": "training-autopilot",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Weak Spot Autopilot"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/blind-defense": {
+  "ok": true,
+  "name": "training_blind-defense",
+  "header": true,
+  "art": "training-blind-defense",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Blind Defense"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/bluff-catcher": {
+  "ok": true,
+  "name": "training_bluff-catcher",
+  "header": true,
+  "art": "training-bluff-catcher",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Bluff Catcher"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/challenges": {
+  "ok": true,
+  "name": "training_challenges",
+  "header": true,
+  "art": "training-goals",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Your Goals"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/bounty-trainer": {
+  "ok": true,
+  "name": "training_bounty-trainer",
+  "header": true,
+  "art": "training-bounty-trainer",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Bounty Trainer"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/coach-mode": {
+  "ok": true,
+  "name": "training_coach-mode",
+  "header": true,
+  "art": "training-coach-mode",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Flop Study Room"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/custom-rake": {
+  "ok": true,
+  "name": "training_custom-rake",
+  "header": true,
+  "art": "training-custom-rake",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Rake Cost Estimator"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/community-leaderboard": {
+  "ok": true,
+  "name": "training_community-leaderboard",
+  "header": true,
+  "art": "training-community-leaderboard",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Community Leaderboard"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/daily-challenge": {
+  "ok": true,
+  "name": "training_daily-challenge",
+  "header": true,
+  "art": "training-daily-challenge",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Hand Of The Day"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/drill-builder": {
+  "ok": true,
+  "name": "training_drill-builder",
+  "header": true,
+  "art": "training-drill-builder",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Drill Builder"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/custom-solve": {
+  "ok": true,
+  "name": "training_custom-solve",
+  "header": true,
+  "art": "training-custom-solve",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Custom Spot Reference"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/famous-finals": {
+  "ok": true,
+  "name": "training_famous-finals",
+  "header": true,
+  "art": "training-famous-finals",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Famous Finals"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/daily-goals": {
+  "ok": true,
+  "name": "training_daily-goals",
+  "header": true,
+  "art": "training-daily-goals",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Daily Goals Vault"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/flashcards": {
+  "ok": true,
+  "name": "training_flashcards",
+  "header": true,
+  "art": "training-flashcards",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Flashcards"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/frequency-locking": {
+  "ok": true,
+  "name": "training_frequency-locking",
+  "header": true,
+  "art": "training-frequency-locking",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Frequency Math"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/equity-calculator": {
+  "ok": true,
+  "name": "training_equity-calculator",
+  "header": true,
+  "art": "training-equity-calculator",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Equity Calculator"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/gto-news": {
+  "ok": true,
+  "name": "training_gto-news",
+  "header": true,
+  "art": "training-gto-news",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Strategy Notes"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/ev-trainer": {
+  "ok": true,
+  "name": "training_ev-trainer",
+  "header": true,
+  "art": "training-ev-trainer",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Expected Value"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/gto-reports": {
+  "ok": true,
+  "name": "training_gto-reports",
+  "header": true,
+  "art": "training-reports",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Verified Reports"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/final-table-sim": {
+  "ok": true,
+  "name": "training_final-table-sim",
+  "header": true,
+  "art": "training-final-table-sim",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Final Table Sim"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/gto-vs-exploitative": {
+  "ok": true,
+  "name": "training_gto-vs-exploitative",
+  "header": true,
+  "art": "training-gto-vs-exploitative",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "GTO Versus Exploitative"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/focus-timer": {
+  "ok": true,
+  "name": "training_focus-timer",
+  "header": true,
+  "art": "training-focus-timer",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Focus Timer"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/glossary": {
+  "ok": true,
+  "name": "training_glossary",
+  "header": true,
+  "art": "training-glossary",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Glossary"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/gto-preloader": {
+  "ok": true,
+  "name": "training_gto-preloader",
+  "header": true,
+  "art": "training-gto-preloader",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Offline Packs"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/hand-history-upload": {
+  "ok": true,
+  "name": "training_hand-history-upload",
+  "header": true,
+  "art": "training-hand-history-upload",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Hand History Upload"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/hand-comparison": {
+  "ok": true,
+  "name": "training_hand-comparison",
+  "header": true,
+  "art": "training-hand-comparison",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Hand Comparison"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/icm-calculator": {
+  "ok": true,
+  "name": "training_icm-calculator",
+  "header": true,
+  "art": "icm",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "ICM Calculator"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/icm-simulator": {
+  "ok": true,
+  "name": "training_icm-simulator",
+  "header": true,
+  "art": "training-icm-simulator",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "ICM Simulator"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/hand-lab": {
+  "ok": true,
+  "name": "training_hand-lab",
+  "header": true,
+  "art": "training-hand-lab",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Hand Lab"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/leaderboard": {
+  "ok": true,
+  "name": "training_leaderboard",
+  "header": true,
+  "art": "training-leaderboard",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Training Leaderboard"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/icm-final-table": {
+  "ok": true,
+  "name": "training_icm-final-table",
+  "header": true,
+  "art": "training-icm-final-table",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Final Table ICM"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/mental-journal": {
+  "ok": true,
+  "name": "training_mental-journal",
+  "header": true,
+  "art": "training-mental-journal",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Mental Journal"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/jarvis": {
+  "ok": true,
+  "name": "training_jarvis",
+  "header": true,
+  "art": "training-jarvis",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Jarvis Insights"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/mixed-strategy-lab": {
+  "ok": true,
+  "name": "training_mixed-strategy-lab",
+  "header": true,
+  "art": "training-mixed-strategy-lab",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Mixed Strategy Lab"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/multiway-postflop": {
+  "ok": true,
+  "name": "training_multiway-postflop",
+  "header": true,
+  "art": "training-multiway-postflop",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Multiway Postflop"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/live-hud-sync": {
+  "ok": true,
+  "name": "training_live-hud-sync",
+  "header": true,
+  "art": "training-live-hud-sync",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Hand History Import"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/my-playbook": {
+  "ok": true,
+  "name": "training_my-playbook",
+  "header": true,
+  "art": "training-my-playbook",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "My Playbook"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/player-profiles": {
+  "ok": true,
+  "name": "training_player-profiles",
+  "header": true,
+  "art": "training-player-profiles",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Population Reads"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/milestones": {
+  "ok": true,
+  "name": "training_milestones",
+  "header": true,
+  "art": "training-milestones",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Milestones"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/pot-geometry": {
+  "ok": true,
+  "name": "training_pot-geometry",
+  "header": true,
+  "art": "training-pot-geometry",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Pot Geometry"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/preflop-charts": {
+  "ok": true,
+  "name": "training_preflop-charts",
+  "header": true,
+  "art": "training-range-browser",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Range Browser"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/pvp-lobby": {
+  "ok": true,
+  "name": "training_pvp-lobby",
+  "header": true,
+  "art": "training-pvp-lobby",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "PvP Lobby"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/multi-table": {
+  "ok": true,
+  "name": "training_multi-table",
+  "header": true,
+  "art": "training-multi-table",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Multi-Table Practice"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/quick-warmup": {
+  "ok": true,
+  "name": "training_quick-warmup",
+  "header": true,
+  "art": "training-quick-warmup",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Quick Warmup"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/multiway-preflop": {
+  "ok": true,
+  "name": "training_multiway-preflop",
+  "header": true,
+  "art": "training-multiway-preflop",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Multiway Preflop"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/range-advisor": {
+  "ok": true,
+  "name": "training_range-advisor",
+  "header": true,
+  "art": "training-range-advisor",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Range Construction"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/reports": {
+  "ok": true,
+  "name": "training_reports",
+  "header": true,
+  "art": "training-reports",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Verified Reports"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/nodelocking": {
+  "ok": true,
+  "name": "training_nodelocking",
+  "header": true,
+  "art": "training-nodelocking",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Node Locking"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/scenario-demo": {
+  "ok": true,
+  "name": "training_scenario-demo",
+  "header": true,
+  "art": "training-scenario-demo",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Strategy Concepts"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/position-mastery": {
+  "ok": true,
+  "name": "training_position-mastery",
+  "header": true,
+  "art": "training-position-mastery",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Position Mastery"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/preflop-advisor": {
+  "ok": true,
+  "name": "training_preflop-advisor",
+  "header": true,
+  "art": "training-preflop-advisor",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Preflop Decisions"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/progress": {
+  "ok": true,
+  "name": "training_progress",
+  "header": true,
+  "art": "training-progress",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Your Progress"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/qre-explorer": {
+  "ok": true,
+  "name": "training_qre-explorer",
+  "header": true,
+  "art": "training-qre-explorer",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "QRE Explorer"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/quiz-builder": {
+  "ok": true,
+  "name": "training_quiz-builder",
+  "header": true,
+  "art": "training-quiz-builder",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Quiz Builder"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/session-notes": {
+  "ok": true,
+  "name": "training_session-notes",
+  "header": true,
+  "art": "training-session-notes",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Session Notes"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/rake-solutions": {
+  "ok": true,
+  "name": "training_rake-solutions",
+  "header": true,
+  "art": "training-rake-solutions",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Rake Sensitivity"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/short-deck-trainer": {
+  "ok": true,
+  "name": "training_short-deck-trainer",
+  "header": true,
+  "art": "training-short-deck-trainer",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Short Deck Trainer"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/range-builder": {
+  "ok": true,
+  "name": "training_range-builder",
+  "header": true,
+  "art": "training-range-builder",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Range Builder"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/replay-theater": {
+  "ok": true,
+  "name": "training_replay-theater",
+  "header": true,
+  "art": "training-replay-theater",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Replay Theater"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/spr-trainer": {
+  "ok": true,
+  "name": "training_spr-trainer",
+  "header": true,
+  "art": "training-spr-trainer",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Stack-To-Pot Ratio"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/risk-analyzer": {
+  "ok": true,
+  "name": "training_risk-analyzer",
+  "header": true,
+  "art": "training-risk-analyzer",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Risk Of Ruin"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/study-group-finder": {
+  "ok": true,
+  "name": "training_study-group-finder",
+  "header": true,
+  "art": "training-study-group-finder",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Study Group Finder"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/session-dashboard": {
+  "ok": true,
+  "name": "training_session-dashboard",
+  "header": true,
+  "art": "training-session-dashboard",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Session Dashboard"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/study-plan": {
+  "ok": true,
+  "name": "training_study-plan",
+  "header": true,
+  "art": "training-study-plan",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Study Plan"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/session-warmup": {
+  "ok": true,
+  "name": "training_session-warmup",
+  "header": true,
+  "art": "training-session-warmup",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Session Warmup"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/three-way-postflop": {
+  "ok": true,
+  "name": "training_three-way-postflop",
+  "header": true,
+  "art": "training-three-way-postflop",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Three-Way Postflop"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/skill-tree": {
+  "ok": true,
+  "name": "training_skill-tree",
+  "header": true,
+  "art": "training-skill-tree",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Skill Tree"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/tournament-prep": {
+  "ok": true,
+  "name": "training_tournament-prep",
+  "header": true,
+  "art": "training-tournament-prep",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Tournament Prep"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/spot-trainer": {
+  "ok": true,
+  "name": "training_spot-trainer",
+  "header": true,
+  "art": "training-spot-trainer",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Spot Trainer"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/training-calendar": {
+  "ok": true,
+  "name": "training_training-calendar",
+  "header": true,
+  "art": "training-training-calendar",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Training Calendar"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/streaks": {
+  "ok": true,
+  "name": "training_streaks",
+  "header": true,
+  "art": "training-streaks",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Streaks Vault"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/villain-range": {
+  "ok": true,
+  "name": "training_villain-range",
+  "header": true,
+  "art": "training-villain-range",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Range Advantage"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/study-group": {
+  "ok": true,
+  "name": "training_study-group",
+  "header": true,
+  "art": "training-study-group",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Study Group Room"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/table-wizard": {
+  "ok": true,
+  "name": "training_table-wizard",
+  "header": false,
+  "art": null,
+  "help": false,
+  "helpGap": null,
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/tilt-guard": {
+  "ok": true,
+  "name": "training_tilt-guard",
+  "header": true,
+  "art": "training-tilt-guard",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Tilt Guard"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/tournaments": {
+  "ok": true,
+  "name": "training_tournaments",
+  "header": true,
+  "art": "training-tournaments",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Training Tournaments"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/training-feed": {
+  "ok": true,
+  "name": "training_training-feed",
+  "header": true,
+  "art": "training-training-feed",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Training Feed"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/weakness-scanner": {
+  "ok": true,
+  "name": "training_weakness-scanner",
+  "header": true,
+  "art": "training-weakness-scanner",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Weakness Scanner"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training": {
+  "ok": true,
+  "name": "training",
+  "header": true,
+  "art": "training-lobby",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Training Games"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/preflop-charts/stats": {
+  "ok": true,
+  "name": "preflop-charts_stats",
+  "header": true,
+  "art": "preflop-stats",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Local Practice History"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/preflop-charts/leaderboard": {
+  "ok": true,
+  "name": "preflop-charts_leaderboard",
+  "header": true,
+  "art": "preflop-leaderboard",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Ranked Standings Paused"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/preflop-charts/achievements": {
+  "ok": true,
+  "name": "preflop-charts_achievements",
+  "header": true,
+  "art": "preflop-achievements",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Range Distinctions"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/preflop-charts/tutorial": {
+  "ok": true,
+  "name": "preflop-charts_tutorial",
+  "header": true,
+  "art": "preflop-tutorial",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Operate The Matrix"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/preflop-charts": {
+  "ok": true,
+  "name": "preflop-charts",
+  "header": true,
+  "art": "preflop-charts",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Preflop Charts",
+   "About The Preflop Range Lab"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/category/MTT": {
+  "ok": true,
+  "name": "training_category_MTT",
+  "header": true,
+  "art": "training-category-mtt",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Tournaments"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/training/category/CASH": {
+  "ok": true,
+  "name": "training_category_CASH",
+  "header": true,
+  "art": "training-category-cash",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Cash Games"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/bankroll-manager/export": {
+  "ok": true,
+  "name": "bankroll-manager_export",
+  "header": true,
+  "art": "export",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Export Data"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/toke-tracker/shift": {
+  "ok": true,
+  "name": "toke-tracker_shift",
+  "header": true,
+  "art": "toke-shift",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": true,
+  "h1s": [
+   "Shift Tracker"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ },
+ "/hub/bankroll-manager?section=trips": {
+  "ok": true,
+  "name": "bankroll-manager?section=trips",
+  "header": true,
+  "art": "bankroll",
+  "help": true,
+  "helpGap": {
+   "top": 8,
+   "right": 8
+  },
+  "backInside": false,
+  "backAbove": false,
+  "h1s": [
+   "Bankroll Manager"
+  ],
+  "wrongHelp": 0,
+  "bad": [],
+  "overflowX": false
+ }
+}

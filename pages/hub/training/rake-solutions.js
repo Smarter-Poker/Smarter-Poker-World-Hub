@@ -17,6 +17,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import at from '../../../src/styles/training/analysis-tools.module.css';
 // TRAIN-CSS-MOTION-ADOPT-21 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -107,32 +109,19 @@ function applyIllustrativeRakeCurve(baseline, rakePct, rakeCap) {
 // VISUAL COMPONENTS
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-function FreqBar({ value, maxVal = 80, color, label }) {
+function FreqBar({ value, maxVal = 80, compare = false, label }) {
   const width = Math.min(100, (value / maxVal) * 100);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-      <div
-        style={{ width: 36, fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-muted)', textAlign: 'right' }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          flex: 1,
-          height: 16,
-          borderRadius: 4,
-          background: 'rgba(255,255,255,0.04)',
-          overflow: 'hidden',
-          position: 'relative',
-        }}
-      >
+    <div className={at.freqRow}>
+      <span className={at.small}>{label}</span>
+      <div className={at.track} style={{ blockSize: 12 }}>
         <motion.div
+          className={`${at.fill} ${compare ? at.fillSilver : ''}`}
           animate={{ width: `${width}%` }}
           transition={{ duration: MOTION.slow, ease: 'easeOut' }}
-          style={{ height: '100%', background: color, borderRadius: 4 }}
         />
       </div>
-      <div style={{ width: 32, fontSize: 12, fontWeight: 800, color }}>{value}%</div>
+      <strong className={compare ? at.white : at.ice}>{value}%</strong>
     </div>
   );
 }
@@ -175,181 +164,83 @@ export default function RakeSolutionsPage() {
         description="Visualize How Pot Percentage Rake And Dollar Caps Shift Preflop Opening, Cold-Calling, And Three-Betting Sensitivity Curves On Smarter.Poker."
         canonical="/hub/training/rake-solutions"
       />
-      <div
-        style={{
-          minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', sans-serif",
-          paddingBottom: 60,
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Rake Sensitivity Model</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              Authored Toy Curve • Not Solver Or Strategy Data
-            </div>
-          </div>
-        </div>
+      <div className={at.shell}>
+        <TrainingPageHead slug="training-rake-solutions" note="Authored Toy Curve • Not Solver Or Strategy Data" />
 
-        <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
-          <div
-            role="note"
-            data-training-authority="authored-toy-model"
-            style={{
-              padding: 14,
-              marginBottom: 20,
-              border: '1px solid rgba(251,191,36,0.28)',
-              background: 'rgba(251,191,36,0.06)',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 12,
-              lineHeight: 1.6,
-            }}
-          >
+        <div className={at.page}>
+          <div role="note" data-training-authority="authored-toy-model" className={`sd-panel ${at.note}`}>
             This Page Applies A Disclosed Toy Curve To Authored Reference Numbers. It Does Not
             Run A Solver, Measure A Player Pool, Calculate EV, Or Recommend A Poker Strategy.
           </div>
+
           {/* Rake Selector */}
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: 'var(--sp-fg-dim)',
-              textTransform: 'uppercase',
-              letterSpacing: 1,
-              marginBottom: 12,
-            }}
-          >
-            Select Rake Structure
-          </div>
-          <div
-            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}
-          >
-            {RAKE_PRESETS.map((rk) => (
-              <motion.button
-                key={rk.id}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => {
-                  setActiveRake(rk);
-                }}
-                style={{
-                  padding: 16,
-                  borderRadius: 12,
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  background: activeRake.id === rk.id ? `${rk.color}15` : 'rgba(255,255,255,0.02)',
-                  border: `1px solid ${activeRake.id === rk.id ? `${rk.color}55` : 'rgba(255,255,255,0.05)'}`,
-                  color: activeRake.id === rk.id ? rk.color : 'var(--sp-fg-muted)',
-                }}
-              >
-                <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 2 }}>{rk.label}</div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: activeRake.id === rk.id ? `${rk.color}aa` : 'var(--sp-fg-dim)',
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="rs-structure-title">
+            <h2 id="rs-structure-title" className={at.sectionTitle}>Select Rake Structure</h2>
+            <div className={`${at.cardsGrid} ${at.cardsGrid2}`}>
+              {RAKE_PRESETS.map((rk) => (
+                <motion.button
+                  key={rk.id}
+                  type="button"
+                  className={`sd-button ${at.choiceCard}`}
+                  aria-pressed={activeRake.id === rk.id}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    setActiveRake(rk);
                   }}
                 >
-                  {rk.desc}
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 700, marginTop: 6, color: 'var(--sp-fg)' }}>
-                  {rk.pct}% / ${rk.cap} Cap
-                </div>
-              </motion.button>
-            ))}
-          </div>
-
-          {/* Compare toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>Compare With:</span>
-            <select
-              aria-label="Rake Structure"
-              value={compareRake?.id || ''}
-              onChange={(e) =>
-                setCompareRake(RAKE_PRESETS.find((r) => r.id === e.target.value) || null)
-              }
-              style={{
-                padding: '6px 10px',
-                borderRadius: 6,
-                background: 'rgba(0,0,0,0.3)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: 'var(--sp-fg)',
-                fontSize: 12,
-              }}
-            >
-              <option value="">None</option>
-              {RAKE_PRESETS.filter((r) => r.id !== activeRake.id).map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.label}
-                </option>
+                  <span className={at.choiceTitle}>{rk.label}</span>
+                  <span className={at.choiceMeta}>{rk.desc}</span>
+                  <span className={at.choiceMeta}>{rk.pct}% / ${rk.cap} Cap</span>
+                </motion.button>
               ))}
-            </select>
-          </div>
+            </div>
 
-          {/* Position Selector */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 24, overflowX: 'auto' }}>
-            {POSITIONS.map((p) => (
-              <button
-                key={p}
-                onClick={() => setSelectedPosition(p)}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: 8,
-                  border: 'none',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: selectedPosition === p ? activeRake.color : 'rgba(255,255,255,0.04)',
-                  color: selectedPosition === p ? '#fff' : 'var(--sp-fg-muted)',
-                }}
+            {/* Compare toggle */}
+            <label className={at.field}>
+              <span className={at.label}>Compare With</span>
+              <select
+                aria-label="Rake Structure"
+                className={at.select}
+                value={compareRake?.id || ''}
+                onChange={(e) =>
+                  setCompareRake(RAKE_PRESETS.find((r) => r.id === e.target.value) || null)
+                }
               >
-                {p}
-              </button>
-            ))}
-          </div>
+                <option value="">None</option>
+                {RAKE_PRESETS.filter((r) => r.id !== activeRake.id).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {/* Position Selector */}
+            <div className={at.field}>
+              <span className={at.label}>Position</span>
+              <div className={at.segmented} role="group" aria-label="Position">
+                {POSITIONS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className="sd-button"
+                    aria-pressed={selectedPosition === p}
+                    onClick={() => setSelectedPosition(p)}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
 
           {/* Frequency Comparisons */}
-          <div
-            style={{
-              background: 'rgba(0,0,0,0.2)',
-              padding: 24,
-              borderRadius: 16,
-              border: '1px solid rgba(255,255,255,0.05)',
-              marginBottom: 24,
-            }}
-          >
-            <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
-              {selectedPosition} - {activeRake.label}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 20 }}>
-              Illustrative Values After The Authored Rake Curve
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="rs-freq-title">
+            <div>
+              <h2 id="rs-freq-title" className={at.sectionTitle}>
+                {selectedPosition} - {activeRake.label}
+              </h2>
+              <p className={at.small}>Illustrative Values After The Authored Rake Curve</p>
             </div>
 
             {STATS.map((stat) => {
@@ -357,137 +248,74 @@ export default function RakeSolutionsPage() {
               const baseVal = AUTHORED_REFERENCE_FREQS[selectedPosition][stat.key];
               const delta = val - baseVal;
               return (
-                <div key={stat.key} style={{ marginBottom: 16 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 6,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span>{stat.icon}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
-                        {stat.label}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>
-                        Authored Ref: {baseVal}%
-                      </span>
+                <div key={stat.key} className={at.field}>
+                  <div className={at.barHead} style={{ margin: 0 }}>
+                    <span>
+                      <span aria-hidden className={at.ice}>{stat.icon}</span> {stat.label}
+                    </span>
+                    <span>
+                      Authored Ref: {baseVal}%
                       {delta !== 0 && (
-                        <span
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: delta > 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
-                          }}
-                        >
-                          {delta > 0 ? '+' : ''}
-                          {delta}%
-                        </span>
+                        <strong className={at.white}>
+                          {' '}({delta > 0 ? '+' : ''}
+                          {delta}%)
+                        </strong>
                       )}
-                    </div>
+                    </span>
                   </div>
-                  <FreqBar value={val} color={activeRake.color} label="" />
+                  <FreqBar value={val} label={activeRake.label} />
                   {compareRake && compareFreqs && (
                     <FreqBar
                       value={compareFreqs[selectedPosition][stat.key]}
-                      color={compareRake.color}
-                      label="vs"
+                      compare
+                      label={`Vs ${compareRake.label}`}
                     />
                   )}
                 </div>
               );
             })}
-          </div>
+          </section>
 
           {/* Position Overview Grid */}
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: 'var(--sp-fg-dim)',
-              textTransform: 'uppercase',
-              letterSpacing: 1,
-              marginBottom: 12,
-            }}
-          >
-            All Positions - RFI Adjustment
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            {POSITIONS.map((pos) => {
-              const val = adjustedFreqs[pos].rfi;
-              const base = AUTHORED_REFERENCE_FREQS[pos].rfi;
-              const delta = val - base;
-              return (
-                <motion.div
-                  key={pos}
-                  whileHover={{ scale: 1.03 }}
-                  onClick={() => setSelectedPosition(pos)}
-                  style={{
-                    padding: 16,
-                    borderRadius: 12,
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    background:
-                      selectedPosition === pos ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.02)',
-                    border: `1px solid ${selectedPosition === pos ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.05)'}`,
-                  }}
-                >
-                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-fg)' }}>{pos}</div>
-                  <div
-                    style={{ fontSize: 22, fontWeight: 900, color: activeRake.color, marginTop: 4 }}
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="rs-overview-title">
+            <h2 id="rs-overview-title" className={at.sectionTitle}>All Positions - RFI Adjustment</h2>
+            <div className={`${at.metrics} ${at.metrics3}`}>
+              {POSITIONS.map((pos) => {
+                const val = adjustedFreqs[pos].rfi;
+                const base = AUTHORED_REFERENCE_FREQS[pos].rfi;
+                const delta = val - base;
+                return (
+                  <button
+                    key={pos}
+                    type="button"
+                    className={`sd-metric ${at.metric} ${at.metricButton}`}
+                    data-active={selectedPosition === pos ? 'true' : undefined}
+                    aria-pressed={selectedPosition === pos}
+                    onClick={() => setSelectedPosition(pos)}
                   >
-                    {val}%
-                  </div>
-                  {delta !== 0 && (
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: delta > 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
-                        marginTop: 2,
-                      }}
-                    >
-                      {delta > 0 ? '+' : ''}
-                      {delta}%
-                    </div>
-                  )}
-                </motion.div>
-              );
-            })}
-          </div>
+                    <span className={at.metricLabel}>{pos}</span>
+                    <strong className={at.metricValue} data-tone="ice">{val}%</strong>
+                    {delta !== 0 && (
+                      <span className={at.small}>
+                        {delta > 0 ? '+' : ''}
+                        {delta}%
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
           {/* Insight Box */}
-          <div
-            style={{
-              marginTop: 24,
-              padding: 20,
-              borderRadius: 16,
-              background: 'rgba(251,191,36,0.05)',
-              border: '1px solid rgba(251,191,36,0.15)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: '#86daff',
-                textTransform: 'uppercase',
-                marginBottom: 8,
-              }}
-            >
-              Model Formula
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
+          <section className={`sd-panel ${at.panel} ${at.tight}`} aria-labelledby="rs-formula-title">
+            <h2 id="rs-formula-title" className={at.eyebrow}>Model Formula</h2>
+            <p className={at.copy}>
               Pressure Equals (Rake Percentage ÷ 5) × The Smaller Of (Cap ÷ 3) Or 2. Authored
               Coefficients Then Move The Four Display Values. The Result Is A Sensitivity
               Illustration Only; It Is Not A Win-Rate Estimate, Range, Action, Or Recommendation.
-            </div>
-          </div>
-
+            </p>
+          </section>
         </div>
       </div>
       <HubPageSummary page="training-rake-solutions" />

@@ -19,12 +19,13 @@ import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { normalizeTrainingSessionConfig } from '../../../src/lib/training/sessionConfigContract.mjs';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/sessions-coaching.module.css';
 // TRAIN-WIRE-EMPTY-2a — adoption: shared empty-state primitive
 
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
@@ -37,7 +38,7 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'var(--sp-fg-dim)',
+        color: '#bdd0e2',
       }}
     >
       Loading Arena...
@@ -383,356 +384,169 @@ export default function AutopilotPage() {
         description="Stream Continuous GTO Poker Drills Automatically Targeted At Your Lowest-Accuracy Table Positions, Streets, And Scenario Categories On Smarter.Poker."
         canonical="/hub/training/autopilot"
       />
-      <div
-        style={{
-          minHeight: '100dvh',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
-              Weak Spot Autopilot
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Zero-Decision Training Mode</div>
-          </div>
-        </div>
+      <div style={{ minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', background: '#040d18', color: '#f2f7ff' }}>
+        <TrainingPageHead slug="training-autopilot" note="Zero-Decision Training Mode" />
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={s.page}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchAndAnalyze(); }} />
           {/* Loading */}
           {loading && (
-            <div style={{ padding: '20px 0' }}>
-              <SkeletonLoader variant="card" count={2} />
-            </div>
+            <section className={`sd-panel ${s.panel} ${s.state}`} role="status" aria-live="polite">
+              <p className={s.copy}>Analyzing Your Training History...</p>
+            </section>
           )}
 
           {/* Results Summary (after completing autopilot) */}
           {!loading && !isPlaying && results.length > 0 && (
-            <motion.div
+            <motion.section
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              style={{
-                padding: '24px 20px',
-                borderRadius: 16,
-                marginBottom: 24,
-                background:
-                  'linear-gradient(135deg, rgba(34,197,94,0.06) 0%, rgba(34,197,94,0.02) 100%)',
-                border: '1px solid rgba(34,197,94,0.15)',
-                textAlign: 'center',
-              }}
+              className={`sd-panel ${s.panel}`}
+              aria-labelledby="autopilot-complete-title"
             >
-              {/* TRAIN-AUTOPILOT-A11Y-1: SVG celebration */}
-              <div style={{ fontSize: 32, marginBottom: 8, display: 'inline-flex', justifyContent: 'center', color: '#86daff' }} aria-hidden>
-                <CelebrateIcon size={32} />
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-green)', marginBottom: 4 }}>
+              <h2 id="autopilot-complete-title" className={s.sectionTitle}>
+                <CelebrateIcon size={20} />
                 Autopilot Complete
-              </div>
+              </h2>
 
               {/* Coaching Grade Badge */}
               {(() => {
-                const totalQ = results.reduce((s, r) => s + (r.questionsAnswered || 0), 0);
-                const totalCorrect = results.reduce((s, r) => s + Math.round(((r.accuracy || 0) / 100) * (r.questionsAnswered || 0)), 0);
+                const totalQ = results.reduce((sum, r) => sum + (r.questionsAnswered || 0), 0);
+                const totalCorrect = results.reduce((sum, r) => sum + Math.round(((r.accuracy || 0) / 100) * (r.questionsAnswered || 0)), 0);
                 const avgAccuracy = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0;
                 const grade = avgAccuracy >= 90 ? 'A' : avgAccuracy >= 80 ? 'B' : avgAccuracy >= 70 ? 'C' : 'D';
-                const gradeColor = avgAccuracy >= 90 ? 'var(--sp-accent-green)' : avgAccuracy >= 80 ? 'var(--sp-accent-blue)' : avgAccuracy >= 70 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
+                const gradeTone = avgAccuracy >= 80 ? 'up' : avgAccuracy >= 70 ? 'ice' : 'down';
                 return (
-                  <>
-                    <div style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '8px 20px',
-                      borderRadius: 12,
-                      background: `${gradeColor}10`,
-                      border: `1px solid ${gradeColor}30`,
-                      marginBottom: 16,
-                    }}>
-                      <span style={{ fontSize: 28, fontWeight: 900, color: gradeColor }}>{grade}</span>
-                      <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>
-                          {avgAccuracy}% Overall
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-                          {totalCorrect}/{totalQ} Questions Correct
-                        </div>
-                      </div>
+                  <div className={s.metrics3}>
+                    <div className={`sd-metric ${s.metric}`}>
+                      <strong className={s.metricValue} data-tone={gradeTone}>{grade}</strong>
+                      <span className={s.metricLabel}>Grade</span>
                     </div>
-                  </>
+                    <div className={`sd-metric ${s.metric}`}>
+                      <strong className={s.metricValue} data-tone="ice">{avgAccuracy}%</strong>
+                      <span className={s.metricLabel}>Overall</span>
+                    </div>
+                    <div className={`sd-metric ${s.metric}`}>
+                      <strong className={s.metricValue}>{totalCorrect}/{totalQ}</strong>
+                      <span className={s.metricLabel}>Correct</span>
+                    </div>
+                  </div>
                 );
               })()}
 
               {/* Per-Spot Breakdown */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: `repeat(${results.length}, 1fr)`,
-                  gap: 8,
-                  marginBottom: 16,
-                }}
-              >
+              <ul className={s.list} aria-label="Per-Spot Breakdown">
                 {results.map((r, i) => (
-                  <div
-                    key={i}
-                    style={{ padding: '10px', borderRadius: 8, background: 'rgba(0,0,0,0.2)' }}
-                  >
-                    {/* TRAIN-AUTOPILOT-A11Y-1: SVG SpotIcon */}
-                    <div style={{ fontSize: 14, display: 'inline-flex', color: r.spot.color }} aria-hidden><SpotIcon kind={r.spot.iconKind} size={14} /></div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: r.accuracy >= 75 ? 'var(--sp-accent-green)' : '#86daff',
-                        marginTop: 4,
-                      }}
-                    >
-                      {r.accuracy}%
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{r.spot.name}</div>
-                  </div>
+                  <li key={i} className={s.row}>
+                    <span className={s.rowLabel} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <span className={s.ice} aria-hidden style={{ display: 'inline-flex' }}><SpotIcon kind={r.spot.iconKind} size={16} /></span>
+                      {r.spot.name}
+                    </span>
+                    <strong className={r.accuracy >= 75 ? s.up : s.ice}>{r.accuracy}%</strong>
+                  </li>
                 ))}
-              </div>
+              </ul>
 
               {/* Coaching Recommendation */}
               {(() => {
                 const weakest = [...results].sort((a, b) => a.accuracy - b.accuracy)[0];
                 if (!weakest) return null;
                 return (
-                  <div style={{
-                    padding: '10px 14px',
-                    borderRadius: 10,
-                    background: 'rgba(0,0,0,0.2)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    textAlign: 'left',
-                    marginBottom: 16,
-                  }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-                      Coach Recommendation
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg)', lineHeight: 1.5 }}>
-                      Focus Your Next Session On <strong style={{ color: weakest.spot.color }}>{weakest.spot.name}</strong> - It Was Your Weakest Area At {weakest.accuracy}%.
-                    </div>
-                  </div>
+                  <p className={s.note}>
+                    <strong className={s.ice}>Coach Recommendation:</strong>{' '}
+                    Focus Your Next Session On <strong className={s.white}>{weakest.spot.name}</strong> - It Was Your Weakest Area At {weakest.accuracy}%.
+                  </p>
                 );
               })()}
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className={s.actions}>
                 <motion.button
+                  type="button"
                   whileTap={{ scale: 0.97 }}
                   onClick={startAutopilot}
-                  style={{
-                    flex: 1,
-                    padding: '12px 24px',
-                    borderRadius: 10,
-                    border: '1px solid rgba(0,212,255,0.3)',
-                    background:
-                      'linear-gradient(180deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)',
-                    color: 'var(--sp-accent-cyan)',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
+                  className={`sd-button sd-primary ${s.button}`}
                 >
                   Run Again
                 </motion.button>
                 <motion.button
+                  type="button"
                   disabled
                   title="Feed Sharing Reopens After Verified Autopilot Settlement Is Certified"
                   aria-label="Autopilot feed sharing is unavailable"
-                  style={{
-                    flex: 1,
-                    padding: '12px 24px',
-                    borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    background: 'rgba(255,255,255,0.03)',
-                    color: 'var(--sp-fg-muted)',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: 'not-allowed',
-                    opacity: 0.6,
-                  }}
+                  className={`sd-button ${s.button}`}
                 >
                   Feed Sharing Unavailable
                 </motion.button>
               </div>
-            </motion.div>
+            </motion.section>
           )}
 
           {/* Weak Spots Detected */}
           {!loading && weakSpots.length > 0 && results.length === 0 && (
             <>
               {/* Hero CTA */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
+              <motion.section
+                initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                style={{
-                  padding: '32px 20px',
-                  borderRadius: 18,
-                  marginBottom: 24,
-                  background:
-                    'linear-gradient(135deg, rgba(168,85,247,0.08) 0%, rgba(139,92,246,0.04) 100%)',
-                  border: '1px solid rgba(168,85,247,0.15)',
-                  textAlign: 'center',
-                }}
+                className={`sd-panel ${s.panel}`}
+                aria-labelledby="autopilot-detected-title"
               >
-                <motion.div
-                  animate={{ y: [0, -4, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  style={{ fontSize: 40, marginBottom: 12, display: 'inline-flex', justifyContent: 'center', color: '#86daff' }}
-                  aria-hidden
-                >
-                  {/* TRAIN-AUTOPILOT-A11Y-1: SVG brain replaces ◇ */}
-                  <BrainIcon size={40} />
-                </motion.div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--sp-fg)', marginBottom: 6 }}>
-                  3 Weak Spots Detected
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 14, lineHeight: 1.5 }}>
-                  We Analyzed Your Training History And Found Areas
-                  <br />
-                  That Need The Most Attention. One Click To Start.
-                </div>
-                <div
-                  data-autopilot-preset-summary="true"
-                  style={{
-                    marginBottom: 16,
-                    padding: '10px 12px',
-                    border: '1px solid #688299',
-                    borderTopColor: '#aec0d0',
-                    background: 'linear-gradient(180deg, rgba(9, 23, 39, 0.96) 0%, rgba(3, 11, 20, 0.98) 100%)',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: '#dbe8f2',
-                  }}
-                >
-                  Preset Queue: {weakSpots.map((s) => s.name).join(' → ')} · Standard Timer · 100 BB
-                </div>
+                <h2 id="autopilot-detected-title" className={s.sectionTitle}>
+                  <BrainIcon size={22} />
+                  {weakSpots.length} Weak Spots Detected
+                </h2>
+                <p className={s.copy}>
+                  We Analyzed Your Training History And Found The Areas That Need The Most Attention. One Click To Start.
+                </p>
+                <p data-autopilot-preset-summary="true" className={s.note}>
+                  <strong className={s.ice}>Preset Queue:</strong> {weakSpots.map((spot) => spot.name).join(' → ')} · Standard Timer · 100 BB
+                </p>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
+                  type="button"
                   whileTap={{ scale: 0.97 }}
                   onClick={startAutopilot}
-                  style={{
-                    padding: '14px 40px',
-                    borderRadius: 12,
-                    border: 'none',
-                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #7c3aed)',
-                    color: '#fff',
-                    fontSize: 15,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 20px rgba(168,85,247,0.3)',
-                    letterSpacing: 0.5,
-                  }}
+                  className={`sd-button sd-primary ${s.button} ${s.primary} ${s.full}`}
                 >
                   Start Autopilot
                 </motion.button>
-              </motion.div>
+              </motion.section>
 
               {/* Spot Breakdown */}
-              <div style={{ marginBottom: 16 }}>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    marginBottom: 10,
-                  }}
-                >
-                  YOUR WEAK SPOTS
-                </div>
-                {weakSpots.map((spot, i) => (
-                  <motion.div
-                    key={spot.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    style={{
-                      padding: '14px 16px',
-                      borderRadius: 12,
-                      marginBottom: 8,
-                      background: 'rgba(0,0,0,0.2)',
-                      border: `1px solid ${spot.color}18`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 10,
-                          background: `${spot.color}12`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 18,
-                        }}
-                      >
-                        <SpotIcon kind={spot.iconKind} size={20} />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: spot.color }}>
-                          {i + 1}. {spot.name}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 1 }}>
-                          {spot.reason}
-                        </div>
-                      </div>
-                    </div>
-                    {spot.accuracy !== null && (
-                      <div
-                        style={{
-                          fontSize: 18,
-                          fontWeight: 800,
-                          color:
-                            spot.accuracy < 60
-                              ? 'var(--sp-accent-red)'
-                              : spot.accuracy < 75
-                                ? 'var(--sp-accent-amber)'
-                                : 'var(--sp-accent-green)',
-                        }}
-                      >
-                        {spot.accuracy}%
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
+              <section className={`sd-panel ${s.panel}`} aria-labelledby="autopilot-spots-title">
+                <h2 id="autopilot-spots-title" className={s.sectionTitle}>Your Weak Spots</h2>
+                <ol className={s.list}>
+                  {weakSpots.map((spot, i) => (
+                    <motion.li
+                      key={spot.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className={s.row}
+                      style={{ flexWrap: 'nowrap' }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                        <span className={`sd-metric ${s.ice}`} aria-hidden style={{ display: 'inline-grid', placeItems: 'center', width: 40, height: 40, padding: 0, flex: 'none' }}>
+                          <SpotIcon kind={spot.iconKind} size={18} />
+                        </span>
+                        <span style={{ minWidth: 0 }}>
+                          <span className={s.rowLabel} style={{ display: 'block', fontWeight: 700 }}>
+                            {i + 1}. {spot.name}
+                          </span>
+                          <span className={s.metricLabel} style={{ display: 'block', marginTop: 2, textTransform: 'capitalize' }}>
+                            {spot.reason}
+                          </span>
+                        </span>
+                      </span>
+                      {spot.accuracy !== null && (
+                        <strong className={spot.accuracy < 60 ? s.down : spot.accuracy < 75 ? s.ice : s.up} style={{ fontSize: '1.2rem' }}>
+                          {spot.accuracy}%
+                        </strong>
+                      )}
+                    </motion.li>
+                  ))}
+                </ol>
+              </section>
             </>
           )}
 
@@ -741,7 +555,7 @@ export default function AutopilotPage() {
             <TrainerEmptyState
               variant="no-data"
               title="Need More Data"
-              message="Complete a few training sessions first so we can identify your weak spots."
+              message="Complete A Few Training Sessions First So We Can Identify Your Weak Spots."
               cta={{ label: 'Start Training', onClick: () => router.push('/hub/training') }}
             />
           )}

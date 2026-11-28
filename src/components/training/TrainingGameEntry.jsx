@@ -5,7 +5,22 @@ import { ArrowLeft, Play } from 'lucide-react';
 import SEOHead from '../seo/SEOHead';
 import SmarterConversionCta from '../seo/SmarterConversionCta';
 import TrainingGameArt from './TrainingGameArt';
+import TrainingImageHeader from './TrainingImageHeader';
+import { getGameById, CATEGORIES } from '../../data/TRAINING_LIBRARY';
+import { GAME_CONFIGS } from '../../config/gameConfigs';
+import s from '../../styles/training/training-play.module.css';
 
+const toTitle = (value) => String(value || '')
+  .split(/(\s+|-)/)
+  .map((part) => (/^[a-z]/.test(part) ? part[0].toUpperCase() + part.slice(1) : part))
+  .join('');
+
+/**
+ * A Training game entry page under #SMARTERDESIGN: Back row above the image
+ * header, then one steel-rimmed briefing panel (what the game trains, its
+ * table format, stack depth and difficulty from the game catalog) with the
+ * cobalt Play action, and a short how-it-works panel.
+ */
 export default function TrainingGameEntry({ title, description, gameId, gameHref, allowAutoRedirect = false }) {
   const router = useRouter();
   const [navigationFailed, setNavigationFailed] = useState(false);
@@ -18,37 +33,99 @@ export default function TrainingGameEntry({ title, description, gameId, gameHref
     return () => { active = false; };
   }, [allowAutoRedirect, gameHref, router]);
 
+  // Click anywhere on the briefing (outside its own controls) opens the game.
   const handleCardClick = (event) => {
     if (event.target?.closest?.('a, button, input, select, textarea, [role="button"]')) return;
     router.push(gameHref).catch(() => setNavigationFailed(true));
   };
 
+  // Each entry page has its own header art keyed by its route.
+  const slug = 'training-' + String(router.pathname || '').split('/').pop();
+  const hrefGameId = String(gameHref || '').match(/\/arena\/([^?/]+)/)?.[1];
+  const game = getGameById(gameId) || getGameById(hrefGameId) || null;
+  const config = GAME_CONFIGS[gameId] || GAME_CONFIGS[hrefGameId] || null;
+  const category = game ? Object.values(CATEGORIES).find((c) => c.id === String(game.category).toLowerCase()) : null;
+  const difficulty = Math.max(0, Math.min(5, Number(game?.difficulty) || 0));
+  const facts = [
+    config?.format && { label: 'Table Format', value: config.format },
+    config?.stackDepth && { label: 'Stack Depth', value: config.stackDepth.replace(/BB/g, ' BB') },
+  ].filter(Boolean);
+
   return (
     <>
       <SEOHead title={title} description={description} noindex />
-      <main className="game-entry">
-        <Link href="/hub/training" className="back sd-button">
-          <ArrowLeft size={16} aria-hidden /> Training Games
-        </Link>
-        <section aria-labelledby="training-game-title" className="entry-card" onClick={handleCardClick}>
-          <Link
-            href={gameHref}
-            className="art-link"
-            aria-label={`Play ${title}`}
-            data-entry-art-launch={gameId}
-          >
-            <TrainingGameArt gameId={gameId} className="art" sizes="(max-width: 640px) 100vw, 720px" />
-          </Link>
-          <div className="intro">
-            <h1 id="training-game-title">{title}</h1>
-            <p>{description}</p>
-            {navigationFailed && <p role="status">Could Not Open The Game. Select Play To Try Again.</p>}
-            <Link href={gameHref} className="sp-mtt-primary-cta sd-button sd-primary play">
-              <Play size={18} aria-hidden /> Play
-            </Link>
+      <div className={s.shell}>
+        <main className={s.page}>
+          <div className="sp-training-head">
+            <div className="sd-back-row">
+              <Link href="/hub/training" className="sd-button">
+                <ArrowLeft size={16} aria-hidden /> Back To Training Games
+              </Link>
+            </div>
+            <TrainingImageHeader slug={slug} title={title} help={description} titleId="training-game-title" />
           </div>
-        </section>
-        <div style={{ marginTop: 18 }}>
+
+          <section className="entry-card" onClick={handleCardClick} aria-label="Game Briefing">
+          <section className={`sd-panel ${s.panel}`} aria-labelledby="training-game-title">
+            <Link
+              href={gameHref}
+              className={s.entryArt}
+              aria-label={`Play ${title}`}
+              data-entry-art-launch={gameId}
+            >
+              <TrainingGameArt gameId={gameId} sizes="(max-width: 640px) 100vw, 720px" />
+            </Link>
+            {(category || game) && (
+              <p className={s.tag}>
+                <span className={s.dot} aria-hidden />
+                {[category?.name, game?.name].filter(Boolean).join(' · ')}
+              </p>
+            )}
+            <p className={s.entryLead}>{description}</p>
+            {game?.focus && (
+              <p className={s.copy}>
+                Focus: <span className={s.ice}>{toTitle(game.focus)}</span>
+              </p>
+            )}
+
+            {(facts.length > 0 || difficulty > 0) && (
+              <div className={s.entryFacts} aria-label="Game Details">
+                {facts.map((fact) => (
+                  <div key={fact.label} className={`sd-metric ${s.metric}`}>
+                    <span className={s.metricLabel}>{fact.label}</span>
+                    <strong className={s.metricValue}>{fact.value}</strong>
+                  </div>
+                ))}
+                {difficulty > 0 && (
+                  <div className={`sd-metric ${s.metric}`}>
+                    <span className={s.metricLabel}>Difficulty</span>
+                    <strong className={s.metricValue} data-tone="ice">{difficulty} / 5</strong>
+                    <span className={s.difficulty} aria-hidden>
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <span key={n} className={`${s.pip} ${n <= difficulty ? s.pipOn : ''}`} />
+                      ))}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {navigationFailed && <p role="status" className={s.error}>Could Not Open The Game. Select Play To Try Again.</p>}
+            <Link href={gameHref} className={`sd-button sd-primary ${s.primaryAction}`}>
+              <Play size={20} aria-hidden /> Play
+            </Link>
+          </section>
+          </section>
+
+          <section className={`sd-panel ${s.panel}`} aria-labelledby="training-game-how">
+            <h2 id="training-game-how" className={s.sectionTitle}>How It Works</h2>
+            <ol className={s.steps}>
+              <li><span><strong>Open The Table.</strong> Play Starts Level 1 On The Club Arena Training Table.</span></li>
+              <li><span><strong>Make Each Decision.</strong> Every Hand Is Graded With An Explanation Of The Best Line.</span></li>
+              <li><span><strong>Climb The Levels.</strong> Pass A Level To Advance To The Next One.</span></li>
+            </ol>
+          </section>
+
           <SmarterConversionCta
             compact
             eyebrow="Free GTO Training Account"
@@ -59,43 +136,8 @@ export default function TrainingGameEntry({ title, description, gameId, gameHref
             secondaryLabel="Sign In"
             secondaryHref={`/auth/login?redirect=${encodeURIComponent(gameHref || '/hub/training')}`}
           />
-        </div>
-      </main>
-      <style jsx>{`
-        .game-entry { max-width: 780px; padding: 18px 18px 90px; margin: 0 auto; color: #eff8fc; }
-        .game-entry :global(.back), .game-entry :global(.play) {
-          display: inline-flex; align-items: center; gap: 8px; min-height: 44px; text-decoration: none;
-        }
-        .game-entry :global(.back) { color: #f3f7fb; margin-bottom: 12px; padding: 0 14px; }
-        .entry-card {
-          overflow: hidden;
-          border: 2px solid transparent;
-          border-radius: 16px;
-          background:
-            linear-gradient(165deg, #0c2031 0%, #06131f 48%, #020a12 100%) padding-box,
-            linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box;
-          box-shadow: 0 14px 36px rgba(0, 0, 0, 0.58), inset 0 1px 1px rgba(255, 255, 255, 0.25);
-          cursor: pointer;
-          transition: transform 160ms ease, box-shadow 160ms ease;
-        }
-        .entry-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 18px 44px rgba(0, 0, 0, 0.68), 0 0 22px rgba(0, 154, 227, 0.28);
-        }
-        .entry-card :global(.art-link) {
-          display: block;
-          width: 100%;
-          overflow: hidden;
-          border-bottom: 1px solid #688299;
-        }
-        .entry-card :global(.art) { display: block; width: 100%; height: clamp(160px, 34vw, 280px); object-fit: cover; transition: transform 220ms ease; }
-        .entry-card:hover :global(.art) { transform: scale(1.025); }
-        .intro { padding: clamp(18px, 4vw, 30px); }
-        h1 { font-size: clamp(28px, 6vw, 44px); margin: 0; color: #f3f7fb; }
-        p { margin: 8px 0 20px; color: #c4d2df; }
-        .game-entry :global(.play) { padding: 0 22px; min-height: 48px; font-weight: 800; }
-        .game-entry :global(a:focus-visible) { outline: 3px solid #8de6ff; outline-offset: 3px; }
-      `}</style>
+        </main>
+      </div>
     </>
   );
 }

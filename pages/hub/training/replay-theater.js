@@ -17,7 +17,6 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
@@ -32,6 +31,8 @@ import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTr
 
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import at from '../../../src/styles/training/analysis-tools.module.css';
 // TRAIN-CSS-MOTION-ADOPT-23 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -114,68 +115,32 @@ function MistakeCard({ mistake, onPractice }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <motion.div
+    <motion.article
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{
-        borderRadius: 12,
-        overflow: 'hidden',
-        marginBottom: 8,
-        background: 'rgba(0,0,0,0.2)',
-        border: '1px solid rgba(239,68,68,0.08)',
-      }}
+      className={`sd-panel ${at.rowCard}`}
     >
-      <motion.button
+      <button
+        type="button"
+        className={at.rowHead}
+        aria-expanded={expanded}
         onClick={() => setExpanded(!expanded)}
-        whileTap={{ scale: 0.99 }}
-        style={{
-          width: '100%',
-          padding: '12px 14px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-        }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: 'rgba(239,68,68,0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 14,
-            }}
-          >
-            ✕
-          </div>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
-              {mistake.position} · {mistake.street}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              {mistake.gameName} · {formatDate(mistake.timestamp)}
-            </div>
-          </div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
-            -{mistake.evLoss} BB
-          </div>
-          <motion.span
-            animate={{ rotate: expanded ? 180 : 0 }}
-            style={{ color: 'var(--sp-fg-faint)', fontSize: 12 }}
-          >
-            ▼
-          </motion.span>
-        </div>
-      </motion.button>
+        <span className={at.rowIcon} aria-hidden>✕</span>
+        <span style={{ minWidth: 0 }}>
+          <strong className={at.white} style={{ display: 'block' }}>
+            {mistake.position} · {mistake.street}
+          </strong>
+          <span className={at.small}>
+            {mistake.gameName} · {formatDate(mistake.timestamp)}
+          </span>
+        </span>
+        <strong className={at.down}>-{mistake.evLoss} BB</strong>
+        <motion.span animate={{ rotate: expanded ? 180 : 0 }} className={at.small} aria-hidden>
+          ▼
+        </motion.span>
+      </button>
 
       <AnimatePresence>
         {expanded && (
@@ -186,87 +151,29 @@ function MistakeCard({ mistake, onPractice }) {
             transition={{ duration: MOTION.standard }}
             style={{ overflow: 'hidden' }}
           >
-            <div style={{ padding: '0 14px 14px' }}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 8,
-                  marginBottom: 12,
-                }}
-              >
-                <div
-                  style={{
-                    padding: '10px',
-                    borderRadius: 8,
-                    background: 'rgba(239,68,68,0.06)',
-                    border: '1px solid rgba(239,68,68,0.1)',
-                    textAlign: 'center',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-dim)',
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.5,
-                      marginBottom: 4,
-                    }}
-                  >
-                    YOU CHOSE
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
-                    {mistake.yourAction}
-                  </div>
+            <div className={at.rowBody}>
+              <div className={`${at.metrics} ${at.metrics2}`}>
+                <div className={`sd-metric ${at.metric}`}>
+                  <span className={at.metricLabel}>You Chose</span>
+                  <strong className={at.metricValue} data-tone="down" style={{ fontSize: '1.1rem' }}>{mistake.yourAction}</strong>
                 </div>
-                <div
-                  style={{
-                    padding: '10px',
-                    borderRadius: 8,
-                    background: 'rgba(34,197,94,0.06)',
-                    border: '1px solid rgba(34,197,94,0.1)',
-                    textAlign: 'center',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-dim)',
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.5,
-                      marginBottom: 4,
-                    }}
-                  >
-                    CORRECT
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--sp-accent-green)' }}>
-                    {mistake.correctAction}
-                  </div>
+                <div className={`sd-metric ${at.metric}`}>
+                  <span className={at.metricLabel}>Correct</span>
+                  <strong className={at.metricValue} data-tone="up" style={{ fontSize: '1.1rem' }}>{mistake.correctAction}</strong>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
+              <div className={`${at.metrics} ${at.metrics2}`}>
+                <button
+                  type="button"
+                  className="sd-button sd-primary"
                   data-drill-similar-spot-cta="true"
                   onClick={() => onPractice(mistake)}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: 8,
-                    border: '1px solid rgba(0,212,255,0.2)',
-                    background: 'rgba(0,212,255,0.06)',
-                    color: 'var(--sp-accent-cyan)',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
                 >
                   Practice This Spot
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
+                </button>
+                <button
+                  type="button"
+                  className="sd-button"
                   onClick={() => {
                     const q = new URLSearchParams({
                       position: mistake.position || '',
@@ -276,26 +183,15 @@ function MistakeCard({ mistake, onPractice }) {
                     });
                     window.location.href = `/hub/training/jarvis?context=mistake&${q.toString()}`;
                   }}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: 8,
-                    border: '1px solid rgba(168,85,247,0.2)',
-                    background: 'rgba(168,85,247,0.06)',
-                    color: '#86daff',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
                 >
                   Get GTO Coaching
-                </motion.button>
+                </button>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </motion.article>
   );
 }
 
@@ -377,165 +273,73 @@ export default function ReplayTheaterPage() {
         <title>Replay Theater | Smarter.Poker GTO Training</title>
               <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Replay Theater</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              Review And Learn From Your Mistakes
-            </div>
-          </div>
-        </div>
+      <div className={at.shell}>
+        <TrainingPageHead slug="training-replay-theater" note="Review And Learn From Your Mistakes" />
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={at.page}>
 
           {/* Stats */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 8,
-              marginBottom: 16,
-            }}
-          >
-            <div
-              style={{
-                padding: '14px',
-                borderRadius: 12,
-                background: 'rgba(239,68,68,0.04)',
-                border: '1px solid rgba(239,68,68,0.1)',
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
+          <div className={`${at.metrics} ${at.metrics2}`}>
+            <div className={`sd-metric ${at.metric}`}>
+              <strong className={at.metricValue} data-tone={filteredMistakes.length > 0 ? 'down' : undefined}>
                 {filteredMistakes.length}
-              </div>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                }}
-              >
-                MISTAKES
-              </div>
+              </strong>
+              <span className={at.metricLabel}>Mistakes</span>
             </div>
-            <div
-              style={{
-                padding: '14px',
-                borderRadius: 12,
-                background: 'rgba(239,68,68,0.04)',
-                border: '1px solid rgba(239,68,68,0.1)',
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
+            <div className={`sd-metric ${at.metric}`}>
+              <strong className={at.metricValue} data-tone={Number(totalEVLoss) > 0 ? 'down' : undefined}>
                 {(Number.isFinite(Number(totalEVLoss)) ? Number(totalEVLoss) : 0).toFixed(1)}
-              </div>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                }}
-              >
-                TOTAL EV LOSS (BB)
-              </div>
+              </strong>
+              <span className={at.metricLabel}>Total EV Loss (BB)</span>
             </div>
           </div>
 
-          {/* Position Filter */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 8, overflowX: 'auto' }}>
-            {['all', ...POSITION_LABELS].map((p) => (
-              <motion.button
-                key={p}
-                whileTap={{ scale: 0.95 }}
-                aria-label={`Filter by position ${p === 'all' ? 'All' : p}`}
-                aria-pressed={filter === p}
-                onClick={() => setFilter(p)}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: 6,
-                  flexShrink: 0,
-                  border: `1px solid ${filter === p ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
-                  background: filter === p ? 'rgba(0,212,255,0.06)' : 'transparent',
-                  color: filter === p ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {p === 'all' ? 'All' : p}
-              </motion.button>
-            ))}
-          </div>
+          <section className={`sd-panel ${at.panel}`} aria-label="Mistake Filters">
+            {/* Position Filter */}
+            <div className={at.field}>
+              <span className={at.label}>Position</span>
+              <div className={at.segmented} role="group" aria-label="Position Filter">
+                {['all', ...POSITION_LABELS].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className="sd-button"
+                    aria-label={`Filter by position ${p === 'all' ? 'All' : p}`}
+                    aria-pressed={filter === p}
+                    onClick={() => setFilter(p)}
+                  >
+                    {p === 'all' ? 'All' : p}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          {/* Street Filter */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-            {['all', ...STREET_LABELS].map((s) => (
-              <motion.button
-                key={s}
-                whileTap={{ scale: 0.95 }}
-                aria-label={`Filter by street ${s === 'all' ? 'All' : s}`}
-                aria-pressed={streetFilter === s}
-                onClick={() => setStreetFilter(s)}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: 6,
-                  flex: 1,
-                  border: `1px solid ${streetFilter === s ? 'rgba(168,85,247,0.2)' : 'transparent'}`,
-                  background: streetFilter === s ? 'rgba(168,85,247,0.06)' : 'transparent',
-                  color: streetFilter === s ? '#86daff' : 'var(--sp-fg-dim)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {s === 'all' ? 'All' : s}
-              </motion.button>
-            ))}
-          </div>
+            {/* Street Filter */}
+            <div className={at.field}>
+              <span className={at.label}>Street</span>
+              <div className={at.segmented} role="group" aria-label="Street Filter">
+                {['all', ...STREET_LABELS].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className="sd-button"
+                    aria-label={`Filter by street ${s === 'all' ? 'All' : s}`}
+                    aria-pressed={streetFilter === s}
+                    onClick={() => setStreetFilter(s)}
+                  >
+                    {s === 'all' ? 'All' : s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
 
           {/* Loading */}
           {loading && (
-            <div style={{ padding: '20px 0' }}>
-              <SkeletonLoader variant="card" count={3} />
+            <div role="status" aria-label="Loading Mistakes" className={at.list}>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className={`sd-panel ${at.skeleton}`} aria-hidden />
+              ))}
             </div>
           )}
 
@@ -551,23 +355,15 @@ export default function ReplayTheaterPage() {
             const worstLeak = Object.entries(leakMap || {}).sort((a, b) => b[1].count - a[1].count)[0];
             if (!worstLeak) return null;
             return (
-              <div style={{
-                padding: '12px 14px',
-                borderRadius: 12,
-                background: 'rgba(239,68,68,0.04)',
-                border: '1px solid rgba(239,68,68,0.1)',
-                marginBottom: 16,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
+              <section className={`sd-panel ${at.panelHead}`} aria-labelledby="rt-leak-title">
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-dim)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Biggest Leak</div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-red)' }}>{worstLeak[0]}</div>
-                  <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginTop: 2 }}>{worstLeak[1].count} Mistakes · {worstLeak[1].evLoss.toFixed(1)} BB Lost</div>
+                  <h2 id="rt-leak-title" className={at.label}>Biggest Leak</h2>
+                  <strong className={at.subTitle} style={{ display: 'block' }}>{worstLeak[0]}</strong>
+                  <span className={at.small}>{worstLeak[1].count} Mistakes · <span className={at.down}>{worstLeak[1].evLoss.toFixed(1)} BB Lost</span></span>
                 </div>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
+                <button
+                  type="button"
+                  className="sd-button sd-primary"
                   onClick={() => {
                     const [pos, street] = worstLeak[0].split(' · ');
                     const sourceMistake = filteredMistakes.find(
@@ -580,28 +376,21 @@ export default function ReplayTheaterPage() {
                       street: street.toLowerCase(),
                     }, 'replay-theater'));
                   }}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: 8,
-                    background: 'rgba(0,212,255,0.06)',
-                    border: '1px solid rgba(0,212,255,0.2)',
-                    color: 'var(--sp-accent-cyan)',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
                 >
                   Drill This
-                </motion.button>
-              </div>
+                </button>
+              </section>
             );
           })()}
 
           {/* Mistakes */}
-          {!loading &&
-            filteredMistakes.map((m) => (
-              <MistakeCard key={m.id} mistake={m} onPractice={handlePractice} />
-            ))}
+          {!loading && filteredMistakes.length > 0 && (
+            <div className={at.list}>
+              {filteredMistakes.map((m) => (
+                <MistakeCard key={m.id} mistake={m} onPractice={handlePractice} />
+              ))}
+            </div>
+          )}
 
           {!loading && filteredMistakes.length === 0 && (
             <TrainerEmptyState
@@ -613,9 +402,9 @@ export default function ReplayTheaterPage() {
               compact
             />
           )}
+          {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
         </div>
       </div>
-      {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
       <ConnectionToast />
     </>
   );

@@ -16,9 +16,9 @@
 // TRAIN-CSS-TOKENS-BATCH6-14 — hex sweep batch 6: extended palette literals routed
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -26,6 +26,8 @@ import { authedFetch } from '../../../src/lib/authUtils';
 import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import at from '../../../src/styles/training/analysis-tools.module.css';
 // TRAIN-CSS-MOTION-ADOPT-22 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -96,32 +98,34 @@ function getCombos(hand) {
 const DIFF_COLORS = {
   match: 'var(--sp-accent-green)',
   extra: 'var(--sp-accent-red)',
-  omitted: '#38bdf8',
-  partial: '#0284c7',
+  omitted: 'var(--sp-accent-amber)',
+  partial: 'var(--sp-accent-orange)',
   neutral: 'var(--sp-bg-elev2)',
 };
 
+// Grade letters: green and red only at the real ends of the scale; ice and
+// silver between (no amber or orange ink under #SMARTERDESIGN).
 const GRADE_COLORS = {
-  'A+': 'var(--sp-accent-green)',
-  A: 'var(--sp-accent-green)',
-  'A-': 'var(--sp-accent-green)',
-  'B+': 'var(--sp-accent-blue)',
-  B: 'var(--sp-accent-blue)',
-  'B-': 'var(--sp-accent-blue)',
-  'C+': '#38bdf8',
-  C: '#38bdf8',
-  'C-': '#38bdf8',
-  'D+': '#cbd5e1',
-  D: '#cbd5e1',
-  'D-': '#cbd5e1',
-  F: 'var(--sp-accent-red)',
+  'A+': '#5ee08a',
+  A: '#5ee08a',
+  'A-': '#5ee08a',
+  'B+': '#86daff',
+  B: '#86daff',
+  'B-': '#86daff',
+  'C+': '#bdd0e2',
+  C: '#bdd0e2',
+  'C-': '#bdd0e2',
+  'D+': '#ff7a86',
+  D: '#ff7a86',
+  'D-': '#ff7a86',
+  F: '#ff7a86',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RANGE BUILDER GRID CELL
 // ═══════════════════════════════════════════════════════════════════════════
 
-function BuilderCell({ hand, isSelected, isDiffMode, diffResult, onToggle, size }) {
+function BuilderCell({ hand, isSelected, isDiffMode, diffResult, onToggle }) {
   const [hovered, setHovered] = useState(false);
 
   const bgColor = isDiffMode
@@ -134,6 +138,7 @@ function BuilderCell({ hand, isSelected, isDiffMode, diffResult, onToggle, size 
 
   const isPair = hand.length === 2;
   const isSuited = hand.endsWith('s');
+  const lit = isSelected || (isDiffMode && diffResult !== 'neutral');
 
   return (
     <div
@@ -144,72 +149,25 @@ function BuilderCell({ hand, isSelected, isDiffMode, diffResult, onToggle, size 
       onKeyDown={(event) => { if (!isDiffMode && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onToggle(hand); } }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{
-        width: size,
-        height: size,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: typeof size === 'number' ? (size > 28 ? 10 : 8) : 'clamp(7px, 2vw, 10px)',
-        fontWeight: 700,
-        fontFamily: "'Inter', sans-serif",
-        cursor: isDiffMode ? 'default' : 'pointer',
-        borderRadius: 2,
-        border:
-          hovered && !isDiffMode
-            ? '2px solid #00d4ff'
-            : isSelected && !isDiffMode
-              ? '1px solid rgba(34,197,94,0.6)'
-              : '1px solid rgba(255,255,255,0.08)',
-        backgroundColor: bgColor,
-        opacity,
-        color: isSelected || (isDiffMode && diffResult !== 'neutral') ? '#fff' : '#555',
-        position: 'relative',
-        transition: 'all 0.1s ease',
-        userSelect: 'none',
-      }}
+      className={at.gridCell}
+      data-lit={lit ? 'true' : undefined}
+      data-hover={hovered && !isDiffMode ? 'true' : undefined}
+      data-diff={isDiffMode ? 'true' : undefined}
+      style={{ backgroundColor: bgColor, opacity }}
     >
       {hand}
       {/* Hand type indicator */}
-      {!isDiffMode && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 2,
-            background: isPair ? '#38bdf8' : isSuited ? 'var(--sp-accent-blue)' : 'transparent',
-            borderRadius: '0 0 2px 2px',
-            opacity: 0.5,
-          }}
-        />
+      {!isDiffMode && (isPair || isSuited) && (
+        <span className={at.gridMark} style={{ background: isPair ? '#86daff' : 'var(--sp-accent-blue)' }} aria-hidden />
       )}
       {/* Diff tooltip */}
       {isDiffMode && hovered && diffResult !== 'neutral' && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '110%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: '#0f172a',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: 6,
-            padding: '4px 8px',
-            whiteSpace: 'nowrap',
-            fontSize: 12,
-            color: DIFF_COLORS[diffResult],
-            fontWeight: 700,
-            zIndex: 100,
-            pointerEvents: 'none',
-          }}
-        >
+        <span className={at.gridTip}>
           {diffResult === 'match' && 'Matches The Authored Reference'}
           {diffResult === 'extra' && 'Selected Outside The Authored Reference'}
           {diffResult === 'omitted' && 'Included In The Authored Reference'}
           {diffResult === 'partial' && 'Mixed In The Authored Reference'}
-        </div>
+        </span>
       )}
     </div>
   );
@@ -381,524 +339,217 @@ export default function RangeBuilder() {
         canonical="/hub/training/range-builder"
       />
 
-      <div
-        className="sp-training-tool sp-training-tool--range-builder"
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* ─── Header ─────────────────────────────────────────────── */}
-        <div
-          className="sp-training-tool-header sd-masthead"
-          style={{
-            padding: '20px 24px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <button
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                padding: '6px 12px',
-                color: 'var(--sp-fg-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              ← Training
-            </button>
-            <h1
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                margin: 0,
-                color: '#ffffff',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Range Builder
-            </h1>
-            <span
-              style={{
-                fontSize: 12,
-                color: '#38bdf8',
-                background: 'rgba(56, 189, 248, 0.12)',
-                padding: '3px 8px',
-                borderRadius: 12,
-                fontWeight: 700,
-                border: '1px solid rgba(148, 184, 224, 0.28)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              PHASE 18
-            </span>
-          </div>
+      <div className={`sp-training-tool sp-training-tool--range-builder ${at.shell}`}>
+        <TrainingPageHead slug="training-range-builder" note="Authored Static Reference • 6-Max Cash RFI • 100BB • Practice Only • Not Solver Verified" />
 
+        <div className={at.page}>
           {/* Position Selector */}
-          <div data-pills-row
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 6,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <span
-              style={{
-                fontSize: 12,
-                color: 'var(--sp-fg-dim)',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-                marginRight: 4,
-              }}
-            >
-              Build RFI Range For:
-            </span>
-            {POSITIONS.map((pos) => (
-              <button
-                key={pos}
-                aria-label={`Select position ${pos}`}
-                aria-pressed={position === pos}
-                onClick={() => {
-                  setPosition(pos);
-                  setSelectedHands(new Set());
-                }}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  minHeight: 44,
-                  background:
-                    position === pos
-                      ? 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)'
-                      : 'rgba(8, 17, 33, 0.85)',
-                  border: position === pos
-                    ? '1px solid rgba(148, 184, 224, 0.45)'
-                    : '1px solid rgba(148, 184, 224, 0.22)',
-                  color: position === pos ? '#ffffff' : '#cbd5e1',
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                }}
-              >
-                {pos}
-              </button>
-            ))}
-          </div>
-
-          <div
-            role="note"
-            style={{
-              maxWidth: 680,
-              margin: '12px auto 0',
-              padding: '8px 12px',
-              border: '1px solid rgba(148, 184, 224, 0.28)',
-              borderRadius: 8,
-              background: '#081121',
-              color: '#cbd5e1',
-              textAlign: 'center',
-              fontSize: 12,
-              fontWeight: 700,
-              lineHeight: 1.5,
-              letterSpacing: 0.7,
-            }}
-          >
-            AUTHORED STATIC REFERENCE • 6-MAX CASH RFI • 100BB • PRACTICE ONLY • NOT SOLVER VERIFIED
-          </div>
-        </div>
-
-        {/* ─── Main Content ───────────────────────────────────────── */}
-        <div
-          className="sp-range-builder-layout"
-          style={{
-            padding: '20px 24px',
-            display: 'flex',
-            gap: 20,
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            alignItems: 'flex-start',
-          }}
-        >
-          {/* Grid */}
-          <div className="sp-range-builder-matrix">
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textAlign: 'center',
-                marginBottom: 8,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              {isDiffMode ? 'RESULTS - AUTHORED REFERENCE DIFF' : 'SELECT HANDS TO INCLUDE IN YOUR RANGE'}
-            </div>
-            <div data-allow-small="true"
-              style={{
-                display: 'inline-grid',
-                gridTemplateColumns: `repeat(13, clamp(21px, 6.5vw, 34px))`,
-                gap: 1,
-                background: 'rgba(255,255,255,0.03)',
-                padding: 4,
-                borderRadius: 8,
-                border: '1px solid rgba(255,255,255,0.06)',
-              }}
-            >
-              {gridRows.flat().map((hand) => (
-                <BuilderCell
-                  key={hand}
-                  hand={hand}
-                  isSelected={selectedHands.has(hand)}
-                  isDiffMode={isDiffMode}
-                  diffResult={gridDiff[hand]}
-                  onToggle={toggleHand}
-                  size={'clamp(21px, 6.5vw, 34px)'}
-                />
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="rb-position-label">
+            <span id="rb-position-label" className={at.label}>Build RFI Range For</span>
+            <div data-pills-row className={at.segmented}>
+              {POSITIONS.map((pos) => (
+                <button
+                  key={pos}
+                  type="button"
+                  className="sd-button"
+                  aria-label={`Select position ${pos}`}
+                  aria-pressed={position === pos}
+                  onClick={() => {
+                    setPosition(pos);
+                    setSelectedHands(new Set());
+                  }}
+                >
+                  {pos}
+                </button>
               ))}
             </div>
+          </section>
 
-            {/* Quick select buttons */}
-            {!isDiffMode && (
-              <div style={{ display: 'flex', gap: 6, marginTop: 10, justifyContent: 'center' }}>
-                <button onClick={() => selectCategory('pairs')} style={quickBtnStyle}>
-                  + All Pairs
-                </button>
-                <button onClick={() => selectCategory('broadways')} style={quickBtnStyle}>
-                  + Broadways
-                </button>
-                <button onClick={() => selectCategory('suited')} style={quickBtnStyle}>
-                  + All Suited
-                </button>
-                <button
-                  onClick={clearAll}
-                  style={{ ...quickBtnStyle, color: 'var(--sp-accent-red)', borderColor: 'rgba(239,68,68,0.3)' }}
-                >
-                  Clear All
-                </button>
+          {/* ─── Main Content ───────────────────────────────────────── */}
+          <div className="sp-range-builder-layout">
+            {/* Grid */}
+            <div className="sp-range-builder-matrix">
+            <section className={`sd-panel ${at.panel}`} aria-labelledby="rb-grid-title">
+              <h2 id="rb-grid-title" className={at.subTitle}>
+                {isDiffMode ? 'Results: Authored Reference Diff' : 'Select Hands To Include In Your Range'}
+              </h2>
+              <div className={at.grid} data-allow-small="true">
+                {gridRows.flat().map((hand) => (
+                  <BuilderCell
+                    key={hand}
+                    hand={hand}
+                    isSelected={selectedHands.has(hand)}
+                    isDiffMode={isDiffMode}
+                    diffResult={gridDiff[hand]}
+                    onToggle={toggleHand}
+                  />
+                ))}
               </div>
-            )}
-          </div>
 
-          {/* Sidebar */}
-          <div className="sp-range-builder-sidebar" style={{ width: 240, flexShrink: 0 }}>
-            <AnimatePresence mode="wait">
-              {result ? (
-                /* ─── Grade Results ─────────────────── */
-                <motion.div
-                  key="results"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  style={sidebarStyle}
-                >
-                  {/* Authored-reference comparison */}
-                  <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                    <div
-                      style={{
-                        fontSize: 56,
-                        fontWeight: 900,
-                        color: GRADE_COLORS[result.comparison?.letter] || 'var(--sp-fg)',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                        lineHeight: 1,
-                        textShadow: `0 0 30px ${GRADE_COLORS[result.comparison?.letter] || '#fff'}40`,
-                      }}
-                    >
-                      {result.comparison?.letter}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        color: 'var(--sp-fg-muted)',
-                        fontWeight: 600,
-                        marginTop: 4,
-                      }}
-                    >
-                      Reference Agreement: {result.comparison?.score}%
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: 'var(--sp-fg-dim)',
-                        marginTop: 2,
-                      }}
-                    >
-                      Reference Coverage: {result.comparison?.coverage}%
-                    </div>
-                  </div>
-
-                  <div
-                    role="note"
-                    style={{
-                      padding: '8px 10px',
-                      border: '1px solid rgba(148, 184, 224, 0.28)',
-                      borderRadius: 8,
-                      background: '#081121',
-                      color: '#cbd5e1',
-                      fontSize: 12,
-                      lineHeight: 1.5,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <strong style={{ color: '#38bdf8' }}>Authored Practice Reference</strong>
-                    <br />
-                    {result.reference?.label}
-                    <br />
-                    Version {result.provenance?.version} • Not Solver Verified • No Exact EV
-                  </div>
-
-                  <div
-                    style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '12px 0' }}
-                  />
-
-                  {/* Stats */}
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: 'var(--sp-fg-dim)',
-                      fontWeight: 700,
-                      letterSpacing: 1,
-                      textTransform: 'uppercase',
-                      marginBottom: 8,
-                    }}
-                  >
-                    BREAKDOWN
-                  </div>
-                  <StatRow label="Matched" value={result.stats?.matchedCount} color="#22c55e" />
-                  <StatRow label="Omitted" value={result.stats?.omittedCount} color="#86daff" />
-                  <StatRow label="Extra" value={result.stats?.extraCount} color="#ef4444" />
-                  <StatRow label="Mixed" value={result.stats?.mixedCount} color="#86daff" />
-
-                  <div
-                    style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '12px 0' }}
-                  />
-
-                  <StatRow label="Your Combos" value={result.stats?.userCombos} color="#94a3b8" />
-                  <StatRow
-                    label="Reference Combos"
-                    value={result.stats?.totalReferenceCombos}
-                    color="#94a3b8"
-                  />
-                  <StatRow label="Overlap" value={result.stats?.overlapCombos} color="#00d4ff" />
-
-                  {/* Legend */}
-                  <div
-                    style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '12px 0' }}
-                  />
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: 'var(--sp-fg-dim)',
-                      fontWeight: 700,
-                      letterSpacing: 1,
-                      textTransform: 'uppercase',
-                      marginBottom: 6,
-                    }}
-                  >
-                    LEGEND
-                  </div>
-                  <LegendItem color="#22c55e" label="Match - Included in both ranges" />
-                  <LegendItem color="#86daff" label="Omitted - Included in the authored reference" />
-                  <LegendItem color="#ef4444" label="Extra - Outside the authored reference" />
-                  <LegendItem color="#86daff" label="Partial - Mixed authored frequency" />
-
-                  <button
-                    onClick={() => {
-                      setResult(null);
-                      setSelectedHands(new Set());
-                      setError('');
-                    }}
-                    style={{
-                      width: '100%',
-                      marginTop: 16,
-                      padding: '10px 0',
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: 8,
-                      color: 'var(--sp-fg-muted)',
-                      cursor: 'pointer',
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  >
-                    Try Again
+              {/* Quick select buttons */}
+              {!isDiffMode && (
+                <div className={at.chips}>
+                  <button type="button" className={`sd-button ${at.compact}`} onClick={() => selectCategory('pairs')}>
+                    + All Pairs
                   </button>
-                </motion.div>
-              ) : (
-                /* ─── Build Mode Sidebar ───────────── */
-                <motion.div
-                  key="build"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  style={sidebarStyle}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: '#86daff',
-                      letterSpacing: 1.5,
-                      textTransform: 'uppercase',
-                      marginBottom: 12,
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                    }}
-                  >
-                    {position} RFI RANGE
-                  </div>
+                  <button type="button" className={`sd-button ${at.compact}`} onClick={() => selectCategory('broadways')}>
+                    + Broadways
+                  </button>
+                  <button type="button" className={`sd-button ${at.compact}`} onClick={() => selectCategory('suited')}>
+                    + All Suited
+                  </button>
+                  <button type="button" className={`sd-button ${at.compact}`} onClick={clearAll}>
+                    Clear All
+                  </button>
+                </div>
+              )}
+            </section>
+            </div>
 
-                  {/* Range % */}
-                  <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                    <div
-                      style={{
-                        fontSize: 36,
-                        fontWeight: 900,
-                        color: 'var(--sp-fg)',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                        lineHeight: 1,
+            {/* Sidebar */}
+            <div className="sp-range-builder-sidebar">
+              <AnimatePresence mode="wait">
+                {result ? (
+                  /* ─── Grade Results ─────────────────── */
+                  <motion.section
+                    key="results"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className={`sd-panel ${at.panel}`}
+                    aria-label="Reference Comparison"
+                  >
+                    {/* Authored-reference comparison */}
+                    <div className={at.metric}>
+                      <strong className={at.bigFigure} style={{ color: GRADE_COLORS[result.comparison?.letter] || '#f2f7ff' }}>
+                        {result.comparison?.letter}
+                      </strong>
+                      <span className={at.label}>Reference Agreement: <strong className={at.white}>{result.comparison?.score}%</strong></span>
+                      <span className={at.small}>Reference Coverage: {result.comparison?.coverage}%</span>
+                    </div>
+
+                    <div role="note" className={at.note}>
+                      <strong>Authored Practice Reference</strong>
+                      <br />
+                      {result.reference?.label}
+                      <br />
+                      Version {result.provenance?.version} • Not Solver Verified • No Exact EV
+                    </div>
+
+                    <hr className={at.rule} />
+                    <h3 className={at.eyebrow}>Breakdown</h3>
+                    <dl className={at.kv}>
+                      <StatRow label="Matched" value={result.stats?.matchedCount} />
+                      <StatRow label="Omitted" value={result.stats?.omittedCount} />
+                      <StatRow label="Extra" value={result.stats?.extraCount} />
+                      <StatRow label="Mixed" value={result.stats?.mixedCount} />
+                      <StatRow label="Your Combos" value={result.stats?.userCombos} />
+                      <StatRow label="Reference Combos" value={result.stats?.totalReferenceCombos} />
+                      <StatRow label="Overlap" value={result.stats?.overlapCombos} tone="ice" />
+                    </dl>
+
+                    <hr className={at.rule} />
+                    <h3 className={at.eyebrow}>Legend</h3>
+                    <div className={at.legend}>
+                      <LegendItem color={DIFF_COLORS.match} label="Match - Included In Both Ranges" />
+                      <LegendItem color={DIFF_COLORS.omitted} label="Omitted - Included In The Authored Reference" />
+                      <LegendItem color={DIFF_COLORS.extra} label="Extra - Outside The Authored Reference" />
+                      <LegendItem color={DIFF_COLORS.partial} label="Partial - Mixed Authored Frequency" />
+                    </div>
+
+                    <button
+                      type="button"
+                      className="sd-button"
+                      onClick={() => {
+                        setResult(null);
+                        setSelectedHands(new Set());
+                        setError('');
                       }}
                     >
-                      {selectionStats.pct}%
+                      Try Again
+                    </button>
+                  </motion.section>
+                ) : (
+                  /* ─── Build Mode Sidebar ───────────── */
+                  <motion.section
+                    key="build"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className={`sd-panel ${at.panel}`}
+                    aria-labelledby="rb-range-title"
+                  >
+                    <h2 id="rb-range-title" className={at.eyebrow}>{position} RFI Range</h2>
+
+                    {/* Range % */}
+                    <div className={at.metric}>
+                      <strong className={at.bigFigure}>{selectionStats.pct}%</strong>
+                      <span className={at.small}>{selectionStats.totalCombos} / 1326 Combos</span>
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 4, fontWeight: 600 }}>
-                      {selectionStats.totalCombos} / 1326 Combos
-                    </div>
-                    <div
-                      style={{
-                        width: '100%',
-                        height: 6,
-                        background: 'rgba(255,255,255,0.06)',
-                        borderRadius: 3,
-                        marginTop: 8,
-                        overflow: 'hidden',
-                      }}
-                    >
+                    <div className={at.track} role="progressbar" aria-label="Range Size" aria-valuenow={Number(selectionStats.pct)} aria-valuemin={0} aria-valuemax={100}>
                       <motion.div
+                        className={at.fill}
                         animate={{ width: `${selectionStats.pct}%` }}
                         transition={{ duration: MOTION.standard }}
-                        style={{
-                          height: '100%',
-                          borderRadius: 3,
-                          background: 'linear-gradient(90deg, #1d4ed8 0%, #38bdf8 100%)',
-                        }}
                       />
                     </div>
-                  </div>
 
-                  <div
-                    style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '12px 0' }}
-                  />
+                    {/* Category breakdown */}
+                    <dl className={at.kv}>
+                      <StatRow label="Hands" value={selectionStats.handCount} />
+                      <StatRow label="Pairs" value={`${selectionStats.pairs} Combos`} tone="ice" />
+                      <StatRow label="Suited" value={`${selectionStats.suited} Combos`} tone="ice" />
+                      <StatRow label="Offsuit" value={`${selectionStats.offsuit} Combos`} />
+                    </dl>
 
-                  {/* Category breakdown */}
-                  <StatRow label="Hands" value={selectionStats.handCount} color="#e2e8f0" />
-                  <StatRow label="Pairs" value={`${selectionStats.pairs} combos`} color="#86daff" />
-                  <StatRow
-                    label="Suited"
-                    value={`${selectionStats.suited} combos`}
-                    color="#3b82f6"
-                  />
-                  <StatRow
-                    label="Offsuit"
-                    value={`${selectionStats.offsuit} combos`}
-                    color="#64748b"
-                  />
+                    {/* Instructions */}
+                    <p className={at.small}>
+                      Click Hands To Toggle On/Off. Build A {position} Open-Raising Range, Then Compare
+                      It With The Authored 6-Max Cash 100BB Practice Reference. This Is Not A Verified
+                      Solver Result.
+                    </p>
 
-                  <div
-                    style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '12px 0' }}
-                  />
+                    {error && (
+                      <div role="alert" aria-live="assertive" className={at.error}>
+                        {error}
+                      </div>
+                    )}
 
-                  {/* Instructions */}
-                  <p
-                    style={{ fontSize: 12, color: 'var(--sp-fg-faint)', lineHeight: 1.5, margin: '0 0 12px' }}
-                  >
-                    Click Hands To Toggle On/Off. Build A {position} Open-Raising Range, Then Compare
-                    It With The Authored 6-Max Cash 100BB Practice Reference. This Is Not A Verified
-                    Solver Result.
-                  </p>
-
-                  {error && (
-                    <div
-                      role="alert"
-                      aria-live="assertive"
-                      style={{
-                        marginBottom: 12,
-                        padding: '8px 10px',
-                        border: '1px solid rgba(239,68,68,0.35)',
-                        borderRadius: 8,
-                        background: 'rgba(239,68,68,0.08)',
-                        color: 'var(--sp-accent-red)',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        lineHeight: 1.45,
-                      }}
+                    <button
+                      type="button"
+                      className={`sd-button sd-primary ${at.primary}`}
+                      onClick={submitRange}
+                      disabled={selectedHands.size === 0 || grading}
                     >
-                      {error}
-                    </div>
-                  )}
-
-                  <button
-                    onClick={submitRange}
-                    disabled={selectedHands.size === 0 || grading}
-                    style={{
-                      width: '100%',
-                      minHeight: 44,
-                      padding: '12px 0',
-                      background:
-                        selectedHands.size > 0
-                          ? 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)'
-                          : 'rgba(255,255,255,0.06)',
-                      border: selectedHands.size > 0
-                        ? '1px solid rgba(148, 184, 224, 0.36)'
-                        : '1px solid rgba(148, 184, 224, 0.16)',
-                      borderRadius: 10,
-                      color: selectedHands.size > 0 ? '#ffffff' : 'var(--sp-fg-faint)',
-                      cursor: selectedHands.size > 0 ? 'pointer' : 'default',
-                      fontSize: 14,
-                      fontWeight: 800,
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    {grading ? 'Comparing...' : 'Compare To Reference'}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                      {grading ? 'Comparing...' : 'Compare To Reference'}
+                    </button>
+                  </motion.section>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
-
-        <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 24px 20px' }}>
-          <SmarterAccountUnlockGate
-            variant="solver-matrix"
-            context="training-range-builder"
-            redirectPath="/hub/training/range-builder"
-          />
-        </div>
-
-        <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 24px 24px' }}>
-          <SmarterConversionCta
-            compact
-            eyebrow="Free Smarter.Poker Account"
-            title="Create Free Account To Save Custom Ranges & Track Skill Tree Mastery"
-            description="Save Your Custom 13x13 Preflop Ranges, Review Practice Sessions By Position, And Unlock All 107 Free GTO Training Games."
-            primaryLabel="Create Free Account"
-            primaryHref="/auth/signup?redirect=/hub/training/range-builder&src=range-builder"
-            secondaryLabel="Sign In"
-            secondaryHref="/auth/login?redirect=/hub/training/range-builder"
-          />
-        </div>
-
       </div>
       <ConnectionToast />
+      <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>
+        <SmarterAccountUnlockGate
+          variant="solver-matrix"
+          context="training-range-builder"
+          redirectPath="/hub/training/range-builder"
+        />
+      </div>
+      <div style={{ maxWidth: 1120, margin: '0 auto 24px', padding: '0 16px' }}>
+        <SmarterConversionCta
+          compact
+          eyebrow="Free Smarter.Poker Account"
+          title="Create Free Account To Save Custom Ranges & Track Skill Tree Mastery"
+          description="Save Your Custom 13x13 Preflop Ranges, Review Practice Sessions By Position, And Unlock All 107 Free GTO Training Games."
+          primaryLabel="Create Free Account"
+          primaryHref="/auth/signup?redirect=/hub/training/range-builder&src=range-builder"
+          secondaryLabel="Sign In"
+          secondaryHref="/auth/login?redirect=/hub/training/range-builder"
+        />
+      </div>
       <HubPageSummary page="training-range-builder" />
     </>
   );
@@ -906,50 +557,20 @@ export default function RangeBuilder() {
 
 // ─── Helper Components ──────────────────────────────────────────────────
 
-function StatRow({ label, value, color }) {
+function StatRow({ label, value, tone }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        fontSize: 12,
-        marginBottom: 4,
-        padding: '2px 0',
-      }}
-    >
-      <span style={{ color: 'var(--sp-fg-muted)', fontWeight: 600 }}>{label}</span>
-      <span style={{ color, fontWeight: 700, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>{value}</span>
+    <div>
+      <dt>{label}</dt>
+      <dd className={tone === 'ice' ? at.ice : undefined}>{value}</dd>
     </div>
   );
 }
 
 function LegendItem({ color, label }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-      <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
-      <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{label}</span>
+    <div className={at.legendItem}>
+      <span className={at.legendSwatch} style={{ background: color }} aria-hidden />
+      <span>{label}</span>
     </div>
   );
 }
-
-// ─── Shared Styles ──────────────────────────────────────────────────────
-
-const quickBtnStyle = {
-  padding: '4px 10px',
-  borderRadius: 6,
-  fontSize: 12,
-  fontWeight: 700,
-  cursor: 'pointer',
-  border: '1px solid rgba(255,255,255,0.1)',
-  background: 'rgba(255,255,255,0.04)',
-  color: 'var(--sp-fg-muted)',
-  transition: 'all 0.15s',
-};
-
-const sidebarStyle = {
-  background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-  border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 12,
-  padding: 16,
-};

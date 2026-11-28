@@ -65,7 +65,8 @@ test('Coach and Tournament controls retain explicit accessible names', () => {
   const coach = read('pages/hub/training/coach-mode.js');
   const tournament = read('pages/hub/training/tournament-prep.js');
 
-  assert.match(coach, /className="sp-coach-back sp-coach-hero-back" aria-label="Back To Training Hub"/);
+  // The Training back control now sits above the image header (TrainingPageHead).
+  assert.match(coach, /<TrainingPageHead\s+slug="training-coach-mode"/);
   for (const id of [
     'tournament-buy-in',
     'tournament-starting-stack',

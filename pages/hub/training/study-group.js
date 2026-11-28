@@ -10,6 +10,8 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { authedFetch } from '../../../src/lib/authUtils';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import st from '../../../src/styles/training/study-tools.module.css';
 // TRAIN-WIRE-EMPTY-5f — adoption: shared empty-state primitive
 
 
@@ -192,180 +194,120 @@ export default function StudyGroupRoom() {
       </Head>
       <UniversalHeader pageDepth={2} hideLeftIcon />
 
-      <div className="sp-training-command sp-training-command--study-room" style={styles.container}>
-        <div className="sp-command-header" style={styles.header}>
-          <button
-            type="button"
-            aria-label="Back to training hub"
-            onClick={() => router.push('/hub/training')}
-            style={styles.backButton}
-          >
-            {/* TRAIN-STUDYGROUP-A11Y-1: SVG back arrow + visible label */}
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <BackArrowIcon size={14} />
-              Hub
-            </span>
-          </button>
-          <div>
-            <h1 style={styles.title}>{group?.name || 'COLLABORATIVE STUDY ROOM'}</h1>
-            <p style={styles.subtitle}>Persistent Member Room · Live Discussion Sync</p>
-          </div>
-        </div>
+      <div className={st.shell}>
+        <TrainingPageHead slug="training-study-group" title="Study Group Room" note="Persistent Member Room · Live Discussion Sync" />
 
+        <div className={st.page}>
         <ErrorBanner message={error} onRetry={() => loadRoom()} />
 
         {!isOnline && (
-          <div
-            role="status"
-            data-offline-banner="true"
-            style={{
-              marginBottom: 16,
-              padding: '10px 14px',
-              borderRadius: 10,
-              border: '1px solid rgba(251, 191, 36, 0.4)',
-              background: 'rgba(251, 191, 36, 0.08)',
-              color: '#86daff',
-              fontSize: 12,
-              fontWeight: 700,
-            }}
-          >
+          <p role="status" data-offline-banner="true" className={st.notice}>
             Offline Mode Detected: Local Horse Brain Spot Evaluation Remains Active While Live Study Room Sync Waits For Reconnection.
-          </div>
+          </p>
         )}
 
-        <section data-study-group-spot-share="true" data-share-spot-href={shareSpotHref} aria-labelledby="group-practice-title">
-          <h2 id="group-practice-title">Practice With Your Group</h2>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-            <a className="sp-mtt-primary-cta" href={shareSpotHref}>Play Study Drill</a>
-            <button type="button" data-share-training-spot="true" onClick={handleShareSpotToGroup} className="sp-mtt-primary-cta">
+        <section data-study-group-spot-share="true" data-share-spot-href={shareSpotHref} aria-labelledby="group-practice-title" className={`sd-panel ${st.panel}`}>
+          <h2 id="group-practice-title" className={st.title}>Practice With Your Group</h2>
+          <p className={st.copy}>Open The Shared Study Drill Or Copy Its Link For Your Group.</p>
+          <div className={st.actions}>
+            <a className="sd-button sd-primary" href={shareSpotHref}>Play Study Drill</a>
+            <button type="button" data-share-training-spot="true" onClick={handleShareSpotToGroup} className="sd-button">
               Copy Practice Link
             </button>
           </div>
-          {practiceCopyStatus === 'copied' && <p data-share-spot-confirmed="true" role="status">Link Copied.</p>}
+          {practiceCopyStatus === 'copied' && <p data-share-spot-confirmed="true" role="status" className={st.notice}>Link Copied.</p>}
           {practiceCopyStatus === 'failed' && (
-            <label>Copy This Link <input readOnly value={`${window.location.origin}${shareSpotHref}`} onFocus={(event) => event.target.select()} /></label>
+            <label className={st.field}>
+              <span className={st.label}>Copy This Link</span>
+              <input readOnly value={`${window.location.origin}${shareSpotHref}`} onFocus={(event) => event.target.select()} className={st.input} />
+            </label>
           )}
         </section>
 
         {!roomId ? (
-          <motion.div
-            className="sp-command-main sp-command-card-stage"
+          <motion.section
+            className={`sd-panel ${st.panel} ${st.state}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            style={styles.createBox}
+            aria-labelledby="choose-group-title"
           >
-            <h2>Choose A Study Group</h2>
-            <p style={{ color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
+            <h2 id="choose-group-title" className={st.title}>Choose A Study Group</h2>
+            <p className={st.copy}>
               Join An Existing Room Or Create A New Persistent Study Group From The Finder.
             </p>
-            <button type="button" aria-label="Open study group finder" onClick={() => router.push('/hub/training/study-group-finder')} style={styles.createBtn}>
+            <button type="button" aria-label="Open study group finder" onClick={() => router.push('/hub/training/study-group-finder')} className={`sd-button sd-primary ${st.block}`}>
               Open Study Group Finder
             </button>
-          </motion.div>
+          </motion.section>
         ) : loading && !group ? (
-          <div className="sp-command-main" style={{ padding: 40, textAlign: 'center', color: 'var(--sp-fg-dim)' }}>
-            Loading Study Room...
-          </div>
+          <section className={`sd-panel ${st.panel}`} role="status" aria-label="Loading Study Room">
+            <div className={st.skeleton} aria-hidden><span /><span /><span /></div>
+            <p className={st.small}>Loading Study Room...</p>
+          </section>
         ) : (
-          <div className="sp-command-main sp-command-room-layout" style={styles.roomLayout}>
+          <div className={st.roomLayout}>
             {/* Left: Participants & Hand Viewer */}
-            <div style={styles.mainCol}>
-              <div style={styles.participantsBar}>
-                <div style={{ fontWeight: 700, color: 'var(--sp-fg-muted)', fontSize: 12, marginRight: 16 }}>
-                  MEMBERS ({participants.length})
+            <div className={st.list}>
+              <section className={`sd-panel ${st.panel}`} aria-labelledby="room-members-title">
+                <div className={st.panelHead}>
+                  <h2 id="room-members-title" className={st.title}>Members ({participants.length})</h2>
+                  <button
+                    type="button"
+                    onClick={copyInvite}
+                    aria-label="Copy study group invite link"
+                    className="sd-button"
+                  >
+                    {inviteStatus || 'Copy Invite Link'}
+                  </button>
                 </div>
-                {participants.map((p) => (
-                  <div key={p.user_id} style={styles.participantChip}>
-                    <div
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        background: 'var(--sp-fg-dim)',
-                        marginRight: 8,
-                      }}
-                    />
-                    {p.profile?.display_name || p.profile?.username || 'Member'}{' '}
-                    {/* TRAIN-STUDYGROUP-A11Y-1: SVG crown replaces emoji — ternary form (SWC parser in next 16.2.4 chokes on JSX-inside-&&-paren here, even with comment outside; see PR #362, #364, and build logs from dpl_HJeXm). */}
-                    {p.role === 'owner' ? (
-                      <span style={{ color: '#86daff', marginLeft: 4, display: 'inline-flex' }} role="img" aria-label="Admin">
-                        <CrownIcon size={12} />
-                      </span>
-                    ) : null}
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={copyInvite}
-                  aria-label="Copy study group invite link"
-                  style={styles.inviteBtn}
-                >
-                  {inviteStatus || 'Copy Invite Link'}
-                </button>
-              </div>
+                <div className={st.chips}>
+                  {participants.map((p) => (
+                    <span key={p.user_id} className={st.tag}>
+                      {p.profile?.display_name || p.profile?.username || 'Member'}{' '}
+                      {/* TRAIN-STUDYGROUP-A11Y-1: SVG crown replaces emoji — ternary form (SWC parser in next 16.2.4 chokes on JSX-inside-&&-paren here, even with comment outside; see PR #362, #364, and build logs from dpl_HJeXm). */}
+                      {p.role === 'owner' ? (
+                        <span className={st.white} style={{ display: 'inline-flex' }} role="img" aria-label="Admin">
+                          <CrownIcon size={12} />
+                        </span>
+                      ) : null}
+                    </span>
+                  ))}
+                </div>
+              </section>
 
-              <div style={styles.handViewer}>
-                <div style={styles.emptyHandViewer}>
-                  <TrainerEmptyState
-                    variant="no-data"
-                    title="Verified Hand Review"
-                    message="Import and validate a real hand before discussing it with the group. This room never inserts a demo hand or fabricated solver result."
-                    cta={{
-                      label: 'Open Hand History Upload',
-                      onClick: () => router.push('/hub/training/hand-history-upload'),
-                    }}
-                  />
-                </div>
-              </div>
+              <TrainerEmptyState
+                  variant="no-data"
+                  title="Verified Hand Review"
+                  message="Import and validate a real hand before discussing it with the group. This room never inserts a demo hand or fabricated solver result."
+                  cta={{
+                    label: 'Open Hand History Upload',
+                    onClick: () => router.push('/hub/training/hand-history-upload'),
+                  }}
+                />
             </div>
 
             {/* Right: Chat & Log */}
-            <div style={styles.chatCol}>
-              <div style={styles.chatHeader}>Room Chat & Event Log</div>
-              <div style={styles.chatMessages}>
+            <section className={`sd-panel ${st.chatPanel}`} aria-labelledby="room-chat-title">
+              <h2 id="room-chat-title" className={`${st.title} ${st.chatHead}`}>Room Chat & Event Log</h2>
+              <div className={st.chatMessages} aria-live="polite">
+                {messages.length === 0 && <p className={st.small}>No Messages Yet. Start The Discussion.</p>}
                 {messages.map((m) => (
-                  <div
-                    key={m.id}
-                    style={{
-                      ...styles.messageWrapper,
-                      alignSelf: m.mine ? 'flex-end' : 'flex-start',
-                    }}
-                  >
+                  <div key={m.id} className={st.messageWrap} data-mine={m.mine ? 'true' : undefined}>
                     {m.isSystem ? (
-                      <div style={styles.systemMsg}>{m.body}</div>
+                      <div className={st.systemMsg}>{m.body}</div>
                     ) : (
-                      <div
-                        style={{
-                          ...styles.msgBubble,
-                          background:
-                            m.mine
-                              ? 'rgba(0, 212, 255, 0.2)'
-                              : 'rgba(255,255,255,0.05)',
-                          border:
-                            m.mine
-                              ? '1px solid rgba(0, 212, 255, 0.4)'
-                              : '1px solid rgba(255,255,255,0.1)',
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: 'var(--sp-fg-muted)',
-                            marginBottom: 4,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                          }}
-                        >
+                      <div className={st.bubble} data-mine={m.mine ? 'true' : undefined}>
+                        <div className={st.bubbleMeta}>
                           <span>{m.mine ? 'You' : m.profile?.display_name || m.profile?.username || 'Member'}</span>
                           <span>{new Date(m.created_at).toLocaleTimeString()}</span>
                         </div>
-                        <div style={{ fontSize: 14 }}>{m.body}</div>
+                        <div className={`${st.bubbleBody} no-capitalize`}>{m.body}</div>
                       </div>
                     )}
                   </div>
                 ))}
               </div>
-              <form onSubmit={handleSendMessage} style={styles.chatInputForm}>
+              <form onSubmit={handleSendMessage} className={st.chatForm}>
                 <input
                   type="text"
                   value={inputMsg}
@@ -373,16 +315,17 @@ export default function StudyGroupRoom() {
                   placeholder="Type your strategic thoughts..."
                   aria-label="Chat message"
                   disabled={sending}
-                  style={styles.chatInput}
+                  className={st.input}
                 />
-                <button type="submit" aria-label="Send chat message" disabled={sending || !inputMsg.trim()} style={styles.sendBtn}>
+                <button type="submit" aria-label="Send chat message" disabled={sending || !inputMsg.trim()} className={`sd-button sd-primary ${st.close}`}>
                   {/* TRAIN-STUDYGROUP-A11Y-1: SVG send replaces glyph */}
                   <SendIcon size={16} />
                 </button>
               </form>
-            </div>
+            </section>
           </div>
         )}
+        </div>
       </div>
       <ConnectionToast />
     </PageTransition>
@@ -390,270 +333,3 @@ export default function StudyGroupRoom() {
 }
 
 StudyGroupRoom.displayName = 'StudyGroupRoom';
-
-const styles = {
-  container: {
-    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-    background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-    padding: '24px 4vw 80px',
-    color: '#fff',
-    fontFamily: "'Inter', sans-serif",
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 20,
-    marginBottom: 32,
-    paddingBottom: 24,
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
-  },
-  backButton: {
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    color: '#fff',
-    padding: '8px 16px',
-    borderRadius: 8,
-    cursor: 'pointer',
-    fontSize: 14,
-    fontWeight: 600,
-  },
-  title: {
-    margin: '0 0 4px 0',
-    fontSize: 28,
-    fontWeight: 900,
-    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
-    letterSpacing: 1,
-    color: 'var(--sp-accent-blue)',
-  },
-  subtitle: {
-    margin: 0,
-    color: 'var(--sp-fg-muted)',
-    fontSize: 14,
-  },
-  createBox: {
-    maxWidth: 500,
-    margin: '60px auto',
-    background: 'rgba(255,255,255,0.03)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    padding: 40,
-    borderRadius: 24,
-    textAlign: 'center',
-  },
-  roomInput: {
-    width: '100%',
-    background: 'rgba(0,0,0,0.5)',
-    border: '1px solid #3b82f6',
-    color: '#fff',
-    padding: '16px 20px',
-    borderRadius: 12,
-    fontSize: 16,
-    marginBottom: 24,
-    outline: 'none',
-  },
-  createBtn: {
-    width: '100%',
-    background: 'var(--sp-accent-blue)',
-    color: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    border: 'none',
-    fontSize: 16,
-    fontWeight: 800,
-    cursor: 'pointer',
-  },
-  roomLayout: {
-    display: 'flex',
-    gap: 24,
-    height: '70vh',
-  },
-  mainCol: {
-    flex: 2,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16,
-  },
-  chatCol: {
-    flex: 1,
-    background: 'rgba(10, 15, 30, 0.6)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 16,
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-  },
-  participantsBar: {
-    display: 'flex',
-    alignItems: 'center',
-    background: 'rgba(10, 15, 30, 0.6)',
-    border: '1px solid rgba(255,255,255,0.05)',
-    padding: '12px 20px',
-    borderRadius: 12,
-    overflowX: 'auto',
-  },
-  participantChip: {
-    display: 'flex',
-    alignItems: 'center',
-    background: 'rgba(255,255,255,0.08)',
-    padding: '6px 12px',
-    borderRadius: 20,
-    fontSize: 13,
-    marginRight: 10,
-  },
-  inviteBtn: {
-    marginLeft: 'auto',
-    background: 'rgba(59, 130, 246, 0.2)',
-    color: 'var(--sp-accent-blue)',
-    border: '1px solid rgba(59, 130, 246, 0.5)',
-    padding: '6px 16px',
-    borderRadius: 20,
-    fontSize: 12,
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  handViewer: {
-    flex: 1,
-    background: 'rgba(0,0,0,0.4)',
-    border: '1px solid rgba(59, 130, 246, 0.3)',
-    borderRadius: 16,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  emptyHandViewer: {
-    textAlign: 'center',
-  },
-  loadBtn: {
-    background: 'var(--sp-accent-blue)',
-    color: '#fff',
-    border: 'none',
-    padding: '12px 24px',
-    borderRadius: 8,
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  activeHand: {
-    width: '100%',
-    height: '100%',
-    padding: 32,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  handHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 32,
-  },
-  closeBtn: {
-    background: 'transparent',
-    border: 'none',
-    color: 'var(--sp-fg-muted)',
-    fontSize: 20,
-    cursor: 'pointer',
-  },
-  cardsDisplay: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    background: 'rgba(255,255,255,0.03)',
-    padding: 32,
-    borderRadius: 16,
-    marginBottom: 24,
-  },
-  playerBlock: {
-    textAlign: 'center',
-    flex: 1,
-  },
-  boardBlock: {
-    textAlign: 'center',
-    flex: 2,
-    borderLeft: '1px solid rgba(255,255,255,0.1)',
-    borderRight: '1px solid rgba(255,255,255,0.1)',
-    padding: '0 20px',
-  },
-  playerLabel: {
-    fontSize: 12,
-    color: 'var(--sp-fg-muted)',
-    fontWeight: 700,
-    letterSpacing: 2,
-    marginBottom: 12,
-  },
-  actionLog: {
-    background: 'rgba(0,0,0,0.5)',
-    padding: 16,
-    borderRadius: 8,
-    fontSize: 15,
-    marginBottom: 16,
-  },
-  solverEval: {
-    background: 'rgba(74, 222, 128, 0.1)',
-    border: '1px solid rgba(74, 222, 128, 0.3)',
-    color: 'var(--sp-accent-green)',
-    padding: 16,
-    borderRadius: 8,
-    fontWeight: 600,
-    fontSize: 15,
-  },
-  chatHeader: {
-    padding: '16px 20px',
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
-    fontWeight: 700,
-    fontSize: 14,
-    letterSpacing: 1,
-    color: 'var(--sp-fg)',
-  },
-  chatMessages: {
-    flex: 1,
-    padding: 20,
-    overflowY: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 12,
-  },
-  messageWrapper: {
-    maxWidth: '85%',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  systemMsg: {
-    fontSize: 12,
-    color: 'var(--sp-fg-muted)',
-    fontStyle: 'italic',
-    alignSelf: 'center',
-    margin: '8px 0',
-    background: 'rgba(255,255,255,0.03)',
-    padding: '4px 12px',
-    borderRadius: 12,
-  },
-  msgBubble: {
-    padding: '10px 14px',
-    borderRadius: 12,
-  },
-  chatInputForm: {
-    display: 'flex',
-    padding: 16,
-    borderTop: '1px solid rgba(255,255,255,0.05)',
-    background: 'rgba(0,0,0,0.3)',
-  },
-  chatInput: {
-    flex: 1,
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    color: '#fff',
-    padding: '12px 16px',
-    borderRadius: '8px 0 0 8px',
-    outline: 'none',
-    fontSize: 14,
-  },
-  sendBtn: {
-    background: 'var(--sp-accent-blue)',
-    color: '#fff',
-    border: 'none',
-    padding: '0 20px',
-    borderRadius: '0 8px 8px 0',
-    cursor: 'pointer',
-    fontSize: 16,
-  },
-};

@@ -2,12 +2,14 @@
  * PreflopChartStats — Range Statistics Sidebar
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Shows combo counts, RFI%, hand category breakdowns, and mixed-frequency
- * highlights for the currently displayed preflop range.
+ * highlights for the currently displayed preflop range. #SMARTERDESIGN: one
+ * steel-rimmed panel, white figures, silver labels, ice emphasis..
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import at from '../../styles/training/analysis-tools.module.css';
 
 export default function PreflopChartStats({ stats, position, scenario, actions = [] }) {
     if (!stats) return null;
@@ -24,179 +26,87 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
     } = stats;
 
     const scenarioLabels = {
-        rfi: 'RAISE FIRST IN',
-        vs3bet: 'VS 3-BET',
-        bb_defense: 'BB DEFENSE',
-        push_fold: 'PUSH / FOLD',
+        rfi: 'Raise First In',
+        vs3bet: 'Vs 3-Bet',
+        bb_defense: 'BB Defense',
+        push_fold: 'Push / Fold',
     };
 
     const barData = [
-        { label: 'Pairs', value: pairCombos, max: totalCombos || 1, color: '#86daff' },
-        { label: 'Suited', value: suitedCombos, max: totalCombos || 1, color: '#3b82f6' },
-        { label: 'Offsuit', value: offsuitCombos, max: totalCombos || 1, color: '#64748b' },
+        { label: 'Pairs', value: pairCombos, max: totalCombos || 1 },
+        { label: 'Suited', value: suitedCombos, max: totalCombos || 1 },
+        { label: 'Offsuit', value: offsuitCombos, max: totalCombos || 1, silver: true },
     ];
 
     return (
-        <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            style={{
-                width: 220,
-                background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 12,
-                padding: 16,
-                flexShrink: 0,
-            }}
+        <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`sd-panel ${at.panel}`}
+            aria-label={`${position} ${scenarioLabels[scenario] || 'Range'} Statistics`}
         >
-            {/* Header */}
-            <div style={{
-                fontSize: 12, fontWeight: 800, color: '#00d4ff',
-                letterSpacing: 1.5, textTransform: 'uppercase',
-                marginBottom: 12, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
-            }}>
-                {position} {scenarioLabels[scenario] || 'RANGE'}
+            <h2 className={at.eyebrow}>
+                {position} {scenarioLabels[scenario] || 'Range'}
+            </h2>
+
+            <div className={at.metric}>
+                <strong className={at.bigFigure}>{rfiPct}%</strong>
+                <span className={at.small}>{totalCombos} / {maxCombos} Combos</span>
+            </div>
+            <div className={at.track}>
+                <motion.div
+                    className={at.fill}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${rfiPct}%` }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                />
             </div>
 
-            {/* Total Combos */}
-            <div style={{ marginBottom: 16, textAlign: 'center' }}>
-                <div style={{
-                    fontSize: 36, fontWeight: 900, color: '#e2e8f0',
-                    fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", lineHeight: 1,
-                }}>
-                    {rfiPct}%
-                </div>
-                <div style={{
-                    fontSize: 12, color: '#64748b', marginTop: 4, fontWeight: 600,
-                }}>
-                    {totalCombos} / {maxCombos} Combos
-                </div>
-                {/* Progress bar */}
-                <div style={{
-                    width: '100%', height: 6, background: 'rgba(255,255,255,0.06)',
-                    borderRadius: 3, marginTop: 8, overflow: 'hidden',
-                }}>
-                    <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${rfiPct}%` }}
-                        transition={{ duration: 0.5, ease: 'easeOut' }}
-                        style={{
-                            height: '100%', borderRadius: 3,
-                            background: 'linear-gradient(90deg, #00d4ff, #7c3aed)',
-                        }}
-                    />
-                </div>
-            </div>
-
-            {/* Divider */}
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '12px 0' }} />
-
-            {/* Category Breakdown */}
-            <div style={{
-                fontSize: 12, fontWeight: 700, color: '#64748b',
-                letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8,
-            }}>
-                HAND CATEGORIES
-            </div>
-            {barData.map(item => (
-                <div key={item.label} style={{ marginBottom: 8 }}>
-                    <div style={{
-                        display: 'flex', justifyContent: 'space-between',
-                        fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 2,
-                    }}>
+            <hr className={at.rule} />
+            <h3 className={at.label}>Hand Categories</h3>
+            {barData.map((item) => (
+                <div key={item.label}>
+                    <div className={at.barHead}>
                         <span>{item.label}</span>
-                        <span style={{ color: item.color, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
-                            {item.value}
-                        </span>
+                        <span>{item.value}</span>
                     </div>
-                    <div style={{
-                        width: '100%', height: 4, background: 'rgba(255,255,255,0.06)',
-                        borderRadius: 2, overflow: 'hidden',
-                    }}>
+                    <div className={at.track}>
                         <motion.div
+                            className={`${at.fill} ${item.silver ? at.fillSilver : ''}`}
                             initial={{ width: 0 }}
                             animate={{ width: `${(item.value / item.max * 100) || 0}%` }}
                             transition={{ duration: 0.4, delay: 0.1 }}
-                            style={{
-                                height: '100%', borderRadius: 2,
-                                background: item.color,
-                            }}
                         />
                     </div>
                 </div>
             ))}
 
-            {/* Divider */}
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '12px 0' }} />
-
-            {/* Pure vs Mixed */}
-            <div style={{
-                fontSize: 12, fontWeight: 700, color: '#64748b',
-                letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8,
-            }}>
-                FREQUENCY TYPE
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-                <div style={{
-                    flex: 1, textAlign: 'center', padding: '8px 6px',
-                    background: 'rgba(0,212,255,0.08)', borderRadius: 8,
-                    border: '1px solid rgba(0,212,255,0.15)',
-                }}>
-                    <div style={{
-                        fontSize: 18, fontWeight: 800, color: '#00d4ff',
-                        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
-                    }}>
-                        {pureHands}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginTop: 2 }}>
-                        PURE
-                    </div>
+            <hr className={at.rule} />
+            <h3 className={at.label}>Frequency Type</h3>
+            <div className={`${at.metrics} ${at.metrics2}`}>
+                <div className={`sd-metric ${at.metric}`}>
+                    <strong className={at.metricValue} data-tone="ice">{pureHands}</strong>
+                    <span className={at.metricLabel}>Pure</span>
                 </div>
-                <div style={{
-                    flex: 1, textAlign: 'center', padding: '8px 6px',
-                    background: 'rgba(251,191,36,0.08)', borderRadius: 8,
-                    border: '1px solid rgba(251,191,36,0.15)',
-                }}>
-                    <div style={{
-                        fontSize: 18, fontWeight: 800, color: '#86daff',
-                        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
-                    }}>
-                        {mixedHands}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginTop: 2 }}>
-                        MIXED
-                    </div>
+                <div className={`sd-metric ${at.metric}`}>
+                    <strong className={at.metricValue}>{mixedHands}</strong>
+                    <span className={at.metricLabel}>Mixed</span>
                 </div>
             </div>
 
-            {/* Action Legend */}
             {actions.length > 0 && (
                 <>
-                    <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '12px 0' }} />
-                    <div style={{
-                        fontSize: 12, fontWeight: 700, color: '#64748b',
-                        letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8,
-                    }}>
-                        ACTIONS
+                    <hr className={at.rule} />
+                    <h3 className={at.label}>Actions</h3>
+                    {/* The grid's own legend carries the action colours; this list
+                        names the actions without repeating (or contradicting) them. */}
+                    <div className={at.row}>
+                        {actions.map((action) => (
+                            <span key={action} className={at.tag}>{action}</span>
+                        ))}
                     </div>
-                    {actions.map((action, i) => {
-                        const colors = ['#22c55e', '#ef4444', '#3b82f6', '#fbbf24', '#a855f7'];
-                        const color = colors[i % colors.length];
-                        return (
-                            <div key={action} style={{
-                                display: 'flex', alignItems: 'center', gap: 6,
-                                fontSize: 12, color: '#94a3b8', marginBottom: 4,
-                            }}>
-                                <div style={{
-                                    width: 10, height: 10, borderRadius: 2,
-                                    background: color, flexShrink: 0,
-                                }} />
-                                <span style={{ fontWeight: 600 }}>{action}</span>
-                            </div>
-                        );
-                    })}
                 </>
             )}
-        </motion.div>
+        </motion.section>
     );
 }

@@ -22,9 +22,9 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
-import BottomSheet from '../../../src/components/ui/BottomSheet';
-import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/training-play.module.css';
 // TRAIN-CSS-MOTION-ADOPT-7 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
 // framer-motion contract) while the CSS sweep still collapses them under
@@ -43,7 +43,7 @@ const TUTORIAL_STEPS = [
     icon: '★',
   },
   {
-    title: 'Reading the Board',
+    title: 'Reading The Board',
     body: 'Every training question shows you a poker scenario: the board cards, your hero hand, pot size, and street. Pay attention to board texture - is it wet (many draws possible) or dry (few draws)?',
     example: { board: ['K♠', '7♦', '2♣'], hero: ['A♠', 'K♦'], pot: '8.5 BB', street: 'Flop' },
     icon: '◇',
@@ -118,48 +118,23 @@ function FrequencyBars({ freqs }) {
     Fold: 'var(--sp-fg-dim)',
   };
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-        maxWidth: 300,
-        margin: '16px auto',
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          color: '#86daff',
-          letterSpacing: 0.8,
-          textTransform: 'uppercase',
-          textAlign: 'center',
-        }}
-      >
+    <div className={s.freqBars}>
+      <p className={s.eyebrow}>
         Illustrative Teaching Example · Not Solver Output
-      </div>
+      </p>
       {Object.entries(freqs || {}).map(([action, pct]) => (
-        <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ width: 60, fontSize: 12, color: 'var(--sp-fg-muted)', textAlign: 'right' }}>
-            {action}
-          </span>
-          <div
-            style={{
-              flex: 1,
-              height: 16,
-              borderRadius: 4,
-              background: 'rgba(0,0,0,0.3)',
-              overflow: 'hidden',
-            }}
-          >
+        <div key={action} className={s.freqRow}>
+          <span className={s.freqLabel}>{action}</span>
+          <div className={s.freqTrack}>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${pct}%` }}
               transition={{ duration: MOTION.glacial, delay: 0.2 }}
-              style={{ height: '100%', borderRadius: 4, background: colors[action] || 'var(--sp-accent-blue)' }}
+              className={s.freqFill}
+              style={{ background: colors[action] || 'var(--sp-accent-blue)' }}
             />
           </div>
-          <span style={{ width: 32, fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>{pct}%</span>
+          <span className={s.freqPct}>{pct}%</span>
         </div>
       ))}
     </div>
@@ -169,7 +144,6 @@ function FrequencyBars({ freqs }) {
 export default function ScenarioDemoPage() {
   const router = useRouter();
   // TRAIN-WIRE-BOTTOMSHEET-6 — info sheet state
-  const [infoOpen, setInfoOpen] = useState(false);
   useTrainingBus('scenario-demo');
   const fb = useTrainingFeedback();
 
@@ -187,14 +161,14 @@ export default function ScenarioDemoPage() {
   const nextStep = useCallback(() => {
     fb.click();
     if (currentStep < TUTORIAL_STEPS.length - 1) {
-      setCurrentStep((s) => s + 1);
+      setCurrentStep((prev) => prev + 1);
     } else {
       setCompleted(true);
     }
   }, [currentStep, fb]);
 
   const prevStep = useCallback(() => {
-    if (currentStep > 0) setCurrentStep((s) => s - 1);
+    if (currentStep > 0) setCurrentStep((prev) => prev - 1);
   }, [currentStep]);
 
   const answerQuizQ = useCallback(
@@ -251,155 +225,58 @@ export default function ScenarioDemoPage() {
         description="Learn How To Read GTO Poker Strategy Charts, Mixed Action Frequencies, Range Advantage, And Expected Value Loss In Big Blinds On Smarter.Poker."
         canonical="/hub/training/scenario-demo"
       />
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <button
-            onClick={() => setInfoOpen(true)}
-            aria-label="How Strategy Concept Tutorial works"
-            style={{
-              background: 'rgba(var(--sp-accent-cyan-rgb), 0.08)',
-              border: '1px solid rgba(var(--sp-accent-cyan-rgb), 0.25)',
-              color: 'var(--sp-accent-cyan)',
-              fontSize: 12,
-              fontWeight: 700,
-              padding: '4px 12px',
-              borderRadius: 12,
-              cursor: 'pointer',
-              letterSpacing: 0.4,
-              textTransform: 'uppercase',
-            }}
-          >
-            How It Works
-          </button>
-          <BottomSheet
-            open={infoOpen}
-            onClose={() => setInfoOpen(false)}
-            title="How Strategy Concept Tutorial Works"
-            subtitle="Practice-only poker and solver-literacy concepts"
-          >
-            <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
-              <p style={{ marginTop: 0 }}>
-                Walk Through Short Concept Lessons Covering Decision Context,
-                Frequency Charts, Board Texture, Position, And Evidence Labels.
-                Example Percentages Are Illustrative And Are Not Solver Output.
-              </p>
-              <p>
-                Your Optional Private Practice Note Does Not Affect Account
-                Progress, Rank, Rewards, Or Solver Accuracy.
-              </p>
-            </div>
-          </BottomSheet>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Strategy Concept Tutorial</div>
-            <ProgressStrip
-              current={currentStep + 1}
-              total={TUTORIAL_STEPS.length}
-              correct={quizScore.correct}
-              difficulty="beginner"
-              compact
-              style={{ marginTop: 4 }}
-            />
-          </div>
-        </div>
-
-        {/* Progress Bar */}
-        <div style={{ height: 3, background: 'rgba(255,255,255,0.05)' }}>
-          <div
-            style={{
-              height: '100%',
-              background: 'linear-gradient(90deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
-              width: `${((currentStep + 1) / TUTORIAL_STEPS.length) * 100}%`,
-              transition: 'width 0.3s',
-            }}
+      <div className={s.shell}>
+        <main className={s.page}>
+          <TrainingPageHead
+            slug="training-scenario-demo"
+            title="Strategy Concepts"
+            helpContent={
+              <>
+                <p>
+                  Walk Through Short Concept Lessons Covering Decision Context,
+                  Frequency Charts, Board Texture, Position, And Evidence Labels.
+                  Example Percentages Are Illustrative And Are Not Solver Output.
+                </p>
+                <p>
+                  Your Optional Private Practice Note Does Not Affect Account
+                  Progress, Rank, Rewards, Or Solver Accuracy.
+                </p>
+              </>
+            }
+            note={(
+              <>
+                Step <strong>{currentStep + 1}</strong> Of {TUTORIAL_STEPS.length}
+                {quizScore.total > 0 ? <> · Quiz <strong>{quizScore.correct}/{quizScore.total}</strong></> : null}
+              </>
+            )}
           />
-        </div>
+          <div className={s.track} role="progressbar" aria-label="Tutorial Progress" aria-valuemin={1} aria-valuemax={TUTORIAL_STEPS.length} aria-valuenow={currentStep + 1}>
+            <div className={s.fill} style={{ width: `${((currentStep + 1) / TUTORIAL_STEPS.length) * 100}%` }} />
+          </div>
 
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: 'calc(100dvh - 80px)',
-            padding: 20,
-          }}
-        >
           {!completed ? (
             <AnimatePresence mode="wait">
-              <motion.div
+              <motion.section
                 key={currentStep + '-' + quizIdx}
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -40 }}
                 transition={{ duration: MOTION.standard }}
-                style={{ maxWidth: 520, width: '100%', textAlign: 'center' }}
+                className={`sd-panel ${s.panel} ${s.lesson}`}
+                aria-labelledby="scenario-step-title"
               >
-                <div style={{ fontSize: 40, marginBottom: 16 }}>{step.icon}</div>
-                <div
-                  style={{
-                    fontSize: 24,
-                    fontWeight: 900,
-                    color: '#fff',
-                    marginBottom: 12,
-                    letterSpacing: '-0.5px',
-                  }}
-                >
-                  {step.title}
-                </div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    color: 'var(--sp-fg-muted)',
-                    lineHeight: 1.7,
-                    marginBottom: 24,
-                    padding: '0 12px',
-                  }}
-                >
-                  {step.body}
-                </div>
+                <p className={s.tag}><span aria-hidden>{step.icon}</span> Step {currentStep + 1} Of {TUTORIAL_STEPS.length}</p>
+                <h2 id="scenario-step-title" className={s.sectionTitle}>{step.title}</h2>
+                <p className={s.copy}>{step.body}</p>
 
                 {/* Example Cards */}
                 {step.example?.board && (
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
+                  <div className={s.cardRow}>
                     {step.example.board.map((c, i) => (
                       <PlayingCard key={'b'+i} card={c} size="md" priority />
                     ))}
                     {step.example.hero ? (
-                      <div style={{ width: 12 }} aria-hidden />
+                      <span className={s.cardGap} aria-hidden />
                     ) : null}
                     {step.example.hero && step.example.hero.map((c, i) => (
                       <PlayingCard key={'h'+i} card={c} size="md" highlighted priority />
@@ -412,47 +289,22 @@ export default function ScenarioDemoPage() {
 
                 {/* Position Example */}
                 {step.example?.positions && (
-                  <div data-pills-row
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'center',
-                      gap: 8,
-                      marginBottom: 16,
-                      flexWrap: 'wrap',
-                    }}
-                  >
+                  <div data-pills-row className={s.pills}>
                     {step.example.positions.map((p, i) => (
-                      <div
-                        key={p}
-                        style={{
-                          padding: '6px 14px',
-                          borderRadius: 6,
-                          background: i === 3 ? 'rgba(34,197,94,0.12)' : 'rgba(0,0,0,0.3)',
-                          border: `1px solid ${i === 3 ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: i === 3 ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)',
-                        }}
-                      >
-                        {p} {i === 3 && '✓'}
-                      </div>
+                      <span key={p} className={s.pill} data-on={i === 3 ? 'true' : undefined}>
+                        {p}{i === 3 ? ' ✓' : ''}
+                      </span>
                     ))}
                   </div>
                 )}
 
                 {/* Quiz inside tutorial */}
                 {isQuizStep && quizQ && (
-                  <div style={{ marginTop: 8 }}>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 12 }}>
-                      Q{quizIdx + 1}/{QUIZ_QUESTIONS.length}
-                    </div>
-                    <div
-                      style={{ fontSize: 15, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 16 }}
-                    >
-                      {quizQ.q}
-                    </div>
+                  <div className={s.panel}>
+                    <p className={s.eyebrow}>Question {quizIdx + 1} Of {QUIZ_QUESTIONS.length}</p>
+                    <p className={s.subTitle}>{quizQ.q}</p>
                     {/* TRAIN-WIRE-QUIZ-ANSWER-1 — quiz options via shared QuizAnswer primitive */}
-                    <QuizAnswerStack gap={8} maxWidth={320}>
+                    <QuizAnswerStack gap={8} maxWidth={520}>
                       {quizQ.options.map((opt, idx) => {
                         const show = quizAnswer !== null;
                         return (
@@ -470,24 +322,15 @@ export default function ScenarioDemoPage() {
                     </QuizAnswerStack>
                     {quizAnswer !== null && (
                       <motion.button
+                        type="button"
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         onClick={nextQuizQ}
-                        style={{
-                          marginTop: 16,
-                          padding: '10px 24px',
-                          borderRadius: 8,
-                          background: 'rgba(0,212,255,0.1)',
-                          border: '1px solid rgba(0,212,255,0.3)',
-                          color: 'var(--sp-accent-cyan)',
-                          fontSize: 13,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
+                        className={`sd-button sd-primary ${s.primaryAction}`}
                       >
                         {quizIdx < QUIZ_QUESTIONS.length - 1
-                          ? 'Next Question →'
-                          : 'Finish Tutorial →'}
+                          ? 'Next Question'
+                          : 'Finish Tutorial'}
                       </motion.button>
                     )}
                   </div>
@@ -495,85 +338,56 @@ export default function ScenarioDemoPage() {
 
                 {/* Nav Buttons (non-quiz mode) */}
                 {!isQuizStep && (
-                  <div
-                    style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 24 }}
-                  >
+                  <div className={s.actions}>
                     {currentStep > 0 && (
-                      <button
-                        onClick={prevStep}
-                        style={{
-                          padding: '10px 20px',
-                          borderRadius: 8,
-                          background: 'rgba(255,255,255,0.05)',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          color: 'var(--sp-fg-muted)',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        ← Back
+                      <button type="button" onClick={prevStep} className={`sd-button ${s.button}`}>
+                        Previous
                       </button>
                     )}
                     <motion.button
-                      whileHover={{ scale: 1.03 }}
+                      type="button"
                       whileTap={{ scale: 0.97 }}
                       onClick={nextStep}
-                      style={{
-                        padding: '10px 24px',
-                        borderRadius: 8,
-                        background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
-                        border: 'none',
-                        color: '#fff',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        boxShadow: '0 4px 16px rgba(0,212,255,0.2)',
-                      }}
+                      className={`sd-button sd-primary ${s.button}`}
                     >
-                      {currentStep < TUTORIAL_STEPS.length - 1 ? 'Next →' : 'Start Quiz →'}
+                      {currentStep < TUTORIAL_STEPS.length - 1 ? 'Next' : 'Start Quiz'}
                     </motion.button>
                   </div>
                 )}
-              </motion.div>
+              </motion.section>
             </AnimatePresence>
           ) : (
             /* Completion Screen */
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+            <motion.section
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              style={{ textAlign: 'center' }}
+              className={`sd-panel ${s.panel} ${s.lesson}`}
+              aria-labelledby="scenario-complete-title"
             >
-              <div style={{ fontSize: 60, marginBottom: 16 }}>★</div>
-              <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', marginBottom: 8 }}>
-                Tutorial Complete!
+              <h2 id="scenario-complete-title" className={s.sectionTitle}>Tutorial Complete</h2>
+              <div className={s.metrics2}>
+                <div className={`sd-metric ${s.metric}`}>
+                  <span className={s.metricLabel}>Concept Quiz Result</span>
+                  <strong className={s.metricValue} data-tone="ice">{quizScore.correct}/{quizScore.total}</strong>
+                </div>
+                <div className={`sd-metric ${s.metric}`}>
+                  <span className={s.metricLabel}>Accuracy</span>
+                  <strong className={s.metricValue}>
+                    {quizScore.total > 0 ? `${Math.round((quizScore.correct / quizScore.total) * 100)}%` : '0%'}
+                  </strong>
+                </div>
               </div>
-              <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
-                Concept Quiz Result:{' '}
-                <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>
-                  {quizScore.correct}/{quizScore.total}
-                </span>
-                {quizScore.total > 0 &&
-                  ` (${Math.round((quizScore.correct / quizScore.total) * 100)}%)`}
-              </div>
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <div className={s.actions}>
                 <motion.button
+                  type="button"
                   whileTap={{ scale: 0.97 }}
                   onClick={() => router.push('/hub/training')}
-                  style={{
-                    padding: '12px 24px',
-                    borderRadius: 10,
-                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), #16a34a)',
-                    border: 'none',
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
+                  className={`sd-button sd-primary ${s.button}`}
                 >
-                  Start Training →
+                  Start Training
                 </motion.button>
                 <button
+                  type="button"
                   onClick={() => {
                     setCurrentStep(0);
                     setQuizIdx(0);
@@ -582,24 +396,14 @@ export default function ScenarioDemoPage() {
                     setCompleted(false);
                     savedRef.current = false;
                   }}
-                  style={{
-                    padding: '12px 24px',
-                    borderRadius: 10,
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    color: 'var(--sp-fg-muted)',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
+                  className={`sd-button ${s.button}`}
                 >
                   Restart
                 </button>
               </div>
-            </motion.div>
+            </motion.section>
           )}
-
-        </div>
+        </main>
       </div>
       <HubPageSummary page="training-scenario-demo" />
     </>

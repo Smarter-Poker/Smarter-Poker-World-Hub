@@ -18,7 +18,7 @@
 // TRAIN-CSS-TOKENS-ADOPT-12 — adoption of --sp-* token contract from PR #470
 // TRAIN-CSS-MOBILE-ADOPT-10 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-GRADIENT-ADOPT-17 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
@@ -27,6 +27,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import Card from '../../../src/components/training/Card';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import at from '../../../src/styles/training/analysis-tools.module.css';
 // TRAIN-CSS-MOTION-ADOPT-3 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
 // framer-motion contract) while the CSS sweep still collapses them under
@@ -37,6 +39,8 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // HAND EVALUATOR ENGINE — Best 5 From N Cards
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Hand identity swatches (not semantic win/loss colours).
+const HAND_COLORS = { a: '#c4edff', b: '#64a9ff' };
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUITS = ['h', 'd', 'c', 's'];
 const RANK_VAL = Object.fromEntries(RANKS.map((r, i) => [r, 14 - i]));
@@ -183,230 +187,109 @@ function runEquity(handA, handB, board, simCount = 3000) {
 // CARD PICKER — With outside-click dismiss and deselect support
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
-  const [open, setOpen] = useState(false);
+function CardPicker({ value, onChange, onClear, label, allSelected, open, onOpen, onClose }) {
   const [pendingRank, setPendingRank] = useState(null);
-  const ref = useRef(null);
 
   const rank = value ? value[0] : null;
   const suit = value ? value[1] : null;
 
-  const suitColors = { h: 'var(--sp-accent-red)', d: 'var(--sp-accent-blue)', c: 'var(--sp-accent-green)', s: 'var(--sp-fg-muted)' };
+  const suitColors = { h: '#ff7a86', d: '#64a9ff', c: '#5ee08a', s: '#f2f7ff' };
+  const suitNames = { h: 'Hearts', d: 'Diamonds', c: 'Clubs', s: 'Spades' };
   const suitSymbols = { h: '♥', d: '♦', c: '♣', s: '♠' };
 
-  // FIX: Close on outside click
   useEffect(() => {
-    if (!open) return;
-    function handleOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false);
-        setPendingRank(null);
-      }
-    }
-    document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
+    if (!open) setPendingRank(null);
   }, [open]);
 
   function pick(r, s) {
     const card = r + s;
     if (!allSelected.has(card)) {
       onChange(card);
-      setOpen(false);
-      setPendingRank(null);
+      onClose();
     }
   }
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <label
-        style={{
-          fontSize: 12,
-          color: 'var(--sp-fg-dim)',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          display: 'block',
-          marginBottom: 4,
-        }}
-      >
-        {label}
-      </label>
+    <div className={at.field}>
+      <span className={at.label}>{label}</span>
       <button
+        type="button"
+        className={at.slot}
+        data-filled={value ? 'true' : undefined}
+        data-active={open ? 'true' : undefined}
+        aria-label={value ? `Clear ${label}` : `Pick ${label}`}
+        aria-expanded={value ? undefined : open}
         onClick={() => {
           if (value) {
             onClear();
+          } else if (open) {
+            onClose();
           } else {
-            setOpen(!open);
+            onOpen();
           }
-        }}
-        style={{
-          width: 72,
-          height: 90,
-          borderRadius: 8,
-          cursor: 'pointer',
-          background: value ? `rgba(${color},0.15)` : 'rgba(255,255,255,0.04)',
-          border: `2px solid rgba(${color},${value ? '0.5' : '0.2'})`,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 2,
-          position: 'relative',
         }}
       >
         {value ? (
           <>
             <Card rank={rank} suit={suit} size="small" />
-            <span
-              style={{ position: 'absolute', top: 2, right: 5, fontSize: 12, color: 'var(--sp-fg-dim)' }}
-            >
-              ✕
-            </span>
+            <span className={at.remove} aria-hidden>✕</span>
           </>
         ) : (
-          <span style={{ fontSize: 22, color: 'var(--sp-fg-faint)' }}>+</span>
+          <span className={at.slotPlus} aria-hidden>+</span>
         )}
       </button>
-
-      {!value && (
-        <button
-          onClick={() => setOpen(!open)}
-          style={{
-            width: '100%',
-            marginTop: 3,
-            padding: '3px 0',
-            borderRadius: 5,
-            border: '1px solid rgba(255,255,255,0.07)',
-            background: 'none',
-            color: 'var(--sp-fg-faint)',
-            fontSize: 12,
-            cursor: 'pointer',
-            fontWeight: 700,
-          }}
-        >
-          PICK
-        </button>
-      )}
 
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              zIndex: 100,
-              background: '#0d1629',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 12,
-              padding: 12,
-              marginTop: 4,
-              minWidth: 280,
-              boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
-            }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className={`sd-panel ${at.picker} ${at.pickerWide}`}
+            role="dialog"
+            aria-label={`${label} Picker`}
           >
-            <div
-              style={{
-                fontSize: 12,
-                color: 'var(--sp-fg-dim)',
-                fontWeight: 700,
-                marginBottom: 6,
-                textTransform: 'uppercase',
-              }}
-            >
-              {pendingRank ? `${pendingRank} - Pick Suit` : 'Pick Rank'}
+            <div className={at.pickerHead}>
+              <span className={at.eyebrow}>{pendingRank ? `${pendingRank}: Pick Suit` : `${label}: Pick Rank`}</span>
+              <button type="button" className={`sd-button ${at.close}`} onClick={onClose} aria-label={`Close ${label} Picker`}>
+                ✕
+              </button>
             </div>
             {!pendingRank && (
-              <div data-stats-grid style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+              <div data-stats-grid className={at.rankGrid}>
                 {RANKS.map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setPendingRank(r)}
-                    style={{
-                      padding: '6px 4px',
-                      borderRadius: 6,
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      background: 'rgba(255,255,255,0.05)',
-                      color: 'var(--sp-fg)',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
+                  <button key={r} type="button" className="sd-button" onClick={() => setPendingRank(r)}>
                     {r}
                   </button>
                 ))}
               </div>
             )}
             {pendingRank && (
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className={at.suitPick}>
                 {SUITS.map((s) => {
                   const card = pendingRank + s;
                   const disabled = allSelected.has(card);
                   return (
                     <button
                       key={s}
+                      type="button"
+                      className="sd-button"
                       onClick={() => pick(pendingRank, s)}
                       disabled={disabled}
-                      style={{
-                        flex: 1,
-                        padding: '10px 4px',
-                        borderRadius: 8,
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        background: disabled ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.08)',
-                        color: disabled
-                          ? '#374151'
-                          : { h: 'var(--sp-accent-red)', d: 'var(--sp-accent-blue)', c: 'var(--sp-accent-green)', s: 'var(--sp-fg-muted)' }[s],
-                        fontSize: 20,
-                        fontWeight: 900,
-                        cursor: disabled ? 'not-allowed' : 'pointer',
-                      }}
+                      aria-label={`${pendingRank} Of ${suitNames[s]}`}
+                      style={{ fontSize: 22 }}
                     >
-                      {suitSymbols[s]}
+                      <span style={{ color: disabled ? '#5d7085' : suitColors[s] }}>{suitSymbols[s]}</span>
                     </button>
                   );
                 })}
               </div>
             )}
-            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-              {pendingRank && (
-                <button
-                  onClick={() => setPendingRank(null)}
-                  style={{
-                    flex: 1,
-                    padding: '4px',
-                    borderRadius: 6,
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    background: 'none',
-                    color: 'var(--sp-fg-muted)',
-                    fontSize: 12,
-                    cursor: 'pointer',
-                  }}
-                >
-                  ← Back
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  setPendingRank(null);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '4px',
-                  borderRadius: 6,
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  background: 'none',
-                  color: 'var(--sp-fg-dim)',
-                  fontSize: 12,
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
+            {pendingRank && (
+              <button type="button" className={`sd-button ${at.compact}`} onClick={() => setPendingRank(null)}>
+                ← Back To Ranks
               </button>
-            </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -428,6 +311,7 @@ export default function HandComparison() {
   const [result, setResult] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState(null);
+  const [openSlot, setOpenSlot] = useState(null);
 
 
   const allSelected = useMemo(() => {
@@ -492,14 +376,6 @@ export default function HandComparison() {
         : 'TIE'
     : null;
 
-  const container = {
-    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-    background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-    color: 'var(--sp-fg)',
-    fontFamily: "'Inter', sans-serif",
-    padding: '20px 16px 40px',
-  };
-
   return (
     <>
       <SEOHead
@@ -508,197 +384,55 @@ export default function HandComparison() {
         canonical="/hub/training/hand-comparison"
       />
 
-      <div className="sp-training-tool sp-training-tool--analysis sp-analysis-comparison" style={container}>
-        <div className="sp-training-analysis-main" style={{ maxWidth: 680, margin: '0 auto' }}>
-          {/* BACK NAV */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 16,
-            }}
-          >
-            <button
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--sp-fg-dim)',
-                fontSize: 12,
-                cursor: 'pointer',
-                display: 'flex',
-                gap: 4,
-              }}
-            >
-              ← Training Hub
+      <div className={`sp-training-tool sp-training-tool--analysis sp-analysis-comparison ${at.shell}`}>
+        <TrainingPageHead slug="training-hand-comparison" note="A/B Equity Analysis · Best-5-From-7 · Monte Carlo">
+          {allSelected.size > 0 && (
+            <button type="button" className="sd-button" onClick={handleClearAll}>
+              Clear All
             </button>
-            {allSelected.size > 0 && (
-              <button
-                onClick={handleClearAll}
-                style={{
-                  background: 'rgba(239,68,68,0.1)',
-                  border: '1px solid rgba(239,68,68,0.3)',
-                  borderRadius: 8,
-                  color: 'var(--sp-accent-red)',
-                  padding: '4px 12px',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                Clear All
-              </button>
-            )}
-          </div>
+          )}
+        </TrainingPageHead>
 
-          {/* HEADER */}
-          <div className="sp-training-analysis-header sp-training-analysis-header--inline" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                fontSize: 22,
-                background: 'linear-gradient(135deg, #22c55e22, #00d4ff22)',
-                border: '1px solid rgba(34,197,94,0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              »
-            </div>
-            <div>
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: 22,
-                  fontWeight: 900,
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), rgba(var(--sp-accent-cyan-rgb), 1))',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                HAND COMPARISON
-              </h1>
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
-                A/B Equity Analysis · Best-5-From-7 · Monte Carlo
-              </p>
-            </div>
-          </div>
-
-          {/* HAND A */}
-          <div
-            className="sp-analysis-data-panel sp-analysis-data-panel--a"
-            style={{
-              background: 'rgba(34,197,94,0.05)',
-              border: '1px solid rgba(34,197,94,0.2)',
-              borderRadius: 14,
-              padding: '16px 18px',
-              marginBottom: 12,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                color: 'var(--sp-accent-green)',
-                marginBottom: 10,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              HAND A
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <CardPicker
-                value={handA[0]}
-                onChange={(v) => setHandA([v, handA[1]])}
-                onClear={() => setHandA([null, handA[1]])}
-                label="Card 1"
-                color="34,197,94"
-                allSelected={allSelected}
-              />
-              <CardPicker
-                value={handA[1]}
-                onChange={(v) => setHandA([handA[0], v])}
-                onClear={() => setHandA([handA[0], null])}
-                label="Card 2"
-                color="34,197,94"
-                allSelected={allSelected}
-              />
-            </div>
-          </div>
-
-          {/* HAND B */}
-          <div
-            className="sp-analysis-data-panel sp-analysis-data-panel--b"
-            style={{
-              background: 'rgba(0,212,255,0.05)',
-              border: '1px solid rgba(0,212,255,0.2)',
-              borderRadius: 14,
-              padding: '16px 18px',
-              marginBottom: 12,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                color: 'var(--sp-accent-cyan)',
-                marginBottom: 10,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              HAND B
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <CardPicker
-                value={handB[0]}
-                onChange={(v) => setHandB([v, handB[1]])}
-                onClear={() => setHandB([null, handB[1]])}
-                label="Card 1"
-                color="0,212,255"
-                allSelected={allSelected}
-              />
-              <CardPicker
-                value={handB[1]}
-                onChange={(v) => setHandB([handB[0], v])}
-                onClear={() => setHandB([handB[0], null])}
-                label="Card 2"
-                color="0,212,255"
-                allSelected={allSelected}
-              />
-            </div>
+        <div className={`sp-training-analysis-main ${at.page}`}>
+          {/* HANDS A AND B */}
+          <div className={`${at.cardsGrid} ${at.cardsWide}`}>
+            {[
+              { key: 'a', panel: 'sp-analysis-data-panel--a', title: 'Hand A', hand: handA, setHand: setHandA },
+              { key: 'b', panel: 'sp-analysis-data-panel--b', title: 'Hand B', hand: handB, setHand: setHandB },
+            ].map(({ key, panel, title, hand, setHand }) => (
+              <section key={key} className={`sp-analysis-data-panel ${panel} sd-panel ${at.panel} ${at.tight}`} aria-label={title}>
+                <h2 className={at.subTitle}>
+                  <i className={at.swatch} style={{ background: HAND_COLORS[key] }} aria-hidden />
+                  {title}
+                </h2>
+                <div className={at.slots} style={{ alignItems: 'flex-start' }}>
+                  {[0, 1].map((idx) => {
+                    const slotId = `${key}${idx}`;
+                    return (
+                      <CardPicker
+                        key={slotId}
+                        value={hand[idx]}
+                        onChange={(v) => setHand(idx === 0 ? [v, hand[1]] : [hand[0], v])}
+                        onClear={() => setHand(idx === 0 ? [null, hand[1]] : [hand[0], null])}
+                        label={`Card ${idx + 1}`}
+                        allSelected={allSelected}
+                        open={openSlot === slotId}
+                        onOpen={() => setOpenSlot(slotId)}
+                        onClose={() => setOpenSlot(null)}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
 
           {/* BOARD */}
-          <div
-            className="sp-analysis-data-panel sp-analysis-data-panel--board"
-            style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 14,
-              padding: '16px 18px',
-              marginBottom: 20,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                color: 'var(--sp-fg-muted)',
-                marginBottom: 10,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              BOARD{' '}
-              <span style={{ color: 'var(--sp-fg-faint)', fontWeight: 600, fontSize: 12 }}>
-                (Min 3 For Flop)
-              </span>
-            </div>
-            <div data-pills-row style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <section className={`sp-analysis-data-panel sp-analysis-data-panel--board sd-panel ${at.panel} ${at.tight}`} aria-label="Board">
+            <h2 className={at.subTitle}>
+              Board <span className={at.small}>(Min 3 For Flop)</span>
+            </h2>
+            <div data-pills-row className={at.slots} style={{ alignItems: 'flex-start' }}>
               {[0, 1, 2, 3, 4].map((i) => (
                 <CardPicker
                   key={i}
@@ -714,238 +448,97 @@ export default function HandComparison() {
                     setBoard(b);
                   }}
                   label={i < 3 ? `Flop ${i + 1}` : i === 3 ? 'Turn' : 'River'}
-                  color="148,163,184"
                   allSelected={allSelected}
+                  open={openSlot === `board${i}`}
+                  onOpen={() => setOpenSlot(`board${i}`)}
+                  onClose={() => setOpenSlot(null)}
                 />
               ))}
             </div>
-          </div>
+          </section>
 
           {/* RUN BUTTON */}
           <button
+            type="button"
+            className={`sd-button sd-primary ${at.primary}`}
             onClick={runComparison}
             disabled={!canRun || isRunning}
-            style={{
-              width: '100%',
-              padding: '16px',
-              borderRadius: 14,
-              marginBottom: 20,
-              background:
-                canRun && !isRunning
-                  ? 'linear-gradient(135deg, rgba(var(--sp-accent-green-rgb), 1), rgba(var(--sp-accent-cyan-rgb), 1))'
-                  : 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: canRun && !isRunning ? '#000' : '#374151',
-              fontWeight: 900,
-              fontSize: 16,
-              cursor: canRun && !isRunning ? 'pointer' : 'not-allowed',
-              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              transition: 'all 0.2s',
-            }}
           >
             {isRunning
-              ? 'CALCULATING...'
+              ? 'Calculating...'
               : canRun
                 ? (error ? 'Retry Comparison' : 'Compare Hands')
-                : 'SELECT HANDS + MIN 3 BOARD CARDS TO BEGIN'}
+                : 'Select Hands + Min 3 Board Cards To Begin'}
           </button>
-          {error && <p role="alert">{error}</p>}
+          {error && <div role="alert" className={at.error}>{error}</div>}
 
           {/* RESULTS */}
           <AnimatePresence>
             {result && (
-              <motion.div
+              <motion.section
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: MOTION.standard }}
+                className={`sd-panel ${at.panel}`}
+                aria-label="Comparison Results"
               >
                 {/* Leader banner */}
-                <div
-                  style={{
-                    padding: '14px 18px',
-                    borderRadius: 12,
-                    marginBottom: 16,
-                    background:
-                      leader === 'A'
-                        ? 'rgba(34,197,94,0.12)'
-                        : leader === 'B'
-                          ? 'rgba(0,212,255,0.12)'
-                          : 'rgba(255,255,255,0.05)',
-                    border: `1px solid ${leader === 'A' ? 'rgba(34,197,94,0.3)' : leader === 'B' ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                    textAlign: 'center',
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                    fontSize: 18,
-                    fontWeight: 900,
-                    color: leader === 'A' ? 'var(--sp-accent-green)' : leader === 'B' ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
-                  }}
-                >
-                  {leader === 'TIE' ? 'EQUAL EQUITY' : `HAND ${leader} IS AHEAD`}
-                </div>
+                <h2 className={at.sectionTitle} style={{ textAlign: 'center' }}>
+                  {leader === 'TIE' ? 'Equal Equity' : `Hand ${leader} Is Ahead`}
+                </h2>
 
                 {/* Equity bars */}
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: 14,
-                    padding: '18px',
-                    marginBottom: 14,
-                  }}
-                >
+                {[
+                  { key: 'a', label: 'Hand A', eq: result.equityA, cat: result.hand_a_category },
+                  { key: 'b', label: 'Hand B', eq: result.equityB, cat: result.hand_b_category },
+                ].map((row) => (
+                  <div key={row.label}>
+                    <div className={at.barHead}>
+                      <span>
+                        <i className={at.swatch} style={{ background: HAND_COLORS[row.key] }} aria-hidden />
+                        {row.label} · <span className={at.small}>{row.cat}</span>
+                      </span>
+                      <strong className={at.white} style={{ fontSize: '1.1rem' }}>{row.eq}%</strong>
+                    </div>
+                    <div className={at.track} style={{ blockSize: 10 }}>
+                      <motion.div
+                        className={at.fill}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${row.eq}%` }}
+                        transition={{ duration: MOTION.glacial, ease: 'easeOut' }}
+                        style={{ background: HAND_COLORS[row.key] }}
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                {/* Win / Tie / Loss breakdown */}
+                <div data-stats-grid className={`${at.metrics} ${at.metrics3}`}>
                   {[
-                    {
-                      label: 'HAND A',
-                      eq: result.equityA,
-                      color: 'var(--sp-accent-green)',
-                      cat: result.hand_a_category,
-                    },
-                    {
-                      label: 'HAND B',
-                      eq: result.equityB,
-                      color: 'var(--sp-accent-cyan)',
-                      cat: result.hand_b_category,
-                    },
-                  ].map((row) => (
-                    <div key={row.label} style={{ marginBottom: 14 }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          marginBottom: 6,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 800,
-                            color: row.color,
-                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                          }}
-                        >
-                          {row.label}
-                        </span>
-                        <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                          <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 700 }}>
-                            {row.cat}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 18,
-                              fontWeight: 900,
-                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                              color: row.color,
-                            }}
-                          >
-                            {row.eq}%
-                          </span>
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          height: 10,
-                          borderRadius: 5,
-                          background: 'rgba(255,255,255,0.06)',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${row.eq}%` }}
-                          transition={{ duration: MOTION.glacial, ease: 'easeOut' }}
-                          style={{ height: '100%', borderRadius: 5, background: row.color }}
-                        />
-                      </div>
+                    { label: 'Hand A Wins', value: result.winsA },
+                    { label: 'Chop', value: result.ties },
+                    { label: 'Hand B Wins', value: result.winsB },
+                  ].map((s) => (
+                    <div key={s.label} className={`sd-metric ${at.metric}`}>
+                      <strong className={at.metricValue}>{s.value}</strong>
+                      <span className={at.metricLabel}>{s.label}</span>
                     </div>
                   ))}
-
-                  {/* Win / Tie / Loss breakdown */}
-                  <div data-stats-grid
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(3, 1fr)',
-                      gap: 8,
-                      marginTop: 6,
-                    }}
-                  >
-                    {[
-                      { label: 'Hand A Wins', value: result.winsA, color: 'var(--sp-accent-green)' },
-                      { label: 'Chop', value: result.ties, color: 'var(--sp-fg-muted)' },
-                      { label: 'Hand B Wins', value: result.winsB, color: 'var(--sp-accent-cyan)' },
-                    ].map((s) => (
-                      <div
-                        key={s.label}
-                        style={{
-                          background: 'rgba(255,255,255,0.03)',
-                          borderRadius: 8,
-                          padding: '8px 6px',
-                          textAlign: 'center',
-                          border: '1px solid rgba(255,255,255,0.05)',
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 16,
-                            fontWeight: 900,
-                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                            color: s.color,
-                          }}
-                        >
-                          {s.value}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: 'var(--sp-fg-faint)',
-                            fontWeight: 700,
-                            textTransform: 'uppercase',
-                          }}
-                        >
-                          {s.label}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
 
                 {/* Run again with different board */}
-                <button
-                  onClick={runComparison}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    borderRadius: 10,
-                    marginBottom: 12,
-                    background: 'rgba(34,197,94,0.1)',
-                    border: '1px solid rgba(34,197,94,0.3)',
-                    color: 'var(--sp-accent-green)',
-                    fontWeight: 800,
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  }}
-                >
-                  RE-RUN (New Random Run-Outs)
+                <button type="button" className="sd-button" onClick={runComparison}>
+                  Re-Run (New Random Run-Outs)
                 </button>
 
-                <div
-                  style={{
-                    padding: '12px 16px',
-                    background: 'rgba(255,255,255,0.02)',
-                    borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.05)',
-                    fontSize: 12,
-                    color: 'var(--sp-fg-dim)',
-                    lineHeight: 1.6,
-                  }}
-                >
+                <p className={at.small}>
                   Results Based On 3,000 Monte Carlo Simulations Using The Best-5-From-7 Hand
                   Evaluator. Equity = Win% + ½ Chop%. Click A Selected Card To Deselect It. Change
                   Board Cards To Study Run-Outs.
-                </div>
-              </motion.div>
+                </p>
+              </motion.section>
             )}
           </AnimatePresence>
-
         </div>
       </div>
       <HubPageSummary page="training-hand-comparison" />

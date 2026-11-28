@@ -25,11 +25,11 @@
 import React from 'react';
 
 const DIFFICULTY_THEMES = {
-  beginner:     { color: 'var(--sp-accent-green)', label: 'Beginner' },
-  easy:         { color: 'var(--sp-accent-green)', label: 'Easy' },
-  intermediate: { color: 'var(--sp-accent-amber)', label: 'Intermediate' },
-  advanced:     { color: 'var(--sp-accent-orange)', label: 'Advanced' },
-  expert:       { color: 'var(--sp-accent-red)', label: 'Expert' },
+  beginner:     { color: '#86daff', label: 'Beginner' },
+  easy:         { color: '#86daff', label: 'Easy' },
+  intermediate: { color: '#86daff', label: 'Intermediate' },
+  advanced:     { color: '#86daff', label: 'Advanced' },
+  expert:       { color: '#86daff', label: 'Expert' },
 };
 
 const ICON_PROPS = {
@@ -157,14 +157,14 @@ const ProgressStrip = React.memo(function ProgressStrip({
       role="status"
       aria-label={`Question ${safeCurrent} of ${safeTotal}${accuracyPct != null ? `, ${accuracyPct}% accuracy` : ''}`}
     >
-      <CompletionRing pct={completionPct} size={compact ? 22 : 28} stroke={3} color={accuracyPct != null && accuracyPct < 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-cyan)'} />
+      <CompletionRing pct={completionPct} size={compact ? 22 : 28} stroke={3} color={accuracyPct != null && accuracyPct < 60 ? '#c9d8e4' : 'var(--sp-accent-cyan)'} />
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.05 }}>
         <span style={positionStyle}>{safeCurrent} / {safeTotal}</span>
         <span style={labelStyle}>Question</span>
       </div>
 
       {accuracyPct != null ? (
-        <span style={{ ...chipStyle, color: accuracyPct >= 75 ? 'var(--sp-accent-green)' : accuracyPct >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)' }}>
+        <span style={{ ...chipStyle, color: accuracyPct >= 75 ? 'var(--sp-accent-green)' : accuracyPct >= 50 ? '#c9d8e4' : 'var(--sp-accent-red)' }}>
           {accuracyPct}% Acc
         </span>
       ) : null}
@@ -176,7 +176,7 @@ const ProgressStrip = React.memo(function ProgressStrip({
       ) : null}
 
       {typeof bestStreak === 'number' && bestStreak > 1 ? (
-        <span style={{ ...chipStyle, color: 'var(--sp-accent-amber)' }}>
+        <span style={{ ...chipStyle, color: '#86daff' }}>
           <FlameIcon size={11} /> {bestStreak}
         </span>
       ) : null}

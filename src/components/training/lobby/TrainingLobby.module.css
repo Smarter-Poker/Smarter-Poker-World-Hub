@@ -88,6 +88,12 @@
 
 .lobbyHeader { display: grid; gap: 12px; margin-bottom: 14px; }
 .titleBar {
+  /* The chrome "?" sits in the frame's top-right corner (#SMARTERDESIGN):
+     1px CSS border, no painted rim. */
+  --sd-help-border: 1px;
+  --sd-help-rim: 0px;
+  position: relative;
+  padding-right: 56px !important;
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -51,7 +51,7 @@ export default function MemoryGamesTutorial() {
         canonical="/hub/preflop-charts/tutorial"
         jsonLd={PREFLOP_GUIDE_SCHEMA}
       />
-      <PreflopSubpageShell eyebrow="FIELD MANUAL // RANGE LAB" title="Operate The Matrix" description="A Practical Guide To Building Exact Preflop Ranges On Desktop Or Mobile." metric="GUIDE">
+      <PreflopSubpageShell eyebrow="FIELD MANUAL // RANGE LAB" title="Operate The Matrix" description="A Practical Guide To Building Exact Preflop Ranges On Desktop Or Mobile." metric="Field Guide">
         <section className="preflop-guide-grid" aria-label="How to use Preflop Charts">
           {STEPS.map(({ icon: Icon, title, description }, index) => (
             <article className="preflop-guide-step" key={title}>

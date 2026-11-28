@@ -28,15 +28,16 @@ const universalHeader = read('src/components/ui/UniversalHeader.js');
 
 test('every Daily Challenges surface adopts the casino realism visual system', () => {
   assert.match(trainingPage, /daily-challenge-casino\.module\.css/);
-  assert.match(trainingPage, /styles\.marquee/);
+  // #SMARTERDESIGN (2026-11-27): every Daily family page opens on the shared
+  // image header with the family tabs under it.
+  assert.match(trainingPage, /<TrainingPageHead slug="training-daily-challenge" nav=\{<TrainingDailyNav current="\/hub\/training\/daily-challenge" \/>\}>/);
   assert.match(trainingPage, /styles\.feltTable/);
   assert.match(trainingPage, /styles\.resultDrawer/);
   assert.match(goalsPage, /daily-goals-casino\.module\.css/);
   assert.match(challengesPage, /challenges-casino\.module\.css/);
   assert.match(challengesPage, /casinoStyles\.marquee/);
-  assert.match(challengesPage, /casinoStyles\.subpageNav/);
-  assert.match(trainingPage, /styles\.subpageNav/);
-  assert.match(goalsPage, /casinoStyles\.subpageNav/);
+  assert.match(challengesPage, /<TrainingDailyNav current="\/hub\/training\/challenges" \/>/);
+  assert.match(goalsPage, /<TrainingDailyNav current="\/hub\/training\/daily-goals" \/>/);
   assert.match(challengesWidget, /#25c8ff/i);
   assert.match(challengesWidget, /#f2b84b/i);
   assert.match(challengesWidget, /borderRadius:\s*'2px'/);
@@ -50,11 +51,21 @@ test('every Daily Challenges surface adopts the casino realism visual system', (
   assert.match(memoryCss, /body\.world-preflop-charts \.preflop-daily-card/);
   assert.match(personalQuiz, /daily-personal-quiz-casino\.module\.css/);
 
-  for (const css of [trainingCss, goalsCss, challengesCss, personalQuizCss, memoryCss]) {
-    assert.match(css, /#25c8ff/i, 'Electric cyan token is required');
-    assert.match(css, /#f2b84b|#f4c44e/i, 'Vault gold token is required');
-    assert.match(css, /border-radius:\s*2px/i, 'Physical straight-edged controls are required');
+  // The Goals page moved to #SMARTERDESIGN on 2026-11-27, which forbids gold
+  // and amber anywhere; its module keeps only the shell and hooks.
+  assert.doesNotMatch(challengesCss, /#f2b84b|#f4c44e|#ffc65b|gold|amber/i);
+  // Hand Of The Day, the Daily Goals Vault and the Daily Strategy Quiz moved
+  // to #SMARTERDESIGN on 2026-11-27: one chrome steel rim per surface, square
+  // corners, cobalt selection, and no gold / amber ink or tokens anywhere.
+  for (const css of [trainingCss, goalsCss, personalQuizCss]) {
+    assert.doesNotMatch(css, /#f2b84b|#f4c44e|#ffc65b|#f2d38b|gold|amber/i, 'No vault gold on #SMARTERDESIGN surfaces');
+    assert.match(css, /chrome-stat\.webp/, 'Steel rim surfaces are required');
+    assert.match(css, /chrome-active\.webp/, 'Cobalt selected controls are required');
+    assert.doesNotMatch(css, /border-radius:\s*(?:[1-9]\d*px)/i, 'Square corners are required');
   }
+  assert.match(memoryCss, /#25c8ff/i, 'Electric cyan token is required');
+  assert.match(memoryCss, /#f2b84b|#f4c44e/i, 'Vault gold token is required');
+  assert.match(memoryCss, /border-radius:\s*2px/i, 'Physical straight-edged controls are required');
 
   // Daily Trivia moved from these tokens to the painted Club Arena console
   // (#ClubArenaConsole). Its inks are the console master inks, pinned in

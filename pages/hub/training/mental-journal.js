@@ -19,8 +19,9 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import st from '../../../src/styles/training/study-tools.module.css';
 // TRAIN-WIRE-EMPTY-1c - adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-JOURNAL-A11Y-1): SVG icons replacing the mental-journal
@@ -53,7 +54,6 @@ function StateIcon({ kind, size=20 }) {
   }
 }
 function CheckIcon({ size=14 }) { return <_Svg size={size}><polyline points="20 6 9 17 4 12"/></_Svg>; }
-function BackArrowIcon({ size=18 }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function MoonIcon({ size=12 })   { return <_Svg size={size}><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></_Svg>; }
 function CoffeeIcon({ size=12 }) { return <_Svg size={size}><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></_Svg>; }
 
@@ -229,85 +229,20 @@ export default function MentalJournalPage() {
         <title>Mental Journal | Smarter.Poker Training</title>
               <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <div
-        style={{
-          minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', sans-serif",
-          paddingBottom: 40,
-        }}
-      >
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              type="button"
-              aria-label="Back to training"
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 18,
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {/* TRAIN-JOURNAL-A11Y-1: SVG back arrow */}
-              <BackArrowIcon size={18} />
-            </button>
-            <div>
-              {/* TRAIN-JOURNAL-A11Y-1: semantic h1 */}
-              <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Mental Journal</h1>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Tilt & Trigger Tracking</div>
-            </div>
-          </div>
-        </div>
+      <div className={st.shell}>
+        <TrainingPageHead slug="training-mental-journal" note="Tilt & Trigger Tracking" />
 
-        <div style={{ padding: '20px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={st.page}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); if (view === 'history') fetchHistory(); }} />
 
           {/* View Toggle */}
-          <div
-            role="group"
-            aria-label="Switch between new entry and history"
-            style={{
-              display: 'flex',
-              background: 'rgba(0,0,0,0.3)',
-              padding: 4,
-              borderRadius: 10,
-              marginBottom: 24,
-            }}
-          >
+          <div role="group" aria-label="Switch between new entry and history" className={`sd-tabs ${st.grid2}`}>
             <button
               type="button"
               aria-label="New journal entry"
               aria-pressed={view === 'add'}
               onClick={() => setView('add')}
-              style={{
-                flex: 1,
-                padding: '10px',
-                borderRadius: 6,
-                border: 'none',
-                background: view === 'add' ? 'var(--sp-accent-blue)' : 'transparent',
-                color: view === 'add' ? '#fff' : 'var(--sp-fg-muted)',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
+              className="sd-button"
             >
               New Entry
             </button>
@@ -316,187 +251,110 @@ export default function MentalJournalPage() {
               aria-label="Browse journal history"
               aria-pressed={view === 'history'}
               onClick={() => setView('history')}
-              style={{
-                flex: 1,
-                padding: '10px',
-                borderRadius: 6,
-                border: 'none',
-                background: view === 'history' ? 'var(--sp-accent-blue)' : 'transparent',
-                color: view === 'history' ? '#fff' : 'var(--sp-fg-muted)',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
+              className="sd-button"
             >
               History
             </button>
           </div>
 
           {view === 'add' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={st.list}>
               {/* Sliders */}
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.02)',
-                  padding: 20,
-                  borderRadius: 16,
-                  border: '1px solid rgba(255,255,255,0.05)',
-                  marginBottom: 20,
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
-                    Sleep Quality
+              <section className={`sd-panel ${st.panel}`} aria-labelledby="journal-baseline-title">
+                <h2 id="journal-baseline-title" className={st.title}>Session Baseline</h2>
+                <label className={st.field}>
+                  <span className={st.sliderHead}>
+                    <span className={st.label}>Sleep Quality</span>
+                    <strong className={st.ice}>{sleep} Hrs</strong>
                   </span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
-                    {sleep} Hrs
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="3"
-                  max="10"
-                  step="0.5"
-                  value={sleep}
-                  aria-label={`Sleep quality: ${sleep} hours`}
-                  aria-valuetext={`${sleep} hours`}
-                  onChange={(e) => setSleep(e.target.value)}
-                  style={{ width: '100%', marginBottom: 24, accentColor: 'var(--sp-accent-cyan)' }}
-                />
+                  <input
+                    type="range"
+                    min="3"
+                    max="10"
+                    step="0.5"
+                    value={sleep}
+                    aria-label={`Sleep quality: ${sleep} hours`}
+                    aria-valuetext={`${sleep} hours`}
+                    onChange={(e) => setSleep(e.target.value)}
+                    className={st.range}
+                  />
+                </label>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
-                    Caffeine Level
+                <label className={st.field}>
+                  <span className={st.sliderHead}>
+                    <span className={st.label}>Caffeine Level</span>
+                    <strong className={st.ice}>{caffeine} Cups</strong>
                   </span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: '#86daff' }}>
-                    {caffeine} Cups
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="6"
-                  step="1"
-                  value={caffeine}
-                  aria-label={`Caffeine level: ${caffeine} cups`}
-                  aria-valuetext={`${caffeine} cups`}
-                  onChange={(e) => setCaffeine(e.target.value)}
-                  style={{ width: '100%', accentColor: 'var(--sp-accent-amber)' }}
-                />
-              </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="6"
+                    step="1"
+                    value={caffeine}
+                    aria-label={`Caffeine level: ${caffeine} cups`}
+                    aria-valuetext={`${caffeine} cups`}
+                    onChange={(e) => setCaffeine(e.target.value)}
+                    className={st.range}
+                  />
+                </label>
+              </section>
 
-              {/* Mental State */}
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                  marginBottom: 12,
-                }}
-              >
-                Primary State
-              </div>
-              <div
-                role="radiogroup"
-                aria-label="Primary mental state"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 12,
-                  marginBottom: 24,
-                }}
-              >
-                {STATES.map((s) => (
-                  <motion.button
-                    key={s.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={mindState === s.id}
-                    aria-label={`Mental state: ${s.label}`}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setMindState(s.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '16px',
-                      borderRadius: 12,
-                      border: `1px solid ${mindState === s.id ? `${s.color}66` : 'rgba(255,255,255,0.05)'}`,
-                      background: mindState === s.id ? `${s.color}15` : 'rgba(0,0,0,0.2)',
-                      color: mindState === s.id ? s.color : 'var(--sp-fg-muted)',
-                      fontSize: 14,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-                    {/* TRAIN-JOURNAL-A11Y-1: SVG StateIcon replaces emoji */}
-                    <span style={{ fontSize: 20, display: 'inline-flex' }} aria-hidden><StateIcon kind={s.iconKind} size={20} /></span> {s.label}
-                  </motion.button>
-                ))}
-              </div>
-
-              {/* Triggers */}
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                  marginBottom: 12,
-                }}
-              >
-                Tilt Triggers (Select All That Apply)
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-                {TRIGGERS.map((t) => {
-                  const active = selectedTriggers.includes(t);
-                  return (
-                    <button
-                      key={t}
+              <section className={`sd-panel ${st.panel}`} aria-labelledby="journal-state-title">
+                {/* Mental State */}
+                <h2 id="journal-state-title" className={st.title}>Primary State</h2>
+                <div role="radiogroup" aria-label="Primary mental state" className={st.grid2}>
+                  {STATES.map((s) => (
+                    <motion.button
+                      key={s.id}
                       type="button"
-                      aria-label={`${active ? 'Remove' : 'Add'} trigger: ${t}`}
-                      aria-pressed={active}
-                      onClick={() => toggleTrigger(t)}
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: 20,
-                        border: `1px solid ${active ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`,
-                        background: active ? 'rgba(239,68,68,0.1)' : 'transparent',
-                        color: active ? 'var(--sp-accent-red)' : 'var(--sp-fg-muted)',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
+                      role="radio"
+                      aria-checked={mindState === s.id}
+                      aria-label={`Mental state: ${s.label}`}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setMindState(s.id)}
+                      className={`sd-button ${st.stateButton}`}
                     >
-                      {t}
-                    </button>
-                  );
-                })}
-              </div>
+                      {/* TRAIN-JOURNAL-A11Y-1: SVG StateIcon replaces emoji */}
+                      <span className={st.stateIcon} aria-hidden><StateIcon kind={s.iconKind} size={20} /></span>
+                      <span>{s.label}</span>
+                    </motion.button>
+                  ))}
+                </div>
 
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Additional session notes..."
-                aria-label="Additional session notes"
-                style={{
-                  width: '100%',
-                  padding: 16,
-                  borderRadius: 12,
-                  background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  color: '#fff',
-                  fontSize: 14,
-                  minHeight: 100,
-                  marginBottom: 24,
-                  resize: 'none',
-                  outline: 'none',
-                }}
-              />
+                {/* Triggers */}
+                <fieldset className={st.fieldset}>
+                  <legend className={st.label}>Tilt Triggers (Select All That Apply)</legend>
+                  <div className={st.chips}>
+                    {TRIGGERS.map((t) => {
+                      const active = selectedTriggers.includes(t);
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          aria-label={`${active ? 'Remove' : 'Add'} trigger: ${t}`}
+                          aria-pressed={active}
+                          onClick={() => toggleTrigger(t)}
+                          className="sd-button"
+                        >
+                          {t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+
+                <label className={st.field}>
+                  <span className={st.label}>Session Notes</span>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Additional session notes..."
+                    aria-label="Additional session notes"
+                    rows={4}
+                    className={st.input}
+                  />
+                </label>
+              </section>
 
               <motion.button
                 type="button"
@@ -504,148 +362,68 @@ export default function MentalJournalPage() {
                 disabled={isSaving}
                 whileTap={{ scale: 0.97 }}
                 onClick={saveEntry}
-                style={{
-                  width: '100%',
-                  padding: '16px',
-                  borderRadius: 12,
-                  border: 'none',
-                  background: isSaving ? 'var(--sp-fg-faint)' : 'linear-gradient(135deg, rgba(var(--sp-accent-blue-rgb), 1), #8b5cf6)',
-                  color: '#fff',
-                  fontSize: 16,
-                  fontWeight: 800,
-                  cursor: isSaving ? 'not-allowed' : 'pointer',
-                  boxShadow: isSaving ? 'none' : '0 4px 20px rgba(59,130,246,0.3)',
-                  position: 'relative',
-                }}
+                className={`sd-button sd-primary ${st.block}`}
               >
-                {isSaving ? 'Logging to Database...' : 'Log Mental State'}
-                {savedToast && (
-                  <span style={{ position: 'absolute', right: 20, color: 'var(--sp-accent-green)', display: 'inline-flex', alignItems: 'center', gap: 4 }} role="status" aria-live="polite">
-                    {/* TRAIN-JOURNAL-A11Y-1: SVG check replaces ✓ */}
-                    <CheckIcon size={14} /> Saved
-                  </span>
-                )}
+                {isSaving ? 'Logging To Database...' : 'Log Mental State'}
               </motion.button>
+              {savedToast && (
+                <p className={st.notice} role="status" aria-live="polite">
+                  {/* TRAIN-JOURNAL-A11Y-1: SVG check replaces ✓ */}
+                  <CheckIcon size={14} /> Saved
+                </p>
+              )}
             </motion.div>
           )}
 
           {view === 'history' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className={st.list}>
               {loadingHistory && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16 }} role="status" aria-label="Loading journal history">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 16 }}>
-                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
-                        <SkeletonBox width={32} height={32} style={{ borderRadius: 8 }} />
-                        <SkeletonBox width={`${50 + i * 10}%`} height={14} />
-                      </div>
-                      <SkeletonBox width={`${70 + i * 5}%`} height={10} />
-                    </div>
-                  ))}
-                </div>
+                <section className={`sd-panel ${st.panel}`} role="status" aria-label="Loading journal history">
+                  <div className={st.skeleton} aria-hidden><span /><span /><span /><span /></div>
+                  <p className={st.small}>Loading Journal History...</p>
+                </section>
               )}
 
               {!loadingHistory && entries.length === 0 ? (
                 <TrainerEmptyState
                   variant="no-data"
-                  title="No journal entries yet"
-                  message="Log a mental check-in to start building your trend."
+                  title="No Journal Entries Yet"
+                  message="Log A Mental Check-In To Start Building Your Trend."
                   compact
                 />
               ) : null}
 
               {!loadingHistory &&
                 entries.map((e) => {
-                  const st = STATES.find((s) => s.id === e.mindState) || STATES[0];
+                  const stateInfo = STATES.find((s) => s.id === e.mindState) || STATES[0];
                   return (
                     <motion.div
                       key={e.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      style={{
-                        padding: '16px',
-                        borderRadius: 16,
-                        background: 'rgba(255,255,255,0.02)',
-                        border: '1px solid rgba(255,255,255,0.05)',
-                      }}
+                      className={st.item}
                     >
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          marginBottom: 16,
-                        }}
-                      >
-                        <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{e.date}</div>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            color: st.color,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            padding: '2px 8px',
-                            background: `${st.color}15`,
-                            borderRadius: 12,
-                          }}
-                        >
+                      <div className={st.panelHead}>
+                        <span className={st.small}>{e.date}</span>
+                        <span className={st.tag}>
                           {/* TRAIN-JOURNAL-A11Y-1: SVG StateIcon in history rows */}
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }} aria-hidden><StateIcon kind={st.iconKind} size={12} /></span> {st.label}
-                        </div>
+                          <span style={{ display: 'inline-flex' }} aria-hidden><StateIcon kind={stateInfo.iconKind} size={12} /></span> {stateInfo.label}
+                        </span>
                       </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: 16,
-                          marginBottom: 12,
-                          fontSize: 12,
-                          color: 'var(--sp-fg)',
-                        }}
-                      >
-                        <div>
-                          {/* TRAIN-JOURNAL-A11Y-1: SVG moon replaces ○ */}
-                          <span style={{ color: 'var(--sp-accent-cyan)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><MoonIcon size={12} /> Sleep:</span> {e.sleep}h
-                        </div>
-                        <div>
-                          {/* TRAIN-JOURNAL-A11Y-1: SVG coffee replaces ● */}
-                          <span style={{ color: '#86daff', display: 'inline-flex', alignItems: 'center', gap: 4 }}><CoffeeIcon size={12} /> Caf:</span> {e.caffeine} Cups
-                        </div>
-                      </div>
+                      <dl className={st.facts}>
+                        {/* TRAIN-JOURNAL-A11Y-1: SVG moon replaces ○ */}
+                        <div><dt><MoonIcon size={12} /> Sleep</dt><dd className="no-capitalize">{e.sleep}h</dd></div>
+                        {/* TRAIN-JOURNAL-A11Y-1: SVG coffee replaces ● */}
+                        <div><dt><CoffeeIcon size={12} /> Caffeine</dt><dd>{e.caffeine} Cups</dd></div>
+                      </dl>
                       {e.triggers && e.triggers.length > 0 && (
-                        <div
-                          style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}
-                        >
+                        <div className={st.chips}>
                           {e.triggers.map((t) => (
-                            <span
-                              key={t}
-                              style={{
-                                fontSize: 12,
-                                padding: '2px 6px',
-                                background: 'rgba(239,68,68,0.1)',
-                                color: 'var(--sp-accent-red)',
-                                borderRadius: 4,
-                              }}
-                            >
-                              {t}
-                            </span>
+                            <span key={t} className={st.tag}>{t}</span>
                           ))}
                         </div>
                       )}
-                      {e.notes && (
-                        <div
-                          style={{
-                            fontSize: 13,
-                            color: 'var(--sp-fg-muted)',
-                            lineHeight: 1.5,
-                            padding: 12,
-                            background: 'rgba(0,0,0,0.3)',
-                            borderRadius: 8,
-                          }}
-                        >
-                          "{e.notes}"
-                        </div>
-                      )}
+                      {e.notes && <p className={`${st.copy} no-capitalize`}>&ldquo;{e.notes}&rdquo;</p>}
                     </motion.div>
                   );
                 })}
