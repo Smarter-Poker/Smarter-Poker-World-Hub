@@ -4781,7 +4781,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .info-label {
           font-size:12px;
           font-weight: 600;
-          color: #64748b;
+          color: #9fbacc;
           letter-spacing: 0.5px;
         }
         .info-value {
@@ -4792,7 +4792,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           word-break: break-word;
         }
         .info-value.muted {
-          color: #475569;
+          color: #9fbacc;
           font-style: italic;
         }
         .info-value.has-yes {
@@ -4800,6 +4800,9 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         }
         .info-link {
           color: #00D4FF;
+          display: inline-flex;
+          align-items: center;
+          min-height: 44px;
           text-decoration: none;
           transition: color 0.2s;
         }
@@ -5153,7 +5156,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           gap: 12px;
         }
         .empty-section-card p {
-          color: #64748b;
+          color: #9fbacc;
           font-size: 14px;
           margin: 0;
           max-width: 360px;
@@ -6039,7 +6042,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .nearby-venue-type {
           font-size:12px;
           font-weight: 600;
-          color: #64748b;
+          color: #9fbacc;
           letter-spacing: 0.3px;
         }
         .nearby-venue-distance {

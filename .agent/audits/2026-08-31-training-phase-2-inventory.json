@@ -18,7 +18,7 @@
     "dialogs": 26,
     "persistenceFiles": 100,
     "realtimeFiles": 7,
-    "tests": 216,
+    "tests": 217,
     "markerCandidates": 408,
     "possibleUnwiredFunctions": 524,
     "routeStateCells": 752,
@@ -10095,6 +10095,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/030-training-smarterdesign-layout.spec.ts",
             "e2e/032-image-header-help.spec.ts"
@@ -10130,6 +10131,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/030-training-smarterdesign-layout.spec.ts",
             "e2e/032-image-header-help.spec.ts"
@@ -10160,6 +10162,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/030-training-smarterdesign-layout.spec.ts",
             "e2e/032-image-header-help.spec.ts"
@@ -10181,6 +10184,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/030-training-smarterdesign-layout.spec.ts",
             "e2e/032-image-header-help.spec.ts"
@@ -10205,6 +10209,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/030-training-smarterdesign-layout.spec.ts",
             "e2e/032-image-header-help.spec.ts"
@@ -10229,6 +10234,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/030-training-smarterdesign-layout.spec.ts",
             "e2e/032-image-header-help.spec.ts"
@@ -10247,6 +10253,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/030-training-smarterdesign-layout.spec.ts",
             "e2e/032-image-header-help.spec.ts"
@@ -10266,6 +10273,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/030-training-smarterdesign-layout.spec.ts",
             "e2e/032-image-header-help.spec.ts"
@@ -10278,6 +10286,7 @@
         "__tests__/phase23-calculator-schema.test.mjs",
         "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
         "e2e/020-hamburger.spec.ts",
         "e2e/030-training-smarterdesign-layout.spec.ts",
         "e2e/032-image-header-help.spec.ts"
@@ -14202,6 +14211,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/032-image-header-help.spec.ts"
           ]
@@ -14228,6 +14238,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/032-image-header-help.spec.ts"
           ]
@@ -14254,6 +14265,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/032-image-header-help.spec.ts"
           ]
@@ -14278,6 +14290,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/032-image-header-help.spec.ts"
           ]
@@ -14303,6 +14316,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/032-image-header-help.spec.ts"
           ]
@@ -14328,6 +14342,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/032-image-header-help.spec.ts"
           ]
@@ -14354,6 +14369,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/032-image-header-help.spec.ts"
           ]
@@ -14379,6 +14395,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
             "e2e/020-hamburger.spec.ts",
             "e2e/032-image-header-help.spec.ts"
           ]
@@ -14399,6 +14416,7 @@
         "__tests__/phase23-calculator-schema.test.mjs",
         "__tests__/seo-backlink-programme-invariants.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
+        "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
         "e2e/020-hamburger.spec.ts",
         "e2e/032-image-header-help.spec.ts"
       ],
@@ -47343,7 +47361,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 58,
+          "line": 62,
           "handler": null,
           "destination": "back.href",
           "type": null,
@@ -90321,6 +90339,7 @@
     "__tests__/world-command-navigation-state.test.mjs",
     "__tests__/world-hub-connection-hardening.test.mjs",
     "__tests__/world-menu-mobile-phase3.test.mjs",
+    "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs",
     "e2e/014-cron-health.spec.ts",
     "e2e/020-hamburger.spec.ts",
     "e2e/021-personal-assistant.spec.ts",
@@ -94386,11 +94405,11 @@
       "effectRef": "src/components/bankroll/BankrollHelp.jsx"
     },
     {
-      "id": "src/components/bankroll/BankrollImageHeader.jsx:58:1",
+      "id": "src/components/bankroll/BankrollImageHeader.jsx:62:1",
       "file": "src/components/bankroll/BankrollImageHeader.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 58,
+      "line": 62,
       "handler": null,
       "destination": "back.href",
       "type": null,
@@ -117249,7 +117268,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs"
+      ]
     },
     {
       "file": "src/components/diamonds/CapHitPopup.jsx",
@@ -126144,7 +126165,8 @@
         "__tests__/trivia-study-pool-curation.test.mjs",
         "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
         "__tests__/world-hub-connection-hardening.test.mjs",
-        "__tests__/world-menu-mobile-phase3.test.mjs"
+        "__tests__/world-menu-mobile-phase3.test.mjs",
+        "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs"
       ]
     },
     {
@@ -126319,7 +126341,8 @@
         "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
         "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
-        "__tests__/otc-tier8-returning-guest-and-day0-onboarding-20261128.law.test.mjs"
+        "__tests__/otc-tier8-returning-guest-and-day0-onboarding-20261128.law.test.mjs",
+        "__tests__/world-roots-fetch-only-their-own-page.law.test.mjs"
       ]
     }
   ],
@@ -134496,10 +134519,13 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/bankroll/AdjustBankrollModal.jsx",
+          "src/components/bankroll/BankrollDataTools.jsx",
           "src/components/bankroll/BankrollExportFormats.jsx",
           "src/components/bankroll/LogEntryModal.jsx",
           "src/components/bankroll/ManageVenuesModal.jsx",
+          "src/components/bankroll/SessionImportSheet.jsx",
           "src/components/bankroll/StartingBankrollModal.jsx",
+          "src/components/bankroll/TaxPacketDownload.jsx",
           "src/components/poker-near-me/ReportGameModal.jsx",
           "src/components/poker-near-me/VenueCard.js",
           "src/components/poker-near-me/VenueReviews.jsx"
@@ -147124,10 +147150,13 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/bankroll/AdjustBankrollModal.jsx",
+          "src/components/bankroll/BankrollDataTools.jsx",
           "src/components/bankroll/BankrollExportFormats.jsx",
           "src/components/bankroll/LogEntryModal.jsx",
           "src/components/bankroll/ManageVenuesModal.jsx",
+          "src/components/bankroll/SessionImportSheet.jsx",
           "src/components/bankroll/StartingBankrollModal.jsx",
+          "src/components/bankroll/TaxPacketDownload.jsx",
           "src/components/poker-near-me/ReportGameModal.jsx",
           "src/components/poker-near-me/VenueCard.js",
           "src/components/poker-near-me/VenueReviews.jsx"

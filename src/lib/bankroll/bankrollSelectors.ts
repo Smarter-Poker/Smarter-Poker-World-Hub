@@ -21,6 +21,7 @@ import {
 } from './stakingMath.mjs';
 import { bankrollBalanceCents, centsToDollars, toCents } from './ledgerMath.mjs';
 import { fetchAllRows } from './ledgerReport.mjs';
+import { insertInBatches } from './ledgerBatch.mjs';
 import { noteSessionLogged, noteStartingBankrollSet, noteTripStarted } from './funnelSteps.mjs';
 import {
   buildTripReport,
@@ -64,6 +65,7 @@ export interface LedgerEntry {
   odds: string | null;
   bet_result: string | null;
   expense_type: string | null;
+  external_ref?: string | null;
   created_at: string;
 }
 
@@ -299,6 +301,60 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
 }
 
 /**
+ * The row createLedgerEntry writes. Import Sessions writes the same row, so an
+ * imported session is stored exactly as a typed one.
+ */
+function ledgerInsertRow(userId: string, entry: Partial<LedgerEntry>) {
+  return {
+    user_id: userId,
+    category: entry.category,
+    location_id: entry.location_id,
+    trip_id: entry.trip_id,
+    entry_date: entry.entry_date || localDay(),
+    start_time: entry.start_time,
+    end_time: entry.end_time,
+    gross_in: entry.gross_in || 0,
+    gross_out: entry.gross_out || 0,
+    notes: entry.notes,
+    media_urls: entry.media_urls,
+    emotional_tag: entry.emotional_tag,
+    stakes: entry.stakes,
+    game_type: entry.game_type,
+    tournament_name: entry.tournament_name,
+    tournament_type: entry.tournament_type,
+    buy_in_amount: entry.buy_in_amount,
+    finish_position: entry.finish_position,
+    field_size: entry.field_size,
+    reentry_count: entry.reentry_count,
+    add_on_amount: entry.add_on_amount,
+    bounties_collected: entry.bounties_collected,
+    casino_game: entry.casino_game,
+    slot_machine: entry.slot_machine,
+    sport: entry.sport,
+    bet_type: entry.bet_type,
+    odds: entry.odds,
+    bet_result: entry.bet_result,
+    expense_type: entry.expense_type,
+    // Set by Import Sessions (csv:<importId>:<row>); unique per player.
+    external_ref: entry.external_ref,
+  };
+}
+
+/** Recompute the stored balance of each segment the given categories belong to. */
+export async function recalculateBankrollBalances(
+  userId: string,
+  categories: string[] = ['poker_cash', 'casino_table', 'sports'],
+): Promise<void> {
+  for (const segment of new Set(categories.map(categoryToSegment))) {
+    try {
+      await recalculateSegmentBalance(userId, segment);
+    } catch (segError) {
+      console.warn('[Bankroll] Failed to update segment balance:', segError);
+    }
+  }
+}
+
+/**
  * Create a new ledger entry
  */
 export async function createLedgerEntry(
@@ -307,54 +363,45 @@ export async function createLedgerEntry(
 ): Promise<LedgerEntry> {
   const { data, error } = await supabase
     .from('bankroll_ledger')
-    .insert({
-      user_id: userId,
-      category: entry.category,
-      location_id: entry.location_id,
-      trip_id: entry.trip_id,
-      entry_date: entry.entry_date || localDay(),
-      start_time: entry.start_time,
-      end_time: entry.end_time,
-      gross_in: entry.gross_in || 0,
-      gross_out: entry.gross_out || 0,
-      notes: entry.notes,
-      media_urls: entry.media_urls,
-      emotional_tag: entry.emotional_tag,
-      stakes: entry.stakes,
-      game_type: entry.game_type,
-      tournament_name: entry.tournament_name,
-      tournament_type: entry.tournament_type,
-      buy_in_amount: entry.buy_in_amount,
-      finish_position: entry.finish_position,
-      field_size: entry.field_size,
-      reentry_count: entry.reentry_count,
-      add_on_amount: entry.add_on_amount,
-      bounties_collected: entry.bounties_collected,
-      casino_game: entry.casino_game,
-      slot_machine: entry.slot_machine,
-      sport: entry.sport,
-      bet_type: entry.bet_type,
-      odds: entry.odds,
-      bet_result: entry.bet_result,
-      expense_type: entry.expense_type,
-    })
+    .insert(ledgerInsertRow(userId, entry))
     .select()
     .maybeSingle();
 
   if (error) throw error;
 
   // Update the bankroll segment balance
-  try {
-    const segment = categoryToSegment(entry.category || 'poker_cash');
-    await recalculateSegmentBalance(userId, segment);
-  } catch (segError) {
-    console.warn('[Bankroll] Failed to update segment balance:', segError);
-  }
+  await recalculateBankrollBalances(userId, [entry.category || 'poker_cash']);
 
   // Funnel: the account's second gaming session (fire-and-forget).
   if (data) void noteSessionLogged(supabase, userId, data);
 
   return data;
+}
+
+/**
+ * Many entries through the same row as createLedgerEntry, a batch per insert
+ * (insertInBatches: a row whose external_ref is already saved is counted as
+ * already imported, never saved twice), with each segment balance recomputed
+ * once at the end instead of once per row. A failure throws an error carrying
+ * `saved`, and the balances still reflect the rows that were written.
+ */
+export async function createLedgerEntries(
+  userId: string,
+  entries: Partial<LedgerEntry>[],
+  options: { batchSize?: number; onProgress?: (done: number, total: number) => void } = {},
+): Promise<{ saved: { id: string; category: string }[]; alreadyImported: number }> {
+  const insert = (rows: Partial<LedgerEntry>[]) => supabase
+    .from('bankroll_ledger')
+    .insert(rows.map((entry) => ledgerInsertRow(userId, entry)))
+    .select('id, category');
+  try {
+    const result = await insertInBatches(entries, insert, options);
+    if (result.saved.length) await recalculateBankrollBalances(userId, result.saved.map((row) => row.category));
+    return result;
+  } catch (error: any) {
+    if (error?.saved?.length) await recalculateBankrollBalances(userId, error.saved.map((row) => row.category));
+    throw error;
+  }
 }
 
 /**
@@ -394,8 +441,11 @@ export async function updateLedgerEntry(
  */
 export async function deleteLedgerEntry(
   userId: string,
-  entryId: string
-): Promise<void> {
+  entryId: string,
+  // Undo Last Import deletes hundreds of rows and recomputes the balances once
+  // at the end (recalculateBankrollBalances) instead of after every row.
+  { recalculate = true }: { recalculate?: boolean } = {}
+): Promise<{ id: string; category: string }> {
   // A delete that matched nothing (already gone, or not this player's) used to
   // report "Entry Deleted". Ask for the removed row back and say so if none.
   const { data, error } = await supabase
@@ -420,11 +470,8 @@ export async function deleteLedgerEntry(
     .eq('assigned_id', entryId);
   if (receiptError) console.warn('[Bankroll] Receipt not returned to Receipts Waiting:', receiptError.message);
 
-  try {
-    await recalculateSegmentBalance(userId, categoryToSegment(data[0].category || 'poker_cash'));
-  } catch (segError) {
-    console.warn('[Bankroll] Failed to update segment balance:', segError);
-  }
+  if (recalculate) await recalculateBankrollBalances(userId, [data[0].category || 'poker_cash']);
+  return data[0];
 }
 
 /**

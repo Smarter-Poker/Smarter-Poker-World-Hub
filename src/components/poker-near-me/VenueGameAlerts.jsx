@@ -364,7 +364,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
       {!liveLoading && liveGameTypes.length > 0 && (
         <div style={{ marginTop: 16 }}>
           <div style={{
-            fontSize: 12, fontWeight: 700, color: 'rgba(200,214,229,0.5)', letterSpacing: '0.5px', marginBottom: 8,
+            fontSize: 12, fontWeight: 700, color: '#9fbacc', letterSpacing: '0.5px', marginBottom: 8,
           }}>
             {hasObservedGames ? 'Popular Games Running Now' : 'Popular Games - Estimated Activity'}
           </div>

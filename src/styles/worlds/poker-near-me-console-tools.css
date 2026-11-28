@@ -1171,8 +1171,8 @@
 
 .near-me-feed .nmf-item--live_game { background-color: rgb(3 38 15 / 56%); }
 .near-me-feed .nmf-item--checkin { background-color: rgb(4 23 46 / 68%); }
-.near-me-feed .nmf-item--tournament { background-color: rgb(49 31 4 / 62%); }
-.near-me-feed .nmf-item--promotion { background-color: rgb(31 12 47 / 62%); }
+.near-me-feed .nmf-item--tournament { background-color: rgb(10 28 58 / 66%); }
+.near-me-feed .nmf-item--promotion { background-color: rgb(8 32 54 / 64%); }
 
 .near-me-feed .nmf-item-icon {
   flex: 0 0 44px;
@@ -1473,7 +1473,7 @@
 
 .trip-calc .tc-no-gps {
   color: #83cff5;
-  background-color: rgb(52 31 2 / 62%);
+  background-color: rgb(4 23 46 / 68%);
 }
 
 /* Peak-activity heat map */

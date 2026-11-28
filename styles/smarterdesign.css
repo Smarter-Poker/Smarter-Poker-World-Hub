@@ -1,5 +1,36 @@
 /* #SMARTERDESIGN. These nine-slice rims are the original Club Arena console
    assets. Only their edges are painted; type and figures remain live DOM. */
+
+/* THE CROSS-REPO PALETTE (2026-11-28). World Hub and Club Arena read the same
+   token names, so a colour is changed once per repo by name, never chased
+   through literals. Values: docs/SMARTERDESIGN.md, "Cross-repo palette".
+   Declared on :root under names nothing read before, so adding them changes
+   no rendered pixel. The scoped --sd-ice / --sd-silver / --sd-text below keep
+   their existing values and are the same inks as --sd-ice, --sd-silver and
+   --sd-white-ink here. */
+:root {
+  --sd-ice-strong: #74dfff;
+  --sd-silver-dim: #9fbacc;
+  --sd-white-ink: #f2f7ff;
+  --sd-cobalt-1: #1981ec;
+  --sd-cobalt-2: #0c55c0;
+  --sd-cobalt-3: #07377e;
+  --sd-cobalt-4: #125bba;
+  --sd-house-green: #4dc660;
+  --sd-error-red: #ff5b6e;
+  --sd-error-rule: #f02849;
+  /* Club Arena's table palette names (docs/SMARTERDESIGN-TABLE-PALETTE.md in
+     that repo), same values, so both halves of the platform read one vocabulary.
+     --sd-ice, --sd-silver and --sd-ice-strong/--sd-silver-dim already match.
+     --sd-ink is the one clash: Club Arena uses it for body ink (#f1f5fc), World
+     Hub's scoped --sd-ink below is the navy ground; use --sd-white-ink here. */
+  --sd-white: #f4f8ff;
+  --sd-cobalt-top: #087cfa;
+  --sd-cobalt-mid: #0044ac;
+  --sd-cobalt-deep: #002b68;
+  --sd-green: #4dc660;
+  --sd-red: #ff8a93;
+}
 .smarterdesign, .bankroll-modal {
   --sd-ink: #040d18;
   --sd-surface: #0a1829;

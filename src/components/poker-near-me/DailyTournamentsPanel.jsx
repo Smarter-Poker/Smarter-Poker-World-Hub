@@ -149,7 +149,7 @@ function safeHref(url) {
 
 // Buy-in color coding: green <$100, gold $100-500, red $500+
 const getBuyinColor = (buyIn) => {
-  if (!buyIn) return { color: 'rgba(200,214,229,0.5)', bg: 'rgba(200,214,229,0.06)', border: 'rgba(200,214,229,0.12)' };
+  if (!buyIn) return { color: '#9fbacc', bg: 'rgba(200,214,229,0.06)', border: 'rgba(200,214,229,0.12)' };
   if (buyIn < 100) return { color: '#22c55e', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.25)' };
   if (buyIn <= 500) return { color: '#ffffff', bg: 'rgba(255,255,255,0.1)', border: 'rgba(255,255,255,0.25)' };
   return { color: '#ef4444', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.25)' };
@@ -623,7 +623,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       <div ref={loadMoreRef} style={{ height: 20, opacity: 0 }} />
 
       {filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
+        <div style={{ textAlign: 'center', padding: 40, color: '#9fbacc' }}>
           <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Tournaments Found For {selectedDay}</p>
           <p style={{ fontSize: 13 }}>Try Another Day, Adjust Filters, Or Enable GPS To See Tournaments Near You.</p>
         </div>

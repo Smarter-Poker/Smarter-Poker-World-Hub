@@ -1045,7 +1045,7 @@
         border-radius: 50%;
         width: 28px;
         height: 28px;
-        color: rgba(200,214,229,0.5);
+        color: #9fbacc;
         font-size: 16px;
         cursor: pointer;
         display: flex;
@@ -2444,7 +2444,7 @@
     letter-spacing: 0.4px;
 }
 .live-badge { background: rgba(239,68,68,0.18); color: #ef4444; border: 1px solid rgba(239,68,68,0.4); box-shadow: 0 0 8px rgba(239,68,68,0.2); animation: livePulse 2s ease-in-out infinite; }
-.checkin-badge { background: rgba(230,81,0,0.15); color: #E65100; border: 1px solid rgba(230,81,0,0.3); cursor: pointer; }
+.checkin-badge { background: rgba(116,223,255,0.12); color: #86daff; border: 1px solid rgba(116,223,255,0.32); cursor: pointer; }
 @keyframes livePulse { 0%, 100% { box-shadow: 0 0 8px rgba(239,68,68,0.2); } 50% { box-shadow: 0 0 14px rgba(239,68,68,0.35); } }
 .featured-badge {
     background: rgba(255,255,255,0.2);

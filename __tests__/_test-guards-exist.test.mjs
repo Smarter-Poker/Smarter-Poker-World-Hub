@@ -198,6 +198,10 @@ import './bankroll-mobile-upgrades.test.mjs';
 import './bankroll-display-eur-everywhere.test.mjs';
 import './bankroll-live-session.test.mjs';
 import './bankroll-undo-delete.test.mjs';
+import './bankroll-session-import.test.mjs';
+import './bankroll-data-io.test.mjs';
+import './bankroll-tax-packet.test.mjs';
+import './bankroll-ledger-batch.test.mjs';
 import './club-stats-maintenance-runtime-budget.test.mjs';
 // 2026-09-22: the same route schedules only its periodic steps. Runs the real
 // handler through vm.SourceTextModule (CHECK 8 passes --experimental-vm-modules).
@@ -1058,6 +1062,7 @@ import './jarvis-photo-reader-removed.test.mjs';
 import './an-internal-link-reaches-a-page.law.test.mjs';
 import './every-internal-link-reaches-a-page-before-merge.law.test.mjs';
 import './bankroll-w4-cleanup.test.mjs';
+import './world-roots-fetch-only-their-own-page.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

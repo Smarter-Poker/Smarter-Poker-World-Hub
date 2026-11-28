@@ -155,6 +155,9 @@ const TripTracker = lazySection(() => import('../../src/components/bankroll/Trip
 const TokeTracker = lazySection(() => import('../../src/components/bankroll/TokeTracker'));
 const CategoryOverview = lazySection(() => import('../../src/components/bankroll/CategoryOverview'));
 const AdvancedTaxReport = lazySection(() => import('../../src/components/bankroll/AdvancedTaxReport'));
+const BankrollDataTools = lazySection(() => import('../../src/components/bankroll/BankrollDataTools'));
+const TaxPacketDownload = lazySection(() => import('../../src/components/bankroll/TaxPacketDownload'));
+const ImportSessionsPrompt = dynamic(() => import('../../src/components/bankroll/ImportSessionsPrompt'), { ssr: false });
 const BankrollBadges = lazySection(() => import('../../src/components/bankroll/BankrollBadges'));
 const SocialStakingProfile = lazySection(() => import('../../src/components/bankroll/SocialStakingProfile'));
 const TournamentCalendar = lazySection(() => import('../../src/components/bankroll/TournamentCalendar'));
@@ -1947,6 +1950,9 @@ export default function BankrollManagerPage() {
                   {/* Finished Club Arena sessions not yet in the ledger. */}
                   {userId && <ClubArenaSessionsPrompt userId={userId} />}
 
+                  {/* An empty ledger is offered Import Sessions (it checks the whole ledger itself). */}
+                  {hasLoadedOnce && failedScope !== reportScope && userId && <ImportSessionsPrompt userId={userId} />}
+
                   {/* === Unified Dashboard Frame === */}
                   {!(isLoading && !hasLoadedOnce) && (
                   <div className={`sd-panel ${layout.dashboard}`}>
@@ -2311,6 +2317,7 @@ export default function BankrollManagerPage() {
                       <input type="checkbox" checked={preferences.notifications !== false} onChange={(e) => updatePreference('notifications', e.target.checked)} style={styles.settingCheck} />
                     </label>
                   </div>
+                  <BankrollDataTools userId={userId} />
                   <button
                     type="button"
                     onClick={() => { haptic('light'); setShowVenueModal(true); }}
@@ -2388,6 +2395,9 @@ export default function BankrollManagerPage() {
                       <div style={{ marginTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 24 }}>
                         <HubErrorBoundary name="Tax Reports">
                           <TaxReportPanel userId={userId} />
+                        </HubErrorBoundary>
+                        <HubErrorBoundary name="Tax Packet">
+                          <div style={{ marginTop: 16 }}><TaxPacketDownload /></div>
                         </HubErrorBoundary>
                       </div>
                     </div>

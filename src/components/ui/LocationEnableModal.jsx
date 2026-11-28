@@ -201,7 +201,7 @@ export default function LocationEnableModal({
             </div>
             <div>
               <div id="location-enable-title" className="location-enable-modal__title" style={{ fontSize: 18, fontWeight: 800, color: '#e6edf5', letterSpacing: '-0.3px' }}>Enable Location</div>
-              <div id="location-enable-description" className="location-enable-modal__description" style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 1 }}>Find Poker Rooms Near You Instantly</div>
+              <div id="location-enable-description" className="location-enable-modal__description" style={{ fontSize: 12, color: '#9fbacc', marginTop: 1 }}>Find Poker Rooms Near You Instantly</div>
             </div>
           </div>
           <button
@@ -209,7 +209,7 @@ export default function LocationEnableModal({
             type="button"
             onClick={onClose}
             className="location-enable-modal__close sp-icon-btn"
-            style={{ background: 'none', border: 'none', color: 'rgba(200,214,229,0.45)', cursor: 'pointer', fontSize: 24, padding: 4, lineHeight: 1, minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+            style={{ background: 'none', border: 'none', color: '#9fbacc', cursor: 'pointer', fontSize: 24, padding: 4, lineHeight: 1, minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
             aria-label="Close"
           >&times;</button>
         </div>
@@ -297,7 +297,7 @@ export default function LocationEnableModal({
 
           {/* Divider */}
           <div style={{
-            textAlign: 'center', fontSize: 11, color: 'rgba(200,214,229,0.3)',
+            textAlign: 'center', fontSize: 11, color: '#9fbacc',
             marginBottom: 16, textTransform: 'uppercase', letterSpacing: '1.5px',
             display: 'flex', alignItems: 'center', gap: 12,
           }}>
@@ -339,7 +339,7 @@ export default function LocationEnableModal({
               width: '100%', padding: '10px 0', borderRadius: 10,
               border: 'none',
               background: 'transparent',
-              color: 'rgba(200,214,229,0.35)', fontSize: 13, fontWeight: 500,
+              color: '#9fbacc', fontSize: 13, fontWeight: 500,
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
