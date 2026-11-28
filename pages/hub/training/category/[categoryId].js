@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { ArrowLeft, Atom, DollarSign, Rocket, Trophy, Brain, Search, X, SlidersHorizontal, Star } from 'lucide-react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
@@ -12,9 +13,15 @@ import PageTransition from '../../../../src/components/transitions/PageTransitio
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import TrainingImageHeader from '../../../../src/components/training/TrainingImageHeader';
 import TrainingLobbyResults from '../../../../src/components/training/lobby/TrainingLobbyResults';
-import TrainingFiltersSheet from '../../../../src/components/training/lobby/TrainingFiltersSheet';
+const TrainingFiltersSheet = dynamic(
+  () => import('../../../../src/components/training/lobby/TrainingFiltersSheet'),
+  { ssr: false }
+);
 import TrainingSortBar from '../../../../src/components/training/lobby/TrainingSortBar';
-import TrainingGamePreviewSheet from '../../../../src/components/training/lobby/TrainingGamePreviewSheet';
+const TrainingGamePreviewSheet = dynamic(
+  () => import('../../../../src/components/training/lobby/TrainingGamePreviewSheet'),
+  { ssr: false }
+);
 import lobbyStyles from '../../../../src/components/training/lobby/TrainingLobby.module.css';
 import { resolvePresetForGame, VARIANT_METADATA } from '../../../../src/lib/training/trainingPresets.mjs';
 import {

@@ -12,6 +12,7 @@
 // TRAIN-CSS-MOBILE-ADOPT-6 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-GRADIENT-ADOPT-45 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -21,7 +22,7 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import Card from '../../../src/components/training/Card';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
-import BottomSheet from '../../../src/components/ui/BottomSheet';
+const BottomSheet = dynamic(() => import('../../../src/components/ui/BottomSheet'), { ssr: false });
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
 import s from '../../../src/styles/training/training-play.module.css';

@@ -135,3 +135,42 @@ test('Hand Lab 52-card picker opens unframed with Escape dismiss and gto-news he
   });
   expect(editorialHeadlineBg).toBe('none');
 });
+
+test('Phase 3 interactive contracts: Escape dismiss on equity-calculator, hand-comparison 52-card deck, tilt-guard, and non-5xx missing tournament', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  // 1. Equity Calculator 52-card picker closes on Escape
+  await page.goto('/hub/training/equity-calculator', { waitUntil: 'domcontentloaded', timeout: 25000 });
+  await page.waitForTimeout(900);
+  await page.getByRole('button', { name: /Select.*Card|Pick.*Card|^\+$/i }).first().click();
+  await expect(page.locator('[role="dialog"][aria-label*="Card"], [role="dialog"][aria-label*="Board"]')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[role="dialog"][aria-label*="Card"], [role="dialog"][aria-label*="Board"]')).toHaveCount(0);
+
+  // 2. Hand Comparison opens unified 52-card unframed Club Arena picker and closes on Escape
+  await page.goto('/hub/training/hand-comparison', { waitUntil: 'domcontentloaded', timeout: 25000 });
+  await page.waitForTimeout(900);
+  await page.getByRole('button', { name: /Pick/i }).first().click();
+  await expect(page.locator('[role="dialog"] button[data-training-raw-control="true"]')).toHaveCount(52);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[role="dialog"][aria-label*="Picker"]')).toHaveCount(0);
+
+  // 3. Tilt Guard Breathing Exercise exposes dialog semantics and closes on Escape
+  await page.goto('/hub/training/tilt-guard', { waitUntil: 'domcontentloaded', timeout: 25000 });
+  await page.waitForTimeout(900);
+  await page.getByRole('button', { name: /Breath/i }).first().click();
+  await expect(page.locator('[role="dialog"][aria-labelledby="breathing-title"]')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#breathing-title')).toHaveCount(0);
+
+  // 4. Non-UUID tournament slug never triggers 5xx server error
+  const serverErrors: string[] = [];
+  page.on('response', (res) => {
+    if (res.status() >= 500) serverErrors.push(`${res.status()} ${res.url()}`);
+  });
+  await page.goto('/hub/training/tournament/daily-turbo', { waitUntil: 'domcontentloaded', timeout: 25000 });
+  await page.waitForTimeout(900);
+  expect(serverErrors, `Expected zero 5xx responses on missing tournament slug`).toEqual([]);
+});

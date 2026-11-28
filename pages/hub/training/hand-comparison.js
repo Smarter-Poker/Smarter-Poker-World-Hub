@@ -24,7 +24,7 @@ import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import Card from '../../../src/components/training/Card';
+import PlayingCard, { preloadArenaDeckCards } from '../../../src/components/poker/PlayingCard';
 
 
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
@@ -188,18 +188,17 @@ function runEquity(handA, handB, board, simCount = 3000) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function CardPicker({ value, onChange, onClear, label, allSelected, open, onOpen, onClose }) {
-  const [pendingRank, setPendingRank] = useState(null);
-
-  const rank = value ? value[0] : null;
-  const suit = value ? value[1] : null;
-
-  const suitColors = { h: '#ff7a86', d: '#64a9ff', c: '#5ee08a', s: '#f2f7ff' };
-  const suitNames = { h: 'Hearts', d: 'Diamonds', c: 'Clubs', s: 'Spades' };
-  const suitSymbols = { h: '♥', d: '♦', c: '♣', s: '♠' };
+  const suitNames = { s: 'Spades', h: 'Hearts', d: 'Diamonds', c: 'Clubs' };
+  const orderedSuits = ['s', 'h', 'd', 'c'];
 
   useEffect(() => {
-    if (!open) setPendingRank(null);
-  }, [open]);
+    if (!open) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
 
   function pick(r, s) {
     const card = r + s;
@@ -231,7 +230,7 @@ function CardPicker({ value, onChange, onClear, label, allSelected, open, onOpen
       >
         {value ? (
           <>
-            <Card rank={rank} suit={suit} size="small" />
+            <PlayingCard arena priority card={value} width={44} />
             <span className={at.remove} aria-hidden>✕</span>
           </>
         ) : (
@@ -245,51 +244,38 @@ function CardPicker({ value, onChange, onClear, label, allSelected, open, onOpen
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className={`sd-panel ${at.picker} ${at.pickerWide}`}
+            className={`sd-panel ${at.picker}`}
             role="dialog"
             aria-label={`${label} Picker`}
           >
             <div className={at.pickerHead}>
-              <span className={at.eyebrow}>{pendingRank ? `${pendingRank}: Pick Suit` : `${label}: Pick Rank`}</span>
+              <span className={at.eyebrow}>{`${label}: Pick Card`}</span>
               <button type="button" className={`sd-button ${at.close}`} onClick={onClose} aria-label={`Close ${label} Picker`}>
                 ✕
               </button>
             </div>
-            {!pendingRank && (
-              <div data-stats-grid className={at.rankGrid}>
-                {RANKS.map((r) => (
-                  <button key={r} type="button" className="sd-button" onClick={() => setPendingRank(r)}>
-                    {r}
-                  </button>
-                ))}
-              </div>
-            )}
-            {pendingRank && (
-              <div className={at.suitPick}>
-                {SUITS.map((s) => {
-                  const card = pendingRank + s;
+            {orderedSuits.map((s) => (
+              <div key={s} className={at.pickerRow}>
+                {RANKS.map((r) => {
+                  const card = r + s;
                   const disabled = allSelected.has(card);
                   return (
                     <button
-                      key={s}
+                      key={card}
                       type="button"
-                      className="sd-button"
-                      onClick={() => pick(pendingRank, s)}
+                      data-allow-small="true"
+                      data-training-raw-control="true"
+                      className={at.pick}
+                      onClick={() => !disabled && pick(r, s)}
                       disabled={disabled}
-                      aria-label={`${pendingRank} Of ${suitNames[s]}`}
-                      style={{ fontSize: 22 }}
+                      aria-label={`${r} Of ${suitNames[s]}`}
                     >
-                      <span style={{ color: disabled ? '#5d7085' : suitColors[s] }}>{suitSymbols[s]}</span>
+                      <PlayingCard arena priority card={card} width={32} />
                     </button>
                   );
                 })}
               </div>
-            )}
-            {pendingRank && (
-              <button type="button" className={`sd-button ${at.compact}`} onClick={() => setPendingRank(null)}>
-                ← Back To Ranks
-              </button>
-            )}
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
@@ -304,6 +290,10 @@ function CardPicker({ value, onChange, onClear, label, allSelected, open, onOpen
 export default function HandComparison() {
   useTrainingBus('hand-comparison');
   const router = useRouter();
+
+  useEffect(() => {
+    preloadArenaDeckCards();
+  }, []);
 
   const [handA, setHandA] = useState([null, null]);
   const [handB, setHandB] = useState([null, null]);

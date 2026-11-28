@@ -26,6 +26,7 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -79,8 +80,14 @@ import TrainingLobbyHeader from '../../src/components/training/lobby/TrainingLob
 import TrainingLobbyControls from '../../src/components/training/lobby/TrainingLobbyControls';
 import TrainingSortBar from '../../src/components/training/lobby/TrainingSortBar';
 import TrainingLobbyResults from '../../src/components/training/lobby/TrainingLobbyResults';
-import TrainingFiltersSheet from '../../src/components/training/lobby/TrainingFiltersSheet';
-import TrainingGamePreviewSheet from '../../src/components/training/lobby/TrainingGamePreviewSheet';
+const TrainingFiltersSheet = dynamic(
+  () => import('../../src/components/training/lobby/TrainingFiltersSheet'),
+  { ssr: false }
+);
+const TrainingGamePreviewSheet = dynamic(
+  () => import('../../src/components/training/lobby/TrainingGamePreviewSheet'),
+  { ssr: false }
+);
 import lobbyStyles from '../../src/components/training/lobby/TrainingLobby.module.css';
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
 import { leakService } from '../../src/services/LeakService';
@@ -1427,7 +1434,7 @@ function GlobalStyle() {
         max-width: 1280px; margin: 0 auto; padding: 24px 20px 120px;
         background:
           radial-gradient(60% 60% at 80% -10%, rgba(0,212,255,0.10), transparent 60%),
-          radial-gradient(50% 50% at 0% 30%, rgba(192,132,252,0.08), transparent 60%);
+          radial-gradient(50% 50% at 0% 30%, rgba(134,218,255,0.08), transparent 60%);
       }
       @media (max-width: 768px) { .sp-main { padding: 16px 16px 110px; } }
       .sp-main > section + section { margin-top: 32px; }
