@@ -88,6 +88,8 @@ import {
   buildLeakTakeaway,
   classifyEvidenceBasis,
 } from '../../../src/lib/personal-assistant/leakRecord.js';
+import { SANDBOX_HANDOFF_STORAGE_KEY } from '../../../src/components/sandbox/reviewHandoff.mjs';
+import { recordPaMilestone } from '../../../src/lib/personal-assistant/telemetry.mjs';
 
 const TRAINING_GAME_IDS = TRAINING_LIBRARY.map(game => game.id);
 
@@ -122,6 +124,115 @@ const CoachingWorkspace = dynamic(
 // must be skipped for them.
 function isDemoLeakId(id) {
   return typeof id === 'string' && (id.startsWith('demo-') || id.startsWith('sim-'));
+}
+
+const ILLUSTRATIVE_SAMPLE_LEAK = Object.freeze({
+  id: 'demo-sample-turn-cbet',
+  title: 'Over-Folding Turn Barrels In 3-Bet Pots',
+  situationClass: 'BTN Vs CO · 3-Bet Pot · Turn Double Barrel',
+  leakCategory: 'turn',
+  leakType: 'over_folding_turn_3bet',
+  status: 'emerging',
+  confidence: 'medium',
+  sourceSystem: 'solver_engine',
+  evidenceBasis: 'exact_solver_match',
+  evLossBB: 1.45,
+  evLossMeasured: true,
+  occurrenceCount: 9,
+  totalSamples: 28,
+  currentFrequency: 64,
+  optimalFrequency: 46,
+  explanation: 'Illustrative sample breakdown showing how recurring turn folds against 66% pot barrels compound EV loss across 3-bet pots.',
+  suggestedFix: 'Defend top-pair good-kicker and strong equity draws on blank turns instead of folding linearly to double barrels.',
+  representativeHand: {
+    street: 'turn',
+    heroPosition: 'BTN',
+    playerAction: 'fold',
+    solverAction: 'call',
+    solverVerified: true,
+    priceOrSizing: '66% Pot',
+    heroCards: ['Ah', 'Kh'],
+    board: ['Ks', '7c', '2d', '9h'],
+    potBb: 28,
+    stackBb: 100,
+    format: 'cash',
+  },
+  trendData: [
+    { date: 'Run 1', value: 72 },
+    { date: 'Run 2', value: 68 },
+    { date: 'Run 3', value: 64 },
+  ],
+});
+
+function buildLeakSandboxHandoffPayload(leak, exampleSnap = null) {
+  const rep = leak?.representativeHand || {};
+  const heroCards = parseMiniCards(
+    exampleSnap?.hero_cards || exampleSnap?.heroCards || rep.heroCards || ['Ah', 'Kh'],
+  ).map((c) => c.code).slice(0, 2);
+  const boardCards = parseMiniCards(
+    exampleSnap?.board || exampleSnap?.communityCards || rep.board || ['Ks', '7c', '2d'],
+  ).map((c) => c.code).slice(0, 5);
+  const heroPosition = String(
+    exampleSnap?.hero_position || exampleSnap?.position || rep.heroPosition || 'BTN',
+  ).trim().toUpperCase();
+  const potBb = Number(exampleSnap?.pot_bb ?? exampleSnap?.pot ?? rep.potBb ?? 18);
+  const effectiveStack = Number(exampleSnap?.effective_stack_bb ?? exampleSnap?.stack ?? rep.stackBb ?? 100);
+  const rawFormat = String(exampleSnap?.format || rep.format || leak?.formatScope || 'cash').toLowerCase();
+  const gameFormat = rawFormat.includes('tourn') || rawFormat === 'mtt' ? 'tournament' : 'cash';
+  const sourceRowId = String(exampleSnap?.hand_id || exampleSnap?.id || rep.handId || leak?.id || 'leak-spot');
+
+  return {
+    version: 1,
+    sourceRowId,
+    heroCards: heroCards.length >= 2 ? heroCards : ['Ah', 'Kh'],
+    board: boardCards,
+    boardCards,
+    heroPosition: ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].includes(heroPosition) ? heroPosition : 'BTN',
+    pot: Number.isFinite(potBb) && potBb > 0 ? potBb : 18,
+    potBase: Number.isFinite(potBb) && potBb > 0 ? potBb : 18,
+    effectiveStack: Number.isFinite(effectiveStack) && effectiveStack > 0 ? effectiveStack : 100,
+    gameFormat,
+    format: gameFormat,
+    variant: 'NLH',
+    createdAt: Date.now(),
+  };
+}
+
+function LeakTrendSparkline({ trendData, status }) {
+  const points = useMemo(() => coerceTrendPoints(trendData), [trendData]);
+  if (points.length < 2) return null;
+  const w = 78;
+  const h = 22;
+  const pad = 3;
+  const vals = points.map((p) => p.value);
+  const minVal = Math.min(...vals);
+  const maxVal = Math.max(...vals);
+  const span = (maxVal - minVal) || 1;
+  const coords = points.map((p, idx) => {
+    const x = pad + (idx / (points.length - 1)) * (w - pad * 2);
+    const y = pad + (h - pad * 2) - ((p.value - minVal) / span) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const first = vals[0];
+  const last = vals[vals.length - 1];
+  const improving = last < first;
+  const stroke = status === 'resolved' || improving ? '#4DE0A5' : '#56D8FF';
+
+  return (
+    <span className={toolStyles.sparklineRow} data-leak-trend="true" aria-label={`EV Trend Across ${points.length} Audits`}>
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" style={{ display: 'block', flexShrink: 0 }}>
+        <polyline
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          points={coords.join(' ')}
+        />
+      </svg>
+      <span>{improving ? 'Trending Down' : 'EV Trend'}</span>
+    </span>
+  );
 }
 
 /**
@@ -1217,6 +1328,7 @@ function LeakCard({
   onOpen,
   onReview,
   onPractice,
+  onOpenOnTable,
   onOpenOverflow,
   onClaimReward,
   rewardClaimed = false,
@@ -1321,8 +1433,16 @@ function LeakCard({
 
         <LeakCardProgress progress={progress} />
 
+        <LeakTrendSparkline trendData={leak.trendData} status={leak.status} />
+
         <span style={styles.leakCardBadges}>
           <span style={pill(honesty.tone)}>{honesty.label}</span>
+          {(leak.status === 'resolved' || isVerifiedFixed) && (
+            <span className={toolStyles.verifiedFixedBadge} data-verified-fixed-badge="true">
+              <CheckCircle2 size={12} strokeWidth={2.5} aria-hidden="true" />
+              <span>Verified Fixed In Live Play</span>
+            </span>
+          )}
           <TableVerificationBadges verification={leak.tableVerification} />
           <LeakStatusBadge status={leak.status} />
           {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
@@ -1337,7 +1457,7 @@ function LeakCard({
         )}
       </button>
 
-      {(onPractice || onReview || onOpenOverflow) && (
+      {(onPractice || onReview || onOpenOnTable || onOpenOverflow) && (
         <div style={styles.onePlusOneBar}>
           <button
             type="button"
@@ -1349,6 +1469,17 @@ function LeakCard({
             <Target size={16} strokeWidth={2} aria-hidden="true" />
             <span>{primaryLabel}</span>
           </button>
+          {onOpenOnTable && (
+            <button
+              type="button"
+              className="pa-btn"
+              data-open-on-table="true"
+              onClick={() => onOpenOnTable(leak)}
+              style={{ ...btn('secondary'), minHeight: 44, whiteSpace: 'nowrap' }}
+            >
+              <span>Open On Table</span>
+            </button>
+          )}
           {onOpenOverflow && (
             <button
               type="button"
@@ -1529,7 +1660,7 @@ function ResolutionProgressSection({ record }) {
 }
 
 function LeakDetail({
-  leak, onOpenHandReview, onReviewExample, onStartReview, onTrainDrills,
+  leak, onOpenHandReview, onReviewExample, onOpenOnTable, onStartReview, onTrainDrills,
   onMarkResolved, onReopen, isResolving, reviewRecord,
 }) {
   const isDemoLeak = isDemoLeakId(leak?.id);
@@ -1592,6 +1723,12 @@ function LeakDetail({
         <span style={pill(detailBasis.tone)} data-evidence-basis={detailBasis.key}>
           {detailBasis.label}
         </span>
+        {(leak.status === 'resolved' || leak?.tableVerification?.status === 'confirmed_fixed_at_tables') && (
+          <span className={toolStyles.verifiedFixedBadge} data-verified-fixed-badge="true">
+            <CheckCircle2 size={12} strokeWidth={2.5} aria-hidden="true" />
+            <span>Verified Fixed In Live Play</span>
+          </span>
+        )}
         <LeakStatusBadge status={leak.status} />
         {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
         <ConfidenceBadge confidence={leak.confidence} />
@@ -1757,6 +1894,17 @@ function LeakDetail({
                       <ChevronRight size={16} strokeWidth={2} aria-hidden="true" style={{ color: T.textMuted, marginLeft: 'auto' }} />
                     </span>
                   </button>
+                  {onOpenOnTable && (
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      data-open-on-table="true"
+                      style={{ ...btn('secondary', { block: true }), minHeight: 44 }}
+                      onClick={() => onOpenOnTable(leak, snap)}
+                    >
+                      <span>Open On Table</span>
+                    </button>
+                  )}
                   <ShareReviewControl
                     hand={{
                       street: snap.street,
@@ -1947,9 +2095,23 @@ export default function LeakFinderPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [overflowLeakId, setOverflowLeakId] = useState(null);
   const [quickChip, setQuickChip] = useState('all');
+  const [sampleLeakPreviewOpen, setSampleLeakPreviewOpen] = useState(false);
   const [claimedLeakRewards, setClaimedLeakRewards] = useState({});
   const [claimingLeakRewardId, setClaimingLeakRewardId] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
+
+  const handleOpenLeakOnTable = useCallback((leak, exampleSnap = null) => {
+    const payload = buildLeakSandboxHandoffPayload(leak, exampleSnap);
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem(SANDBOX_HANDOFF_STORAGE_KEY, JSON.stringify(payload));
+      }
+    } catch {
+      /* sandbox still receives fromReview param */
+    }
+    recordPaMilestone('leak_opened_on_table', { surface: 'leaks', format: payload.gameFormat });
+    router.push(`/hub/personal-assistant/sandbox?fromReview=${encodeURIComponent(payload.sourceRowId)}`);
+  }, [router]);
   const [liveSpotOpen, setLiveSpotOpen] = useState(false);
   const [liveSpotTab, setLiveSpotTab] = useState('spot');
   const closeLiveSpot = useCallback(() => setLiveSpotOpen(false), []);
@@ -2311,7 +2473,7 @@ export default function LeakFinderPage() {
   // The pool includes the onboarding samples so an example card can open too.
   const selectablePool = useMemo(() => {
     const onboarding = Array.isArray(onboardingLeaks) ? onboardingLeaks : [];
-    return leaks.concat(onboarding.filter(Boolean).map(normaliseLeak));
+    return leaks.concat(onboarding.filter(Boolean).map(normaliseLeak), [normaliseLeak(ILLUSTRATIVE_SAMPLE_LEAK)]);
   }, [leaks, onboardingLeaks]);
 
   const selectedLeak = useMemo(
@@ -3448,8 +3610,44 @@ export default function LeakFinderPage() {
       ? 'progress'
       : 'leaks';
 
+  const weeklyDigestEnabled = Boolean(
+    coachingPayload?.preferences?.weekly_digest_opt_in
+    ?? coachingPayload?.preferences?.weeklyDigestOptIn
+    ?? coachingSnapshot?.preferences?.weeklyDigestOptIn,
+  );
+  const nextWeeklyFocusDrill = shownLeaks[0]?.title
+    || coachingSnapshot?.priorities?.[0]?.title
+    || coachingSnapshot?.trainingPlan?.modules?.[0]?.title
+    || 'Run Leak Audit To Pick Focus Drill';
+
   const analysisSettingsDisclosureNode = (
-    <details className="pa-disclosure" style={{ marginBottom: S.sm }}>
+    <>
+      {weeklyDigestEnabled && (
+        <section
+          className={toolStyles.digestPreviewCard}
+          aria-label="Weekly Coaching Digest Preview"
+          data-weekly-digest-preview="true"
+        >
+          <span style={{ fontSize: 12, fontWeight: 800, color: '#83deff', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Weekly Coaching Digest Preview
+          </span>
+          <div className={toolStyles.digestPreviewGrid}>
+            <div className={toolStyles.digestPreviewMetric}>
+              <span className={toolStyles.digestPreviewLabel}>Active Leaks</span>
+              <span className={toolStyles.digestPreviewValue}>{activeLeaks.length}</span>
+            </div>
+            <div className={toolStyles.digestPreviewMetric}>
+              <span className={toolStyles.digestPreviewLabel}>Fixed Leaks</span>
+              <span className={toolStyles.digestPreviewValue} style={{ color: '#4DE0A5' }}>{pastLeaks.length}</span>
+            </div>
+            <div className={toolStyles.digestPreviewMetric}>
+              <span className={toolStyles.digestPreviewLabel}>Top Focus Drill</span>
+              <span className={toolStyles.digestPreviewValue}>{nextWeeklyFocusDrill}</span>
+            </div>
+          </div>
+        </section>
+      )}
+      <details className="pa-disclosure" style={{ marginBottom: S.sm }}>
       <summary>
         <span>Analysis Settings</span>
         <small style={{ fontSize: 12 }}>{activeSettingsOverrides > 0 ? `${activeSettingsOverrides} Custom` : 'Defaults Active'}</small>
@@ -3545,6 +3743,7 @@ export default function LeakFinderPage() {
         </div>
       </div>
     </details>
+    </>
   );
 
   return (
@@ -3990,7 +4189,26 @@ export default function LeakFinderPage() {
                   </div>
 
                   {linkedHandAudit?.hand && (
-                    <ShareReviewControl
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        data-open-on-table="true"
+                        style={{ ...btn('secondary', { block: true }), minHeight: 44 }}
+                        onClick={() => handleOpenLeakOnTable(
+                          { id: linkedClubHand?.id || 'linked-hand', title: 'Club Arena Hand Review' },
+                          {
+                            hand_id: linkedClubHand?.id,
+                            hero_cards: linkedHandAudit.hand.heroCards,
+                            board: linkedHandAudit.hand.board,
+                            hero_position: linkedHandAudit.hand.heroPosition || linkedHandAudit.hand.position,
+                            format: linkedHandAudit.hand.formatLabel,
+                          },
+                        )}
+                      >
+                        <span>Open On Table</span>
+                      </button>
+                      <ShareReviewControl
                       hand={{
                         street: linkedHandAudit.hand.street || linkedHandAudit.trainingAction?.street,
                         position: linkedHandAudit.hand.heroPosition || linkedHandAudit.hand.position,
@@ -4000,7 +4218,8 @@ export default function LeakFinderPage() {
                         formatLabel: linkedHandAudit.hand.formatLabel,
                         title: 'Club Arena Hand Review',
                       }}
-                    />
+                      />
+                    </div>
                   )}
 
                   {!userId && (
@@ -4283,7 +4502,57 @@ export default function LeakFinderPage() {
                     body={(autoDetecting || isDetecting)
                       ? 'Scanning your hand history for repeated, measurable EV mistakes. This takes a few seconds.'
                       : 'Use Analyze My Play above to scan your completed Club Arena hands with verified defaults.'}
+                    action={!(autoDetecting || isDetecting) ? (
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        data-preview-sample-leak-toggle="true"
+                        aria-expanded={sampleLeakPreviewOpen}
+                        style={{ ...btn('secondary'), minHeight: 44 }}
+                        onClick={() => {
+                          setSampleLeakPreviewOpen((prev) => {
+                            const next = !prev;
+                            if (next) recordPaMilestone('sample_leak_previewed', { surface: 'leaks' });
+                            return next;
+                          });
+                        }}
+                      >
+                        <span>{sampleLeakPreviewOpen ? 'Hide Sample Leak' : 'Preview Sample Leak'}</span>
+                      </button>
+                    ) : null}
                   />
+                  {sampleLeakPreviewOpen && (
+                    <section
+                      className={toolStyles.instrumentPanel}
+                      aria-label="Illustrative Sample Leak Breakdown"
+                      data-sample-leak-preview="true"
+                      style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}
+                    >
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: S.xs }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: '#83deff', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                          Illustrative Sample Leak (Not Your Account Data)
+                        </span>
+                        <button
+                          type="button"
+                          className="pa-btn"
+                          data-open-sample-on-table="true"
+                          style={{ ...btn('primary'), minHeight: 44 }}
+                          onClick={() => handleOpenLeakOnTable(ILLUSTRATIVE_SAMPLE_LEAK)}
+                        >
+                          <span>Open Sample On Table</span>
+                        </button>
+                      </div>
+                      <ul className="leak-list-grid" style={styles.leakList} role="list">
+                        <LeakCard
+                          leak={normaliseLeak(ILLUSTRATIVE_SAMPLE_LEAK)}
+                          demo
+                          selected={String(selectedLeakId) === String(ILLUSTRATIVE_SAMPLE_LEAK.id)}
+                          onOpen={(l) => setSelectedLeakId(l.id)}
+                          onOpenOnTable={handleOpenLeakOnTable}
+                        />
+                      </ul>
+                    </section>
+                  )}
                   {(onboardingLeaks || []).length > 0 && (
                     <div>
                       <h2 style={styles.sectionHeading}>Example Leaks (Not Yours)</h2>
@@ -4452,6 +4721,7 @@ export default function LeakFinderPage() {
                               onOpen={(l) => setSelectedLeakId(l.id)}
                               onReview={handleOpenHandReview}
                               onPractice={(l) => (isDueRow ? handleStartReview({ leak: l }) : handleTrainDrills(l))}
+                              onOpenOnTable={handleOpenLeakOnTable}
                               onOpenOverflow={(l) => setOverflowLeakId(l.id)}
                               onClaimReward={handleClaimLiveFixFromCard}
                               progress={isDemoRow
@@ -4505,6 +4775,10 @@ export default function LeakFinderPage() {
                                   <ChevronRight size={18} strokeWidth={2} aria-hidden="true" style={{ color: T.textMuted, flexShrink: 0 }} />
                                 </span>
                                 <span style={styles.leakCardBadges}>
+                                  <span className={toolStyles.verifiedFixedBadge} data-verified-fixed-badge="true">
+                                    <CheckCircle2 size={12} strokeWidth={2.5} aria-hidden="true" />
+                                    <span>Verified Fixed In Live Play</span>
+                                  </span>
                                   <LeakStatusBadge status="resolved" />
                                   <TableVerificationBadges verification={leak.tableVerification} />
                                   {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
@@ -4993,6 +5267,7 @@ export default function LeakFinderPage() {
                 leak={selectedLeak}
                 onOpenHandReview={handleOpenHandReview}
                 onReviewExample={handleReviewExample}
+                onOpenOnTable={handleOpenLeakOnTable}
                 onStartReview={handleStartReview}
                 onTrainDrills={handleTrainDrills}
                 onMarkResolved={handleMarkResolved}

@@ -802,6 +802,78 @@
   background: #061120;
 }
 
+.replayerArenaWrap {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(86, 216, 255, 0.28);
+  background: #040d18;
+}
+
+.smartFilterGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.smartFilterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.smartFilterLabel {
+  color: #9cb3c9;
+  font-size: 12px;
+  font-weight: 700;
+  margin-right: 2px;
+}
+
+.smartChipBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 161, 180, 0.34);
+  background: #081526;
+  color: #cfe0ef;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.smartChipBtn:hover {
+  border-color: var(--pa-cyan);
+  color: #ffffff;
+}
+
+.smartChipBtnActive {
+  border-color: #56d8ff;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 45%, #07377e);
+  color: #ffffff;
+}
+
+.sampleBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(86, 216, 255, 0.45);
+  background: rgba(8, 124, 250, 0.14);
+  color: #d8f3ff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .replayerMetrics {
   display: flex;
   flex-wrap: wrap;
