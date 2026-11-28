@@ -179,10 +179,34 @@ function buildVenueSeo(venue, routeId, scheduleCount) {
 }
 
 /**
+ * Strictly authentic database-backed AggregateRating JSON-LD builder.
+ * Returns null unless ratingValue is a finite number in [1, 5] AND reviewCount
+ * is an integer >= 3. Never fabricates ratings when DB has fewer than 3 reviews.
+ */
+export function buildAuthenticVenueAggregateRating({ ratingValue, reviewCount } = {}) {
+  if (
+    !Number.isFinite(ratingValue) ||
+    ratingValue < 1 ||
+    ratingValue > 5 ||
+    !Number.isInteger(reviewCount) ||
+    reviewCount < 3
+  ) {
+    return null;
+  }
+  return {
+    '@type': 'AggregateRating',
+    ratingValue: Number(ratingValue.toFixed(2)),
+    reviewCount,
+    bestRating: 5,
+    worstRating: 1,
+  };
+}
+
+/**
  * schema.org node for the venue. Only fields present on the record are
  * emitted — no invented addresses, ratings or hours.
  */
-function buildVenueJsonLd(venue, canonical, image) {
+export function buildVenueJsonLd(venue, canonical, image, ratingStats) {
   if (!venue || !venue.name) return null;
 
   const isCasino = venue.venue_type === 'casino';
@@ -339,6 +363,22 @@ function buildVenueJsonLd(venue, canonical, image) {
 
   if (eventNodes.length > 0) {
     venueNode.event = eventNodes;
+  }
+
+  const resolvedRatingValue =
+    ratingStats && Number.isFinite(ratingStats.ratingValue)
+      ? ratingStats.ratingValue
+      : (Number.isFinite(venue?.avg_rating) ? venue.avg_rating : null);
+  const resolvedReviewCount =
+    ratingStats && Number.isInteger(ratingStats.reviewCount)
+      ? ratingStats.reviewCount
+      : (Number.isInteger(venue?.review_count) ? venue.review_count : null);
+  const aggregateRatingNode = buildAuthenticVenueAggregateRating({
+    ratingValue: resolvedRatingValue,
+    reviewCount: resolvedReviewCount,
+  });
+  if (aggregateRatingNode) {
+    venueNode.aggregateRating = aggregateRatingNode;
   }
 
   const graphNodes = [venueNode, breadcrumbNode];
@@ -504,6 +544,29 @@ export async function getServerSideProps({ params, query, req, res }) {
         // column the collector stopped writing (venueScheduleFreshness.mjs).
         // Same derivation as /api/poker/venues so hydration does not change it.
         overrides.schedule_freshness = describeVenueScheduleFreshness(data, qualifiedRows);
+        // Read authentic non-flagged venue_reviews aggregates for SSR JSON-LD.
+        // Fails closed (null / 0) on any error so ratings are never fabricated.
+        try {
+          const { data: reviewRows } = await supabaseServer
+            .from('venue_reviews')
+            .select('rating')
+            .eq('venue_id', String(numericId))
+            .or('is_flagged.is.null,is_flagged.eq.false')
+            .limit(1000);
+          if (Array.isArray(reviewRows) && reviewRows.length > 0) {
+            const validRatings = reviewRows
+              .map((row) => Number(row?.rating))
+              .filter((val) => Number.isFinite(val) && val >= 1 && val <= 5);
+            if (validRatings.length > 0) {
+              overrides.review_count = validRatings.length;
+              overrides.avg_rating = Number(
+                (validRatings.reduce((sum, val) => sum + val, 0) / validRatings.length).toFixed(2),
+              );
+            }
+          }
+        } catch (_) {
+          /* non-blocking: omit AggregateRating if review lookup fails */
+        }
         // Narrow before it becomes a prop — see PUBLIC_VENUE_FIELDS. This is
         // the point where is_suppressed (already consumed above) and the rest
         // of the private columns are dropped.
@@ -887,8 +950,13 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
 
   // Reviews state
   const [reviews, setReviews] = useState([]);
-  const [avgRating, setAvgRating] = useState(0);
-  const [totalReviews, setTotalReviews] = useState(0);
+  const [avgRating, setAvgRating] = useState(
+    Number.isFinite(initialVenue?.avg_rating) ? initialVenue.avg_rating : 0,
+  );
+  const [totalReviews, setTotalReviews] = useState(
+    Number.isInteger(initialVenue?.review_count) ? initialVenue.review_count : 0,
+  );
+  const [stakeAlertEnabled, setStakeAlertEnabled] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     rating: 0,
@@ -1708,6 +1776,81 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
     }
   };
 
+  var handleStakeAlert = function () {
+    var venueId = String(id);
+    var venueName = (venue && venue.name) ? String(venue.name).trim() : 'This Poker Room';
+    var venuePath = '/hub/venues/' + venueId;
+
+    var hasToken = false;
+    try {
+      var _pa = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+      var _ft = _pa?.access_token || null;
+      if (!_ft) {
+        var sbKeys = Object.keys(localStorage || {}).filter(function (k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
+        if (sbKeys.length > 0) _ft = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.access_token || null;
+      }
+      if (_ft) hasToken = true;
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+
+    if (!hasToken) {
+      try {
+        var stakeAlertSpot = {
+          id: ('stake-alert-' + venueId).slice(0, 80),
+          kind: 'stake-alert',
+          toolSlug: 'stake-alert',
+          toolName: 'Live Stake Alert',
+          label: venueName + ' Live Stakes',
+          summaryText: (venueName + ' Live Stakes').slice(0, 320),
+          path: venuePath,
+          url: venuePath,
+          savedAt: new Date().toISOString(),
+        };
+        var rawSavedSpots = window.localStorage?.getItem('sp_saved_spots_v1');
+        var parsedSavedSpots = rawSavedSpots ? JSON.parse(rawSavedSpots) : [];
+        var existingSavedSpots = Array.isArray(parsedSavedSpots) ? parsedSavedSpots : [];
+        var nextSavedSpots = [
+          stakeAlertSpot,
+          ...existingSavedSpots.filter(function (item) { return item && item.id !== stakeAlertSpot.id; }),
+        ].slice(0, 25);
+        window.localStorage?.setItem('sp_saved_spots_v1', JSON.stringify(nextSavedSpots));
+      } catch (_) {
+        /* ignore storage restrictions */
+      }
+      trackSeoFunnelEvent('seo_venue_follow_signup_click', {
+        action: 'stake-alert',
+        venueId: venueId,
+      });
+      try {
+        window.dispatchEvent(
+          new CustomEvent('sp:peak-utility-pwa', {
+            detail: { unlockKey: 'venue-follow' },
+          }),
+        );
+      } catch (_) {
+        /* non-blocking */
+      }
+      openQuickSignup({
+        unlockKey: 'venue-follow',
+        eyebrow: 'Live Poker Room Alerts',
+        title: 'Get Live Stake & Waitlist Alerts For ' + venueName,
+        subtitle: 'Create Your Free Smarter.Poker Account In 10 Seconds To Receive Live Cash Stake Alerts, Waitlist Movement, And Claim 30-Day Free VIP + 500 Diamonds.',
+        source: 'venue-stake-alert-button',
+        redirectPath: venuePath,
+        benefits: [
+          '100% Free Forever - Zero Credit Card Required',
+          'Instant Alerts When Live Stakes & Waitlists Open',
+          'Claim 30-Day Free VIP + 500 Diamonds On Phone Verify',
+        ],
+      });
+      return;
+    }
+
+    setStakeAlertEnabled(function (prev) { return !prev; });
+    if (!isFollowed) {
+      handleFollow();
+    }
+  };
+
   useEffect(() => {
     const fetchFriendState = async () => {
       if (!venue || venue.venue_type !== 'home_game' || !venue.owner_id) return;
@@ -2085,7 +2228,12 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
   // this route does not apply the privacy filters that page does.
   var isIndexable = !!venue && venue.venue_type !== 'home_game';
   var seo = buildVenueSeo(venue, id, countSchedules(venue));
-  var venueJsonLd = isIndexable ? buildVenueJsonLd(venue, seo.canonical, seo.image) : null;
+  var venueJsonLd = isIndexable
+    ? buildVenueJsonLd(venue, seo.canonical, seo.image, {
+        ratingValue: totalReviews > 0 ? avgRating : venue?.avg_rating,
+        reviewCount: totalReviews > 0 ? totalReviews : venue?.review_count,
+      })
+    : null;
 
   // Which sections have nothing to show right now (see quietWidgets above).
   // A section that is open for input, carries an alert, or has any row of its
@@ -2444,6 +2592,18 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                   </svg>
                   {isFollowed ? 'Following' : 'Follow'}
                   {followerCount > 0 && <span className="follow-count">{followerCount}</span>}
+                </button>
+                <button
+                  type="button"
+                  data-testid="venue-stake-alert-btn"
+                  className={'action-btn stake-alert-btn' + (stakeAlertEnabled ? ' active' : '')}
+                  onClick={handleStakeAlert}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stakeAlertEnabled ? '#39E9A5' : '#38bdf8'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                  </svg>
+                  {stakeAlertEnabled ? 'Live Stake Alerts On' : 'Alert Me For Live Stakes'}
                 </button>
                 {venue.venue_type === 'home_game' && venue.owner_id && (getAuthUser()?.id !== venue.owner_id) && (
                   <>
@@ -4398,6 +4558,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         /* Action Buttons */
         .action-buttons {
           display: flex;
+          flex-wrap: wrap;
           gap: 10px;
           margin-top: 20px;
         }
@@ -4461,6 +4622,22 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           background: rgba(0, 212, 255, 0.12);
           border-color: #00D4FF;
           color: #00D4FF;
+        }
+        .stake-alert-btn {
+          min-height: 44px;
+          background: #0b1120;
+          border: 1px solid #1e3a5f;
+          color: #38bdf8;
+        }
+        .stake-alert-btn:hover {
+          background: #2563eb;
+          border-color: #38bdf8;
+          color: #ffffff;
+        }
+        .stake-alert-btn.active {
+          background: rgba(37, 99, 235, 0.22);
+          border-color: #38bdf8;
+          color: #ffffff;
         }
         .share-btn {
           background: rgba(15, 23, 42, 0.5);

@@ -235,6 +235,7 @@ const UNLOCK_COPY_MAP = {
   'gto-leak-finder-report': 'Your Full 5-Category GTO Leak Matrix & Custom 107-Game Drill Plan Are Unlocked.',
   'editorial-wire': 'Weekly GTO Strategy Polls, Full Wire Archives & Pro Alerts Are Now Active.',
   'masthead': 'Your Free Smarter.Poker Pro Console, 107 GTO Games & Live Venue Intel Are Active.',
+  'returning-guest-sync': 'Welcome Back - Your Saved Spots Are Synced & Your Free 30-Day VIP Offer Is Ready.',
 };
 
 export function buildDay0ChecklistState({ savedSpotCount = 0, completedIds = [] } = {}) {
@@ -447,6 +448,7 @@ export default function SmarterUnlockedWelcomeBanner() {
   const [completedWinIds, setCompletedWinIds] = useState([]);
   const [memberIdentity, setMemberIdentity] = useState({ userId: '', playerNumber: null });
   const [copiedInvite, setCopiedInvite] = useState(false);
+  const [day0Modules, setDay0Modules] = useState(null);
   const inviteTimerRef = useRef(null);
 
   useEffect(() => {
@@ -454,6 +456,26 @@ export default function SmarterUnlockedWelcomeBanner() {
       if (inviteTimerRef.current) clearTimeout(inviteTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!bannerState || day0Modules) return undefined;
+    let active = true;
+    import('./Day0IntentRouter')
+      .then((mod) => {
+        if (!active || !mod) return;
+        const IntentRouterComp = mod.default || mod.Day0IntentRouter || null;
+        const MilestonesComp = mod.TieredReferralMilestones || null;
+        if (IntentRouterComp || MilestonesComp) {
+          setDay0Modules({ IntentRouterComp, MilestonesComp });
+        }
+      })
+      .catch(() => {
+        /* non-blocking: banner remains usable if dynamic chunk fails */
+      });
+    return () => {
+      active = false;
+    };
+  }, [bannerState, day0Modules]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -622,6 +644,13 @@ export default function SmarterUnlockedWelcomeBanner() {
         </div>
       </div>
 
+      {day0Modules?.IntentRouterComp ? (
+        <day0Modules.IntentRouterComp
+          unlockKey={bannerState.unlockKey}
+          source={bannerState.source || 'seo-unlock'}
+        />
+      ) : null}
+
       <div
         data-testid="unlocked-banner-day0-checklist"
         style={{
@@ -766,17 +795,28 @@ export default function SmarterUnlockedWelcomeBanner() {
         >
           Share Your Personal Invite Link With Poker Friends
         </span>
-        <button
-          type="button"
-          className={styles.btnSharpSecondary}
-          data-testid="unlocked-banner-invite-btn"
-          onClick={handleCopyInviteLink}
-          style={{ minHeight: 44, padding: '0 12px', fontSize: 12 }}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 8,
+            minWidth: 0,
+          }}
         >
-          {copiedInvite
-            ? 'Invite Link Copied'
-            : 'Invite A Poker Friend (Free 30-Day VIP + 500 Diamonds)'}
-        </button>
+          {day0Modules?.MilestonesComp ? <day0Modules.MilestonesComp /> : null}
+          <button
+            type="button"
+            className={styles.btnSharpSecondary}
+            data-testid="unlocked-banner-invite-btn"
+            onClick={handleCopyInviteLink}
+            style={{ minHeight: 44, padding: '0 12px', fontSize: 12 }}
+          >
+            {copiedInvite
+              ? 'Invite Link Copied'
+              : 'Invite A Poker Friend (Free 30-Day VIP + 500 Diamonds)'}
+          </button>
+        </div>
       </div>
     </aside>
   );
