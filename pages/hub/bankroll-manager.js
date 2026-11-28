@@ -1557,14 +1557,6 @@ export default function BankrollManagerPage() {
             helpContent={
               <>
                 {isDashboard && <HubPageSummary page="bankroll-manager" />}
-                <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>
-                  <SmarterAccountUnlockGate
-                    variant="calculator-pro"
-                    context="hub-bankroll-manager"
-                    title="Log Unlimited Live & Online Sessions, Tax Reports & Risk Of Ruin Free"
-                    redirectPath="/hub/bankroll-manager"
-                  />
-                </div>
                 <FaqSection faqs={BANKROLL_MANAGER_FAQS} />
               </>
             }>
@@ -2532,6 +2524,14 @@ export default function BankrollManagerPage() {
               <JarvisLeakInsights userId={userId} onRefresh={loadData} />
             </div>
           )}
+          <div style={{ maxWidth: 1120, margin: '24px auto 0', padding: '0 16px 28px' }}>
+            <SmarterAccountUnlockGate
+              variant="calculator-pro"
+              context="hub-bankroll-manager"
+              title="Log Unlimited Live & Online Sessions, Tax Reports & Risk Of Ruin Free"
+              redirectPath="/hub/bankroll-manager"
+            />
+          </div>
         </FeatureGate>
       </div>
       </PullToRefresh>
