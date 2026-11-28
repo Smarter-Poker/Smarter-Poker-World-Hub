@@ -134,3 +134,15 @@ test('no emoji in any Preflop Charts source', () => {
     assert.doesNotMatch(read(file), EMOJI, `${file} carries an emoji`);
   }
 });
+
+test('Local VS shows the authentic Club Arena 4-color deck, and the range-key dialog wears the steel rim', () => {
+  const vs = read('src/games/TournamentModeGame.jsx');
+  assert.match(vs, /import \{ resolveArenaCardUrl \} from '\.\.\/lib\/clubArenaTheme'/);
+  assert.match(vs, /resolveArenaCardUrl\(CARD_SUIT\[suit\]/);
+  assert.doesNotMatch(vs, /linear-gradient\(135deg, #fff, #f0f0f0\)/, 'no CSS-drawn white card tiles');
+  const dialogCss = read('src/components/memory-games/JarvisExplanationDialog.module.css');
+  assert.match(dialogCss, /chrome-readout\.webp/);
+  assert.match(dialogCss, /chrome-active-v2\.webp/);
+  assert.doesNotMatch(dialogCss, /Orbitron/);
+});
+
