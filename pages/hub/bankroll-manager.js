@@ -150,6 +150,8 @@ import { getAccessToken } from '../../src/lib/authUtils';
 import { listHeld, releaseHeld, noteAttempt } from '../../src/lib/bankroll/receiptHold.mjs';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import { openQuickSignup } from '../../src/components/seo/SmarterQuickSignupSheet';
 import BankrollImageHeader from '../../src/components/bankroll/BankrollImageHeader';
 import { BankrollActionTarget } from '../../src/components/bankroll/BankrollHeaderAdd';
 const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
@@ -1555,6 +1557,14 @@ export default function BankrollManagerPage() {
             helpContent={
               <>
                 {isDashboard && <HubPageSummary page="bankroll-manager" />}
+                <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>
+                  <SmarterAccountUnlockGate
+                    variant="calculator-pro"
+                    context="hub-bankroll-manager"
+                    title="Log Unlimited Live & Online Sessions, Tax Reports & Risk Of Ruin Free"
+                    redirectPath="/hub/bankroll-manager"
+                  />
+                </div>
                 <FaqSection faqs={BANKROLL_MANAGER_FAQS} />
               </>
             }>
@@ -2831,22 +2841,41 @@ export default function BankrollManagerPage() {
               >
                 <h2 id="bankroll-sign-in-title" className="sd-section-title">Sign In Required</h2>
                 <p id="bankroll-sign-in-description" style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', margin: '0 0 24px' }}>
-                  Please Sign In To Log Your Poker Sessions And Track Your Bankroll.
+                  Create A Free Account Or Sign In To Log Your Poker Sessions And Track Your Bankroll.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => router.push('/login?redirect=/hub/bankroll-manager')}
-                  className="sd-button sd-primary" style={{ marginInlineEnd: 8 }}
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={closeLogModal}
-                  className="sd-button"
-                >
-                  Cancel
-                </button>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeLogModal();
+                      openQuickSignup({
+                        unlockKey: 'calculator-pro-bankroll-manager',
+                        source: 'bankroll-manager-log-modal',
+                        redirectPath: '/hub/bankroll-manager',
+                        eyebrow: 'Free Poker Bankroll Ledger',
+                        title: 'Log Sessions & Track Your Bankroll Free',
+                        subtitle: 'Create Your Free Smarter.Poker Account In 10 Seconds To Save Sessions, W-2G Tax Logs & Risk Of Ruin Across Devices.',
+                      });
+                    }}
+                    className="sd-button sd-primary"
+                  >
+                    Create Free Account
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/auth/login?redirect=/hub/bankroll-manager')}
+                    className="sd-button"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeLogModal}
+                    className="sd-button"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </motion.div>
             </motion.div>
           )

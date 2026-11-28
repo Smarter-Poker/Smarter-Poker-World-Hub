@@ -64,6 +64,7 @@ import { homeGameUrl } from '../../src/lib/home-games/urls';
 import { US_STATES_BY_CODE } from '../../src/lib/home-games/locationUtils';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import FaqSection from '../../src/components/seo/FaqSection';
+import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 
 const PAGE_SIZE = 12;
 
@@ -978,6 +979,14 @@ export default function HomeGamesPage() {
                 />
             </div>
 
+            <div style={{ maxWidth: 1120, margin: '24px auto', padding: '0 16px' }}>
+                <SmarterAccountUnlockGate
+                    variant="live-venue-intel"
+                    context="hub-home-games"
+                    title="Request Seats, Save Local Home Games & Host Your Own Poker Night Free"
+                    redirectPath="/hub/home-games"
+                />
+            </div>
             <FaqSection faqs={HOME_GAMES_FAQS} />
             <HubPageSummary page="home-games" />
         </>

@@ -21,9 +21,14 @@ export const JUST_UNLOCKED_KEY = 'sp_just_unlocked_v1';
 const UNLOCK_COPY_MAP = {
   'solver-matrix': 'Your Full GTO Preflop & Postflop Solver Library Is Now Unlocked.',
   'calculator-pro': 'Cloud Spot Saving & Multi-Scenario Sync Are Now Active On Your Account.',
+  'live-venue-intel': 'Live Poker Room Alerts, Waitlist Tracking & Saved Cardrooms Are Now Active.',
   'venue-intel': 'Live Poker Room Alerts, Waitlist Tracking & Saved Cardrooms Are Now Active.',
   'series-alerts': 'Tournament Series Reminders & Schedule Tracking Are Now Active.',
+  'video-drill': 'Interactive Video Hand Quizzes, Study Playlists & Pro Bookmarks Are Now Active.',
   'study-deck': 'Your Personal Poker Study Deck, Leak Tracker & 107 GTO Games Are Unlocked.',
+  'dataset-export': 'Full Interactive Filter Matrix, Benchmark Tables & CSV Exports Are Now Active.',
+  'editorial-wire': 'Weekly GTO Strategy Polls, Full Wire Archives & Pro Alerts Are Now Active.',
+  'masthead': 'Your Free Smarter.Poker Pro Console, 107 GTO Games & Live Venue Intel Are Active.',
 };
 
 function hasStoredAuthSession() {

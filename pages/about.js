@@ -22,6 +22,8 @@
 import Link from 'next/link';
 import SEOHead, { schemas, FOUNDER } from '../src/components/seo/SEOHead';
 import FaqSection from '../src/components/seo/FaqSection';
+import SmarterConversionCta from '../src/components/seo/SmarterConversionCta';
+import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
 import { LANDING_PRODUCTS } from '../src/components/landing/LandingProductSummary';
 
 const ABOUT_FAQS = [
@@ -197,66 +199,24 @@ export default function AboutPage() {
             </Link>
           </p>
 
-          <aside
-            aria-label="Create Free Smarter.Poker Account"
-            style={{
-              margin: '28px 0',
-              padding: '22px 20px',
-              background: '#060d1a',
-              border: '1px solid rgba(148, 184, 224, 0.28)',
-              borderRadius: 12,
-            }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#38bdf8', marginBottom: 6 }}>
-              Free Smarter.Poker Account
-            </div>
-            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#ffffff', margin: '0 0 8px' }}>
-              Start Playing And Training Free On Smarter.Poker
-            </h2>
-            <p style={{ fontSize: 14, lineHeight: 1.6, color: '#cbd5e1', margin: '0 0 16px' }}>
-              Join Free To Access 107 Interactive GTO Training Games, 715+ Verified Live Poker Rooms, Bankroll Tracking, And Private Poker Clubs.
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              <Link
-                href="/auth/signup?redirect=/hub&src=about"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: 44,
-                  padding: '10px 20px',
-                  borderRadius: 8,
-                  background: 'linear-gradient(180deg, #0284c7 0%, #1d4ed8 100%)',
-                  border: '1px solid rgba(56, 189, 248, 0.5)',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: 14,
-                  textDecoration: 'none',
-                }}
-              >
-                Create Free Account
-              </Link>
-              <Link
-                href="/auth/login?redirect=/hub"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: 44,
-                  padding: '10px 18px',
-                  borderRadius: 8,
-                  background: '#081121',
-                  border: '1px solid rgba(148, 184, 224, 0.28)',
-                  color: '#38bdf8',
-                  fontWeight: 700,
-                  fontSize: 14,
-                  textDecoration: 'none',
-                }}
-              >
-                Sign In
-              </Link>
-            </div>
-          </aside>
+          <SmarterConversionCta
+            eyebrow="Free Smarter.Poker Account"
+            title="Start Playing And Training Free On Smarter.Poker"
+            description="Join Free To Access 107 Interactive GTO Training Games, 715+ Verified Live Poker Rooms, Bankroll Tracking, And Private Poker Clubs."
+            primaryLabel="Create Free Account"
+            primaryHref="/auth/signup?redirect=/hub&src=about"
+            secondaryLabel="Sign In"
+            secondaryHref="/auth/login?redirect=/hub"
+          />
+
+          <div style={{ margin: '24px 0' }}>
+            <SmarterAccountUnlockGate
+              variant="study-deck"
+              context="about-page"
+              title="Unlock Full GTO Training, Live Venue Directory & Bankroll Ledger Free"
+              redirectPath="/hub"
+            />
+          </div>
 
           <FaqSection title="Frequently Asked Questions About Smarter.Poker" faqs={ABOUT_FAQS} />
 
@@ -296,9 +256,9 @@ const styles = {
   body: { fontSize: 15, lineHeight: 1.7, color: '#b8c4d6', margin: '0 0 8px' },
   list: { listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 },
   item: {
-    background: 'rgba(255, 255, 255, 0.04)',
-    border: '1px solid rgba(0, 198, 255, 0.18)',
-    borderRadius: 12,
+    background: 'linear-gradient(180deg, #0d1f33 0%, #071321 100%)',
+    border: '1px solid #2b4663',
+    borderRadius: 0,
     padding: '16px 16px 14px',
   },
   link: {
