@@ -4,8 +4,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  buildEntry, detectDateOrder, detectDelimiter, duplicateKey, guessMapping, importDay, importIdOf,
-  importTag, newImportId, parseCategory, parseClock, parseDay, parseDelimited, parseHours, parseMoney,
+  buildEntry, detectDateOrder, detectDelimiter, duplicateKey, guessMapping, importDay, importIdOfRef,
+  importRef, importRefPrefix, newImportId, parseCategory, parseClock, parseDay, parseDelimited, parseHours, parseMoney,
   planImport, readTable, withLocationIds,
 } from '../src/lib/bankroll/sessionImport.mjs';
 
@@ -113,12 +113,12 @@ test('headers map by name, including this app\'s own CSV export', () => {
 
 test('a row becomes the entry the log form would save', () => {
   const m = { date: 0, start: 1, end: 2, category: 3, stakes: 4, venue: 5, buy_in: 6, cash_out: 7, notes: 8 };
-  const { entry, venue, errors } = buildEntry(['11/20/2026', '9:00 PM', '3:00 AM', 'Cash', '1/3', 'Aria', '$300', '$1,050.25', 'good'], m, { today: TODAY, importId: 'imp-20261128-abc123', order: 'mdy' });
+  const { entry, venue, errors } = buildEntry(['11/20/2026', '9:00 PM', '3:00 AM', 'Cash', '1/3', 'Aria', '$300', '$1,050.25', 'good'], m, { today: TODAY, order: 'mdy' });
   assert.deepEqual(errors, []);
   assert.equal(venue, 'Aria');
   assert.deepEqual(entry, {
     category: 'poker_cash', entry_date: '2026-11-20', start_time: '2026-11-20T21:00:00', end_time: '2026-11-21T03:00:00',
-    gross_in: 300, gross_out: 1050.25, stakes: '1/3', game_type: null, notes: '[Import imp-20261128-abc123] good',
+    gross_in: 300, gross_out: 1050.25, stakes: '1/3', game_type: null, notes: 'good',
   });
 });
 
@@ -178,7 +178,9 @@ test('Poker Bankroll Tracker export: marker row, buy-in with rebuys and add-ons,
   assert.equal(cash.stakes, '1/3');
   assert.equal(cash.game_type, 'No Limit Texas Holdem');
   assert.equal(cash.start_time, '2026-01-23T18:30:00');
-  assert.equal(cash.notes, '[Import imp-20261128-pbt000] table, seat 4');
+  assert.equal(cash.notes, 'table, seat 4', 'notes stay the player\'s own');
+  assert.equal(cash.external_ref, 'csv:imp-20261128-pbt000:3', 'row 3 of the file');
+  assert.equal(mtt.external_ref, 'csv:imp-20261128-pbt000:4');
   assert.equal(mtt.category, 'poker_mtt');
   assert.equal(mtt.gross_in, 400);
   assert.equal(mtt.tournament_name, 'Daily Deepstack');
@@ -201,14 +203,21 @@ test('duplicates against the ledger are skipped by default and kept on request',
   assert.equal(withIds[0].location_id, 'loc-1');
 });
 
-test('the import tag: every row carries it, and it is read back exactly', () => {
+test('external_ref: csv:<importId>:<row>, strict, and read back exactly', () => {
   const id = newImportId('2026-11-28', () => 0.5);
   assert.match(id, /^imp-20261128-[a-z0-9]{6}$/);
-  assert.equal(importTag(id), `[Import ${id}]`);
-  assert.equal(importIdOf(`${importTag(id)} notes`), id);
-  assert.equal(importIdOf('notes [Import imp-20261128-abcdef]'), null, 'only a leading tag counts');
+  assert.equal(importRef(id, 14), `csv:${id}:14`);
+  assert.match(importRef(id, 14), /^[a-z][a-z0-9_-]*:/, 'the shape the column requires');
+  assert.ok(importRef(id, 20001).length <= 200);
+  assert.equal(importIdOfRef(`csv:${id}:14`), id);
+  assert.equal(importIdOfRef('ca:session:1'), null, 'another source is not an import');
   assert.equal(importDay(id), '2026-11-28');
-  assert.throws(() => importTag('x%'), /Bad import id/, 'the tag is used in a LIKE filter, so it is strict');
+  assert.throws(() => importRefPrefix('x%'), /Bad import id/, 'the prefix is used in a LIKE filter, so it is strict');
+  assert.throws(() => importRef(id, 0), /Bad row number/);
+  const plan = planImport(readTable('Date,Buy-In\n2026-11-01,100\n2026-11-02,abc'), { date: 0, buy_in: 1 }, { today: TODAY, importId: id });
+  assert.equal(plan.toImport[0].entry.external_ref, `csv:${id}:2`);
+  assert.equal(plan.toImport[0].entry.notes, null);
+  assert.equal(planImport(readTable('Date,Buy-In\n2026-11-01,100'), { date: 0, buy_in: 1 }, { today: TODAY }).toImport[0].entry.external_ref, undefined, 'the preview carries no ref');
 });
 
 test('more than 1,000 rows plan in one pass', () => {

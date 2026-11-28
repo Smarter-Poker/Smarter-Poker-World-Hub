@@ -2,7 +2,8 @@
  * YOUR BANKROLL DATA (Settings, 2026-11-28)
  *
  * - Import Sessions: SessionImportSheet.
- * - Undo Last Import: deletes exactly the rows the newest import tagged,
+ * - Undo Last Import: deletes exactly the rows the newest import wrote
+ *   (external_ref csv:<importId>:<row>),
  *   each through deleteLedgerEntry (so receipts filed to them go back to
  *   Receipts Waiting), then recomputes the balances once.
  * - Download My Bankroll Data: a ZIP with one JSON of everything and a CSV

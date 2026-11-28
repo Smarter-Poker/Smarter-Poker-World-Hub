@@ -392,15 +392,25 @@ export function newImportId(day, random = Math.random) {
   return id;
 }
 
-/** The text every row of one import starts its notes with. */
-export function importTag(importId) {
+/**
+ * The external_ref every row of one import carries: csv:<importId>:<row>.
+ * bankroll_ledger keeps external_ref unique per player, so the same row of
+ * the same import can never be saved twice, and Undo Last Import finds
+ * exactly that import's rows by the prefix.
+ */
+export function importRefPrefix(importId) {
   if (!IMPORT_ID.test(String(importId))) throw new Error('Bad import id');
-  return `[Import ${importId}]`;
+  return `csv:${importId}:`;
 }
 
-/** The import id a row's notes carry, or null. */
-export function importIdOf(notes) {
-  const m = /^\[Import (imp-\d{8}-[a-z0-9]{6})\]/.exec(String(notes || ''));
+export function importRef(importId, line) {
+  if (!Number.isInteger(line) || line < 1) throw new Error('Bad row number');
+  return `${importRefPrefix(importId)}${line}`;
+}
+
+/** The import id an external_ref belongs to, or null. */
+export function importIdOfRef(ref) {
+  const m = /^csv:(imp-\d{8}-[a-z0-9]{6}):\d+$/.exec(String(ref || ''));
   return m ? m[1] : null;
 }
 
@@ -437,7 +447,7 @@ const addMinutes = (clock, hours) => {
  * times, an expense with an amount, and any session other than a tournament
  * with a buy-in or a cash-out. Returns { entry, venue, errors, warnings }.
  */
-export function buildEntry(record, mapping, { order = null, defaultCategory = 'poker_cash', today, importId } = {}) {
+export function buildEntry(record, mapping, { order = null, defaultCategory = 'poker_cash', today } = {}) {
   const cell = (field) => (mapping[field] === undefined || mapping[field] === null ? '' : String(record[mapping[field]] ?? '').trim());
   const errors = [];
   const warnings = [];
@@ -549,7 +559,7 @@ export function buildEntry(record, mapping, { order = null, defaultCategory = 'p
 
   const note = clip(cell('notes'), 1900);
   const body = [note, ...extras].filter(Boolean).join('\n');
-  entry.notes = importId ? (body ? `${importTag(importId)} ${body}` : importTag(importId)) : (body || null);
+  entry.notes = body || null;
   return { entry, venue, errors, warnings };
 }
 
@@ -563,6 +573,7 @@ export function planImport(table, mapping, options = {}, existingKeys = new Set(
   const rows = (table.records || []).map((record, i) => {
     const built = buildEntry(record, mapping, options);
     const line = table.lines ? table.lines[i] : i + 2;
+    if (built.entry && options.importId) built.entry.external_ref = importRef(options.importId, line);
     const duplicate = built.entry ? existingKeys.has(duplicateKey(built.entry, built.venue)) : false;
     return { line, ...built, duplicate };
   });

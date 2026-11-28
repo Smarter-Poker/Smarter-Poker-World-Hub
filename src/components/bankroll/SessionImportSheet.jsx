@@ -4,8 +4,9 @@
  * Pick a CSV or paste a table, check which column is which, see every row
  * the import will save and every row it will not (with the reason), then
  * save through the ledger's own creation path in batches. Every saved row
- * carries the import's tag at the start of its notes, so Undo Last Import in
- * Settings removes exactly that import. Parsing and validation live in
+ * carries external_ref csv:<importId>:<row>, unique per player, so a row is
+ * never saved twice and Undo Last Import in Settings removes exactly that
+ * import. Parsing and validation live in
  * src/lib/bankroll/sessionImport.mjs.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -132,7 +133,7 @@ export default function SessionImportSheet({ userId, onClose, onImported }) {
     running.current = true;
     setStep('saving');
     const importId = newImportId(today);
-    // The same rows, now carrying the import's tag in their notes.
+    // The same rows, now each carrying its external_ref (csv:<importId>:<row>).
     const tagged = planImport(table, mapping, { order, defaultCategory, today, keepDuplicates, importId }, existing);
     const total = tagged.toImport.length;
     let saved = 0;
@@ -144,15 +145,15 @@ export default function SessionImportSheet({ userId, onClose, onImported }) {
         venueIds.set(venueKey(name), await getOrCreateLocation(userId, name));
       }
       setProgress({ label: 'Saving Sessions', done: 0, total });
-      const rows = await createLedgerEntries(userId, withLocationIds(tagged.toImport, venueIds), {
-        onProgress: (done) => setProgress({ label: 'Saving Sessions', done, total }),
+      const done = await createLedgerEntries(userId, withLocationIds(tagged.toImport, venueIds), {
+        onProgress: (count) => setProgress({ label: 'Saving Sessions', done: count, total }),
       });
-      saved = rows.length;
-      setResult({ importId, saved, total, rejected: tagged.rejected, duplicates: keepDuplicates ? 0 : tagged.duplicates.length, error: null });
+      saved = done.saved.length;
+      setResult({ importId, saved, total, already: done.alreadyImported, rejected: tagged.rejected, duplicates: keepDuplicates ? 0 : tagged.duplicates.length, error: null });
     } catch (error) {
       saved = Array.isArray(error?.saved) ? error.saved.length : 0;
       console.warn('[import] stopped:', error?.message || error);
-      setResult({ importId, saved, total, rejected: tagged.rejected, duplicates: keepDuplicates ? 0 : tagged.duplicates.length, error: 'The Import Stopped Part Way Through. Check Your Connection.' });
+      setResult({ importId, saved, total, already: 0, rejected: tagged.rejected, duplicates: keepDuplicates ? 0 : tagged.duplicates.length, error: 'The Import Stopped Part Way Through. Check Your Connection.' });
     } finally {
       running.current = false;
       setStep('done');
@@ -309,8 +310,9 @@ export default function SessionImportSheet({ userId, onClose, onImported }) {
                 : `Imported ${result.saved.toLocaleString('en-US')} ${result.saved === 1 ? 'Row' : 'Rows'}.`}
             </p>
             {result.duplicates > 0 && <p className={css.hint}>{result.duplicates.toLocaleString('en-US')} Duplicate Rows Were Skipped.</p>}
+            {result.already > 0 && <p className={css.hint}>{result.already.toLocaleString('en-US')} Rows Were Already Imported And Were Not Saved Again.</p>}
             {result.saved > 0 && (
-              <p className={css.hint}>The Notes Of Every Imported Row Begin With [Import {result.importId}]. Settings, Undo Last Import Removes Exactly These Rows.</p>
+              <p className={css.hint}>Import {result.importId}. Settings, Undo Last Import Removes Exactly These Rows.</p>
             )}
             {result.rejected.length > 0 && <ProblemList title="Rows Not Imported" rows={result.rejected} />}
             <div className={css.footer}>

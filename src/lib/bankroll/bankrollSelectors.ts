@@ -21,6 +21,7 @@ import {
 } from './stakingMath.mjs';
 import { bankrollBalanceCents, centsToDollars, toCents } from './ledgerMath.mjs';
 import { fetchAllRows } from './ledgerReport.mjs';
+import { insertInBatches } from './ledgerBatch.mjs';
 import { noteSessionLogged, noteStartingBankrollSet, noteTripStarted } from './funnelSteps.mjs';
 import {
   buildTripReport,
@@ -64,6 +65,7 @@ export interface LedgerEntry {
   odds: string | null;
   bet_result: string | null;
   expense_type: string | null;
+  external_ref?: string | null;
   created_at: string;
 }
 
@@ -333,6 +335,8 @@ function ledgerInsertRow(userId: string, entry: Partial<LedgerEntry>) {
     odds: entry.odds,
     bet_result: entry.bet_result,
     expense_type: entry.expense_type,
+    // Set by Import Sessions (csv:<importId>:<row>); unique per player.
+    external_ref: entry.external_ref,
   };
 }
 
@@ -375,38 +379,29 @@ export async function createLedgerEntry(
 }
 
 /**
- * Many entries through the same row as createLedgerEntry, a batch per
- * insert, with each segment balance recomputed once at the end instead of
- * once per row (a full ledger read each time). A failed batch stops the run:
- * the error carries `saved` (the rows already written) so the caller can say
- * exactly how far it got, and the balances still reflect those rows.
+ * Many entries through the same row as createLedgerEntry, a batch per insert
+ * (insertInBatches: a row whose external_ref is already saved is counted as
+ * already imported, never saved twice), with each segment balance recomputed
+ * once at the end instead of once per row. A failure throws an error carrying
+ * `saved`, and the balances still reflect the rows that were written.
  */
 export async function createLedgerEntries(
   userId: string,
   entries: Partial<LedgerEntry>[],
-  { batchSize = 100, onProgress }: { batchSize?: number; onProgress?: (done: number, total: number) => void } = {},
-): Promise<{ id: string; category: string }[]> {
-  const saved: { id: string; category: string }[] = [];
+  options: { batchSize?: number; onProgress?: (done: number, total: number) => void } = {},
+): Promise<{ saved: { id: string; category: string }[]; alreadyImported: number }> {
+  const insert = (rows: Partial<LedgerEntry>[]) => supabase
+    .from('bankroll_ledger')
+    .insert(rows.map((entry) => ledgerInsertRow(userId, entry)))
+    .select('id, category');
   try {
-    for (let from = 0; from < entries.length; from += batchSize) {
-      const batch = entries.slice(from, from + batchSize);
-      const { data, error } = await supabase
-        .from('bankroll_ledger')
-        .insert(batch.map((entry) => ledgerInsertRow(userId, entry)))
-        .select('id, category');
-      if (error) throw error;
-      if (!data || data.length !== batch.length) throw new Error('Some Rows Were Not Saved');
-      saved.push(...data);
-      if (onProgress) onProgress(saved.length, entries.length);
-    }
-  } catch (error) {
-    if (saved.length) await recalculateBankrollBalances(userId, saved.map((row) => row.category));
-    const failure: any = error instanceof Error ? error : new Error(String((error as any)?.message || error));
-    failure.saved = saved;
-    throw failure;
+    const result = await insertInBatches(entries, insert, options);
+    if (result.saved.length) await recalculateBankrollBalances(userId, result.saved.map((row) => row.category));
+    return result;
+  } catch (error: any) {
+    if (error?.saved?.length) await recalculateBankrollBalances(userId, error.saved.map((row) => row.category));
+    throw error;
   }
-  if (saved.length) await recalculateBankrollBalances(userId, saved.map((row) => row.category));
-  return saved;
 }
 
 /**

@@ -21,7 +21,7 @@ const OTHER = '22222222-2222-4222-8222-222222222222';
  * session may read but not delete from (row security without a DELETE policy
  * deletes nothing and reports no error). `fail` makes a table's reads fail.
  */
-function memoryDb(tables, { deny = [], fail = [], refs = {} } = {}) {
+function memoryDb(tables, { deny = [], fail = [], refs = {}, history = false } = {}) {
   const log = [];
   const client = {
     log,
@@ -40,6 +40,11 @@ function memoryDb(tables, { deny = [], fail = [], refs = {} } = {}) {
             if ((tables[refTable] || []).some((r) => ids.has(r[fk]))) return { data: null, error: { message: `still referenced by ${refTable}` } };
           }
           tables[table] = rowsOfTable().filter((r) => !match(r));
+          // The production trigger writes a history row for every ledger delete.
+          if (history && table === 'bankroll_ledger') {
+            tables.bankroll_ledger_changes = tables.bankroll_ledger_changes || [];
+            for (const r of doomed) tables.bankroll_ledger_changes.push({ id: 1e6 + tables.bankroll_ledger_changes.length, entry_id: r.id, user_id: r.user_id, op: 'DELETE' });
+          }
           return { data: null, error: null, count: doomed.length };
         }
         let rows = rowsOfTable().filter(match).sort((a, b) => String(a.id).localeCompare(String(b.id)));
@@ -85,6 +90,8 @@ function fixture() {
     bankroll_trips: [{ id: 't1', user_id: UID, trip_type: 'trip' }, { id: 't2', user_id: UID, trip_type: 'series' }],
     staking_arrangements: [{ id: 'd1', user_id: UID }],
     staking_sessions: [{ id: 's1', arrangement_id: 'd1', ledger_entry_id: 'l00003' }, { id: 's2', arrangement_id: 'dX' }],
+    staking_share_links: [{ token: 'k1', arrangement_id: 'd1', user_id: UID }],
+    bankroll_ledger_changes: [{ id: 1, entry_id: 'l00001', user_id: UID, op: 'UPDATE' }, { id: 2, entry_id: 'x1', user_id: OTHER, op: 'UPDATE' }],
     bankroll_receipts: [{ id: 'r1', user_id: UID, image_url: fileUrl('user-media', `${UID}/bankroll/r.jpg`) }],
     w2g_forms: [{ id: 'w1', user_id: UID, file_url: fileUrl('images', `${UID}/w2g.pdf`) }],
     player_notes: [{ id: 'p1', user_id: UID, photo_url: fileUrl('avatars', `${OTHER}/face.jpg`) }],
@@ -101,6 +108,8 @@ test('the export reads every source past 1,000 rows, staking sessions by the pla
   const data = await readBankrollData(db, UID, { onProgress: (d, t) => steps.push([d, t]) });
   assert.equal(data.ledger.length, 2346, 'every page, and nobody else\'s rows');
   assert.deepEqual(data.staking_sessions.map((s) => s.id), ['s1']);
+  assert.equal(data.staking_share_links.length, 1);
+  assert.deepEqual(data.ledger_changes.map((c) => c.id), [1], 'the edit history is exported, only the player\'s own');
   assert.equal(steps.at(-1)[0], DATA_SOURCES.length);
 });
 
@@ -113,7 +122,7 @@ test('CSV cells are formula-safe and the files say USD', async () => {
   const data = await readBankrollData(memoryDb(fixture()), UID);
   const files = exportFiles(data, { exportedAt: '2026-11-28T12:00:00Z', day: '2026-11-28' });
   const names = files.map((f) => f.name);
-  for (const n of ['bankroll-data.json', 'csv/ledger.csv', 'csv/trips.csv', 'csv/series.csv', 'csv/files.csv', 'README.txt']) assert.ok(names.includes(n), n);
+  for (const n of ['csv/ledger_changes.csv', 'csv/staking_share_links.csv', 'bankroll-data.json', 'csv/ledger.csv', 'csv/trips.csv', 'csv/series.csv', 'csv/files.csv', 'README.txt']) assert.ok(names.includes(n), n);
   const ledgerCsv = files.find((f) => f.name === 'csv/ledger.csv').content;
   assert.match(ledgerCsv, /"'=HYPERLINK\(""http:\/\/x""\)"/, 'a formula becomes text');
   assert.equal(ledgerCsv.split('\r\n').length, 2347);
@@ -152,7 +161,7 @@ test('delete runs in a safe order and the report counts what is really left', as
     staking_arrangements: { staking_sessions: 'arrangement_id' },
     toke_gigs: { toke_downs: 'gig_id' },
   };
-  const db = memoryDb(tables, { deny: ['bankroll_alerts'], refs });
+  const db = memoryDb(tables, { deny: ['bankroll_alerts'], refs, history: true });
   const data = await readBankrollData(db, UID);
   const removed = [];
   const report = await deleteBankrollData(db, UID, data, { removeFile: async (u) => { removed.push(u); return true; } });
@@ -163,6 +172,11 @@ test('delete runs in a safe order and the report counts what is really left', as
   assert.equal(by.staking_sessions.left, 0);
   assert.equal(by.venues.left, 0, 'venues go after the ledger and trips');
   assert.equal(by.alerts.left, 1, 'no DELETE policy: reported, not called cleared');
+  assert.equal(by.ledger_changes.left, 0, 'the history the ledger deletes wrote is deleted after them');
+  assert.equal(by.staking_share_links.left, 0);
+  assert.ok(tables.bankroll_ledger_changes.some((r) => r.user_id === OTHER), 'another player\'s history stays');
+  assert.ok(DELETE_ORDER.indexOf('ledger') < DELETE_ORDER.indexOf('ledger_changes'));
+  assert.ok(DELETE_ORDER.indexOf('staking_share_links') < DELETE_ORDER.indexOf('staking_deals'));
   assert.equal(by.alerts.error, 'Your Session Could Not Delete These Rows');
   assert.equal(report.ok, false);
   assert.ok(tables.bankroll_ledger.some((r) => r.user_id === OTHER), 'another player\'s rows stay');
@@ -187,12 +201,13 @@ test('a step that fails is reported and the rest still run', async () => {
   assert.equal(report.files.failed, 3);
 });
 
-test('undo finds the newest import and exactly its rows, past 1,000', async () => {
+test('undo finds the newest import and exactly its rows by external_ref, past 1,000', async () => {
   const rows = [];
-  for (let i = 0; i < 1500; i++) rows.push({ id: `a${String(i).padStart(4, '0')}`, user_id: UID, notes: '[Import imp-20261127-aaaaaa] x', created_at: '2026-11-27T10:00:00Z', category: 'poker_cash' });
-  for (let i = 0; i < 30; i++) rows.push({ id: `b${i}`, user_id: UID, notes: `[Import imp-20261128-bbbbbb]${i % 2 ? ' note' : ''}`, created_at: '2026-11-28T10:00:00Z', category: 'expense' });
-  rows.push({ id: 'c1', user_id: UID, notes: 'typed [Import imp-20261128-bbbbbb]', created_at: '2026-11-28T11:00:00Z' });
-  rows.push({ id: 'c2', user_id: OTHER, notes: '[Import imp-20261129-zzzzzz]', created_at: '2026-11-29T11:00:00Z' });
+  for (let i = 0; i < 1500; i++) rows.push({ id: `a${String(i).padStart(4, '0')}`, user_id: UID, external_ref: `csv:imp-20261127-aaaaaa:${i + 2}`, created_at: '2026-11-27T10:00:00Z', category: 'poker_cash' });
+  for (let i = 0; i < 30; i++) rows.push({ id: `b${i}`, user_id: UID, external_ref: `csv:imp-20261128-bbbbbb:${i + 2}`, created_at: '2026-11-28T10:00:00Z', category: 'expense' });
+  rows.push({ id: 'c1', user_id: UID, notes: 'typed', external_ref: null, created_at: '2026-11-28T11:00:00Z' });
+  rows.push({ id: 'c3', user_id: UID, external_ref: 'ca:session-1', created_at: '2026-11-28T12:00:00Z' });
+  rows.push({ id: 'c2', user_id: OTHER, external_ref: 'csv:imp-20261129-zzzzzz:2', created_at: '2026-11-29T11:00:00Z' });
   const db = memoryDb({ bankroll_ledger: rows });
   assert.deepEqual(await findLastImport(db, UID), { id: 'imp-20261128-bbbbbb', createdAt: '2026-11-28T10:00:00Z' });
   assert.equal((await importedRows(db, UID, 'imp-20261128-bbbbbb')).length, 30);

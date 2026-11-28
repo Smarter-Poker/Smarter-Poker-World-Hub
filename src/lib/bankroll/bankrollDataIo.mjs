@@ -13,15 +13,17 @@
 
 import { allRowsOf, rowsOf } from './leakMath.mjs';
 import { buildCsv } from './ledgerReport.mjs';
-import { importTag } from './sessionImport.mjs';
+import { importIdOfRef, importRefPrefix } from './sessionImport.mjs';
 
 /** What the export contains and what Delete All removes, in the player's words. */
 export const DATA_SOURCES = Object.freeze([
   { key: 'ledger', table: 'bankroll_ledger', label: 'Sessions, Expenses, Deposits And Withdrawals' },
+  { key: 'ledger_changes', table: 'bankroll_ledger_changes', label: 'Ledger Edit History' },
   { key: 'trips', table: 'bankroll_trips', label: 'Trips And Series' },
   { key: 'segments', table: 'bankroll_segments', label: 'Starting Bankroll And Balances' },
   { key: 'staking_deals', table: 'staking_arrangements', label: 'Staking Deals' },
   { key: 'staking_sessions', table: 'staking_sessions', label: 'Staking Sessions', byDeal: true },
+  { key: 'staking_share_links', table: 'staking_share_links', label: 'Staking Share Links', order: 'token' },
   { key: 'goals', table: 'bankroll_goals', label: 'Goals' },
   { key: 'rules', table: 'bankroll_rules', label: 'Bankroll Rules' },
   { key: 'rule_violations', table: 'bankroll_rule_violations', label: 'Rule Violations' },
@@ -62,7 +64,7 @@ export async function readBankrollData(supabase, userId, { onProgress } = {}) {
       }
       data[source.key] = rows;
     } else {
-      data[source.key] = await allRowsOf(() => supabase.from(source.table).select('*').eq('user_id', userId).order('id', { ascending: true }), source.label);
+      data[source.key] = await allRowsOf(() => supabase.from(source.table).select('*').eq('user_id', userId).order(source.order || 'id', { ascending: true }), source.label);
     }
     done++;
     if (onProgress) onProgress(done, DATA_SOURCES.length, source.label);
@@ -245,11 +247,12 @@ export function buildZip(files, now = new Date()) {
  * go last: rule violations before the ledger and rules, staking sessions
  * before their deals, revisions before the entries they revise, the ledger
  * before trips and venues, alerts and venue memory before venues. Toke downs,
- * expenses and days go before their gigs.
+ * expenses and days go before their gigs. The ledger's edit history goes
+ * after the ledger, because deleting a ledger row writes a history row.
  */
 export const DELETE_ORDER = Object.freeze([
-  'rule_violations', 'staking_sessions', 'staking_deals', 'receipts', 'w2g_forms',
-  'ledger_revisions', 'ledger',
+  'rule_violations', 'staking_sessions', 'staking_share_links', 'staking_deals', 'receipts', 'w2g_forms',
+  'ledger_revisions', 'ledger', 'ledger_changes',
   'toke_downs', 'toke_expenses', 'toke_gig_days', 'toke_gigs',
   'dealer_documents', 'dealer_calendar',
   'alerts', 'venue_memory', 'venue_visits',
@@ -282,7 +285,7 @@ async function remainingRows(supabase, userId, key, data) {
     }
     return n;
   }
-  const result = await supabase.from(BY_KEY[key].table).select('id', { count: 'exact', head: true }).eq('user_id', userId);
+  const result = await supabase.from(BY_KEY[key].table).select(BY_KEY[key].order || 'id', { count: 'exact', head: true }).eq('user_id', userId);
   rowsOf(result, BY_KEY[key].label);
   return Number(result.count) || 0;
 }
@@ -346,23 +349,23 @@ export async function deleteBankrollData(supabase, userId, data, { removeFile, o
 export async function findLastImport(supabase, userId) {
   const rows = rowsOf(await supabase
     .from('bankroll_ledger')
-    .select('id, notes, created_at')
+    .select('id, external_ref, created_at')
     .eq('user_id', userId)
-    .like('notes', '[Import imp-%')
+    .like('external_ref', 'csv:imp-%')
     .order('created_at', { ascending: false })
     .limit(1), 'ledger');
-  const m = rows[0] && /^\[Import (imp-\d{8}-[a-z0-9]{6})\]/.exec(String(rows[0].notes || ''));
-  return m ? { id: m[1], createdAt: rows[0].created_at } : null;
+  const id = rows[0] && importIdOfRef(rows[0].external_ref);
+  return id ? { id, createdAt: rows[0].created_at } : null;
 }
 
-/** Every ledger row one import wrote (paged), identified by its tag. */
+/** Every ledger row one import wrote (paged), identified by its external_ref. */
 export async function importedRows(supabase, userId, importId) {
-  const tag = importTag(importId);
+  const prefix = importRefPrefix(importId);
   return allRowsOf(() => supabase
     .from('bankroll_ledger')
     .select('id, category')
     .eq('user_id', userId)
-    .like('notes', `${tag}%`)
+    .like('external_ref', `${prefix}%`)
     .order('id', { ascending: true }), 'ledger');
 }
 
