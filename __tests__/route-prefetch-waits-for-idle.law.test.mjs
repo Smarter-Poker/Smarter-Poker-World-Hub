@@ -78,3 +78,19 @@ test('hover prefetch stays immediate - intent is not speculation', () => {
   assert.match(nav, /onMouseEnter=\{\(\) => warm\(/, 'the footer lost its hover warm-up');
   assert.match(nav, /onTouchStart=\{\(\) => warm\(/, 'the footer lost its touch warm-up');
 });
+
+test('a cancelled warm-up never becomes an unhandled rejection', () => {
+  // router.prefetch returns a promise. A try/catch around it catches nothing
+  // asynchronous: on Safari the warm-up falls back to setTimeout(3000), so a
+  // reload in that window cancelled the fetch and WebKit raised it as a page
+  // error ("Fetch API cannot load ... due to access control checks").
+  for (const f of ['src/components/ui/UniversalHeader.js', 'src/components/ui/BottomNavBar.jsx']) {
+    const src = code(f);
+    const calls = [...src.matchAll(/router\.prefetch\([^)]*\)/g)];
+    assert.ok(calls.length > 0, `${f}: no router.prefetch found`);
+    for (const m of calls) {
+      const after = src.slice(m.index + m[0].length, m.index + m[0].length + 20);
+      assert.match(after, /^\)?\.catch\(/, `${f}: ${m[0]} has no .catch on its promise`);
+    }
+  }
+});
