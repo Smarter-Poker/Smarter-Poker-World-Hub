@@ -177,6 +177,7 @@ import './bankroll-staking-math.test.mjs';
 import './bankroll-toke-report.test.mjs';
 import './bankroll-ledger-math.test.mjs';
 import './bankroll-lib-w3.test.mjs';
+import './bankroll-db-rpc-fallback.test.mjs';
 import './bankroll-receipts-are-read-kept-and-sent.test.mjs';
 import './bankroll-trip-math.test.mjs';
 import './bankroll-tournament-schedule.test.mjs';

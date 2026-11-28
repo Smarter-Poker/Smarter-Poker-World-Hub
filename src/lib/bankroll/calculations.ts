@@ -15,6 +15,8 @@ import { withRetry } from './retryUtils';
 import { bankrollBalanceCents, centsToDollars, resultsCents } from './ledgerMath.mjs';
 import { fetchAllRows } from './ledgerReport.mjs';
 import { periodStats } from './bankrollStats.mjs';
+import { statsFromTotals } from './bankrollTotals.mjs';
+import { rpcOrFallback } from './rpcFallback.mjs';
 
 export interface BankrollStats {
   totalBankroll: number;
@@ -79,8 +81,43 @@ async function latestTripNet(userId: string): Promise<number> {
 }
 
 /**
+ * The period figures and balance read row by row (paged), summed here. This is
+ * the path until fn_bankroll_totals is installed, and stays as its fallback.
+ */
+async function clientSideStats(
+  userId: string,
+  startDate?: string,
+  endDate?: string,
+  locationId?: string
+): Promise<Omit<BankrollStats, 'travelROI'>> {
+  const [totalBankroll, entries] = await Promise.all([
+    calculateTotalBankroll(userId),
+    fetchAllRows(() => {
+      let query = supabase
+        .from('bankroll_ledger')
+        .select('id, category, gross_in, gross_out, start_time, end_time')
+        .eq('user_id', userId)
+        .eq('is_revision', false)
+        .not('category', 'in', '("deposit","withdrawal")');
+      if (startDate) query = query.gte('entry_date', startDate);
+      if (endDate) query = query.lte('entry_date', endDate);
+      if (locationId) query = query.eq('location_id', locationId);
+      return query.order('id', { ascending: true });
+    }),
+  ]);
+  return { totalBankroll, ...periodStats(entries) } as Omit<BankrollStats, 'travelROI'>;
+}
+
+/**
  * Get full bankroll stats. Every period figure covers the same rows: the
  * chosen dates and venue.
+ *
+ * The database function fn_bankroll_totals (draft on branch
+ * bookmark/bankroll-db-migrations-2026-11-28, docs/handoffs/.../03_fn_bankroll_totals.sql)
+ * computes the same figures in one round trip for the signed-in player
+ * (auth.uid(), which is the userId the dashboard passes). Only when PostgREST
+ * says it does not exist yet does this read the rows itself; any other rpc
+ * failure is thrown, never replaced by the fallback or by zeros.
  */
 export async function getBankrollStats(
   userId: string,
@@ -89,22 +126,20 @@ export async function getBankrollStats(
   locationId?: string
 ): Promise<BankrollStats> {
   return withRetry(async () => {
-    const [totalBankroll, entries, travelROI] = await Promise.all([
-      calculateTotalBankroll(userId),
-      fetchAllRows(() => {
-        let query = supabase
-          .from('bankroll_ledger')
-          .select('id, category, gross_in, gross_out, start_time, end_time')
-          .eq('user_id', userId)
-          .eq('is_revision', false)
-          .not('category', 'in', '("deposit","withdrawal")');
-        if (startDate) query = query.gte('entry_date', startDate);
-        if (endDate) query = query.lte('entry_date', endDate);
-        if (locationId) query = query.eq('location_id', locationId);
-        return query.order('id', { ascending: true });
-      }),
+    const [{ data: figures }, travelROI] = await Promise.all([
+      rpcOrFallback(
+        async () => {
+          const response = await supabase.rpc('fn_bankroll_totals', {
+            p_from: startDate || null,
+            p_to: endDate || null,
+            p_location_id: locationId || null,
+          });
+          return response.error ? response : { ...response, data: statsFromTotals(response.data) };
+        },
+        () => clientSideStats(userId, startDate, endDate, locationId)
+      ),
       latestTripNet(userId),
     ]);
-    return { totalBankroll, travelROI, ...periodStats(entries) } as BankrollStats;
+    return { ...figures, travelROI } as BankrollStats;
   });
 }
