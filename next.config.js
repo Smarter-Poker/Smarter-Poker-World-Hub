@@ -645,6 +645,33 @@ const nextConfig = {
     // Derivation, and the two incidents behind it, are at resolveBuildCpus().
     // BUILD_CPUS=<n> still overrides, and BUILD_CPUS=1 remains the escape hatch.
     cpus: resolveBuildCpus(),
+    // ─── Compile in a worker that exits (BUILD OOM ROOT CAUSE, 2026-11-28) ──
+    // Next runs each webpack compiler (server, edge, client) in its own child
+    // process, ended when that compiler finishes, ONLY when there is no custom
+    // `webpack()` in this file (next/dist/build/index.js: `useBuildWorker =
+    // webpackBuildWorker || (webpackBuildWorker === undefined && !config.webpack)`).
+    // We have one (aliases and deployment-keyed CSS loaders, below), so all
+    // three compilations ran inside the main `next build` process, and
+    // everything they allocated - module graphs, sources, SWC buffers - was
+    // still held when "Collecting page data" forked three more workers.
+    //
+    // Measured with scripts/ci/measure-build-memory.py on GitHub's 4-core
+    // runner (same 3 workers as Vercel's 4-core / 8 GB machine), whole
+    // process tree, see .agent/audits/2026-11-28-build-oom-root-cause.md:
+    // the main process alone reached ~5.75 GB RSS under a 4 GB heap cap (6.7
+    // GB with a restored build cache, as Vercel builds), and the tree peaked
+    // at the start of page-data collection: 7,022 MB for 5c4112aa and 8,212
+    // MB with #3299, warm. That is the 8 GB container's ceiling, so #3299's
+    // ~1,100 lines tipped every build into exit 137.
+    //
+    // `webpackBuildWorker: true` is what Next would choose for us without the
+    // custom webpack(). Each compiler's worker exits when it finishes, so the
+    // main process stays at ~2.4 GB and the tree peaks at ~5.3 GB in compile
+    // (main + #3299, warm cache): 8,212 MB -> 5,345 MB, compile 67 s -> 106 s.
+    // `webpackMemoryOptimizations` was measured too and left OFF: a further
+    // 143 MB (5,202 MB) for another 56 s of compile on every deployment.
+    // Pinned by __tests__/the-build-compiles-in-a-worker.law.test.mjs.
+    webpackBuildWorker: true,
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
     // "Unrecognized key" build warning). No replacement needed.

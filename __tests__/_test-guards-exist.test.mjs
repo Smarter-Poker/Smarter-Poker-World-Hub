@@ -1067,6 +1067,7 @@ import './every-internal-link-reaches-a-page-before-merge.law.test.mjs';
 import './preflop-guest-save-prompt.law.test.mjs';
 import './bankroll-w4-cleanup.test.mjs';
 import './world-roots-fetch-only-their-own-page.law.test.mjs';
+import './the-build-compiles-in-a-worker.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
