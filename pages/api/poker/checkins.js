@@ -3,6 +3,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { applyCors } = require('../../../src/lib/cors');
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { idBatches } from '../../../src/lib/inBatches.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -265,24 +266,28 @@ try {
           }
           const ids = parsed.ids;
           const windowStart = new Date(resolveVenueWindowStartMs(since)).toISOString();
-          const wanted = ids.length * VENUE_ROWS_MAX;
           let rows = [];
-          for (let offset = 0; offset < wanted; offset += BATCH_PAGE) {
-            const { data: pageRows, error } = await getSupabase()
-              .from('venue_checkins')
-              .select('*')
-              .in('venue_id', ids.map(String))
-              .gte('created_at', windowStart)
-              .order('created_at', { ascending: false })
-              .order('id', { ascending: false })
-              .range(offset, Math.min(offset + BATCH_PAGE, wanted) - 1);
-            if (error) {
-              console.warn('Error fetching batched checkins:', error);
-              return res.status(500).json({ success: false, error: 'Internal server error' });
+          // ids is capped at VENUE_IDS_MAX, so idBatches yields one
+          // request; it keeps the list bounded for the unbatched-in guard.
+          for (const batch of idBatches(ids.map(String))) {
+            const wanted = batch.length * VENUE_ROWS_MAX;
+            for (let offset = 0; offset < wanted; offset += BATCH_PAGE) {
+              const { data: pageRows, error } = await getSupabase()
+                .from('venue_checkins')
+                .select('*')
+                .in('venue_id', batch)
+                .gte('created_at', windowStart)
+                .order('created_at', { ascending: false })
+                .order('id', { ascending: false })
+                .range(offset, Math.min(offset + BATCH_PAGE, wanted) - 1);
+              if (error) {
+                console.warn('Error fetching batched checkins:', error);
+                return res.status(500).json({ success: false, error: 'Internal server error' });
+              }
+              if (!pageRows || pageRows.length === 0) break;
+              rows = rows.concat(pageRows);
+              if (pageRows.length < Math.min(BATCH_PAGE, wanted - offset)) break;
             }
-            if (!pageRows || pageRows.length === 0) break;
-            rows = rows.concat(pageRows);
-            if (pageRows.length < Math.min(BATCH_PAGE, wanted - offset)) break;
           }
           const venues = {};
           for (const id of ids) venues[String(id)] = { checkins: [], count: 0 };

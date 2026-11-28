@@ -260,6 +260,7 @@ async function loadCheckinsHandler(rowsFor) {
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: {} },
     '../../../src/lib/cors': { applyCors: () => true },
     '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
+    '../../../src/lib/inBatches.mjs': await import('../src/lib/inBatches.mjs'),
   });
   return { mod, queries };
 }
