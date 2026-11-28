@@ -1568,7 +1568,7 @@ function NewsHub() {
                                 )}
                                 helpContent={(
                                     <>
-                                        <p>Headlines Are Gathered Every Hour From PokerNews, MSPT, Card Player, WSOP, Poker.org, Pokerfuse And The PokerStars Blog. Open A Story To Read It Here.</p>
+                                        <p>Headlines Are Gathered Every Hour From Seven Poker Outlets, Each Shown As A Source Chip Below. Open A Story To Read It Here.</p>
                                         <p>Use The Tabs For News, Reels, Videos, Events And Read Later. Tap A Source To Show Only Its Stories, Or Several Sources At Once. Clear Removes Every Source Filter.</p>
                                         <p>Story Signal Counts The Stories Shown. Latest Puts The Newest First; Most Read Ranks Stories By Reader Views.</p>
                                         <p>The Bookmark And Clock On Each Story Save It To Bookmarks Or Read Later. Saved Stories Sync When You Are Signed In.</p>
