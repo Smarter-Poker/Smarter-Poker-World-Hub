@@ -18,7 +18,7 @@
     "dialogs": 22,
     "persistenceFiles": 100,
     "realtimeFiles": 7,
-    "tests": 205,
+    "tests": 206,
     "markerCandidates": 408,
     "possibleUnwiredFunctions": 514,
     "routeStateCells": 752,
@@ -9825,7 +9825,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "empty": {
@@ -9857,7 +9858,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "error": {
@@ -9885,7 +9887,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "retry": {
@@ -9904,7 +9907,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "success": {
@@ -9926,7 +9930,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "stale": {
@@ -9947,7 +9952,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "offline": {
@@ -9963,7 +9969,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "authExpiry": {
@@ -9979,7 +9986,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         }
       },
@@ -9989,7 +9997,8 @@
         "__tests__/phase23-calculator-schema.test.mjs",
         "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
-        "e2e/020-hamburger.spec.ts"
+        "e2e/020-hamburger.spec.ts",
+        "e2e/032-image-header-help.spec.ts"
       ],
       "uncoveredStates": []
     },
@@ -13227,7 +13236,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "empty": {
@@ -13263,7 +13273,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "error": {
@@ -13304,7 +13315,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "retry": {
@@ -13330,7 +13342,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "success": {
@@ -13367,7 +13380,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "stale": {
@@ -13409,7 +13423,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "offline": {
@@ -13432,7 +13447,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "authExpiry": {
@@ -13458,7 +13474,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         }
       },
@@ -13471,7 +13488,8 @@
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/trivia-club-spectator-training.test.mjs",
         "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-        "e2e/020-hamburger.spec.ts"
+        "e2e/020-hamburger.spec.ts",
+        "e2e/032-image-header-help.spec.ts"
       ],
       "uncoveredStates": []
     },
@@ -13523,7 +13541,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "empty": {
@@ -13545,7 +13564,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "error": {
@@ -13568,7 +13588,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "retry": {
@@ -13589,7 +13610,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "success": {
@@ -13611,7 +13633,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "stale": {
@@ -13632,7 +13655,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "offline": {
@@ -13654,7 +13678,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "authExpiry": {
@@ -13675,7 +13700,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         }
       },
@@ -13692,7 +13718,8 @@
         "__tests__/phase23-calculator-schema.test.mjs",
         "__tests__/seo-backlink-programme-invariants.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
-        "e2e/020-hamburger.spec.ts"
+        "e2e/020-hamburger.spec.ts",
+        "e2e/032-image-header-help.spec.ts"
       ],
       "uncoveredStates": []
     },
@@ -88767,6 +88794,7 @@
     "e2e/021-personal-assistant.spec.ts",
     "e2e/025-poker-odds-controls.spec.ts",
     "e2e/03-training-gto.spec.ts",
+    "e2e/032-image-header-help.spec.ts",
     "e2e/09-games.spec.ts",
     "e2e/global-footer-visual.spec.ts"
   ],

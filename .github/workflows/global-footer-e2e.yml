@@ -254,6 +254,17 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
+      # Every other image header with the painted "?" (Poker Tools, Memory
+      # Games, Training calculators, VIP, the store's VIP tab): icon, corner
+      # clearance, and no page skin boxing it at rest or on keyboard focus.
+      - name: Verify every other image header "?"
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
+        run: npx playwright test e2e/032-image-header-help.spec.ts --project=chromium --project=mobile-chrome --no-deps --workers=2
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
       # Trivia owns the new release evidence in this shared production-build
       # job. Run it as soon as the server is ready so unrelated World/footer
       # failures cannot skip or delay the scoped Phase 11 certification.
@@ -290,6 +301,7 @@ jobs:
         run: node scripts/trivia/browser-race-proof/run.cjs
 
       - name: Verify Diamond Marketplace Page 1 commerce anatomy
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
         run: npx playwright test e2e/05-diamond-store.spec.ts --project=marketplace-audit-chromium --no-deps --grep "diamond (starter and cinematic packs expose complete readable offer details|variable catalog partition stays complete without duplication)" --workers=1
         env:
           CI: true
@@ -297,6 +309,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
       - name: Verify footer routes and geometry
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
         # This suite deliberately exercises 203 SSR routes, 84 live controls, and
         # 16 viewport sizes against one production server. Running its large
         # browser cases concurrently can exhaust the shared server and turn
@@ -307,6 +320,7 @@ jobs:
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
       - name: Verify premium World menu presentation
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
         # Training is the heaviest World route. Running its Chromium screenshot
         # while WebKit hydrates the same route can starve screenshot stability on
         # the shared production server, even though both browser contracts pass
@@ -317,6 +331,7 @@ jobs:
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
       - name: Verify Phase 3 mobile World menu behavior
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
         run: npx playwright test e2e/024-world-menu-mobile-phase3.spec.ts --project=world-menu-phase3-chromium --project=world-menu-phase3-webkit --workers=1
         env:
           CI: true
@@ -326,6 +341,7 @@ jobs:
       # 375px against scripts/ci/mobile-budget.json. Same server,
       # same build, so it costs one more minute, not another job.
       - name: Mobile performance budget (thirteen World roots)
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
         run: npx playwright test e2e/mobile-budget.spec.ts --project=mobile-budget --workers=2
         env:
           CI: true
