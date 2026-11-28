@@ -135,6 +135,7 @@ const WEEKEND_STUBS = {
   },
   '../../../src/components/seo/SmarterQuickSignupSheet': { openQuickSignup: () => true },
   '../../../src/lib/seo/seoFunnelTelemetry': { trackSeoFunnelEvent: () => {} },
+  '../../../src/lib/seo/edgeCacheHeaders.mjs': { setPublicSeoHtmlCache: () => {} },
   '../../../src/lib/venueCount.mjs': { VENUE_COUNT_LABEL: '470+' },
 };
 
@@ -282,6 +283,27 @@ test('T8-3: Tonight / This Weekend / All Upcoming filter + Schema.org Event node
     assert.match(node.url, /^https:\/\/smarter\.poker\//);
     assert.match(node.offers.url, /^https:\/\/smarter\.poker\//);
   }
+
+  // SSR hydration contract: pickSsrWeekendTournament keeps slim public fields & skips placeholders
+  assert.equal(weekendMod.pickSsrWeekendTournament({ venue_name: 'Live Poker Room' }, 'Friday', '2026-11-27'), null);
+  const picked = weekendMod.pickSsrWeekendTournament(
+    {
+      id: 'row-1',
+      venue_id: 3011,
+      venue_name: 'Fortune Poker Room',
+      tournament_name: '$1K Gtd NLH',
+      start_time: '7:00 PM',
+      buy_in: 60,
+      scrape_html_hash: 'secret-internal-hash',
+    },
+    'Friday',
+    '2026-11-27'
+  );
+  assert.equal(picked.venue_name, 'Fortune Poker Room');
+  assert.equal(picked.event_date, '2026-11-27');
+  assert.equal('scrape_html_hash' in picked, false, 'SSR rows must strip scrape bloat');
+  assert.equal(weekendMod.buildWeekendEventSchemaNodes([picked]).length, 1);
+  assert.match(read('pages/hub/tournaments/this-weekend.js'), /initialTournaments/, 'getServerSideProps must hydrate initialTournaments for SSR Event JSON-LD');
 });
 
 test('T8-4: Weekend Remind Me builds Phase-D-compatible spot surviving sanitizeGuestSpots & opens SmarterQuickSignupSheet', () => {

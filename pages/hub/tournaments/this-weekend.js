@@ -32,6 +32,7 @@ import FaqSection from '../../../src/components/seo/FaqSection';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import { openQuickSignup } from '../../../src/components/seo/SmarterQuickSignupSheet';
 import { trackSeoFunnelEvent } from '../../../src/lib/seo/seoFunnelTelemetry';
+import { setPublicSeoHtmlCache } from '../../../src/lib/seo/edgeCacheHeaders.mjs';
 import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 
 const WEEKEND_TOURNAMENTS_FAQS = [
@@ -329,12 +330,92 @@ function getEasternTodayIso(referenceTime = new Date()) {
   return `${y}-${m}-${day}`;
 }
 
-export async function getServerSideProps() {
+export function pickSsrWeekendTournament(row, dayName, dayDate) {
+  if (!row || typeof row !== 'object') return null;
+  const venueName = String(row.venue_name || '').trim();
+  if (!venueName || PLACEHOLDER_VENUE_RE.test(venueName)) return null;
+  return {
+    id: row.id ?? null,
+    venue_id: row.venue_id ?? null,
+    venue_name: venueName,
+    tournament_name: String(row.tournament_name || '').trim() || null,
+    day_of_week: row.day_of_week || dayName,
+    weekendDay: dayName,
+    weekendDate: dayDate,
+    event_date: String(row.event_date || dayDate || '').trim().slice(0, 10) || dayDate,
+    start_time: row.start_time ?? null,
+    buy_in: typeof row.buy_in === 'number' ? row.buy_in : null,
+    guaranteed: typeof row.guaranteed === 'number' ? row.guaranteed : null,
+    game_type: row.game_type ?? null,
+    format: row.format ?? null,
+    city: row.city ?? null,
+    state: row.state ?? null,
+    logo_url: row.logo_url ?? null,
+    source_url: row.source_url ?? null,
+    pokerAtlasUrl: row.pokerAtlasUrl ?? null,
+  };
+}
+
+export async function getServerSideProps({ req, res } = {}) {
+  if (res && typeof setPublicSeoHtmlCache === 'function') {
+    setPublicSeoHtmlCache(res);
+  }
   const now = new Date();
+  const initialWeekendInfo = getWeekendDates(now);
+  const initialTodayIso = getEasternTodayIso(now);
+
+  let initialTournaments = [];
+  try {
+    const rawHost = String(req?.headers?.['x-forwarded-host'] || req?.headers?.host || '').trim();
+    const rawProto = String(req?.headers?.['x-forwarded-proto'] || '').trim().split(',')[0];
+    const isLocal = /^localhost(?::\d+)?$|^127\.0\.0\.1(?::\d+)?$/i.test(rawHost);
+    const proto = rawProto === 'http' || isLocal ? 'http' : 'https';
+    const origin = rawHost && /^[a-z0-9.:-]+$/i.test(rawHost) ? `${proto}://${rawHost}` : 'https://smarter.poker';
+
+    const daySpecs = [
+      { day: 'Friday', date: initialWeekendInfo.friday },
+      { day: 'Saturday', date: initialWeekendInfo.saturday },
+      { day: 'Sunday', date: initialWeekendInfo.sunday },
+    ];
+
+    const settled = await Promise.allSettled(
+      daySpecs.map(async ({ day, date }) => {
+        const controller = typeof AbortController === 'function' ? new AbortController() : null;
+        const timer = controller ? setTimeout(() => controller.abort(), 2500) : null;
+        try {
+          const url = new URL(`/api/poker/daily-tournaments?day=${encodeURIComponent(day)}`, origin).href;
+          const resp = await fetch(url, {
+            headers: { Accept: 'application/json' },
+            ...(controller ? { signal: controller.signal } : {}),
+          });
+          if (!resp.ok) return [];
+          const json = await resp.json();
+          const rows = Array.isArray(json?.tournaments) ? json.tournaments : [];
+          return rows
+            .map((r) => pickSsrWeekendTournament(r, day, date))
+            .filter(Boolean)
+            .slice(0, 12);
+        } finally {
+          if (timer) clearTimeout(timer);
+        }
+      })
+    );
+
+    for (const entry of settled) {
+      if (entry.status === 'fulfilled' && Array.isArray(entry.value)) {
+        initialTournaments.push(...entry.value);
+      }
+    }
+    initialTournaments = initialTournaments.slice(0, 36);
+  } catch (_) {
+    initialTournaments = [];
+  }
+
   return {
     props: {
-      initialWeekendInfo: getWeekendDates(now),
-      initialTodayIso: getEasternTodayIso(now),
+      initialTournaments,
+      initialWeekendInfo,
+      initialTodayIso,
     },
   };
 }
