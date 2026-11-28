@@ -126,6 +126,31 @@ test('negative proof: catches Next.js pages/ extension collisions and pages/ vs 
   assert.ok(res.violations.some((v) => v.kind === 'app-pages-route-collision'));
 });
 
+test('global CSS outside _app: refused, except the listed page-scoped world sheets while app/layout exists', () => {
+  const page = [
+    "import '../../src/styles/worlds/video-library.css';",
+    "import '../../src/styles/worlds/news.css';",
+    'export default function P() { return <div />; }',
+  ].join('\n');
+  const files = {
+    'src/styles/worlds/video-library.css': '.vl-a{}\n',
+    'src/styles/worlds/news.css': '.n{}\n',
+    'pages/hub/video-library.js': page,
+    'src/components/X.js': "import '../styles/worlds/video-library.css';\nexport default function X() { return null; }\n",
+  };
+  const kinds = (res) => res.violations.filter((v) => v.kind === 'next-global-css-outside-app').map((v) => `${v.file} ${v.message.split('"')[1]}`);
+
+  // No App Router root layout: Next refuses page-level global CSS, so does the gate.
+  assert.equal(kinds(makeVirtualTree(files)).length, 3);
+
+  // With app/layout.js the pages layer may import global CSS, but only the listed sheets, only from pages/.
+  const withApp = kinds(makeVirtualTree({ ...files, 'app/layout.js': 'export default function L({ children }) { return children; }\n' }));
+  assert.deepEqual(withApp.sort(), [
+    'pages/hub/video-library.js ../../src/styles/worlds/news.css',
+    'src/components/X.js ../styles/worlds/video-library.css',
+  ]);
+});
+
 test('integration proof: git merge-tree catches cleanly auto-merged cross-PR duplicate import before merge', (t) => {
   const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wh-merge-tree-guard-'));
   t.after(() => fs.rmSync(repoDir, { recursive: true, force: true }));
