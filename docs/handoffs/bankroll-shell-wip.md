@@ -35,3 +35,7 @@ Page edits for items 1-14, tests (__tests__/bankroll-shell-wiring.test.mjs + imp
 
 ## Next exact command
 cd /home/claude/wt-shell && git checkout fix/bankroll-shell-wiring && (edit pages/hub/bankroll-manager.js per list)
+PR 3256 opened by automation; body set
+
+## Shipping
+Squashed clean commit 08426008 on fix/bankroll-shell-wiring, PR #3256 (body set). Next: poll check-runs for that sha, fix failures on the same branch, wait for merge, then Vercel prj_op66GkZyZcygXQKm76iyycfVFAQx READY + https://smarter.poker/api/health.
