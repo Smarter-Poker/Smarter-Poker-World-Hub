@@ -25,8 +25,9 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = new URL('..', import.meta.url).pathname;
+const root = fileURLToPath(new URL('..', import.meta.url));
 const read = p => readFileSync(join(root, p), 'utf8');
 const WATCH_PAGE = read('pages/hub/video-library/watch/[videoId]/[[...slug]].js');
 const CHROME_SLICES = ['chrome-readout', 'chrome-row', 'chrome-stat', 'chrome-active'];
