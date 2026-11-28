@@ -30,6 +30,18 @@ import {
     loadRecentSignupAttribution,
     summarizeSignupAttribution,
 } from '../../../src/lib/acquisition/attributionSummary.mjs';
+import { loadSeoFunnelRollup } from '../../../src/lib/acquisition/seoFunnelRollup.mjs';
+
+function unavailableSeoFunnel(reason = 'fetch_error', windowDays = 7) {
+    return {
+        available: false,
+        reason,
+        window_days: windowDays,
+        events: {},
+        stages: null,
+        rates: null,
+    };
+}
 
 let _supabase = null;
 function getSupabase() {
@@ -62,10 +74,14 @@ export default async function handler(req, res) {
         }
 
         const start = Date.now();
-        const [viewRes, attributionRes] = await Promise.all([
+        const [viewRes, attributionRes, seoFunnelRes] = await Promise.all([
             sb.from('signup_health_view').select('*').maybeSingle(),
             loadRecentSignupAttribution(sb, { windowDays: 7, maxPages: 5, timeoutMs: 1800 })
                 .catch(() => ({ available: false, truncated: false, window_days: 7, ...summarizeSignupAttribution([]) })),
+            (typeof loadSeoFunnelRollup === 'function'
+                ? Promise.resolve().then(() => loadSeoFunnelRollup({ windowDays: 7, timeoutMs: 3000 }))
+                : Promise.resolve(unavailableSeoFunnel('unconfigured', 7)))
+                .catch(() => unavailableSeoFunnel('fetch_error', 7)),
         ]);
         const { data, error } = viewRes;
 
@@ -124,6 +140,7 @@ export default async function handler(req, res) {
                 window_days: 7,
                 ...summarizeSignupAttribution([]),
             },
+            seoFunnel: seoFunnelRes || unavailableSeoFunnel('fetch_error', 7),
             latency_ms: Date.now() - start,
             version: (process.env.VERCEL_GIT_COMMIT_SHA || process.env.BUILD_COMMIT_SHA || 'local').substring(0, 8),
         });

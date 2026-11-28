@@ -7,39 +7,38 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { applyRateLimit } from '../../../src/lib/apiRateLimit';
+import { clientDay, guardBankrollRequest, pdfExportRequest } from '../../../src/lib/bankroll/apiGuard.mjs';
 import { CATEGORY_NAMES, entryNetCents, fetchAllRows, formatUsd, summarizeLedger } from '../../../src/lib/bankroll/ledgerReport.mjs';
 
 
 
+const PDF_LIMIT = { max: 10, windowMs: 60_000, scope: ':bankroll-pdf' };
+
 export default async function handler(req, res) {
   try {
-      if (req.method !== 'GET') {
-          return res.status(405).json({ error: 'Method not allowed' });
-      }
+      // A PDF is built in this lambda, page by page, for a whole ledger. It had
+      // no limit at all.
+      if (!applyRateLimit(req, res, PDF_LIMIT)) return;
 
       try {
-          // Auth check
-          const authHeader = req.headers.authorization;
-          if (!authHeader) {
-              return res.status(401).json({ error: 'Unauthorized' });
-          }
-          const token = authHeader.replace('Bearer ', '');
-          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-          const user = authData?.user;
-          if (authErr || !user) {
-              return res.status(401).json({ error: 'Invalid token' });
-          }
+          const user = await guardBankrollRequest(req, res, {
+              methods: ['GET'],
+              verify: (request) => getServerUserWithFallback(request, getSupabase()),
+          });
+          if (!user) return;
           const userId = user.id;
 
           // ═══ PREMIUM GATE ═══
           const access = await checkServerFeatureAccess(getSupabase(), userId, 'bankroll_pro');
           if (!access.hasAccess) {
-              return res.status(403).json({ error: 'Bankroll Pro or VIP required' });
+              return res.status(403).json({ success: false, error: 'Bankroll Pro or VIP required' });
           }
 
-          // Query parameters
-          const { startDate, endDate, category } = req.query;
+          // Dates and category are checked before they reach a query filter.
+          const input = pdfExportRequest(req.query);
+          if (input.error) return res.status(400).json({ success: false, error: input.error });
+          const { start: startDate, end: endDate, category } = input;
 
           // Every current row: superseded revisions are excluded (they were
           // counted alongside the entry that replaced them) and the read pages
@@ -52,7 +51,7 @@ export default async function handler(req, res) {
                   .eq('is_revision', false);
               if (startDate) query = query.gte('entry_date', startDate);
               if (endDate) query = query.lte('entry_date', endDate);
-              if (category && category !== 'all') query = query.eq('category', category);
+              if (category) query = query.eq('category', category);
               return query
                   .order('entry_date', { ascending: false })
                   .order('created_at', { ascending: false })
@@ -62,7 +61,7 @@ export default async function handler(req, res) {
           // Sessions, win rate and net cover gaming entries only. Deposits and
           // withdrawals are bankroll movements, not results.
           const totals = summarizeLedger(entries);
-          const generatedDay = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.today || '')) ? req.query.today : new Date().toISOString().slice(0, 10);
+          const generatedDay = clientDay(input.today);
 
           // Generate PDF
           // Dynamic-import jspdf only after auth + feature-gate pass (Phase 4.3)
@@ -80,8 +79,10 @@ export default async function handler(req, res) {
           // Date range
           doc.setFontSize(10);
           doc.setTextColor(100, 100, 100);
-          const dateRangeText = startDate && endDate
-              ? `${startDate} to ${endDate}`
+          // A one-sided range is still a range; it used to print "All Time".
+          const dateRangeText = startDate && endDate ? `${startDate} to ${endDate}`
+              : startDate ? `From ${startDate}`
+              : endDate ? `Through ${endDate}`
               : 'All Time';
           doc.text(`Period: ${dateRangeText}`, pageWidth / 2, 28, { align: 'center' });
           doc.text(`Generated: ${generatedDay}`, pageWidth / 2, 34, { align: 'center' });
@@ -190,7 +191,7 @@ export default async function handler(req, res) {
 
       } catch (err) {
           console.warn('[PDF Export] Error:', err);
-          res.status(500).json({ error: 'PDF export failed' });
+          if (!res.headersSent) res.status(500).json({ success: false, error: 'PDF export failed' });
       }
 
   } catch (err) {

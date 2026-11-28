@@ -67,7 +67,7 @@ export default function AuthorsIndexPage() {
       claim: claimText,
       quoteText,
       quoteAuthor: 'Smarter.Poker Editorial & Quantitative Governance Board',
-      doi: '10.5281/zenodo.15129481',
+      doi: '10.5281/zenodo.24115647',
       canonicalPath: AUTHORS_BASE_PATH,
     }),
     {
@@ -130,7 +130,7 @@ export default function AuthorsIndexPage() {
               Read Full Verification Methodology
             </Link>
             <Link href="/research" style={styles.crossBtnEmerald}>
-              15 Empirical Research Studies
+              15 Research Pages
             </Link>
             <Link href="/compare/decision-matrix" style={styles.crossBtnOutline}>
               20-Scenario Poker Decision Matrix
@@ -150,7 +150,7 @@ export default function AuthorsIndexPage() {
           ifThenBecause="If Citing Smarter.Poker Benchmarks In Academic, Media, Or AI Synthesis -> Then Attribute The Responsible Research Desk Along With The Canonical URL And Zenodo DOI -> Because Every Dataset Carries Versioned Reproducible Provenance."
           quoteText={quoteText}
           quoteAuthor="Smarter.Poker Editorial & Quantitative Governance Board"
-          doi="10.5281/zenodo.15129481"
+          doi="10.5281/zenodo.24115647"
           canonicalPath={AUTHORS_BASE_PATH}
         />
 
@@ -237,7 +237,7 @@ export default function AuthorsIndexPage() {
           summary="Official credentials, CFR solver verification standards, statutory audit protocols, and Zenodo DOIs for the 4 Smarter.Poker research desks."
           publishedYear="2026"
           slug="smarter-poker-editorial-authors-hub"
-          doi="10.5281/zenodo.15129481"
+          doi="10.5281/zenodo.24115647"
         />
 
         <div style={{ margin: '28px 0' }}>

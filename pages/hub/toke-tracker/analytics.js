@@ -9,6 +9,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
+import { useTokePrefs } from '../../../src/components/bankroll/toke/useTokePrefs';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { TokeWorkspace } from '../../../src/components/bankroll/toke/TokeWorkspace';
 import TokeDashboard from '../../../src/components/bankroll/TokeDashboard';
@@ -20,47 +21,19 @@ export default function TokeAnalyticsPage() {
     const userId = user?.id;
     const [mounted, setMounted] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
-    const [tokePrefs, setTokePrefs] = useState({});
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const refreshData = useCallback(() => setRefreshTrigger(t => t + 1), []);
 
-    // SSR-safe: hydrate prefs + mount flag on client only
+    // SSR-safe: mount flag on client only (preferences: useTokePrefs)
     useEffect(() => {
         setMounted(true);
-        try {
-            const stored = localStorage.getItem('toke-tracker-prefs');
-            if (stored) setTokePrefs(JSON.parse(stored));
-        } catch (e) { console.warn('[App] Handled exception:', e); }
     }, []);
 
-    const updatePref = useCallback(async (key, value) => {
-        let newPrefs;
-        setTokePrefs(prev => {
-            newPrefs = { ...prev, [key]: value };
-            return newPrefs;
-        });
-        await new Promise(r => setTimeout(r, 0));
-        if (!newPrefs) return;
-        window.dispatchEvent(new CustomEvent('toke-settings-sync', { detail: newPrefs }));
-        try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch (e) { console.warn('[App] Handled exception:', e); }
-        if (!userId) return;
-        try {
-            const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).maybeSingle();
-            const settings = profile?.settings || {};
-            settings.tokeTracker = newPrefs;
-            const { error: err_profiles_ee83d } = await supabase.from('profiles').update({ settings }).eq('id', userId);
-            if (err_profiles_ee83d) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_ee83d.message);
-        } catch (err) { console.warn('[TokeTracker] Pref save error:', err); }
-    }, [userId]);
-
     useEffect(() => {
-        const handler = (e) => { if (e.detail) setTokePrefs(e.detail); };
-        window.addEventListener('toke-settings-sync', handler);
         window.addEventListener('toke-gig-completed', refreshData);
         window.addEventListener('toke-data-updated', refreshData);
         return () => {
-            window.removeEventListener('toke-settings-sync', handler);
             window.removeEventListener('toke-gig-completed', refreshData);
             window.removeEventListener('toke-data-updated', refreshData);
         };
@@ -84,11 +57,8 @@ export default function TokeAnalyticsPage() {
         return () => supabase.removeChannel(channel);
     }, [userId, debouncedRefresh]);
 
-    const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, {
-        setShiftNotifications: (v) => updatePref('shiftNotifications', v),
-        setAutoSaveShifts: (v) => updatePref('autoSaveShifts', v),
-        setDownTimerAlerts: (v) => updatePref('downTimerAlerts', v)
-    });
+    const { prefs: tokePrefs, handlers: prefHandlers } = useTokePrefs(userId);
+    const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, prefHandlers);
 
     // AEO phase 3 (2026-09-18): the head used to sit below this guard.
     // The guard is true on the server, so the branch a crawler always

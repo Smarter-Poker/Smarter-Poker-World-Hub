@@ -7,50 +7,47 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { applyRateLimit } from '../../../src/lib/apiRateLimit';
+import { guardBankrollRequest, taxReportRequest } from '../../../src/lib/bankroll/apiGuard.mjs';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 
 
 import { fetchAllRows, formatUsd, SESSION_CATEGORIES } from '../../../src/lib/bankroll/ledgerReport.mjs';
 import { taxYearTotals, w2gThresholds } from '../../../src/lib/bankroll/taxMath.mjs';
 
+const TAX_LIMIT = { max: 20, windowMs: 60_000, scope: ':bankroll-tax' };
+
 export default async function handler(req, res) {
   try {
-      if (!applyRateLimit(req, res, LIMITS.ai)) return;
+      // Its own bucket. LIMITS.ai (5 a minute) was written for a billed model
+      // call; this is a ledger read, and the panel loads a preview on every
+      // year switch, so the fifth switch in a minute failed with a 429 the
+      // panel reported as "Could Not Generate The Report".
+      if (!applyRateLimit(req, res, TAX_LIMIT)) return;
 
-      if (req.method !== 'GET') {
-          return res.status(405).json({ error: 'Method not allowed' });
-      }
-
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
-          return res.status(401).json({ error: 'Unauthorized' });
-      }
-
-      const token = authHeader.replace('Bearer ', '');
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-      const user = authData?.user;
-      if (authErr || !user) {
-          return res.status(401).json({ error: 'Invalid token' });
-      }
+      const user = await guardBankrollRequest(req, res, {
+          methods: ['GET'],
+          verify: (request) => getServerUserWithFallback(request, getSupabase()),
+      });
+      if (!user) return;
 
       // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
       const access = await checkServerFeatureAccess(getSupabase(), user.id, 'bankroll_pro');
       if (!access.hasAccess) {
-          return res.status(403).json({ error: 'Premium feature access required' });
+          return res.status(403).json({ success: false, error: 'Premium feature access required' });
       }
 
-      const { year = new Date().getFullYear(), format = 'pdf' } = req.query;
+      // A strict four-digit year: parseInt('2025abc') used to read as 2025,
+      // and an unknown format silently became a PDF.
+      const input = taxReportRequest(req.query);
+      if (input.error) return res.status(400).json({ success: false, error: input.error });
+      const { format } = input;
 
       try {
           // Fetch every current ledger row for the year. Superseded revisions
           // used to be counted next to the entry that replaced them, and the
           // read stopped at 500 rows.
-          const taxYear = parseInt(year, 10);
-          if (!Number.isInteger(taxYear) || taxYear < 2000 || taxYear > 2100) {
-              return res.status(400).json({ error: 'Invalid tax year' });
-          }
+          const taxYear = input.year;
           const startDate = `${taxYear}-01-01`;
           const endDate = `${taxYear}-12-31`;
 
@@ -66,22 +63,27 @@ export default async function handler(req, res) {
               .order('id', { ascending: true }));
 
           // Trips the player actually keeps (bankroll_trips) that overlap the year.
-          const { data: trips } = await getSupabase()
+          const { data: trips, error: tripsError } = await getSupabase()
               .from('bankroll_trips')
               .select('id, start_date, end_date, status')
               .eq('user_id', user.id)
               .neq('status', 'deleted')
               .lte('start_date', endDate)
-              .or(`end_date.is.null,end_date.gte.${startDate}`);
+              .or(`end_date.is.null,end_date.gte.${startDate}`)
+              .limit(1000);
+          // A failed read used to print "0 trips" as if it were true.
+          if (tripsError) throw tripsError;
 
           // Fetch uploaded W-2G forms for the year
-          const { data: uploadedW2g } = await getSupabase()
+          const { data: uploadedW2g, error: w2gError } = await getSupabase()
               .from('w2g_forms')
               .select('upload_date, created_at, form_type, source_description, file_name, gross_amount, withholding_amount, federal_withheld, state_withheld, file_url')
               .eq('user_id', user.id)
               .eq('tax_year', taxYear)
               .order('upload_date', { ascending: true })
-              .limit(100);
+              .limit(1000);
+          // Same for the uploaded forms: a failed read is not "no W-2Gs".
+          if (w2gError) throw w2gError;
 
           // Calculate totals
           const report = calculateTaxReport(sessions || [], trips || [], taxYear);
@@ -110,7 +112,7 @@ export default async function handler(req, res) {
           }
 
           // Generate PDF
-          const pdfBuffer = await generateTaxPDF(report, user);
+          const pdfBuffer = await generateTaxPDF(report, input.today);
 
           res.setHeader('Content-Type', 'application/pdf');
           res.setHeader('Content-Disposition', `attachment; filename=poker_tax_report_${taxYear}.pdf`);
@@ -118,7 +120,7 @@ export default async function handler(req, res) {
 
       } catch (error) {
           console.warn('Tax report error:', error);
-          return res.status(500).json({ error: 'Failed to generate tax report' });
+          return res.status(500).json({ success: false, error: 'Failed to generate tax report' });
       }
 
   } catch (err) {
@@ -194,7 +196,7 @@ function calculateTaxReport(rows, trips, year) {
     };
 }
 
-async function generateTaxPDF(report, user) {
+async function generateTaxPDF(report, generatedDay) {
         // Dynamic-import jspdf only after auth + feature-gate pass (Phase 4.3)
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
@@ -209,7 +211,7 @@ async function generateTaxPDF(report, user) {
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 28, { align: 'center' });
+    doc.text(`Generated: ${generatedDay}`, pageWidth / 2, 28, { align: 'center' });
 
     let yPos = 40;
 

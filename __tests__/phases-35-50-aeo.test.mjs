@@ -135,8 +135,9 @@ test('Phase 39 & 40: First-party Research Reports and Editorial Standards render
   assert.ok(lowStakesStudy);
   const satelliteStudy = findResearchReport('satellite-tournament-milestone-and-bubble-survival-math-study');
   assert.ok(satelliteStudy);
-  assert.ok(renderResearchIndexMarkdown().includes('First-Party Statistical Research Reports'));
-  assert.ok(renderResearchReportMarkdown(rakeReport).includes(`${VENUE_COUNT_LABEL} US`));
+  assert.ok(renderResearchIndexMarkdown().includes('Research And Reference Pages'));
+  // The rake page is an editorial guide (no survey of rooms was run), see the-research-figures-are-real.law.test.mjs.
+  assert.equal(rakeReport.basis, 'editorial');
   assert.ok(renderResearchReportMarkdown(dealerReport).includes('Down'));
   assert.ok(renderResearchReportMarkdown(ploReport).includes('PLO4'));
   assert.ok(renderResearchReportMarkdown(taxReport).includes('W-2G'));

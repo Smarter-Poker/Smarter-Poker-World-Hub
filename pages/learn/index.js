@@ -245,7 +245,7 @@ export default function LearnIndex({ count, groups }) {
             ifThenBecause="If Studying Poker Strategy -> Then Pair Written Equilibrium Lessons Directly With Interactive Browser Calculators And Timed Scenario Drills -> Because Active Decision Feedback Accelerates Pattern Retention By 3x Over Passive Reading."
             quoteText="Every Strategy Lesson On Smarter.Poker Puts The Complete Chart, Equation, And Worked Table Example Directly On The Page With Zero Paywall."
             quoteAuthor="Smarter.Poker Quantitative Solver Desk"
-            doi="10.5281/zenodo.15129481"
+            doi="10.5281/zenodo.24115647"
             canonicalPath="/learn"
           />
 

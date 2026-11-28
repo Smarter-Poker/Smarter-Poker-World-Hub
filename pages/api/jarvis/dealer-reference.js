@@ -38,13 +38,13 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
-
       if (req.method !== 'POST') {
           return res.status(405).json({ error: 'Method not allowed' });
       }
+
+      // Every question is a billed model call: the AI limit (5 a minute), not
+      // the 30-a-minute write limit it carried.
+      if (!applyRateLimit(req, res, LIMITS.ai)) return;
 
       // BUG #248 FIX: Require JWT auth — this route uses Grok AI API
       const _token = req.headers.authorization?.replace('Bearer ', '');
@@ -54,7 +54,8 @@ export default async function handler(req, res) {
       const _authUser = authData?.user;
       if (authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
 
-      const { query, history = [] } = req.body;
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const { query } = body;
 
       if (!query || typeof query !== 'string' || query.trim().length === 0) {
           return res.status(400).json({ error: 'Query is required' });
@@ -65,11 +66,17 @@ export default async function handler(req, res) {
       }
 
       try {
-          // Build message history (last 4 exchanges max to save tokens)
-          const recentHistory = history.slice(-4).flatMap(turn => [
-              { role: 'user', content: turn.question },
-              { role: 'assistant', content: turn.answer },
-          ]);
+          // The last 4 exchanges, each a question and an answer of bounded
+          // length. History came from the client unchecked: a non-array was a
+          // 500, and an unbounded "answer" was billed by the token.
+          const recentHistory = (Array.isArray(body.history) ? body.history : [])
+              .filter(turn => turn && typeof turn.question === 'string' && typeof turn.answer === 'string'
+                  && turn.question.trim() && turn.answer.trim())
+              .slice(-4)
+              .flatMap(turn => [
+                  { role: 'user', content: turn.question.trim().slice(0, 500) },
+                  { role: 'assistant', content: turn.answer.trim().slice(0, 2000) },
+              ]);
 
           const completion = await grok.chat.completions.create({
               model: 'gpt-4o-mini',  // maps to grok-3-mini via grokClient

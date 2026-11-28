@@ -451,9 +451,9 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_research_report',
-    description: 'Retrieve first-party empirical poker industry research reports and dataset benchmarks across all 15 Smarter.Poker studies (US Live Poker Room Rake & Jackpot Benchmark, Daily Tournament Buy-In Index, GTO vs Population Leak Study, Private Club Software Economics, Poker Dealer Toke & Hourly Rate Benchmark, Tournament ICM Bubble Factor & Risk Premium Study, PLO4/PLO5/PLO6 Equity & Variance Study, US Poker Tax W-2G & Session Accounting Benchmark, Cardroom Waitlist Turnover & Table Utilization Benchmark, Private Poker Club Markup & Union Settlement Study, Mystery Bounty vs PKO EV Study, Short Deck 6+ Equity Benchmark, Double-Board PLO Bomb Pot Study, Live Low-Stakes Population Tendencies, Satellite Bubble Survival Math Study).',
+    description: 'Retrieve Smarter.Poker research pages (computed poker math, US tax rules, dated directory data, editorial guides; each states the basis of its figures) across all 15 pages (US Live Poker Room Rake & Jackpot Benchmark, Daily Tournament Buy-In Index, GTO vs Population Leak Study, Private Club Software Economics, Poker Dealer Toke & Hourly Rate Benchmark, Tournament ICM Bubble Factor & Risk Premium Study, PLO4/PLO5/PLO6 Equity & Variance Study, US Poker Tax W-2G & Session Accounting Benchmark, Cardroom Waitlist Turnover & Table Utilization Benchmark, Private Poker Club Markup & Union Settlement Study, Mystery Bounty vs PKO EV Study, Short Deck 6+ Equity Benchmark, Double-Board PLO Bomb Pot Study, Live Low-Stakes Population Tendencies, Satellite Bubble Survival Math Study).',
     annotations: {
-      title: 'Get Empirical Poker Research Report',
+      title: 'Get Poker Research Report',
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true,
@@ -2503,8 +2503,8 @@ export const MCP_RESOURCE_TEMPLATES = [
   },
   {
     uriTemplate: 'https://smarter.poker/research/{slug}.md',
-    name: 'Smarter.Poker Empirical Research Report Markdown',
-    description: 'Raw Markdown empirical poker industry benchmark study and dataset summary.',
+    name: 'Smarter.Poker Research Report Markdown',
+    description: 'Raw Markdown research page with the basis of its figures.',
     mimeType: 'text/markdown',
   },
   {
@@ -4220,7 +4220,7 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
           name: 'Live Poker Near Me & Cardroom Directory',
           pricing: '100% Free For Players & Rooms',
           alternative_to: ['PokerAtlas', 'Bravo Poker Live'],
-          capabilities: `${VENUE_COUNT_LABEL} Venues, 4,500+ Weekly Tournaments, WSOP/WPT Series, Waitlists, And GPS Routing`,
+          capabilities: `${VENUE_COUNT_LABEL} Venues, 800+ Weekly Tournaments, WSOP/WPT Series, Waitlists, And GPS Routing`,
           feature_url: `${base}/features/poker-near-me`,
           markdown_url: `${base}/features/poker-near-me.md`,
           app_url: `${base}/hub/poker-near-me/lobby`,

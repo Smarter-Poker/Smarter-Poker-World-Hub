@@ -36,7 +36,12 @@ export const AUDIO_SLOTS: Record<string, AudioSlot> = {
         file: 'main-intro.mp3',  // Main Intro from Epidemic Sound
         volume: 0.85,
         description: 'Epic intro sequence (2-4 seconds, logo reveal type)',
-        preload: true
+        // Never on app start: it is the largest file here and only the sign-in
+        // opening and the hub intro play it. useSignInOpening warms it on the
+        // first touch of the sign-in form; the hub intro starts its animation
+        // from the play() promise, so a cold fetch cannot desynchronise it.
+        // Pinned by __tests__/site-wide-payload-budget.test.mjs.
+        preload: false
     },
     cinematicOutro: {
         file: null,
@@ -244,6 +249,7 @@ class SoundEngineClass {
     private masterVolume: number = 1.0;
     private muted: boolean = false;
     private initialized: boolean = false;
+    private warming: Set<string> = new Set();
 
     /**
      * Initialize the sound engine - call once on app start
@@ -291,6 +297,21 @@ class SoundEngineClass {
                 resolve(); // Don't block on failed loads
             }, { once: true });
         });
+    }
+
+    /**
+     * Fetch a sound that is about to be needed (idempotent). For slots that are
+     * deliberately not preloaded on app start, called when the moment that
+     * plays them is close (for example the first touch of the sign-in form).
+     */
+    warm(key: string): void {
+        if (this.audioCache.has(key) || this.warming.has(key)) return;
+        this.warming.add(key);
+        try {
+            this.preload(key).catch(() => { /* a warm-up is only an optimisation */ });
+        } catch {
+            /* environments without media support still play on demand */
+        }
     }
 
     /**

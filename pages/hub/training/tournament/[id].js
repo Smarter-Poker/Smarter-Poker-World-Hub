@@ -54,15 +54,18 @@ function rankLabel(n) {
   return `${n}th`;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export default function TrainingTournamentDetail() {
   const router = useRouter();
   const { id } = router.query;
   const userId = getAuthUserId();
+  const isValidTournamentId = typeof id === 'string' && UUID_RE.test(id);
 
   const { data, error, isLoading } = useSWR(
-    id ? `/api/training/tournaments?tournamentId=${encodeURIComponent(id)}` : null,
+    isValidTournamentId ? `/api/training/tournaments?tournamentId=${encodeURIComponent(id)}` : null,
     fetcher,
-    { refreshInterval: 15000 }
+    { refreshInterval: (latestData) => (latestData?.success === false ? 0 : 15000) }
   );
 
   const tournament = data?.tournament || null;
@@ -243,7 +246,7 @@ export default function TrainingTournamentDetail() {
                   padding: '12px 16px',
                   borderRadius: 10,
                   fontWeight: 800,
-                  background: 'rgba(234,179,8,0.10)',
+                  background: 'rgba(56, 189, 248, 0.10)',
                   color: '#86daff',
                   marginBottom: 8,
                 }}

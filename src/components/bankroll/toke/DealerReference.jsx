@@ -34,7 +34,9 @@ export default function DealerReference() {
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
         body: JSON.stringify({ query: question, history: history.slice(-4) }),
       });
-      const result = await response.json();
+      // A gateway timeout is HTML, not JSON: that used to surface as a parser error.
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 429) throw new Error('Jarvis takes five questions a minute. Wait a moment and ask again.');
       if (!response.ok) throw new Error(result.error || 'Could not retrieve an answer. Please try again.');
       if (typeof result.answer !== 'string' || !result.answer.trim()) throw new Error('No answer was received. Please try again.');
       if (!request.signal.aborted) {

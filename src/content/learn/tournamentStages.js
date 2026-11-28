@@ -14,7 +14,7 @@
 export const TOURNAMENT_STAGES_AS_OF = '2026-11-24';
 export const TOURNAMENT_STAGES_BASE_PATH = '/learn/tournament-stages';
 export const TOURNAMENT_STAGES_URL = 'https://smarter.poker/learn/tournament-stages';
-export const TOURNAMENT_STAGES_DOI = '10.5281/zenodo.15129481';
+export const TOURNAMENT_STAGES_DOI = '10.5281/zenodo.24115647';
 
 export function tournamentStagePath(stage) {
   return `/learn/tournament-stages/${stage}`;

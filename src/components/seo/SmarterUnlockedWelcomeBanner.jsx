@@ -9,7 +9,7 @@
  * House style: #SMARTERDESIGN, Title Case, zero em dashes.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { trackSeoFunnelEvent } from '../../lib/seo/seoFunnelTelemetry';
@@ -20,6 +20,18 @@ export const JUST_UNLOCKED_KEY = 'sp_just_unlocked_v1';
 export const SAVED_SPOTS_STORAGE_KEY = 'sp_saved_spots_v1';
 export const SPOTS_SYNCED_SESSION_KEY = 'sp_spots_synced_v1';
 export const DAY0_WINS_STORAGE_KEY = 'sp_day0_wins_v1';
+
+export function buildMemberShareReferralUrl({ userId, playerNumber, siteUrl = 'https://smarter.poker' } = {}) {
+  const base = String(siteUrl || 'https://smarter.poker').trim().replace(/\/+$/, '') || 'https://smarter.poker';
+  const rawCode = playerNumber != null ? String(playerNumber).trim() : '';
+  const isValidNumeric = /^\d+$/.test(rawCode) && Number(rawCode) > 0;
+  const cleanCode = isValidNumeric ? String(Number(rawCode)) : '';
+  if (cleanCode) {
+    return `${base}/auth/signup?ref=${encodeURIComponent(cleanCode)}&utm_source=member_share&utm_medium=referral&utm_campaign=day0_invite`;
+  }
+  void userId;
+  return `${base}/auth/signup?src=member-share&utm_source=member_share&utm_medium=referral&utm_campaign=day0_invite`;
+}
 
 let spotsSyncInflight = false;
 
@@ -257,6 +269,41 @@ function hasStoredAuthSession() {
   }
 }
 
+function readStoredMemberIdentity() {
+  if (typeof window === 'undefined') return { userId: '', playerNumber: null };
+  let userId = '';
+  let playerNumber = null;
+  try {
+    const rawAuth = window.localStorage.getItem('smarter-poker-auth');
+    if (rawAuth) {
+      const parsed = JSON.parse(rawAuth);
+      const user = parsed?.user || null;
+      if (user?.id) userId = String(user.id);
+      const authPlayerNum =
+        user?.user_metadata?.player_number ??
+        user?.player_number ??
+        parsed?.player_number ??
+        null;
+      if (authPlayerNum != null && String(authPlayerNum).trim() !== '') {
+        playerNumber = authPlayerNum;
+      }
+    }
+    if (playerNumber == null) {
+      const rawHeader = window.localStorage.getItem('sp-cached-header-user');
+      if (rawHeader) {
+        const cached = JSON.parse(rawHeader);
+        const cachedNum = cached?.player_number ?? cached?.playerNumber ?? null;
+        if (cachedNum != null && String(cachedNum).trim() !== '') {
+          playerNumber = cachedNum;
+        }
+      }
+    }
+  } catch (_) {
+    /* ignore storage restrictions */
+  }
+  return { userId, playerNumber };
+}
+
 export function recordPendingSeoUnlock({ unlockKey = 'free-account', source = 'seo-unlock', redirectPath = '/hub' } = {}) {
   if (typeof window === 'undefined') return;
   try {
@@ -313,6 +360,15 @@ export default function SmarterUnlockedWelcomeBanner() {
   const [bannerState, setBannerState] = useState(null);
   const [syncedSpotCount, setSyncedSpotCount] = useState(0);
   const [completedWinIds, setCompletedWinIds] = useState([]);
+  const [memberIdentity, setMemberIdentity] = useState({ userId: '', playerNumber: null });
+  const [copiedInvite, setCopiedInvite] = useState(false);
+  const inviteTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (inviteTimerRef.current) clearTimeout(inviteTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -328,6 +384,7 @@ export default function SmarterUnlockedWelcomeBanner() {
 
     setSyncedSpotCount(readLocalSavedSpotCount());
     setCompletedWinIds(readCompletedDay0Wins());
+    setMemberIdentity(readStoredMemberIdentity());
     void syncGuestSavedSpotsToCloud();
 
     try {
@@ -341,9 +398,19 @@ export default function SmarterUnlockedWelcomeBanner() {
         setBannerState(null);
         return;
       }
+      const unlockKey = parsed.unlockKey;
       setBannerState(parsed);
+      try {
+        window.dispatchEvent(
+          new CustomEvent('sp:peak-utility-pwa', {
+            detail: { unlockKey },
+          }),
+        );
+      } catch (_) {
+        /* non-blocking */
+      }
       trackSeoFunnelEvent('seo_post_signup_activation_shown', {
-        unlock_key: parsed.unlockKey,
+        unlock_key: unlockKey,
         source: parsed.source || 'seo-unlock',
         pathname: path,
       });
@@ -351,6 +418,28 @@ export default function SmarterUnlockedWelcomeBanner() {
       setBannerState(null);
     }
   }, [router?.asPath]);
+
+  const handleCopyInviteLink = async () => {
+    const referralUrl = buildMemberShareReferralUrl({
+      userId: memberIdentity.userId,
+      playerNumber: memberIdentity.playerNumber,
+    });
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(referralUrl);
+        setCopiedInvite(true);
+        if (inviteTimerRef.current) clearTimeout(inviteTimerRef.current);
+        inviteTimerRef.current = setTimeout(() => setCopiedInvite(false), 2400);
+      }
+      trackSeoFunnelEvent('seo_member_referral_link_copied', {
+        unlock_key: bannerState?.unlockKey || 'free-account',
+        source: bannerState?.source || 'seo-unlock',
+        has_player_number: Boolean(memberIdentity.playerNumber),
+      });
+    } catch (_) {
+      /* ignore clipboard refusal */
+    }
+  };
 
   const markDay0Win = (winId) => {
     setCompletedWinIds((prev) => {
@@ -568,6 +657,41 @@ export default function SmarterUnlockedWelcomeBanner() {
             </Link>
           ))}
         </div>
+      </div>
+
+      <div
+        data-testid="unlocked-banner-referral-bar"
+        style={{
+          marginTop: 10,
+          paddingTop: 10,
+          borderTop: '1px solid #1e354d',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+        }}
+      >
+        <span
+          style={{
+            color: '#bdd0e2',
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          Share Your Personal Invite Link With Poker Friends
+        </span>
+        <button
+          type="button"
+          className={styles.btnSharpSecondary}
+          data-testid="unlocked-banner-invite-btn"
+          onClick={handleCopyInviteLink}
+          style={{ minHeight: 44, padding: '0 12px', fontSize: 12 }}
+        >
+          {copiedInvite
+            ? 'Invite Link Copied'
+            : 'Invite A Poker Friend (Free 30-Day VIP + 500 Diamonds)'}
+        </button>
       </div>
     </aside>
   );

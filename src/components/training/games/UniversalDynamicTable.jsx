@@ -6095,8 +6095,8 @@ function UniversalDynamicTable({
                                         borderRadius: 5,
                                         fontSize: 12,
                                         fontWeight: 800,
-                                        border: '1px solid rgba(250, 204, 21, 0.6)',
-                                        background: 'rgba(250, 204, 21, 0.16)',
+                                        border: '1px solid rgba(56, 189, 248, 0.55)',
+                                        background: 'rgba(56, 189, 248, 0.14)',
                                         color: '#86daff',
                                     }}
                                 >
@@ -6495,8 +6495,8 @@ function UniversalDynamicTable({
                                     borderRadius: 5,
                                     fontSize: 12,
                                     fontWeight: 800,
-                                    border: '1px solid rgba(250, 204, 21, 0.45)',
-                                    background: 'rgba(250, 204, 21, 0.12)',
+                                    border: '1px solid rgba(56, 189, 248, 0.45)',
+                                    background: 'rgba(56, 189, 248, 0.12)',
                                     color: '#86daff',
                                 }}
                             >
@@ -6972,8 +6972,8 @@ function UniversalDynamicTable({
                                     fontSize: 12,
                                     fontWeight: 800,
                                     cursor: 'pointer',
-                                    border: '1px solid rgba(244, 114, 182, 0.5)',
-                                    background: 'rgba(236, 72, 153, 0.14)',
+                                    border: '1px solid rgba(56, 189, 248, 0.5)',
+                                    background: 'rgba(56, 189, 248, 0.14)',
                                     color: '#86daff',
                                 }}
                             >
@@ -7144,8 +7144,8 @@ function UniversalDynamicTable({
                                     fontSize: 12,
                                     fontWeight: 900,
                                     cursor: 'pointer',
-                                    border: '1px solid rgba(250, 204, 21, 0.75)',
-                                    background: 'linear-gradient(180deg, rgba(250, 204, 21, 0.28) 0%, rgba(202, 138, 4, 0.35) 100%)',
+                                    border: '1px solid rgba(56, 189, 248, 0.72)',
+                                    background: 'linear-gradient(180deg, rgba(25, 129, 236, 0.34) 0%, rgba(7, 55, 126, 0.44) 100%)',
                                     color: '#86daff',
                                 }}
                             >
@@ -7213,7 +7213,7 @@ function UniversalDynamicTable({
                                 padding: '6px 10px',
                                 borderRadius: 6,
                                 background: 'rgba(15, 23, 42, 0.96)',
-                                border: '1px solid rgba(192, 132, 252, 0.65)',
+                                border: '1px solid rgba(56, 189, 248, 0.6)',
                                 color: '#86daff',
                                 fontSize: 12,
                                 fontWeight: 800,
@@ -9850,7 +9850,7 @@ function UniversalDynamicTable({
                                         padding: '10px 12px',
                                         borderRadius: 10,
                                         background: 'linear-gradient(135deg, rgba(86, 216, 255, 0.14) 0%, rgba(2, 6, 23, 0.85) 100%)',
-                                        border: '1px solid rgba(192, 132, 252, 0.42)',
+                                        border: '1px solid rgba(56, 189, 248, 0.42)',
                                         color: '#e2e8f0',
                                         fontSize: 12,
                                     }}

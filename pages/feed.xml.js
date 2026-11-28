@@ -78,7 +78,7 @@ const FEATURE_ITEMS = [
     {
         title: 'Live Poker Near Me & Cardroom Directory',
         link: `${SITE_URL}/features/poker-near-me`,
-        description: `Explore ${VENUE_COUNT_LABEL} Live Poker Rooms, 4,500+ Weekly Tournaments, WSOP/WPT Series Schedules, Cash Game Listings, And Waitlists With Instant GPS Directions.`,
+        description: `Explore ${VENUE_COUNT_LABEL} Live Poker Rooms, 800+ Weekly Tournaments, WSOP/WPT Series Schedules, Cash Game Listings, And Waitlists With Instant GPS Directions.`,
     },
     {
         title: 'Private Poker Clubs & Union Hosting Arena',
@@ -554,7 +554,7 @@ const TOOL_ITEMS = [
     {
         title: '2026 Annual State Of Live & Online Poker Industry Whitepaper',
         link: `${SITE_URL}/research/annual-state-of-poker-2026`,
-        description: `Flagship 2026 Quantitative Industry Report Synthesizing ${VENUE_COUNT_LABEL} Venues, 4,500+ Weekly Tournaments, And 10M+ Simulated GTO Hands (DOI: 10.5281/zenodo.15129481).`,
+        description: `The 2026 Smarter.Poker Whitepaper: Exact Poker Math, US Poker Tax Rules, And Dated Directory Data, Each Figure Labelled With Its Basis.`,
         category: 'Poker Industry Research',
         pubDate: LEARN_MODIFIED,
     },
