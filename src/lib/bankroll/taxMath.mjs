@@ -14,6 +14,7 @@
 // say so.
 
 import { SESSION_CATEGORIES } from './ledgerReport.mjs';
+import { expenseCostCents } from './ledgerMath.mjs';
 
 // IRS single-filer brackets: upper bound of each band (taxable income).
 const BRACKETS = {
@@ -80,7 +81,7 @@ export function taxYearTotals(entries = [], year) {
     const parts = dayParts(entry.entry_date);
     if (!parts || parts.year !== Number(year)) continue;
     if (entry.category === 'expense') {
-      expenses += Math.abs(cents(entry.gross_in) || cents(entry.gross_out) - cents(entry.gross_in));
+      expenses += expenseCostCents(entry);
       continue;
     }
     if (!SESSION_CATEGORIES.includes(entry.category)) continue;
@@ -118,4 +119,76 @@ export function estimateTax(totals, { stateRate = 0, deductions = 0 } = {}) {
   const state = Math.round(taxable * (Number(stateRate) || 0)) / 100;
   const total = Math.round((federal + state) * 100) / 100;
   return { taxable, federal, state, total, effectiveRate: taxable > 0 ? ((total / taxable) * 100).toFixed(1) : '0.0' };
+}
+
+/**
+ * The tax-report API's JSON (and the PDF built from it) for one tax year.
+ * Lived inside pages/api/bankroll/tax-report.js, where no test could reach it,
+ * and added dollar floats for the cash/tournament breakdown and the expenses by
+ * type. Everything is summed in cents here, from the same rows and rules as
+ * taxYearTotals, so the breakdown always adds up to the headline figures.
+ */
+export function taxYearReport(rows = [], trips = [], year) {
+  const totals = taxYearTotals(rows, year);
+  const threshold = w2gThresholds(year).poker;
+  const venueOf = (row) => row.bankroll_locations?.name || row.tournament_name || 'Unknown';
+  const inYear = (row) => String(row?.entry_date || '').slice(0, 4) === String(year);
+  const games = rows.filter((row) => row && !row.is_revision && inYear(row) && SESSION_CATEGORIES.includes(row.category));
+  const netCents = (row) => cents(row.gross_out) - cents(row.gross_in);
+
+  const side = (match) => {
+    let winnings = 0, losses = 0;
+    for (const row of games.filter(match)) {
+      const n = netCents(row);
+      if (n > 0) winnings += n; else losses += -n;
+    }
+    return { winnings: winnings / 100, losses: losses / 100, net: (winnings - losses) / 100 };
+  };
+
+  // A poker tournament win is W-2G reportable at $5,000 or more net of the buy-in.
+  const w2gEvents = games
+    .filter((row) => row.category === 'poker_mtt' && netCents(row) >= threshold * 100)
+    .map((row) => ({ date: row.entry_date, type: 'Tournament', venue: venueOf(row), amount: netCents(row) / 100, threshold }));
+
+  // Expenses are the ledger's own expense entries, by type.
+  const expenseCents = {};
+  for (const row of rows) {
+    if (!row || row.is_revision || !inYear(row) || row.category !== 'expense') continue;
+    const key = row.expense_type || 'other';
+    expenseCents[key] = (expenseCents[key] || 0) + expenseCostCents(row);
+  }
+  const expenses = {};
+  for (const [key, value] of Object.entries(expenseCents)) expenses[key] = value / 100;
+
+  return {
+    year,
+    summary: {
+      totalSessions: totals.sessions,
+      totalTrips: trips.length,
+      totalWinnings: totals.winnings,
+      totalLosses: totals.losses,
+      netGamblingResult: totals.net,
+      lossDeductionRate: totals.lossDeductionRate,
+      deductibleLosses: totals.deductibleLosses,
+      totalExpenses: totals.recordedExpenses,
+      // Gambling income left after the losses the law allows. Expenses are
+      // listed apart: only a professional gambler may deduct them.
+      taxableIncome: (cents(totals.winnings) - cents(totals.deductibleLosses)) / 100,
+    },
+    quarters: totals.quarters,
+    breakdown: {
+      cashGame: side((row) => row.category !== 'poker_mtt'),
+      tournament: side((row) => row.category === 'poker_mtt'),
+    },
+    expenses,
+    w2gEvents,
+    sessions: games.map((s) => ({
+      date: s.entry_date,
+      venue: venueOf(s),
+      type: s.category === 'poker_mtt' ? 'Tournament' : s.category === 'poker_cash' ? 'Cash' : s.category.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+      buyIn: Number(s.gross_in) || 0,
+      cashOut: Number(s.gross_out) || 0,
+      net: netCents(s) / 100,
+    })),
+  };
 }

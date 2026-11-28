@@ -97,7 +97,11 @@ test('form dates: blanks become null and a backwards range is refused', () => {
 test('session hours read real timestamps', () => {
   assert.equal(sessionHours({ start_time: '2026-11-20T20:00:00-06:00', end_time: '2026-11-21T02:30:00-06:00' }), 6.5);
   assert.equal(sessionHours({ start_time: '2026-11-20T20:00:00Z', end_time: null }), 0);
-  assert.equal(sessionHours({ start_time: '2026-11-20T20:00:00Z', end_time: '2026-11-20T19:00:00Z' }), 0);
+  // An end clock before the start ran past midnight: the dashboard's rule
+  // (ledgerMath sessionHours). This used to be 0 here, so trips and the
+  // dashboard disagreed about the same overnight session.
+  assert.equal(sessionHours({ start_time: '2026-11-20T21:00:00', end_time: '2026-11-20T03:00:00' }), 6);
+  assert.equal(sessionHours({ start_time: '2026-11-20T20:00:00Z', end_time: '2026-11-20T20:00:00Z' }), 0);
 });
 
 test('trip report: totals, ROI on total cost, hourly, per-day and per-expense', () => {
