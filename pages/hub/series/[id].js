@@ -50,6 +50,7 @@ import { useRouter } from 'next/router';
 import { eventBus } from '../../../src/engine/EventBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PnmImageHeader from '../../../src/components/poker-near-me/PnmImageHeader';
 import PokerIdentityMark from '../../../src/components/poker-near-me/PokerIdentityMark';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { formatGameType, decodeHtml } from '../../../src/utils/pokerFormatters';
@@ -64,7 +65,7 @@ const TOUR_COLORS = {
   'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981' },
   'PGT': { bg: 'linear-gradient(135deg, #0f766e, #115e59)', text: '#fff', border: '#2dd4bf' },
   'EPT': { bg: 'linear-gradient(135deg, #0ea5e9, #0369a1)', text: '#fff', border: '#38bdf8' },
-  'LAPC': { bg: 'linear-gradient(135deg, #e11d48, #9f1239)', text: '#fff', border: '#fb7185' },
+  'LAPC': { bg: 'linear-gradient(135deg, #e11d48, #12709f)', text: '#fff', border: '#fb7185' },
   'SHRPO': { bg: 'linear-gradient(135deg, #0369a1, #075985)', text: '#fff', border: '#38bdf8' },
   'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563' },
 };
@@ -88,7 +89,7 @@ const ACTIVITY_TYPE_COLORS = {
 const PODIUM_COLORS = {
   1: '#00D4FF',
   2: '#c0c0c0',
-  3: '#cd7f32',
+  3: '#3299cd',
 };
 
 function formatDateRange(startDate, endDate) {
@@ -1055,6 +1056,9 @@ export default function SeriesDetailPage({ seoSeries = null }) {
         }}
       />
       <PokerNearMeFamilyNav />
+      <div className="smarterdesign pnm-sd-top">
+        <PnmImageHeader route="series" title="Poker Series" heading="p" />
+      </div>
 
       <HamburgerMenu
           isOpen={menuOpen}
@@ -2061,7 +2065,7 @@ const styles = `
   }
 
   .venue-link.external:hover {
-    color: #e8c370;
+    color: #70c0e8;
   }
 
   /* Events Table */
