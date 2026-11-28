@@ -361,7 +361,7 @@ export async function getServerSideProps({ req, res } = {}) {
     setPublicSeoHtmlCache(res);
   }
   const now = new Date();
-  const initialWeekendInfo = getWeekendDates(now);
+  const weekendInfo = getWeekendDates(now);
   const initialTodayIso = getEasternTodayIso(now);
 
   let initialTournaments = [];
@@ -373,9 +373,9 @@ export async function getServerSideProps({ req, res } = {}) {
     const origin = rawHost && /^[a-z0-9.:-]+$/i.test(rawHost) ? `${proto}://${rawHost}` : 'https://smarter.poker';
 
     const daySpecs = [
-      { day: 'Friday', date: initialWeekendInfo.friday },
-      { day: 'Saturday', date: initialWeekendInfo.saturday },
-      { day: 'Sunday', date: initialWeekendInfo.sunday },
+      { day: 'Friday', date: weekendInfo.friday },
+      { day: 'Saturday', date: weekendInfo.saturday },
+      { day: 'Sunday', date: weekendInfo.sunday },
     ];
 
     const settled = await Promise.allSettled(
@@ -414,7 +414,7 @@ export async function getServerSideProps({ req, res } = {}) {
   return {
     props: {
       initialTournaments,
-      initialWeekendInfo,
+      initialWeekendInfo: getWeekendDates(now),
       initialTodayIso,
     },
   };
