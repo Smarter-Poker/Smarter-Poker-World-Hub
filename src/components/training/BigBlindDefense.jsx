@@ -61,12 +61,12 @@ export default function BigBlindDefense() {
 
         <div style={{ background: 'rgba(34,197,94,0.06)', borderLeft: '3px solid #22c55e', borderRadius: 8, padding: 10, marginBottom: 8 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>CALL</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{scenario.call}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{scenario.call}</div>
         </div>
 
         <div style={{ background: 'rgba(239,68,68,0.06)', borderLeft: '3px solid #ef4444', borderRadius: 8, padding: 10, marginBottom: 8 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>3-BET</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{scenario.threebet}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{scenario.threebet}</div>
         </div>
 
         <p style={{ fontSize: 13, color: '#cbd5e1', background: `${scenario.color}08`, borderRadius: 8, padding: 10 }}>

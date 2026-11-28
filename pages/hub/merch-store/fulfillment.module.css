@@ -1,9 +1,25 @@
+/*
+ * Merch Fulfillment operator console, on #SMARTERDESIGN (docs/SMARTERDESIGN.md):
+ * the shared StoreImageHeader, chrome-readout panels, chrome-stat wells,
+ * chrome-row controls, cobalt for the primary action, square corners, and
+ * white, silver, ice and cyan type. The ok and fault colours appear only for
+ * real states (commerce ready, action required, quarantine, destructive
+ * refunds). No hover states; a press is the feedback.
+ */
 .page {
+  --ff-white: #f2f7ff;
+  --ff-silver: #bdd0e2;
+  --ff-ice: #86daff;
+  --ff-cyan: #67e8f9;
+  --ff-ok: #4ade80;
+  --ff-red: #ff6b7a;
+  --ff-divider: #2b4460;
   min-height: 100vh;
   padding: 92px 22px 0;
-  color: #f4f7fb;
-  background-color: #000;
+  color: var(--ff-white);
+  background-color: #040d18;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
   text-transform: capitalize;
 }
 
@@ -11,32 +27,29 @@
   text-transform: none !important;
 }
 
-.hero {
+.header {
   max-width: 1180px;
-  margin: 0 auto 22px;
-  padding: 22px 10px 28px;
-  border-bottom: 1px solid #476477;
-  background: transparent;
+  margin: 0 auto 12px;
 }
 
-.hero h1,
+.toolbar {
+  max-width: 1180px;
+  margin: 0 auto 14px;
+}
+
 .order h2,
-.dialog h2 {
+.dialog h2,
+.operationsHeading h2 {
   margin: 8px 0;
-  color: #f4f7fb;
+  color: var(--ff-white);
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-weight: 800;
   letter-spacing: 0.012em;
 }
 
-.hero h1 {
-  font-size: clamp(2rem, 5vw, 4.2rem);
-  line-height: 0.95;
-}
-.hero p,
 .dialog > p {
   max-width: 760px;
-  color: #9aa5b3;
+  color: var(--ff-silver);
   font-family: var(--font-inter), Inter, Arial, sans-serif;
   line-height: 1.55;
 }
@@ -52,40 +65,45 @@
 }
 
 .eyebrow {
-  color: #45adff;
-  font-size: 0.8rem;
+  color: var(--ff-ice);
+  font-size: 0.8125rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 }
 
+/* The live queue status: one chrome-stat well, sized by its sentence. */
 .status {
   display: flex;
+  box-sizing: border-box;
   width: min(1180px, 100%);
   min-height: 44px;
   align-items: center;
   justify-content: flex-start;
   margin: 0 auto 16px;
   padding: 12px 16px;
-  border: 1px solid #314957;
-  background: #071017;
-  color: #c9d2da;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: var(--ff-silver);
   font-family: var(--font-inter), Inter, Arial, sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 700;
-  letter-spacing: 0.035em;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
+  letter-spacing: 0.02em;
 }
 
 /* Signed out, the page used to render full chrome, a hero and two enabled
    actions, and the only sign of the gate was one 11.68px line. */
 .authGate {
+  box-sizing: border-box;
   max-width: 1180px;
   margin: 0 auto 18px;
   padding: 16px 18px;
-  border: 1px solid #23394a;
-  color: #dce4e9;
-  background: #070e15;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%);
+  color: var(--ff-white);
   font-family: var(--font-inter), Inter, Arial, sans-serif;
   font-size: 0.95rem;
   line-height: 1.5;
@@ -100,19 +118,22 @@
 }
 
 .operations {
+  box-sizing: border-box;
   max-width: 1180px;
   margin: 0 auto 20px;
-  padding: 20px;
-  border: 1px solid #526f80;
-  background: #02070b;
-  box-shadow: inset 0 1px 0 rgb(232 251 255 / 18%);
+  padding: 18px 20px 20px;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
 }
 
 .operationsHeading {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px 16px;
   margin-bottom: 16px;
 }
 
@@ -121,16 +142,30 @@
   font-size: 1.35rem;
 }
 
+/* The readiness readout: a well. The ok colour only when commerce is verified
+   ready, the fault colour when the summary failed or an action is required. */
 .operationsState {
+  box-sizing: border-box;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
   padding: 8px 14px;
-  border: 1px solid #385568;
-  color: #9bf4ff;
-  background: #071017;
-  font-size: 0.78rem;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: var(--ff-silver);
+  font-size: 0.875rem;
   font-weight: 800;
+}
+
+.operationsState[data-state='ready'] {
+  color: var(--ff-ok);
+}
+
+.operationsState[data-state='attention'],
+.operationsState[data-state='error'] {
+  color: var(--ff-red);
 }
 
 .metricGrid {
@@ -144,21 +179,24 @@
   gap: 5px;
   min-height: 86px;
   align-content: center;
-  padding: 14px;
-  border: 1px solid #23394a;
-  background: #070e15;
+  padding: 12px 14px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%);
 }
 
 .metricGrid strong {
-  color: #e7c869;
-  font-size: 1.25rem;
+  color: var(--ff-white);
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
 .metricGrid span {
-  color: #aebcc5;
+  color: var(--ff-silver);
   font-family: var(--font-inter), Inter, Arial, sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.35;
 }
 
@@ -170,28 +208,32 @@
   gap: 16px;
 }
 
+/* One order: one chrome-readout card. */
 .order {
+  box-sizing: border-box;
   min-width: 0;
-  padding: 24px;
-  color: #e4e7ec;
-  border: 1px solid #526f80;
-  background: #02070b;
-  box-shadow: inset 0 1px 0 rgb(232 251 255 / 18%);
+  padding: 20px;
+  color: var(--ff-white);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%);
 }
 
 .orderTop {
+  flex-wrap: wrap;
   justify-content: space-between;
-  color: #45adff;
-  font-size: 0.78rem;
+  color: var(--ff-ice);
+  font-size: 0.875rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
 }
 .orderTop code,
 .quarantine code {
   min-width: 0;
-  color: #9aa5b3;
+  color: var(--ff-silver);
   font-family: var(--font-inter), Inter, Arial, sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   overflow-wrap: anywhere;
 }
 .orderTop code {
@@ -200,101 +242,139 @@
 .order h2 {
   margin: 16px 0 8px;
   font-size: 1.15rem;
-  line-height: 1.1;
+  line-height: 1.15;
+}
+/* The shipping address and the provider note: chrome-stat wells. */
+.order address,
+.providerManaged {
+  padding: 12px 14px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
 }
 .order address {
   min-height: 82px;
-  padding: 14px 16px;
-  color: #c2ccd3;
-  font-family: var(--font-inter), Inter, Arial, sans-serif;
-  font-size: 0.88rem;
+  color: var(--ff-white);
+  font-size: 0.9rem;
   font-style: normal;
   line-height: 1.5;
-  background-color: rgb(0 4 8 / 90%);
+  overflow-wrap: anywhere;
 }
 .money {
-  color: #e7c869;
+  color: var(--ff-cyan);
+  font-size: 1.05rem;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
+/* Quarantine is a real fault state, so it is the one red well on a card. */
 .quarantine {
   display: grid;
   gap: 6px;
   margin-top: 14px;
-  padding: 16px;
-  color: #ff5b6e;
-  background-color: rgb(240 40 73 / 10%);
+  padding: 12px 14px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: var(--ff-white);
   font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-size: 0.875rem;
 }
 
 .quarantine strong {
-  color: #ff7382;
+  color: var(--ff-red);
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-weight: 800;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
 }
 .quarantine span,
 .quarantine small {
   overflow-wrap: anywhere;
 }
 .quarantine small {
-  color: #ff8090;
-  font-size: 0.75rem;
-}
-.quarantine code {
-  color: #e7c869;
+  color: var(--ff-silver);
+  font-size: 0.8125rem;
 }
 
 .providerManaged {
   margin-top: 14px;
-  padding: 14px 16px;
-  color: #b8c6ce;
-  background-color: rgb(0 4 8 / 90%);
-  font-family: var(--font-inter), Inter, Arial, sans-serif;
+  color: var(--ff-silver);
+  font-size: 0.875rem;
 }
 .actions {
   flex-wrap: wrap;
   margin-top: 16px;
 }
 
+.toolbar.actions {
+  margin-top: 0;
+}
+
+/* Every action is a chrome-row control; the first action on a row, and the
+   dialog's confirm, is the cobalt primary. */
 .actions button,
 .actions a,
 .dialogClose,
 .dialogActions button {
   display: inline-flex;
+  box-sizing: border-box;
   min-height: 44px;
   align-items: center;
   justify-content: center;
-  padding: 8px 24px;
-  border: 1px solid #385568;
-  color: #e4e7ec;
-  background: #071017;
+  padding: 6px 20px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  border-radius: 0;
+  color: var(--ff-white);
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.02em;
   text-align: center;
   text-decoration: none;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .actions button:first-child,
+.authGate .actions a,
 .dialogActions button:last-child {
-  border-color: #42d9ff;
-  background: #0a4f69;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  color: #fff;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+}
+.actions button:active,
+.actions a:active,
+.dialogClose:active,
+.dialogActions button:active {
+  filter: brightness(0.89);
 }
 .actions button:disabled,
 .dialogActions button:disabled,
 .dialogClose:disabled {
-  opacity: 0.46;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  color: #a7b7c8;
+  background: #13202c;
+  filter: none;
   cursor: wait;
 }
-.actions .danger,
-.dialogActions .danger {
-  border-color: #8d3041;
-  color: #ff5b6e;
-  background: #1b090d;
+/* A destructive refund keeps the steel control and says so in red. */
+.actions button.danger,
+.dialogActions button.danger {
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  color: var(--ff-red);
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+}
+.actions button.danger:disabled,
+.dialogActions button.danger:disabled {
+  color: #a7b7c8;
+  background: #13202c;
 }
 
 .actions button:focus-visible,
@@ -302,8 +382,8 @@
 .dialogClose:focus-visible,
 .formGrid input:focus-visible,
 .dialogActions button:focus-visible {
-  outline: 3px solid #45adff !important;
-  outline-offset: 3px !important;
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }
 
 .dialogBackdrop {
@@ -313,7 +393,7 @@
   display: grid;
   place-items: center;
   padding: 22px;
-  background-color: rgb(0 0 0 / 88%);
+  background-color: rgb(2 7 13 / 88%);
 }
 /* `padding: 16%` resolved against the fixed backdrop, not this 620px dialog:
    223px a side at a 1440px viewport, 300px at 1920px, and a content box that
@@ -321,26 +401,29 @@
    collapse was horizontal only. Same remedy as the VIP confirmation dialog. */
 .dialog {
   position: relative;
+  box-sizing: border-box;
   display: flex;
   width: min(620px, 100%);
   max-height: min(780px, calc(100vh - 44px));
   flex-direction: column;
   overflow-y: auto;
-  padding: 26px 24px;
-  border: 1px solid #23394a;
-  background: #070e15;
+  padding: 24px 22px;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
   box-shadow: 0 24px 64px rgb(0 0 0 / 55%);
 }
 .dialog h2 {
-  margin: 10px 74px 8px 0;
+  margin: 10px 104px 8px 0;
   font-size: clamp(1.45rem, 4vw, 2.2rem);
 }
 .dialogClose {
   position: absolute;
   top: 18px;
   right: 18px;
-  min-width: 76px;
-  padding-inline: 14px;
+  min-width: 88px;
+  padding-inline: 16px;
 }
 
 .formGrid {
@@ -352,28 +435,35 @@
 .formGrid label {
   display: grid;
   gap: 7px;
-  color: #dce4e9;
+  color: var(--ff-white);
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
 }
 .formGrid label span {
-  color: #9aa5b3;
-  font-size: 0.75rem;
+  color: var(--ff-silver);
+  font-size: 0.8125rem;
 }
 .formGrid input {
-  min-height: 46px;
+  box-sizing: border-box;
+  min-height: 48px;
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid #385568;
-  color: #eef9fd;
-  background: #02070b;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  border-radius: 0;
+  color: var(--ff-white);
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   font:
-    600 0.9rem/1 var(--font-inter),
+    600 1rem/1 var(--font-inter),
     Inter,
     Arial,
     sans-serif;
+}
+.formGrid input::placeholder {
+  color: var(--ff-silver);
+  opacity: 1;
 }
 .fullField {
   grid-column: 1 / -1;
@@ -389,9 +479,6 @@
 @media (max-width: 600px) {
   .page {
     padding-inline: 12px;
-  }
-  .hero {
-    padding: 20px 6px 24px;
   }
   .grid,
   .formGrid {

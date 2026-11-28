@@ -990,7 +990,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                 right: '10px',
                 fontSize: '12px',
                 color: '#444',
-                fontFamily: 'monospace',
+                fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                 textAlign: 'right'
             }}>
                 Phase: {phase}<br />

@@ -63,7 +63,7 @@ export default function ZoomPokerGuide() {
           <div style={{ fontSize: 12, fontWeight: 700, color: t.color }}>STRATEGY</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.strategy}</div>
         </div>
-        <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'monospace' }}>
+        <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Key Stat</div>
           <div style={{ fontSize: 12, color: t.color }}>{t.stat}</div>
         </div>

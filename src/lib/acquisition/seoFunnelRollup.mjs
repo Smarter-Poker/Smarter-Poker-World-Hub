@@ -34,12 +34,16 @@ export const SEO_FUNNEL_EVENTS = Object.freeze([
 const SEO_FUNNEL_EVENT_SET = new Set(SEO_FUNNEL_EVENTS);
 const POSTHOG_QUERY_HOST = 'https://us.posthog.com';
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const STALE_FALLBACK_TTL_MS = 30 * 60 * 1000;
+const DEFAULT_TIMEOUT_MS = 6500;
 const MAX_WINDOW_DAYS = 90;
 
 const rollupCache = new Map();
+const staleFallbackCache = new Map();
 
 export function resetSeoFunnelRollupCacheForTest() {
   rollupCache.clear();
+  staleFallbackCache.clear();
 }
 
 function normalizeWindowDays(windowDays) {
@@ -60,15 +64,20 @@ function safeRatePct(numerator, denominator) {
   return Number.isFinite(pct) ? pct : null;
 }
 
-function cloneSummary(summary) {
-  return {
+function cloneSummary(summary, extra = null) {
+  const cloned = {
     available: summary.available,
     ...(summary.reason ? { reason: summary.reason } : {}),
+    ...(summary.stale === true ? { stale: true } : {}),
     window_days: summary.window_days,
     events: { ...summary.events },
     stages: summary.stages ? { ...summary.stages } : null,
     rates: summary.rates ? { ...summary.rates } : null,
   };
+  if (extra && typeof extra === 'object') {
+    Object.assign(cloned, extra);
+  }
+  return cloned;
 }
 
 /**
@@ -163,20 +172,34 @@ function buildUnavailableRollup(reason, windowDays) {
   };
 }
 
+function resolveStaleFallbackOrUnavailable(cacheKey, reason, windowDays, nowMs) {
+  const staleEntry = staleFallbackCache.get(cacheKey);
+  if (staleEntry) {
+    if (nowMs < staleEntry.expiresAt) {
+      return cloneSummary(staleEntry.value, { stale: true });
+    }
+    staleFallbackCache.delete(cacheKey);
+  }
+  return buildUnavailableRollup(reason, windowDays);
+}
+
 /**
- * Read-only PostHog HogQL rollup loader with 5-minute in-memory TTL cache and
+ * Read-only PostHog HogQL rollup loader with 5-minute fresh TTL cache,
+ * 30-minute stale fallback cache for transient upstream errors/timeouts, and
  * strict AbortController timeout. Never throws, never returns credentials, and
- * never substitutes unavailable telemetry for zeros.
+ * never substitutes cold unavailable telemetry for zeros.
  */
 export async function loadSeoFunnelRollup({
   fetchImpl = globalThis.fetch,
   env = process.env,
   windowDays = 7,
-  timeoutMs = 4000,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
   now = Date.now(),
 } = {}) {
   const safeWindowDays = normalizeWindowDays(windowDays);
-  const safeTimeoutMs = Number.isFinite(timeoutMs) && timeoutMs > 0 ? Math.trunc(timeoutMs) : 4000;
+  const safeTimeoutMs = Number.isFinite(timeoutMs) && timeoutMs > 0
+    ? Math.trunc(timeoutMs)
+    : DEFAULT_TIMEOUT_MS;
   const nowMs = Number.isFinite(now) ? now : Date.now();
 
   const apiKey = typeof env?.POSTHOG_REPORTING_API_KEY === 'string'
@@ -197,7 +220,7 @@ export async function loadSeoFunnelRollup({
   }
 
   if (typeof fetchImpl !== 'function') {
-    return buildUnavailableRollup('fetch_error', safeWindowDays);
+    return resolveStaleFallbackOrUnavailable(cacheKey, 'fetch_error', safeWindowDays, nowMs);
   }
 
   const endMs = nowMs;
@@ -239,14 +262,14 @@ export async function loadSeoFunnelRollup({
             query,
           },
           name: 'SEO Organic Conversion Funnel Rollup',
-          refresh: 'force_blocking',
+          refresh: 'blocking',
         }),
       }),
       timeoutPromise,
     ]);
 
     if (!response || !response.ok) {
-      return buildUnavailableRollup('fetch_error', safeWindowDays);
+      return resolveStaleFallbackOrUnavailable(cacheKey, 'fetch_error', safeWindowDays, nowMs);
     }
 
     const result = await Promise.race([response.json(), timeoutPromise]);
@@ -256,7 +279,7 @@ export async function loadSeoFunnelRollup({
       result.query_status?.complete === false ||
       !Array.isArray(result.results)
     ) {
-      return buildUnavailableRollup('fetch_error', safeWindowDays);
+      return resolveStaleFallbackOrUnavailable(cacheKey, 'fetch_error', safeWindowDays, nowMs);
     }
 
     const counts = {};
@@ -275,12 +298,16 @@ export async function loadSeoFunnelRollup({
       expiresAt: nowMs + CACHE_TTL_MS,
       value: cloneSummary(summary),
     });
+    staleFallbackCache.set(cacheKey, {
+      expiresAt: nowMs + STALE_FALLBACK_TTL_MS,
+      value: cloneSummary(summary),
+    });
     return summary;
   } catch (err) {
     if (timedOut || err?.name === 'AbortError' || err?.name === 'TimeoutError') {
-      return buildUnavailableRollup('timeout', safeWindowDays);
+      return resolveStaleFallbackOrUnavailable(cacheKey, 'timeout', safeWindowDays, nowMs);
     }
-    return buildUnavailableRollup('fetch_error', safeWindowDays);
+    return resolveStaleFallbackOrUnavailable(cacheKey, 'fetch_error', safeWindowDays, nowMs);
   } finally {
     if (timerId !== null) clearTimeout(timerId);
   }

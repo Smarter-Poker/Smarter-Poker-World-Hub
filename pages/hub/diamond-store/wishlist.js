@@ -18,6 +18,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 import { resolveReviewedMerchArt } from '../../../src/lib/store/merchProductArt';
+import { formatUsd } from '../../../src/lib/store/formatStoreMoney.mjs';
 import accountControls from './marketplace-account-controls.module.css';
 
 function AccountPanel({ title, primaryAction = null, children }) {
@@ -393,7 +394,7 @@ export default function Wishlist() {
                           {marketplaceCopy(catalog?.name || item.product_name)}
                         </h2>
                         <div style={styles.priceRow}>
-                          <span style={styles.price}>${priceUsd.toFixed(2)}</span>
+                          <span style={styles.price}>{formatUsd(priceUsd)}</span>
                           <span style={styles.diamondPrice}>
                             {priceDiamonds.toLocaleString()} Diamonds
                           </span>

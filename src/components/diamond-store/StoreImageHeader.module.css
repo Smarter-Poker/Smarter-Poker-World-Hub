@@ -20,19 +20,36 @@
   box-shadow: 0 10px 26px #01060fcc;
 }
 
-.scene {
+/* The <picture> wrapper must not take a grid cell: the scene stays an
+   absolutely positioned layer of the header. */
+.scenePicture.scenePicture {
+  /* Out of the header grid: the scene layer never takes a grid cell, whatever
+     global display rule a page applies to <picture>. */
   position: absolute;
   inset: 0 0 0 auto;
   z-index: -1;
+  display: block;
   width: 58%;
+  height: 100%;
+  margin: 0;
+  pointer-events: none;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
   height: 100%;
   min-height: 100%;
   max-height: 100%;
   max-width: none;
   object-fit: cover;
   object-position: 62% 50%;
-  mask-image: linear-gradient(90deg, transparent, #0002 18%, #0006 43%, #0009 68%, #000);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #0002 18%, #0006 43%, #0009 68%, #000);
+  /* The painted scenes are low-key renders: lift them so the subject reads
+     through the left fade on the ink-navy header. */
+  filter: brightness(1.18) saturate(1.08);
+  mask-image: linear-gradient(90deg, transparent, #0004 16%, #000a 40%, #000 62%);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #0004 16%, #000a 40%, #000 62%);
   pointer-events: none;
 }
 
@@ -166,21 +183,29 @@
     gap: 11px;
     padding: 13px 12px;
   }
-  .scene {
+  .scenePicture.scenePicture {
     width: 60%;
-    mask-image: linear-gradient(90deg, transparent, #0002 22%, #0006 52%, #0009 76%, #000f);
-    -webkit-mask-image: linear-gradient(90deg, transparent, #0002 22%, #0006 52%, #0009 76%, #000f);
+  }
+  .scene {
+    mask-image: linear-gradient(90deg, transparent, #0005 18%, #000b 42%, #000 60%);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #0005 18%, #000b 42%, #000 60%);
   }
   .header .title { font-size: clamp(1.7rem, 7.4vw, 2.5rem); }
   .copy { padding-right: 40px; }
 }
 
-/* Wide headers crop each scene to a band: keep every subject in frame. */
-.header[data-header-art='store-diamonds'] .scene { object-position: 60% 24%; }
-.header[data-header-art='store-rewards'] .scene { object-position: 60% 22%; }
-.header[data-header-art='store-merch'] .scene { object-position: 55% 38%; }
-.header[data-header-art='store-club-shop'] .scene { object-position: 50% 55%; }
-.header[data-header-art='store-cart'] .scene { object-position: 40% 45%; }
-.header[data-header-art='store-orders'] .scene { object-position: 50% 62%; }
-.header[data-header-art='store-wishlist'] .scene { object-position: 50% 48%; }
-.header[data-header-art='store-order-detail'] .scene { object-position: 50% 70%; }
+/* Desktop: each 16:9 scene is cropped to a band. Keep the subject (centres
+   listed in scripts/art/derive-store-headers.py SUBJECT) inside that band. */
+.header[data-header-art='store-diamonds'] .scene { object-position: 72% 45%; }
+.header[data-header-art='store-merch'] .scene { object-position: 75% 42%; }
+.header[data-header-art='store-rewards'] .scene { object-position: 72% 48%; }
+.header[data-header-art='store-club-shop'] .scene { object-position: 72% 42%; }
+.header[data-header-art='store-cart'] .scene { object-position: 69% 58%; }
+.header[data-header-art='store-orders'] .scene { object-position: 70% 58%; }
+.header[data-header-art='store-order-detail'] .scene { object-position: 77% 42%; }
+.header[data-header-art='store-wishlist'] .scene { object-position: 76% 72%; }
+
+/* Phone: the 2:1 phone frames are already cut around the subject. */
+@media (max-width: 600px) {
+  .header[data-header-art^='store-'] .scene { object-position: 50% 50%; }
+}

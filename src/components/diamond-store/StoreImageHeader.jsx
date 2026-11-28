@@ -5,6 +5,12 @@ import { SD_HEADER_HELP_ICON } from '../smarterdesign/headerHelp';
 import styles from './StoreImageHeader.module.css';
 
 /**
+ * Every store-* header art ships a phone crop (`${art}-scene-phone.webp`) that
+ * the header serves below 601px. Other art (VIP) keeps its single scene.
+ */
+export const hasPhoneHeaderScene = (art) => typeof art === 'string' && art.startsWith('store-');
+
+/**
  * Help for one store destination: the painted chrome "?" in the upper-right
  * corner of the image header opens a native dialog with the page's steps and
  * FAQs. Escape, the close button and a backdrop click all dismiss it, and focus
@@ -89,16 +95,21 @@ export default function StoreImageHeader({
   const asset = `/images/smarterdesign/headers/${art}`;
   return (
     <header className={`sd-masthead ${styles.header} ${className}`} data-header-art={art}>
-      <img
-        className={styles.scene}
-        src={`${asset}-scene.webp`}
-        alt=""
-        width="600"
-        height="420"
-        fetchpriority="high"
-        decoding="async"
-        aria-hidden="true"
-      />
+      <picture className={styles.scenePicture}>
+        {hasPhoneHeaderScene(art) && (
+          <source media="(max-width: 600px)" srcSet={`${asset}-scene-phone.webp`} />
+        )}
+        <img
+          className={styles.scene}
+          src={`${asset}-scene.webp`}
+          alt=""
+          width="600"
+          height="420"
+          fetchpriority="high"
+          decoding="async"
+          aria-hidden="true"
+        />
+      </picture>
       <span className={styles.seal} aria-hidden="true">
         <img src={`${asset}-seal.webp`} alt="" width="176" height="176" />
       </span>

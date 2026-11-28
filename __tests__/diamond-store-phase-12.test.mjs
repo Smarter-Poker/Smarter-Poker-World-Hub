@@ -128,8 +128,8 @@ test('VIP and reward console controls use restrained content-driven surfaces', (
   const compare = read('pages/hub/vip-membership/compare.js');
   const manage = read('pages/hub/vip-membership/manage.js');
   const rewards = read('src/components/store/RewardTelemetryConsole.jsx');
-  // The VIP membership surfaces were not part of the store redesign and keep
-  // their restrained content-driven controls.
+  // The VIP membership surfaces now carry the #SMARTERDESIGN chrome materials
+  // (docs/SMARTERDESIGN.md): chrome nine-slice rims over the standard fills.
   const vipControlStyles = [
     read('pages/hub/vip-membership/compare.module.css'),
     read('src/components/store/VipMembershipConsole.module.css'),
@@ -144,11 +144,14 @@ test('VIP and reward console controls use restrained content-driven surfaces', (
   );
   assert.match(compare, /compare\.module\.css/);
   assert.match(controlStyles, /min-height:\s*(?:4[4-9]|[5-9]\d|\d{3,})px/);
-  assert.match(vipControlStyles, /border:\s*1px solid/);
-  assert.match(vipControlStyles, /background:\s*#[0-9a-f]{3,8}\b/i);
+  assert.match(vipControlStyles, SD_FRAME.panel);
+  assert.match(vipControlStyles, SD_FRAME.well);
+  assert.match(vipControlStyles, SD_FRAME.control);
+  assert.match(vipControlStyles, SD_FRAME.active);
+  assert.deepEqual(offStandardPaint(vipControlStyles), []);
   assert.doesNotMatch(
     withoutComments(vipControlStyles),
-    /url\(|marketplace-console-v1|shark-panel|navigation\/nav-shell|(?:linear|radial|conic)-gradient/i
+    /marketplace-console-v1|shark-panel|navigation\/nav-shell|clip-path:\s*polygon/i
   );
   assert.match(rewardStyles, SD_FRAME.panel);
   assert.deepEqual(offStandardPaint(rewardStyles), []);

@@ -91,6 +91,12 @@ test('StoreImageHeader renders the art, the live title and an accessible help bu
   );
   assert.match(html, /^<header class="sd-masthead header[^"]*" data-header-art="store-cart">/);
   assert.match(html, /src="\/images\/smarterdesign\/headers\/store-cart-scene\.webp"/);
+  // Phones get their own scene crop through <picture>; the img stays the
+  // decorative, aria-hidden desktop fallback.
+  assert.match(
+    html,
+    /<picture class="scenePicture"><source media="\(max-width: 600px\)" srcSet="\/images\/smarterdesign\/headers\/store-cart-scene-phone\.webp"\/><img class="scene" src="\/images\/smarterdesign\/headers\/store-cart-scene\.webp"[^>]*aria-hidden="true"\/><\/picture>/
+  );
   assert.match(html, /src="\/images\/smarterdesign\/headers\/store-cart-seal\.webp"/);
   assert.match(html, /<h1 id="cart-title" class="title">Your Cart<\/h1>/);
   assert.match(html, /<div class="parent">Marketplace Checkout<\/div>/);
@@ -118,6 +124,12 @@ test('StoreImageHeader renders the art, the live title and an accessible help bu
   );
   assert.match(detail, /<p class="title">Royal Circuit Tee<\/p>/);
   assert.doesNotMatch(detail, /<h1/);
+  assert.match(detail, /store-merch-scene-phone\.webp/);
+
+  // Art without a phone crop (VIP) keeps its single scene and no <source>.
+  const vip = renderToStaticMarkup(React.createElement(Header, { art: 'vip', title: 'VIP' }));
+  assert.doesNotMatch(vip, /<source/);
+  assert.match(vip, /src="\/images\/smarterdesign\/headers\/vip-scene\.webp"/);
   assert.match(detail, /aria-label="Help For Royal Circuit Tee"/);
 });
 
@@ -141,6 +153,32 @@ test('every SECTION_HEADERS art and every sub page art ships as a seal and scene
       assert.equal(`${head.slice(0, 4)}${head.slice(8, 12)}`, 'RIFFWEBP', `${art}-${part} must be WebP`);
     }
   }
+});
+
+test('every store-* header art ships a phone scene crop', () => {
+  const storeArt = [...sectionArt, ...subpageArt].filter((art) => art.startsWith('store-'));
+  assert.deepEqual(storeArt.sort(), [
+    'store-cart',
+    'store-club-shop',
+    'store-diamonds',
+    'store-merch',
+    'store-order-detail',
+    'store-orders',
+    'store-rewards',
+    'store-wishlist',
+  ]);
+  for (const art of storeArt) {
+    const file = join(ROOT, `public/images/smarterdesign/headers/${art}-scene-phone.webp`);
+    assert.ok(existsSync(file), `${art}-scene-phone.webp must exist`);
+    const bytes = statSync(file).size;
+    assert.ok(bytes > 1024 && bytes < 100 * 1024, `${art}-scene-phone.webp must be real art under 100 KiB`);
+    const head = readFileSync(file).subarray(0, 12).toString('latin1');
+    assert.equal(`${head.slice(0, 4)}${head.slice(8, 12)}`, 'RIFFWEBP', `${art}-scene-phone must be WebP`);
+  }
+  // The store route preloads the phone crop for phones and the wide scene above.
+  const store = read('pages/hub/diamond-store.js');
+  assert.match(store, /-scene-phone\.webp`\}[\s\S]{0,120}media="\(max-width: 600px\)"/);
+  assert.match(store, /media=\{hasPhoneHeaderScene\(SECTION_HEADERS\[activeTab\]\.art\) \? '\(min-width: 601px\)' : undefined\}/);
 });
 
 test('the store page, sub page shell and detail experience all render StoreImageHeader', () => {
@@ -199,6 +237,8 @@ const touchedStoreCss = [
   'src/components/store/StoreToast.module.css',
   'pages/hub/diamond-store/cart.module.css',
   'pages/hub/diamond-store/marketplace-account-controls.module.css',
+  'src/components/store/DiamondWalletModal.module.css',
+  'pages/hub/merch-store/fulfillment.module.css',
 ];
 
 test('the touched store CSS modules carry no hover states and no banned text colours', () => {

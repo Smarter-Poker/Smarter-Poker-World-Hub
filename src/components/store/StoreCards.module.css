@@ -1,15 +1,18 @@
+/* Store product cards on #SMARTERDESIGN: one chrome-readout rim over the card
+   fill, square corners, a chrome-stat well for the badge, live lettering.
+   The VIP plan card (StoreCards.js VIPCard) paints from
+   VipMembershipCard.module.css; its retired black-box rules are gone from
+   here so nothing can pick them up again. */
 .packageCard,
 .merchCard {
   position: relative;
   overflow: hidden;
-  border: 1px solid #527185 !important;
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
   border-radius: 0 !important;
-  background: #020508 !important;
-  box-shadow:
-    inset 0 1px 0 rgb(225 249 255 / 28%),
-    inset 0 0 0 4px #02070b,
-    0 18px 34px rgb(0 0 0 / 64%);
-  color: #edfaff;
+  background: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%) !important;
+  box-shadow: 0 18px 34px rgb(0 0 0 / 64%);
+  color: #f2f7ff;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
@@ -18,20 +21,22 @@
   padding: 28px 24px !important;
 }
 
+/* Selected: chrome-active rim over cobalt. */
 .packageCardSelected {
-  filter: brightness(1.18) saturate(1.18);
-  outline: 2px solid #75e8ff;
-  outline-offset: 2px;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 8px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) !important;
+  color: #fff;
 }
 
 .packageBadge {
   top: 10px !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
   border-radius: 0 !important;
-  border: 1px solid #8b7618 !important;
-  background: #020508 !important;
-  color: #fff1a4 !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  color: #f2f7ff !important;
   font:
-    800 10px var(--font-roboto-condensed),
+    800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -42,120 +47,12 @@
 }
 
 .merchCardMedia {
-  border-bottom: 1px solid #567386;
-  background: #020508 !important;
+  border-bottom: 1px solid #3d5771;
+  background: #040d18 !important;
 }
 
-.vipCard {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  border: 2px solid #30343a;
-  border-radius: 0;
-  color: #f4f7fb;
-  background: #000;
-  box-shadow: 0 16px 30px rgb(0 0 0 / 60%);
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-}
-
-.vipCardSelected {
-  border-color: #45d9ff;
-  box-shadow:
-    0 0 0 1px #0b6f8e,
-    0 0 24px rgb(0 193 255 / 36%),
-    0 16px 30px rgb(0 0 0 / 70%);
-}
-
-.vipCardArtwork {
-  display: block;
-  width: 100%;
-  height: auto;
-  border: 0;
-}
-
-.vipCardReadout {
-  position: absolute;
-  inset: auto 0 0;
-  display: grid;
-  gap: 5px;
-  padding: 42px 16px 15px;
-  background: rgb(0 0 0 / 84%);
-}
-
-.vipPlanName {
-  color: #f4f7fb;
-  font:
-    700 15px/1.1 var(--font-roboto-condensed),
-    'Roboto Condensed',
-    'Arial Narrow',
-    sans-serif;
-  letter-spacing: 0.035em;
-}
-
-.vipPriceRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.vipPriceRow strong {
-  color: #fff;
-  font:
-    800 clamp(24px, 3vw, 31px)/1 var(--font-roboto-condensed),
-    'Roboto Condensed',
-    'Arial Narrow',
-    sans-serif;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-}
-
-.vipPriceRow > span {
-  color: #b5bec7;
-  font:
-    600 13px/1 var(--font-roboto-condensed),
-    'Roboto Condensed',
-    'Arial Narrow',
-    sans-serif;
-  letter-spacing: 0.02em;
-}
-
-.vipDiamondPrice {
-  color: #45d9ff;
-  font:
-    800 12px/1.2 var(--font-roboto-condensed),
-    'Roboto Condensed',
-    'Arial Narrow',
-    Arial,
-    sans-serif;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.035em;
-}
-
-.vipCard:focus-visible {
-  outline: 3px solid #9bf4ff !important;
-  outline-offset: 3px !important;
-}
-
-.vipCard:active {
-  opacity: 0.84;
-}
-
-@media (max-width: 640px) {
-  .vipCardReadout {
-    padding: 34px 12px 12px;
-  }
-
-  .vipPlanName {
-    font-size: 13px;
-  }
-
-  .vipPriceRow strong {
-    font-size: 25px;
-  }
+.packageCard:focus-visible,
+.merchCard:focus-visible {
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }

@@ -160,7 +160,11 @@ test('merch detail keeps one same-page purchase area and fulfillment stays reada
   assert.doesNotMatch(DETAIL, /Open Purchase Console|Live Purchase Console/);
   assert.match(MERCH, /id=\{detailMode \? 'purchase-console' : undefined\}/);
   assert.match(MERCH, /aria-label=\{detailMode \? 'Purchase Options' : undefined\}/);
-  assert.match(FULFILLMENT, /<h1>Merchandise Fulfillment<\/h1>/);
+  // The operator console opens on the shared #SMARTERDESIGN image header.
+  assert.match(
+    FULFILLMENT,
+    /<StoreImageHeader\s+art="store-orders"\s+title="Merch Fulfillment"\s+parent="Smarter\.Poker Marketplace"\s+heading="h1"/
+  );
   assert.doesNotMatch(FULFILLMENT, /Fulfillment Command Vault/);
   assert.doesNotMatch(
     `${MERCH}\n${DETAIL}\n${FULFILLMENT}`,

@@ -14,6 +14,7 @@ import { authedFetch, getAuthUser, useRequireAuth } from '../../../src/lib/authU
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
+import { formatUsdCents } from '../../../src/lib/store/formatStoreMoney.mjs';
 import {
   marketplaceCarrierName,
   marketplaceCopy,
@@ -311,7 +312,7 @@ export default function OrderHistory() {
   };
 
   const formatPrice = (cents) => {
-    return `$${((Number(cents) || 0) / 100).toFixed(2)}`;
+    return formatUsdCents(cents);
   };
 
   // Normalized rows carry their own currency: diamond-paid orders are not dollars

@@ -398,7 +398,14 @@ export function seriesSchema(v) {
     // tab of the same name: the tab is the near-you view and the trail should
     // climb to the index (AEO phase 3, 2026-09-19).
     ['Poker Series', '/hub/poker-series'],
-    ...(state ? [[state.toUpperCase(), `/hub/poker-near-me/in/${encodeURIComponent(state.toLowerCase())}`]] : []),
+    // The state crumb names the Poker Near Me state directory, which answers
+    // 404 when it lists no rooms there. The series page's server props set
+    // stateDirectoryPath only when that directory has rooms (live SEO
+    // contract, 2026-11-28: a Missouri series' breadcrumb pointed at a 404),
+    // so without it the trail skips the state rather than citing a dead page.
+    ...(state && typeof v.stateDirectoryPath === 'string' && v.stateDirectoryPath
+      ? [[state.toUpperCase(), v.stateDirectoryPath]]
+      : []),
     ...(v.venueId ? [[venue || 'Venue', `/hub/venues/${encodeURIComponent(String(v.venueId))}`]] : []),
     [name || 'Series', path],
   ];

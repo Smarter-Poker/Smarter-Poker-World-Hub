@@ -1013,8 +1013,10 @@ import './diamond-store-smarterdesign.test.mjs';
 import './trivia-hardening-audit.test.mjs';
 import './trivia-phase4-polish.test.mjs';
 import './a-dropped-connection-is-not-a-stale-build.law.test.mjs';
+import './render-marketplace-fixtures.test.mjs';
 import './the-live-stream-sdk-stays-off-pages-that-never-stream.law.test.mjs';
 import './the-open-command-menu-paints-above-the-header.law.test.mjs';
+import './a-toast-shows-even-when-its-animation-cannot-load.law.test.mjs';
 import './otc-tier1-overlay-attribution-onetap-20261127.law.test.mjs';
 import './otc-tier2-leak-finder-and-activation-20261127.law.test.mjs';
 import './otc-tier2-bofu-compare-and-matchups-20261127.law.test.mjs';
@@ -1032,8 +1034,13 @@ import './otc-tier6-day3-and-event-reminders-20261128.law.test.mjs';
 import './otc-tier6-venue-video-conversion-20261128.law.test.mjs';
 import './otc-tier6-attribution-and-full-funnel-20261128.law.test.mjs';
 import './otc-forensic-all-phases-hardening-20261128.law.test.mjs';
+import './otc-tier7-all-calculators-savebar-20261128.law.test.mjs';
+import './otc-tier7-posthog-stability-and-ab-stats-20261128.law.test.mjs';
+import './otc-tier7-habit-digest-vip-graduation-and-push-20261128.law.test.mjs';
+import './otc-tier7-og-scorecards-and-150-matchups-20261128.law.test.mjs';
 import './site-wide-payload-budget.test.mjs';
 import './jarvis-photo-reader-removed.test.mjs';
+import './an-internal-link-reaches-a-page.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

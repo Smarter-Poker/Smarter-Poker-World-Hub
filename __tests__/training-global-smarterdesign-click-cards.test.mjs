@@ -641,3 +641,60 @@ test('anti-regression 107-game 1:1 Poker Arena parity, #SMARTERDESIGN coverage, 
   const qCard = read('src/components/training/GTOQuestionCard.jsx');
   assert.match(qCard, /minHeight:\s*'540px'/, 'GTOQuestionCard container must reserve >= 540px so feedback action buttons never clip');
 });
+
+test('anti-regression Phase 5: entire Training world (all 94 routes + all components + all modals) enforces strict 2-font #SMARTERDESIGN discipline, Solutions empty state, and null-metric guards', () => {
+  const walkFiles = (dir) => {
+    const out = [];
+    const abs = path.join(ROOT, dir);
+    if (!fs.existsSync(abs)) return out;
+    for (const ent of fs.readdirSync(abs, { withFileTypes: true })) {
+      const rel = path.join(dir, ent.name);
+      if (ent.isDirectory()) out.push(...walkFiles(rel));
+      else if (/\.(js|jsx|ts|tsx|css)$/.test(ent.name) && !ent.name.includes('.test.')) out.push(rel);
+    }
+    return out;
+  };
+
+  // 1. ZERO legacy Orbitron / Courier New / JetBrains Mono / Share Tech Mono / ui-monospace / monospace font declarations across the entire Training world
+  const allTrainingFiles = [
+    'pages/hub/training.js',
+    ...walkFiles('pages/hub/training'),
+    ...walkFiles('src/components/training'),
+    ...walkFiles('src/styles/training'),
+    'src/components/poker/QuizAnswer.jsx',
+    'src/styles/worlds/training.css',
+  ];
+  const offenders = [];
+  const legacyFontRe = /(?:fontFamily|font-family|font)\s*[:=]\s*[^\n;{}]*(?:Orbitron|--font-orbitron|Courier New|JetBrains|Share Tech|ui-monospace|\bmonospace\b)/i;
+  for (const rel of allTrainingFiles) {
+    const src = read(rel);
+    if (legacyFontRe.test(src)) {
+      offenders.push(rel);
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `Training world files must not declare legacy Orbitron/monospace fonts: ${offenders.join(', ')}`,
+  );
+
+  // 2. All 4 shared Training modals wear #SMARTERDESIGN framing
+  for (const modalRel of [
+    'src/components/training/CardSelectorModal.jsx',
+    'src/components/training/LevelCompleteModal.jsx',
+    'src/components/training/SessionSetupModal.jsx',
+    'src/components/training/TrainerConfigModal.jsx',
+  ]) {
+    assert.match(read(modalRel), /smarterdesign/, `${modalRel} must opt into .smarterdesign framing`);
+  }
+
+  // 3. /hub/training/solutions renders a #SMARTERDESIGN empty-state card instead of a blank right pane
+  const solutionsSrc = read('pages/hub/training/solutions.js');
+  assert.match(solutionsSrc, /data-solutions-empty-detail="true"/, 'solutions.js must render a guided empty-state panel when no spot is selected');
+
+  // 4. tournament-prep.js and daily-goals.js guard against Number(null) === 0 coercion
+  const tourneyPrep = read('pages/hub/training/tournament-prep.js');
+  assert.match(tourneyPrep, /isPositiveMetric\(saved\.buyIn\)/, 'tournament-prep.js must reject null/empty saved numeric fields before Number()');
+  const dailyGoals = read('pages/hub/training/daily-goals.js');
+  assert.match(dailyGoals, /hasValidStreakDays/, 'daily-goals.js must reject null/empty streakDays before Number()');
+});

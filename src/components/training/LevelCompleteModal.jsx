@@ -22,7 +22,7 @@ export default function LevelCompleteModal({
     const accuracy = Math.round((correctCount / totalQuestions) * 100);
 
     return (
-        <div className="level-modal-overlay">
+        <div className="level-modal-overlay smarterdesign">
             <div className="level-modal sp-training-modal-surface" role="dialog" aria-modal="true" aria-labelledby="level-complete-title">
                 {/* Corner Bolts */}
                 <div className="bolt bolt-tl" />
@@ -206,7 +206,7 @@ export default function LevelCompleteModal({
                 }
 
                 .title {
-                    font-family: var(--font-rajdhani), 'Rajdhani', 'Rajdhani', sans-serif;
+                    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
                     font-size: 26px;
                     font-weight: 700;
                     margin: 0 0 8px;

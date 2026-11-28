@@ -62,7 +62,7 @@ export default function ShortHandedGuide() {
           <span style={{ fontSize: 15, fontWeight: 800, color: concept.color }}>{concept.concept}</span>
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 8 }}>{concept.detail}</p>
-        <div style={{ background: `${concept.color}08`, borderRadius: 8, padding: 8, marginBottom: 8, fontFamily: 'monospace' }}>
+        <div style={{ background: `${concept.color}08`, borderRadius: 8, padding: 8, marginBottom: 8, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Key Numbers</div>
           <div style={{ fontSize: 12, color: concept.color }}>{concept.ranges}</div>
         </div>

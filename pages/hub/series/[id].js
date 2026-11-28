@@ -359,6 +359,27 @@ async function primarySeriesRouteId(series) {
   }
 }
 
+/**
+ * THE STATE DIRECTORY LINK ONLY POINTS AT A PAGE THAT EXISTS (live SEO
+ * contract, 2026-11-28). /hub/poker-near-me/in/<state> answers 404 when the
+ * directory lists no rooms in that state, so a series in Missouri linked
+ * every reader and crawler to a dead page. This asks the same directory
+ * lookup, under the same rule the state page applies, and returns the path
+ * only when that page has rooms to show. Any failure means no link.
+ */
+async function stateDirectoryPathFor(state) {
+  if (typeof state !== 'string' || !/^[A-Za-z]{2}$/.test(state.trim())) return null;
+  try {
+    const { resolveStateSlug, fetchPokerVenueLocation } = await import('../../../src/lib/poker-near-me/locationPages');
+    const resolved = resolveStateSlug(state.trim());
+    if (!resolved) return null;
+    const result = await fetchPokerVenueLocation({ state: resolved.code });
+    return result?.venues?.length ? `/hub/poker-near-me/in/${resolved.slug}` : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 export async function getServerSideProps({ params, req, res }) {
   const requestedId = String(params?.id ?? '');
   const canonicalId = canonicalSeriesRouteId(requestedId);
@@ -380,6 +401,7 @@ export async function getServerSideProps({ params, req, res }) {
   if (seoSeries) {
     const primary = await primarySeriesRouteId(seoSeries);
     if (primary && primary !== String(seoSeries.id)) seoSeries.canonicalId = primary;
+    seoSeries.stateDirectoryPath = await stateDirectoryPathFor(seoSeries.state);
   }
   if (status === 'unavailable') {
     // The API did not answer: the browser still fetches as before, but a
@@ -509,9 +531,7 @@ function SeriesSummary({ series }) {
   const events = Array.isArray(series.events) ? series.events : [];
   const factKernel = buildSeriesFactKernel(series, place, range);
   const paaQuestions = buildSeriesPaaQuestions(series, place, range);
-  const stateCode = typeof series.state === 'string' && /^[A-Za-z]{2}$/.test(series.state.trim())
-    ? series.state.trim().toLowerCase()
-    : null;
+  const stateDirectoryPath = typeof series.stateDirectoryPath === 'string' ? series.stateDirectoryPath : null;
   return (
     <section className="series-summary" aria-label="Series Summary">
       <h1>{series.name}</h1>
@@ -598,9 +618,9 @@ function SeriesSummary({ series }) {
           <a href="/hub/poker-series">Poker Series</a>, Check Upcoming Stops On{' '}
           <a href="/hub/events-calendar">Poker Events Calendar</a>, Or Find A Room Near You With{' '}
           <a href="/hub/poker-near-me/lobby">Poker Near Me</a>
-          {stateCode ? (
+          {stateDirectoryPath ? (
             <>
-              {' '}And Our <a href={`/hub/poker-near-me/in/${stateCode}`}>{series.state.toUpperCase()} Poker Rooms Directory</a>
+              {' '}And Our <a href={stateDirectoryPath}>{series.state.toUpperCase()} Poker Rooms Directory</a>
             </>
           ) : null}
           .

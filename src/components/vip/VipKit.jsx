@@ -18,7 +18,8 @@ import { SD_HEADER_HELP_ICON } from '../smarterdesign/headerHelp';
  *   VipMasthead      seal, live title, crown scene, working help control
  *   VipPricePlate    the price as the largest thing on the surface
  *   VipIntroPrice    VipPricePlate wired to the account-aware monthly price
- *   VipCta/VipGhost  the approved painted action plates with live lettering
+ *   VipCta/VipGhost  chrome-active over cobalt (primary) and chrome-row
+ *                    (secondary) actions with live lettering
  *   VipUpgradePrompt the inline "this needs VIP" block for a page
  *   VipPhoneOfferStep the "verify your phone first" step every VIP or
  *                    Diamond prompt shows to an account that has not yet
@@ -187,9 +188,9 @@ export function usePhoneOfferStep(accountId = null, { enabled = true } = {}) {
 }
 
 /**
- * The phone step's body: the free month on the price plate, the welcome
- * diamonds beside it, "Verify Phone Number" on the blue plate and "Skip" on
- * the ghost plate. `onSkip` reveals whatever the prompt would have shown.
+ * The phone step's body: the free month on the price well, the welcome
+ * diamonds beside it, "Verify Phone Number" on the cobalt primary action and
+ * "Skip" on the chrome secondary action. `onSkip` reveals whatever the prompt would have shown.
  * `returnPath` is where the verification page sends the member back to.
  */
 export function VipPhoneOfferBody({ offer, onSkip, onVerify, returnPath, compact = true }) {

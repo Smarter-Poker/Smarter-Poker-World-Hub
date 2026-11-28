@@ -96,7 +96,7 @@ export default function SessionCoachingEngine() {
           { label: 'EV Lost', value: `${SESSION_STATS.evLostTotal}bb`, color: '#dc2626' },
         ].map((s, i) => (
           <div key={i} style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: s.color, fontFamily: 'monospace' }}>{s.value}</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: s.color, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{s.value}</div>
             <div style={{ fontSize: 12, color: '#64748b' }}>{s.label}</div>
           </div>
         ))}
@@ -130,7 +130,7 @@ export default function SessionCoachingEngine() {
               borderLeft: `3px solid ${tip.type === 'mistake' ? '#ef4444' : tip.type === 'good' ? '#22c55e' : tip.type === 'warning' ? '#f59e0b' : '#3b82f6'}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <span style={{ fontSize: 12, fontWeight: 700 }}>{tip.icon} {tip.hand} - {tip.street}</span>
-              <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace',
+              <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                 color: tip.evImpact.startsWith('-') ? '#ef4444' : tip.evImpact === '0' ? '#64748b' : '#22c55e' }}>{tip.evImpact}</span>
             </div>
             <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>{tip.message}</div>

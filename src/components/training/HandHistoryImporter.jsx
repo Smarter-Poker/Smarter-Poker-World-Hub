@@ -186,7 +186,7 @@ function CardDisplay({ cards }) {
         return (
           <span key={i} style={{
             padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.1)',
-            color: suitColor, fontSize: 13, fontWeight: 700, fontFamily: 'monospace',
+            color: suitColor, fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
           }}>
             {rank}{suitSymbol}
           </span>
@@ -302,7 +302,7 @@ export default function HandHistoryImporter() {
               style={{
                 width: '100%', minHeight: 200, padding: 12, borderRadius: 8,
                 background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)',
-                color: '#f1f5f9', fontSize: 12, fontFamily: 'monospace', resize: 'vertical',
+                color: '#f1f5f9', fontSize: 12, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', resize: 'vertical',
                 outline: 'none',
               }}
             />

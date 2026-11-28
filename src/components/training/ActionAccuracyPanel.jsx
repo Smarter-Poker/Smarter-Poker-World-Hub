@@ -223,7 +223,7 @@ const styles = {
         fontSize: 12, fontWeight: 600,
         padding: '2px 6px', borderRadius: 4,
         border: '1px solid',
-        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+        fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
     },
     usageSection: { marginBottom: 8 },
     usageLabel: {

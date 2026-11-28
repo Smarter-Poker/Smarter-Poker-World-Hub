@@ -109,10 +109,10 @@ export default function StraddleAnteSolver() {
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.2fr 1fr 1fr', padding: '6px 12px',
               borderBottom: '1px solid rgba(255,255,255,0.03)', background: structIdx === i ? `${STRUCTURES[i].color}08` : i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
               <span style={{ fontSize: 12, color: '#e2e8f0' }}>{row.structure}</span>
-              <span style={{ fontSize: 12, color: '#86daff', fontFamily: 'monospace' }}>{row.deadMoney}</span>
-              <span style={{ fontSize: 12, color: '#3b82f6', fontFamily: 'monospace' }}>{row.openSize}</span>
-              <span style={{ fontSize: 12, color: '#22c55e', fontFamily: 'monospace' }}>{row.potPreflop}</span>
-              <span style={{ fontSize: 12, color: '#86daff', fontFamily: 'monospace', fontWeight: 700 }}>{row.adjust}</span>
+              <span style={{ fontSize: 12, color: '#86daff', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{row.deadMoney}</span>
+              <span style={{ fontSize: 12, color: '#3b82f6', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{row.openSize}</span>
+              <span style={{ fontSize: 12, color: '#22c55e', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{row.potPreflop}</span>
+              <span style={{ fontSize: 12, color: '#86daff', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', fontWeight: 700 }}>{row.adjust}</span>
             </div>
           ))}
         </div>

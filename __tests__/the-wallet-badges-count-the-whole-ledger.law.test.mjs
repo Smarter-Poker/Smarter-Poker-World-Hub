@@ -203,10 +203,14 @@ test('no hover, and not in JavaScript either', () => {
   assert.doesNotMatch(MODAL, /onMouseOver/);
 });
 
-test('#SMARTERCASINOREALISM: the wallet uses the shared vault vocabulary', () => {
-  assert.match(CSS, /#SMARTERCASINOREALISM/);
-  assert.match(CSS, /--vault-cyan: #00d4ff/);
-  assert.match(CSS, /--vault-gunmetal: #27313c/);
+test('#SMARTERDESIGN: the wallet uses the shared chrome and cobalt vocabulary', () => {
+  // 2026-11-27: the wallet moved from the #SMARTERCASINOREALISM vault tokens
+  // to the #SMARTERDESIGN materials (docs/SMARTERDESIGN.md). Paint is pinned
+  // in __tests__/marketplace-painted-residuals.test.mjs and
+  // __tests__/diamond-store-smarterdesign.test.mjs.
+  assert.match(CSS, /#SMARTERDESIGN/);
+  assert.match(CSS, /--sd-cobalt-bg: linear-gradient\(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba\)/);
+  assert.match(CSS, /--sd-silver: #bdd0e2/);
   /* No hover anywhere in this platform (Dan 2026-08-29); a press is the
      feedback. Asserted against the CODE, not the file: the stylesheet's own
      header states the rule, and a bare match on the whole file finds that
@@ -229,7 +233,7 @@ test('#SMARTERCASINOREALISM: the wallet uses the shared vault vocabulary', () =>
   assert.match(
     MODAL,
     /role="dialog"[\s\S]{0,400}?className=\{`[^`]*\$\{styles\.wallet\}[^`]*`\}/,
-    'the dialog root must carry styles.wallet, or every --vault-* token inside it is undefined'
+    'the dialog root must carry styles.wallet, or every --sd-* token inside it is undefined'
   );
 
   /*

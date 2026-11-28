@@ -86,7 +86,7 @@ const styles = {
         background: 'rgba(0,0,0,0.8)',
         color: '#0f0',
         fontSize: 12,
-        fontFamily: 'monospace',
+        fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         padding: '4px 8px',
         borderRadius: 4,
         zIndex: 500,

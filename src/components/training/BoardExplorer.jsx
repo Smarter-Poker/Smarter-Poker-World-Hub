@@ -309,7 +309,7 @@ export default function BoardExplorer() {
                             width: 60, padding: '4px 6px', fontSize: 12,
                             background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(100,116,139,0.2)',
                             borderRadius: 4, color: '#e2e8f0', outline: 'none',
-                            fontFamily: "'Fira Code', monospace",
+                            fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                         }}
                     />
                     <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
@@ -342,14 +342,14 @@ export default function BoardExplorer() {
                     <span style={{ color: '#64748b' }}>Avg Bet Weight: </span>
                     <span style={{
                         color: stats.avgBet >= 0.6 ? '#22c55e' : stats.avgBet >= 0.35 ? '#86daff' : '#ef4444',
-                        fontWeight: 700, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                        fontWeight: 700, fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                     }}>
                         {(stats.avgBet * 100).toFixed(0)}%
                     </span>
                 </div>
                 <div style={{ fontSize: 12 }}>
                     <span style={{ color: '#64748b' }}>Avg Check Weight: </span>
-                    <span style={{ color: '#94a3b8', fontWeight: 700, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                    <span style={{ color: '#94a3b8', fontWeight: 700, fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>
                         {(stats.avgCheck * 100).toFixed(0)}%
                     </span>
                 </div>

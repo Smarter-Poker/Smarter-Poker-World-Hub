@@ -181,7 +181,7 @@ export default function HandMatrixViewer() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 10, padding: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <span style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0', fontFamily: 'monospace' }}>{hoveredCell.label}</span>
+            <span style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{hoveredCell.label}</span>
             <span style={{ fontSize: 12, color: '#64748b' }}>{hoveredCell.isPair ? 'Pair (6 combos)' : hoveredCell.isSuited ? 'Suited (4 combos)' : 'Offsuit (12 combos)'}</span>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>

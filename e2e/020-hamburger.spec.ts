@@ -90,7 +90,7 @@ const WORLDS: WorldCase[] = [
     accent: '#22e67a',
     primary: items([
       ['/hub/training', 'Library'],
-      ['/hub/training/play-mode', 'Play'],
+      ['/hub/training/arena/cash-001?level=1', 'Play'],
       ['/hub/training/daily-challenge', 'Daily'],
       ['/hub/training/progress', 'Progress'],
       ['/hub/training/challenges', 'Goals'],
