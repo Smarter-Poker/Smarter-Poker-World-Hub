@@ -195,7 +195,11 @@ function BoardCardSelector({ boardCards, setBoardCards }) {
                   const used = usedCards.has(card);
                   return (
                     <button
+                      type="button"
                       key={card}
+                      data-allow-small="true"
+                      data-training-raw-control="true"
+                      aria-label={`Select ${card}`}
                       disabled={used}
                       onClick={() => pickCard(card)}
                       style={{

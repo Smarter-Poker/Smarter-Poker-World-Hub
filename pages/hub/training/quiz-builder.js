@@ -539,6 +539,9 @@ export default function QuizBuilderPage() {
           ].map((t) => (
             <motion.button
               key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
               whileTap={{ scale: 0.97 }}
               onClick={() => setTab(t.id)}
               style={{

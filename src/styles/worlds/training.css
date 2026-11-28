@@ -2657,7 +2657,7 @@ body.world-training .sp-training-page-stage :where(p, label, legend):not(.univer
 /* Straight 90-degree controls and cards: no clipped corners or ornamental boxes.
    Exclude the approved chrome Training Lobby (.sp-arena-lobby-shell) which owns
    its own rounded metallic-chrome border-box tokens in TrainingLobby.module.css. */
-body.world-training .sp-training-page-stage :where(button, [role='button'], .sp-card, .sp-card-sm, .sp-card-lg):not(.universal-header *, .approved-global-header__button, .sd-header-help, .sp-arena-lobby-shell *) {
+body.world-training .sp-training-page-stage :where(button, [role='button'], .sp-card, .sp-card-sm, .sp-card-lg):not(.universal-header *, .approved-global-header__button, .sd-header-help, [data-training-raw-control='true'], .sp-arena-lobby-shell *) {
     border-radius: 0 !important;
     clip-path: none !important;
 }
@@ -2666,7 +2666,7 @@ body.world-training .sp-training-page-stage :where(button, [role='button'], .sp-
    transparent 44px target around its icon. It is not a control slab, so it never
    takes the square corners or the bevel and drop shadow below: on ICM, Hand Lab
    and Equity those drew a dark box around the icon. */
-body.world-training .sp-training-page-stage :where(button, [role='button']):not(.universal-header *, .approved-global-header__button, .sd-header-help, .sp-arena-lobby-shell *) {
+body.world-training .sp-training-page-stage :where(button, [role='button']):not(.universal-header *, .approved-global-header__button, .sd-header-help, [data-training-raw-control='true'], .sp-arena-lobby-shell *) {
     min-height: 44px;
     color: #eefbff !important;
     border-color: rgba(154, 226, 255, 0.52) !important;
@@ -2695,7 +2695,8 @@ body.world-training .sp-training-page-stage :where(input, textarea)::placeholder
 body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], .sd-button):not(.universal-header *, .approved-global-header__button) {
     min-block-size: 44px;
     max-inline-size: 100%;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: normal;
     touch-action: manipulation;
 }
 
@@ -5373,9 +5374,12 @@ body.world-training {
 
 /* The painted image-header "?" (.sd-header-help) is never a chrome control
    slab: these rules would wrap it in a 2px chrome square that touches the
-   header frame. See docs/SMARTERDESIGN.md, "The image-header question mark". */
+   header frame. See docs/SMARTERDESIGN.md, "The image-header question mark".
+   Active/selected buttons ([aria-pressed='true'], [aria-selected='true'], etc.)
+   are excluded from the unselected dark face rule so Phase 8 analysis cyan
+   states and Rule 2 cobalt active states are never clobbered back to unselected. */
 /* 1. Every Training button, tab, and action link across all sub-pages & popups */
-body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], a.sd-button, .sd-button, .sp-cta, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-mtt-cta-secondary):not(.universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *):not([data-allow-small], .sd-header-help, [data-allow-small] *, [data-hand-cell], .matrix-cell, .sp-analysis-primary-action, .sp-coach-module-card, .sp-casino-game-card, [data-setup-art-launch], [data-level-art-launch], .sp-coach-option) {
+body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], a.sd-button, .sd-button, .sp-cta, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-mtt-cta-secondary):not(.universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *):not([data-allow-small], .sd-header-help, [data-training-raw-control='true'], [data-allow-small] *, [data-hand-cell], .matrix-cell, .sp-analysis-primary-action, .sp-coach-module-card, .sp-casino-game-card, [data-setup-art-launch], [data-level-art-launch], .sp-coach-option, [aria-pressed='true'], [aria-selected='true'], [aria-checked='true'], [aria-current='page'], [data-active='true'], [data-selected='true']) {
     min-height: 44px;
     border: 2px solid transparent !important;
     border-radius: 10px !important;
@@ -5386,16 +5390,16 @@ body.world-training .sp-training-page-stage :where(button, [role='button'], [rol
     transition: box-shadow 140ms ease, filter 140ms ease;
 }
 
-body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], a.sd-button, .sd-button, .sp-cta, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-mtt-cta-secondary):hover:not(:disabled, [aria-disabled='true'], .universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *):not([data-allow-small], .sd-header-help, [data-allow-small] *, [data-hand-cell], .matrix-cell, .sp-analysis-primary-action, .sp-coach-module-card, .sp-casino-game-card, [data-setup-art-launch], [data-level-art-launch], .sp-coach-option) {
+body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], a.sd-button, .sd-button, .sp-cta, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-mtt-cta-secondary):hover:not(:disabled, [aria-disabled='true'], .universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *):not([data-allow-small], .sd-header-help, [data-training-raw-control='true'], [data-allow-small] *, [data-hand-cell], .matrix-cell, .sp-analysis-primary-action, .sp-coach-module-card, .sp-casino-game-card, [data-setup-art-launch], [data-level-art-launch], .sp-coach-option, [aria-pressed='true'], [aria-selected='true'], [aria-checked='true'], [aria-current='page'], [data-active='true'], [data-selected='true']) {
     box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), inset 0 -1px 2px rgba(101, 211, 255, 0.65), 0 0 14px rgba(0, 138, 211, 0.25) !important;
 }
 
-body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], a.sd-button, .sd-button, .sp-cta, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-mtt-cta-secondary):active:not(:disabled, [aria-disabled='true'], .universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *):not([data-allow-small], .sd-header-help, [data-allow-small] *, [data-hand-cell], .matrix-cell, .sp-coach-module-card, .sp-casino-game-card) {
+body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], a.sd-button, .sd-button, .sp-cta, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-mtt-cta-secondary):active:not(:disabled, [aria-disabled='true'], .universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *):not([data-allow-small], .sd-header-help, [data-training-raw-control='true'], [data-allow-small] *, [data-hand-cell], .matrix-cell, .sp-coach-module-card, .sp-casino-game-card) {
     filter: brightness(0.9);
 }
 
 /* 2. Primary, active, pressed, and selected controls in cobalt #SMARTERDESIGN chrome */
-body.world-training .sp-training-page-stage.sp-training-page-stage :where(.sd-primary, .sp-cta-primary, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-arena-lobby__start, .sp-level-play, .sp-coach-primary, [data-launch-club-arena-cta='true'], button[aria-pressed='true'], button[aria-selected='true'], [role='tab'][aria-selected='true'], [role='radio'][aria-checked='true'], a[aria-current='page'], [data-active='true'], [data-selected='true']):not(.sp-training-tool--analysis *, .universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *, [data-allow-small], [data-allow-small] *, [data-hand-cell], .matrix-cell) {
+body.world-training .sp-training-page-stage.sp-training-page-stage :where(.sd-primary, .sp-cta-primary, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-arena-lobby__start, .sp-level-play, .sp-coach-primary, [data-launch-club-arena-cta='true'], button[aria-pressed='true'], button[aria-selected='true'], [role='tab'][aria-selected='true'], [role='radio'][aria-checked='true'], a[aria-current='page'], [data-active='true'], [data-selected='true']):not(.sp-training-tool--analysis *, .universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *, .sd-header-help, [data-training-raw-control='true'], [data-allow-small], [data-allow-small] *, [data-hand-cell], .matrix-cell) {
     border: 2px solid transparent !important;
     border-radius: 10px !important;
     background: var(--sd-training-blue) padding-box, var(--sd-training-chrome) border-box !important;
@@ -5436,6 +5440,15 @@ body.world-training :where(dialog, .sp-training-modal-surface, .sp-setup-console
     background: var(--sd-training-panel) padding-box, var(--sd-training-chrome) border-box !important;
     color: #f3f7fb !important;
     box-shadow: 0 22px 84px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.22) !important;
+}
+
+body.world-training .sp-training-drawer-surface {
+    border: 2px solid transparent !important;
+    border-left: 0 !important;
+    border-radius: 0 18px 18px 0 !important;
+    background: var(--sd-training-panel) padding-box, var(--sd-training-chrome) border-box !important;
+    color: #f3f7fb !important;
+    box-shadow: 8px 0 36px rgba(0, 0, 0, 0.78), inset 0 1px 1px rgba(255, 255, 255, 0.22) !important;
 }
 
 body.world-training dialog::backdrop {

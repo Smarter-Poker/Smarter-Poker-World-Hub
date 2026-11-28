@@ -58,10 +58,11 @@ export default function TrainingSettingsMenu({ onClose }) {
 
     return (
         <>
-            {/* Backdrop */}
+            {/* Backdrop (opt out of button chrome via data-training-raw-control so scrim stays translucent & keyboard accessible) */}
             {isOpen && (
                 <button
                     type="button"
+                    data-training-raw-control="true"
                     aria-label="Close Training Settings"
                     style={{ ...styles.backdrop, border: 'none', padding: 0 }}
                     onClick={handleClose}
@@ -73,7 +74,7 @@ export default function TrainingSettingsMenu({ onClose }) {
                 role="dialog"
                 aria-modal="true"
                 aria-label="Training Settings"
-                className="sp-training-modal-surface"
+                className="sp-training-drawer-surface"
                 style={{
                     ...styles.drawer,
                     transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
@@ -82,9 +83,10 @@ export default function TrainingSettingsMenu({ onClose }) {
                 <div style={styles.drawerHeader}>
                     <h2 style={styles.drawerTitle}>Settings</h2>
                     <button
+                        type="button"
                         onClick={handleClose}
                         style={styles.closeButton}
-                        aria-label="Close"
+                        aria-label="Close Training Settings"
                     >
                         ✕
                     </button>
@@ -101,6 +103,8 @@ export default function TrainingSettingsMenu({ onClose }) {
                         </label>
                         <div style={styles.toggleGroup}>
                             <button
+                                type="button"
+                                aria-pressed={viewMode === 'standard'}
                                 onClick={() => setViewMode('standard')}
                                 style={{
                                     ...styles.toggleButton,
@@ -110,6 +114,8 @@ export default function TrainingSettingsMenu({ onClose }) {
                                 Beginner
                             </button>
                             <button
+                                type="button"
+                                aria-pressed={viewMode === 'pro'}
                                 onClick={() => setViewMode('pro')}
                                 style={{
                                     ...styles.toggleButton,

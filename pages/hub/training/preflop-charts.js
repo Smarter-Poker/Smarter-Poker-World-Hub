@@ -259,8 +259,9 @@ export default function PreflopCharts() {
             borderBottom: '1px solid rgba(255,255,255,0.06)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
             <button
+              type="button"
               onClick={() => router.push('/hub/training')}
               style={{
                 background: 'rgba(255,255,255,0.06)',
@@ -276,6 +277,7 @@ export default function PreflopCharts() {
               ← Training
             </button>
             <button
+              type="button"
               onClick={() => setInfoOpen(true)}
               aria-label="How Preflop Charts work"
               style={{
@@ -298,9 +300,7 @@ export default function PreflopCharts() {
                 fontSize: 22,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                color: '#f3f7fb',
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
@@ -327,11 +327,12 @@ export default function PreflopCharts() {
             <span
               style={{
                 padding: '6px 14px',
-                borderRadius: 20,
+                borderRadius: 10,
                 fontSize: 12,
                 fontWeight: 700,
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
-                color: '#fff',
+                background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                border: '1px solid #56d8ff',
+                color: '#ffffff',
               }}
             >
               ● Cash 6-Max · 100BB Only
@@ -340,7 +341,7 @@ export default function PreflopCharts() {
 
           {/* Scenario + Stack */}
           <div data-pills-row style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
               <span
                 style={{
                   fontSize: 12,
@@ -355,6 +356,8 @@ export default function PreflopCharts() {
               {SCENARIOS.map((s) => (
                 <button
                   key={s.value}
+                  type="button"
+                  aria-pressed={scenario === s.value}
                   onClick={() => {
                     if (s.value !== 'rfi' && !allowed) {
                       showUpgradeModal();
@@ -364,8 +367,8 @@ export default function PreflopCharts() {
                   }}
                   title={s.desc}
                   style={{
-                    padding: '4px 10px',
-                    borderRadius: 6,
+                    padding: '6px 12px',
+                    borderRadius: 8,
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -420,10 +423,11 @@ export default function PreflopCharts() {
               maxWidth: 700,
               margin: '0 auto 18px',
               padding: '12px 15px',
-              border: '1px solid rgba(251,191,36,0.28)',
+              border: '1px solid #688299',
+              borderTopColor: '#aec0d0',
               borderRadius: 10,
               color: 'var(--sp-fg-muted)',
-              background: 'rgba(120,53,15,0.12)',
+              background: 'linear-gradient(180deg, #0c2031 0%, #050f19 100%)',
               fontSize: 12,
               lineHeight: 1.55,
             }}
@@ -488,6 +492,8 @@ export default function PreflopCharts() {
               {displayedPositions.map((pos) => (
                 <button
                   key={pos}
+                  type="button"
+                  aria-pressed={position === pos}
                   onClick={() => selectPosition(pos)}
                   style={{
                     padding: '8px 16px',
@@ -499,7 +505,7 @@ export default function PreflopCharts() {
                     transition: 'all 0.2s',
                     background:
                       position === pos
-                        ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)'
+                        ? 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)'
                         : 'rgba(255,255,255,0.06)',
                     color: position === pos ? '#fff' : 'var(--sp-fg-muted)',
                     fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
@@ -512,6 +518,8 @@ export default function PreflopCharts() {
 
             {/* Compare Toggle */}
             <button
+              type="button"
+              aria-pressed={compareMode}
               onClick={() => {
                 if (!compareMode && !allowed) {
                   showUpgradeModal();
@@ -558,9 +566,9 @@ export default function PreflopCharts() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '10px 14px',
-                    background: 'rgba(124,58,237,0.08)',
+                    background: 'rgba(8, 124, 250, 0.08)',
                     borderRadius: 10,
-                    border: '1px solid rgba(124,58,237,0.2)',
+                    border: '1px solid #688299',
                   }}
                 >
                   <span
@@ -580,6 +588,8 @@ export default function PreflopCharts() {
                     .map((pos) => (
                       <button
                         key={pos}
+                        type="button"
+                        aria-pressed={comparePosition === pos}
                         onClick={() => setComparePosition(pos)}
                         style={{
                           padding: '6px 12px',
@@ -591,7 +601,7 @@ export default function PreflopCharts() {
                           transition: 'all 0.15s',
                           background:
                             comparePosition === pos
-                              ? 'linear-gradient(135deg, #7c3aed, rgba(var(--sp-accent-purple-rgb), 1))'
+                              ? 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)'
                               : 'rgba(255,255,255,0.06)',
                           color: comparePosition === pos ? '#fff' : 'var(--sp-fg-muted)',
                           fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
@@ -716,7 +726,7 @@ export default function PreflopCharts() {
                           width: 36,
                           height: 36,
                           border: '3px solid rgba(168,85,247,0.2)',
-                          borderTop: '3px solid #a855f7',
+                          borderTop: '3px solid #56d8ff',
                           borderRadius: '50%',
                           animation: 'spin 1s linear infinite',
                           margin: '0 auto',

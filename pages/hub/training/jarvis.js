@@ -265,9 +265,10 @@ export default function JarvisDashboard() {
             style={{
               marginBottom: 20,
               padding: 18,
-              borderRadius: 12,
-              border: '1px solid rgba(251, 191, 36, 0.42)',
-              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.85))',
+              borderRadius: 14,
+              border: '1px solid #688299',
+              borderTopColor: '#aec0d0',
+              background: 'linear-gradient(165deg, #0c2031 0%, #040d18 100%)',
             }}
           >
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -286,6 +287,7 @@ export default function JarvisDashboard() {
             </div>
             <button
               type="button"
+              className="sd-button sd-primary"
               data-drill-priority-leak-cta="true"
               data-drill-href={topLeakDrillHref}
               onClick={() => router.push(topLeakDrillHref)}
@@ -294,10 +296,10 @@ export default function JarvisDashboard() {
                 minHeight: 44,
                 alignItems: 'center',
                 padding: '0 16px',
-                borderRadius: 8,
-                border: '1px solid #fbbf24',
-                background: 'linear-gradient(180deg, rgba(217, 119, 6, 0.48), rgba(146, 64, 14, 0.72))',
-                color: '#86daff',
+                borderRadius: 10,
+                border: '1px solid #56d8ff',
+                background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                color: '#ffffff',
                 fontSize: 12,
                 fontWeight: 900,
                 cursor: 'pointer',

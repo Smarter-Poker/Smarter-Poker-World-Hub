@@ -16,7 +16,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/horseBrainTrainingAdapter';
@@ -507,6 +507,7 @@ export default function FlashcardsPage() {
     // Trigger initial deck generation after sm2Data loads
     sm2LoadedRef.current = true;
     setDeckGenKey(k => k + 1);
+    if (!getAccessToken()) return;
     authedFetch('/api/training/tool-records?tool_id=flashcards&limit=50')
       .then((res) => (res && res.ok ? res.json() : null))
       .then((json) => {
@@ -626,7 +627,7 @@ export default function FlashcardsPage() {
       try {
         localStorage.setItem('flashcard-sm2', JSON.stringify(updated));
       } catch (e) { console.warn('[App] Handled exception:', e); }
-      authedFetch('/api/training/tool-records', {
+      if (getAccessToken()) authedFetch('/api/training/tool-records', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -740,21 +741,24 @@ export default function FlashcardsPage() {
 
         <div style={{ padding: '20px 16px', maxWidth: 500, margin: '0 auto' }}>
           {/* Category Filter */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
             {['all', 'Preflop', 'Postflop', 'Math', 'Theory', 'PLO8'].map((c) => (
               <motion.button
                 key={c}
+                type="button"
+                aria-pressed={catFilter === c}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setCatFilter(c)}
                 style={{
-                  flex: 1,
-                  padding: '6px',
-                  borderRadius: 6,
+                  flex: '1 1 auto',
+                  minWidth: 72,
+                  padding: '8px 12px',
+                  borderRadius: 8,
                   border: `1px solid ${catFilter === c ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                   background: catFilter === c ? 'rgba(0,212,255,0.06)' : 'transparent',
                   color: catFilter === c ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                   fontSize: 12,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: 'pointer',
                 }}
               >
