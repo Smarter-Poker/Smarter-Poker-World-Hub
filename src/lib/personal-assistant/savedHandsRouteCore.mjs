@@ -344,6 +344,9 @@ function resolveOperationName(req) {
   }
   if (method === 'POST') {
     const action = typeof req?.body?.action === 'string' ? req.body.action.trim().toLowerCase() : '';
+    if (action === 'import_club_arena') {
+      return 'pa_saved_hands_import_club_arena';
+    }
     if (action === 'check_analysis_gate' || action === 'request_analysis') {
       return 'pa_saved_hands_analysis_gate';
     }
@@ -515,6 +518,53 @@ async function handleBatchLookup(req, res, supabase, user) {
   });
 }
 
+async function loadSavedSourceHandIdsForFacts(supabase, userId, factRows, logLabel = 'suggested') {
+  // Check only the bounded candidate set, so an older saved copy cannot fall
+  // outside an arbitrary first-1000 account index and reappear as unsaved.
+  const recentIds = [...new Set((Array.isArray(factRows) ? factRows : [])
+    .map((row) => String(row?.hand_id || '').trim().toLowerCase())
+    .filter(isValidUuid))];
+  const savedSourceHandIds = new Set();
+  for (let offset = 0; offset < recentIds.length; offset += MAX_BATCH_HAND_IDS) {
+    let pendingIds = recentIds.slice(offset, offset + MAX_BATCH_HAND_IDS);
+    while (pendingIds.length) {
+      // Only validated UUIDs enter these anchored expressions. imatch retains
+      // the trim/case behavior of legacy keys and JSON-only source identities.
+      const ids = pendingIds.join('|');
+      const keyPattern = JSON.stringify(String.raw`^\s*(club-arena:|ca:)?(${ids})\s*$`);
+      const sourcePattern = JSON.stringify(String.raw`^\s*(${ids})\s*$`);
+      const { data: savedRows, error: savedError } = await supabase
+        .from('hand_histories')
+        .select('hand_id,source_hand_id:hand_data->>sourceHandId')
+        .eq('user_id', userId)
+        .or(`hand_id.imatch.${keyPattern},hand_data->>sourceHandId.imatch.${sourcePattern}`)
+        .order('id', { ascending: true })
+        .limit(MAX_BATCH_HAND_IDS);
+      if (savedError || !Array.isArray(savedRows)) {
+        console.warn(`[saved-hands] ${logLabel} saved-index lookup failed:`, savedError?.message || 'Incomplete Data');
+        return { savedSourceHandIds: null, error: savedError || new Error('Incomplete Data') };
+      }
+      if (savedRows.length === 0) break;
+      for (const row of savedRows) {
+        const fromData = row?.source_hand_id;
+        if (isValidUuid(fromData)) savedSourceHandIds.add(String(fromData).trim().toLowerCase());
+        const fromKey = extractSourceHandIdFromKey(row?.hand_id);
+        if (fromKey) savedSourceHandIds.add(fromKey);
+      }
+      // A legacy source may have many copies. Remove each confirmed candidate
+      // before querying again so those copies cannot hide another saved hand.
+      // Every nonempty read must resolve at least one of at most 50 candidates.
+      const remaining = pendingIds.filter(id => !savedSourceHandIds.has(id));
+      if (remaining.length === pendingIds.length) {
+        console.warn(`[saved-hands] ${logLabel} saved-index lookup made no progress`);
+        return { savedSourceHandIds: null, error: new Error('Saved-Index Lookup Made No Progress') };
+      }
+      pendingIds = remaining;
+    }
+  }
+  return { savedSourceHandIds, error: null };
+}
+
 async function handleSuggestedHands(req, res, supabase, user, { checkAccess }) {
   const gate = await evaluateActivePlayGate(checkAccess, supabase, user.id);
   if (!gate.allowed) {
@@ -522,6 +572,7 @@ async function handleSuggestedHands(req, res, supabase, user, { checkAccess }) {
       success: true,
       activePlayRestricted: true,
       suggested: [],
+      totalUnsavedCount: 0,
       message: ACTIVE_PLAY_SUGGESTED_MESSAGE,
     });
   }
@@ -543,48 +594,14 @@ async function handleSuggestedHands(req, res, supabase, user, { checkAccess }) {
     return res.status(500).json({ success: false, error: 'Could Not Load Suggested Hands' });
   }
 
-  // Check only the bounded candidate set, so an older saved copy cannot fall
-  // outside an arbitrary first-1000 account index and reappear as a suggestion.
-  const recentIds = [...new Set((Array.isArray(factRows) ? factRows : [])
-    .map((row) => String(row?.hand_id || '').trim().toLowerCase())
-    .filter(isValidUuid))];
-  const savedSourceHandIds = new Set();
-  for (let offset = 0; offset < recentIds.length; offset += MAX_BATCH_HAND_IDS) {
-    let pendingIds = recentIds.slice(offset, offset + MAX_BATCH_HAND_IDS);
-    while (pendingIds.length) {
-      // Only validated UUIDs enter these anchored expressions. imatch retains
-      // the trim/case behavior of legacy keys and JSON-only source identities.
-      const ids = pendingIds.join('|');
-      const keyPattern = JSON.stringify(String.raw`^\s*(club-arena:|ca:)?(${ids})\s*$`);
-      const sourcePattern = JSON.stringify(String.raw`^\s*(${ids})\s*$`);
-      const { data: savedRows, error: savedError } = await supabase
-        .from('hand_histories')
-        .select('hand_id,source_hand_id:hand_data->>sourceHandId')
-        .eq('user_id', user.id)
-        .or(`hand_id.imatch.${keyPattern},hand_data->>sourceHandId.imatch.${sourcePattern}`)
-        .order('id', { ascending: true })
-        .limit(MAX_BATCH_HAND_IDS);
-      if (savedError || !Array.isArray(savedRows)) {
-        console.warn('[saved-hands] suggested saved-index lookup failed:', savedError?.message || 'Incomplete Data');
-        return res.status(500).json({ success: false, error: 'Could Not Load Suggested Hands' });
-      }
-      if (savedRows.length === 0) break;
-      for (const row of savedRows) {
-        const fromData = row?.source_hand_id;
-        if (isValidUuid(fromData)) savedSourceHandIds.add(String(fromData).trim().toLowerCase());
-        const fromKey = extractSourceHandIdFromKey(row?.hand_id);
-        if (fromKey) savedSourceHandIds.add(fromKey);
-      }
-      // A legacy source may have many copies. Remove each confirmed candidate
-      // before querying again so those copies cannot hide another saved hand.
-      // Every nonempty read must resolve at least one of at most 50 candidates.
-      const remaining = pendingIds.filter(id => !savedSourceHandIds.has(id));
-      if (remaining.length === pendingIds.length) {
-        console.warn('[saved-hands] suggested saved-index lookup made no progress');
-        return res.status(500).json({ success: false, error: 'Could Not Load Suggested Hands' });
-      }
-      pendingIds = remaining;
-    }
+  const { savedSourceHandIds, error: savedLookupError } = await loadSavedSourceHandIdsForFacts(
+    supabase,
+    user.id,
+    factRows,
+    'suggested',
+  );
+  if (savedLookupError || !savedSourceHandIds) {
+    return res.status(500).json({ success: false, error: 'Could Not Load Suggested Hands' });
   }
 
   const candidateFacts = (Array.isArray(factRows) ? factRows : []).filter((row) => {
@@ -597,6 +614,7 @@ async function handleSuggestedHands(req, res, supabase, user, { checkAccess }) {
       success: true,
       activePlayRestricted: false,
       suggested: [],
+      totalUnsavedCount: 0,
     });
   }
 
@@ -668,6 +686,218 @@ async function handleSuggestedHands(req, res, supabase, user, { checkAccess }) {
     success: true,
     activePlayRestricted: false,
     suggested,
+    totalUnsavedCount: candidateFacts.length,
+  });
+}
+
+async function handleImportClubArenaHands(req, res, supabase, user) {
+  const rawLimit = req.body && typeof req.body === 'object' ? Number(req.body.limit) : NaN;
+  const limit = Number.isFinite(rawLimit) && rawLimit >= 1
+    ? Math.min(Math.trunc(rawLimit), MAX_BATCH_HAND_IDS)
+    : DEFAULT_SAVED_HANDS_LIMIT;
+
+  let factsQuery = supabase
+    .from('ca_hand_facts')
+    .select(SUGGESTED_FACTS_SELECT)
+    .eq('user_id', user.id);
+  if (typeof factsQuery.order === 'function') {
+    factsQuery = factsQuery.order('played_at', { ascending: false });
+  }
+  if (typeof factsQuery.limit === 'function') {
+    factsQuery = factsQuery.limit(100);
+  }
+
+  const { data: factRows, error: factsError } = await factsQuery;
+  if (factsError) {
+    console.warn('[saved-hands] import_club_arena facts lookup failed:', factsError.message);
+    return res.status(500).json({ success: false, error: 'Could Not Load Your Club Arena Hand History' });
+  }
+
+  const uniqueFacts = [];
+  const seenFactIds = new Set();
+  for (const row of Array.isArray(factRows) ? factRows : []) {
+    const hid = String(row?.hand_id || '').trim().toLowerCase();
+    if (!isValidUuid(hid) || seenFactIds.has(hid)) continue;
+    seenFactIds.add(hid);
+    uniqueFacts.push(row);
+  }
+
+  if (uniqueFacts.length === 0) {
+    return res.status(200).json({
+      success: true,
+      importedCount: 0,
+      alreadySavedCount: 0,
+      remainingCount: 0,
+      hands: [],
+    });
+  }
+
+  const { savedSourceHandIds, error: savedLookupError } = await loadSavedSourceHandIdsForFacts(
+    supabase,
+    user.id,
+    uniqueFacts,
+    'import_club_arena',
+  );
+  if (savedLookupError || !savedSourceHandIds) {
+    return res.status(500).json({ success: false, error: 'Could Not Verify Saved Hand Status' });
+  }
+
+  const candidateFacts = [];
+  let alreadySavedCount = 0;
+  for (const row of uniqueFacts) {
+    const hid = String(row.hand_id).trim().toLowerCase();
+    if (savedSourceHandIds.has(hid)) {
+      alreadySavedCount += 1;
+    } else {
+      candidateFacts.push(row);
+    }
+  }
+
+  if (candidateFacts.length === 0) {
+    return res.status(200).json({
+      success: true,
+      importedCount: 0,
+      alreadySavedCount,
+      remainingCount: 0,
+      hands: [],
+    });
+  }
+
+  const batchFacts = candidateFacts.slice(0, limit);
+  const batchHandIds = batchFacts.map((row) => String(row.hand_id).trim().toLowerCase());
+
+  let historyQuery = supabase
+    .from('hand_history')
+    .select(CLUB_ARENA_SOURCE_HAND_SELECT);
+  if (typeof historyQuery.in === 'function') {
+    // in-list: bounded by MAX_BATCH_HAND_IDS (<= 50 recent completed Club Arena hand IDs)
+    historyQuery = historyQuery.in('id', batchHandIds.slice(0, MAX_BATCH_HAND_IDS));
+  }
+  const { data: historyRows, error: historyError } = await historyQuery;
+  if (historyError) {
+    console.warn('[saved-hands] import_club_arena hand_history batch lookup failed:', historyError.message);
+    return res.status(500).json({ success: false, error: 'Could Not Read Completed Hand History' });
+  }
+
+  const handHistoryById = new Map();
+  const tableIds = new Set();
+  for (const hr of Array.isArray(historyRows) ? historyRows : []) {
+    const hid = String(hr?.id || '').trim().toLowerCase();
+    if (!hid) continue;
+    handHistoryById.set(hid, hr);
+    if (hr.table_id) tableIds.add(String(hr.table_id));
+  }
+  for (const fact of batchFacts) {
+    if (fact?.table_id) tableIds.add(String(fact.table_id));
+  }
+
+  const tableMetaById = new Map();
+  if (tableIds.size > 0) {
+    try {
+      let tableQuery = supabase.from('tables').select('id, name, club_id');
+      if (typeof tableQuery.in === 'function') {
+        // in-list: bounded table IDs from <= 50 recent Club Arena hands
+        tableQuery = tableQuery.in('id', [...tableIds].slice(0, MAX_BATCH_HAND_IDS));
+        const { data: tableRows, error: tableErr } = await tableQuery;
+        if (tableErr) {
+          console.warn('[saved-hands] import_club_arena tables lookup failed:', tableErr.message || tableErr);
+        } else if (Array.isArray(tableRows)) {
+          for (const tr of tableRows) {
+            if (tr?.id) {
+              tableMetaById.set(String(tr.id), {
+                name: tr.name ? String(tr.name).trim() : null,
+                clubId: tr.club_id || null,
+              });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[saved-hands] import_club_arena tables lookup threw:', err?.message || err);
+    }
+  }
+
+  const rowsToInsert = [];
+  for (const fact of batchFacts) {
+    const hid = String(fact.hand_id).trim().toLowerCase();
+    const handRow = handHistoryById.get(hid);
+    if (!handRow) continue;
+    if (!callerParticipatedInClubArenaHand(handRow, user.id)) continue;
+    const hasPlayers = Array.isArray(handRow.players) && handRow.players.length > 0;
+    const hasRecordedResult = Boolean(handRow.created_at) && (hasPlayers || handRow.summary !== null);
+    if (!hasRecordedResult) continue;
+
+    const heroPrivateCards = fact.hole_cards ? (toCardCodes(fact.hole_cards) || []) : [];
+    const tableKey = handRow.table_id ? String(handRow.table_id) : (fact.table_id ? String(fact.table_id) : '');
+    const tableMeta = tableKey ? tableMetaById.get(tableKey) : null;
+
+    // Privacy invariant: buildClubArenaSavedHandRow always sets club_id: null,
+    // strips non-showdown opponent hole cards, and scopes the row to user.id.
+    const rowToInsert = buildClubArenaSavedHandRow({
+      userId: user.id,
+      handRow,
+      heroPrivateCards,
+      heroFactRow: fact,
+      tableName: tableMeta?.name || null,
+      clubId: tableMeta?.clubId || null,
+    });
+    rowsToInsert.push({ sourceHandId: hid, rowToInsert });
+  }
+
+  const decoratedRows = [];
+  let racedDuplicates = 0;
+  let insertFailures = 0;
+
+  const INSERT_CONCURRENCY = 5;
+  for (let offset = 0; offset < rowsToInsert.length; offset += INSERT_CONCURRENCY) {
+    const chunk = rowsToInsert.slice(offset, offset + INSERT_CONCURRENCY);
+    const results = await Promise.all(chunk.map(async ({ sourceHandId, rowToInsert }) => {
+      const { data: inserted, error: insertError } = await supabase
+        .from('hand_histories')
+        .insert(rowToInsert)
+        .select(SAVED_HAND_LIST_COLUMNS)
+        .maybeSingle();
+
+      if (insertError) {
+        if (isUniqueViolationError(insertError)) {
+          return { status: 'duplicate' };
+        }
+        console.warn('[saved-hands] import_club_arena insert failed:', insertError.message);
+        return { status: 'error' };
+      }
+
+      if (inserted) {
+        return { status: 'inserted', hand: decorateSavedRow(inserted) };
+      }
+
+      const reconciled = await readExistingClubArenaSave(supabase, user.id, sourceHandId);
+      if (!reconciled.error && reconciled.data) {
+        return { status: 'inserted', hand: reconciled.data };
+      }
+      return { status: 'error' };
+    }));
+
+    for (const outcome of results) {
+      if (outcome.status === 'inserted' && outcome.hand) {
+        decoratedRows.push(outcome.hand);
+      } else if (outcome.status === 'duplicate') {
+        racedDuplicates += 1;
+      } else {
+        insertFailures += 1;
+      }
+    }
+  }
+
+  if (rowsToInsert.length > 0 && decoratedRows.length === 0 && racedDuplicates === 0 && insertFailures > 0) {
+    return res.status(500).json({ success: false, error: 'Could Not Import Club Arena Hands' });
+  }
+
+  return res.status(200).json({
+    success: true,
+    importedCount: decoratedRows.length,
+    alreadySavedCount: alreadySavedCount + racedDuplicates,
+    remainingCount: Math.max(0, candidateFacts.length - batchFacts.length),
+    hands: decoratedRows,
   });
 }
 
@@ -1099,7 +1329,7 @@ async function handlePatch(req, res, supabase, user, { checkAccess, probeConfig 
     } else if (rawRev === undefined || rawRev === null) {
       updateQuery = updateQuery.filter('hand_data->review->>revision', 'is', null);
     } else if (typeof rawRev === 'number' || typeof rawRev === 'string' || typeof rawRev === 'boolean') {
-      // Legacy/corrupt scalar revision (e.g. revision: 0) — match stored value so
+      // Legacy/corrupt scalar revision (e.g. revision: 0) - match stored value so
       // the row heals cleanly to revision >= 2 instead of 409-deadlocking forever.
       updateQuery = updateQuery.filter('hand_data->review->>revision', 'eq', String(rawRev));
     }
@@ -1344,6 +1574,9 @@ export async function executeSavedHandsRequest(req, res, {
     const postAction = req.body && typeof req.body === 'object' && typeof req.body.action === 'string'
       ? req.body.action.trim().toLowerCase()
       : '';
+    if (postAction === 'import_club_arena') {
+      return await handleImportClubArenaHands(req, res, supabase, user);
+    }
     if (postAction === 'check_analysis_gate' || postAction === 'request_analysis') {
       return await handleAnalysisGateRequest(req, res, supabase, user, { checkAccess, probeConfig });
     }

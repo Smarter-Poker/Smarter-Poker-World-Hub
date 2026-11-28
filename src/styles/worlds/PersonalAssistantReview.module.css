@@ -319,29 +319,204 @@
   gap: 6px;
 }
 
-.cardChip {
+/* Real Club Arena 4-Color WebP Playing Cards */
+.arenaCardRow {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.arenaCard {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 34px;
-  height: 36px;
-  padding: 0 7px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.62), 0 1px 2px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+.arenaCardXs {
+  width: 28px;
+  height: 39px;
+  border-radius: 4px;
+}
+
+.arenaCardSm {
+  width: 34px;
+  height: 47px;
+  border-radius: 4px;
+}
+
+.arenaCardMd {
+  width: 40px;
+  height: 56px;
+  border-radius: 5px;
+}
+
+.arenaCardLg {
+  width: 48px;
+  height: 67px;
   border-radius: 6px;
-  border: 1px solid rgba(174, 192, 208, 0.45);
-  background: linear-gradient(180deg, #142235, #091321);
-  color: #f8fafc;
-  font: 800 14px / 1 'Arial Narrow', Arial, sans-serif;
-  letter-spacing: 0.02em;
 }
 
-.cardRed {
-  color: #ff6b7a;
+.arenaCardOverlap {
+  margin-left: -8px;
 }
 
-.cardHidden {
-  color: #8ea6bc;
-  border-style: dashed;
-  background: #07101c;
+.arenaCardOverlapTight {
+  margin-left: -13px;
+}
+
+.arenaCardImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.arenaCardFallback {
+  width: 100%;
+  height: 100%;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  font-family: 'Inter', Arial, -apple-system, sans-serif;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.arenaCardFallbackRank {
+  font-size: 13px;
+  letter-spacing: -0.02em;
+}
+
+.arenaCardFallbackSuit {
+  font-size: 12px;
+}
+
+.arenaCardBack {
+  background: linear-gradient(145deg, #163d7a 0%, #0b2248 55%, #071630 100%);
+  border-color: rgba(174, 192, 208, 0.55);
+}
+
+.arenaCardBackPattern {
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  border-radius: 3px;
+  border: 1px solid rgba(86, 216, 255, 0.45);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(86, 216, 255, 0.14),
+    rgba(86, 216, 255, 0.14) 3px,
+    transparent 3px,
+    transparent 6px
+  );
+}
+
+.hiddenCardsCluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hiddenCardsLabel {
+  color: #9cb3c9;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Club Arena Dark Felt Mini-Stage (Suggested Hands & Saved Hands List) */
+.arenaMiniFeltStage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(112, 168, 148, 0.34);
+  background:
+    radial-gradient(ellipse at 50% 25%, rgba(20, 88, 62, 0.65) 0%, rgba(10, 44, 32, 0.85) 62%, rgba(5, 22, 17, 0.96) 100%);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(174, 192, 208, 0.14);
+}
+
+.arenaMiniFeltGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+
+.arenaMiniFeltLabel {
+  color: #b8dfcf;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.handRowCardsStage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 10px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  border: 1px solid rgba(112, 168, 148, 0.3);
+  background:
+    radial-gradient(ellipse at 50% 25%, rgba(18, 76, 54, 0.58) 0%, rgba(8, 36, 26, 0.86) 66%, rgba(4, 18, 14, 0.95) 100%);
+  box-shadow: inset 0 1px 7px rgba(0, 0, 0, 0.55);
+}
+
+.handRowCardGroup {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.handRowCardLabel {
+  color: #b7dccd;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.panelHeadActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.importSuccessBanner {
+  border: 1px solid rgba(86, 216, 255, 0.55);
+  border-radius: 8px;
+  background: rgba(8, 124, 250, 0.16);
+  color: #d8f3ff;
+  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .boardList {
@@ -614,8 +789,8 @@
 /* Post-Session Suggested Hands */
 .suggestedGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
 }
 
 .suggestedCard {
@@ -623,10 +798,26 @@
   border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
   border-radius: 8px;
   background: linear-gradient(155deg, #162a40 0%, #0a1826 52%, #050e18 100%);
-  padding: 10px 12px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
+  cursor: pointer;
+}
+
+.suggestedCard:hover {
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  filter: brightness(1.07);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .suggestedCard {
+    transition: filter 140ms ease, transform 140ms ease;
+  }
+
+  .suggestedCard:active {
+    transform: scale(0.99);
+  }
 }
 
 .suggestedTop {
@@ -721,13 +912,6 @@
   color: #b7d8f0;
   font-size: 13px;
   font-weight: 800;
-}
-
-.cardChipMulti {
-  min-width: 30px;
-  height: 34px;
-  padding: 0 6px;
-  font-size: 13px;
 }
 
 /* Interactive Street-By-Street Visual Replayer */

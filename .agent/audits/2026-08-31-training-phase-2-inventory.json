@@ -130179,7 +130179,6 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/hub/personal-assistant/leaks.js",
-          "pages/hub/personal-assistant/sandbox.js",
           "src/components/sandbox/SandboxComponents.jsx",
           "src/components/sandbox/paKit.jsx"
         ]
@@ -142486,7 +142485,6 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/hub/personal-assistant/leaks.js",
-          "pages/hub/personal-assistant/sandbox.js",
           "src/components/sandbox/SandboxComponents.jsx",
           "src/components/sandbox/paKit.jsx"
         ]

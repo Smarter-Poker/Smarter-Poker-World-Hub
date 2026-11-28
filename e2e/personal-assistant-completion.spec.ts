@@ -123,10 +123,12 @@ test('approved artwork, fixed chrome and all six landing destinations work', asy
   await activate(main.getByRole('link', { name: 'Start Review', exact: true }));
   await expect(page).toHaveURL(/\/hub\/personal-assistant\/review$/);
   await expect(main.getByRole('heading', { name: 'Review My Play', exact: true })).toBeVisible();
+  await expect(main.locator('[data-import-club-arena-btn="true"]').first()).toBeVisible();
   const sampleTrigger = main.locator('[data-sample-hand-trigger="true"]');
   await expect(sampleTrigger).toBeVisible();
   await activate(sampleTrigger);
   await expect(main.locator('[data-review-arena-table="true"]')).toBeVisible();
+  await expect(main.locator('[data-review-card] img').first()).toHaveAttribute('src', /\/hub\/club-arena\/cards\/4color\//);
   await activate(main.getByRole('link', { name: 'Personal Assistant', exact: true }));
   await expect(main.getByRole('heading', { name: 'Personal Assistant', exact: true })).toBeVisible();
 
@@ -138,6 +140,10 @@ test('approved artwork, fixed chrome and all six landing destinations work', asy
   await activate(main.locator('svg[data-approved-illustration="sandbox"]'));
   await expect(page).toHaveURL(/\/hub\/personal-assistant\/sandbox$/);
   await expect(page.getByRole('region', { name: 'Poker Table', exact: true })).toBeVisible();
+  await expect(page.locator('[data-experience-toggle="true"]')).toBeVisible();
+  await expect(page.locator('[data-stakes-toggle="true"]')).toBeVisible();
+  await expect(page.locator('[data-common-spots="true"]')).toBeVisible();
+  await expect(page.locator('[data-simple-hand-summary="true"]')).toBeVisible();
   const arenaTable = page.locator('[data-arena-table="true"]');
   await expect(arenaTable).toBeVisible();
   await expect(page.locator('img[data-arena-table-skin="true"]')).toHaveAttribute('src', /\/hub\/table-theme\/tables\/skin_/);
