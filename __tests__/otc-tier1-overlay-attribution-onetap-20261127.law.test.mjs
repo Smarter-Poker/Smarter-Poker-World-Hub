@@ -155,12 +155,13 @@ test('OTC TIER 1 LAW 1: shouldSuppressNewsletterBar prevents Weekly Wire from co
   }
 
   // 5) Non-interactive editorial routes remain unsuppressed on mobile when sheet is closed
+  // (Tier 5 promoted /poker-rooms/* into interactive conversion routes for the Local Player Action Strip)
   assert.equal(
     shouldSuppressNewsletterBar({ pathname: '/hub/news', viewportWidth: 390, scrollRatio: 0.35 }),
     false,
   );
   assert.equal(
-    shouldSuppressNewsletterBar({ pathname: '/poker-rooms/nevada', viewportWidth: 390, scrollRatio: 0.35 }),
+    shouldSuppressNewsletterBar({ pathname: '/hub/article/wsop-main-event', viewportWidth: 390, scrollRatio: 0.35 }),
     false,
   );
 });
