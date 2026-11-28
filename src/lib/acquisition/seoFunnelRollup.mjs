@@ -2,7 +2,7 @@
  * Read-Only PostHog Organic SEO Conversion Funnel Rollup.
  *
  * Queries PostHog's HogQL Query API (`https://us.posthog.com`) for aggregate
- * event counts across the 9 canonical SEO conversion funnel events. Zero user
+ * event counts across the 17 canonical SEO conversion funnel events. Zero user
  * rows, distinct IDs, emails, or PII ever leave PostHog or this module.
  */
 
@@ -16,6 +16,14 @@ export const SEO_FUNNEL_EVENTS = Object.freeze([
   'seo_google_one_tap_success',
   'seo_post_signup_activation_shown',
   'seo_guest_spots_synced',
+  'seo_local_action_click',
+  'seo_calc_milestone_click',
+  'seo_quick_signup_magic_link_sent',
+  'seo_concept_bridge_click',
+  'seo_spot_share_click',
+  'seo_day0_referral_click',
+  'seo_venue_follow_signup_click',
+  'seo_video_bridge_click',
 ]);
 
 const SEO_FUNNEL_EVENT_SET = new Set(SEO_FUNNEL_EVENTS);
@@ -74,14 +82,23 @@ export function buildSeoFunnelSummary(eventCounts, { windowDays = 7 } = {}) {
   const engaged =
     events.seo_mini_gto_drill_answered +
     events.seo_leak_finder_complete +
-    events.seo_calculator_save_bar_click;
+    events.seo_calculator_save_bar_click +
+    events.seo_local_action_click +
+    events.seo_calc_milestone_click +
+    events.seo_concept_bridge_click +
+    events.seo_venue_follow_signup_click +
+    events.seo_video_bridge_click;
   const sheetOpened = events.seo_quick_signup_opened;
   const authIntent =
     events.seo_quick_signup_oauth_click +
     events.seo_quick_signup_email_continue +
+    events.seo_quick_signup_magic_link_sent +
     events.seo_google_one_tap_success;
   const activated = events.seo_post_signup_activation_shown;
   const spotsSynced = events.seo_guest_spots_synced;
+  const viralShares =
+    events.seo_spot_share_click +
+    events.seo_day0_referral_click;
 
   const stages = {
     engaged,
@@ -89,6 +106,7 @@ export function buildSeoFunnelSummary(eventCounts, { windowDays = 7 } = {}) {
     authIntent,
     activated,
     spotsSynced,
+    viralShares,
   };
 
   const rates = {
@@ -108,7 +126,7 @@ export function buildSeoFunnelSummary(eventCounts, { windowDays = 7 } = {}) {
 }
 
 /**
- * Aggregate-only HogQL query for the 9 canonical SEO funnel events.
+ * Aggregate-only HogQL query for the 17 canonical SEO funnel events.
  * No visitor rows, session IDs, or person properties leave PostHog.
  */
 export function buildSeoFunnelHogqlQuery(start, end) {

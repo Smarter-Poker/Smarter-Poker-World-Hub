@@ -55,6 +55,14 @@ test('SEO_FUNNEL_EVENTS and buildSeoFunnelSummary compute exact stage totals, nu
     'seo_google_one_tap_success',
     'seo_post_signup_activation_shown',
     'seo_guest_spots_synced',
+    'seo_local_action_click',
+    'seo_calc_milestone_click',
+    'seo_quick_signup_magic_link_sent',
+    'seo_concept_bridge_click',
+    'seo_spot_share_click',
+    'seo_day0_referral_click',
+    'seo_venue_follow_signup_click',
+    'seo_video_bridge_click',
   ]);
 
   const summary = buildSeoFunnelSummary(
@@ -85,6 +93,7 @@ test('SEO_FUNNEL_EVENTS and buildSeoFunnelSummary compute exact stage totals, nu
     authIntent: 50,
     activated: 25,
     spotsSynced: 15,
+    viralShares: 0,
   });
   assert.equal(summary.rates.engagedToSheetPct, 40);
   assert.equal(summary.rates.sheetToAuthIntentPct, 62.5);
@@ -103,6 +112,7 @@ test('SEO_FUNNEL_EVENTS and buildSeoFunnelSummary compute exact stage totals, nu
     authIntent: 0,
     activated: 0,
     spotsSynced: 0,
+    viralShares: 0,
   });
   assert.equal(empty.rates.engagedToSheetPct, null);
   assert.equal(empty.rates.sheetToAuthIntentPct, null);
