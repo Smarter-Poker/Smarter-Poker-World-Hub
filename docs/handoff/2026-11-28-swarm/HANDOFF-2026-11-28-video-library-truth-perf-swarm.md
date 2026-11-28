@@ -129,11 +129,16 @@ Production at handoff: `/api/health` commitSha `6f0b657d1197716ef4532a14f44322c8
 - Test: `__tests__/the-room-counts-maintain-themselves.law.test.mjs` (11).
 - Remaining gap: the AI markdown corpus (`src/lib/seo/markdownIngestion.mjs`, the `.md` URLs and `llms-*.txt` routes) and client-only labels still use the snapshot (never above live, but lagging). Optional follow-up: wire them to live stats.
 
-### 5.2 Unchecked claims (research and guide figures): PR OPEN, NOT MERGED (#3246)
-- Branch `agent/claude/r3-claims`, head `af84654c`, PR **#3246** (open at handoff; the autopilot will auto-merge it when required checks pass).
-- Commit: "fix(research): every research and guide figure has a basis, and the page shows it". It removes non-existent survey/audit/simulation results ("84% Of Surveyed Rooms", "185,000+ Logged Hands", "Audit Of 4,500+ Weekly Tournaments", "50,000+ Simulated Bounty Paths"); each research page declares a basis (computed, statute, directory, editorial); 8 pages became editorial guides; corrects short-deck maths (7-card flush 2.10% vs full house 7.58%; AA vs JTs 62.5%) and the whitepaper "AA Vs KK 85.20%" to 81.3%; rebuilds the tournament index from a dated directory read (824 events, 147 venues, 29 states, 2026-11-28 to 12-04, median buy-in 80) with `WEEKLY_TOURNAMENT_LABEL`; the tax page cites the IRS, FinCEN and P.L. 119-21; DOI 10.5281/zenodo.15129481 never resolved, so citations point at the real deposit 10.5281/zenodo.24115647; guide table/room counts come from the directory.
-- Test: `__tests__/the-research-figures-are-real.law.test.mjs` (registered).
-- NEXT AGENT: check PR #3246 state. If merged, confirm `/api/health` contains it and curl a sample of research pages. If checks failed, read the logs, fix on the same branch, push. If it conflicts with main (#3243 touched venueCount.mjs), rebase and push. The sub-agent's final report never arrived; verify its claims yourself.
+### 5.2 Unchecked claims (research and guide figures): DONE, LIVE (#3246, merge `e01ac60f`)
+- Merged 2026-11-27 ~23:25 Central; `/api/health` reported `e01ac60fa0f1ce4c31e847c5c489e4c12317defa` right after merge.
+- Removes survey/audit/simulation results that never existed ("84% Of Surveyed Rooms", "92% Of Surveyed Rooms", "185,000+ Logged Hands", "50,000+/120,000+/250,000+ Simulated", waitlist "11.4 to 4.1 Min", "18% To 34% Overhead", every VPIP/3-bet/BB/100 figure). No survey, hand sample, waitlist log or simulation exists in the repo, the DB or the Zenodo deposit (the deposit is about 10 KB of page-text JSON per report).
+- 15 research pages (`src/content/research/reports.js`) now declare a basis: 9 editorial guides, 4 computed (re-verified by enumeration in the law test; short deck corrected: 7-card flush 2.10% vs full house 7.58%, AA vs JTs 62.5%/66.8%, OESD 45.6%), 1 statute (W-2G: IRS W-2G instructions, IRS Topic 419, FinCEN CTR, P.L. 119-21 incl. the 2026 90% loss-deduction cap), 1 directory (tournament index from `venue_daily_tournaments`: 824 events, 147 venues, 29 states, week 2026-11-28 to 12-04, median buy-in 80).
+- Whitepaper: 10 figures with basis (was 25); "AA Vs KK 85.20%" corrected to 81.3%. `/research/benchmarks`: invented scores and ranking removed. "4,500+ weekly tournaments" (about 40 instances, 8 languages) is now `WEEKLY_TOURNAMENT_LABEL` "800+". "10M+ Simulated Hands" removed.
+- Dead DOI 10.5281/zenodo.15129481 (404, about 87 citations) replaced by the real deposit 10.5281/zenodo.24115647, labelled as an archive of earlier page text.
+- Guides: room counts via `listedVenueLabel()` (live via #3243); market table totals removed; per-venue table counts only where `poker_tables` has data (`src/lib/research/venueTablesOnFile.mjs`, 24 venues; DB wins: Borgata 85, Bellagio 40, Talking Stick 25, WinStar 46).
+- New modules: `src/lib/research/{tournamentDirectoryFacts,shortDeckFacts,holdemFacts,venueTablesOnFile}.mjs`, `scripts/research/short-deck-math.mjs`. Law test `__tests__/the-research-figures-are-real.law.test.mjs` (10/10, registered).
+- Market page Indiana 2026 income tax 2.95%: verified by this session against the Indiana Department of Revenue (in.gov/dor rates page: "2026 is 2.95% and will adjust in 2027 to 2.90%").
+- Left open: the Zenodo deposit itself still contains the old fabricated figures (it is labelled superseded on the site; publishing a new Zenodo version would fix it, and needs Dan's Zenodo account). Not reviewed: room house rules (rake/buy-in caps), tax rates and legal ages elsewhere, learn-content stats in non-research datasets (e.g. "OMC 8% To 13% VPIP"), platform feature counts (52 calculators, 70 MCP tools, 107 games; 107 is verified).
 
 ### 5.3 Site-wide load performance: IN PROGRESS, NOT COMMITTED (saved as a patch)
 - Worktree was `/home/claude/wt-perf2`, branch `agent/claude/r3-perf2` (NOT pushed), base sha in `patches/r3-perf2-BASE-SHA.txt`.
@@ -229,12 +234,12 @@ On the bookmark branch, `docs/handoff/2026-11-28-swarm/images/` (live production
 ---
 
 ## 11. MERGED PR LEDGER (this session, all on main and live unless noted)
-#3170 307eb2a5 (autopilot-merged VL redesign) · #3173 (evidence screenshots, autopilot) · #3181 ce886da0 · #3182 209ea636 · #3188 387ba16e · #3193 70e1a57e · #3194 cc3fd612 · #3197 9da5c3f8 · #3198 0ac8edad · #3206 c3b648d2 · #3210 ed41e283 · #3211 ec132380 · #3212 1e995803 · #3224 43f8faf3 · #3243 6f0b657d · OPEN: #3246 (r3-claims) · NOT PUSHED: r3-perf2, r3-e2e · PARKED: wip/claude/r3-data.
+#3170 307eb2a5 (autopilot-merged VL redesign) · #3173 (evidence screenshots, autopilot) · #3181 ce886da0 · #3182 209ea636 · #3188 387ba16e · #3193 70e1a57e · #3194 cc3fd612 · #3197 9da5c3f8 · #3198 0ac8edad · #3206 c3b648d2 · #3210 ed41e283 · #3211 ec132380 · #3212 1e995803 · #3224 43f8faf3 · #3243 6f0b657d · #3246 e01ac60f · NOT PUSHED: r3-perf2, r3-e2e · PARKED: wip/claude/r3-data.
 
 ---
 
 ## 12. DEFINITION OF DONE FOR THE NEXT AGENT
-1. #3246 merged, live and verified.
+1. #3246: DONE (verify live once more with curl on 2 research pages).
 2. Perf lane resumed from the patch, verified, merged, live, re-measured (report before/after per page).
 3. e2e lane resumed from the patch, the footer contract job green on main.
 4. Venue migrations installed IF Dan approves; otherwise leave parked and say so.
