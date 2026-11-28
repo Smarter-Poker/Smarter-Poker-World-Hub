@@ -145,13 +145,13 @@ export default function CreateSquadPage() {
         const squadId = data.data?.squad?.id || data.data?.squad_id || '';
         router.push(`/hub/commander/squads/${squadId}`);
       } else {
-        setErrorMessage(data.error?.message || 'Failed to create squad');
+        setErrorMessage(data.error?.message || 'Failed To Create Squad');
         setTimeout(() => setErrorMessage(null), 4000);
       }
     } catch (err) {
       console.warn('Create failed:', err);
       // 2026-07-25 audit fix: show the server's message when available.
-      setErrorMessage(err?.message || 'Failed to create squad. Please try again.');
+      setErrorMessage(err?.message || 'Failed To Create Squad. Please Try Again.');
       setTimeout(() => setErrorMessage(null), 4000);
     } finally {
       setLoading(false);

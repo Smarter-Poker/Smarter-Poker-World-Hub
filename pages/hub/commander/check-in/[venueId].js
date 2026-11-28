@@ -80,7 +80,7 @@ export default function PlayerCheckInPage() {
       }
     } catch (err) {
       console.warn('Fetch failed:', err);
-      setError('Unable to load venue information');
+      setError('Unable To Load Venue Information');
     } finally {
       setLoading(false);
     }
@@ -122,7 +122,7 @@ export default function PlayerCheckInPage() {
       }
     } catch (err) {
       console.warn('Check-in failed:', err);
-      setError('Connection error. Please try again.');
+      setError('Connection Error. Please Try Again.');
     } finally {
       setCheckingIn(false);
     }

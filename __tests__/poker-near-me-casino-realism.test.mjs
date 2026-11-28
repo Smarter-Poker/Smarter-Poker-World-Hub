@@ -648,9 +648,9 @@ test('Home Games data-entry overlays share complete keyboard dialog behavior', (
   }
 
   const detail = read('pages/hub/commander/home-games/[id].js');
-  assert.match(detail, /aria-label="Close RSVP dialog"/);
-  assert.match(detail, /aria-label="Close share dialog"/);
-  assert.match(detail, /aria-label=\{copied \? 'Club code copied' : 'Copy club code'\}/);
+  assert.match(detail, /aria-label="Close RSVP Dialog"/);
+  assert.match(detail, /aria-label="Close Share Dialog"/);
+  assert.match(detail, /aria-label=\{copied \? 'Club Code Copied' : 'Copy Club Code'\}/);
 });
 
 test('Commander Home Games icon actions expose names and explicit button behavior', () => {

@@ -44,7 +44,7 @@ export default function CommanderHub() {
       }
     } catch (err) {
       console.warn('Failed to fetch venues:', err);
-      setError('Failed to load venues');
+      setError('Failed To Load Venues');
     } finally {
       setLoading(false);
     }
@@ -451,7 +451,7 @@ export default function CommanderHub() {
                   <MapPin className="w-7 h-7" />
                 </div>
                 <p className="text-[#CBD5E1] font-semibold text-lg">
-                  {searchQuery ? 'No venues match your search' : 'No poker venues found'}
+                  {searchQuery ? 'No Venues Match Your Search' : 'No Poker Venues Found'}
                 </p>
               </div>
             ) : (
