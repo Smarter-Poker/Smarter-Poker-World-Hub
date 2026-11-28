@@ -8,6 +8,8 @@
 // because that page never asked the account. Every page now reads local first
 // (instant), then the account, and writes the account's answer back locally.
 
+import { rpcOrFallback } from './rpcFallback.mjs';
+
 export const TOKE_PREFS_KEY = 'toke-tracker-prefs';
 export const TOKE_PREFS_EVENT = 'toke-settings-sync';
 
@@ -67,4 +69,29 @@ export function writeStoredPrefs(storage, prefs) {
 export function withTokePrefs(settings, prefs) {
   const base = settings && typeof settings === 'object' && !Array.isArray(settings) ? settings : {};
   return { ...base, tokeTracker: mergePrefs(prefs) };
+}
+
+/**
+ * Save the preferences to the account's profiles.settings.tokeTracker.
+ *
+ * fn_profile_settings_set_key merges just this one key in a single UPDATE,
+ * so a concurrent writer of another settings key is never overwritten. Until
+ * that function is installed (PostgREST PGRST202 / 404), the old path runs:
+ * read the whole settings object, replace this key, write it back. Any other
+ * failure is thrown to the caller, as before. Resolves to 'rpc' or 'fallback'.
+ */
+export async function saveTokePrefsToAccount(client, userId, prefs) {
+  const value = mergePrefs(prefs);
+  const { via } = await rpcOrFallback(
+    () => client.rpc('fn_profile_settings_set_key', { p_key: 'tokeTracker', p_value: value }),
+    async () => {
+      const { data: profile, error: readError } = await client
+        .from('profiles').select('settings').eq('id', userId).maybeSingle();
+      if (readError) throw readError;
+      const { error } = await client
+        .from('profiles').update({ settings: withTokePrefs(profile?.settings, value) }).eq('id', userId);
+      if (error) throw error;
+    }
+  );
+  return via;
 }
