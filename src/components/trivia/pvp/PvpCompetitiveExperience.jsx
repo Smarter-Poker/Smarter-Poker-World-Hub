@@ -873,7 +873,7 @@ export default function PvpCompetitiveExperience({
         const delay = effectivePvpPollDelay(dto, {
             realtimeConnected,
             realtimePollMs,
-            serverClockAnchor: clockAnchor,
+            serverClockAnchor: serverAnchor,
         });
         if (delay == null) return undefined;
         let disposed = false;
@@ -904,7 +904,7 @@ export default function PvpCompetitiveExperience({
             controller.abort();
             if (timer) window.clearTimeout(timer);
         };
-    }, [bootState, clockAnchor, dto, readLatestStatus, realtimeConnected, realtimePollMs, showLobby, user?.id]);
+    }, [bootState, dto, readLatestStatus, realtimeConnected, realtimePollMs, serverAnchor, showLobby, user?.id]);
 
     useEffect(() => {
         if (typeof onSyncContextChange !== 'function') return;
