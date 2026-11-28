@@ -54,9 +54,11 @@ test.describe('Phase 6 Personal Video Study', () => {
         await page.goto('/hub/video-library', { waitUntil: 'commit' });
         const study = page.getByRole('region', { name: 'Diamond Study Streak', exact: true });
         await expect(study.getByRole('alert')).toHaveText('Study Status Is Temporarily Unavailable');
-        await expect(study.getByText(/Diamonds Earned/)).toHaveCount(0);
+        await expect(study.locator('.vl-study-readout')).toHaveCount(0);
         outcome = 'ready'; await study.getByRole('button', { name: 'Reload Study Status' }).click();
-        await expect(study.getByText('7 Diamonds Earned From Videos Today', { exact: true })).toBeVisible();
-        await expect(study.getByText(/No Extra Streak Bonus/)).toBeVisible(); expect(reads).toBe(2); await geometry(page);
+        // Three readouts; how the streak is counted lives behind the library's "?".
+        await expect(study.locator('.vl-study-readout').filter({ hasText: 'Diamonds Today' }).locator('.vl-study-streak-value')).toHaveText('7');
+        await expect(study.locator('.vl-study-readout').filter({ hasText: 'Streak' }).locator('.vl-study-streak-value')).toHaveText('2 Days');
+        await expect(study.getByText(/Bonus/)).toHaveCount(0); expect(reads).toBe(2); await geometry(page);
     });
 });
