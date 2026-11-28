@@ -289,7 +289,7 @@ export default function PlayerNotificationsPage() {
                 <Bell className="w-7 h-7" />
               </div>
               <p className="text-[#9FB3C8] font-medium">
-                {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
+                {filter === 'unread' ? 'No Unread Notifications' : 'No Notifications Yet'}
               </p>
               <p className="text-sm text-[#9FB3C8] mt-1">
                 Join A Waitlist To Receive Updates

@@ -135,7 +135,7 @@ export default function PlayerRewardsPage() {
 
   function handleRedeemClick(category) {
     if (balance <= 0) {
-      setComingSoonMessage('No balance available to redeem');
+      setComingSoonMessage('No Balance Available To Redeem');
       setTimeout(() => setComingSoonMessage(null), 3000);
       return;
     }
@@ -165,7 +165,7 @@ export default function PlayerRewardsPage() {
     const playerId = user?.id || getAuthUser()?.id;
     const target = venueBalances.find(b => parseFloat(b.current_balance || 0) >= parsed) || venueBalances[0];
     if (!playerId || !target?.venue_id) {
-      setComingSoonMessage('No venue balance available to redeem');
+      setComingSoonMessage('No Venue Balance Available To Redeem');
       handleRedeemCancel();
       setTimeout(() => setComingSoonMessage(null), 3000);
       return;
@@ -201,7 +201,7 @@ export default function PlayerRewardsPage() {
       }
     } catch (err) {
       console.warn('Redeem failed:', err);
-      setComingSoonMessage('Redemption failed. Please try again.');
+      setComingSoonMessage('Redemption Failed. Please Try Again.');
     }
     handleRedeemCancel();
     setTimeout(() => setComingSoonMessage(null), 3000);

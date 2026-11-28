@@ -197,7 +197,7 @@ export default function PlayerHomeGamesHub() {
         setJoinCode('');
         loadGames();
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to join' });
+        setMessage({ type: 'error', text: data.error || 'Failed To Join' });
       }
     } catch (err) {
       console.warn('Join error:', err);

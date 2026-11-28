@@ -69,7 +69,7 @@ function FavoriteVenue({ venue, rank }) {
         <p className="text-sm text-[#9FB3C8]">
           {venue.sessions != null
             ? `${venue.sessions} sessions`
-            : [venue.city, venue.state].filter(Boolean).join(', ') || 'Recent venue'}
+            : [venue.city, venue.state].filter(Boolean).join(', ') || 'Recent Venue'}
         </p>
       </div>
       {venue.hours != null && <p className="text-sm text-[#9FB3C8]">{venue.hours}h</p>}

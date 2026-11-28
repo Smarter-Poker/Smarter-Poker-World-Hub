@@ -244,3 +244,26 @@ test('every player page resolves to a scene of its own family, and reuse only co
   assert.ok(reuse <= 7, `scene reuse ${reuse} (cap 7)`);
   assert.equal(sceneFor('/hub/commander/tournaments')[1] === sceneFor('/hub/commander/tournament/[id]/my-status')[1], false);
 });
+
+test('user-facing strings on the player pages are Title Case (toasts, empty states, accessible names)', () => {
+  // Every word capitalised, the house style ("Back To Dashboard"). Data sent to
+  // the API (reason fields), headers and URLs are not UI and are skipped.
+  const NOT_UI = /(?:console\.\w+\(\s*|(?:p_reason|reason|Authorization|import|from|className)\s*[:=(]?\s*)$/;
+  const offenders = [];
+  for (const file of walk(PAGES_DIR).filter((f) => f.endsWith('.js'))) {
+    const lines = maskComments(read(file)).split('\n');
+    lines.forEach((line, i) => {
+      for (const m of line.matchAll(/(?<![\w.[])(['"])([A-Z][a-z]+(?: [A-Za-z()&,.:-]+){1,9})\1/g)) {
+        if (NOT_UI.test(line.slice(0, m.index)) || /Bearer /.test(m[2])) continue;
+        const words = m[2].match(/[A-Za-z][A-Za-z']*/g) || [];
+        if (words.slice(1).some((w) => /^[a-z]/.test(w) && w !== 'e' && w !== 'g')) offenders.push(`${file}:${i + 1} ${m[2]}`);
+      }
+      for (const m of line.matchAll(/(?:aria-label|placeholder|title|alt)="([A-Z][^"]{2,140})"/g)) {
+        if (m[1].includes('/') && !m[1].includes(' / ')) continue;
+        const words = m[1].match(/[A-Za-z][A-Za-z']*/g) || [];
+        if (words.slice(1).some((w) => /^[a-z]/.test(w) && w !== 'e' && w !== 'g')) offenders.push(`${file}:${i + 1} ${m[1]}`);
+      }
+    });
+  }
+  assert.deepEqual(offenders, []);
+});

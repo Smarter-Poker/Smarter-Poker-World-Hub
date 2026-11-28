@@ -114,11 +114,11 @@ export default function SquadDetailPage() {
       if (data.success) {
         setSquad(data.data?.squad);
       } else {
-        setError(data.error?.message || 'Squad not found');
+        setError(data.error?.message || 'Squad Not Found');
       }
     } catch (err) {
       console.warn('Fetch squad failed:', err);
-      setError('Failed to load squad');
+      setError('Failed To Load Squad');
     } finally {
       setLoading(false);
     }
@@ -142,7 +142,7 @@ export default function SquadDetailPage() {
 
     const shareUrl = `${window.location.origin}/hub/commander/squads/join/${squad.invite_code}`;
     const shareData = {
-      title: squad.name || 'Join my Squad',
+      title: squad.name || 'Join My Squad',
       text: `Join my poker squad for ${squad.stakes} ${squad.game_type?.toUpperCase()} at ${squad.poker_venues?.name}!`,
       url: shareUrl
     };
@@ -181,12 +181,12 @@ export default function SquadDetailPage() {
         busEmit.dataMutated('squads');
         fetchSquad();
       } else {
-        setError(data.error?.message || 'Failed to join waitlist');
+        setError(data.error?.message || 'Failed To Join Waitlist');
         setTimeout(() => setError(null), 4000);
       }
     } catch (err) {
       console.warn('Join waitlist failed:', err);
-      setError('Failed to join waitlist');
+      setError('Failed To Join Waitlist');
       setTimeout(() => setError(null), 4000);
     } finally {
       setActionLoading(false);

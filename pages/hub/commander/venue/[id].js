@@ -135,7 +135,7 @@ export default function VenueDetail() {
         });
         fetchData();
       } else {
-        setMessage({ type: 'error', text: data.error?.message || 'Failed to join waitlist' });
+        setMessage({ type: 'error', text: data.error?.message || 'Failed To Join Waitlist' });
       }
     } catch (error) {
       console.warn('Failed to join waitlist:', error);

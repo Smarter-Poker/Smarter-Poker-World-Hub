@@ -37,7 +37,7 @@ function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
         <div>
           <p className="font-medium text-white">{label}</p>
           <p className="text-sm text-[#9FB3C8]">
-            {value ? `${unit}${value.toLocaleString()}` : 'No limit set'}
+            {value ? `${unit}${value.toLocaleString()}` : 'No Limit Set'}
           </p>
         </div>
       </div>
@@ -274,7 +274,7 @@ export default function ResponsibleGamingPage() {
                   <p className="font-semibold text-[#EF4444]">Self-Exclusion Active</p>
                   <p className="text-sm text-[#9FB3C8] mt-1">
                     {activeExclusion.type === 'permanent'
-                      ? 'You have permanently self-excluded from all poker activities.'
+                      ? 'You Have Permanently Self-Excluded From All Poker Activities.'
                       : `Your exclusion expires on ${new Date(activeExclusion.expires_at).toLocaleDateString()}`
                     }
                   </p>
@@ -304,7 +304,7 @@ export default function ResponsibleGamingPage() {
                   <p className="text-sm text-[#9FB3C8] mt-1">
                     {riskStatus === 'high'
                       ? 'Your recent activity suggests you may be at risk. Consider setting lower limits or taking a break.'
-                      : 'Your spending patterns have increased recently. Review your limits below.'}
+                      : 'Your Spending Patterns Have Increased Recently. Review Your Limits Below.'}
                   </p>
                 </div>
               </div>
