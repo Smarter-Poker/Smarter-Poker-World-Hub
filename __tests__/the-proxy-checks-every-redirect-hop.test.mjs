@@ -85,15 +85,41 @@ for (const [url, why] of MUST_REFUSE) {
     });
 }
 
+// Hermetic DNS (2026-11-28). These cases used the machine's resolver. Where
+// nothing resolves (a sandbox, an offline runner) every name was refused, so
+// "still allows an ordinary publisher" and the redirect cap failed, and the
+// nip.io case passed for the wrong reason: refused because it did not resolve,
+// not because of what it resolved to. Each name is now answered by a stub, so
+// every case proves the judgement of the resolved address and nothing else.
+const PUBLIC_V4 = '93.184.216.34';
+const answers = (table) => async (host, opts) => {
+    assert.equal(opts.all, true, 'every address a name answers with is judged');
+    if (!(host in table)) { const e = new Error(`getaddrinfo ENOTFOUND ${host}`); e.code = 'ENOTFOUND'; throw e; }
+    return table[host].map((address) => ({ address, family: address.includes(':') ? 6 : 4 }));
+};
+const RESOLVER = answers({
+    '169.254.169.254.nip.io': ['169.254.169.254'],
+    'mixed.example': [PUBLIC_V4, '::ffff:127.0.0.1'],
+    'www.pokernews.com': [PUBLIC_V4, '2606:2800:220:1:248:1893:25c8:1946'],
+});
+
 test('refuses a name that resolves to a blocked address', async () => {
     // Nothing about the TEXT of this name is suspicious, which is exactly why a
     // string check could never catch it. It resolves to the metadata address.
-    const ok = await assertFetchableUrl(new URL('http://169.254.169.254.nip.io/'));
+    const ok = await assertFetchableUrl(new URL('http://169.254.169.254.nip.io/'), { lookup: RESOLVER });
     assert.equal(ok, false);
 });
 
+test('refuses a name when ANY of its addresses is blocked', async () => {
+    assert.equal(await assertFetchableUrl(new URL('https://mixed.example/'), { lookup: RESOLVER }), false);
+});
+
+test('refuses a name that does not resolve', async () => {
+    assert.equal(await assertFetchableUrl(new URL('https://nowhere.example/'), { lookup: RESOLVER }), false);
+});
+
 test('still allows an ordinary publisher', async () => {
-    assert.equal(await assertFetchableUrl(new URL('https://www.pokernews.com/')), true);
+    assert.equal(await assertFetchableUrl(new URL('https://www.pokernews.com/'), { lookup: RESOLVER }), true);
 });
 
 test('isBlockedAddress judges the address families directly', () => {
@@ -132,7 +158,7 @@ test('the redirect chain is capped at the number it claims', async () => {
         return { status: 302, headers: patch(new Map([['location', 'https://www.pokernews.com/next' + n]])), body: null };
     };
     try {
-        await assert.rejects(() => fetchGuarded('https://www.pokernews.com/a', {}, 5), (e) => e.code === 'TOO_MANY_REDIRECTS');
+        await assert.rejects(() => fetchGuarded('https://www.pokernews.com/a', {}, 5, { lookup: RESOLVER }), (e) => e.code === 'TOO_MANY_REDIRECTS');
         assert.equal(n, 5, 'maxHops of 5 means 5 outbound requests, not 6');
     } finally { globalThis.fetch = original; }
 });

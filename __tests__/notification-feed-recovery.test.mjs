@@ -52,6 +52,7 @@ async function fixture(file = 'pages/api/notifications/feed.js') {
     process: { env: { SUPABASE_SERVICE_ROLE_KEY: 'fixture-not-a-credential' } }, console: { warn() {}, error() {} },
     require: () => ({ applyCors: () => true }),
   });
+  assert.ok(vm.SourceTextModule, 'run with node --experimental-vm-modules, as build-safety-gate CHECK 8 does');
   const module = new vm.SourceTextModule(readFileSync(file, 'utf8'), { context });
   const { FEED_VISIBLE_TYPE_OR_FILTER } = await import('../src/lib/notificationVisibility.mjs');
   const mocks = {
