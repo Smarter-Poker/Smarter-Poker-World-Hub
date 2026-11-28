@@ -271,17 +271,22 @@ export default function NewsSources({ initialSources = [] }) {
                             box-sizing: border-box;
                             max-width: 800px;
                             margin: 0 auto;
-                            padding: 84px 12px 40px;
+                            padding: 8px 12px 40px;
                         }
                         .news-sources-body :global(.news-sources-header) {
                             margin-bottom: 14px;
                         }
                         .news-sources-list {
                             display: grid;
+                            /* minmax(0, 1fr): without it the track grew to the
+                               unwrapped "Latest" line and pushed each row's
+                               Enabled key off the right edge at phone width. */
+                            grid-template-columns: minmax(0, 1fr);
                             gap: 8px;
                         }
                         .news-source-row {
                             box-sizing: border-box;
+                            min-width: 0;
                             display: flex;
                             justify-content: space-between;
                             align-items: center;
@@ -294,6 +299,9 @@ export default function NewsSources({ initialSources = [] }) {
                         }
                         .news-source-row.is-off {
                             opacity: 0.66;
+                        }
+                        .news-source-row > div:first-child {
+                            flex: 1 1 auto;
                         }
                         .news-source-name {
                             margin-bottom: 3px;
