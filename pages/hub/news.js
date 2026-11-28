@@ -2117,20 +2117,17 @@ function NewsHub() {
 
                                     {/* CLUB ARENA NEWS REELS PREVIEW START */}
                                     <div ref={reelsPreviewRef} className="news-reels-preview-anchor" aria-hidden="true" />
-                                    <VideoLibraryConsole
-                                        as="section"
+                                    <section
                                         className="news-reels-console news-reels-console--preview"
-                                        eyebrow="News Desk"
-                                        title="Poker Reels"
-                                        titleAs="h2"
-                                        subtitle="Fresh Short Form Poker"
-                                        pill={reels.length > 0 ? `${reels.length} Live` : 'Daily'}
-                                        pillInk="blue"
-                                        foot="foot"
+                                        aria-labelledby="news-reels-preview-title"
                                         aria-busy={hasMounted && reelsLoading}
                                     >
+                                        <div className="news-reels-console__head">
+                                            <h2 className="section-title" id="news-reels-preview-title">Poker Reels</h2>
+                                            <span className="news-reels-console__count">{reels.length > 0 ? `${reels.length} Live` : 'Daily'}</span>
+                                        </div>
                                         <div className="news-reels-console__intro">
-                                            <ConsoleCopy>Real Poker Clips Selected From The Live Reels Feed.</ConsoleCopy>
+                                            <p className="news-reels-console__copy">Real Poker Clips Selected From The Live Reels Feed.</p>
                                             <button
                                                 type="button"
                                                 className="news-reels-console__text-action"
@@ -2165,16 +2162,16 @@ function NewsHub() {
                                                 </div>
                                             </div>
                                         ) : hasMounted && reelsLoading ? (
-                                            <ConsoleCopy align="center" role="status">Loading Reels...</ConsoleCopy>
+                                            <p className="news-reels-console__copy news-reels-console__copy--center" role="status">Loading Reels...</p>
                                         ) : reelsError ? (
                                             <div className="news-reels-console__state" role="alert">
-                                                <ConsoleCopy align="center">Reels Are Temporarily Unavailable.</ConsoleCopy>
+                                                <p className="news-reels-console__copy news-reels-console__copy--center">Reels Are Temporarily Unavailable.</p>
                                                 <button type="button" onClick={() => refreshReels()}>Retry Reels</button>
                                             </div>
                                         ) : (
-                                            <ConsoleCopy align="center" role="status">No Reels Available Yet. Check Back Soon.</ConsoleCopy>
+                                            <p className="news-reels-console__copy news-reels-console__copy--center" role="status">No Reels Available Yet. Check Back Soon.</p>
                                         )}
-                                    </VideoLibraryConsole>
+                                    </section>
                                     {/* CLUB ARENA NEWS REELS PREVIEW END */}
                                 </>
                             )}
@@ -2187,27 +2184,25 @@ function NewsHub() {
 
                             {activeSection === 'reels' && (
                                 /* CLUB ARENA NEWS REELS FULL START */
-                                <VideoLibraryConsole
-                                    as="section"
+                                <section
                                     className="news-reels-console news-reels-console--full"
-                                    eyebrow="News Desk"
-                                    title="Poker Reels"
-                                    titleAs="h2"
-                                    subtitle="Short Form Poker Updated Daily"
-                                    pill={reels.length > 0 ? `${reels.length} Live` : 'Reels'}
-                                    pillInk="blue"
-                                    foot="foot"
+                                    aria-labelledby="news-reels-full-title"
                                     aria-busy={hasMounted && reelsLoading}
                                 >
+                                    <div className="news-reels-console__head">
+                                        <h2 className="section-title" id="news-reels-full-title">Poker Reels</h2>
+                                        <span className="news-reels-console__count">{reels.length > 0 ? `${reels.length} Live` : 'Reels'}</span>
+                                    </div>
+                                    <p className="section-desc">Short Form Poker, Updated Daily.</p>
                                     {hasMounted && reelsLoading ? (
-                                        <ConsoleCopy align="center" role="status">Loading Reels...</ConsoleCopy>
+                                        <p className="news-reels-console__copy news-reels-console__copy--center" role="status">Loading Reels...</p>
                                     ) : reelsError ? (
                                         <div className="news-reels-console__state" role="alert">
-                                            <ConsoleCopy align="center">Reels Are Temporarily Unavailable.</ConsoleCopy>
+                                            <p className="news-reels-console__copy news-reels-console__copy--center">Reels Are Temporarily Unavailable.</p>
                                             <button type="button" onClick={() => refreshReels()}>Retry Reels</button>
                                         </div>
                                     ) : reels.length === 0 ? (
-                                        <ConsoleCopy align="center" role="status">No Reels Available Yet. Check Back Soon.</ConsoleCopy>
+                                        <p className="news-reels-console__copy news-reels-console__copy--center" role="status">No Reels Available Yet. Check Back Soon.</p>
                                     ) : (
                                         <div className="news-reels-console__grid" role="list">
                                             {reels.map((reel, idx) => (
@@ -2220,7 +2215,7 @@ function NewsHub() {
                                             ))}
                                         </div>
                                     )}
-                                </VideoLibraryConsole>
+                                </section>
                                 /* CLUB ARENA NEWS REELS FULL END */
                             )}
 
@@ -3601,6 +3596,33 @@ function NewsHub() {
                     .news-reels-console {
                         width: 100%;
                         margin-block: 18px 28px;
+                    }
+
+                    .news-reels-console__head {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 12px;
+                    }
+
+                    .news-reels-console__count {
+                        color: #86daff;
+                        font-size: 13px;
+                        font-weight: 800;
+                        letter-spacing: 0.06em;
+                        white-space: nowrap;
+                    }
+
+                    .news-reels-console__copy {
+                        margin: 0;
+                        color: #bdd0e2;
+                        font-size: 14px;
+                        line-height: 1.4;
+                    }
+
+                    .news-reels-console__copy--center {
+                        padding: 24px 0;
+                        text-align: center;
                     }
 
                     .news-reels-console__intro,
