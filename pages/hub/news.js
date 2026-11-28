@@ -59,6 +59,8 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
 import LiveWireStyles from '../../src/components/news/LiveWireStyles';
+import NewsSmarterDesignStyles from '../../src/components/news/NewsSmarterDesignStyles';
+import BankrollImageHeader from '../../src/components/bankroll/BankrollImageHeader';
 import MagazineNewsstandBanner from '../../src/components/magazine/MagazineNewsstandBanner';
 import {
     ConsoleCopy,
@@ -1480,8 +1482,9 @@ function NewsHub() {
                 the point of this page. The exit animation is unaffected. */}
             <PageTransition disableInitialAnimation>
                 
-                <div className="news-hub live-wire">
+                <div className="news-hub live-wire smarterdesign">
                     <LiveWireStyles />
+                    <NewsSmarterDesignStyles />
                     {/* Scroll Progress Bar */}
                     <div className="scroll-progress" style={{ width: `${scrollProgress}%` }} />
                     <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
@@ -1544,24 +1547,42 @@ function NewsHub() {
                     <div className="layout">
                         {/* Left Column - News Boxes */}
                         <main className="main-content">
-                            <div className="news-desk-masthead">
-                                <div className="news-desk-title-group">
-                                    <span className="live-pulse" aria-hidden="true" />
-                                    <div>
-                                        <div className="news-desk-kicker">
-                                            Live Desk · {filteredNews.length} Stories Moving
-                                            {newArticleCount > 0 ? ` · ${newArticleCount} new` : ''}
-                                        </div>
-                                        <h1 className="news-desk-title">Live Intelligence Wire</h1>
-                                    </div>
-                                </div>
+                            {/* #SMARTERDESIGN image header (Dan, 2026-11-27): one steel
+                                rim, the newspaper seal in its chrome circle, the page
+                                name in live white lettering, the press scene on the
+                                right and the one painted chrome "?" in the corner. The
+                                explanations that used to sit on the page live behind
+                                the "?". */}
+                            <BankrollImageHeader
+                                art="news"
+                                section="news"
+                                title="Poker News"
+                                titleId="news-page-title"
+                                className="news-image-header"
+                                parent={(
+                                    <span className="news-desk-kicker">
+                                        <span className="live-pulse" aria-hidden="true" />
+                                        Live Intelligence Wire · {filteredNews.length} Stories Moving
+                                        {newArticleCount > 0 ? ` · ${newArticleCount} New` : ''}
+                                    </span>
+                                )}
+                                helpContent={(
+                                    <>
+                                        <p>Headlines Are Gathered Every Hour From Seven Poker Outlets, Each Shown As A Source Chip Below. Open A Story To Read It Here.</p>
+                                        <p>Use The Tabs For News, Reels, Videos, Events And Read Later. Tap A Source To Show Only Its Stories, Or Several Sources At Once. Clear Removes Every Source Filter.</p>
+                                        <p>Story Signal Counts The Stories Shown. Latest Puts The Newest First; Most Read Ranks Stories By Reader Views.</p>
+                                        <p>The Bookmark And Clock On Each Story Save It To Bookmarks Or Read Later. Saved Stories Sync When You Are Signed In.</p>
+                                        <p>Events Lists Upcoming Tournaments; Allow Location To Sort Them By Distance. Location Is Used Once And Never Stored.</p>
+                                    </>
+                                )}
+                            >
                                 {lastRefreshed && (
                                     <div className="news-desk-freshness">
                                         <span>Updated {hasMounted ? timeAgo(lastRefreshed) : ''}</span>
-                                        <button type="button" onClick={() => refreshNewsFeed()}>Refresh</button>
+                                        <button type="button" className="sd-button" onClick={() => refreshNewsFeed()}>Refresh</button>
                                     </div>
                                 )}
-                            </div>
+                            </BankrollImageHeader>
 
                             {/* Existing sections, surfaced in the approved Live Wire tab rail. */}
                             <div className="section-tabs" role="tablist" aria-label="News sections">
@@ -2639,8 +2660,8 @@ function NewsHub() {
                     .bookmark-notice {
                         padding: 8px 12px;
                         margin-bottom: 10px;
-                        background: rgba(251, 191, 36, 0.1);
-                        border: 1px solid rgba(251, 191, 36, 0.35);
+                        background: rgba(134, 218, 255, 0.1);
+                        border: 1px solid rgba(134, 218, 255, 0.35);
                         border-radius: 10px;
                         color: #86daff;
                         font-size: 12px;
@@ -2959,8 +2980,8 @@ function NewsHub() {
                         width: 18px;
                         height: 18px;
                         border-radius: 50%;
-                        background: rgba(251, 146, 60, 0.18);
-                        color: #fb923c;
+                        background: rgba(134, 218, 255, 0.18);
+                        color: #86daff;
                         z-index: 2;
                     }
                     .news-list-item {
