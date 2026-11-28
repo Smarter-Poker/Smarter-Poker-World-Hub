@@ -35,12 +35,13 @@ export default function MemoryGamesLeaderboard() {
         eyebrow="RANKED CIRCUIT // AUTHORITY GATE"
         title="Ranked Standings Paused"
         description="Local Range Lab practice remains available, but local results do not create an account rank, prize result, or verified personal best."
-        metric="PAUSED"
+        metric="Paused"
+        metricLabel="Ranked Status"
       >
         <section className="preflop-subpage-panel" aria-labelledby="rank-authority-title">
           <div className="preflop-panel-heading">
             <div>
-              <span>SERVER-VERIFIED MATCHES REQUIRED</span>
+              <span>Server-Verified Matches Required</span>
               <h2 id="rank-authority-title">No Unverified Scores Displayed</h2>
             </div>
             <ShieldOff size={22} aria-hidden />
@@ -57,7 +58,7 @@ export default function MemoryGamesLeaderboard() {
         <section className="preflop-subpage-panel" aria-labelledby="rank-next-title">
           <div className="preflop-panel-heading">
             <div>
-              <span>VERIFIED COMPETITION</span>
+              <span>Verified Competition</span>
               <h2 id="rank-next-title">Play In Club Arena</h2>
             </div>
             <Swords size={22} aria-hidden />
@@ -66,7 +67,7 @@ export default function MemoryGamesLeaderboard() {
             <p>
               Club Arena Uses Server-Owned Game State For Competitive Play. Range Lab Remains A Free Local Study Tool Until A Sealed Ranked Mode Is Released.
             </p>
-            <Link href="/hub/club-arena">
+            <Link href="/hub/club-arena" className="preflop-subpage-primary-cta">
               Open Club Arena <ArrowRight size={16} aria-hidden />
             </Link>
           </div>

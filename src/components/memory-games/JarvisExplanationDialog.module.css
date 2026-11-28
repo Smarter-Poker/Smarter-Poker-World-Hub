@@ -35,7 +35,7 @@
 .topRail { flex: 0 0 auto; height: 4px; display: grid; grid-template-columns: 1.4fr 0.45fr 0.2fr; gap: 3px; }
 .topRail span { background: #238fe8; }
 .topRail span:nth-child(2) { background: #6bd2ff; }
-.topRail span:nth-child(3) { background: #f4c44e; }
+.topRail span:nth-child(3) { background: #86daff; }
 
 .header {
   flex: 0 0 auto;
@@ -73,7 +73,7 @@
 }
 
 .close:active { border-color: #6bd2ff; color: #eefaff; }
-.close:focus-visible { outline: 2px solid #f4c44e; outline-offset: 2px; }
+.close:focus-visible { outline: 2px solid #86daff; outline-offset: 2px; }
 
 .scroll {
   flex: 1 1 auto;
@@ -129,7 +129,7 @@
 }
 
 .done:active { filter: brightness(1.12); }
-.done:focus-visible { outline: 2px solid #f4c44e; outline-offset: 2px; }
+.done:focus-visible { outline: 2px solid #86daff; outline-offset: 2px; }
 
 @keyframes jarvis-scan { to { transform: rotate(360deg); } }
 
