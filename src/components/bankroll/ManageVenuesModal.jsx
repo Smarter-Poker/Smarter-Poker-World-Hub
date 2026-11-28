@@ -17,6 +17,7 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
     const [editName, setEditName] = useState('');
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
+    const [loadFailed, setLoadFailed] = useState(false);
     // Phone back gesture closes the sheet (mobile phase 0a). Mounted only while
     // open, so isOpen is constant; the hook pops our history entry on unmount
     // (an X-close never leaves a dead "back" behind).
@@ -27,17 +28,21 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
     useEffect(() => { loadVenues(); }, []);
 
     const loadVenues = async () => {
+        setLoading(true);
         try {
             const data = await getUserLocations(userId);
-            setVenues(data);
+            setVenues(data || []);
+            setLoadFailed(false);
         } catch (err) {
+            // A failed read is not "No Venues Yet".
             console.warn('Failed to load venues:', err);
+            setLoadFailed(true);
         }
         setLoading(false);
     };
 
     const handleRename = async (venueId) => {
-        if (!editName.trim()) return;
+        if (!editName.trim()) { toast.error('Enter A Venue Name'); return; }
         if (!requireOnlineNow(toast)) return;
         try {
             await renameLocation(userId, venueId, editName.trim());
@@ -47,7 +52,7 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
             await loadVenues();
             onUpdate?.();
         } catch (err) {
-            toast.error('Failed To Rename: ' + (err.message || ''));
+            toast.error('Failed To Rename Venue. Please Try Again.');
         }
     };
 
@@ -55,13 +60,23 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
         if (!requireOnlineNow(toast)) return;
         setDeletingId(venueId);
         try {
-            // Unlink ledger entries first (non-critical)
-            const { error: err_bankroll_ledger_nbcd5 } = await supabase
-              .from('bankroll_ledger')
-              .update({ location_id: null })
-                .eq('user_id', userId)
-                .eq('location_id', venueId);
-            if (err_bankroll_ledger_nbcd5) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_nbcd5.message);
+            // Four tables point at a venue: ledger entries, trips, alerts and
+            // the assistant's memory. Only the ledger was unlinked before, so a
+            // venue any trip had used could never be deleted (the foreign key
+            // refused it and the raw constraint name was shown). Unlink all
+            // four, and stop if one fails rather than deleting half a venue.
+            for (const table of ['bankroll_ledger', 'bankroll_trips', 'bankroll_alerts', 'bankroll_assistant_memory']) {
+                const { error: unlinkError } = await supabase
+                    .from(table)
+                    .update({ location_id: null })
+                    .eq('user_id', userId)
+                    .eq('location_id', venueId);
+                if (unlinkError) {
+                    console.warn('[ManageVenues] Unlink failed in ' + table + ':', unlinkError.message);
+                    toast.error('Failed To Delete Venue. Please Try Again.');
+                    return;
+                }
+            }
 
             // Delete the location directly via Supabase
             const { error } = await supabase
@@ -72,7 +87,7 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
 
             if (error) {
                 console.warn('[ManageVenues] Delete error:', error);
-                toast.error('Failed To Delete: ' + (error.message || 'Unknown Error'));
+                toast.error('Failed To Delete Venue. Please Try Again.');
                 return;
             }
 
@@ -83,7 +98,7 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
             onUpdate?.();
         } catch (err) {
             console.warn('[ManageVenues] Delete exception:', err);
-            toast.error('Failed To Delete: ' + (err.message || ''));
+            toast.error('Failed To Delete Venue. Please Try Again.');
         } finally {
             setDeletingId(null);
         }
@@ -97,18 +112,23 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
 
     return (
         <div className="bankroll-modal-overlay" style={s.overlay} {...scrim}>
-            <div className="bankroll-modal" role="dialog" aria-modal="true" style={s.modal} onClick={(e) => e.stopPropagation()}>
+            <div className="bankroll-modal" role="dialog" aria-modal="true" aria-labelledby="manage-venues-title" style={s.modal} onClick={(e) => e.stopPropagation()}>
                 <div className="bankroll-sheet-handle" aria-hidden="true" />
                 {/* Header */}
                 <div className="bankroll-modal-header" style={s.header}>
-                    <h2 style={s.title}>Manage Venues</h2>
+                    <h2 id="manage-venues-title" style={s.title}>Manage Venues</h2>
                     <button type="button" onClick={onClose} aria-label="Close" className="bankroll-modal-close sp-icon-btn" style={s.closeBtn}>✕</button>
                 </div>
 
                 {/* Content */}
                 <div className="bankroll-modal-body" style={s.content}>
                     {loading ? (
-                        <p style={s.emptyText}>Loading...</p>
+                        <p style={s.emptyText} role="status">Loading...</p>
+                    ) : loadFailed ? (
+                        <div style={{ ...s.emptyText, display: 'grid', gap: 12, justifyItems: 'center' }} role="alert">
+                            <span>Could Not Load Your Venues.</span>
+                            <button type="button" onClick={loadVenues} style={s.saveBtn}>Try Again</button>
+                        </div>
                     ) : venues.length === 0 ? (
                         <p style={s.emptyText}>No Venues Yet. Add One When Logging An Entry.</p>
                     ) : (
@@ -119,28 +139,30 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
                                     <div style={s.editRow}>
                                         <input
                                             autoFocus
+                                            aria-label="Venue Name"
+                                            maxLength={120}
                                             value={editName}
                                             onChange={(e) => setEditName(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && handleRename(venue.id)}
                                             style={s.editInput}
                                         />
-                                        <button onClick={() => handleRename(venue.id)} style={s.saveBtn}>Save</button>
-                                        <button onClick={() => setEditingId(null)} style={s.cancelBtn}>Cancel</button>
+                                        <button type="button" onClick={() => handleRename(venue.id)} style={s.saveBtn}>Save</button>
+                                        <button type="button" onClick={() => setEditingId(null)} style={s.cancelBtn}>Cancel</button>
                                     </div>
                                 ) : confirmDeleteId === venue.id ? (
                                     /* Confirm delete */
                                     <div style={s.editRow}>
                                         <span style={s.confirmText}>Delete "{venue.name}"? Entries Will Be Unlinked, Not Removed.</span>
-                                        <button onClick={() => handleDelete(venue.id)} style={s.deleteBtnConfirm}>Delete</button>
-                                        <button onClick={() => setConfirmDeleteId(null)} style={s.cancelBtn}>Cancel</button>
+                                        <button type="button" onClick={() => handleDelete(venue.id)} disabled={deletingId === venue.id} style={s.deleteBtnConfirm}>{deletingId === venue.id ? 'Deleting...' : 'Delete'}</button>
+                                        <button type="button" onClick={() => setConfirmDeleteId(null)} style={s.cancelBtn}>Cancel</button>
                                     </div>
                                 ) : (
                                     /* View mode */
                                     <>
                                         <span style={s.venueName}>{venue.name}</span>
                                         <div style={s.actions}>
-                                            <button onClick={() => startEdit(venue)} style={s.actionBtn} title="Rename">Edit</button>
-                                            <button onClick={() => { setConfirmDeleteId(venue.id); setEditingId(null); }} style={s.actionBtn} title="Delete">Del</button>
+                                            <button type="button" onClick={() => startEdit(venue)} style={s.actionBtn} aria-label={'Rename ' + venue.name}>Edit</button>
+                                            <button type="button" onClick={() => { setConfirmDeleteId(venue.id); setEditingId(null); }} style={s.actionBtn} aria-label={'Delete ' + venue.name}>Delete</button>
                                         </div>
                                     </>
                                 )}
@@ -181,7 +203,7 @@ const s = {
         padding: '12px 8px', borderBottom: '1px solid rgba(255,255,255,0.15)',
         minHeight: 48,
     },
-    venueName: { color: '#fff', fontSize: 14, fontWeight: 500 },
+    venueName: { color: '#fff', fontSize: 14, fontWeight: 500, minWidth: 0, overflowWrap: 'anywhere', paddingRight: 8 },
     actions: { display: 'flex', gap: 4 },
     actionBtn: {
         background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8,
