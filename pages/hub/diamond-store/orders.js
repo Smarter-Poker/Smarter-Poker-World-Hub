@@ -409,13 +409,14 @@ export default function OrderHistory() {
 
         <MarketplaceSubpageShell
           active="orders"
+          art="store-orders"
           eyebrow="Marketplace Ledger"
           title="Order History"
           description="Track Diamond Packages, Merchandise Fulfillment, And VIP Membership Activity From One Verified Commerce Record."
           actions={
             <Link
               href="/hub/diamond-store"
-              className={`${accountControls.action} ${accountControls.actionPrimary}`}
+              className={accountControls.action}
             >
               Continue Shopping
             </Link>
@@ -750,8 +751,8 @@ const styles = {
     maxWidth: '100vw',
     overflowX: 'hidden',
     boxSizing: 'border-box',
-    background: '#000000',
-    color: '#FFFFFF',
+    background: '#040d18',
+    color: '#f2f7ff',
   },
   content: { maxWidth: '900px', margin: '0 auto', padding: '80px 24px 40px' },
   header: {
@@ -761,7 +762,7 @@ const styles = {
     marginBottom: '32px',
   },
   title: { fontSize: '32px', fontWeight: 700, margin: 0 },
-  shopLink: { color: '#00D4FF', textDecoration: 'none', fontSize: '14px', fontWeight: 600 },
+  shopLink: { color: '#86daff', textDecoration: 'none', fontSize: '14px', fontWeight: 600 },
   ordersList: { display: 'grid', gap: '20px' },
   ledgerSummary: {
     display: 'grid',
@@ -777,7 +778,7 @@ const styles = {
   searchControl: { display: 'grid', gap: 6 },
   filterControl: { display: 'grid', gap: 6 },
   controlLabel: {
-    color: '#9db6c2',
+    color: '#bdd0e2',
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 12,
@@ -787,7 +788,7 @@ const styles = {
   },
   resultCount: {
     gridColumn: '1 / -1',
-    color: '#9db6c2',
+    color: '#bdd0e2',
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 12,
@@ -795,8 +796,8 @@ const styles = {
   orderItems: { display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' },
   orderItem: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' },
   itemName: { flex: '1 1 180px', minWidth: 0, fontSize: '14px', overflowWrap: 'anywhere' },
-  itemQty: { fontSize: '13px', color: '#9ca3af' },
-  itemPrice: { fontSize: '14px', fontWeight: 600 },
+  itemQty: { fontSize: '13px', color: '#bdd0e2', fontVariantNumeric: 'tabular-nums' },
+  itemPrice: { fontSize: '14px', fontWeight: 600, fontVariantNumeric: 'tabular-nums' },
   orderFooter: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -804,17 +805,26 @@ const styles = {
     gap: 16,
     flexWrap: 'wrap',
     paddingTop: '16px',
-    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+    borderTop: '1px solid #344a62',
   },
-  totalLabel: { fontSize: '14px', color: '#9ca3af' },
-  totalAmount: { fontSize: '18px', fontWeight: 700, color: '#00D4FF' },
-  refundAmount: { marginTop: 4, fontSize: '12px', color: '#fbbf24' },
+  totalLabel: { fontSize: '14px', color: '#bdd0e2' },
+  totalAmount: {
+    fontSize: '18px',
+    fontWeight: 700,
+    color: '#f2f7ff',
+    fontVariantNumeric: 'tabular-nums',
+  },
+  refundAmount: {
+    marginTop: 4,
+    fontSize: '12px',
+    color: '#86daff',
+    fontVariantNumeric: 'tabular-nums',
+  },
   fulfillmentPanel: {
     margin: '4px 0 20px',
     padding: '18px 0',
-    borderTop: '1px solid #000000',
-    borderBottom: '1px solid #000000',
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+    borderTop: '1px solid #344a62',
+    borderBottom: '1px solid #344a62',
   },
   fulfillmentHeadingRow: {
     display: 'flex',
@@ -824,7 +834,7 @@ const styles = {
     flexWrap: 'wrap',
   },
   fulfillmentEyebrow: {
-    color: '#7f9aa9',
+    color: '#bdd0e2',
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: '12px',
@@ -832,7 +842,7 @@ const styles = {
     letterSpacing: '0.14em',
     textTransform: 'capitalize',
   },
-  fulfillmentTitle: { marginTop: '5px', color: '#dff9ff', fontSize: '15px', fontWeight: 700 },
+  fulfillmentTitle: { marginTop: '5px', color: '#f2f7ff', fontSize: '15px', fontWeight: 700 },
   fulfillmentRail: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
@@ -849,22 +859,21 @@ const styles = {
     gap: '8px',
     minWidth: 0,
     paddingTop: '10px',
-    borderTop: '2px solid #263b47',
-    color: '#6f8794',
+    borderTop: '2px solid #2a425a',
+    color: '#9fb4c8',
   },
-  fulfillmentStepComplete: { borderTopColor: '#00c8ff', color: '#dff9ff' },
+  fulfillmentStepComplete: { borderTopColor: '#86daff', color: '#f2f7ff' },
   fulfillmentNode: {
     width: '9px',
     height: '9px',
     marginTop: '2px',
     border: '1px solid currentColor',
     background: 'currentColor',
-    boxShadow: '0 0 10px currentColor',
   },
   fulfillmentStepLabel: { fontSize: '12px', fontWeight: 700, textTransform: 'capitalize' },
   fulfillmentDate: {
     gridColumn: '2',
-    color: '#7f939e',
+    color: '#bdd0e2',
     fontSize: '12px',
     lineHeight: 1.4,
   },
@@ -873,7 +882,7 @@ const styles = {
     gap: '8px 20px',
     flexWrap: 'wrap',
     marginTop: '16px',
-    color: '#93a7b2',
+    color: '#bdd0e2',
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: '12px',

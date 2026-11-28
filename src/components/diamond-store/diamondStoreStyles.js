@@ -3,24 +3,74 @@
 // Imported by pages/hub/diamond-store.js AND the extracted tab components in
 // this directory (MerchTab, VIPTab, ClubShopTab, RewardsTab). Edit here only.
 // ═══════════════════════════════════════════════════════════════════════════
+
+// #SMARTERDESIGN materials. These are the ONLY paint in this file: nine-slice
+// chrome rims over ink-navy (panels, cards, wells) or control gradients.
+// `border` must stay BEFORE `borderImage` in every object: the border
+// shorthand resets border-image.
+const SD_WHITE = '#F2F7FF';
+const SD_SILVER = '#BDD0E2';
+const SD_ICE = '#86DAFF';
+const SD_CYAN = '#67E8F9';
+const SD_LINE = '#445E77';
+export const SD_PANEL = Object.freeze({
+  border: '5px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+  borderRadius: 0,
+  background: 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)',
+  boxShadow: 'none',
+  clipPath: 'none',
+});
+export const SD_CARD = Object.freeze({
+  border: '5px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+  borderRadius: 0,
+  background: 'linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%)',
+  boxShadow: '0 8px 18px rgba(0, 0, 0, 0.38)',
+  clipPath: 'none',
+});
+export const SD_STAT = Object.freeze({
+  border: '3px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch",
+  borderRadius: 0,
+  background: 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)',
+  boxShadow: 'none',
+  clipPath: 'none',
+});
+export const SD_ROW = Object.freeze({
+  border: '3px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
+  borderRadius: 0,
+  background: 'linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c)',
+  boxShadow: 'none',
+  clipPath: 'none',
+  color: SD_WHITE,
+  minHeight: 44,
+});
+export const SD_COBALT = Object.freeze({
+  border: '3px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch",
+  borderRadius: 0,
+  background: 'linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba)',
+  boxShadow: 'none',
+  clipPath: 'none',
+  color: '#FFFFFF',
+});
+// Selected/highlighted card: card surface with the active chrome rim.
+const SD_CARD_SELECTED = Object.freeze({
+  ...SD_CARD,
+  borderImage: "url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch",
+});
+
 const CONTROL_FONT =
   "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif";
-const ANGULAR_CONTROL_CLIP =
-  'polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px)';
 const PAINTED_CONTROL = {
   display: 'inline-flex',
   minHeight: 44,
   alignItems: 'center',
   justifyContent: 'center',
-  border: 0,
-  borderRadius: 0,
-  backgroundColor: 'transparent',
-  backgroundPosition: 'center',
-  backgroundRepeat: 'no-repeat',
-  backgroundSize: '100% 100%',
-  boxShadow: 'none',
-  clipPath: ANGULAR_CONTROL_CLIP,
-  color: '#E9FAFF',
+  ...SD_ROW,
+  color: SD_WHITE,
   cursor: 'pointer',
   fontFamily: CONTROL_FONT,
   fontSize: 13,
@@ -32,31 +82,19 @@ const PAINTED_CONTROL = {
   textShadow: '0 1px 2px #000',
 };
 const ANGULAR_METAL_PLATE = {
-  border: 0,
-  borderRadius: 0,
-  backgroundColor: '#02070B',
-  backgroundImage: "url('/images/marketplace-console-v1/shark-panel/bay.png')",
-  backgroundPosition: 'center',
-  backgroundRepeat: 'no-repeat',
-  backgroundSize: '100% 100%',
-  boxShadow: 'none',
-  clipPath: 'none',
+  ...SD_PANEL,
 };
 
 const styles = {
   paintedPrimaryAction: {
     ...PAINTED_CONTROL,
-    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-primary.png')",
+    ...SD_COBALT,
   },
   paintedSecondaryAction: {
     ...PAINTED_CONTROL,
-    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-secondary.png')",
   },
   rewardStatusFrame: {
     ...ANGULAR_METAL_PLATE,
-    borderColor: '#466B7E',
-    clipPath:
-      'polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px)',
   },
   rewardMultiplierPlate: {
     ...PAINTED_CONTROL,
@@ -66,13 +104,9 @@ const styles = {
     placeItems: 'center',
     margin: '2px 3px',
     padding: '6px 12px',
-    border: 0,
-    borderRadius: 0,
-    backgroundColor: '#02070B',
-    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-secondary.png')",
-    boxShadow: 'none',
-    clipPath: 'none',
-    color: '#8FEAFF',
+    ...SD_STAT,
+    color: SD_ICE,
+    cursor: 'default',
     fontFamily: CONTROL_FONT,
     fontSize: 12,
     fontWeight: 800,
@@ -80,11 +114,8 @@ const styles = {
     textShadow: '0 1px 2px #000',
   },
   rewardMultiplierPlateGold: {
-    border: 0,
-    backgroundColor: '#02070B',
-    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-primary.png')",
-    boxShadow: 'none',
-    color: '#FFE589',
+    ...SD_COBALT,
+    color: '#FFFFFF',
   },
   vipPriceDeck: {
     display: 'flex',
@@ -94,24 +125,21 @@ const styles = {
     flexWrap: 'wrap',
   },
   vipPricePlate: {
-    ...ANGULAR_METAL_PLATE,
+    ...SD_STAT,
     minWidth: 142,
     padding: '12px 20px',
     textAlign: 'center',
   },
   vipPricePlateGold: {
-    border: 0,
-    backgroundColor: '#02070B',
-    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-primary.png')",
-    boxShadow: 'none',
+    ...SD_COBALT,
   },
   vipPlanAction: {
     ...PAINTED_CONTROL,
     minWidth: 196,
     marginTop: 12,
     padding: '12px 30px',
-    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-primary.png')",
-    color: '#F6DF7A',
+    ...SD_COBALT,
+    color: '#FFFFFF',
   },
   clubSuccessStatus: {
     ...ANGULAR_METAL_PLATE,
@@ -123,8 +151,8 @@ const styles = {
     minHeight: 52,
     padding: '14px 30px',
     transform: 'translateX(-50%)',
-    borderColor: '#63E7FF',
-    color: '#DDFBFF',
+    boxShadow: '0 12px 26px rgba(0, 0, 0, 0.5)',
+    color: SD_WHITE,
     fontFamily: CONTROL_FONT,
     fontSize: 15,
     fontWeight: 800,
@@ -138,20 +166,13 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '8px 18px',
-    border: 0,
-    borderRadius: 0,
-    backgroundColor: '#02070B',
-    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-secondary.png')",
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    backgroundSize: '100% 100%',
-    boxShadow: 'none',
-    clipPath: 'none',
-    color: '#9BF4FF',
+    ...SD_STAT,
+    color: SD_ICE,
     fontFamily: CONTROL_FONT,
     fontSize: 13,
     fontWeight: 800,
     letterSpacing: '0.025em',
+    fontVariantNumeric: 'tabular-nums',
     textShadow: '0 1px 2px #000',
   },
   clubEmptyState: {
@@ -163,14 +184,7 @@ const styles = {
   },
   clubLedgerViewport: {
     overflowX: 'auto',
-    border: 0,
-    backgroundColor: '#02070B',
-    backgroundImage: "url('/images/marketplace-console-v1/spade-console/mid.png')",
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    backgroundSize: '100% 100%',
-    boxShadow: 'none',
-    clipPath: 'none',
+    ...SD_PANEL,
   },
   clubLedgerTable: {
     width: '100%',
@@ -183,16 +197,8 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '5px 12px',
-    border: 0,
-    borderRadius: 0,
-    backgroundColor: '#02070B',
-    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-secondary.png')",
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    backgroundSize: '100% 100%',
-    boxShadow: 'none',
-    clipPath: 'none',
-    color: '#B9EFFF',
+    ...SD_STAT,
+    color: SD_ICE,
     fontFamily: CONTROL_FONT,
     fontSize: 12,
     fontWeight: 800,
@@ -234,9 +240,7 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '16px 24px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-    background: 'rgba(36, 37, 38, 0.95)',
-    backdropFilter: 'blur(10px)',
+    ...SD_PANEL,
     zIndex: 100,
   },
   // TAB NAVIGATION
@@ -245,42 +249,36 @@ const styles = {
     justifyContent: 'center',
     gap: 8,
     padding: '16px 24px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-    background: 'rgba(36, 37, 38, 0.95)',
+    border: 0,
+    background: 'transparent',
     position: 'sticky',
     top: 0,
     zIndex: 99,
   },
   tabButton: {
     padding: '10px 24px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: 10,
-    color: 'rgba(255, 255, 255, 0.7)',
+    ...SD_ROW,
+    color: SD_WHITE,
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
-    transition: 'all 0.2s ease',
+    transition: 'filter 0.2s ease',
   },
   tabButtonActive: {
-    background: 'rgba(0, 212, 255, 0.2)',
-    border: '1px solid #00D4FF',
-    color: '#00D4FF',
+    ...SD_COBALT,
+    color: '#FFFFFF',
   },
   tabButtonActiveVIP: {
-    background: '#102438',
-    border: '1px solid #1877F2',
-    color: '#1877F2',
+    ...SD_COBALT,
+    color: '#FFFFFF',
   },
   backButton: {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
     padding: '10px 16px',
-    background: 'rgba(0, 212, 255, 0.1)',
-    border: '1px solid rgba(0, 212, 255, 0.3)',
-    borderRadius: 8,
-    color: '#00D4FF',
+    ...SD_ROW,
+    color: SD_WHITE,
     fontSize: 14,
     fontWeight: 500,
     cursor: 'pointer',
@@ -290,7 +288,7 @@ const styles = {
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 28,
     fontWeight: 700,
-    color: '#E4E6EB',
+    color: SD_WHITE,
   },
   content: {
     maxWidth: 900,
@@ -303,7 +301,7 @@ const styles = {
   },
   introText: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: SD_SILVER,
     maxWidth: 600,
     margin: '0 auto',
     lineHeight: 1.6,
@@ -318,9 +316,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    background: 'rgba(0, 212, 255, 0.1)',
-    border: '1px solid rgba(0, 212, 255, 0.3)',
-    borderRadius: 16,
+    ...SD_PANEL,
     padding: '20px 28px',
     marginBottom: 48,
   },
@@ -331,7 +327,7 @@ const styles = {
   },
   selectedLabel: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: SD_SILVER,
   },
   selectedName: {
     fontSize: 16,
@@ -341,18 +337,15 @@ const styles = {
   selectedDiamonds: {
     fontSize: 18,
     fontWeight: 700,
-    color: '#00D4FF',
+    color: SD_ICE,
   },
   purchaseButton: {
     padding: '14px 40px',
-    background: '#087a9b',
-    border: 'none',
-    borderRadius: 12,
+    ...SD_COBALT,
     color: '#fff',
     fontSize: 16,
     fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: '0 0 20px rgba(0, 212, 255, 0.3)',
   },
   earnSection: {
     textAlign: 'center',
@@ -369,7 +362,7 @@ const styles = {
   },
   earnSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: SD_SILVER,
     marginBottom: 24,
   },
   earnGrid: {
@@ -383,9 +376,7 @@ const styles = {
     alignItems: 'center',
     gap: 8,
     padding: '20px 12px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
+    ...SD_CARD,
   },
   earnIcon: {
     fontSize: 28,
@@ -398,11 +389,11 @@ const styles = {
   earnReward: {
     fontSize: 12,
     fontWeight: 600,
-    color: '#00d4ff',
+    color: SD_ICE,
   },
   legalNote: {
     fontSize: 12,
-    color: '#A8B8C2',
+    color: SD_SILVER,
     textAlign: 'center',
     maxWidth: 500,
     margin: '0 auto',
@@ -417,7 +408,7 @@ const styles = {
   // rhythm is unchanged. Same remedy as .rewardDetailLink in
   // DiamondStoreShell.module.css.
   link: {
-    color: '#00D4FF',
+    color: SD_ICE,
     textDecoration: 'underline',
     textUnderlineOffset: 3,
     display: 'inline-block',
@@ -433,12 +424,8 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     gap: 32,
-    background: '#02070B',
-    border: '1px solid #78691A',
-    borderRadius: 0,
-    boxShadow: 'inset 0 1px 0 rgba(255,238,142,0.28), 0 14px 28px rgba(0,0,0,0.54)',
-    clipPath:
-      'polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px)',
+    ...SD_PANEL,
+    boxShadow: '0 14px 28px rgba(0, 0, 0, 0.54)',
     padding: '20px 32px',
     marginBottom: 32,
   },
@@ -452,18 +439,18 @@ const styles = {
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 36,
     fontWeight: 700,
-    color: '#FFD700',
+    color: SD_WHITE,
   },
   capLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: SD_SILVER,
     textTransform: 'capitalize',
     letterSpacing: 1,
   },
   capDivider: {
     width: 1,
     height: 50,
-    background: 'rgba(255, 215, 0, 0.3)',
+    background: SD_LINE,
   },
   streakMultipliers: {
     display: 'flex',
@@ -477,34 +464,26 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '8px 14px',
-    border: 0,
-    backgroundColor: '#02070B',
-    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-secondary.png')",
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    backgroundSize: '100% 100%',
-    boxShadow: 'none',
-    clipPath: 'none',
+    ...SD_STAT,
   },
   multiplierValue: {
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 24,
     fontWeight: 700,
-    color: '#00d4ff',
+    color: SD_ICE,
   },
   multiplierValueGold: {
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 24,
     fontWeight: 700,
-    color: '#FFD700',
+    color: SD_CYAN,
   },
-  // Measured 4.45:1 on the painted plate, just under AA. 0.72 alpha against
-  // the same measured backdrop gives about 7.3:1.
+  // Silver on the navy chrome-stat well reads well above AA.
   multiplierLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.72)',
+    color: SD_SILVER,
   },
   payoutSection: {
     marginBottom: 32,
@@ -527,13 +506,10 @@ const styles = {
     alignItems: 'center',
     gap: 12,
     padding: '14px 18px',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: 10,
+    ...SD_CARD,
   },
   referralCard: {
-    background: 'rgba(0, 212, 255, 0.1)',
-    border: '1px solid rgba(0, 212, 255, 0.3)',
+    ...SD_CARD_SELECTED,
   },
   payoutIcon: {
     fontSize: 24,
@@ -550,22 +526,22 @@ const styles = {
   },
   payoutNote: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: SD_SILVER,
   },
   bypassNote: {
     fontSize: 12,
-    color: '#00d4ff',
+    color: SD_ICE,
     fontWeight: 600,
   },
   payoutReward: {
     fontSize: 14,
     fontWeight: 600,
-    color: '#00D4FF',
+    color: SD_ICE,
   },
   referralReward: {
     fontSize: 14,
     fontWeight: 700,
-    color: '#00d4ff',
+    color: SD_ICE,
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -584,21 +560,18 @@ const styles = {
     overflowX: 'auto',
   },
   rewardsSubTab: {
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: 8,
-    color: 'rgba(255, 255, 255, 0.7)',
+    ...SD_ROW,
+    color: SD_WHITE,
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
     padding: '10px 20px',
-    transition: 'all 0.2s ease',
+    transition: 'filter 0.2s ease',
     whiteSpace: 'nowrap',
   },
   rewardsSubTabActive: {
-    background: '#102438',
+    ...SD_COBALT,
     color: '#fff',
-    border: '1px solid transparent',
   },
 
   // Overview Section
@@ -613,21 +586,19 @@ const styles = {
     marginBottom: 32,
   },
   overviewCard: {
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
+    ...SD_CARD,
     padding: 24,
     textAlign: 'center',
   },
   overviewCardTitle: {
     fontSize: 18,
     fontWeight: 700,
-    color: '#E4E6EB',
+    color: SD_WHITE,
     marginBottom: 12,
   },
   overviewCardText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: SD_SILVER,
     lineHeight: 1.6,
   },
   quickStats: {
@@ -636,9 +607,7 @@ const styles = {
     gap: 20,
     marginTop: 32,
     padding: '24px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    ...SD_PANEL,
   },
   quickStat: {
     display: 'flex',
@@ -649,13 +618,13 @@ const styles = {
   quickStatValue: {
     fontSize: 32,
     fontWeight: 700,
-    color: '#00d4ff',
+    color: SD_ICE,
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
   },
   quickStatLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: SD_SILVER,
     textTransform: 'capitalize',
     letterSpacing: '0.5px',
   },
@@ -670,7 +639,7 @@ const styles = {
   categoryTitle: {
     fontSize: 18,
     fontWeight: 700,
-    color: '#E4E6EB',
+    color: SD_WHITE,
     marginBottom: 16,
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
@@ -685,9 +654,7 @@ const styles = {
     alignItems: 'center',
     gap: 16,
     padding: 16,
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: 10,
+    ...SD_CARD,
   },
   rewardDetails: {
     flex: 1,
@@ -698,29 +665,27 @@ const styles = {
   rewardName: {
     fontSize: 14,
     fontWeight: 600,
-    color: '#E4E6EB',
+    color: SD_WHITE,
   },
   rewardNote: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: SD_SILVER,
   },
   rewardAmount: {
     fontSize: 14,
     fontWeight: 700,
-    color: '#00D4FF',
+    color: SD_ICE,
     flexShrink: 0,
   },
   referralHighlight: {
-    background: 'rgba(0, 212, 255, 0.1)',
-    border: '1px solid rgba(0, 212, 255, 0.3)',
+    ...SD_CARD_SELECTED,
   },
 
   // XP System Section
   levelBadge: {
     display: 'inline-block',
     padding: '4px 12px',
-    background: '#102438',
-    borderRadius: 6,
+    ...SD_COBALT,
     fontSize: 13,
     fontWeight: 700,
     color: '#fff',
@@ -733,15 +698,13 @@ const styles = {
   unlockBadge: {
     display: 'inline-block',
     padding: '4px 10px',
-    background: 'rgba(0, 212, 255, 0.15)',
-    border: '1px solid rgba(0, 212, 255, 0.3)',
-    borderRadius: 6,
+    ...SD_STAT,
     fontSize: 12,
-    color: '#00d4ff',
+    color: SD_ICE,
     fontWeight: 600,
   },
   noUnlocks: {
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: SD_SILVER,
   },
 
   // Easter Eggs Section
@@ -755,31 +718,28 @@ const styles = {
     marginTop: 24,
   },
   eggCard: {
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
+    ...SD_CARD,
     padding: 20,
     textAlign: 'center',
-    transition: 'all 0.3s ease',
     cursor: 'default',
   },
   eggName: {
     fontSize: 16,
     fontWeight: 700,
-    color: '#E4E6EB',
+    color: SD_WHITE,
     marginBottom: 8,
   },
   eggReward: {
     fontSize: 18,
     fontWeight: 700,
-    color: '#FFD700',
+    color: SD_CYAN,
     marginBottom: 12,
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
   },
   eggTrigger: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: SD_SILVER,
     lineHeight: 1.5,
   },
   // Egg Category Styles
@@ -789,8 +749,8 @@ const styles = {
   eggCategoryTitle: {
     fontSize: 20,
     fontWeight: 700,
-    color: '#E4E6EB',
-    marginBottom: 20,
+    color: SD_WHITE,
+    margin: '28px 0 20px',
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
   },
@@ -802,15 +762,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '5px 14px',
-    borderRadius: 0,
-    border: 0,
-    backgroundColor: '#02070B',
-    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-secondary.png')",
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    backgroundSize: '100% 100%',
-    boxShadow: 'none',
-    clipPath: 'none',
+    ...SD_STAT,
     fontFamily: CONTROL_FONT,
     fontSize: 12,
     fontWeight: 800,
@@ -831,7 +783,7 @@ const styles = {
     color: '#B7F6FF',
   },
   rarityLegendary: {
-    color: '#FFE589',
+    color: SD_WHITE,
   },
 
   easterSection: {
@@ -848,7 +800,7 @@ const styles = {
   },
   easterSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: SD_SILVER,
     marginBottom: 20,
   },
   easterGrid: {
@@ -863,14 +815,12 @@ const styles = {
     alignItems: 'center',
     gap: 6,
     padding: '16px 12px',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '2px solid',
-    borderRadius: 12,
+    ...SD_CARD,
   },
   categoryRange: {
     fontSize: 12,
     fontWeight: 700,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: SD_SILVER,
     textTransform: 'capitalize',
   },
   categoryName: {
@@ -880,15 +830,13 @@ const styles = {
   },
   categoryExample: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: SD_SILVER,
     fontStyle: 'italic',
   },
   legendaryNote: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
-    background: 'rgba(255, 215, 0, 0.1)',
-    border: '1px solid rgba(255, 215, 0, 0.3)',
-    borderRadius: 10,
+    color: SD_SILVER,
+    ...SD_STAT,
     padding: '14px 20px',
     lineHeight: 1.6,
     textAlign: 'center',
@@ -901,9 +849,7 @@ const styles = {
     marginBottom: 24,
   },
   pillarCard: {
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '2px solid',
-    borderRadius: 16,
+    ...SD_CARD,
     padding: 20,
     textAlign: 'left',
   },
@@ -916,7 +862,7 @@ const styles = {
   pillarIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -929,10 +875,10 @@ const styles = {
   },
   pillarRange: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: SD_SILVER,
   },
   pillarExamples: {
-    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+    borderTop: `1px solid ${SD_LINE}`,
     paddingTop: 12,
   },
   exampleRow: {
@@ -940,12 +886,12 @@ const styles = {
     alignItems: 'center',
     gap: 8,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: SD_SILVER,
     marginBottom: 8,
   },
   exDiamonds: {
     marginLeft: 'auto',
-    color: '#00D4FF',
+    color: SD_ICE,
     fontWeight: 600,
   },
   exDiamondsRare: {
@@ -960,7 +906,7 @@ const styles = {
   },
   exDiamondsLegendary: {
     marginLeft: 'auto',
-    color: '#FFD700',
+    color: SD_CYAN,
     fontWeight: 700,
   },
   // VIP MEMBERSHIP STYLES
@@ -973,12 +919,12 @@ const styles = {
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 32,
     fontWeight: 700,
-    color: '#C0E0FF',
+    color: SD_WHITE,
     marginBottom: 12,
   },
   vipSubtitle: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: SD_SILVER,
     margin: '0 auto',
     lineHeight: 1.4,
   },
@@ -993,18 +939,15 @@ const styles = {
   },
   vipSubscribeButton: {
     padding: '16px 48px',
-    background: '#102438',
-    border: 'none',
-    borderRadius: 12,
+    ...SD_COBALT,
     color: '#fff',
     fontSize: 18,
     fontWeight: 700,
     cursor: 'pointer',
-    boxShadow: '0 0 30px rgba(0, 180, 255, 0.32)',
   },
   vipCancelNote: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: SD_SILVER,
     marginTop: 12,
   },
   benefitsSection: {
@@ -1015,7 +958,7 @@ const styles = {
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 20,
     fontWeight: 600,
-    color: '#E4E6EB',
+    color: SD_WHITE,
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -1026,7 +969,7 @@ const styles = {
     marginTop: 20,
     marginBottom: 12,
     paddingBottom: 8,
-    borderBottom: '1px solid rgba(255, 215, 0, 0.15)',
+    borderBottom: `1px solid ${SD_LINE}`,
   },
   benefitsCategoryIcon: {
     fontSize: 20,
@@ -1063,7 +1006,7 @@ const styles = {
     fontSize: 15,
     fontWeight: 700,
     lineHeight: 1.35,
-    color: '#EEF6FB',
+    color: SD_WHITE,
   },
   // 11px at rgba(255,255,255,0.5) measured under 4.5:1 on the card surface and
   // was the smallest text on the page. Entitlement copy is the reason a shopper
@@ -1072,14 +1015,14 @@ const styles = {
     marginTop: 4,
     fontSize: 13,
     lineHeight: 1.5,
-    color: 'rgba(233, 243, 250, 0.78)',
+    color: SD_SILVER,
   },
   benefitValue: {
     flexShrink: 0,
     alignSelf: 'flex-start',
     fontSize: 13,
     fontWeight: 700,
-    color: '#58BFE9',
+    color: SD_ICE,
     textAlign: 'right',
     whiteSpace: 'nowrap',
   },
@@ -1089,9 +1032,7 @@ const styles = {
     alignItems: 'center',
     gap: 24,
     padding: '24px',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
+    ...SD_PANEL,
     marginBottom: 32,
   },
   valueBox: {
@@ -1100,13 +1041,12 @@ const styles = {
   valueBoxHighlight: {
     textAlign: 'center',
     padding: '16px 32px',
-    background: 'rgba(24, 119, 242, 0.14)',
-    borderRadius: 12,
-    border: '2px solid #1877F2',
+    ...SD_STAT,
+    borderImage: "url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch",
   },
   valueLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: SD_SILVER,
     textTransform: 'capitalize',
     letterSpacing: 1,
     marginBottom: 4,
@@ -1116,7 +1056,7 @@ const styles = {
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 28,
     fontWeight: 700,
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: SD_SILVER,
     textDecoration: 'line-through',
   },
   vipPrice: {
@@ -1124,11 +1064,11 @@ const styles = {
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 28,
     fontWeight: 700,
-    color: '#1877F2',
+    color: SD_ICE,
   },
   valueDivider: {
     fontSize: 24,
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: SD_SILVER,
   },
   // MERCHANDISE STYLES
   merchTitle: {
@@ -1136,7 +1076,7 @@ const styles = {
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 28,
     fontWeight: 700,
-    color: '#E4E6EB',
+    color: SD_WHITE,
     marginBottom: 12,
   },
   merchSection: {
@@ -1147,7 +1087,7 @@ const styles = {
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 18,
     fontWeight: 600,
-    color: '#E4E6EB',
+    color: SD_WHITE,
     marginBottom: 16,
   },
   merchGrid: {

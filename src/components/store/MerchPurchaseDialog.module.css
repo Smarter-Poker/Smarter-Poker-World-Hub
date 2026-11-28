@@ -15,18 +15,21 @@
   width: min(620px, 100%);
   max-height: calc(100dvh - 36px);
   overflow: auto;
-  border: 1px solid #496979;
+  box-sizing: border-box;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
   border-radius: 0;
   outline: none;
-  background: #03080d;
-  color: #eef9ff;
-  scrollbar-color: #6a8497 #02070b;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: #f2f7ff;
+  font-variant-numeric: tabular-nums;
+  scrollbar-color: #445e77 #050e18;
   box-shadow: 0 24px 64px rgb(0 0 0 / 68%);
 }
 
 .panel:focus-visible {
-  outline: 2px solid #9bf4ff !important;
-  outline-offset: 4px !important;
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }
 
 .header {
@@ -35,8 +38,8 @@
   align-items: center;
   width: 100%;
   padding: 20px;
-  border-bottom: 1px solid #385568;
-  background: #08131b;
+  border-bottom: 1px solid #445e77;
+  background: transparent;
 }
 
 .header > div {
@@ -47,7 +50,7 @@
 .header span,
 .ledger dt,
 .total > span {
-  color: #abc4d2;
+  color: #bdd0e2;
   font:
     700 10px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -60,7 +63,7 @@
 
 .header h2 {
   margin: 4px 0 0;
-  color: #f4fcff;
+  color: #f2f7ff;
   font:
     700 clamp(18px, 3.8vw, 25px) / 1.08 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -71,14 +74,16 @@
 }
 
 .close {
+  box-sizing: border-box;
   width: 100%;
-  min-width: 0;
+  min-width: 44px;
   min-height: 44px;
   padding: 0 12px;
-  border: 1px solid #3a596b;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
   border-radius: 0;
-  background: #071017;
-  color: #e7f7ff;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
   font:
     800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -92,12 +97,12 @@
 
 .panelBody {
   padding: 20px;
-  background: #03080d;
+  background: transparent;
 }
 
 .description {
   margin: 0 0 18px;
-  color: #c5d4dc;
+  color: #bdd0e2;
   font-size: 13px;
   line-height: 1.6;
 }
@@ -106,23 +111,33 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
-  border: 1px solid #455e6d;
-  border-right: 0;
-  border-bottom: 0;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
 }
 
+/* One well for the whole ledger; its cells are separated by dividers, not
+   boxed again. */
 .ledger > div {
   min-width: 0;
   padding: 14px;
-  border-right: 1px solid #455e6d;
-  border-bottom: 1px solid #455e6d;
-  background: #03090e;
+  border-bottom: 1px solid #445e77;
+  background: transparent;
+}
+
+.ledger > div:nth-child(odd) {
+  border-right: 1px solid #445e77;
+}
+
+.ledger > div:last-child,
+.ledger > div:nth-last-child(2):nth-child(odd) {
+  border-bottom: 0;
 }
 
 .ledger dd {
   margin: 5px 0 0;
   overflow-wrap: anywhere;
-  color: #eef9ff;
+  color: #f2f7ff;
   font-size: 13px;
   font-weight: 700;
 }
@@ -134,12 +149,13 @@
   gap: 18px;
   margin-top: 14px;
   padding: 14px 0 12px;
-  border-top: 1px solid #526d7f;
-  border-bottom: 1px solid #526d7f;
+  border-top: 1px solid #445e77;
+  border-bottom: 1px solid #445e77;
 }
 
 .total strong {
-  color: #8defff;
+  color: #86daff;
+  font-variant-numeric: tabular-nums;
   font:
     800 clamp(16px, 4vw, 20px) var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -154,14 +170,15 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin: 16px 0 0;
-  padding: 16px;
-  border: 1px solid #536d7e;
-  background: #01070c;
+  padding: 16px 0 0;
+  border: 0;
+  border-top: 1px solid #445e77;
+  background: transparent;
 }
 
 .shipping legend,
 .shipping label span {
-  color: #a9bfcc;
+  color: #bdd0e2;
   font:
     700 10px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -186,21 +203,28 @@
   width: 100%;
   min-height: 44px;
   padding: 9px 11px;
-  border: 1px solid #58758a;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
   border-radius: 0;
-  background: #03080d;
-  color: #eef9ff;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
   font-size: 13px;
+  color-scheme: dark;
+}
+
+.shipping input::placeholder {
+  color: #bdd0e2;
+  opacity: 0.8;
 }
 
 .shipping :is(input, select):focus-visible {
-  outline: 2px solid #9bf4ff !important;
+  outline: 2px solid #9ee3ff !important;
   outline-offset: 2px !important;
 }
 
 .notice {
   margin: 13px 0 0;
-  color: #aebfc9;
+  color: #bdd0e2;
   font-size: 11px;
   line-height: 1.55;
 }
@@ -212,18 +236,20 @@
   width: 100%;
   gap: 10px;
   padding: 18px 20px 20px;
-  border-top: 1px solid #385568;
-  background: #08131b;
+  border-top: 1px solid #445e77;
+  background: transparent;
 }
 
 .actions button {
+  box-sizing: border-box;
   width: 100%;
   min-height: 44px;
   padding: 0 14px;
-  border: 1px solid #3a596b;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
   border-radius: 0;
-  background: #071017;
-  color: #eaf9ff;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
   font:
     800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -236,27 +262,33 @@
 }
 
 .cancel {
-  border-color: #3a596b;
-  color: #dbe8ef;
-  background: #071017;
+  color: #f2f7ff;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
 }
 
-.confirm {
-  border-color: #42d9ff;
+.actions button.confirm {
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
   color: #ffffff;
-  background: #0a4f69;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+}
+
+.actions button:active,
+.close:active {
+  filter: brightness(0.89);
 }
 
 .actions button:focus-visible,
 .close:focus-visible {
-  outline: 2px solid #9bf4ff !important;
-  outline-offset: 3px !important;
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }
 
 .actions button:disabled,
 .close:disabled {
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: #13202c;
+  color: #a7b7c8;
   cursor: wait;
-  opacity: 0.62;
 }
 
 @media (max-width: 520px) {
@@ -293,6 +325,14 @@
 
   .shipping .full {
     grid-column: auto;
+  }
+
+  .ledger > div:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .ledger > div:nth-last-child(2):nth-child(odd) {
+    border-bottom: 1px solid #445e77;
   }
 
   .total {

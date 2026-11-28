@@ -42,22 +42,29 @@ import {
   MAX_GRANT_QTY,
 } from '../../lib/store/clubShopItemDraft.mjs';
 
+// #SMARTERDESIGN materials. `border` precedes `borderImage` in every object:
+// the border shorthand resets border-image.
+const SD_NAVY = 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)';
+
 const fieldStyle = {
   flex: 1,
   minWidth: 0,
+  minHeight: 44,
+  boxSizing: 'border-box',
   padding: '10px 14px',
-  borderRadius: 10,
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(255,255,255,0.1)',
-  color: '#E4E6EB',
+  borderRadius: 0,
+  background: 'linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c)',
+  border: '3px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
+  color: '#f2f7ff',
   fontSize: 14,
-  outline: 'none',
+  colorScheme: 'dark',
 };
 
 const rowStyle = { display: 'flex', gap: 10, marginBottom: 10 };
 
 const hintStyle = {
-  color: 'rgba(255,255,255,0.62)',
+  color: '#bdd0e2',
   fontSize: 12,
   lineHeight: 1.6,
   margin: '-2px 0 10px',
@@ -131,14 +138,16 @@ export default function ClubShopItemEditor({
       className={shellStyles.clubAdminCreatePanel}
       aria-label={`Edit ${marketplaceCopy(item?.name || 'Shop Item')}`}
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 14,
+        background: SD_NAVY,
+        border: '5px solid transparent',
+        borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+        borderRadius: 0,
         padding: 20,
         marginTop: 8,
+        color: '#f2f7ff',
       }}
     >
-      <h4 style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB', margin: '0 0 14px' }}>
+      <h4 style={{ fontSize: 14, fontWeight: 700, color: '#f2f7ff', margin: '0 0 14px' }}>
         Edit Shop Item
       </h4>
 
@@ -362,8 +371,9 @@ export default function ClubShopItemEditor({
           style={{
             margin: '0 0 12px',
             padding: '10px 12px',
-            border: '1px solid rgba(240,40,73,0.55)',
-            background: 'rgba(240,40,73,0.10)',
+            background: SD_NAVY,
+            border: '3px solid transparent',
+            borderImage: "url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch",
             color: '#FF5B6E',
             fontSize: 12,
             fontWeight: 700,

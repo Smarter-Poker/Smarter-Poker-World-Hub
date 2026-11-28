@@ -18,23 +18,26 @@
   align-items: center;
   width: 100%;
   min-height: 72px;
+  box-sizing: border-box;
   padding: 12px 14px;
-  border: 1px solid #38576a;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
   border-radius: 0;
-  background: #07131b;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.58);
-  color: #f3fbff;
+  color: #f2f7ff;
   pointer-events: auto;
   animation: storeToastIn 0.28s ease-out;
 }
 
 .success,
 .info {
-  --status-ink: #86efff;
+  --status-ink: #86daff;
 }
 
+/* Warning is carried by its label and cyan ink, never yellow text. */
 .warning {
-  --status-ink: #ffe072;
+  --status-ink: #67e8f9;
 }
 
 .error {
@@ -60,7 +63,7 @@
 .message {
   min-width: 0;
   padding: 0 clamp(10px, 2.2vw, 24px);
-  color: #ecf8ff;
+  color: #f2f7ff;
   font:
     700 clamp(12px, 1.7vw, 15px) / 1.35 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -73,11 +76,13 @@
   width: 100%;
   min-width: 0;
   min-height: 44px;
+  box-sizing: border-box;
   padding: 0 12px;
-  border: 1px solid #456174;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
   border-radius: 0;
-  background: #0a151d;
-  color: #eaf9ff;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
   font:
     800 11px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -89,8 +94,12 @@
   cursor: pointer;
 }
 
+.dismiss:active {
+  filter: brightness(0.89);
+}
+
 .dismiss:focus-visible {
-  outline: 2px solid #9bf4ff !important;
+  outline: 2px solid #9ee3ff !important;
   outline-offset: 2px !important;
 }
 

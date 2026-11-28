@@ -1,7 +1,8 @@
 .storefront {
   min-width: 0;
-  color: #edf7fb;
+  color: #f2f7ff;
   font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
 .storefront *,
@@ -31,7 +32,7 @@
 
 .storeTitle {
   margin: 0 0 12px;
-  color: #f4f8fb;
+  color: #f2f7ff;
   font-size: clamp(26px, 3vw, 34px);
   line-height: 1;
 }
@@ -39,7 +40,7 @@
 .storeIntro {
   max-width: 680px;
   margin: 0 auto;
-  color: #b8c6ce;
+  color: #bdd0e2;
   font-size: 16px;
   line-height: 1.65;
 }
@@ -53,19 +54,19 @@
   gap: 10px;
   margin-top: 16px;
   padding: 10px 16px;
-  border: 1px solid #314c5c;
-  background: #071018;
-  color: #c3d2da;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: #bdd0e2;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.045em;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 12%);
 }
 
 .balanceReadout strong,
 .detailWallet {
-  color: #53dcff;
+  color: #86daff;
   font-variant-numeric: tabular-nums;
 }
 
@@ -88,13 +89,13 @@
   align-items: center;
   justify-content: center;
   padding: 9px 20px;
-  border: 1px solid #3f6578;
-  color: #bceeff;
-  background: #07131b;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  color: #f2f7ff;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   font-size: 13px;
   font-weight: 800;
   text-decoration: none;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 11%);
 }
 
 .detailStatus {
@@ -106,10 +107,10 @@
   gap: 10px;
   margin-bottom: 18px;
   padding: 14px 28px;
-  border-top: 1px solid #4c6d80;
-  border-bottom: 1px solid #4c6d80;
-  background: transparent;
-  color: #d7e4ea;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: #bdd0e2;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-size: 11px;
   font-weight: 700;
@@ -121,17 +122,19 @@
   gap: 12px;
   margin: 0 0 24px;
   padding: 16px;
-  border: 1px solid #263f4e;
-  background: #050d13;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
 }
 
 .searchControl,
 .sortSelect {
   min-height: 48px;
-  border: 1px solid #385568;
-  background: #02080d;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 9%);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color-scheme: dark;
 }
 
 .searchControl {
@@ -145,7 +148,7 @@
   min-height: 44px;
   border: 0;
   outline: 0;
-  color: #eef9fd;
+  color: #f2f7ff;
   background: transparent;
   font:
     600 14px/1 var(--font-inter),
@@ -155,14 +158,14 @@
 }
 
 .searchInput::placeholder {
-  color: #8798a2;
-  opacity: 1;
+  color: #bdd0e2;
+  opacity: 0.8;
 }
 
 .sortControl {
   display: grid;
   gap: 6px;
-  color: #a9bbc4;
+  color: #bdd0e2;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-size: 10px;
   font-weight: 700;
@@ -171,7 +174,7 @@
 
 .sortSelect {
   padding: 0 22px;
-  color: #eef9fd;
+  color: #f2f7ff;
   font:
     700 13px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -185,12 +188,13 @@
 .wishlistControl,
 .optionControl,
 .quantityButton {
-  border: 1px solid #385568;
-  color: #c7d3da;
-  background: #071017;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  border-radius: 0;
+  color: #f2f7ff;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   font-weight: 800;
   letter-spacing: 0.018em;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
 }
 
 .categoryGroup {
@@ -211,10 +215,9 @@
 .optionControlSelected,
 .actionPrimary,
 .wishlistControlSelected {
-  border-color: #42d9ff;
-  color: #eafcff;
-  background: #0a3141;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 20%);
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  color: #fff;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
 }
 
 .resultCount,
@@ -229,7 +232,7 @@
 
 .resultCount {
   grid-column: 1 / -1;
-  color: #93a9b3;
+  color: #bdd0e2;
   font-size: 11px;
   letter-spacing: 0.035em;
 }
@@ -242,12 +245,13 @@
   overflow: hidden;
   padding: 0;
   scroll-margin-top: 96px;
-  color: #eef6fa;
-  border: 1px solid #476273;
+  color: #f2f7ff;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
   background: transparent;
-  box-shadow:
-    inset 0 1px 0 rgb(232 251 255 / 18%),
-    0 16px 34px rgb(0 0 0 / 65%);
+  box-shadow: none;
+  clip-path: none;
 }
 
 /* Unavailability used to fade the whole card. At 0.68 the card's own text
@@ -257,7 +261,7 @@
    shopper has to be able to read, so the state is carried by the imagery and
    the border now, and the text keeps its contrast. */
 .productCardUnavailable {
-  border-color: #3a4a55;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
 }
 
 .productCardUnavailable .mediaBay {
@@ -271,7 +275,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-bottom: 1px solid #263f4e;
+  border-bottom: 1px solid #445e77;
   background: transparent;
 }
 
@@ -295,9 +299,10 @@
   height: 100%;
   place-items: center;
   padding: 28px;
-  border: 1px solid #f02849;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
   color: #ff5b6e;
-  background: #02070b;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
   font:
     800 13px/1.4 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -317,9 +322,10 @@
   align-items: center;
   justify-content: center;
   padding: 5px 10px;
-  border: 1px solid #5c7888;
-  color: #eef8fc;
-  background: rgb(2 7 11 / 92%);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  color: #f2f7ff;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-size: 9px;
   font-weight: 800;
@@ -359,19 +365,19 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px 15px 17px;
-  background: #02070b;
+  background: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%);
 }
 
 .productTitle {
   margin: 0 0 5px;
-  color: #fff;
+  color: #f2f7ff;
   font-size: 17px;
   line-height: 1.15;
   overflow-wrap: anywhere;
 }
 
 .productDescription {
-  color: #b3c1c8;
+  color: #bdd0e2;
   font-size: 12px;
   line-height: 1.55;
   overflow-wrap: anywhere;
@@ -385,7 +391,7 @@
 }
 
 .price {
-  color: #48dcff;
+  color: #86daff;
   font:
     800 22px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -397,7 +403,7 @@
 }
 
 .priceNote {
-  color: #8f9da5;
+  color: #bdd0e2;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.045em;
@@ -405,7 +411,7 @@
 
 .controlLabel {
   margin-bottom: 7px;
-  color: #96a8b1;
+  color: #bdd0e2;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.07em;
@@ -426,10 +432,9 @@
 }
 
 .optionControl:disabled {
-  color: #68737a;
+  color: #a7b7c8;
+  background: #13202c;
   cursor: not-allowed;
-  filter: saturate(0);
-  opacity: 0.5;
   text-decoration: line-through;
 }
 
@@ -444,11 +449,14 @@
   margin-bottom: 0;
 }
 
+/* The stepper is two chrome buttons with a live value between them; the
+   group itself paints no frame so no rim sits inside another. */
 .quantityControl {
   display: inline-flex;
   align-items: center;
-  overflow: hidden;
-  border: 1px solid #263f4e;
+  gap: 4px;
+  border: 0;
+  background: transparent;
 }
 
 .quantityButton {
@@ -465,9 +473,9 @@
 }
 
 .quantityButton:disabled {
-  color: #68737a;
+  color: #a7b7c8;
+  background: #13202c;
   cursor: not-allowed;
-  opacity: 0.5;
 }
 
 .quantityValue {
@@ -475,7 +483,8 @@
   min-width: 40px;
   min-height: 44px;
   place-items: center;
-  color: #fff;
+  color: #f2f7ff;
+  font-variant-numeric: tabular-nums;
   font:
     800 13px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -486,7 +495,7 @@
 }
 
 .quantityTotal {
-  color: #94a7b0;
+  color: #bdd0e2;
   font-size: 9px;
 }
 
@@ -521,9 +530,9 @@
 /* Primary: the default settlement path. */
 .actionPrimary {
   min-height: 54px;
-  border-color: #42d9ff;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
   color: #fff;
-  background: #0a4f69;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
   font-size: 14px;
   letter-spacing: 0.032em;
 }
@@ -531,37 +540,34 @@
 /* Secondary: the alternate settlement path remains clearly available. */
 .actionDiamond {
   min-height: 48px;
-  border-color: #1687aa;
-  color: #8fe8ff;
-  background: #061a23;
+  color: #86daff;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   font-size: 13px;
 }
 
-/* Tertiary: deferred purchase. */
+/* Tertiary: deferred purchase (Add To Cart). A chrome control with white
+   type; the legacy class name is kept for the component that references it. */
 .actionGold {
   min-height: 44px;
-  border-color: #766320;
-  color: #f6d76d;
-  background: #181506;
+  color: #f2f7ff;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   font-size: 12px;
 }
 
 /* Quaternary: navigation, not commerce, so it carries no painted plate. */
 .actionSecondary {
   min-height: 44px;
-  border: 1px solid #314957;
-  color: #b7cad3;
-  background: #071017;
-  background-image: none;
+  color: #bdd0e2;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   font-size: 12px;
   font-weight: 700;
 }
 
 .actionControl:disabled {
-  color: #68747b;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  color: #a7b7c8;
+  background: #13202c;
   cursor: not-allowed;
-  filter: saturate(0);
-  opacity: 0.52;
 }
 
 .purchaseReason {
@@ -572,7 +578,7 @@
 }
 
 .purchaseReason[data-shortfall='true'] {
-  color: #f1d46b;
+  color: #86daff;
 }
 
 .catalogAlert {
@@ -583,9 +589,10 @@
   gap: 16px;
   margin: 0 auto 24px;
   padding: 16px 18px;
-  border: 1px solid #6e5d22;
-  background: #141205;
-  color: #f2d978;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: #86daff;
   font-family: var(--font-inter), Inter, Arial, sans-serif;
   font-size: 10px;
   font-weight: 700;
@@ -598,7 +605,7 @@
 
 .loadingStatus {
   padding: 12px 0 20px;
-  color: #9db0ba;
+  color: #bdd0e2;
   font-size: 10px;
   letter-spacing: 0.05em;
   text-align: center;
@@ -614,16 +621,17 @@
   place-content: center;
   margin-inline: auto;
   padding: 28px 24px;
-  border: 1px solid #23394a;
-  background: #070e15;
-  color: #a7b6bd;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: #bdd0e2;
   font-size: 13px;
   text-align: center;
 }
 
 .emptyStateTitle {
   margin-bottom: 7px;
-  color: #eef7fb;
+  color: #f2f7ff;
   font-size: 18px;
 }
 
@@ -645,7 +653,7 @@
 
 .categoryTitle {
   margin: 0 0 14px;
-  color: #eaf4f8;
+  color: #f2f7ff;
   font-size: 19px;
   line-height: 1.15;
 }
@@ -653,7 +661,7 @@
 .legalCopy {
   max-width: 720px;
   margin: 16px auto 0;
-  color: #9eabb2;
+  color: #bdd0e2;
   font-size: 10px;
   line-height: 1.6;
   text-align: center;
@@ -681,8 +689,8 @@
 .quantityButton:focus-visible,
 .searchInput:focus-visible,
 .sortSelect:focus-visible {
-  outline: 3px solid #8befff !important;
-  outline-offset: 3px !important;
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }
 
 .operatorLink:active,
@@ -691,7 +699,7 @@
 .wishlistControl:active:not(:disabled),
 .optionControl:active:not(:disabled),
 .quantityButton:active:not(:disabled) {
-  opacity: 0.78;
+  filter: brightness(0.89);
 }
 
 @media (max-width: 620px) {

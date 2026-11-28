@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 
 import useCartStore from '../../stores/cartStore';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
+import StoreImageHeader from '../diamond-store/StoreImageHeader';
 import styles from './MarketplaceSubpageShell.module.css';
 
 const DESTINATIONS = [
@@ -12,14 +13,24 @@ const DESTINATIONS = [
   { id: 'wishlist', label: 'Wishlist', href: '/hub/diamond-store/wishlist' },
 ];
 
+const HEADER_ART = {
+  store: 'store-diamonds',
+  cart: 'store-cart',
+  orders: 'store-orders',
+  wishlist: 'store-wishlist',
+};
+
 export default function MarketplaceSubpageShell({
   active,
   eyebrow,
   title,
   description,
   actions = null,
+  art,
+  help = {},
   children,
 }) {
+  const headerArt = art || HEADER_ART[active] || HEADER_ART.store;
   const canonicalRoute =
     DESTINATIONS.find((destination) => destination.id === active)?.href || DESTINATIONS[0].href;
   const copyEyebrow = marketplaceCopy(eyebrow);
@@ -44,7 +55,7 @@ export default function MarketplaceSubpageShell({
 
   return (
     <main
-      className={styles.stage}
+      className={`smarterdesign ${styles.stage}`}
       data-active={active}
       data-marketplace-route={canonicalRoute}
       data-title-case-strategy="normalized"
@@ -55,7 +66,7 @@ export default function MarketplaceSubpageShell({
             key={id}
             ref={active === id ? activeRouteRef : null}
             href={href}
-            className={styles.routeLink}
+            className={`sd-button ${styles.routeLink}`}
             aria-current={active === id ? 'page' : undefined}
           >
             <span>{label}</span>
@@ -68,14 +79,18 @@ export default function MarketplaceSubpageShell({
         ))}
       </nav>
 
-      <header className={styles.commandHeader}>
-        <div className={styles.headerCopy}>
-          <span className={styles.eyebrow}>{copyEyebrow}</span>
-          <h1>{copyTitle}</h1>
-          <p>{copyDescription}</p>
-        </div>
-        {actions && <div className={styles.headerActions}>{actions}</div>}
-      </header>
+      {actions && <div className={styles.headerActions}>{actions}</div>}
+
+      <StoreImageHeader
+        art={headerArt}
+        className={styles.commandHeader}
+        parent={copyEyebrow}
+        title={copyTitle}
+        help={{
+          ...help,
+          steps: [copyDescription, ...(help.steps || [])].filter(Boolean),
+        }}
+      />
 
       <section className={styles.contentDeck}>{children}</section>
     </main>

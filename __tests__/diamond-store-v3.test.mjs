@@ -54,8 +54,11 @@ test('uses the dedicated cinematic artwork and sharp-corner treatment', () => {
   ]) {
     assert.equal(fs.existsSync(path.join(root, 'public/images/store-v3', asset)), true);
   }
+  // #SMARTERDESIGN: panels and controls are square; only circular seals are
+  // round (50%).
   const radii = [...styles.matchAll(/border-radius:\s*([^;]+);/g)].map((match) => match[1].trim());
-  assert.deepEqual(radii, ['0', '0 !important']);
+  assert.ok(radii.length > 0);
+  for (const radius of radii) assert.match(radius, /^(?:0|50%)(?: !important)?$/);
   assert.match(page, /border-radius:\s*0 !important/);
 });
 
@@ -94,11 +97,18 @@ test('all five Store Sections remain visible at the reproduced 393px phone width
 });
 
 test('the Club Shop headline fits the 1280px desktop glyph measurements without altering other artwork', () => {
-  const headline = /\.club-shop \.heroCopy h1 \{([^}]+)\}/.exec(styles)?.[1];
+  // The Club Shop headline is now the live StoreImageHeader title: it wraps
+  // freely, is never clipped by a fixed box and paints no plate of its own.
+  assert.match(component, /'club-shop': \{\s*art: 'store-club-shop',\s*title: 'Club Shop'/);
+  const headerCss = fs.readFileSync(
+    path.join(root, 'src/components/diamond-store/StoreImageHeader.module.css'),
+    'utf8'
+  );
+  const headline = /\.header \.title \{([^}]+)\}/.exec(headerCss)?.[1];
   assert.ok(headline);
-  assert.match(headline, /line-height:\s*1\.2/);
-  assert.match(headline, /overflow-wrap:\s*normal/);
-  assert.doesNotMatch(headline, /(?:^|[;\n])\s*height:|overflow:\s*hidden|font-size:|background/);
-  // 64px type on two lines formerly had a 134.4px line box and 138px ink.
-  assert.ok(64 * 1.2 * 2 >= 138);
+  assert.match(headline, /line-height:\s*1\.02/);
+  assert.match(headline, /overflow-wrap:\s*anywhere/);
+  assert.match(headline, /max-width:\s*100%/);
+  assert.doesNotMatch(headline, /(?:^|[;\n])\s*height:|overflow:\s*hidden|background:(?!\s*none)/);
+  assert.doesNotMatch(styles, /\.club-shop \.heroCopy/);
 });

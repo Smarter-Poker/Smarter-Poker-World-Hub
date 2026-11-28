@@ -3,6 +3,8 @@ import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import { SD_FILL, SD_FRAME, offStandardPaint } from './smarterdesign-standard.test.mjs';
+
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 
@@ -28,13 +30,14 @@ test('lower marketplace suites preserve their own layouts without duplicate disp
     /marketplace-lower-suites-atlas\.webp|sectionThreshold|thresholdReadout/
   );
   const rewardRowRule = STORE_CSS.match(/\.rewardRow\s*\{([\s\S]*?)\}/)?.[1] || '';
-  assert.match(rewardRowRule, /border:\s*1px solid/);
-  assert.match(rewardRowRule, /background:\s*#[0-9a-f]{3,8}/i);
-  assert.match(rewardRowRule, /box-shadow:/);
+  // #SMARTERDESIGN: a reward row is one chrome nine-slice over a standard fill.
+  assert.match(rewardRowRule, SD_FRAME.any);
+  assert.match(rewardRowRule, SD_FILL);
+  assert.deepEqual(offStandardPaint(rewardRowRule), []);
   assert.doesNotMatch(
     rewardRowRule,
-    /url\(|marketplace-console-v1|wallet-row-shell|shark-panel|(?:linear|radial|conic)-gradient|border-left/,
-    'reward rows must use restrained solid chrome instead of painted assets or edge bars'
+    /marketplace-console-v1|wallet-row-shell|shark-panel|border-left/,
+    'reward rows must use #SMARTERDESIGN chrome instead of rejected painted assets or edge bars'
   );
   assert.match(STORE_CSS, /\.casinoDataCard/);
   assert.match(STORE_CSS, /\.casinoProductCard/);
@@ -82,8 +85,8 @@ test('cart, orders, and wishlist keep same-surface navigation without a shared d
     /commerce-operations-atlas|operationsVisual|visualReadout|bayCode/
   );
   const routeLinkRule = SUBPAGE_CSS.match(/\.routeLink\s*\{([\s\S]*?)\}/)?.[1] || '';
-  assert.match(routeLinkRule, /border:\s*1px solid/);
-  assert.match(routeLinkRule, /background:\s*#[0-9a-f]{3,8}/i);
+  assert.match(routeLinkRule, SD_FRAME.control);
+  assert.match(routeLinkRule, SD_FILL);
   assert.match(routeLinkRule, /min-height:\s*(?:4[4-9]|[5-9]\d|\d{3,})px/);
   assert.doesNotMatch(
     SUBPAGE_CSS,

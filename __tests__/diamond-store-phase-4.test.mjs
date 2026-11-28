@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import { hasSecondFrame, offStandardPaint } from './smarterdesign-standard.test.mjs';
+
 const ROOT = process.cwd();
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 const STORE = read('pages/hub/diamond-store.js');
@@ -87,16 +89,30 @@ test('the rewards boost banner can shrink without clipping narrow mobile viewpor
 });
 
 test('storefront introductions retain their artwork without stacked decorative frames', () => {
-  const blocks = [...SHOWCASE_CSS.matchAll(/(?:^|\n)\s*((?:\.diamonds\s+)?\.hero(?:::?after)?)\s*\{([^{}]*)\}/g)];
-  assert.ok(blocks.length >= 8, 'Cover base, Diamond, and phone hero declarations');
-  for (const [, selector, body] of blocks) {
-    for (const [, property, raw] of body.matchAll(/(border(?:-width|-color)?|box-shadow)\s*:\s*([^;]+);/g)) {
-      const value = raw.trim();
-      if (property.startsWith('border')) assert.equal(value, '0', selector);
-      else assert.ok(value === 'none' || value === 'inset 560px 0 180px -130px rgb(0 0 0 / 90%)', 'Only the existing text-legibility mask may remain');
-    }
+  // #SMARTERDESIGN: every storefront opens on the shared StoreImageHeader. Its
+  // one steel rim comes from the global .sd-masthead; the module paints only
+  // the approved header backdrop, the masked scene and the round seal ring, so
+  // there is never a second frame stacked on the header.
+  const HEADER = read('src/components/diamond-store/StoreImageHeader.jsx');
+  const HEADER_CSS = read('src/components/diamond-store/StoreImageHeader.module.css');
+  assert.match(SHOWCASE, /<StoreImageHeader art=\{header\.art\} title=\{header\.title\} help=\{header\.help\} \/>/);
+  assert.match(HEADER, /className=\{`sd-masthead \$\{styles\.header\}/);
+  const headerRule = HEADER_CSS.match(/\.header\.header\s*\{[^}]*\}/)?.[0] || '';
+  assert.ok(headerRule, 'the image header rule must exist');
+  assert.doesNotMatch(headerRule, /border(?:-image)?\s*:|outline\s*:|inset 0 0 0/);
+  assert.match(headerRule, /border-radius:\s*0/);
+  assert.deepEqual(offStandardPaint(HEADER_CSS), []);
+  assert.equal(hasSecondFrame(headerRule), false);
+  // The old painted hero blocks and their per-route hero art are gone.
+  assert.doesNotMatch(SHOWCASE_CSS, /(?:^|\n)\s*(?:\.diamonds\s+)?\.hero(?:::?after)?\s*\{/);
+  for (const asset of ['diamond-vault-hero', 'vip-hero', 'merch-hero', 'rewards-hero', 'club-shop-hero']) {
+    assert.doesNotMatch(SHOWCASE_CSS, new RegExp(asset + '\\.webp'));
   }
-  for (const asset of ['diamond-vault-hero', 'vip-hero', 'merch-hero', 'rewards-hero', 'club-shop-hero']) assert.match(SHOWCASE_CSS, new RegExp(asset + '\\.webp'));
-  assert.match(SHOWCASE_CSS, /\.diamonds \.tabs\s*\{[^}]*border:\s*0;[^}]*background:\s*transparent;[^}]*box-shadow:\s*none;/);
-  assert.match(SHOWCASE_CSS, /\.tab\s*\{[^}]*button-secondary\.png/);
+  // The tab rail is the global sd-tabs control set: the module adds layout
+  // only, never a second frame or a rejected painted plate.
+  assert.match(SHOWCASE, /<nav className=\{`sd-tabs \$\{styles\.tabs\}`\}/);
+  const tabs = SHOWCASE_CSS.match(/\n\.tabs\s*\{[^}]*\}/)?.[0] || '';
+  assert.doesNotMatch(tabs, /border(?:-image)?\s*:|background\s*:|box-shadow\s*:/);
+  const tab = SHOWCASE_CSS.match(/\n\.tab\s*\{[^}]*\}/)?.[0] || '';
+  assert.doesNotMatch(tab, /button-secondary\.png|marketplace-console-v1|url\(/);
 });

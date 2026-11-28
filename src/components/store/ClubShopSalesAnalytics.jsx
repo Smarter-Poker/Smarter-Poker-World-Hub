@@ -39,34 +39,49 @@ const fmt = (value) => Number(value || 0).toLocaleString('en-US');
 /** One stable empty series, so a report that has none does not re-memo. */
 const EMPTY_SERIES = Object.freeze([]);
 
+// #SMARTERDESIGN materials. `border` precedes `borderImage` in every object:
+// the border shorthand resets border-image.
+const SD_NAVY = 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)';
+
 const panelStyle = {
-  background: 'rgba(255,255,255,0.03)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 14,
+  background: SD_NAVY,
+  border: '5px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+  borderRadius: 0,
   padding: 20,
   marginBottom: 24,
+  color: '#f2f7ff',
+  fontVariantNumeric: 'tabular-nums',
+};
+
+const wellStyle = {
+  background: SD_NAVY,
+  border: '3px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch",
+  borderRadius: 0,
 };
 
 const emptyStyle = {
   textAlign: 'center',
   padding: 32,
   fontSize: 14,
-  color: 'rgba(255,255,255,0.5)',
+  color: '#bdd0e2',
   fontWeight: 600,
 };
 
 const cellStyle = {
   padding: '10px 12px',
   fontSize: 12,
-  color: '#C8D5DD',
+  color: '#bdd0e2',
   textAlign: 'left',
   verticalAlign: 'middle',
-  borderBottom: '1px solid rgba(255,255,255,0.06)',
+  borderBottom: '1px solid #445e77',
+  fontVariantNumeric: 'tabular-nums',
 };
 
 const headCellStyle = {
   ...cellStyle,
-  color: 'rgba(255,255,255,0.45)',
+  color: '#f2f7ff',
   fontWeight: 700,
   whiteSpace: 'nowrap',
 };
@@ -107,7 +122,7 @@ export function ClubShopSalesAnalyticsView({
           flexWrap: 'wrap',
         }}
       >
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>Sales</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: '#f2f7ff', margin: 0 }}>Sales</h3>
         <div role="group" aria-label="Sales Date Range" style={{ display: 'flex', gap: 8 }}>
           {CLUB_SHOP_ANALYTICS_RANGES.map((range) => (
             <button
@@ -134,8 +149,7 @@ export function ClubShopSalesAnalyticsView({
             gap: 12,
             marginBottom: 12,
             padding: '12px 14px',
-            border: '1px solid rgba(240,40,73,0.55)',
-            background: 'rgba(240,40,73,0.10)',
+            ...wellStyle,
             color: '#FF5B6E',
             fontSize: 12,
             fontWeight: 700,
@@ -167,9 +181,8 @@ export function ClubShopSalesAnalyticsView({
               style={{
                 marginBottom: 12,
                 padding: '10px 12px',
-                border: '1px solid rgba(255,196,64,0.42)',
-                background: 'rgba(83,56,0,0.34)',
-                color: '#FFE6A6',
+                ...wellStyle,
+                color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,
               }}
@@ -196,18 +209,16 @@ export function ClubShopSalesAnalyticsView({
                 key={stat.label}
                 className={shellStyles.clubAdminStat}
                 style={{
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 12,
+                  ...wellStyle,
                   padding: '16px 14px',
                   textAlign: 'center',
                 }}
               >
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#00D4FF' }}>{stat.value}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#f2f7ff' }}>{stat.value}</div>
                 <div
                   style={{
                     fontSize: 12,
-                    color: 'rgba(255,255,255,0.4)',
+                    color: '#bdd0e2',
                     fontWeight: 600,
                     marginTop: 4,
                   }}
@@ -224,7 +235,7 @@ export function ClubShopSalesAnalyticsView({
                 marginBottom: 12,
                 fontSize: 12,
                 lineHeight: 1.6,
-                color: 'rgba(255,255,255,0.62)',
+                color: '#bdd0e2',
               }}
             >
               Gross {fmt(totals?.grossRevenue)} Less {fmt(totals?.refundedAmount)} Refunded.
@@ -248,7 +259,8 @@ export function ClubShopSalesAnalyticsView({
                   gap: 2,
                   height: 96,
                   marginBottom: 16,
-                  padding: '0 2px',
+                  ...wellStyle,
+                  padding: '6px 4px 0',
                 }}
               >
                 {series.map((point) => {
@@ -263,7 +275,7 @@ export function ClubShopSalesAnalyticsView({
                         flex: 1,
                         minWidth: 2,
                         height: `${Math.max(2, Math.round((value / peak) * 100))}%`,
-                        background: 'rgba(0,212,255,0.55)',
+                        background: '#86daff',
                       }}
                     />
                   );
@@ -288,7 +300,7 @@ export function ClubShopSalesAnalyticsView({
                   <tbody>
                     {(data.topItems || []).map((item) => (
                       <tr key={item.itemId}>
-                        <td style={{ ...cellStyle, fontWeight: 700, color: '#E4E6EB' }}>
+                        <td style={{ ...cellStyle, fontWeight: 700, color: '#f2f7ff' }}>
                           {marketplaceCopy(item.name || 'Deleted Item')}
                         </td>
                         <td style={cellStyle}>{fmt(item.netSales)}</td>
@@ -323,7 +335,7 @@ export function ClubShopSalesAnalyticsView({
                           <td
                             data-preserve-case="true"
                             data-user-content="true"
-                            style={{ ...cellStyle, fontWeight: 700, color: '#E4E6EB' }}
+                            style={{ ...cellStyle, fontWeight: 700, color: '#f2f7ff' }}
                           >
                             {buyer.name || 'Member'}
                           </td>

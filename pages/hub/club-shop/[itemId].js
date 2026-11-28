@@ -1135,6 +1135,16 @@ export default function ClubShopItemDetail({ routeItemId = null }) {
       diamondPrice={item?.price}
       status={state.kind === 'ready' && itemAvailable ? 'Club Verified' : state.message}
       presentation="product"
+      header={{
+        art: 'store-club-shop',
+        title: 'Club Shop',
+        help: {
+          steps: [
+            'Review The Diamond Purchase Or Buy With Card. The Server Rechecks Price, Limits And Your Wallet Before Anything Is Charged.',
+            'Verified Club Purchases Appear In Your Marketplace Order History. Return To Club Shop To Browse More Items.',
+          ],
+        },
+      }}
       actions={
         item && state.kind !== 'auth' ? (
           <>
