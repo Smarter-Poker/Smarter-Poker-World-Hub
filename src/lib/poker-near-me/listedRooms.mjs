@@ -26,6 +26,7 @@ export const EXCLUDED_VENUE_IDS = Object.freeze([3109]);
 
 /** venue_type values that are events or private games, not poker rooms. */
 export const NON_ROOM_VENUE_TYPES = Object.freeze(['series', 'tour', 'home_game']);
+export const NON_ROOM_VENUE_TYPES_SQL = '(series,tour,home_game)';
 
 /**
  * Apply the listed-room condition to a Supabase/PostgREST query builder
@@ -36,9 +37,11 @@ export function applyListedRoomFilter(query) {
     .eq('is_active', true)
     .eq('is_suppressed', false);
   for (const id of EXCLUDED_VENUE_IDS) q = q.neq('id', id);
+  // Literal list: it must equal NON_ROOM_VENUE_TYPES (pinned by
+  // __tests__/the-room-counts-maintain-themselves.law.test.mjs).
   return q
     .is('canonical_venue_id', null)
-    .not('venue_type', 'in', `(${NON_ROOM_VENUE_TYPES.join(',')})`);
+    .not('venue_type', 'in', NON_ROOM_VENUE_TYPES_SQL);
 }
 
 /** The same condition for one row already in memory (snapshot fallback). */

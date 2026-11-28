@@ -37,7 +37,7 @@ import {
   getVenueStats,
   resetVenueStatsCache,
 } from '../src/lib/server/venueStats.mjs';
-import { applyListedRoomFilter, isListedRoom, EXCLUDED_VENUE_IDS } from '../src/lib/poker-near-me/listedRooms.mjs';
+import { applyListedRoomFilter, isListedRoom, EXCLUDED_VENUE_IDS, NON_ROOM_VENUE_TYPES, NON_ROOM_VENUE_TYPES_SQL } from '../src/lib/poker-near-me/listedRooms.mjs';
 import { buildSnapshotVenueDirectory } from '../src/lib/poker-near-me/venueDirectoryServer.js';
 import {
   applyFactsKeys,
@@ -211,6 +211,7 @@ test('the directory and the counts share one listed-room condition', () => {
   assert.equal(isListedRoom({ id: 3109, is_active: true, is_suppressed: false, venue_type: 'casino' }), false);
   assert.equal(isListedRoom({ id: 1, is_active: true, is_suppressed: false, venue_type: 'casino' }), true);
   assert.equal(typeof applyListedRoomFilter, 'function');
+  assert.equal(NON_ROOM_VENUE_TYPES_SQL, `(${NON_ROOM_VENUE_TYPES.join(',')})`);
   // The hand snapshot claims nothing above the checked-in directory snapshot.
   assert.deepEqual(snapshotOverClaims(computeVenueStats(rows.filter(isListedRoom))), []);
 });
