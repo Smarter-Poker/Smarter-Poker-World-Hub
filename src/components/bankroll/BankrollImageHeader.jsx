@@ -55,7 +55,11 @@ export default function BankrollImageHeader({
   return (
     <div className={className} data-header-stack="">
       <nav className="sd-header-back" aria-label="Back">
-        <Link href={back.href} shallow={back.shallow} className="sd-button" data-header-back="">
+        {/* No viewport prefetch: the return link is on screen at first paint,
+            so next/link fetched the whole destination page (the Bankroll
+            Manager dashboard is 54 KB plus its chunks) before anyone asked
+            for it. Hover and touchstart still prefetch it. */}
+        <Link href={back.href} shallow={back.shallow} prefetch={false} className="sd-button" data-header-back="">
           <ArrowLeft aria-hidden="true" size={16} /> {back.label || 'Back To Dashboard'}
         </Link>
       </nav>
