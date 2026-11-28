@@ -3692,7 +3692,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
               {showPostForm && (
                 <form className="inline-form" onSubmit={handlePostActivity}>
                   <div className="form-group">
-                    <label className="form-label">What&apos;s Happening?</label>
+                    <label className="form-label">What Is Happening?</label>
                     <textarea
                       className="form-textarea"
                       rows="3"
