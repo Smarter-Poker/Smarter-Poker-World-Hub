@@ -24,8 +24,11 @@ import {
 } from '../src/lib/bankroll/stakeAffordability.mjs';
 import { directoryFacts, loadVenueContext } from '../src/lib/bankroll/venueContext.mjs';
 import { venueBreakdown } from '../src/lib/bankroll/analyticsView.mjs';
+import { BANKROLL_MANAGER_PAGE, bankrollManagerSource } from './helpers/bankroll-manager-source.mjs';
 
-const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
+// The page reads as itself plus its section modules (the 2026-11-28 split;
+// __tests__/helpers/bankroll-manager-source.mjs).
+const read = (p) => (p === BANKROLL_MANAGER_PAGE ? bankrollManagerSource() : readFileSync(new URL('../' + p, import.meta.url), 'utf8'));
 
 let nextId = 1;
 /** A cash session of `hours` hours netting `net` dollars at `stakes`. */

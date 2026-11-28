@@ -17,9 +17,12 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rowsOf, leakValueText } from '../src/lib/bankroll/leakMath.mjs';
+import { BANKROLL_MANAGER_PAGE, bankrollManagerSource } from './helpers/bankroll-manager-source.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const read = (p) => readFileSync(join(ROOT, p), 'utf8');
+// The page reads as itself plus its section modules (the 2026-11-28 split;
+// __tests__/helpers/bankroll-manager-source.mjs).
+const read = (p) => (p === BANKROLL_MANAGER_PAGE ? bankrollManagerSource() : readFileSync(join(ROOT, p), 'utf8'));
 
 test('a failed Supabase read throws instead of reading as an empty ledger', () => {
   assert.deepEqual(rowsOf({ data: [{ a: 1 }], error: null }), [{ a: 1 }]);
@@ -79,7 +82,9 @@ test('Hand Review is honest signed out and follows Display EUR', () => {
 
 test('Reports say which venue and time range the totals cover', () => {
   const page = read('pages/hub/bankroll-manager.js');
-  const reports = page.slice(page.indexOf("{activeSection === 'reports' && ("), page.indexOf('{/* Settings View */}'));
+  // The Reports view is its own section module since the 2026-11-28 split.
+  assert.match(page, /\{activeSection === 'reports' && \(\s*<ReportsSection /);
+  const reports = read('src/components/bankroll/sections/ReportsSection.jsx');
   assert.match(reports, /data-testid="reports-scope"/);
   assert.match(reports, /locationFilter \? `At \$\{selectedLocationName\}` : 'All Locations'\} · \{timeFilter\}/);
   assert.doesNotMatch(page, /Show Every Amount In Euros/);

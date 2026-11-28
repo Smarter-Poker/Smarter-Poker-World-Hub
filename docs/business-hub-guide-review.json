@@ -9,8 +9,15 @@
     "src/lib/businessHubGuide.mjs": "af62def60de12b17475ebcf0e1d8f5c2cb28888e10f047876c69accc1ba2a7ef",
     "pages/about.js": "7a87664e06783360a7443f5451165467c8f8e67c80a71de7f4eb113f0eaf6690",
     "src/lib/businessHubJourney.mjs": "8adb19909591e0fdeee08d744e61287f28ff6cd42d0d104010f36da5a9b6b174",
-    "pages/hub/bankroll-manager.js": "fe590443b11a1163cbdc63a856e56f48cd10fcc3ef1af9303ba3f24a1109839a",
+    "pages/hub/bankroll-manager.js": "cbf2f07ac9ef659aa90cc9e8cdffd5b162d77aa99a802c68a504eb17aa26b913",
     "pages/hub/training.js": "ad96b3947f06cef8e93c8ec0f5aa7485dcdbef20693a621eb768d3f8b3b14112",
-    "pages/hub/poker-near-me/lobby.js": "eaa9a15d14987c2e30924f2a2aea06ff9f0c2d905add5ee8d9e006380e473590"
+    "pages/hub/poker-near-me/lobby.js": "eaa9a15d14987c2e30924f2a2aea06ff9f0c2d905add5ee8d9e006380e473590",
+    "src/components/bankroll/sections/DashboardSection.jsx": "5b263a0ac9d140c343e97a2117e680035d19efa2138584f2ce432b093f688caa",
+    "src/components/bankroll/sections/LogSignInPrompt.jsx": "696be9ef9c0f66d4e542a123e7ff019c504cd83518058a7c32f8b6ff54e2f6c7",
+    "src/components/bankroll/sections/ReceiptScannerSheet.jsx": "26f68e21332e2d16cc486686f2d29ff92e5a9b5a6bb58ccf898eaa710eb9d3e2",
+    "src/components/bankroll/sections/ReportsSection.jsx": "eb097e2f67804d008e4ee9182cdfadaffee11b47b13c35e31128c008892352e3",
+    "src/components/bankroll/sections/RuleViolationsPopup.jsx": "cb6bf25668a92c58964ad43a68a6eb9944059f56e47d4312d572d5837cd9de26",
+    "src/components/bankroll/sections/SettingsSection.jsx": "c73b8afb0430879a2ad255b6c3944ac9850af07875e0944d098d6355b0b473d0",
+    "src/components/bankroll/sections/TaxSection.jsx": "b0f8495759c0ee37535e9be56dae32d059f5ede098823c609cb26110f862c8ad"
   }
 }
