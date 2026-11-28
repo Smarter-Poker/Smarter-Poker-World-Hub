@@ -4,6 +4,14 @@
  */
 
 import { supabase } from '../supabase';
+import { localDay } from './localDates.mjs';
+
+// Gaming categories. Withdrawals carry a negative net (money out of the
+// roll) and expenses are costs, not losses at play; counting them made
+// "X represent N% of total losses" wrong and let a deposit made today
+// cancel out the day's losses against a stop-loss rule.
+const GAMING_CATEGORIES = ['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports'];
+const severityOf = (n: number) => Math.min(5, Math.max(1, Math.round(n) || 1)) as 1 | 2 | 3 | 4 | 5;
 
 export interface LeakAlert {
   id: string;
@@ -45,6 +53,8 @@ export async function getCategoryLeakPercentage(
     .select('net_result')
     .eq('user_id', userId)
     .eq('is_revision', false)
+    // in-list: bounded by the five built-in gaming categories
+    .in('category', GAMING_CATEGORIES)
     .lt('net_result', 0);
 
   if (locationId) {
@@ -221,7 +231,7 @@ export async function detectNonPokerLeaks(
       alerts.push({
         id: `category-leak-${category}`,
         type: 'category',
-        severity: (category === 'slots' ? Math.min(5, Math.ceil(leakPct / 20)) : Math.ceil(leakPct / 25)) as 1 | 2 | 3 | 4 | 5,
+        severity: severityOf(category === 'slots' ? Math.ceil(leakPct / 20) : Math.ceil(leakPct / 25)),
         title: `${labels[category]} Losses`,
         message: `${labels[category]} represent ${leakPct}% of total losses`,
         value: `-$${Math.abs(Math.round(totalNet)).toLocaleString()}`,
@@ -354,14 +364,17 @@ export async function checkRuleViolations(
 
   const violatedRules: string[] = [];
 
-  // Get today's losses
-  const today = new Date().toISOString().split('T')[0];
+  // Today's results on the player's own calendar (the UTC date was already
+  // tomorrow every evening in the Americas, so the day's losses read as zero).
+  const today = localDay();
   const { data: todayEntries } = await supabase
     .from('bankroll_ledger')
     .select('net_result')
     .eq('user_id', userId)
     .eq('entry_date', today)
-    .eq('is_revision', false);
+    .eq('is_revision', false)
+    // in-list: bounded by the five built-in gaming categories
+    .in('category', GAMING_CATEGORIES);
 
   const todayNet = todayEntries?.reduce((sum, e) => sum + (e.net_result || 0), 0) || 0;
 

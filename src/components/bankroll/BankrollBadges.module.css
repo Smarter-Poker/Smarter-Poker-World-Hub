@@ -1,0 +1,13 @@
+.badges { display:grid; gap:14px; color:#e9f5ff; }
+.summary { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:8px; margin:0; color:#c4d7e7; }
+.summary strong { color:#f0f8ff; font:700 clamp(23px,5vw,30px)/1.05 var(--sd-type,sans-serif); font-variant-numeric:tabular-nums; }
+.list { margin:0; padding:0; list-style:none; display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr)); gap:1px; background:#35506a; border-block:1px solid #466584; }
+.badge { display:grid; grid-template-columns:40px minmax(0,1fr); gap:4px 12px; align-items:center; padding:12px; background:#0b1d30; min-width:0; }
+.icon { grid-row:span 3; width:40px; height:40px; display:grid; place-items:center; border-radius:50%; border:1px solid #4d6a86; color:#7f97ad; }
+.earned .icon { color:#9edbff; border-color:#9edbff; background:rgba(120,202,255,.12); }
+.badge h3 { margin:0; font-size:16px; line-height:1.2; color:#f0f8ff; overflow-wrap:anywhere; }
+.badge p { margin:0; font-size:13px; line-height:1.35; color:#b4cadb; overflow-wrap:anywhere; }
+.meter { height:4px; background:#24384d; border-radius:2px; overflow:hidden; }
+.meter span { display:block; height:100%; background:#78caff; }
+.state { font-size:12px; font-variant-numeric:tabular-nums; color:#9fb6ca; }
+.earned .state { color:#9edbff; font-weight:700; }

@@ -10,6 +10,7 @@ import { useModalHistory } from '../../hooks/useModalHistory';
 import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
+import { filterPlayers, playerNoteRecord } from '../../lib/bankroll/playerNotesSearch.mjs';
 
 const PLAYER_TYPE_LABELS = {
     unknown: 'Unknown',
@@ -29,6 +30,7 @@ export default function PlayerNotes({ userId }) {
     const [showAddModal, setShowAddModal] = useState(false);
     const [selectedPlayer, setSelectedPlayer] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [loadError, setLoadError] = useState(null);
 
     useEffect(() => {
         if (userId) loadPlayers();
@@ -36,6 +38,7 @@ export default function PlayerNotes({ userId }) {
 
     async function loadPlayers() {
         setIsLoading(true);
+        setLoadError(null);
         try {
             const { data, error } = await supabase
                 .from('player_notes')
@@ -43,20 +46,18 @@ export default function PlayerNotes({ userId }) {
                 .eq('user_id', userId)
                 .order('updated_at', { ascending: false });
 
-            if (!error && data) {
-                setPlayers(data);
-            }
+            if (error) throw error;
+            setPlayers(data || []);
         } catch (err) {
+            // A failed read is not an empty notebook: say so and offer a retry.
             console.warn('[PlayerNotes] Load error:', err);
+            setLoadError('Could Not Load Your Player Notes');
         }
         setIsLoading(false);
     }
 
-    const filteredPlayers = players.filter(p =>
-        p.nickname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.real_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.notes?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredPlayers = filterPlayers(players, searchQuery, PLAYER_TYPE_LABELS);
+    const searching = searchQuery.trim().length > 0;
 
     function getPlayerTypeColor(type) {
         switch (type) {
@@ -91,12 +92,19 @@ export default function PlayerNotes({ userId }) {
 
             {/* Player List */}
             {isLoading ? (
-                <div style={styles.loading}>Loading Players...</div>
+                <div style={styles.loading} role="status">Loading Players...</div>
+            ) : loadError ? (
+                <div style={styles.empty} role="alert">
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#ef9a9a' }}>{loadError}</span>
+                    <p style={{ margin: '8px 0 0' }}>
+                        <button type="button" onClick={loadPlayers} style={styles.cancelBtn}>Retry</button>
+                    </p>
+                </div>
             ) : filteredPlayers.length === 0 ? (
-                <div style={styles.empty}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>No Players Yet</span>
+                <div style={styles.empty} role="status">
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>{searching ? 'No Players Match' : 'No Players Yet'}</span>
                         <p style={{ margin: '8px 0 0', fontSize: 14, opacity: 0.6 }}>
-                        Add Notes On Opponents You've Played Against
+                        {searching ? 'Search Covers Names, Notes, Tells, Tendencies, Venue And Stakes' : "Add Notes On Opponents You've Played Against"}
                     </p>
                 </div>
             ) : (
@@ -191,6 +199,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
         tendencies: player?.tendencies || '',
     });
     const [isSaving, setIsSaving] = useState(false);
+    const [saveError, setSaveError] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef(null);
     const [savedStakes, setSavedStakes] = useState([]);
@@ -284,32 +293,32 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
         if (fileInputRef.current) fileInputRef.current.value = '';
     }
 
+    // A failed write keeps the sheet open with the player's text intact. It
+    // used to log the error, close the sheet and reload, so the notes were
+    // simply gone with nothing on screen to say so.
     async function handleSave() {
-        if (!formData.nickname && !formData.real_name) return;
+        const { record, error: invalid } = playerNoteRecord(formData);
+        if (invalid) { setSaveError(invalid); return; }
 
         setIsSaving(true);
+        setSaveError(null);
         try {
-            if (player?.id) {
-                const { error: err_player_notes_9dlmt } = await supabase
-                  .from('player_notes')
-                  .update({
-                        ...formData,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', player.id);
-                if (err_player_notes_9dlmt) console.warn('[Supabase] Silent mutation failed in player_notes:', err_player_notes_9dlmt.message);
-            } else {
-                const { error: err_player_notes_e0stk } = await supabase
-                  .from('player_notes')
-                  .insert({
-                        user_id: userId,
-                        ...formData
-                    });
-                if (err_player_notes_e0stk) console.warn('[Supabase] Silent mutation failed in player_notes:', err_player_notes_e0stk.message);
-            }
+            const { error } = player?.id
+                ? await supabase
+                    .from('player_notes')
+                    .update({ ...record, updated_at: new Date().toISOString() })
+                    .eq('id', player.id)
+                    .eq('user_id', userId)
+                : await supabase
+                    .from('player_notes')
+                    .insert({ user_id: userId, ...record });
+            if (error) throw error;
+            setIsSaving(false);
             onSave();
+            return;
         } catch (err) {
             console.warn('[PlayerModal] Save error:', err);
+            setSaveError('Could Not Save This Player. Your Notes Are Still Here. Try Again.');
         }
         setIsSaving(false);
     }
@@ -318,12 +327,14 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
         if (!player?.id) return;
         if (!confirm('Delete this player?')) return;
 
+        setSaveError(null);
         try {
-            const { error: err_player_notes_a2dit } = await supabase.from('player_notes').delete().eq('id', player.id);
-            if (err_player_notes_a2dit) console.warn('[Supabase] Silent mutation failed in player_notes:', err_player_notes_a2dit.message);
+            const { error } = await supabase.from('player_notes').delete().eq('id', player.id).eq('user_id', userId);
+            if (error) throw error;
             onDelete();
         } catch (err) {
             console.warn('[PlayerModal] Delete error:', err);
+            setSaveError('Could Not Delete This Player. Try Again.');
         }
     }
 
@@ -345,6 +356,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                             <label style={styles.label}>Nickname</label>
                             <input
                                 type="text"
+                                aria-label="Nickname"
                                 value={formData.nickname}
                                 onChange={e => setFormData({ ...formData, nickname: e.target.value })}
                                 placeholder="e.g. 'Tight Mike'"
@@ -355,6 +367,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                             <label style={styles.label}>Real Name</label>
                             <input
                                 type="text"
+                                aria-label="Real Name"
                                 value={formData.real_name}
                                 onChange={e => setFormData({ ...formData, real_name: e.target.value })}
                                 placeholder="Optional"
@@ -454,7 +467,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                                         style={{ ...styles.input, flex: 1 }}
                                     />
                                     {savedStakes.length > 0 && (
-                                        <button type="button" onClick={() => setCustomStakes(false)} style={{ ...styles.input, flex: 'none', width: 36, cursor: 'pointer', textAlign: 'center', padding: 0, fontSize: 16 }}>&#X21A9;</button>
+                                        <button type="button" aria-label="Choose From Saved Stakes" onClick={() => setCustomStakes(false)} style={{ ...styles.input, flex: 'none', width: 44, minHeight: 44, cursor: 'pointer', textAlign: 'center', padding: 0, fontSize: 16 }}>{'\u21A9'}</button>
                                     )}
                                 </div>
                             )}
@@ -493,7 +506,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                                     style={{ ...styles.input, flex: 1 }}
                                 />
                                 {savedVenues.length > 0 && (
-                                    <button type="button" onClick={() => setCustomVenue(false)} style={{ ...styles.input, flex: 'none', width: 36, cursor: 'pointer', textAlign: 'center', padding: 0, fontSize: 16 }}>&#X21A9;</button>
+                                    <button type="button" aria-label="Choose From Saved Venues" onClick={() => setCustomVenue(false)} style={{ ...styles.input, flex: 'none', width: 44, minHeight: 44, cursor: 'pointer', textAlign: 'center', padding: 0, fontSize: 16 }}>{'\u21A9'}</button>
                                 )}
                             </div>
                         )}
@@ -503,7 +516,8 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                     <div style={styles.formGroup}>
                         <label style={styles.label}>General Notes</label>
                         <textarea
-                            value={formData.notes}
+                            aria-label="General Notes"
+                                value={formData.notes}
                             onChange={e => setFormData({ ...formData, notes: e.target.value })}
                             placeholder="Physical Description, Personality, Any General Observations..."
                             style={styles.textarea}
@@ -514,7 +528,8 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                     <div style={styles.formGroup}>
                         <label style={styles.label}>Tells</label>
                         <textarea
-                            value={formData.tells}
+                            aria-label="Tells"
+                                value={formData.tells}
                             onChange={e => setFormData({ ...formData, tells: e.target.value })}
                             placeholder="Physical Tells, Timing Tells, Bet Sizing Tells..."
                             style={styles.textarea}
@@ -525,7 +540,8 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                     <div style={styles.formGroup}>
                         <label style={styles.label}>Tendencies</label>
                         <textarea
-                            value={formData.tendencies}
+                            aria-label="Tendencies"
+                                value={formData.tendencies}
                             onChange={e => setFormData({ ...formData, tendencies: e.target.value })}
                             placeholder="3-bets Light, Folds To River Raises, Overplays Top Pair..."
                             style={styles.textarea}
@@ -533,14 +549,18 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                     </div>
                 </div>
 
+                {saveError && (
+                    <p role="alert" style={{ margin: '0 16px 8px', color: '#ef9a9a', fontSize: 14, fontWeight: 600 }}>{saveError}</p>
+                )}
                 <div style={styles.modalFooter}>
                     {player && (
-                        <button onClick={handleDelete} style={styles.deleteBtn}>
+                        <button type="button" onClick={handleDelete} style={styles.deleteBtn}>
                             Delete
                         </button>
                     )}
-                    <button onClick={onClose} style={styles.cancelBtn}>Cancel</button>
+                    <button type="button" onClick={onClose} style={styles.cancelBtn}>Cancel</button>
                     <button
+                        type="button"
                         onClick={handleSave}
                         disabled={isSaving}
                         style={styles.saveBtn}

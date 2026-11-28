@@ -57,15 +57,57 @@ export default function NewsSmarterDesignStyles() {
                 margin: 0 0 12px;
             }
             .news-hub.smarterdesign .news-desk-kicker {
-                display: inline-flex;
+                display: flex;
+                flex-wrap: wrap;
                 align-items: center;
-                gap: 7px;
+                column-gap: 5px;
+                row-gap: 1px;
+                white-space: normal;
                 margin: 0;
                 color: #bdd0e2;
                 font: 700 clamp(0.74rem, 1.1vw, 0.88rem)/1.25 var(--nsd-type);
                 letter-spacing: 0.03em;
                 text-transform: none;
                 font-variant-numeric: tabular-nums;
+            }
+            /* Each kicker segment stays whole; the line breaks between them,
+               so "Updated Just Now" never runs under the help button. */
+            .news-hub.smarterdesign .news-desk-kicker > span {
+                white-space: nowrap;
+            }
+            /* ---------- Lazy feed anchor and sidebar dock ---------- */
+            .news-hub.smarterdesign .news-reels-preview-anchor {
+                display: block;
+                height: 0;
+            }
+            .news-hub.smarterdesign .sidebar-dock {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+            @media (min-width: 1001px) {
+                /* The global header is about 10.2vw tall at every width. */
+                .news-hub.smarterdesign .sidebar-dock {
+                    position: sticky;
+                    top: calc(10.25vw + 12px);
+                    max-height: calc(100vh - 10.25vw - 24px);
+                    overflow-y: auto;
+                    overscroll-behavior: contain;
+                    scrollbar-width: thin;
+                }
+            }
+            @media (max-width: 1000px) {
+                .news-hub.smarterdesign .sidebar-dock {
+                    display: contents;
+                }
+            }
+            .news-hub.smarterdesign .mspt-more {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                min-height: 44px;
+                margin: 8px 0 4px;
             }
             /* ---------- Shared chrome controls ---------- */
             .news-hub.smarterdesign :is(

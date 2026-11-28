@@ -8,6 +8,11 @@ import { useState } from 'react';
 import { useModalHistory } from '../../hooks/useModalHistory';
 import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 import { motion } from 'framer-motion';
+import { getFreshAccessToken } from '../../lib/authUtils';
+import { formatUsd } from '../../lib/bankroll/ledgerReport.mjs';
+
+const usd = (value) => formatUsd(value, { cents: false });
+const signedUsd = (value) => (value > 0 ? '+' : '') + usd(value);
 
 export default function BankrollProjection({ userId, currentBankroll = 0, onClose }) {
     const [isLoading, setIsLoading] = useState(false);
@@ -24,33 +29,38 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
     // Tap outside closes; a drag that merely ends outside does not.
     const scrim = useScrimDismiss(onClose);
 
+    const sessionsValid = Number.isInteger(settings.sessionsPerWeek) && settings.sessionsPerWeek >= 1 && settings.sessionsPerWeek <= 21;
+
     async function runProjection() {
-        if (!userId) return;
+        if (!userId || !sessionsValid) return;
 
         setIsLoading(true);
         setError(null);
 
         try {
+            // The route requires the player's token. This call never sent one,
+            // so every projection came back 401 and the sheet said
+            // "Projection failed" for everybody.
+            const token = await getFreshAccessToken();
+            if (!token) throw new Error('Please Sign In To Run A Projection');
             const res = await fetch('/api/bankroll/projection', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
-                    userId,
                     currentBankroll,
                     sessionsPerWeek: settings.sessionsPerWeek,
                     projectionDays: settings.projectionDays
                 })
             });
 
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
 
-            if (!data.success) {
-                setError(data.message || 'Projection failed');
-            } else {
-                setProjection(data);
-            }
+            if (res.status === 401) setError('Please Sign In To Run A Projection');
+            else if (res.status === 403) setError('Bankroll Pro Or VIP Access Is Required');
+            else if (!data.success) setError(data.message || data.error || 'Projection Failed. Try Again.');
+            else setProjection(data);
         } catch (err) {
-            setError('Failed to run projection');
+            setError(err.message || 'Projection Failed. Try Again.');
             console.warn('[BankrollProjection]', err);
         }
 
@@ -93,7 +103,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                             <div style={styles.formRow}>
                                 <label style={styles.label}>Current Bankroll</label>
                                 <div style={styles.inputValue}>
-                                    ${currentBankroll.toLocaleString()}
+                                    {usd(currentBankroll)}
                                 </div>
                             </div>
 
@@ -101,11 +111,14 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                                 <label style={styles.label}>Sessions Per Week</label>
                                 <input
                                     type="number"
-                                    inputMode="decimal"
+                                    inputMode="numeric"
+                                    aria-label="Sessions Per Week"
+                                    aria-invalid={!sessionsValid}
                                     min={1}
-                                    max={10}
-                                    value={settings.sessionsPerWeek}
-                                    onChange={e => setSettings({ ...settings, sessionsPerWeek: parseInt(e.target.value) })}
+                                    max={21}
+                                    step={1}
+                                    value={Number.isNaN(settings.sessionsPerWeek) ? '' : settings.sessionsPerWeek}
+                                    onChange={e => setSettings({ ...settings, sessionsPerWeek: e.target.value === '' ? NaN : Number(e.target.value) })}
                                     style={styles.input}
                                 />
                             </div>
@@ -116,6 +129,8 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                                     {[30, 90, 180, 365].map(days => (
                                         <button
                                             key={days}
+                                            type="button"
+                                            aria-pressed={settings.projectionDays === days}
                                             onClick={() => setSettings({ ...settings, projectionDays: days })}
                                             style={{
                                                 ...styles.periodBtn,
@@ -129,13 +144,17 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                             </div>
                         </div>
 
+                        {!sessionsValid && (
+                            <div style={styles.error} role="alert">Enter 1 To 21 Sessions Per Week</div>
+                        )}
                         {error && (
-                            <div style={styles.error}>{error}</div>
+                            <div style={styles.error} role="alert">{error}</div>
                         )}
 
                         <button
+                            type="button"
                             onClick={runProjection}
-                            disabled={isLoading}
+                            disabled={isLoading || !sessionsValid}
                             style={styles.runBtn}
                         >
                             {isLoading ? 'Running 1,000 Simulations...' : 'Run Projection'}
@@ -161,19 +180,19 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                                 <div style={styles.rangeLabel}>
                                     <span style={styles.rangeLabelTitle}>Pessimistic</span>
                                     <span style={{ color: '#ef4444' }}>
-                                        ${projection.projection.pessimistic.toLocaleString()}
+                                        {usd(projection.projection.pessimistic)}
                                     </span>
                                 </div>
                                 <div style={styles.rangeLabel}>
                                     <span style={styles.rangeLabelTitle}>Expected</span>
                                     <span style={{ color: '#22c55e', fontWeight: 700, fontSize: 20 }}>
-                                        ${projection.projection.expected.toLocaleString()}
+                                        {usd(projection.projection.expected)}
                                     </span>
                                 </div>
                                 <div style={styles.rangeLabel}>
                                     <span style={styles.rangeLabelTitle}>Best Case</span>
                                     <span style={{ color: '#92cfff' }}>
-                                        ${projection.projection.bestCase.toLocaleString()}
+                                        {usd(projection.projection.bestCase)}
                                     </span>
                                 </div>
                             </div>
@@ -186,8 +205,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                                 ...styles.gainValue,
                                 color: projection.projection.expectedGain >= 0 ? '#22c55e' : '#ef4444'
                             }}>
-                                {projection.projection.expectedGain >= 0 ? '+' : ''}
-                                ${projection.projection.expectedGain.toLocaleString()}
+                                {signedUsd(projection.projection.expectedGain)}
                                 <span style={styles.gainPercent}>
                                     ({projection.projection.expectedGainPercent}%)
                                 </span>
@@ -202,13 +220,13 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                             </div>
                             <div style={styles.probBox}>
                                 <span style={{ ...styles.probValue, color: '#ef4444' }}>
-                                    {projection.projection.ruinProbability}%
+                                    {projection.projection.ruinProbability == null ? 'N/A' : projection.projection.ruinProbability + '%'}
                                 </span>
                                 <span style={styles.probLabel}>Risk Of Ruin</span>
                             </div>
                             <div style={styles.probBox}>
                                 <span style={styles.probValue}>
-                                    ${projection.projection.avgMaxDrawdown.toLocaleString()}
+                                    {usd(projection.projection.avgMaxDrawdown)}
                                 </span>
                                 <span style={styles.probLabel}>Avg Max Drawdown</span>
                             </div>
@@ -217,18 +235,17 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                         {/* Inputs Used */}
                         <div style={styles.inputsUsed}>
                             <span style={styles.inputItem}>
-                                Avg Session: ${projection.inputs.avgSessionResult > 0 ? '+' : ''}
-                                {projection.inputs.avgSessionResult}
+                                Avg Session: {signedUsd(projection.inputs.avgSessionResult)}
                             </span>
                             <span style={styles.inputItem}>
-                                Std Dev: ±${projection.inputs.sessionStdDev}
+                                Std Dev: ±{usd(projection.inputs.sessionStdDev)}
                             </span>
                             <span style={styles.inputItem}>
-                                Based On {projection.inputs.historicalSessions} Sessions
+                                Based On {projection.inputs.historicalSessions} Sessions · {projection.projection.sessionsSimulated} Simulated
                             </span>
                         </div>
 
-                        <button onClick={() => setProjection(null)} style={styles.rerunBtn}>
+                        <button type="button" onClick={() => setProjection(null)} style={styles.rerunBtn}>
                             Adjust Settings
                         </button>
                     </>
