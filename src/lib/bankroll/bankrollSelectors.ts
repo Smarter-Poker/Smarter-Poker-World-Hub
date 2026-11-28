@@ -455,17 +455,19 @@ const TRIP_ENTRY_COLUMNS = 'id, trip_id, category, gross_in, gross_out, net_resu
  */
 const TRIP_ID_BATCH = 100;
 
+// Paged (fetchAllRows): an unpaged read stopped at PostgREST's 1,000th row, so
+// a player whose trips held more rows than that saw trip totals short by the
+// rows that did not come back.
 async function fetchTripEntryRows(userId: string, tripIds: string[]) {
   const rows = [];
   for (let start = 0; start < tripIds.length; start += TRIP_ID_BATCH) {
-    const { data, error } = await supabase
+    rows.push(...await fetchAllRows(() => supabase
       .from('bankroll_ledger')
       .select(TRIP_ENTRY_COLUMNS)
       .eq('user_id', userId)
       .eq('is_revision', false)
-      .in('trip_id', tripIds.slice(start, start + TRIP_ID_BATCH));
-    if (error) throw error;
-    rows.push(...(data || []));
+      .in('trip_id', tripIds.slice(start, start + TRIP_ID_BATCH))
+      .order('id', { ascending: true })));
   }
   return rows;
 }
@@ -673,16 +675,17 @@ export async function getTripReport(userId: string, tripId: string) {
   if (tripError) throw tripError;
   if (!trip) throw new Error('Trip not found');
 
-  const { data: entries, error: entriesError } = await supabase
+  // Every row of the trip, a page at a time (this read also stopped at 1,000).
+  const entries = await fetchAllRows(() => supabase
     .from('bankroll_ledger')
     .select('*')
     .eq('user_id', userId)
     .eq('trip_id', tripId)
     .eq('is_revision', false)
     .order('entry_date', { ascending: true })
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true }));
 
-  if (entriesError) throw entriesError;
   return buildTripReport(trip, entries || [], localDay());
 }
 
