@@ -833,7 +833,9 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
   const warm = useCallback(
     (href) => {
       try {
-        router.prefetch(href);
+        // router.prefetch is async; a warm-up cancelled by navigation must
+        // not become an unhandled rejection.
+        Promise.resolve(router.prefetch(href)).catch(() => {});
       } catch (_) {
         // Prefetch is best-effort; navigation itself remains a normal Link.
       }
