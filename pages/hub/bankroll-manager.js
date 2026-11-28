@@ -77,11 +77,13 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getBankrollPreferences, updateBankrollPreferences } from '../../src/services/bankrollPreferences';
 
 // Bankroll library
-import { getBankrollStats } from '../../src/lib/bankroll/calculations';
-import { localDay, parseLedgerDay } from '../../src/lib/bankroll/localDates.mjs';
+import { getBankrollStats, calculateTotalBankroll } from '../../src/lib/bankroll/calculations';
+import { centsToDollars, resultsCents, toCents } from '../../src/lib/bankroll/ledgerMath.mjs';
+import { evaluateRuleViolations, monthBounds } from '../../src/lib/bankroll/ruleViolations.mjs';
+import { parseLedgerDay } from '../../src/lib/bankroll/localDates.mjs';
 import { runLeakAnalysis } from '../../src/lib/bankroll/leakDetection';
 import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
-import { fetchLedgerEntries, fetchReportLedger, fetchTrips, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, getActiveSeries, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
+import { fetchReportLedger, fetchTrips, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, getActiveSeries, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
 import {
   receiptActions, tripFromReceipt, w2gRowFromReceipt, receiptRowFromScan, ledgerCategoryFor,
   matchLocationByName, findOpenSessionFor, rankEntriesForReceipt,
@@ -725,7 +727,7 @@ export default function BankrollManagerPage() {
     return () => gf.stop();
   }, [userId]);
 
-  const handleLogSubmit = async () => {
+  const handleLogSubmit = async (saved) => {
     // The step nothing measured: an account that had never written a bankroll
     // entry just wrote one. `entries` is this user's ledger as it was BEFORE
     // the save, so an empty one means this is the first.
@@ -736,55 +738,25 @@ export default function BankrollManagerPage() {
     setRefreshTrigger(prev => prev + 1);
     await loadData();
 
-    // Check rules for violations after logging
-    if (userId) {
+    // Bankroll Rules are judged against the row just saved and its own day and
+    // month (src/lib/bankroll/ruleViolations.mjs), never against whatever row
+    // happens to be newest or against deposits and withdrawals.
+    if (userId && saved && saved.entry_date) {
       try {
         const rules = await fetchBankrollRules(userId);
         if (rules && rules.length > 0) {
-          // Refresh stats & entries to get latest data
-          const dateRange = getDateRangeFilter(timeFilter);
-          const [latestStats, latestEntries] = await Promise.all([
-            getBankrollStats(userId, dateRange.startDate, dateRange.endDate, locationFilter),
-            fetchLedgerEntries(userId, { startDate: dateRange.startDate, endDate: dateRange.endDate, includeExpenses: true, limit: 50 }),
+          const month = monthBounds(saved.entry_date);
+          const [bankroll, monthEntries] = await Promise.all([
+            calculateTotalBankroll(userId),
+            fetchReportLedger(userId, { startDate: month.startDate, endDate: month.endDate, includeExpenses: true }),
           ]);
-
-          const violations = [];
-          const today = localDay();
-          const todayEntries = latestEntries.filter(e => e.entry_date === today);
-          const todayNet = todayEntries.reduce((sum, e) => sum + ((e.gross_out || 0) - (e.gross_in || 0)), 0);
-          const lastEntry = latestEntries[0];
-          const lastSessionNet = lastEntry ? ((lastEntry.gross_out || 0) - (lastEntry.gross_in || 0)) : 0;
-
-          for (const rule of rules) {
-            const val = rule.value;
-            switch (rule.rule_type) {
-              case 'stop_loss_session':
-                if (lastSessionNet < 0 && Math.abs(lastSessionNet) >= val)
-                  violations.push({ rule: 'Session Stop-Loss', limit: `$${val}`, actual: `-$${Math.abs(lastSessionNet)}`, severity: 'high' });
-                break;
-              case 'stop_loss_day':
-                if (todayNet < 0 && Math.abs(todayNet) >= val)
-                  violations.push({ rule: 'Daily Stop-Loss', limit: `$${val}`, actual: `-$${Math.abs(todayNet)}`, severity: 'high' });
-                break;
-              case 'max_buyin_percent': {
-                const bankroll = latestStats?.totalBankroll || 0;
-                if (bankroll > 0 && lastEntry) {
-                  const buyinPercent = ((lastEntry.gross_in || 0) / bankroll) * 100;
-                  if (buyinPercent > val)
-                    violations.push({ rule: 'Max Buy-In %', limit: `${val}%`, actual: `${buyinPercent.toFixed(1)}%`, severity: 'medium' });
-                }
-                break;
-              }
-              case 'win_goal_session':
-                if (lastSessionNet > 0 && lastSessionNet >= val)
-                  violations.push({ rule: 'Win Goal Reached!', limit: `$${val}`, actual: `+$${lastSessionNet}`, severity: 'info' });
-                break;
-            }
-          }
-
-          if (violations.length > 0) {
-            setRuleViolations(violations);
-          }
+          const violations = evaluateRuleViolations({
+            rules,
+            entry: saved,
+            monthEntries,
+            bankrollCents: toCents(bankroll),
+          });
+          if (violations.length > 0) setRuleViolations(violations);
         }
       } catch (err) {
         console.warn('[RuleCheck] Error:', err);
@@ -1937,9 +1909,13 @@ export default function BankrollManagerPage() {
                       <StatCard
                         title="Net Results"
                         value={
-                          stats
-                            ? formatCurrency(stats.allInNet, preferences.currencyEUR)
-                            : '-'
+                          // Summed from the rows the trend chart plots, so the
+                          // tile and the chart's last point always agree.
+                          reportReady
+                            ? formatCurrency(centsToDollars(resultsCents(chartEntries)), preferences.currencyEUR)
+                            : stats
+                              ? formatCurrency(stats.allInNet, preferences.currencyEUR)
+                              : '-'
                         }
                         isLoading={isLoading}
                       />
@@ -2337,11 +2313,7 @@ export default function BankrollManagerPage() {
               {activeSection === 'goals' && (
                 <div className={`sd-panel ${layout.panel}`}>
                   <h2 className="sd-section-title">Bankroll Goals</h2>
-                  <BankrollGoals
-                    userId={userId}
-                    currentBankroll={stats?.totalBankroll || 0}
-                    periodPL={stats?.monthlyPL || 0}
-                  />
+                  <BankrollGoals userId={userId} />
                 </div>
               )}
 
@@ -2798,7 +2770,7 @@ export default function BankrollManagerPage() {
                   markReceiptAssigned(receiptId, RECEIPT_TARGETS.LEDGER_ENTRY, saved.id);
                   capture(FunnelEvents.BANKROLL_RECEIPT_FILED, { destination: entry && entry.category === 'expense' ? 'expense' : 'session', bulk: false });
                 }
-                handleLogSubmit(); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); setDefaultReceiptData(null);
+                handleLogSubmit(saved && saved.id ? saved : null); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); setDefaultReceiptData(null);
               }}
             />
           ) : (
@@ -3001,6 +2973,7 @@ export default function BankrollManagerPage() {
         {showAdjustModal && (
           <AdjustBankrollModal
             userId={userId}
+            currentBalance={stats ? stats.totalBankroll : null}
             onComplete={() => {
               clearActionView('adjust-bankroll');
               setShowAdjustModal(false);
