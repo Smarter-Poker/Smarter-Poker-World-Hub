@@ -627,7 +627,18 @@ ALL_CRONS = [
     # more than one statement can do inside any workable timeout. The drain is
     # time-boxed and resumable (cursor in club_stats_rebuild_log), so a run
     # that stops mid-table simply continues next time.
-    ('/api/cron/club-stats-maintenance',    dict(minute='*/15')),
+    #
+    # TICKS CLEAR OF THE MAINTENANCE BREAK (2026-11-22). The route does none of
+    # its work while an engine_maintenance_break row exists (window-migration
+    # lock safety, 2026-11-13). On '*/15' the :00 tick of every cycle landed
+    # inside the break (announced :58:00, thawed by :03:42 on every scheduled
+    # cycle measured 11-21..11-22) and was skipped, so the hand index went
+    # 15 + 15 + 5 (index cushion) = 35 minutes without a roll and
+    # ClubArenaStatsIndexLag (30 min) fired ten minutes after every cutover,
+    # eight times a day under the three-hourly schedule. Same 15-minute
+    # cadence, offset so no tick can fall in the break; see
+    # MAINTENANCE_BREAK_MINUTES and _validate_break_clear_schedules().
+    ('/api/cron/club-stats-maintenance',    dict(minute='7,22,37,52')),
     # ── Player restriction housekeeping (2026-09-04, Phase 4) ─────────────
     # Two idempotent passes on ca_player_restrictions and the observation log
     # beside it: mark run-out restrictions expired, and prune observations
@@ -2923,6 +2934,56 @@ def _validate_runtime_contract() -> None:
         raise RuntimeError('invalid Open Claw runtime configuration: ' + '; '.join(failures))
 
 
+# Minutes of the hour a scheduled engine maintenance break can occupy, with
+# margin: announced at :58:00, thawed by :03:42 (every scheduled cycle,
+# measured 2026-11-21..22), plus the 90 s handler budget of a run started
+# just before the announcement. A BREAK_CLEAR_JOBS tick may not start here.
+MAINTENANCE_BREAK_MINUTES = frozenset({56, 57, 58, 59, 0, 1, 2, 3, 4, 5})
+# Routes that skip all their work while the break row exists, so a tick inside
+# the break is a lost tick rather than a delayed one.
+BREAK_CLEAR_JOBS = frozenset({'/api/cron/club-stats-maintenance'})
+
+
+def _cron_minutes(field) -> set:
+    """Expand an APScheduler minute field (int, '*', '*/N', 'a-b', lists)."""
+    if isinstance(field, int):
+        return {field}
+    minutes = set()
+    for part in str(field).split(','):
+        part = part.strip()
+        step = 1
+        if '/' in part:
+            part, step_text = part.split('/', 1)
+            step = int(step_text)
+        if part in ('*', ''):
+            low, high = 0, 59
+        elif '-' in part:
+            low_text, high_text = part.split('-', 1)
+            low, high = int(low_text), int(high_text)
+        else:
+            low = high = int(part)
+        minutes.update(range(low, high + 1, step))
+    return minutes
+
+
+def _validate_break_clear_schedules(crons=None) -> None:
+    """Fail closed when a break-skipping route has a tick inside the break."""
+    failures = []
+    seen = set()
+    for path, trigger_kwargs in (ALL_CRONS if crons is None else crons):
+        if path not in BREAK_CLEAR_JOBS:
+            continue
+        seen.add(path)
+        inside = sorted(_cron_minutes(trigger_kwargs.get('minute', 0)) & MAINTENANCE_BREAK_MINUTES)
+        if inside:
+            failures.append(f'{path} ticks inside the maintenance break at minute(s) {inside}')
+    missing = sorted(BREAK_CLEAR_JOBS - seen)
+    if missing:
+        failures.append('break-clear job(s) not scheduled: ' + ', '.join(missing))
+    if failures:
+        raise RuntimeError('invalid Open Claw schedule: ' + '; '.join(failures))
+
+
 def _validate_required_scripts() -> None:
     required_script_paths = {
         path: SCRIPT_JOB_SCRIPTS.get(path, SCRAPER_PY)
@@ -2944,6 +3005,7 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1:] != ['--preflight-only']:
         raise RuntimeError('unsupported dispatcher argument')
     _validate_runtime_contract()
+    _validate_break_clear_schedules()
     _validate_required_scripts()
     if sys.argv[1:] == ['--preflight-only']:
         log.info('Open Claw dispatcher preflight: runtime and script contract verified')

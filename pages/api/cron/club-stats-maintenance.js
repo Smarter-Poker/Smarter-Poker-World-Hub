@@ -121,9 +121,14 @@ async function handler(req, res) {
   const started = Date.now();
 
   // ── THE DAILY MAINTENANCE BREAK BELONGS TO THE MIGRATIONS ─────────────────
-  // Open Claw fires this route at :00, :15, :30 and :45, so one run always
-  // lands at 04:00 America/Chicago, inside the five-minute daily break whose
-  // only database work is the window migrations. On 2026-11-13 this route's
+  // Open Claw fired this route at :00, :15, :30 and :45 until 2026-11-22, so
+  // one run always landed at 04:00 America/Chicago, inside the five-minute
+  // daily break whose only database work is the window migrations. It now
+  // fires at :07, :22, :37 and :52, clear of every scheduled break (see
+  // MAINTENANCE_BREAK_MINUTES in scripts/openclaw-cron-dispatcher.py): a
+  // skipped tick left the hand index 35 minutes stale and paged
+  // ClubArenaStatsIndexLag after every cutover. The skip below remains for
+  // unscheduled breaks. On 2026-11-13 this route's
   // ca_roll_hand_stats_forward() call had held AccessShareLock on
   // public.tournaments for 17.9 s at 10:00:28Z, and both window migrations
   // that needed public.tournaments / public.tournament_players were refused
