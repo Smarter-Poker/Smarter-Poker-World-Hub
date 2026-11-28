@@ -4,7 +4,7 @@
  * Clean URL entry point for GTO Preflop Range Matrix Hub.
  */
 
-import PreflopRangeMatrixHub from './preflop-ranges/index';
+import PreflopRangeMatrixHub from '../../src/components/seo/PreflopRangeMatrixHub';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 

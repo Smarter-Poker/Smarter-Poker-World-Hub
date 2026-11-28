@@ -143,6 +143,7 @@ const TripTracker = lazySection(() => import('../../src/components/bankroll/Trip
 const TokeTracker = lazySection(() => import('../../src/components/bankroll/TokeTracker'));
 const CategoryOverview = lazySection(() => import('../../src/components/bankroll/CategoryOverview'));
 const AdvancedTaxReport = lazySection(() => import('../../src/components/bankroll/AdvancedTaxReport'));
+const BankrollBadges = lazySection(() => import('../../src/components/bankroll/BankrollBadges'));
 const SocialStakingProfile = lazySection(() => import('../../src/components/bankroll/SocialStakingProfile'));
 const TournamentCalendar = lazySection(() => import('../../src/components/bankroll/TournamentCalendar'));
 import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollModal';
@@ -186,6 +187,7 @@ const MENU_SECTION_TITLES = {
   settings: 'Settings',
   rules: 'Bankroll Rules',
   goals: 'Bankroll Goals',
+  badges: 'Badges',
 };
 
 function resolveBankrollView(requestedView) {
@@ -1496,7 +1498,7 @@ export default function BankrollManagerPage() {
           />
 
           <BankrollImageHeader className={layout.mast} title={sectionTitle}
-            art={headerSection === 'dashboard' ? 'bankroll' : headerSection} section={headerSection}
+            art={headerSection === 'dashboard' ? 'bankroll' : headerSection === 'badges' ? 'goals' : headerSection} section={headerSection}
             parent={sectionTitle !== 'Bankroll Manager' ? 'Bankroll Manager' : undefined}
             onTutorial={requestPageTutorial}
             back={isDashboard ? undefined : { href: '/hub/bankroll-manager', shallow: true }}
@@ -2348,6 +2350,14 @@ export default function BankrollManagerPage() {
                     Export Data
                     <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
                   </button>
+                </div>
+              )}
+
+              {/* Badges View (footer BADGES button) */}
+              {activeSection === 'badges' && (
+                <div className={`sd-panel ${layout.panel}`}>
+                  <h2 className="sd-section-title">Badges</h2>
+                  <BankrollBadges userId={userId} />
                 </div>
               )}
 

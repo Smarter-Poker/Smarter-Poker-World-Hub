@@ -11,18 +11,17 @@
 import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import SEOHead from '../../../src/components/seo/SEOHead';
-import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
-import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
-import FaqSection from '../../../src/components/seo/FaqSection';
-import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
-import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
-import SmarterCalculatorSaveBar from '../../../src/components/seo/SmarterCalculatorSaveBar';
-import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
-import { RFI, ALL_HANDS, RANKS } from '../../../src/config/solverRanges';
-import { combosFor, describeRange, TOTAL_COMBOS } from '../../../src/lib/seo/preflopReference';
-import { STARTING_HANDS } from '../../../src/content/learn/hands';
-import { setPublicSeoHtmlCache } from '../../../src/lib/seo/edgeCacheHeaders.mjs';
+import SEOHead from './SEOHead';
+import AiPromptLauncher from './AiPromptLauncher';
+import CitationBacklinkBox from './CitationBacklinkBox';
+import FaqSection from './FaqSection';
+import SmarterConversionCta from './SmarterConversionCta';
+import SmarterAccountUnlockGate from './SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from './SmarterCalculatorSaveBar';
+import { hubProductSchema } from '../../lib/seo/hubPageSchema';
+import { RFI, ALL_HANDS, RANKS } from '../../config/solverRanges';
+import { combosFor, describeRange, TOTAL_COMBOS } from '../../lib/seo/preflopReference';
+import { STARTING_HANDS } from '../../content/learn/hands';
 
 const POSITIONS = [
   { id: 'UTG', name: 'Under The Gun', abbrev: 'UTG', desc: 'Tightest opening range from first position at 6-max table.' },
@@ -788,24 +787,4 @@ export default function PreflopRangeMatrixHub({
       </div>
     </>
   );
-}
-
-export async function getServerSideProps({ req, res, query }) {
-  const acceptHeader = String(req?.headers?.accept || '');
-  const isMarkdownRequested =
-    acceptHeader.includes('text/markdown') ||
-    query?.format === 'md' ||
-    req?.url?.includes('format=md');
-  if (isMarkdownRequested) {
-    const { renderPreflopRangesMarkdown } = await import('../../../src/lib/seo/markdownIngestion.mjs');
-    const position = query?.pos || query?.position || 'UTG';
-    const mdContent = renderPreflopRangesMarkdown({ position });
-    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-    res.setHeader('Vary', 'Accept');
-    res.write(mdContent);
-    res.end();
-    return { props: {} };
-  }
-  setPublicSeoHtmlCache(res);
-  return { props: {} };
 }

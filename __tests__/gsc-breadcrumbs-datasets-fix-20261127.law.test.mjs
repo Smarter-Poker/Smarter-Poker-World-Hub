@@ -90,7 +90,7 @@ test('GSC Breadcrumbs Law: hubProductSchema, hubCollectionSchema, and freerollEv
 });
 
 test('GSC Breadcrumbs Law: positional /tools/preflop-ranges/[position] routes append positional crumb and pass positional markdownPath', () => {
-  const indexSrc = fs.readFileSync(path.join(ROOT, 'pages/tools/preflop-ranges/index.js'), 'utf8');
+  const indexSrc = fs.readFileSync(path.join(ROOT, 'src/components/seo/PreflopRangeMatrixHub.jsx'), 'utf8');
   const posSrc = fs.readFileSync(path.join(ROOT, 'pages/tools/preflop-ranges/[position].js'), 'utf8');
 
   assert.match(indexSrc, /isPositionalRoute\s*=\s*canonicalPath\s*!==\s*'\/tools\/preflop-ranges'/);

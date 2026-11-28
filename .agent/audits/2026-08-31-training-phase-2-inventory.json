@@ -18,7 +18,7 @@
     "dialogs": 22,
     "persistenceFiles": 100,
     "realtimeFiles": 7,
-    "tests": 207,
+    "tests": 208,
     "markerCandidates": 408,
     "possibleUnwiredFunctions": 515,
     "routeStateCells": 752,
@@ -9825,7 +9825,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "empty": {
@@ -9857,7 +9858,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "error": {
@@ -9885,7 +9887,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "retry": {
@@ -9904,7 +9907,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "success": {
@@ -9926,7 +9930,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "stale": {
@@ -9947,7 +9952,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "offline": {
@@ -9963,7 +9969,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "authExpiry": {
@@ -9979,7 +9986,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         }
       },
@@ -9989,7 +9997,8 @@
         "__tests__/phase23-calculator-schema.test.mjs",
         "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
-        "e2e/020-hamburger.spec.ts"
+        "e2e/020-hamburger.spec.ts",
+        "e2e/032-image-header-help.spec.ts"
       ],
       "uncoveredStates": []
     },
@@ -13228,7 +13237,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "empty": {
@@ -13265,7 +13275,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "error": {
@@ -13307,7 +13318,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "retry": {
@@ -13334,7 +13346,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "success": {
@@ -13372,7 +13385,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "stale": {
@@ -13415,7 +13429,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "offline": {
@@ -13439,7 +13454,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "authExpiry": {
@@ -13466,7 +13482,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         }
       },
@@ -13480,7 +13497,8 @@
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/trivia-club-spectator-training.test.mjs",
         "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
-        "e2e/020-hamburger.spec.ts"
+        "e2e/020-hamburger.spec.ts",
+        "e2e/032-image-header-help.spec.ts"
       ],
       "uncoveredStates": []
     },
@@ -13532,7 +13550,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "empty": {
@@ -13554,7 +13573,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "error": {
@@ -13577,7 +13597,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "retry": {
@@ -13598,7 +13619,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "success": {
@@ -13620,7 +13642,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "stale": {
@@ -13641,7 +13664,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "offline": {
@@ -13663,7 +13687,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         },
         "authExpiry": {
@@ -13684,7 +13709,8 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "e2e/020-hamburger.spec.ts"
+            "e2e/020-hamburger.spec.ts",
+            "e2e/032-image-header-help.spec.ts"
           ]
         }
       },
@@ -13701,7 +13727,8 @@
         "__tests__/phase23-calculator-schema.test.mjs",
         "__tests__/seo-backlink-programme-invariants.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
-        "e2e/020-hamburger.spec.ts"
+        "e2e/020-hamburger.spec.ts",
+        "e2e/032-image-header-help.spec.ts"
       ],
       "uncoveredStates": []
     },
@@ -88880,6 +88907,7 @@
     "e2e/021-personal-assistant.spec.ts",
     "e2e/025-poker-odds-controls.spec.ts",
     "e2e/03-training-gto.spec.ts",
+    "e2e/032-image-header-help.spec.ts",
     "e2e/09-games.spec.ts",
     "e2e/global-footer-visual.spec.ts"
   ],
@@ -99974,6 +100002,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/backlink-embed-citation-engine.test.mjs",
         "__tests__/training-final-honesty-surfaces.test.mjs",
         "__tests__/training-preflop-chart-authority.test.mjs",
         "__tests__/training-reference-is-public-a.test.mjs"
@@ -124447,8 +124476,6 @@
       "realtime": [],
       "tests": [
         "__tests__/aeo-ai-agent-api.test.mjs",
-        "__tests__/aeo-dynamic-og-cards.test.mjs",
-        "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/aeo-tool-schemas.test.mjs",
         "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
@@ -124459,10 +124486,8 @@
         "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
-        "__tests__/gsc-series5-phase7.test.mjs",
         "__tests__/horse-poker-gto-policy.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
-        "__tests__/markdown-ingestion.test.mjs",
         "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
         "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
@@ -124470,7 +124495,6 @@
         "__tests__/pa-review-workstation.test.mjs",
         "__tests__/page-tutorials.test.mjs",
         "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
-        "__tests__/phase23-calculator-schema.test.mjs",
         "__tests__/seo-backlink-programme-invariants.law.test.mjs",
         "__tests__/smarter-poker-magazine.law.test.mjs",
         "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
@@ -130747,7 +130771,6 @@
           "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges.js",
           "pages/tools/preflop-ranges/[position].js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -130766,6 +130789,7 @@
           "pages/tools/winrate-confidence-calculator.js",
           "pages/verification-methodology.js",
           "src/components/features/FeatureLanderLayout.js",
+          "src/components/seo/PreflopRangeMatrixHub.jsx",
           "src/components/seo/TourPageSummary.js"
         ]
       },
@@ -130851,7 +130875,6 @@
           "pages/tools/poker-trip-planner.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -130870,6 +130893,7 @@
           "pages/tools/winrate-confidence-calculator.js",
           "src/components/features/FeatureLanderLayout.js",
           "src/components/seo/HubPageSummary.js",
+          "src/components/seo/PreflopRangeMatrixHub.jsx",
           "src/components/training/TrainingGameEntry.jsx"
         ]
       },
@@ -133494,7 +133518,6 @@
           "pages/tools/poker-trip-planner.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -133511,6 +133534,7 @@
           "pages/tools/warmup-cooldown-routine.js",
           "pages/tools/who-wins-calculator.js",
           "pages/tools/winrate-confidence-calculator.js",
+          "src/components/seo/PreflopRangeMatrixHub.jsx",
           "src/lib/seo/summarySchema.js"
         ]
       },
@@ -143119,7 +143143,6 @@
           "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges.js",
           "pages/tools/preflop-ranges/[position].js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -143138,6 +143161,7 @@
           "pages/tools/winrate-confidence-calculator.js",
           "pages/verification-methodology.js",
           "src/components/features/FeatureLanderLayout.js",
+          "src/components/seo/PreflopRangeMatrixHub.jsx",
           "src/components/seo/TourPageSummary.js"
         ]
       },
@@ -143223,7 +143247,6 @@
           "pages/tools/poker-trip-planner.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -143242,6 +143265,7 @@
           "pages/tools/winrate-confidence-calculator.js",
           "src/components/features/FeatureLanderLayout.js",
           "src/components/seo/HubPageSummary.js",
+          "src/components/seo/PreflopRangeMatrixHub.jsx",
           "src/components/training/TrainingGameEntry.jsx"
         ]
       },
@@ -145866,7 +145890,6 @@
           "pages/tools/poker-trip-planner.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -145883,6 +145906,7 @@
           "pages/tools/warmup-cooldown-routine.js",
           "pages/tools/who-wins-calculator.js",
           "pages/tools/winrate-confidence-calculator.js",
+          "src/components/seo/PreflopRangeMatrixHub.jsx",
           "src/lib/seo/summarySchema.js"
         ]
       },

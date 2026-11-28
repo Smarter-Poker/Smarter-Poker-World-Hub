@@ -220,7 +220,7 @@ test('All authority page templates wire CitationBacklinkBox with 7 citation form
     'pages/tools/payout-calculator.js',
     'pages/tools/rake-calculator.js',
     'pages/tools/3bet-calculator.js',
-    'pages/tools/preflop-ranges/index.js',
+    'src/components/seo/PreflopRangeMatrixHub.jsx',
     'pages/hub/training/daily-challenge.js',
   ];
 
@@ -389,7 +389,7 @@ test('All 23 interactive calculators export getServerSideProps and renderHubTool
   const calculatorPages = [
     'pages/tools/poker-odds-calculator.js',
     'pages/tools/icm-calculator.js',
-    'pages/tools/preflop-ranges/index.js',
+    'pages/tools/preflop-ranges.js',
     'pages/tools/pot-odds-calculator.js',
     'pages/tools/push-fold-calculator.js',
     'pages/tools/bankroll-calculator.js',

@@ -22,7 +22,7 @@ const SURFACES = [
   'pages/hub/tournaments/this-weekend.js',
   'pages/hub/training/icm-calculator.js',
   'pages/tools/embeds.js',
-  'pages/tools/preflop-ranges/index.js',
+  'src/components/seo/PreflopRangeMatrixHub.jsx',
   'pages/api/ai/freerolls.js',
   'pages/api/calendar/freerolls.ics.js',
   'pages/api/hub-tool-markdown.js',

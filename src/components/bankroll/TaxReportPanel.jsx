@@ -11,6 +11,9 @@ import { supabase } from '../../lib/supabase';
 import { uploadBankrollFile, removeBankrollObject } from '../../lib/bankroll/receiptStorage';
 import { METAL, ANIMATIONS, GRADIENTS } from './metalStyles';
 import DocumentCropper from './DocumentCropper';
+import { getFreshAccessToken } from '../../lib/authUtils';
+import { parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
+import { formatUsd } from '../../lib/bankroll/ledgerReport.mjs';
 import LiveCameraScanner from './LiveCameraScanner';
 
 const W2G_TYPES = [
@@ -43,9 +46,17 @@ export default function TaxReportPanel({ userId }) {
     const fileInputRef = useRef(null);
 
     const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+    const [w2gError, setW2gError] = useState(null);
+    // The newest request wins: switching years quickly must not let an older
+    // response repaint the vault or the preview with another year's figures.
+    const w2gRequest = useRef(0);
+    const previewRequest = useRef(0);
 
-    // Fetch W-2G forms when year changes
+    // Fetch W-2G forms when year changes, and drop a preview built for another year.
     useEffect(() => {
+        previewRequest.current++;
+        setReport(null);
+        setLoading(false);
         if (userId) fetchW2gForms();
     }, [userId, selectedYear]);
 
@@ -60,7 +71,9 @@ export default function TaxReportPanel({ userId }) {
     }, [userId, selectedYear]);
 
     const fetchW2gForms = async () => {
+        const request = ++w2gRequest.current;
         setW2gLoading(true);
+        setW2gError(null);
         try {
             const { data, error: fetchErr } = await supabase
                 .from('w2g_forms')
@@ -70,11 +83,15 @@ export default function TaxReportPanel({ userId }) {
                 .order('upload_date', { ascending: false });
 
             if (fetchErr) throw fetchErr;
+            if (request !== w2gRequest.current) return;
             setW2gForms(data || []);
         } catch (err) {
             console.warn('W-2G fetch error:', err);
+            if (request !== w2gRequest.current) return;
+            setW2gForms([]);
+            setW2gError('Could Not Load Your W-2G Forms');
         } finally {
-            setW2gLoading(false);
+            if (request === w2gRequest.current) setW2gLoading(false);
         }
     };
 
@@ -168,7 +185,7 @@ export default function TaxReportPanel({ userId }) {
                     // 2026-08-15 CHECK 13 fix: this wrote `amount`, which does not exist
                     // on w2g_forms (real column: gross_amount) — the insert 42703'd and
                     // threw, so uploading a W-2G form NEVER worked.
-                    gross_amount: uploadMeta.amount ? parseFloat(uploadMeta.amount) : null,
+                    gross_amount: Number.isFinite(parseFloat(uploadMeta.amount)) ? parseFloat(uploadMeta.amount) : null,
                     file_url: publicUrl,
                     file_name: uploadFile.name,
                 });
@@ -210,43 +227,52 @@ export default function TaxReportPanel({ userId }) {
         }
     };
 
+    const reportError = (res, fallback) => {
+        if (res.status === 401) return 'Please Sign In To Generate Your Tax Report';
+        if (res.status === 403) return 'Bankroll Pro Or VIP Access Is Required';
+        return fallback;
+    };
+
     const fetchPreview = async () => {
+        const request = ++previewRequest.current;
+        const year = selectedYear;
         setLoading(true);
         setError(null);
         setReport(null);
 
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-            const token = session?.access_token;
+            const token = await getFreshAccessToken();
+            if (!token) throw new Error('Please Sign In To Generate Your Tax Report');
 
-            const res = await fetch(`/api/bankroll/tax-report?year=${selectedYear}&format=json`, {
+            const res = await fetch(`/api/bankroll/tax-report?year=${year}&format=json`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (!res.ok) throw new Error('Failed to fetch report');
+            if (!res.ok) throw new Error(reportError(res, 'Could Not Generate The ' + year + ' Report'));
 
             const data = await res.json();
-            setReport(data);
+            if (request === previewRequest.current) setReport(data);
         } catch (err) {
             console.warn('Tax report error:', err);
-            setError('FAILED TO GENERATE REPORT');
+            if (request === previewRequest.current) setError(err.message || 'Could Not Generate The Report');
         } finally {
-            setLoading(false);
+            if (request === previewRequest.current) setLoading(false);
         }
     };
 
     const downloadPDF = async () => {
         setDownloading(true);
+        setError(null);
 
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-            const token = session?.access_token;
+            const token = await getFreshAccessToken();
+            if (!token) throw new Error('Please Sign In To Download Your Tax Report');
 
             const res = await fetch(`/api/bankroll/tax-report?year=${selectedYear}&format=pdf`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (!res.ok) throw new Error('Download failed');
+            if (!res.ok) throw new Error(reportError(res, 'PDF Download Failed'));
 
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
@@ -256,10 +282,10 @@ export default function TaxReportPanel({ userId }) {
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch (err) {
             console.warn('Download error:', err);
-            setError('DOWNLOAD FAILED');
+            setError(err.message || 'PDF Download Failed');
         } finally {
             setDownloading(false);
         }
@@ -329,16 +355,17 @@ export default function TaxReportPanel({ userId }) {
                         {!showLiveCamera && !uploadFile && (
                             <div style={styles.w2gCaptureArea}>
                                 {/* Camera Scan Button */}
-                                <div
+                                <button
+                                    type="button"
                                     className="sd-button"
                                     onClick={() => setShowLiveCamera(true)}
                                 >
                                     <div style={styles.w2gCameraIcon}>
                                         <Camera size={32} />
                                     </div>
-                                    <p style={styles.w2gCameraText}>TAP TO SCAN W-2G</p>
-                                    <p style={styles.w2gCameraHint}>Auto-Detects And Isolates Document</p>
-                                </div>
+                                    <span style={styles.w2gCameraText}>TAP TO SCAN W-2G</span>
+                                    <span style={styles.w2gCameraHint}>Auto-Detects And Isolates Document</span>
+                                </button>
 
                                 {/* Divider */}
                                 <div style={styles.w2gDivider}>
@@ -463,6 +490,11 @@ export default function TaxReportPanel({ userId }) {
                     <div style={styles.vaultEmpty}>
                         <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', color: METAL.primary }} />
                     </div>
+                ) : w2gError ? (
+                    <div style={styles.vaultEmpty} role="alert">
+                        <span style={{ color: METAL.danger, fontSize: 15, fontWeight: 600 }}>{w2gError}</span>
+                        <button type="button" className="sd-button" onClick={fetchW2gForms}>Retry</button>
+                    </div>
                 ) : w2gForms.length === 0 ? (
                     <div style={styles.vaultEmpty}>
                         <span style={{ color: METAL.textMuted, fontSize: 15, fontFamily: "'Rajdhani', sans-serif", fontWeight: 500 }}>
@@ -484,14 +516,14 @@ export default function TaxReportPanel({ userId }) {
                                             </span>
                                         )}
                                         <span style={{ color: METAL.textSecondary, fontSize: 14 }}>
-                                            {form.file_name || 'W-2G Form'} • {new Date(form.upload_date || form.created_at).toLocaleDateString()}
+                                            {form.file_name || 'W-2G Form'} • {parseLedgerDay(form.upload_date || form.created_at).toLocaleDateString()}
                                         </span>
                                     </div>
                                 </div>
                                 <div style={styles.formCardRight}>
-                                    {form.gross_amount && (
+                                    {form.gross_amount !== null && form.gross_amount !== undefined && (
                                         <span style={styles.formAmount}>
-                                            ${parseFloat(form.gross_amount).toLocaleString()}
+                                            {formatUsd(form.gross_amount)}
                                         </span>
                                     )}
                                     {/* THE TWO FIGURES A RETURN ASKS FOR, APART.
@@ -506,9 +538,9 @@ export default function TaxReportPanel({ userId }) {
                                     {(form.federal_withheld !== null && form.federal_withheld !== undefined)
                                         || (form.state_withheld !== null && form.state_withheld !== undefined) ? (
                                             <span style={styles.formWithholdingSplit}>
-                                                {`Fed $${parseFloat(form.federal_withheld || 0).toLocaleString()}`}
+                                                {`Fed ${formatUsd(form.federal_withheld)}`}
                                                 {' \u00b7 '}
-                                                {`State $${parseFloat(form.state_withheld || 0).toLocaleString()}`}
+                                                {`State ${formatUsd(form.state_withheld)}`}
                                             </span>
                                         ) : null}
                                     <div style={{ display: 'flex', gap: 6 }}>
@@ -567,7 +599,7 @@ export default function TaxReportPanel({ userId }) {
                                 <TrendingUp size={20} />
                             </div>
                             <span style={styles.statValue}>
-                                ${(report.summary?.totalWinnings || 0).toLocaleString()}
+                                {formatUsd(report.summary?.totalWinnings)}
                             </span>
                             <span style={styles.statLabel}>GROSS WINNINGS</span>
                         </div>
@@ -576,7 +608,7 @@ export default function TaxReportPanel({ userId }) {
                                 <TrendingDown size={20} style={{ color: METAL.danger }} />
                             </div>
                             <span style={{ ...styles.statValue, color: METAL.danger }}>
-                                ${(report.summary?.totalLosses || 0).toLocaleString()}
+                                {formatUsd(report.summary?.totalLosses)}
                             </span>
                             <span style={styles.statLabel}>GROSS LOSSES</span>
                         </div>
@@ -588,7 +620,7 @@ export default function TaxReportPanel({ userId }) {
                                 ...styles.statValue,
                                 color: (report.summary?.netGamblingResult || 0) >= 0 ? METAL.success : METAL.danger
                             }}>
-                                ${(report.summary?.netGamblingResult || 0).toLocaleString()}
+                                {formatUsd(report.summary?.netGamblingResult)}
                             </span>
                             <span style={styles.statLabel}>NET RESULT</span>
                         </div>
@@ -604,7 +636,7 @@ export default function TaxReportPanel({ userId }) {
                                     ...styles.breakdownValue,
                                     color: (report.breakdown?.cashGame?.net || 0) >= 0 ? METAL.success : METAL.danger
                                 }}>
-                                    ${(report.breakdown?.cashGame?.net || 0).toLocaleString()}
+                                    {formatUsd(report.breakdown?.cashGame?.net)}
                                 </span>
                             </div>
                             <div style={styles.breakdownCard}>
@@ -613,8 +645,27 @@ export default function TaxReportPanel({ userId }) {
                                     ...styles.breakdownValue,
                                     color: (report.breakdown?.tournament?.net || 0) >= 0 ? METAL.success : METAL.danger
                                 }}>
-                                    ${(report.breakdown?.tournament?.net || 0).toLocaleString()}
+                                    {formatUsd(report.breakdown?.tournament?.net)}
                                 </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* What the year comes to once the loss rules apply */}
+                    <div style={styles.breakdownSection}>
+                        <div style={styles.sectionHeader}>{report.year} SUMMARY · {report.summary?.totalSessions || 0} SESSIONS</div>
+                        <div style={styles.breakdownGrid}>
+                            <div style={styles.breakdownCard}>
+                                <span style={styles.breakdownLabel}>{(report.summary?.lossDeductionRate ?? 1) < 1 ? 'DEDUCTIBLE LOSSES (90%)' : 'DEDUCTIBLE LOSSES'}</span>
+                                <span style={styles.breakdownValue}>{formatUsd(-(report.summary?.deductibleLosses || 0))}</span>
+                            </div>
+                            <div style={styles.breakdownCard}>
+                                <span style={styles.breakdownLabel}>TAXABLE GAMBLING INCOME</span>
+                                <span style={styles.breakdownValue}>{formatUsd(report.summary?.taxableIncome)}</span>
+                            </div>
+                            <div style={styles.breakdownCard}>
+                                <span style={styles.breakdownLabel}>RECORDED EXPENSES</span>
+                                <span style={styles.breakdownValue}>{formatUsd(-(report.summary?.totalExpenses || 0))}</span>
                             </div>
                         </div>
                     </div>
@@ -633,7 +684,7 @@ export default function TaxReportPanel({ userId }) {
                                         <span style={styles.w2gVenue}>{event.venue}</span>
                                     </div>
                                     <span style={styles.w2gAmount}>
-                                        ${event.amount?.toLocaleString()}
+                                        {formatUsd(event.amount)}
                                     </span>
                                 </div>
                             ))}
@@ -659,14 +710,14 @@ export default function TaxReportPanel({ userId }) {
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
                                         <span style={styles.w2gAmount}>
-                                            {form.gross_amount ? `$${parseFloat(form.gross_amount).toLocaleString()}` : '-'}
+                                            {form.gross_amount !== null && form.gross_amount !== undefined ? formatUsd(form.gross_amount) : '-'}
                                         </span>
                                         {(form.federal_withheld !== null && form.federal_withheld !== undefined)
                                             || (form.state_withheld !== null && form.state_withheld !== undefined) ? (
                                                 <div style={styles.w2gWithholdingSplit}>
-                                                    {`Fed $${parseFloat(form.federal_withheld || 0).toLocaleString()}`}
+                                                    {`Fed ${formatUsd(form.federal_withheld)}`}
                                                     {' \u00b7 '}
-                                                    {`State $${parseFloat(form.state_withheld || 0).toLocaleString()}`}
+                                                    {`State ${formatUsd(form.state_withheld)}`}
                                                 </div>
                                             ) : null}
                                     </div>
@@ -897,6 +948,8 @@ const styles = {
     },
     formCard: {
         display: 'flex',
+        flexWrap: 'wrap',
+        gap: 10,
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '12px 14px',
@@ -909,7 +962,7 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-        flex: 1,
+        flex: '1 1 220px',
         minWidth: 0,
     },
     formTypeBadge: {
@@ -934,9 +987,12 @@ const styles = {
     },
     formCardRight: {
         display: 'flex',
+        flexWrap: 'wrap',
         alignItems: 'center',
+        justifyContent: 'flex-end',
         gap: 12,
-        flexShrink: 0,
+        flex: '1 1 auto',
+        minWidth: 0,
     },
     formAmount: {
         fontFamily: "'Rajdhani', sans-serif",
@@ -951,14 +1007,13 @@ const styles = {
         fontSize: 12,
         fontWeight: 600,
         color: METAL.textSecondary,
-        whiteSpace: 'nowrap',
     },
     formActionBtn: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: 36,
-        height: 36,
+        width: 44,
+        height: 44,
         background: METAL.mid,
         border: `2px solid ${METAL.highlight}`,
         borderRadius: 8,
