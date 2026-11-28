@@ -106,6 +106,15 @@ test('the menu wears #SMARTERDESIGN and states honest local practice copy', () =
   assert.doesNotMatch(PAGE, /className="preflop-launch-difficulty"\s+style=/, 'the difficulty chip has no inline per-mode colour');
 });
 
+test('a mastered level says Mastered once, and the letter grade leads its chip', () => {
+  // The state chip already reads Mastered; the bar label states the gate instead.
+  assert.doesNotMatch(PAGE, /<ShieldCheck size=\{12\} aria-hidden \/> Mastered/);
+  assert.match(PAGE, /<ShieldCheck size=\{12\} aria-hidden \/> 85% Gate Cleared/);
+  assert.match(PAGE, /className="preflop-grade-letter"/);
+  assert.match(PAGE, /'--grade-tone': gradeTone\(memoryDashboard\.current_grade\)/);
+  assert.match(LAYER, /\.preflop-grade-chip \.preflop-grade-letter \{[^}]*font-size: 24px/);
+});
+
 test('every game screen renders the shared PreflopGameKit', () => {
   for (const name of ['GameFrame', 'GameTopBar', 'GameIntro', 'GameResult', 'GameActions', 'GameShare', 'GameCoachTip', 'GameSuggestedNext', 'GameNextButton']) {
     assert.match(KIT, new RegExp(`export function ${name}\\b`), `${name} is exported`);

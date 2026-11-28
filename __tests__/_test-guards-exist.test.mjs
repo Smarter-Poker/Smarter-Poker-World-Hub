@@ -170,6 +170,7 @@ import './bankroll-export-download.test.mjs';
 import './bankroll-analytics-view.test.mjs';
 import './toke-tracker-pages.test.mjs';
 import './bankroll-live-suite.test.mjs';
+import './bankroll-shell-wiring.test.mjs';
 import './bankroll-staking-math.test.mjs';
 import './bankroll-toke-report.test.mjs';
 import './bankroll-ledger-math.test.mjs';
@@ -1006,6 +1007,8 @@ import './trivia-hardening-audit.test.mjs';
 import './jarvis-hand-vision.test.mjs';
 import './trivia-phase4-polish.test.mjs';
 import './a-dropped-connection-is-not-a-stale-build.law.test.mjs';
+import './the-live-stream-sdk-stays-off-pages-that-never-stream.law.test.mjs';
+import './the-open-command-menu-paints-above-the-header.law.test.mjs';
 import './otc-tier1-overlay-attribution-onetap-20261127.law.test.mjs';
 import './otc-tier2-leak-finder-and-activation-20261127.law.test.mjs';
 import './otc-tier2-bofu-compare-and-matchups-20261127.law.test.mjs';
@@ -1014,6 +1017,10 @@ import './otc-tier4-live-funnel-telemetry-20261127.law.test.mjs';
 import './otc-tier4-reminder-sync-and-viral-loop-20261127.law.test.mjs';
 import './otc-tier4-local-geo-conversion-20261127.law.test.mjs';
 import './otc-tier4-100-matchups-and-live-drip-20261127.law.test.mjs';
+import './otc-tier5-overlay-and-pwa-peak-20261128.law.test.mjs';
+import './otc-tier5-metered-calc-and-magic-link-20261128.law.test.mjs';
+import './otc-tier5-glossary-rules-bridges-20261128.law.test.mjs';
+import './otc-tier5-day1-drip-and-bofu-switchers-20261128.law.test.mjs';
 import './site-wide-payload-budget.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {

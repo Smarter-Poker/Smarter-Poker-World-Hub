@@ -178,7 +178,7 @@ test('Bankroll dashboard owns its launcher, popup actions and contextual Add con
   });
   await page.goto('/hub/bankroll-manager');
   const nav = page.getByRole('navigation', { name: 'Bankroll Manager Sections' });
-  await expect(nav.getByRole('button')).toHaveCount(14);
+  await expect(nav.getByRole('button')).toHaveCount(16);
   await expect(page.locator('[data-tutorial="insights"]')).toBeVisible();
   expect(await nav.evaluate(el => Boolean(el.compareDocumentPosition(document.querySelector('[data-tutorial="insights"]')!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
   await nav.getByRole('button', { name: 'Adjust Bankroll' }).click();
@@ -196,7 +196,7 @@ test('Bankroll dashboard owns its launcher, popup actions and contextual Add con
   await expect(editor.getByRole('button', {name:'Withdraw From Bankroll'})).toBeEnabled();
   await page.getByRole('dialog', { name: 'Adjust Bankroll' }).getByRole('button', { name: 'Close Adjust Bankroll' }).click();
   await expect(adjust).toBeHidden();
-  await expect(nav.getByRole('button')).toHaveCount(14);
+  await expect(nav.getByRole('button')).toHaveCount(16);
   await nav.getByRole('button', { name: 'Player Notes' }).click();
   await expect(page).toHaveURL(/view=players/);
   await expect(nav).toHaveCount(0);
@@ -210,9 +210,9 @@ test('Bankroll dashboard owns its launcher, popup actions and contextual Add con
   // Back To Dashboard sits above the image header, never inside it (Dan, 2026-11-27).
   await expect(header.getByRole('link', { name: 'Back To Dashboard' })).toHaveCount(0);
   await page.locator('[data-header-back]').click();
-  await expect(nav.getByRole('button')).toHaveCount(14);
+  await expect(nav.getByRole('button')).toHaveCount(16);
   await page.goto('/hub/bankroll-manager?view=obsolete-bookmark');
-  await expect(nav.getByRole('button')).toHaveCount(14);
+  await expect(nav.getByRole('button')).toHaveCount(16);
 });
 
 test('A bookmarked projection opens its popup and returns to the dashboard', async ({ page }) => {
@@ -224,7 +224,7 @@ test('A bookmarked projection opens its popup and returns to the dashboard', asy
   await modal.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(modal).toBeHidden();
   await expect(page).toHaveURL(/\/hub\/bankroll-manager$/);
-  await expect(page.getByRole('navigation', { name: 'Bankroll Manager Sections' }).getByRole('button')).toHaveCount(14);
+  await expect(page.getByRole('navigation', { name: 'Bankroll Manager Sections' }).getByRole('button')).toHaveCount(16);
 });
 
 test('Tournament entry names its controls and keeps optional fields linked to their visible labels', async ({ page }) => {

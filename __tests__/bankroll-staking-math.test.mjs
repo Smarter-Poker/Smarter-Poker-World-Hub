@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   buildStakingStatementCsv,
+  isStakeableEntry,
   linkableStakingEntries,
   normaliseStakingTerms,
   replayStakingDeal,
@@ -148,4 +149,32 @@ test('staking amounts are shown to the cent so the shares visibly add up', () =>
   const tracker = readFileSync(new URL('../src/components/bankroll/StakingTracker.jsx', import.meta.url), 'utf8');
   assert.doesNotMatch(tracker, /from '..\/..\/lib\/bankroll\/currencyUtils'/);
   assert.match(tracker, /maximumFractionDigits: 2/);
+});
+
+test('only poker cash games and tournaments can be linked to a staking deal', () => {
+  const entries = [
+    { id: 'cash', category: 'poker_cash', entry_date: '2026-11-05' },
+    { id: 'mtt', category: 'poker_mtt', entry_date: '2026-11-05' },
+    { id: 'slots', category: 'slots', entry_date: '2026-11-05' },
+    { id: 'sports', category: 'sports', entry_date: '2026-11-05' },
+    { id: 'table', category: 'casino_table', entry_date: '2026-11-05' },
+    { id: 'dep', category: 'deposit', entry_date: '2026-11-05' },
+    { id: 'wd', category: 'withdrawal', entry_date: '2026-11-05' },
+    { id: 'exp', category: 'expense', entry_date: '2026-11-05' },
+  ];
+  assert.deepEqual(linkableStakingEntries(entries).map((e) => e.id), ['cash', 'mtt']);
+  assert.equal(isStakeableEntry(null), false);
+  assert.equal(isStakeableEntry({ category: 'slots' }), false);
+});
+
+test('linking refuses a non-poker entry before anything is written', () => {
+  const src = readFileSync(new URL('../src/lib/bankroll/bankrollSelectors.ts', import.meta.url), 'utf8');
+  const fn = src.slice(src.indexOf('export async function linkStakingSession'));
+  assert.ok(fn.indexOf('isStakeableEntry(entry)') > -1, 'linkStakingSession checks the entry');
+  assert.ok(fn.indexOf('isStakeableEntry(entry)') < fn.indexOf(".from('staking_sessions')"), 'the check comes before the insert');
+});
+
+test('the unused revision writer that hid the corrected row is gone', () => {
+  const src = readFileSync(new URL('../src/lib/bankroll/bankrollSelectors.ts', import.meta.url), 'utf8');
+  assert.equal(src.includes('createRevisionEntry'), false);
 });

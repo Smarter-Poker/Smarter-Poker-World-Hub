@@ -914,24 +914,16 @@ function PresenceHeartbeat() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DEFERRED SHELL SURFACES (2026-11-27) - mounted when they can show something
+// JARVIS MOUNTS ON FIRST OPEN (2026-11-27)
 //
-// next/dynamic kept JarvisPanel and GlobalPiPManager out of the _app chunk, but
-// both were rendered unconditionally, so their chunks were still fetched on
-// every page right after hydration: Jarvis ~33 KB compressed, and the PiP
-// manager pulled LiveStreamService and livekit-client, ~134 KB compressed.
-// Together they were most of why /hub/bankroll-manager and
-// /hub/preflop-charts shipped 954 KB and 971 KB against the 850 KB mobile
-// budget (e2e/mobile-budget.spec.ts).
-//
-// JarvisPanel returns null while closed and does no work then (its only
-// effect starts a conversation when isOpen turns true), so it mounts on the
-// first open and STAYS mounted - closing and reopening keeps the conversation
-// exactly as before. GlobalPiPManager can only show a window while
-// liveStreamService.room is set, which needs LiveStreamService loaded; it
-// mounts the moment that module evaluates: LiveStreamService sets
-// window.__smarterLiveStreamServiceLoaded and fires
-// 'smarter:live-stream-service-loaded' at module scope.
+// next/dynamic kept JarvisPanel out of the _app chunk, but it was rendered
+// unconditionally, so its chunk (~33 KB compressed) was still fetched on
+// every page right after hydration, counted against every route's mobile JS
+// budget (e2e/mobile-budget.spec.ts). JarvisPanel returns null while closed
+// and does no work then (its only effect starts a conversation when isOpen
+// turns true), so it mounts on the first open and STAYS mounted - closing and
+// reopening keeps the conversation exactly as before. (GlobalPiPManager no
+// longer imports LiveStreamService, #3259, so it stays rendered as it is.)
 // ═══════════════════════════════════════════════════════════════════════════
 function DeferredJarvisPanel({ isOpen, onClose }) {
   const [opened, setOpened] = useState(isOpen);
@@ -940,23 +932,6 @@ function DeferredJarvisPanel({ isOpen, onClose }) {
   }, [isOpen]);
   if (!opened && !isOpen) return null;
   return <JarvisPanel isOpen={isOpen} onClose={onClose} />;
-}
-
-const LIVE_STREAM_SERVICE_LOADED_EVENT = 'smarter:live-stream-service-loaded';
-
-function DeferredGlobalPiPManager() {
-  const [serviceLoaded, setServiceLoaded] = useState(false);
-  useEffect(() => {
-    if (window.__smarterLiveStreamServiceLoaded) {
-      setServiceLoaded(true);
-      return undefined;
-    }
-    const onLoaded = () => setServiceLoaded(true);
-    window.addEventListener(LIVE_STREAM_SERVICE_LOADED_EVENT, onLoaded);
-    return () => window.removeEventListener(LIVE_STREAM_SERVICE_LOADED_EVENT, onLoaded);
-  }, []);
-  if (!serviceLoaded) return null;
-  return <GlobalPiPManager />;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1044,8 +1019,10 @@ export default function App({ Component, pageProps }) {
   // their in-flight work and keyboard state settle. Leaks consumes settings=1
   // after opening its sheet; Review changes ?hand= after selecting a saved hand.
   // Remounting either would close the sheet or reset the player's active filters.
+  // Bankroll Manager switches every section with ?view= / ?type=: a remount per
+  // tap re-read the whole ledger and reset its location and game-type filters.
   // Other routes retain the historical full-URL error-boundary reset behavior.
-  const pageErrorBoundaryKey = resolvedPath === '/hub/reels' || resolvedPath === '/horses' || resolvedPath === '/hub/video-library' || resolvedPath === '/hub/personal-assistant/leaks' || resolvedPath === '/hub/personal-assistant/review'
+  const pageErrorBoundaryKey = resolvedPath === '/hub/reels' || resolvedPath === '/horses' || resolvedPath === '/hub/bankroll-manager' || resolvedPath === '/hub/video-library' || resolvedPath === '/hub/personal-assistant/leaks' || resolvedPath === '/hub/personal-assistant/review'
     ? resolvedPath
     : router.asPath;
   // Every Poker Near Me route owns a complete SEOHead. Keeping the generic
@@ -1415,7 +1392,7 @@ export default function App({ Component, pageProps }) {
                                   <DeferredJarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Global PiP Manager" fallback={<></>}>
-                                  <DeferredGlobalPiPManager />
+                                  <GlobalPiPManager />
                                 </HubErrorBoundary>
 
                                 <HubErrorBoundary name="Global Error Catcher" fallback={<></>}>

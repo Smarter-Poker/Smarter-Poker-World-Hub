@@ -24,6 +24,7 @@ import { supabase } from '../lib/supabase';
 import * as READS from './liveStreamReads';
 import { getAccessToken, getFreshAccessToken } from '../lib/authUtils';
 import { busEmit } from '../engine/EventBus';
+import { registerLiveStreamService } from './activeLiveStream';
 
 const logError = (ctx, err) => console.warn(`[LiveStream:${ctx}]`, err?.message || err);
 
@@ -1670,15 +1671,5 @@ class LiveStreamService {
 
 // Singleton
 export const liveStreamService = new LiveStreamService();
-// LIVE STREAM PRESENCE (2026-11-27). The app shell mounts GlobalPiPManager
-// only once this module has evaluated, because a PiP window needs
-// liveStreamService.room and nothing can set it before this point. Mounting it
-// up front made every page of the estate download livekit-client (134 KB
-// compressed) for a window that could not exist. The flag and event are the
-// whole contract with pages/_app.js (DeferredGlobalPiPManager), so the shell
-// learns about the service without importing it.
-if (typeof window !== 'undefined') {
-  window.__smarterLiveStreamServiceLoaded = true;
-  window.dispatchEvent(new Event('smarter:live-stream-service-loaded'));
-}
+registerLiveStreamService(liveStreamService);
 export default LiveStreamService;

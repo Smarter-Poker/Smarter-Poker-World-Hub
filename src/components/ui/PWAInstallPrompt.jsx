@@ -74,14 +74,45 @@ function snooze() {
     safeSet(DISMISS_UNTIL_KEY, String(Date.now() + SNOOZE_MS));
 }
 
+const PEAK_UTILITY_LOCAL_KEYS = new Set([
+    'local-state-rooms',
+    'local-city-rooms',
+    'local-game-rooms',
+    'local-corridor-rooms',
+    'live-venue-intel',
+]);
+
+const PEAK_UTILITY_GTO_KEYS = new Set([
+    'gto-leak-finder-report',
+    'training-gto',
+    'solver-matrix',
+]);
+
+export function resolvePeakUtilityPwaCopy(unlockKey) {
+    const key = String(unlockKey || '').trim().toLowerCase();
+    if (key === 'series-alerts-event-reminder') {
+        return 'Install Smarter.Poker For 1-Tap Tournament Alerts';
+    }
+    if (PEAK_UTILITY_LOCAL_KEYS.has(key)) {
+        return 'Install Smarter.Poker For Live Waitlists & Room Alerts';
+    }
+    if (PEAK_UTILITY_GTO_KEYS.has(key)) {
+        return 'Install Smarter.Poker For 1-Tap Daily GTO Drills';
+    }
+    return 'Add Smarter.Poker To Your Home Screen For Instant Alerts';
+}
+
 export default function PWAInstallPrompt() {
     const { pathname } = useRouter();
     const [authUser, setAuthUser] = useState(null);
     const [show, setShow] = useState(false);
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [peakUtilityActive, setPeakUtilityActive] = useState(false);
+    const [peakUtilityCopy, setPeakUtilityCopy] = useState('');
     const mountedRef = useRef(true);
     const timerRef = useRef(null);
     const alreadyCountedRef = useRef(false);
+    const peakUtilityActiveRef = useRef(false);
 
     useEffect(() => {
         mountedRef.current = true;
@@ -105,7 +136,11 @@ export default function PWAInstallPrompt() {
         if (!mountedRef.current) return;
         if (timerRef.current) clearTimeout(timerRef.current);
         const delay = installPromptDelay(authUser, pathname);
-        if (delay === null || delay > 0) {
+        if (delay === null || (delay > 0 && !peakUtilityActiveRef.current)) {
+            if (delay === null) {
+                peakUtilityActiveRef.current = false;
+                setPeakUtilityActive(false);
+            }
             setShow(false);
             setSheetOpen(false);
             if (delay !== null) timerRef.current = setTimeout(evaluate, delay);
@@ -150,18 +185,41 @@ export default function PWAInstallPrompt() {
         };
     }, [evaluate]);
 
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const onPeakUtility = (ev) => {
+            if (!mountedRef.current || !authUser) return;
+            const delay = installPromptDelay(authUser, pathname);
+            if (delay === null) return;
+            if (isRunningAsApp() || isKnownInstalled() || snoozed() || !isInstallable()) return;
+            const contextualCopy = resolvePeakUtilityPwaCopy(ev?.detail?.unlockKey);
+            peakUtilityActiveRef.current = true;
+            setPeakUtilityCopy(contextualCopy);
+            setPeakUtilityActive(true);
+            setShow(true);
+        };
+        window.addEventListener('sp:peak-utility-pwa', onPeakUtility);
+        return () => {
+            window.removeEventListener('sp:peak-utility-pwa', onPeakUtility);
+        };
+    }, [authUser, pathname]);
+
     const handleOpen = () => {
         setSheetOpen(true);
         setShow(false);
     };
 
     const handleLater = () => {
+        peakUtilityActiveRef.current = false;
+        setPeakUtilityActive(false);
         setShow(false);
         snooze();
         recordOnServer('later');
     };
 
     const handleSheetClose = () => {
+        peakUtilityActiveRef.current = false;
+        setPeakUtilityActive(false);
         setSheetOpen(false);
         if (isRunningAsApp() || isKnownInstalled()) {
             recordOnServer('installed');
@@ -172,7 +230,8 @@ export default function PWAInstallPrompt() {
         }
     };
 
-    if (installPromptDelay(authUser, pathname) !== 0) return null;
+    const currentDelay = installPromptDelay(authUser, pathname);
+    if (currentDelay === null || (currentDelay !== 0 && !peakUtilityActive)) return null;
 
     if (sheetOpen) {
         return (
@@ -201,9 +260,9 @@ export default function PWAInstallPrompt() {
                 <div style={promptEyebrow}>Smarter.Poker App</div>
                 <div className="sp-pwa-install-title" style={S.title}><span style={{ display: 'block' }}>Your Seat...</span><span style={{ display: 'block' }}>Always Within Reach.</span></div>
                 <div className="sp-pwa-install-sub" style={S.sub}>
-                    {isIos() && !oneTap
+                    {peakUtilityCopy || (isIos() && !oneTap
                         ? 'Add To Your Home Screen For Seat Alerts And Messages.'
-                        : 'Seat Alerts And Messages, Straight To Your Phone.'}
+                        : 'Seat Alerts And Messages, Straight To Your Phone.')}
                 </div>
             </div>
             <div className="sp-pwa-install-actions" style={S.actions}>

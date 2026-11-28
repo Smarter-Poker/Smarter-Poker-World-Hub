@@ -220,44 +220,18 @@ test('both streaming components are still declared with dynamic() on those pages
 // ═══════════════════════════════════════════════════════════════════════════
 // 2026-11-27: dynamic() is not enough if the shell renders it on every page.
 //
-// _app rendered <JarvisPanel> and <GlobalPiPManager> unconditionally, so both
-// chunks - and livekit-client behind the PiP manager, 134 KB compressed - were
-// fetched on every page right after hydration. /hub/bankroll-manager shipped
-// 954 KB and /hub/preflop-charts 971 KB against an 850 KB mobile budget.
-// Jarvis now mounts on first open; the PiP manager mounts once
-// LiveStreamService has evaluated, which is the only way a stream can exist.
+// _app rendered <JarvisPanel> unconditionally, so its chunk was fetched on
+// every page right after hydration. Jarvis now mounts on first open.
 // ═══════════════════════════════════════════════════════════════════════════
 
-test('Jarvis and the PiP manager are only rendered through their deferred gates', () => {
+test('Jarvis is only rendered through its first-open gate', () => {
   const app = readFileSync(join(ROOT, 'pages/_app.js'), 'utf8');
   const jarvisUses = [...app.matchAll(/<JarvisPanel\b/g)].length;
-  const pipUses = [...app.matchAll(/<GlobalPiPManager\b/g)].length;
   assert.equal(jarvisUses, 1, 'JarvisPanel must be rendered exactly once, inside DeferredJarvisPanel');
-  assert.equal(pipUses, 1, 'GlobalPiPManager must be rendered exactly once, inside DeferredGlobalPiPManager');
-
   const jarvisGate = app.match(/function DeferredJarvisPanel\([^)]*\) \{[\s\S]*?\n\}/);
   assert.ok(jarvisGate && /<JarvisPanel\b/.test(jarvisGate[0]),
     'the one JarvisPanel render is not inside DeferredJarvisPanel');
   assert.match(jarvisGate[0], /if \(!opened && !isOpen\) return null;/,
     'DeferredJarvisPanel no longer waits for the first open');
-
-  const pipGate = app.match(/function DeferredGlobalPiPManager\(\) \{[\s\S]*?\n\}/);
-  assert.ok(pipGate && /<GlobalPiPManager\b/.test(pipGate[0]),
-    'the one GlobalPiPManager render is not inside DeferredGlobalPiPManager');
-  assert.match(pipGate[0], /if \(!serviceLoaded\) return null;/,
-    'DeferredGlobalPiPManager no longer waits for LiveStreamService');
-
   assert.match(app, /<DeferredJarvisPanel isOpen=\{isJarvisOpen\}/);
-  assert.match(app, /<DeferredGlobalPiPManager \/>/);
-});
-
-test('LiveStreamService announces itself the way the shell listens for it', () => {
-  const service = readFileSync(join(ROOT, 'src/services/LiveStreamService.js'), 'utf8');
-  const app = readFileSync(join(ROOT, 'pages/_app.js'), 'utf8');
-  assert.match(service, /window\.__smarterLiveStreamServiceLoaded = true;/,
-    'LiveStreamService no longer sets its loaded flag, so the PiP manager would never mount');
-  assert.match(service, /window\.dispatchEvent\(new Event\('smarter:live-stream-service-loaded'\)\)/,
-    'LiveStreamService no longer fires its loaded event');
-  assert.match(app, /window\.__smarterLiveStreamServiceLoaded/);
-  assert.match(app, /const LIVE_STREAM_SERVICE_LOADED_EVENT = 'smarter:live-stream-service-loaded';/);
 });

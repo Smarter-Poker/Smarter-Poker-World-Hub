@@ -1045,9 +1045,11 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       'background-position',
       '50% 50%'
     );
+    // A package with no sheet position falls back to the Diamonds header scene,
+    // the #SMARTERDESIGN store art (#3201), never a blank frame.
     await expect(page.locator('[data-diamond-package="titan"] [data-package-media]')).toHaveCSS(
       'background-image',
-      /diamond-vault-hero/
+      /smarterdesign\/headers\/store-diamonds-scene\.webp/
     );
 
     catalog = [PAGE1_DIAMOND_PACKAGES[0], PAGE1_DIAMOND_PACKAGES[1], unknownPackage];

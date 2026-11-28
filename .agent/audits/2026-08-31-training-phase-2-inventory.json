@@ -14,7 +14,7 @@
     "dependencyFiles": 428,
     "componentFiles": 73,
     "hookFiles": 16,
-    "ctas": 500,
+    "ctas": 501,
     "dialogs": 26,
     "persistenceFiles": 100,
     "realtimeFiles": 7,
@@ -46992,7 +46992,7 @@
         {
           "element": "button",
           "name": "`Help For ${title}`",
-          "line": 47,
+          "line": 49,
           "handler": "() => { if (!dialog.current.open) dialog.current.showModal(); }",
           "destination": null,
           "type": "button",
@@ -47002,7 +47002,7 @@
         {
           "element": "button",
           "name": "Close Help",
-          "line": 55,
+          "line": 57,
           "handler": "close",
           "destination": null,
           "type": "button",
@@ -47012,7 +47012,7 @@
         {
           "element": "button",
           "name": "Page Tutorial",
-          "line": 59,
+          "line": 61,
           "handler": "() => { launchTutorial.current = true; close(); }",
           "destination": null,
           "type": "button",
@@ -47052,7 +47052,7 @@
       "functions": [
         {
           "name": "BankrollHelp",
-          "line": 38,
+          "line": 40,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -47060,7 +47060,7 @@
         },
         {
           "name": "close",
-          "line": 43,
+          "line": 45,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -48770,7 +48770,7 @@
         {
           "element": "button",
           "name": "Close Quick Signup Dialog",
-          "line": 348,
+          "line": 437,
           "handler": "close",
           "destination": null,
           "type": "button",
@@ -48780,7 +48780,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 415,
+          "line": 504,
           "handler": "() => handleOAuthOneTap('google')",
           "destination": null,
           "type": "button",
@@ -48790,7 +48790,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 425,
+          "line": 514,
           "handler": "() => handleOAuthOneTap('facebook')",
           "destination": null,
           "type": "button",
@@ -48800,7 +48800,7 @@
         {
           "element": "button",
           "name": "Create Free Account With Email",
-          "line": 456,
+          "line": 547,
           "handler": null,
           "destination": null,
           "type": "submit",
@@ -48808,9 +48808,19 @@
           "wiring": "form-submit"
         },
         {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 557,
+          "handler": "handleMagicLinkSignIn",
+          "destination": null,
+          "type": "button",
+          "disabled": "magicLinkBusy",
+          "wiring": "handler"
+        },
+        {
           "element": "link",
           "name": "Open Full Registration Form Directly",
-          "line": 466,
+          "line": 612,
           "handler": "() => {\n              try {\n                recordUnlockIntent({\n                  unlockKey: payload.unlockKey,\n                  source: payload.source,\n                  experimentVariant,\n                  aiEngine: aiWelcome?.engine || '',\n                });\n                recordPendingSeoUnlock({\n                  unlockKey: payload.unlockKey,\n                  source: payload.source,\n                  redirectPath: payload.redirectPath,\n                });\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                  experiment_variant: experimentVariant,\n                  ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
           "destination": "signupHref",
           "type": null,
@@ -48820,7 +48830,7 @@
         {
           "element": "link",
           "name": "Sign In",
-          "line": 522,
+          "line": 668,
           "handler": "close",
           "destination": "loginHref",
           "type": null,
@@ -48877,7 +48887,7 @@
         {
           "name": "trackFunnelEvent",
           "line": 79,
-          "references": 5,
+          "references": 6,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -48916,7 +48926,7 @@
         },
         {
           "name": "onOpen",
-          "line": 137,
+          "line": 143,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48924,7 +48934,7 @@
         },
         {
           "name": "onKeyDown",
-          "line": 203,
+          "line": 212,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48932,7 +48942,7 @@
         },
         {
           "name": "handleOAuthOneTap",
-          "line": 224,
+          "line": 233,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48940,7 +48950,15 @@
         },
         {
           "name": "handleEmailFormSubmit",
-          "line": 284,
+          "line": 293,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "handleMagicLinkSignIn",
+          "line": 333,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48954,7 +48972,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 450,
+          "line": 541,
           "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -55340,7 +55358,7 @@
         {
           "element": "button",
           "name": "editFavs ? 'Done pinning menu items' : 'Pin menu items to favourites'",
-          "line": 1349,
+          "line": 1350,
           "handler": "() => setEditFavs((v) => !v)",
           "destination": null,
           "type": "button",
@@ -55350,7 +55368,7 @@
         {
           "element": "button",
           "name": "Close menu",
-          "line": 1364,
+          "line": 1365,
           "handler": "onClose",
           "destination": null,
           "type": "button",
@@ -55360,7 +55378,7 @@
         {
           "element": "button",
           "name": "Clear search",
-          "line": 1426,
+          "line": 1427,
           "handler": "() => {\n                    setQuery('');\n                    if (isPokerNearMeMenu) searchInputRef.current?.focus();\n                  }",
           "destination": null,
           "type": "button",
@@ -55370,7 +55388,7 @@
         {
           "element": "a",
           "name": "`Open ${sc.name}`",
-          "line": 1524,
+          "line": 1525,
           "handler": "(e) => {\n                            e.preventDefault();\n                            if (sc.page) switchToClub(sc.page);\n                            onClose?.();\n                            window.location.href = sc.href;\n                          }",
           "destination": "sc.href",
           "type": null,
@@ -55380,7 +55398,7 @@
         {
           "element": "link",
           "name": "`Open ${sc.name}`",
-          "line": 1542,
+          "line": 1543,
           "handler": "() => {\n                          if (sc.page) switchToClub(sc.page);\n                          onClose?.();\n                        }",
           "destination": "sc.href",
           "type": null,
@@ -55390,7 +55408,7 @@
         {
           "element": "link",
           "name": "See all your pages",
-          "line": 1559,
+          "line": 1560,
           "handler": "() => onClose?.()",
           "destination": "/hub/social-pages",
           "type": null,
@@ -55400,7 +55418,7 @@
         {
           "element": "link",
           "name": "View Profile",
-          "line": 1626,
+          "line": 1627,
           "handler": "() => onClose?.()",
           "destination": "isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : '/hub/profile'",
           "type": null,
@@ -55410,7 +55428,7 @@
         {
           "element": "button",
           "name": "(Personal)",
-          "line": 1672,
+          "line": 1673,
           "handler": "() => { switchToPersonal(); onClose?.(); }",
           "destination": null,
           "type": "button",
@@ -55420,7 +55438,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1695,
+          "line": 1696,
           "handler": "() => {\n                            switchToClub(page);\n                            onClose?.();\n                            if (page.page_type === 'home_game') {\n                              router.push(homeGamePageUrl(page)); // audit 2026-08-14: was slug||id into the slug route\n                            } else if (page.page_type === 'club') {\n                              window.location.href = '/hub/commander';\n                            } else {\n                              router.push(`/hub/social-pages/${page.id}`);\n                            }\n                          }",
           "destination": null,
           "type": "button",
@@ -55430,7 +55448,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1778,
+          "line": 1779,
           "handler": "() => toggleSection(group.label)",
           "destination": null,
           "type": "button",
@@ -55440,7 +55458,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1857,
+          "line": 1858,
           "handler": "() => {\n                      if (link.openInviteModal) {\n                        onClose?.();\n                        setShowInviteModal(true);\n                        return;\n                      }\n                      if (typeof link.onClick === 'function') link.onClick();\n                      onClose?.();\n                    }",
           "destination": null,
           "type": "button",
@@ -55450,7 +55468,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 1881,
+          "line": 1882,
           "handler": "() => onClose?.()",
           "destination": "link.href",
           "type": null,
@@ -55460,7 +55478,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 1890,
+          "line": 1891,
           "handler": "() => { rememberRecent(link); onClose?.(); }",
           "destination": "link.href",
           "type": null,
@@ -55542,7 +55560,7 @@
         },
         {
           "name": "HamburgerMenu",
-          "line": 2280,
+          "line": 2293,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -55639,7 +55657,7 @@
         {
           "name": "on",
           "line": 347,
-          "references": 29,
+          "references": 30,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -55825,7 +55843,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1416,
+          "line": 1417,
           "excerpt": "placeholder=\"Search menu\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -55833,7 +55851,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1854,
+          "line": 1855,
           "excerpt": "const stub = typeof link.onClick !== 'function' && !link.openInviteModal;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -55841,7 +55859,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1855,
+          "line": 1856,
           "excerpt": "if (stub) return null;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56300,7 +56318,7 @@
         {
           "element": "button",
           "name": "resolvedHeaderWorld\n              ? `Open ${resolvedHeaderWorld.label} Command Menu`\n              : 'Open Menu'",
-          "line": 1807,
+          "line": 1815,
           "handler": "() => (\n              onMenuClick && !ownsCanonicalMenu\n                ? onMenuClick()\n                : setCommandMenuOpen(true)\n            )",
           "destination": null,
           "type": "button",
@@ -56310,7 +56328,7 @@
         {
           "element": "button",
           "name": "Go Back",
-          "line": 1825,
+          "line": 1833,
           "handler": "onBackClick || handleBack",
           "destination": null,
           "type": "button",
@@ -56320,7 +56338,7 @@
         {
           "element": "button",
           "name": "Go To The Hub",
-          "line": 1832,
+          "line": 1840,
           "handler": "() => router.push('/hub')",
           "destination": null,
           "type": "button",
@@ -56330,7 +56348,7 @@
         {
           "element": "button",
           "name": "My Profile",
-          "line": 1839,
+          "line": 1847,
           "handler": "goToProfile",
           "destination": null,
           "type": "button",
@@ -56340,7 +56358,7 @@
         {
           "element": "button",
           "name": "Diamond Wallet",
-          "line": 1860,
+          "line": 1868,
           "handler": "() => setIsWalletOpen(true)",
           "destination": null,
           "type": "button",
@@ -56350,7 +56368,7 @@
         {
           "element": "button",
           "name": "safeIsVip ? 'VIP Membership Active' : 'VIP Membership Inactive'",
-          "line": 1867,
+          "line": 1875,
           "handler": "() => router.push('/hub/vip-membership')",
           "destination": null,
           "type": "button",
@@ -56360,7 +56378,7 @@
         {
           "element": "button",
           "name": "Messages",
-          "line": 1877,
+          "line": 1885,
           "handler": "() => router.push('/hub/messenger')",
           "destination": null,
           "type": "button",
@@ -56370,7 +56388,7 @@
         {
           "element": "button",
           "name": "Notifications",
-          "line": 1890,
+          "line": 1898,
           "handler": "() => openOverlay('notifications')",
           "destination": null,
           "type": "button",
@@ -56509,14 +56527,14 @@
         {
           "name": "warm",
           "line": 652,
-          "references": 8,
+          "references": 10,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "fetchUnreadCount",
-          "line": 805,
+          "line": 813,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -56524,7 +56542,7 @@
         },
         {
           "name": "handleVipChange",
-          "line": 902,
+          "line": 910,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56532,7 +56550,7 @@
         },
         {
           "name": "handleProfileUpdate",
-          "line": 911,
+          "line": 919,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56540,7 +56558,7 @@
         },
         {
           "name": "write",
-          "line": 1013,
+          "line": 1021,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -56548,7 +56566,7 @@
         },
         {
           "name": "handleBack",
-          "line": 1031,
+          "line": 1039,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56556,7 +56574,7 @@
         },
         {
           "name": "renderHeader",
-          "line": 1052,
+          "line": 1060,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56625,7 +56643,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 692,
+          "line": 696,
           "excerpt": "// Final fallback: direct REST API call (not Supabase client)",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56633,7 +56651,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 699,
+          "line": 703,
           "excerpt": "// If the env is not configured we skip the fallback instead.",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56641,7 +56659,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 704,
+          "line": 708,
           "excerpt": "'[UniversalHeader] REST fallback skipped - Supabase env not configured'",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56649,7 +56667,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 748,
+          "line": 752,
           "excerpt": "// Cache the REST fallback data too - lowercase username",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56657,7 +56675,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 793,
+          "line": 801,
           "excerpt": "console.debug('[UniversalHeader] Direct REST fallback SUCCESS:', {",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56665,7 +56683,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 798,
+          "line": 806,
           "excerpt": "console.warn('[UniversalHeader] Direct REST fallback failed:', e);",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56673,7 +56691,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 828,
+          "line": 836,
           "excerpt": "// 500/1000/2000ms backoff plus a REST fallback) can easily outlive the",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56681,7 +56699,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1588,
+          "line": 1596,
           "excerpt": "placeholder silhouette. That ring is the \"thick broken frame\": the live",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -93822,11 +93840,11 @@
       "effectRef": "pages/hub/training/weakness-scanner.js"
     },
     {
-      "id": "src/components/bankroll/BankrollHelp.jsx:47:1",
+      "id": "src/components/bankroll/BankrollHelp.jsx:49:1",
       "file": "src/components/bankroll/BankrollHelp.jsx",
       "element": "button",
       "name": "`Help For ${title}`",
-      "line": 47,
+      "line": 49,
       "handler": "() => { if (!dialog.current.open) dialog.current.showModal(); }",
       "destination": null,
       "type": "button",
@@ -93835,11 +93853,11 @@
       "effectRef": "src/components/bankroll/BankrollHelp.jsx"
     },
     {
-      "id": "src/components/bankroll/BankrollHelp.jsx:55:2",
+      "id": "src/components/bankroll/BankrollHelp.jsx:57:2",
       "file": "src/components/bankroll/BankrollHelp.jsx",
       "element": "button",
       "name": "Close Help",
-      "line": 55,
+      "line": 57,
       "handler": "close",
       "destination": null,
       "type": "button",
@@ -93848,11 +93866,11 @@
       "effectRef": "src/components/bankroll/BankrollHelp.jsx"
     },
     {
-      "id": "src/components/bankroll/BankrollHelp.jsx:59:3",
+      "id": "src/components/bankroll/BankrollHelp.jsx:61:3",
       "file": "src/components/bankroll/BankrollHelp.jsx",
       "element": "button",
       "name": "Page Tutorial",
-      "line": 59,
+      "line": 61,
       "handler": "() => { launchTutorial.current = true; close(); }",
       "destination": null,
       "type": "button",
@@ -94160,11 +94178,11 @@
       "effectRef": "src/components/seo/SmarterConversionCta.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:348:1",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:437:1",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "Close Quick Signup Dialog",
-      "line": 348,
+      "line": 437,
       "handler": "close",
       "destination": null,
       "type": "button",
@@ -94173,11 +94191,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:415:2",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:504:2",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 415,
+      "line": 504,
       "handler": "() => handleOAuthOneTap('google')",
       "destination": null,
       "type": "button",
@@ -94186,11 +94204,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:425:3",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:514:3",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 425,
+      "line": 514,
       "handler": "() => handleOAuthOneTap('facebook')",
       "destination": null,
       "type": "button",
@@ -94199,11 +94217,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:456:4",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:547:4",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "Create Free Account With Email",
-      "line": 456,
+      "line": 547,
       "handler": null,
       "destination": null,
       "type": "submit",
@@ -94212,11 +94230,24 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:466:5",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:557:5",
+      "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 557,
+      "handler": "handleMagicLinkSignIn",
+      "destination": null,
+      "type": "button",
+      "disabled": "magicLinkBusy",
+      "wiring": "handler",
+      "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
+    },
+    {
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:612:6",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "link",
       "name": "Open Full Registration Form Directly",
-      "line": 466,
+      "line": 612,
       "handler": "() => {\n              try {\n                recordUnlockIntent({\n                  unlockKey: payload.unlockKey,\n                  source: payload.source,\n                  experimentVariant,\n                  aiEngine: aiWelcome?.engine || '',\n                });\n                recordPendingSeoUnlock({\n                  unlockKey: payload.unlockKey,\n                  source: payload.source,\n                  redirectPath: payload.redirectPath,\n                });\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                  experiment_variant: experimentVariant,\n                  ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
       "destination": "signupHref",
       "type": null,
@@ -94225,11 +94256,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:522:6",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:668:7",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "link",
       "name": "Sign In",
-      "line": 522,
+      "line": 668,
       "handler": "close",
       "destination": "loginHref",
       "type": null,
@@ -96929,11 +96960,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1349:9",
+      "id": "src/components/ui/HamburgerMenu.jsx:1350:9",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "editFavs ? 'Done pinning menu items' : 'Pin menu items to favourites'",
-      "line": 1349,
+      "line": 1350,
       "handler": "() => setEditFavs((v) => !v)",
       "destination": null,
       "type": "button",
@@ -96942,11 +96973,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1364:10",
+      "id": "src/components/ui/HamburgerMenu.jsx:1365:10",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "Close menu",
-      "line": 1364,
+      "line": 1365,
       "handler": "onClose",
       "destination": null,
       "type": "button",
@@ -96955,11 +96986,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1426:11",
+      "id": "src/components/ui/HamburgerMenu.jsx:1427:11",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "Clear search",
-      "line": 1426,
+      "line": 1427,
       "handler": "() => {\n                    setQuery('');\n                    if (isPokerNearMeMenu) searchInputRef.current?.focus();\n                  }",
       "destination": null,
       "type": "button",
@@ -96968,11 +96999,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1524:12",
+      "id": "src/components/ui/HamburgerMenu.jsx:1525:12",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "`Open ${sc.name}`",
-      "line": 1524,
+      "line": 1525,
       "handler": "(e) => {\n                            e.preventDefault();\n                            if (sc.page) switchToClub(sc.page);\n                            onClose?.();\n                            window.location.href = sc.href;\n                          }",
       "destination": "sc.href",
       "type": null,
@@ -96981,11 +97012,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1542:13",
+      "id": "src/components/ui/HamburgerMenu.jsx:1543:13",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "`Open ${sc.name}`",
-      "line": 1542,
+      "line": 1543,
       "handler": "() => {\n                          if (sc.page) switchToClub(sc.page);\n                          onClose?.();\n                        }",
       "destination": "sc.href",
       "type": null,
@@ -96994,11 +97025,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1559:14",
+      "id": "src/components/ui/HamburgerMenu.jsx:1560:14",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "See all your pages",
-      "line": 1559,
+      "line": 1560,
       "handler": "() => onClose?.()",
       "destination": "/hub/social-pages",
       "type": null,
@@ -97007,11 +97038,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1626:15",
+      "id": "src/components/ui/HamburgerMenu.jsx:1627:15",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "View Profile",
-      "line": 1626,
+      "line": 1627,
       "handler": "() => onClose?.()",
       "destination": "isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : '/hub/profile'",
       "type": null,
@@ -97020,11 +97051,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1672:16",
+      "id": "src/components/ui/HamburgerMenu.jsx:1673:16",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "(Personal)",
-      "line": 1672,
+      "line": 1673,
       "handler": "() => { switchToPersonal(); onClose?.(); }",
       "destination": null,
       "type": "button",
@@ -97033,11 +97064,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1695:17",
+      "id": "src/components/ui/HamburgerMenu.jsx:1696:17",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1695,
+      "line": 1696,
       "handler": "() => {\n                            switchToClub(page);\n                            onClose?.();\n                            if (page.page_type === 'home_game') {\n                              router.push(homeGamePageUrl(page)); // audit 2026-08-14: was slug||id into the slug route\n                            } else if (page.page_type === 'club') {\n                              window.location.href = '/hub/commander';\n                            } else {\n                              router.push(`/hub/social-pages/${page.id}`);\n                            }\n                          }",
       "destination": null,
       "type": "button",
@@ -97046,11 +97077,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1778:18",
+      "id": "src/components/ui/HamburgerMenu.jsx:1779:18",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1778,
+      "line": 1779,
       "handler": "() => toggleSection(group.label)",
       "destination": null,
       "type": "button",
@@ -97059,11 +97090,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1857:19",
+      "id": "src/components/ui/HamburgerMenu.jsx:1858:19",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1857,
+      "line": 1858,
       "handler": "() => {\n                      if (link.openInviteModal) {\n                        onClose?.();\n                        setShowInviteModal(true);\n                        return;\n                      }\n                      if (typeof link.onClick === 'function') link.onClick();\n                      onClose?.();\n                    }",
       "destination": null,
       "type": "button",
@@ -97072,11 +97103,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1881:20",
+      "id": "src/components/ui/HamburgerMenu.jsx:1882:20",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 1881,
+      "line": 1882,
       "handler": "() => onClose?.()",
       "destination": "link.href",
       "type": null,
@@ -97085,11 +97116,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1890:21",
+      "id": "src/components/ui/HamburgerMenu.jsx:1891:21",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 1890,
+      "line": 1891,
       "handler": "() => { rememberRecent(link); onClose?.(); }",
       "destination": "link.href",
       "type": null,
@@ -97280,11 +97311,11 @@
       "effectRef": "src/components/ui/ReportBugWidget.jsx"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1807:1",
+      "id": "src/components/ui/UniversalHeader.js:1815:1",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "resolvedHeaderWorld\n              ? `Open ${resolvedHeaderWorld.label} Command Menu`\n              : 'Open Menu'",
-      "line": 1807,
+      "line": 1815,
       "handler": "() => (\n              onMenuClick && !ownsCanonicalMenu\n                ? onMenuClick()\n                : setCommandMenuOpen(true)\n            )",
       "destination": null,
       "type": "button",
@@ -97293,11 +97324,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1825:2",
+      "id": "src/components/ui/UniversalHeader.js:1833:2",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Go Back",
-      "line": 1825,
+      "line": 1833,
       "handler": "onBackClick || handleBack",
       "destination": null,
       "type": "button",
@@ -97306,11 +97337,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1832:3",
+      "id": "src/components/ui/UniversalHeader.js:1840:3",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Go To The Hub",
-      "line": 1832,
+      "line": 1840,
       "handler": "() => router.push('/hub')",
       "destination": null,
       "type": "button",
@@ -97319,11 +97350,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1839:4",
+      "id": "src/components/ui/UniversalHeader.js:1847:4",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "My Profile",
-      "line": 1839,
+      "line": 1847,
       "handler": "goToProfile",
       "destination": null,
       "type": "button",
@@ -97332,11 +97363,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1860:5",
+      "id": "src/components/ui/UniversalHeader.js:1868:5",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Diamond Wallet",
-      "line": 1860,
+      "line": 1868,
       "handler": "() => setIsWalletOpen(true)",
       "destination": null,
       "type": "button",
@@ -97345,11 +97376,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1867:6",
+      "id": "src/components/ui/UniversalHeader.js:1875:6",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "safeIsVip ? 'VIP Membership Active' : 'VIP Membership Inactive'",
-      "line": 1867,
+      "line": 1875,
       "handler": "() => router.push('/hub/vip-membership')",
       "destination": null,
       "type": "button",
@@ -97358,11 +97389,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1877:7",
+      "id": "src/components/ui/UniversalHeader.js:1885:7",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Messages",
-      "line": 1877,
+      "line": 1885,
       "handler": "() => router.push('/hub/messenger')",
       "destination": null,
       "type": "button",
@@ -97371,11 +97402,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1890:8",
+      "id": "src/components/ui/UniversalHeader.js:1898:8",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Notifications",
-      "line": 1890,
+      "line": 1898,
       "handler": "() => openOverlay('notifications')",
       "destination": null,
       "type": "button",
@@ -126510,7 +126541,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "kind": "PLACEHOLDER",
-        "line": 450,
+        "line": 541,
         "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -126903,7 +126934,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1416,
+        "line": 1417,
         "excerpt": "placeholder=\"Search menu\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -126912,7 +126943,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1854,
+        "line": 1855,
         "excerpt": "const stub = typeof link.onClick !== 'function' && !link.openInviteModal;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -126921,7 +126952,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1855,
+        "line": 1856,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127039,7 +127070,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 692,
+        "line": 696,
         "excerpt": "// Final fallback: direct REST API call (not Supabase client)",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127048,7 +127079,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 699,
+        "line": 703,
         "excerpt": "// If the env is not configured we skip the fallback instead.",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127057,7 +127088,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 704,
+        "line": 708,
         "excerpt": "'[UniversalHeader] REST fallback skipped - Supabase env not configured'",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127066,7 +127097,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 748,
+        "line": 752,
         "excerpt": "// Cache the REST fallback data too - lowercase username",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127075,7 +127106,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 793,
+        "line": 801,
         "excerpt": "console.debug('[UniversalHeader] Direct REST fallback SUCCESS:', {",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127084,7 +127115,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 798,
+        "line": 806,
         "excerpt": "console.warn('[UniversalHeader] Direct REST fallback failed:', e);",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127093,7 +127124,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 828,
+        "line": 836,
         "excerpt": "// 500/1000/2000ms backoff plus a REST fallback) can easily outlive the",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127102,7 +127133,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "PLACEHOLDER",
-        "line": 1588,
+        "line": 1596,
         "excerpt": "placeholder silhouette. That ring is the \"thick broken frame\": the live",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -131872,12 +131903,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/glossary/[term].js",
           "pages/hub/bankroll-manager.js",
           "pages/learn/hands/[hand].js",
           "pages/poker-rooms/by-game/[game].js",
           "pages/poker-rooms/corridors/[slug].js",
           "pages/poker-rooms/guides/[city].js",
           "pages/poker-rooms/states/[state].js",
+          "pages/rules/[slug].js",
           "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -134774,10 +134807,12 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/glossary/[term].js",
           "pages/poker-rooms/by-game/[game].js",
           "pages/poker-rooms/corridors/[slug].js",
           "pages/poker-rooms/guides/[city].js",
           "pages/poker-rooms/states/[state].js",
+          "pages/rules/[slug].js",
           "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
@@ -139100,7 +139135,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "kind": "PLACEHOLDER",
-        "line": 450,
+        "line": 541,
         "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -139493,7 +139528,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1416,
+        "line": 1417,
         "excerpt": "placeholder=\"Search menu\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139502,7 +139537,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1854,
+        "line": 1855,
         "excerpt": "const stub = typeof link.onClick !== 'function' && !link.openInviteModal;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139511,7 +139546,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1855,
+        "line": 1856,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139629,7 +139664,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 692,
+        "line": 696,
         "excerpt": "// Final fallback: direct REST API call (not Supabase client)",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139638,7 +139673,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 699,
+        "line": 703,
         "excerpt": "// If the env is not configured we skip the fallback instead.",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139647,7 +139682,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 704,
+        "line": 708,
         "excerpt": "'[UniversalHeader] REST fallback skipped - Supabase env not configured'",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139656,7 +139691,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 748,
+        "line": 752,
         "excerpt": "// Cache the REST fallback data too - lowercase username",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139665,7 +139700,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 793,
+        "line": 801,
         "excerpt": "console.debug('[UniversalHeader] Direct REST fallback SUCCESS:', {",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139674,7 +139709,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 798,
+        "line": 806,
         "excerpt": "console.warn('[UniversalHeader] Direct REST fallback failed:', e);",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139683,7 +139718,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 828,
+        "line": 836,
         "excerpt": "// 500/1000/2000ms backoff plus a REST fallback) can easily outlive the",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139692,7 +139727,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "PLACEHOLDER",
-        "line": 1588,
+        "line": 1596,
         "excerpt": "placeholder silhouette. That ring is the \"thick broken frame\": the live",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -144462,12 +144497,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/glossary/[term].js",
           "pages/hub/bankroll-manager.js",
           "pages/learn/hands/[hand].js",
           "pages/poker-rooms/by-game/[game].js",
           "pages/poker-rooms/corridors/[slug].js",
           "pages/poker-rooms/guides/[city].js",
           "pages/poker-rooms/states/[state].js",
+          "pages/rules/[slug].js",
           "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -147364,10 +147401,12 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/glossary/[term].js",
           "pages/poker-rooms/by-game/[game].js",
           "pages/poker-rooms/corridors/[slug].js",
           "pages/poker-rooms/guides/[city].js",
           "pages/poker-rooms/states/[state].js",
+          "pages/rules/[slug].js",
           "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
