@@ -315,7 +315,7 @@ export default function SignupHealthDashboard(props) {
 
             <footer style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid #2a3a4a', color: '#aabcc4', fontSize: 12 }}>
                 Backed By <code>Public.Signup_Health_View</code>, <code>Public.Probe_Heartbeats</code>, <code>Public.Signup_Errors</code>.
-                {' '}Runbook: <a href="/docs/SIGNUP_RUNBOOK.md" style={S.link}>SIGNUP_RUNBOOK.Md</a>
+                {' '}Runbook: <a href="https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/blob/main/docs/SIGNUP_RUNBOOK.md" style={S.link}>SIGNUP_RUNBOOK.Md</a>
             </footer>
         </main>
     );

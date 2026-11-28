@@ -1438,6 +1438,15 @@ jobs:
       - name: "CHECK 19: No em dashes in player-facing copy"
         run: node scripts/ci/check-ui-text.mjs
 
+      # CHECK 30: every internal link the source builds reaches a page
+      # (2026-11-28). The Live SEO Contract only finds broken links after a
+      # deploy and only on the pages it samples; this reads every href in
+      # src/config, src/content, pages and src/components and fails before
+      # merge when one has no page, content slug, redirect or rewrite behind
+      # it. Needs no node_modules; ~1s.
+      - name: "CHECK 30: Every internal link reaches a page"
+        run: node --no-warnings scripts/ci/check-internal-links.mjs
+
       # check-title-case parses JSX with the TypeScript compiler, because the
       # careful part of it is the AST walk and its `{n}s` / `x{count}` suffix
       # guards. CHECK 20 normally consumes TypeScript from the lockfile-exact
