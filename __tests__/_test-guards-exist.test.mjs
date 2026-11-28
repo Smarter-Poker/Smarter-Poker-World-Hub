@@ -214,6 +214,7 @@ import './events-calendar-ssr-fallback.test.mjs';
 import './fallback-menu-safety.test.mjs';
 import './settings-single-entry.test.mjs';
 import './footer-follows-the-reader-not-a-rail.test.mjs';
+import './the-shell-artwork-is-in-the-server-html.law.test.mjs';
 import './global-header-approved.test.mjs';
 import './global-header-profile-frame-law.test.mjs';
 // 2026-09-04, the "Log Out does nothing" fix. Its sibling guard

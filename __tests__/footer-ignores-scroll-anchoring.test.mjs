@@ -33,6 +33,7 @@ const lucideNames = SOURCE.match(/import \{([^}]+)\} from 'lucide-react'/)[1]
 const Stub = () => null;
 const stubs = {
   react: React,
+  'next/head': Stub,
   'next/link': Stub,
   'next/router': { useRouter: () => ({ asPath: '/', pathname: '/', events: { on() {}, off() {} } }) },
   'lucide-react': Object.fromEntries(lucideNames.map((name) => [name, Stub])),

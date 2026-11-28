@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import {
@@ -645,7 +646,37 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
   const topPercent = ((bounds.y - displayBounds.y) / displayBounds.height) * 100;
   const heightPercent = (bounds.height / displayBounds.height) * 100;
 
+  // THE FOOTER ART IS FOUND IN THE HEAD (2026-11-28). The artwork is the
+  // largest thing a phone paints on most World roots, so it is their Largest
+  // Contentful Paint. It was always in the server HTML, but at the very END
+  // of it: on a 270 KB page the request started 230-340 ms in, after the
+  // deferred scripts had been queued, and WebKit could not finish and paint
+  // it until hydration let go of the main thread (painted 1.2-3.5 s on the
+  // mobile budget, which is a flake on a 2.5 s budget). Announcing the exact
+  // <source> the <picture> below selects - same srcset, same sizes, same type,
+  // so the preload and the <img> are one request - from the head lets it
+  // arrive before the scripts run. Nothing about the footer's look, position
+  // or behaviour changes. Pinned by
+  // __tests__/the-shell-artwork-is-in-the-server-html.law.test.mjs.
+  const preloadSource = (artwork.sources || [])[0] || null;
+
   return (
+    <>
+    <Head>
+      {preloadSource ? (
+        <link
+          key="world-footer-artwork"
+          rel="preload"
+          as="image"
+          type={preloadSource.type}
+          imageSrcSet={preloadSource.srcSet}
+          imageSizes={preloadSource.sizes}
+          fetchpriority="high"
+        />
+      ) : (
+        <link key="world-footer-artwork" rel="preload" as="image" href={artwork.src} fetchpriority="high" />
+      )}
+    </Head>
     <nav
       aria-label={`${footer.label} footer`}
       ref={navRef}
@@ -813,6 +844,7 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
         }}
       />
     </nav>
+    </>
   );
 }
 
