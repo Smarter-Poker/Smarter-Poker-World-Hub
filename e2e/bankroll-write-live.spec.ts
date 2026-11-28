@@ -87,9 +87,11 @@ async function refreshSession(page: Page, ctx: Ctx) {
   const session = await page.evaluate(() => {
     try { return JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}'); } catch { return {}; }
   });
-  ctx.uid = session?.user?.id || null;
+  const uid = session?.user?.id || null;
+  expect(uid, 'no signed-in service-account session').toBeTruthy();
+  if (ctx.uid) expect(uid, 'the signed-in user changed mid-run').toBe(ctx.uid);
+  ctx.uid = uid;
   ctx.token = session?.access_token || null;
-  expect(ctx.uid, 'no signed-in service-account session').toBeTruthy();
 }
 
 /** A read as the signed-in user (RLS applies). */
@@ -264,6 +266,16 @@ test('bankroll write paths on the published site, as the service account', async
     allowStartingBankroll: false, allowDeactivateAll: false,
     refused: [], allowed: [], shell: 0, telemetry: 0, pageErrors: [],
   };
+  // The signed-in user id, before the first request: the guard refuses every
+  // write until it knows whose rows are whose.
+  const state = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../playwright/.auth/user.json'), 'utf8'));
+  for (const origin of state.origins || []) {
+    for (const item of origin.localStorage || []) {
+      if (item.name !== 'smarter-poker-auth') continue;
+      try { ctx.uid = JSON.parse(item.value)?.user?.id || ctx.uid; } catch {}
+    }
+  }
+  expect(ctx.uid, 'the saved sign-in has no user id').toBeTruthy();
   await install(page, ctx);
   const noRefusals = (where: string) => expect(ctx.refused, `a write outside the suite's own rows was attempted (${where})`).toEqual([]);
 

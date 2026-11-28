@@ -21,6 +21,8 @@ test('reads pass, ledger and API writes are data-writes', () => {
   assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/rpc/fn_anything`), 'data-write');
   assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/rpc/fn_platform_frozen`), 'data-write');
   assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/rpc/fn_lightning_my_sessions`), 'read');
+  assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/rpc/fn_bankroll_totals`), 'read', 'the STABLE dashboard totals read');
+  assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/rpc/fn_profile_settings_set_key`), 'data-write');
   assert.equal(classifyRequest('PATCH', `${SUPABASE}/rest/v1/rpc/fn_lightning_my_sessions`), 'data-write');
   assert.equal(classifyRequest('POST', `${SUPABASE}/storage/v1/object/receipts/x.jpg`), 'data-write');
   assert.equal(classifyRequest('POST', `${SUPABASE}/functions/v1/anything`), 'data-write');
