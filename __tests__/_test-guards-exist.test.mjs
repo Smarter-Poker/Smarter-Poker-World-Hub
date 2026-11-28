@@ -1012,7 +1012,6 @@ import './trivia-phase3-enhancements.test.mjs';
 import './smarterdesign-standard.test.mjs';
 import './diamond-store-smarterdesign.test.mjs';
 import './trivia-hardening-audit.test.mjs';
-import './jarvis-hand-vision.test.mjs';
 import './trivia-phase4-polish.test.mjs';
 import './a-dropped-connection-is-not-a-stale-build.law.test.mjs';
 import './render-marketplace-fixtures.test.mjs';
@@ -1042,6 +1041,7 @@ import './otc-tier7-posthog-stability-and-ab-stats-20261128.law.test.mjs';
 import './otc-tier7-habit-digest-vip-graduation-and-push-20261128.law.test.mjs';
 import './otc-tier7-og-scorecards-and-150-matchups-20261128.law.test.mjs';
 import './site-wide-payload-budget.test.mjs';
+import './jarvis-photo-reader-removed.test.mjs';
 import './an-internal-link-reaches-a-page.law.test.mjs';
 import './bankroll-w4-cleanup.test.mjs';
 
