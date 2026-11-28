@@ -34,6 +34,7 @@ import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
 import ReportQuestionButton from './ReportQuestionButton';
+import TriviaCardText from './TriviaCardText';
 import TriviaQuestionProgress from './TriviaQuestionProgress';
 import TriviaNetworkBanner from './TriviaNetworkBanner';
 import TriviaSkeleton from './TriviaSkeleton';
@@ -1138,6 +1139,32 @@ export default function StrategyTrivia({ mode }) {
                             >
                                 <p>{config.description || 'Test Your Poker Strategy Across Server-Scored Scenarios With Detailed Coaching Explanations.'}</p>
                                 <p>Every Run Confirms Entry Terms And VIP Eligibility Upfront And Records Verified Results To Your Stats And Study Deck.</p>
+                                {gameState === 'playing' && (runExpiryLabel || entryReceipt) && (
+                                    <ul className="tc-rows" aria-label="Run Contract">
+                                        <li className="tc-row">
+                                            <span className="tc-row__label">Entry State</span>
+                                            <span className="tc-row__value">{toTitleCase(entryReceipt?.entryState || 'Confirmed')}</span>
+                                        </li>
+                                        {runExpiryLabel && (
+                                            <li className="tc-row">
+                                                <span className="tc-row__label">Session Expires</span>
+                                                <span className="tc-row__value">{runExpiryLabel}</span>
+                                            </li>
+                                        )}
+                                    </ul>
+                                )}
+                                {gameState === 'playing' && currentContext?.items?.length > 0 && (
+                                    <ul className="tc-rows" aria-label={currentContext.heading}>
+                                        {currentContext.items
+                                            .filter((item) => item?.value && item.value !== 'Not Stated In This Spot')
+                                            .map((item) => (
+                                                <li className="tc-row" key={item.label}>
+                                                    <span className="tc-row__label">{item.label}</span>
+                                                    <span className={`tc-row__value${item.ink ? ` tc-ink--${item.ink}` : ''}`}>{item.value}</span>
+                                                </li>
+                                            ))}
+                                    </ul>
+                                )}
                             </TriviaHelpButton>
                         )}
                         titleAs="h1"
@@ -1243,78 +1270,44 @@ export default function StrategyTrivia({ mode }) {
                             className="game-area"
                             tabIndex={-1}
                         >
-                            {/* The contract rail never invents a clock. These
-                                four strategy modes are untimed today; a live
-                                countdown appears only for a server-issued
-                                shot-clock deadline. */}
-                            <div className="game-header">
-                                <div className="progress tc-label" role="status" aria-live="polite">
-                                    Question {currentQuestionIndex + 1} Of {questions.length}
+                            {/* Clean, minimal top strip: Question counter, optional live server
+                                countdown (never an "Untimed" placeholder), and slim 20-step ticker. */}
+                            <div className="game-top-bar">
+                                <div className="game-header">
+                                    <div className="progress tc-label" role="status" aria-live="polite">
+                                        Question {currentQuestionIndex + 1} Of {questions.length}
+                                    </div>
+                                    {hasAuthoritativeShotClock && (
+                                        <div className="strategy-clock" data-warning={timerInk === 'red' ? 'true' : 'false'}>
+                                            <span className={`strategy-clock__value tc-ink--${timerInk}`} aria-hidden="true">
+                                                {timerDisplay}
+                                            </span>
+                                            <span className="sr-only" role="timer" aria-live="assertive">
+                                                {showResult
+                                                    ? 'Decision Locked'
+                                                    : [30, 10, 5, 0].includes(timerSeconds)
+                                                    ? `${timerSeconds} seconds remaining`
+                                                    : ''}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="strategy-clock" data-warning={timerInk === 'red' ? 'true' : 'false'}>
-                                    <span className="strategy-clock__label">Decision Clock</span>
-                                    <span className={`strategy-clock__value tc-ink--${timerInk}`} aria-hidden="true">
-                                        {timerDisplay}
-                                    </span>
-                                    <span className="sr-only" role="timer" aria-live="assertive">
-                                        {showResult
-                                            ? 'Decision Locked'
-                                            : hasAuthoritativeShotClock && [30, 10, 5, 0].includes(timerSeconds)
-                                            ? `${timerSeconds} seconds remaining`
-                                            : 'Untimed Decision'}
-                                    </span>
-                                </div>
+
+                                <TriviaQuestionProgress
+                                    total={questions.length}
+                                    currentIndex={currentQuestionIndex}
+                                    outcomes={questionOutcomes}
+                                    label={`Question ${currentQuestionIndex + 1} Of ${questions.length}`}
+                                />
                             </div>
 
-                            {(runExpiryLabel || entryReceipt) && (
-                                <ul className="tc-rows strategy-run-contract" aria-label="Run Contract">
-                                    <li className="tc-row">
-                                        <span className="tc-row__label">Entry State</span>
-                                        <span className="tc-row__value">{toTitleCase(entryReceipt?.entryState || 'Confirmed')}</span>
-                                    </li>
-                                    {runExpiryLabel && (
-                                        <li className="tc-row">
-                                            <span className="tc-row__label">Session Expires</span>
-                                            <span className="tc-row__value">{runExpiryLabel}</span>
-                                        </li>
-                                    )}
-                                </ul>
-                            )}
-
-                            <TriviaQuestionProgress
-                                total={questions.length}
-                                currentIndex={currentQuestionIndex}
-                                outcomes={questionOutcomes}
-                                label={`Question ${currentQuestionIndex + 1} Of ${questions.length}`}
-                            />
-                            <section className="strategy-context" aria-labelledby="strategy-context-heading">
-                                <h2 id="strategy-context-heading" className="strategy-context__heading tc-label">
-                                    {currentContext.heading}
-                                </h2>
-                                <ul className="tc-rows">
-                                    {currentContext.items.map(item => (
-                                        <li className="tc-row" key={item.label}>
-                                            <span className="tc-row__label">{item.label}</span>
-                                            <span className={`tc-row__value${item.ink ? ` tc-ink--${item.ink}` : ''}`}>{item.value}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </section>
-
                             <div className="question-content-area">
-                                <p className="category-badge tc-label">
-                                    {toTitleCase(getCategoryName(currentQuestion.category))}
-                                </p>
-
                                 <h2 ref={questionHeadingRef} className="question-text" tabIndex={-1}>
-                                    {/* Card detection runs on the RAW text and the
-                                        title-caser is applied to the remaining
-                                        fragments — title-casing first turned every
-                                        mid-sentence "as" into the ace of spades. */}
-                                    {renderTextWithCards(
-                                        currentQuestion.question,
-                                        s => formatPokerText(toTitleCase(s))
-                                    )}
+                                    <TriviaCardText
+                                        text={currentQuestion.question}
+                                        formatText={s => formatPokerText(toTitleCase(s))}
+                                        structured
+                                    />
                                 </h2>
                             </div>
 
