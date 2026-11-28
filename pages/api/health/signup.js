@@ -26,6 +26,10 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import {
+    loadRecentSignupAttribution,
+    summarizeSignupAttribution,
+} from '../../../src/lib/acquisition/attributionSummary.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -58,10 +62,12 @@ export default async function handler(req, res) {
         }
 
         const start = Date.now();
-        const { data, error } = await sb
-            .from('signup_health_view')
-            .select('*')
-            .maybeSingle();
+        const [viewRes, attributionRes] = await Promise.all([
+            sb.from('signup_health_view').select('*').maybeSingle(),
+            loadRecentSignupAttribution(sb, { windowDays: 7, maxPages: 5, timeoutMs: 1800 })
+                .catch(() => ({ available: false, truncated: false, window_days: 7, ...summarizeSignupAttribution([]) })),
+        ]);
+        const { data, error } = viewRes;
 
         if (error) {
             return res.status(500).json({
@@ -111,6 +117,12 @@ export default async function handler(req, res) {
                 last_signup_at: data?.last_signup_at || null,
                 last_error_at: data?.last_error_at || null,
                 checked_at: new Date().toISOString(),
+            },
+            attribution: attributionRes || {
+                available: false,
+                truncated: false,
+                window_days: 7,
+                ...summarizeSignupAttribution([]),
             },
             latency_ms: Date.now() - start,
             version: (process.env.VERCEL_GIT_COMMIT_SHA || process.env.BUILD_COMMIT_SHA || 'local').substring(0, 8),
