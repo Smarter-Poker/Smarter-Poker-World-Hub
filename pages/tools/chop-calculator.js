@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -615,6 +616,16 @@ export default function ChopCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="chop-calculator"
+              toolName="Final Table ICM Deal & Chop Calculator"
+              eyebrow="Free Deal Cloud Sync"
+              title="Save This Final-Table Chop & ICM Deal Free"
+              description="Keep ICM Payout Splits, Chip-Chop Comparisons & Save-For-First Deal Numbers Synced Free."
+              ctaLabel="Save Chop Deal Free"
+              summaryText={`${dealMetrics.safeCount}-Handed Final Table (Prize Pool ${dealMetrics.totalPrizePool.toLocaleString('en-US')}, Save ${dealMetrics.safeSave.toLocaleString('en-US')}): Leader ICM = ${dealMetrics.rows[0]?.icmChop.toLocaleString('en-US')} Vs Chip Chop = ${dealMetrics.rows[0]?.chipChop.toLocaleString('en-US')}`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-chop-calculator"

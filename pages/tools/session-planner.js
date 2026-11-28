@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -468,6 +469,16 @@ export default function SessionPlannerPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="session-planner"
+              toolName="Live Cash Session & Stop-Loss Planner"
+              eyebrow="Free Session Cloud Sync"
+              title="Save This Cash Session & Stop-Loss Plan Free"
+              description="Keep Stake Buy-In Caps, Stop-Loss Rules & Annual Hourly Winrate Projections Synced Free."
+              ctaLabel="Save Session Plan Free"
+              summaryText={`${metrics.stakeObj.label} (${metrics.safeBuyInBb}BB Buy-In, ${metrics.safeWrBbHr} BB/Hr): Net Hourly = ${metrics.netHourly}/Hr | Projected Annual Net = ${metrics.annualNet.toLocaleString('en-US')} | Stop-Loss = ${metrics.stopLossDollars}`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-session-planner"

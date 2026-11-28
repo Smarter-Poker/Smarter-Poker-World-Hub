@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -386,6 +387,16 @@ export default function ShotTakingCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="shot-taking-calculator"
+              toolName="Bankroll Shot-Taking Planner"
+              eyebrow="Free Bankroll Cloud Sync"
+              title="Save This Stake Shot-Taking Plan Free"
+              description="Store Move-Up Buy-In Triggers, Stop-Loss Drop-Down Rules & Risk Buffers In Your Free Account."
+              ctaLabel="Save Shot Plan Free"
+              summaryText={summaryText}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-shot-taking-calculator"

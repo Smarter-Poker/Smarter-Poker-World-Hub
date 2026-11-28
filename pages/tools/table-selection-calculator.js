@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -516,6 +517,16 @@ export default function TableSelectionCalculatorPage() {
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="table-selection-calculator"
+            toolName="Live Poker Table Selection Calculator"
+            eyebrow="Free Table EV Cloud Sync"
+            title="Save This Table Selection EV Breakdown Free"
+            description="Sync Seat Position Value, VPIP Edge Estimates & Expected Hourly Table EV Across Devices."
+            ctaLabel="Save Table EV Free"
+            summaryText={summaryText}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-table-selection-calculator"

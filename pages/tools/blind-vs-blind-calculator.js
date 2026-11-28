@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -481,6 +482,16 @@ export default function BlindVsBlindCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="blind-vs-blind-calculator"
+              toolName="Blind Vs Blind SB BB Explorer"
+              eyebrow="Free SB Vs BB Cloud Sync"
+              title="Save This Blind Vs Blind Strategy Spot Free"
+              description="Sync SB Limp, Open-Raise & BB Defense Ranges Across Stack Depths In Your Free Cloud Library."
+              ctaLabel="Save SB Vs BB Spot Free"
+              summaryText={summaryText}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-blind-vs-blind-calculator"

@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -518,6 +519,16 @@ export default function WinrateConfidenceCalculatorPage() {
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="winrate-confidence-calculator"
+            toolName="Poker Winrate Confidence Calculator"
+            eyebrow="Free Sample Cloud Sync"
+            title="Save This Winrate Confidence Interval Free"
+            description="Store Observed BB/100 Winrates, Sample Sizes & True-Winrate Confidence Ranges Across Devices."
+            ctaLabel="Save Confidence Spot Free"
+            summaryText={summaryText}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-winrate-confidence-calculator"

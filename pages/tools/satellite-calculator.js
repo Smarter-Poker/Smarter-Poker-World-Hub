@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -435,6 +436,16 @@ export default function SatelliteCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="satellite-calculator"
+              toolName="Satellite Bubble & Seat-Lock Calculator"
+              eyebrow="Free Satellite Cloud Sync"
+              title="Save This Satellite Bubble & Seat-Lock Spot Free"
+              description="Sync Target Seat Stacks, Survival Lock Percentages & Satellite Bubble Factors Across Devices."
+              ctaLabel="Save Satellite Spot Free"
+              summaryText={`Satellite Bubble (${metrics.safeSeats} Seats, ${metrics.safeRem} Left): Target Stack = ${metrics.targetSeatStack.toLocaleString('en-US')} | Hero Seat Lock = ${metrics.seatLockPct}% | Bubble Factor = ${metrics.bubbleFactor}x (Req Equity ${metrics.reqCallingEquity}%)`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-satellite-calculator"

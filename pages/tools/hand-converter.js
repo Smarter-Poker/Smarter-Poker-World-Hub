@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -609,6 +610,16 @@ export default function HandConverterPage() {
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="hand-converter"
+              toolName="Poker Hand History Formatter & Share Card"
+              eyebrow="Free Hand Library Cloud Sync"
+              title="Save This Formatted Poker Hand History Free"
+              description="Store Cleaned Hand Histories, Street Actions & Shareable Study Notes In Your Free Cloud Account."
+              ctaLabel="Save Hand History Free"
+              summaryText={`${stakes} (${effectiveStack}): Hero (${heroPos}) ${outputs.prettyHeroCards} Vs Villain (${villainPos}) On [${outputs.prettyFlop}] [${outputs.prettyTurn}] [${outputs.prettyRiver}]`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-hand-converter"
