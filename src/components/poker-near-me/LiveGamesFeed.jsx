@@ -1071,7 +1071,7 @@ function LiveGamesFeed({
                                 </h3>
                                 <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 3 }}>
                                     {(v.city || v.state) && (
-                                        <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)' }}>
+                                        <span style={{ fontSize: 12, color: '#9fbacc' }}>
                                             {[v.city, v.state].filter(Boolean).join(', ')}
                                         </span>
                                     )}
@@ -1264,7 +1264,7 @@ function LiveGamesFeed({
                     {v.last_updated && (() => {
                         const staleInfo = isStaleData(v.last_updated);
                         return (
-                            <div style={{ marginTop: 6, fontSize: 12, color: staleInfo.stale ? LGF_CAUTION.inkSoft : 'rgba(200,214,229,0.25)', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}
+                            <div style={{ marginTop: 6, fontSize: 12, color: staleInfo.stale ? LGF_CAUTION.inkSoft : '#9fbacc', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}
                                 title={new Date(v.last_updated).toLocaleString()}>
                                 {staleInfo.stale && (<span style={{ fontSize: 12, padding: '1px 5px', borderRadius: 3, background: LGF_CAUTION.well, color: LGF_CAUTION.ink, border: `1px solid ${LGF_CAUTION.edge}`, fontWeight: 700 }}>Stale</span>)}
                                 Updated {staleInfo.age}
@@ -1368,7 +1368,7 @@ function LiveGamesFeed({
                     <button
                         onClick={() => fetchGlobalLiveData(true)}
                         disabled={isRefreshing}
-                        style={{ flexShrink: 0, background: LGF_CAUTION.well, border: `1px solid ${LGF_CAUTION.edge}`, borderRadius: 7, padding: '5px 10px', color: LGF_CAUTION.ink, fontSize: 12, fontWeight: 700, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit' }}
+                        style={{ flexShrink: 0, background: LGF_CAUTION.well, border: `1px solid ${LGF_CAUTION.edge}`, borderRadius: 7, minHeight: 44, minWidth: 64, padding: '0 14px', color: LGF_CAUTION.ink, fontSize: 12, fontWeight: 700, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit' }}
                     >
                         {isRefreshing ? 'Retrying...' : 'Retry'}
                     </button>
@@ -1441,7 +1441,7 @@ function LiveGamesFeed({
                 <section className="pnm-live-map-module">
                     <button type="button" className="pnm-live-map-toggle" onClick={() => setMapExpanded(!mapExpanded)} aria-expanded={mapExpanded} aria-controls="pnm-live-games-map">
                         <span>Live Games Map</span>
-                        <small>{mapExpanded ? 'Collapse map' : 'Open map'}</small>
+                        <small>{mapExpanded ? 'Collapse Map' : 'Open Map'}</small>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" style={{ transform: mapExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}><polyline points="6 9 12 15 18 9" /></svg>
                     </button>
                     {mapExpanded && (
@@ -1523,7 +1523,7 @@ function LiveGamesFeed({
                                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
                                 </div>
                                 <p style={{ fontSize: 16, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px' }}>No Games In This Area</p>
-                                <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.5)', marginBottom: 16 }}>Try Expanding Your Filters Or Search Radius.</p>
+                                <p style={{ fontSize: 13, color: '#9fbacc', marginBottom: 16 }}>Try Expanding Your Filters Or Search Radius.</p>
                                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
                                     <button onClick={handleResetFilters} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(110,231,239,0.1)', border: '1px solid rgba(110,231,239,0.3)', color: '#6ee7ef', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                                         Reset Filters

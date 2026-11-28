@@ -627,7 +627,9 @@ body.world-poker-near-me .pnm-live-map-toggle > span {
 }
 
 body.world-poker-near-me .pnm-live-map-toggle > small {
-  color: #82cae8;
+  /* White ink: the #SmarterDesign button layer paints this toggle cobalt,
+     where the old ice ink read 3.6:1. */
+  color: #f2f7ff;
   font: 750 12px/1 var(--font-premium-body);
   letter-spacing: 0.1em;
 }

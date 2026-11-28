@@ -1787,7 +1787,7 @@ const styles = `
   }
   .breadcrumb-sep {
     margin: 0 8px;
-    color: #475569;
+    color: #9fbacc;
   }
   .breadcrumb-current {
     color: #00D4FF;
@@ -1993,7 +1993,7 @@ const styles = `
   .stat-label {
     font-size: 12px;
     font-weight: 600;
-    color: #64748b;
+    color: #9fbacc;
     letter-spacing: 0.5px;
     margin-bottom: 6px;
   }
@@ -2090,7 +2090,7 @@ const styles = `
   .venue-label {
     font-size: 13px;
     font-weight: 600;
-    color: #64748b;
+    color: #9fbacc;
     min-width: 72px;
     flex-shrink: 0;
   }
@@ -2174,7 +2174,7 @@ const styles = `
     text-align: left;
     font-size:12px;
     font-weight: 700;
-    color: #64748b;
+    color: #9fbacc;
     letter-spacing: 0.5px;
     padding: 10px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -2197,7 +2197,7 @@ const styles = `
   }
 
   .event-num {
-    color: #64748b;
+    color: #9fbacc;
     font-weight: 600;
     font-size: 13px;
     width: 40px;
@@ -2292,7 +2292,7 @@ const styles = `
   .expand-indicator {
     margin-left: 8px;
     font-size:12px;
-    color: #64748b;
+    color: #9fbacc;
     vertical-align: middle;
   }
   .event-detail-row td {
@@ -2321,7 +2321,7 @@ const styles = `
   .detail-label {
     font-size:12px;
     font-weight: 700;
-    color: #64748b;
+    color: #9fbacc;
     letter-spacing: 0.5px;
   }
   .detail-value {
@@ -2342,7 +2342,7 @@ const styles = `
   .no-events {
     text-align: center;
     padding: 40px 20px;
-    color: #64748b;
+    color: #9fbacc;
   }
 
   .no-events svg {
@@ -2360,7 +2360,7 @@ const styles = `
     margin-top: 8px !important;
     font-size: 13px !important;
     font-weight: 400 !important;
-    color: #64748b !important;
+    color: #9fbacc !important;
   }
 
   /* Leaderboard Section */
@@ -2394,7 +2394,7 @@ const styles = `
     text-align: left;
     font-size:12px;
     font-weight: 700;
-    color: #64748b;
+    color: #9fbacc;
     letter-spacing: 0.5px;
     padding: 10px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -2503,7 +2503,7 @@ const styles = `
     font-size:12px;
     font-weight: 600;
     letter-spacing: 0.3px;
-    color: #64748b;
+    color: #9fbacc;
   }
 
   .ind-result-winner {
@@ -2565,7 +2565,7 @@ const styles = `
 
   .activity-time {
     font-size: 12px;
-    color: #64748b;
+    color: #9fbacc;
     font-weight: 500;
     white-space: nowrap;
   }
@@ -2812,7 +2812,7 @@ const styles = `
     .event-gtd::before {
       content: 'GTD ';
       font-size:12px;
-      color: #64748b;
+      color: #9fbacc;
     }
     .event-game, .event-stack, .event-format {
       display: none; /* Keep mobile view clean, they can click to expand */

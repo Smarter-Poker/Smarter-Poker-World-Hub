@@ -1520,7 +1520,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         border-radius: 50%;
                         border: none;
                         background: rgba(255,255,255,0.08);
-                        color: rgba(148,163,184,0.6);
+                        color: #9fbacc;
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -1608,7 +1608,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         border: 1.5px solid transparent;
                         cursor: pointer;
                         transition: all 0.2s;
-                        color: rgba(148,163,184,0.65);
+                        color: #9fbacc;
                         position: relative;
                         text-align: left;
                     }
@@ -1748,7 +1748,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                     }
                     .tours-results-count {
                         font-size: 14px;
-                        color: rgba(148,163,184,0.7);
+                        color: #9fbacc;
                     }
                     .tours-results-count strong {
                         color: #ffffff;

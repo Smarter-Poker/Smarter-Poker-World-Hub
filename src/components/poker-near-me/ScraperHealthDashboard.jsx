@@ -83,7 +83,7 @@ function SourcePanel({ name, data }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#e0e8f0', letterSpacing: '0.5px' }}>{name}</div>
-          <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: '#9fbacc', marginTop: 2 }}>
             Last Scrape: {data.last_scrape ? new Date(data.last_scrape).toLocaleTimeString() : 'Never'}
           </div>
         </div>
@@ -98,7 +98,7 @@ function SourcePanel({ name, data }) {
       </div>
       {data.run_status && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-          <span style={{ color: 'rgba(200,214,229,0.45)', fontSize: 12 }}>Latest Cycle</span>
+          <span style={{ color: '#9fbacc', fontSize: 12 }}>Latest Cycle</span>
           <StatusBadge status={data.effective_run_status || data.run_status} />
           {data.status_reason && (
             <span style={{ color: 'rgba(216,228,236,0.65)', fontSize: 12 }}>
@@ -108,7 +108,7 @@ function SourcePanel({ name, data }) {
         </div>
       )}
       {data.batch_id && (
-        <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.25)', marginTop: 8, fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
+        <div style={{ fontSize: 12, color: '#9fbacc', marginTop: 8, fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
           Batch: {data.batch_id}
         </div>
       )}
@@ -284,7 +284,7 @@ export default function ScraperHealthDashboard() {
             <span style={{ fontSize: 18, fontWeight: 800, color: '#e0e8f0' }}>Scraper Health</span>
             <StatusBadge status={overallStatus} />
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
+          <div style={{ fontSize: 12, color: '#9fbacc' }}>
             {lastChecked ? `Checked: ${lastChecked.toLocaleTimeString()}` : 'Loading...'}
           </div>
         </div>
@@ -314,7 +314,7 @@ export default function ScraperHealthDashboard() {
       )}
 
       {loading && !health && (
-        <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>Loading Scraper Health Data...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: '#9fbacc' }}>Loading Scraper Health Data...</div>
       )}
 
       {health && (
@@ -330,7 +330,7 @@ export default function ScraperHealthDashboard() {
             <div style={{
               padding: '10px 16px', marginBottom: 12, borderRadius: 10,
               background: 'rgba(139,148,158,0.06)', border: '1px solid rgba(139,148,158,0.2)',
-              color: 'rgba(200,214,229,0.5)', fontSize: 12,
+              color: '#9fbacc', fontSize: 12,
             }}>
               Real-Time Engine: Retired. The Saved-Data Engine Publishes Only From Qualified Observed History; Otherwise Current Counts Remain Unknown.
             </div>
@@ -414,7 +414,7 @@ export default function ScraperHealthDashboard() {
                       </div>
                     )}
                     {hist.length <= 1 && (
-                      <div style={{ color: 'rgba(200,214,229,0.3)', fontSize: 12, textAlign: 'center', padding: 8 }}>
+                      <div style={{ color: '#9fbacc', fontSize: 12, textAlign: 'center', padding: 8 }}>
                         Collecting Performance Data...
                       </div>
                     )}
@@ -438,7 +438,7 @@ export default function ScraperHealthDashboard() {
           {showAlertHistory && (
             <div style={{ marginTop: 8, padding: '16px 20px', borderRadius: 12, background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>
               {(!health.alert_history || health.alert_history.length === 0) ? (
-                <div style={{ color: 'rgba(200,214,229,0.4)', fontSize: 12, textAlign: 'center', padding: 10 }}>No Recent Alerts Found.</div>
+                <div style={{ color: '#9fbacc', fontSize: 12, textAlign: 'center', padding: 10 }}>No Recent Alerts Found.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {health.alert_history.map(ev => {
@@ -446,7 +446,7 @@ export default function ScraperHealthDashboard() {
                     const color = isRecovery ? '#3fb950' : '#ef4444';
                     return (
                       <div key={ev.id} style={{ display: 'flex', gap: 12, borderLeft: `2px solid ${color}`, paddingLeft: 12 }}>
-                        <div style={{ minWidth: 90, color: 'rgba(200,214,229,0.5)', fontSize: 12, paddingTop: 2 }}>
+                        <div style={{ minWidth: 90, color: '#9fbacc', fontSize: 12, paddingTop: 2 }}>
                           {new Date(ev.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                         </div>
                         <div>
@@ -470,8 +470,8 @@ export default function ScraperHealthDashboard() {
             border: '1.5px solid rgba(148,163,184,0.1)',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 6px rgba(0,0,0,0.25)',
           }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(200,214,229,0.5)', marginBottom: 6, letterSpacing: '0.5px' }}>Health Thresholds</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#9fbacc', marginBottom: 6, letterSpacing: '0.5px' }}>Health Thresholds</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 12, color: '#9fbacc' }}>
               <span><span style={{ color: '#3fb950' }}>Healthy</span>: {health.thresholds?.healthy}</span>
               <span><span style={{ color: '#9fd8ff' }}>Stale</span>: {health.thresholds?.stale}</span>
               <span><span style={{ color: '#ef4444' }}>Dead</span>: {health.thresholds?.dead}</span>
