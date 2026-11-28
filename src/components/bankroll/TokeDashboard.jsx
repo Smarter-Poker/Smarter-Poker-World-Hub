@@ -15,6 +15,7 @@ import ResponsiveTable from '../ui/ResponsiveTable';
 import { getTokeAnalytics } from '../../lib/bankroll/tokeSelectors';
 import { localDay } from '../../lib/bankroll/localDates.mjs';
 import { buildTokeAnalyticsCsv, downloadCsv } from '../../lib/bankroll/tokeReport.mjs';
+import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 
 const TokeEarningsChart = dynamic(() => import('./toke/TokeEarningsChart'), { ssr: false });
 
@@ -30,7 +31,9 @@ function localDate(date) {
     return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
 }
 
-const fmt = (n) => `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// Copied summaries are exports: they stay in US dollars. On-screen figures
+// follow Display EUR through currencyUtils (see `show` below).
+const usdText = (n) => formatCurrency(n || 0, false, { cents: true });
 // ── KPI Tile ───────────────────────────────────────────────────
 function KpiTile({ label, value, sub, icon: Icon, primary }) {
     return <div className={'sd-metric ' + (primary ? desk.primaryMetric : desk.metric)}>
@@ -40,17 +43,17 @@ function KpiTile({ label, value, sub, icon: Icon, primary }) {
     </div>;
 }
 
-function ChartDataTable({ activeChart, trendData, monthlyData, donutData }) {
+function ChartDataTable({ activeChart, trendData, monthlyData, donutData, show }) {
     const series = activeChart === 'types' ? donutData : activeChart === 'monthly' ? monthlyData : trendData;
     if (!series.length) return null;
-    const tokes = { key: 'tokes', label: 'Tokes', align: 'right', render: row => fmt(row.tokes) };
+    const tokes = { key: 'tokes', label: 'Tokes', align: 'right', render: row => show(row.tokes) };
     const columns = activeChart === 'types'
         ? [{ key: 'name', label: 'Down Type' }, { key: 'value', label: 'Downs', align: 'right' }]
         : activeChart === 'monthly'
             ? [{ key: 'month', label: 'Month' }, tokes, { key: 'events', label: 'Events', align: 'right' }]
             : [{ key: 'date', label: 'Date' }, { key: 'venue', label: 'Venue' }, tokes,
                 activeChart === 'events' ? { key: 'hours', label: 'Hours', align: 'right' }
-                    : { key: 'cumulative', label: 'Cumulative', align: 'right', render: row => fmt(row.cumulative) }];
+                    : { key: 'cumulative', label: 'Cumulative', align: 'right', render: row => show(row.cumulative) }];
     return (
         <details className={desk.chartData}>
             <summary><List size={16} aria-hidden="true" />View Chart Data<ChevronDown size={15} aria-hidden="true" /></summary>
@@ -60,7 +63,8 @@ function ChartDataTable({ activeChart, trendData, monthlyData, donutData }) {
 }
 
 // ── Main Component ─────────────────────────────────────────────
-function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
+function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false, displayEUR = false }) {
+    const show = (n) => formatCurrency(n || 0, displayEUR, { cents: true });
     const [snapshot, setSnapshot] = useState(null);
     const [fetching, setFetching] = useState(true);
     const [activeChart, setActiveChart] = useState('trend');
@@ -166,12 +170,12 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                     </div>
                 ) : (
                     <dl className={desk.metrics}>
-                        <KpiTile primary label={scopeTitle} value={fmt(analytics?.careerTokes)} icon={Coins} />
+                        <KpiTile primary label={scopeTitle} value={show(analytics?.careerTokes)} icon={Coins} />
                         <KpiTile label="Total Events" value={analytics?.totalEvents || 0} icon={CalendarDays} />
                         <KpiTile label="Hours Worked" value={`${analytics?.totalHours || 0}h`}
-                            sub={analytics?.totalHours > 0 ? fmt(analytics.tokesPerHour) + ' Tokes Per Hour' : null} icon={Clock3} />
-                        <KpiTile label="Avg / Down" value={fmt(analytics?.avgTokePerDown)} icon={BarChart3} />
-                        <KpiTile label="Best Event" value={analytics?.bestEvent ? fmt(analytics.bestEvent.tokes) : '-'}
+                            sub={analytics?.totalHours > 0 ? show(analytics.tokesPerHour) + ' Tokes Per Hour' : null} icon={Clock3} />
+                        <KpiTile label="Avg / Down" value={show(analytics?.avgTokePerDown)} icon={BarChart3} />
+                        <KpiTile label="Best Event" value={analytics?.bestEvent ? show(analytics.bestEvent.tokes) : '-'}
                             sub={analytics?.bestEvent?.venueName} icon={Trophy} />
                     </dl>
                 ))}
@@ -195,9 +199,9 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                     </div>
 
                     <div className={desk.plot}>
-                        <TokeEarningsChart {...{ activeChart, trendData, monthlyData, donutData, totalDowns, fmt }} />
+                        <TokeEarningsChart {...{ activeChart, trendData, monthlyData, donutData, totalDowns, displayEUR }} fmt={show} />
                     </div>
-                    <ChartDataTable {...{ activeChart, trendData, monthlyData, donutData }} />
+                    <ChartDataTable {...{ activeChart, trendData, monthlyData, donutData, show }} />
 
                     {/* ── Export Buttons ── */}
                     {hasData && (
@@ -210,12 +214,12 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                                         `TOKE ANALYTICS SUMMARY`,
                                         `Generated: ${new Date().toLocaleDateString()}`,
                                         ``,
-                                        `${scopeTitle}:   ${fmt(a.careerTokes)}`,
+                                        `${scopeTitle}:   ${usdText(a.careerTokes)}`,
                                         `Total Events:   ${a.totalEvents}`,
                                         `Hours Worked:   ${a.totalHours}h`,
-                                        `Tokes/Hour:     ${fmt(a.tokesPerHour)}`,
-                                        `Avg Toke/Down:  ${fmt(a.avgTokePerDown)}`,
-                                        `Best Event:     ${a.bestEvent ? `${fmt(a.bestEvent.tokes)} at ${a.bestEvent.venueName}` : '-'}`,
+                                        `Tokes/Hour:     ${usdText(a.tokesPerHour)}`,
+                                        `Avg Toke/Down:  ${usdText(a.avgTokePerDown)}`,
+                                        `Best Event:     ${a.bestEvent ? `${usdText(a.bestEvent.tokes)} at ${a.bestEvent.venueName}` : '-'}`,
                                         ``,
                                         `Down Distribution:`,
                                         `  Cash:       ${a.downTypes?.cash || 0}`,
@@ -226,7 +230,7 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                                     if (a.monthlyTrend?.length) {
                                         lines.push(``, `Monthly Breakdown:`);
                                         for (const m of a.monthlyTrend) {
-                                            if (m.events > 0) lines.push(`  ${m.month}: ${fmt(m.tokes)} (${m.events} event${m.events !== 1 ? 's' : ''})`);
+                                            if (m.events > 0) lines.push(`  ${m.month}: ${usdText(m.tokes)} (${m.events} event${m.events !== 1 ? 's' : ''})`);
                                         }
                                     }
                                     const copied = await safeCopyToClipboard(lines.join('\n'));

@@ -148,15 +148,38 @@ export function deriveCaptureHeadline(rawPath) {
     return 'Get Curated World Poker News, Solver Spots And Club Rewards';
 }
 
-const INTERACTIVE_CONVERSION_PREFIXES = ['/tools/', '/learn/', '/hub/series/', '/features/'];
+const INTERACTIVE_CONVERSION_EXACT = new Set([
+    '/tools',
+    '/learn',
+    '/features',
+    '/poker-rooms',
+    '/hub/poker-near-me',
+    '/compare',
+    '/freerolls',
+    '/glossary',
+    '/rules',
+]);
+
+const INTERACTIVE_CONVERSION_PREFIXES = [
+    '/tools/',
+    '/learn/',
+    '/hub/series/',
+    '/features/',
+    '/poker-rooms/',
+    '/hub/venues/',
+    '/hub/poker-near-me/',
+    '/hub/tours/',
+    '/hub/video-library/watch/',
+    '/compare/',
+    '/glossary/',
+    '/rules/',
+];
 
 export function isInteractiveConversionRoute(rawPath) {
     const norm = normalizeCapturePath(rawPath);
     if (!norm) return false;
     return (
-        norm === '/tools' ||
-        norm === '/learn' ||
-        norm === '/features' ||
+        INTERACTIVE_CONVERSION_EXACT.has(norm) ||
         INTERACTIVE_CONVERSION_PREFIXES.some((prefix) => norm.startsWith(prefix))
     );
 }

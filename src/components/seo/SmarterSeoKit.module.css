@@ -296,7 +296,7 @@
     inset 0 1px 0 rgb(134 218 255 / 45%),
     0 1px 0 #010509;
   color: var(--sk-ice);
-  font: 700 11px/1.2 var(--sk-type);
+  font: 700 12px/1.2 var(--sk-type); /* never under 12px (mobile budget law) */
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
@@ -744,7 +744,9 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* ── Post-Signup Unlock Continuity & Activation Banner ──────────────── */

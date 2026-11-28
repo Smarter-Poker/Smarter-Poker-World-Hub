@@ -15,11 +15,13 @@ import { RECEIPT_UNASSIGN } from './receiptGallery.mjs';
 import { localDay, localDayOffset } from './localDates.mjs';
 import {
   linkableStakingEntries,
+  isStakeableEntry,
   replayStakingDeal,
   splitStakingSession,
   stakingRowsToRewrite,
 } from './stakingMath.mjs';
 import { bankrollBalanceCents, centsToDollars, toCents } from './ledgerMath.mjs';
+import { fetchAllRows } from './ledgerReport.mjs';
 import {
   buildTripReport,
   cleanDay,
@@ -276,15 +278,20 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
       return;
   }
 
-  // Sum all net results for this segment from the ledger
-  const { data: entries } = await supabase
+  // Sum every row for this segment, a page at a time. The single unpaged read
+  // this used to be stopped at PostgREST's 1,000th row, and a failed read came
+  // back as no rows and stored the segment as its starting deposit alone. A
+  // failed read now throws and the stored balance is left as it was.
+  const entries = await fetchAllRows(() => supabase
     .from('bankroll_ledger')
-    .select('gross_in, gross_out, category')
+    .select('id, gross_in, gross_out, category')
     .eq('user_id', userId)
     .eq('is_revision', false)
-    .in('category', categories);
+    // in-list: bounded by the segment's own category list (at most five)
+    .in('category', categories)
+    .order('id', { ascending: true }));
 
-  const segmentCents = bankrollBalanceCents(entries || [], []);
+  const segmentCents = bankrollBalanceCents(entries, []);
 
   // Make sure the segment row exists without racing a concurrent creator: a
   // select-then-insert pair lost that race and hit the (user_id, segment_type)
@@ -297,12 +304,13 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
     );
   if (err_bankroll_segments_304z4) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_304z4.message);
 
-  const { data: existing } = await supabase
+  const { data: existing, error: segmentReadError } = await supabase
     .from('bankroll_segments')
     .select('initial_deposit')
     .eq('user_id', userId)
     .eq('segment_type', segmentType)
     .maybeSingle();
+  if (segmentReadError) throw segmentReadError;
 
   // Add initial deposit (from Adjust Bankroll modal) to the ledger-derived total
   const totalWithDeposits = centsToDollars(segmentCents + toCents(existing?.initial_deposit));
@@ -370,38 +378,6 @@ export async function createLedgerEntry(
     console.warn('[Bankroll] Failed to update segment balance:', segError);
   }
 
-  return data;
-}
-
-/**
- * Create a revision entry (for editing - original remains immutable)
- */
-export async function createRevisionEntry(
-  userId: string,
-  originalEntryId: string,
-  updates: Partial<LedgerEntry>,
-  reason: string
-): Promise<LedgerEntry> {
-  // Fetch original entry
-  const original = await fetchLedgerEntry(userId, originalEntryId);
-  if (!original) throw new Error('Original entry not found');
-
-  // Create revision with updated fields
-  const { data, error } = await supabase
-    .from('bankroll_ledger')
-    .insert({
-      ...original,
-      ...updates,
-      id: undefined, // Let Supabase generate new ID
-      is_revision: true,
-      original_entry_id: originalEntryId,
-      revision_reason: reason,
-      created_at: undefined, // Let Supabase set timestamp
-    })
-    .select()
-    .maybeSingle();
-
-  if (error || !data) throw error || new Error('Failed to create revision');
   return data;
 }
 
@@ -958,89 +934,61 @@ export async function initializeUserBankroll(userId: string): Promise<void> {
   if (err_bankroll_rules_t1in3) console.warn('[Supabase] Silent mutation failed in bankroll_rules:', err_bankroll_rules_t1in3.message);
 }
 
-/**
- * Update segment balance
- */
-export async function updateSegmentBalance(
-  userId: string,
-  segmentType: 'poker' | 'casino' | 'sports' | 'life',
-  amount: number
-): Promise<void> {
-  const { data: current } = await supabase
-    .from('bankroll_segments')
-    .select('current_balance')
-    .eq('user_id', userId)
-    .eq('segment_type', segmentType)
-    .maybeSingle();
-
-  const newBalance = (current?.current_balance || 0) + amount;
-
-  const { error: err_bankroll_segments_pl9cn } = await supabase
-
-    .from('bankroll_segments')
-
-    .update({
-      current_balance: newBalance,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userId)
-    .eq('segment_type', segmentType);
-
-  if (err_bankroll_segments_pl9cn) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_pl9cn.message);
-}
-
-/**
- * Log a transfer between segments
- */
-export async function logSegmentTransfer(
-  userId: string,
-  fromSegment: string,
-  toSegment: string,
-  amount: number,
-  reason?: string
-): Promise<void> {
-  const { error: err_bankroll_transfers_5oti3 } = await supabase.from('bankroll_transfers').insert({
-    user_id: userId,
-    from_segment: fromSegment,
-    to_segment: toSegment,
-    amount,
-    reason,
-  });
-  if (err_bankroll_transfers_5oti3) console.warn('[Supabase] Silent mutation failed in bankroll_transfers:', err_bankroll_transfers_5oti3.message);
-}
+// updateSegmentBalance and logSegmentTransfer used to live here. Nothing called
+// them, and the first read current_balance and wrote back current + amount, so
+// two saves at once lost one of them. The stored segment balance is only ever
+// recomputed from the ledger (recalculateSegmentBalance).
 
 /**
  * Check if user has set a starting bankroll
  */
 export async function hasStartingBankroll(userId: string): Promise<boolean> {
-  const { data } = await supabase
+  // A failed read used to answer "no", so a player who had set a starting
+  // bankroll was asked for it again and the new figure replaced the old one.
+  // The page already handles a thrown error ("Could Not Open The Log").
+  const { data, error } = await supabase
     .from('bankroll_segments')
     .select('initial_deposit')
     .eq('user_id', userId)
     .neq('segment_type', 'life');
 
+  if (error) throw error;
   if (!data || data.length === 0) return false;
-  return data.some(seg => (seg.initial_deposit || 0) > 0);
+  return data.some(seg => toCents(seg.initial_deposit) > 0);
 }
 
 /**
  * Set a user's starting bankroll (first-time setup)
  */
 export async function setStartingBankroll(userId: string, amount: number): Promise<void> {
+  const cents = toCents(amount);
+  if (!(cents > 0)) throw new Error('Enter An Amount Greater Than $0');
+
   // Ensure segments exist
   await initializeUserBankroll(userId);
 
-  // Set the poker segment as the primary starting balance
-  const { error: err_bankroll_segments_wwjic } = await supabase
+  // The starting bankroll is the poker segment's initial_deposit. A failed or
+  // refused update used to be logged and the modal still said "Starting
+  // Bankroll Set", so the player went on with no starting bankroll saved.
+  const { data, error } = await supabase
     .from('bankroll_segments')
     .update({
-      initial_deposit: amount,
-      current_balance: amount,
+      initial_deposit: centsToDollars(cents),
       updated_at: new Date().toISOString(),
     })
     .eq('user_id', userId)
-    .eq('segment_type', 'poker');
-  if (err_bankroll_segments_wwjic) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_wwjic.message);
+    .eq('segment_type', 'poker')
+    .select('id');
+  if (error) throw error;
+  if (!data || data.length === 0) throw new Error('Your Starting Bankroll Could Not Be Saved.');
+
+  // The stored segment balance is the starting bankroll plus the poker
+  // segment's ledger rows; it used to be overwritten with the amount alone.
+  try {
+    await recalculateSegmentBalance(userId, 'poker');
+  } catch (segError) {
+    console.warn('[Bankroll] Failed to update segment balance:', segError);
+  }
 
   // No ledger row: the starting bankroll is initial_deposit, and the Bankroll
   // Balance adds every deposit row to it, so a "Starting bankroll" deposit row
@@ -1371,6 +1319,9 @@ export async function loadStakingDeal(
  * caller reloads the deal, which replays every session in played order.
  */
 export async function linkStakingSession(arrangement: StakingArrangement, entry: LedgerEntry): Promise<void> {
+  if (!isStakeableEntry(entry)) {
+    throw new Error('Only Poker Cash Games And Tournaments Can Be Linked To A Staking Deal.');
+  }
   const split = splitStakingSession({
     grossResult: entry.net_result ?? (entry.gross_out || 0) - (entry.gross_in || 0),
     splitPercentage: arrangement.split_percentage,

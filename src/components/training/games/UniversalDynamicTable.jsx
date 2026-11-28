@@ -1125,7 +1125,7 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
                     fontWeight: 900,
                     lineHeight: 1,
                     color: 'var(--sp-accent-red)',
-                    fontFamily: "'Inter', monospace",
+                    fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontVariantNumeric: 'tabular-nums',
                     textShadow: '0 0 14px rgba(239,68,68,0.55)',
                 }}>
@@ -1158,7 +1158,7 @@ function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = t
                 {/* Timer text */}
                 <text x="22" y="22" textAnchor="middle" dominantBaseline="central"
                     fill={color} fontSize="13" fontWeight="bold"
-                    fontFamily="'Inter', monospace"
+                    fontFamily="var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
                 >
                     {timeLeft}
                 </text>
@@ -1341,7 +1341,7 @@ const loadingStyles = {
         color: 'var(--sp-accent-cyan)',
         fontSize: 16,
         fontWeight: 700,
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         letterSpacing: 1,
     },
     buttonsArea: {
@@ -1459,7 +1459,7 @@ function ClassificationFlashBanner({ classification, evLoss, evLossMeasured = fa
                     color: verdictColor,
                     letterSpacing: 3,
                     textTransform: 'uppercase',
-                    fontFamily: "var(--font-rajdhani), 'Rajdhani', 'Inter', sans-serif",
+                    fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                     textShadow: `0 2px 0 rgba(0,0,0,.85), 0 0 18px ${verdictGlow}`,
                 }}>
                     {verdict}
@@ -1483,7 +1483,7 @@ function ClassificationFlashBanner({ classification, evLoss, evLossMeasured = fa
                 fontSize: 12,
                 fontWeight: 850,
                 letterSpacing: .6,
-                fontFamily: "'Inter', monospace",
+                fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 boxShadow: 'inset 0 1px rgba(255,255,255,.14)',
             }}>
                 {!hasMeasuredEV
@@ -1524,7 +1524,7 @@ function EVLossTicker({ totalEVLoss, measuredEVDecisions = 0, show }) {
                 right: 4,
                 fontSize: 12,
                 fontWeight: 700,
-                fontFamily: "'Inter', monospace",
+                fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 color: evColor,
                 background: 'rgba(0,0,0,0.6)',
                 padding: '2px 6px',
@@ -2205,12 +2205,15 @@ function UniversalDynamicTable({
         normalizeBettingStructure(scenario?.bettingStructure || trainerConfig?.bettingStructure, scenario?.variant || trainerConfig?.variant || 'nlh')
     );
     const [activeGameFormat, setActiveGameFormat] = React.useState(() => {
-        if (scenario?.format || trainerConfig?.format) {
-            return normalizeGameFormat(scenario?.format || trainerConfig?.format);
+        if (scenario?.format) {
+            return normalizeGameFormat(scenario.format);
         }
-        if (gameType === 'spins') return 'spins';
+        if (gameType === 'spins' || gameType === 'sng') return 'spins';
         if (gameType === 'hu' || gameType === 'heads-up') return 'hu';
-        if (gameType === 'mtt' || gameType === 'sng' || Boolean(scenario?.isICM || scenario?.isPKO)) return 'mtt';
+        if (trainerConfig?.format) {
+            return normalizeGameFormat(trainerConfig.format);
+        }
+        if (gameType === 'mtt' || Boolean(scenario?.isICM || scenario?.isPKO)) return 'mtt';
         return 'cash';
     });
     const [isAudioMuted, setIsAudioMuted] = React.useState(() =>
@@ -5224,7 +5227,7 @@ function UniversalDynamicTable({
 
     return (
         <div
-            className="gto-trainer-container"
+            className="gto-trainer-container smarterdesign"
             data-training-game-id={gameId}
             data-training-ui="club-arena-table"
             data-table-focused={isFocused ? 'true' : 'false'}
@@ -5283,10 +5286,18 @@ function UniversalDynamicTable({
                 @media (min-width: 901px) {
                     .gto-trainer-container {
                         max-width: 1180px !important;
+                        height: auto !important;
+                        min-height: calc(100dvh - 59px) !important;
+                        overflow-x: clip !important;
+                        overflow-y: visible !important;
                         margin: 0 auto !important;
                         border-left: 1px solid rgba(120,212,240,0.15) !important;
                         border-right: 1px solid rgba(120,212,240,0.15) !important;
                         box-shadow: 0 0 70px rgba(0,0,0,0.62), inset 0 0 60px rgba(27,154,196,0.035) !important;
+                    }
+                    .gto-trainer-container .sp-club-gto-table-area {
+                        flex: 1 0 495px !important;
+                        min-height: 495px !important;
                     }
                 }
                 .gto-trainer-container {
@@ -5472,10 +5483,6 @@ function UniversalDynamicTable({
                     /* Not a candidate for clip. This declares overflow-y, so it is a
                        deliberate scroller, and clip beside a scrolling axis computes
                        straight back to hidden. Leave the pair as it is. */
-                    overflow-x: hidden !important
-                    /* Not a candidate for clip. This declares overflow-y, so it is a
-                       deliberate scroller, and clip beside a scrolling axis computes
-                       straight back to hidden. Leave the pair as it is. */
                     overflow-x: hidden !important;
                     overflow-y: auto !important;
                 }
@@ -5485,18 +5492,19 @@ function UniversalDynamicTable({
                        Arena canvas used while answering and scroll the review
                        below it. Without an explicit basis the flex column
                        shrank this area to zero on desktop. */
-                    flex: 0 0 540px !important
-                    /* Feedback is a review state, not a replacement for the
-                       live table. Preserve the same complete 605:1000 Club
-                       Arena canvas used while answering and scroll the review
-                       below it. Without an explicit basis the flex column
-                       shrank this area to zero on desktop. */
                     flex: 0 0 540px !important;
                     min-height: 540px !important;
                 }
                 @media (max-width: 768px) {
+                    .gto-trainer-container {
+                        height: auto !important;
+                        min-height: calc(100dvh - 59px) !important;
+                        overflow-x: clip !important;
+                        overflow-y: visible !important;
+                    }
                     .gto-trainer-container .sp-club-gto-table-area {
                         min-height: 220px !important;
+                        flex: 1 0 380px !important;
                     }
                     .gto-trainer-container[data-training-visual-state='verdict'] .sp-club-gto-table-area {
                         /* Feedback is a scrollable review state. It must not
@@ -5837,11 +5845,12 @@ function UniversalDynamicTable({
                 const gId = String(gameId || '').toLowerCase();
                 const currentVariant = activeNormalizedVariant;
                 const rawBounty = scenario?.bountyBb ?? scenario?.bountyAmount ?? scenario?.bountyChips ?? (typeof scenario?.bounty === 'number' ? scenario.bounty : null);
-                const hasNumericBounty = Number.isFinite(Number(rawBounty)) && Number(rawBounty) > 0;
+                const isFiniteMetric = (v) => v !== null && v !== undefined && String(v).trim() !== '' && Number.isFinite(Number(v));
+                const hasNumericBounty = isFiniteMetric(rawBounty) && Number(rawBounty) > 0;
                 const isPkoSpot = hasNumericBounty || gId === 'mtt-005' || gId === 'mtt-020' || Boolean(scenario?.isPKO || /bounty|pko/i.test(String(gameTitle || '')));
 
                 const rawBubbleFactor = scenario?.bubbleFactor ?? scenario?.icmBubbleFactor ?? null;
-                const hasNumericBubbleFactor = Number.isFinite(Number(rawBubbleFactor)) && Number(rawBubbleFactor) > 0;
+                const hasNumericBubbleFactor = isFiniteMetric(rawBubbleFactor) && Number(rawBubbleFactor) > 0;
                 const rawPayoutPressure = typeof scenario?.payoutPressure === 'string' && scenario.payoutPressure.trim()
                     ? scenario.payoutPressure.trim()
                     : (typeof scenario?.icmPressure === 'string' && scenario.icmPressure.trim() ? scenario.icmPressure.trim() : null);
@@ -5851,7 +5860,7 @@ function UniversalDynamicTable({
                 const vpipVal = statsObj?.vpip ?? scenario?.vpip ?? null;
                 const pfrVal = statsObj?.pfr ?? scenario?.pfr ?? null;
                 const threeBetVal = statsObj?.threeBet ?? statsObj?.three_bet ?? scenario?.threeBet ?? null;
-                const hasHudStats = Number.isFinite(Number(vpipVal)) && Number.isFinite(Number(pfrVal));
+                const hasHudStats = isFiniteMetric(vpipVal) && isFiniteMetric(pfrVal);
                 const archetypeLabel = String(scenario?.villainProfile || scenario?.archetype || statsObj?.archetype || '').trim();
 
                 const handleSelectVariant = (nextVar) => {
@@ -5907,15 +5916,15 @@ function UniversalDynamicTable({
                                 data-training-mode={isMultiStreetActive ? 'full-hand-practice' : 'single-decision-drill'}
                                 style={{
                                     padding: '2px 7px',
-                                    borderRadius: 5,
+                                    borderRadius: 4,
                                     fontSize: 12,
-                                    fontWeight: 800,
-                                    border: '1px solid rgba(134, 218, 255, 0.45)',
-                                    background: 'rgba(134, 218, 255, 0.12)',
+                                    fontWeight: 700,
+                                    border: '1px solid rgba(134, 218, 255, 0.38)',
+                                    background: 'rgba(10, 24, 41, 0.78)',
                                     color: '#86daff',
                                 }}
                             >
-                                {isMultiStreetActive ? 'Full-Hand Practice' : 'Single-Decision Drill'}
+                                {isMultiStreetActive ? 'Full Hand' : 'Drill'}
                             </span>
                             {presetOnlyProp && (
                                 <button
@@ -5926,16 +5935,16 @@ function UniversalDynamicTable({
                                     onClick={() => setCustomizeOpen((prev) => !prev)}
                                     style={{
                                         padding: '2px 8px',
-                                        borderRadius: 5,
+                                        borderRadius: 4,
                                         fontSize: 12,
-                                        fontWeight: 800,
+                                        fontWeight: 700,
                                         cursor: 'pointer',
                                         border: customizeOpen ? '1px solid #56d8ff' : '1px solid #688299',
                                         background: customizeOpen ? 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)' : 'rgba(255,255,255,0.06)',
                                         color: '#f2f7ff',
                                     }}
                                 >
-                                    {customizeOpen ? 'Done Customizing' : 'Customize'}
+                                    {customizeOpen ? 'Done' : 'Customize'}
                                 </button>
                             )}
                             {(!showTableCustomControls) ? (
@@ -5943,15 +5952,15 @@ function UniversalDynamicTable({
                                     data-preset-active-summary="true"
                                     style={{
                                         padding: '2px 7px',
-                                        borderRadius: 5,
+                                        borderRadius: 4,
                                         fontSize: 12,
-                                        fontWeight: 800,
+                                        fontWeight: 700,
                                         color: '#bdd0e2',
-                                        border: '1px solid rgba(104, 130, 153, 0.4)',
+                                        border: '1px solid rgba(104, 130, 153, 0.35)',
                                         background: 'rgba(10, 24, 41, 0.65)',
                                     }}
                                 >
-                                    {`${currentVariant.toUpperCase()} · ${activeBettingStructure === 'pot_limit' ? 'Pot-Limit' : activeBettingStructure === 'fixed_limit' ? 'Fixed-Limit' : 'No-Limit'} · ${activeGameFormat === '9max' ? '9 Seats' : activeGameFormat === 'spins' ? '3 Seats' : activeGameFormat === 'hu' ? '2 Seats' : '6 Seats'} · ${heroStack} BB`}
+                                    {`${currentVariant.toUpperCase()} · ${playerCount === 9 ? '9-Max' : playerCount === 3 ? '3-Max' : playerCount === 2 ? 'Heads-Up' : '6-Max'} · ${heroStack} BB`}
                                 </span>
                             ) : [
                                 { id: 'nlh', label: "Hold'em" },
@@ -6104,24 +6113,6 @@ function UniversalDynamicTable({
                                 </span>
                             )}
 
-                            <span
-                                data-training-stakes-badge="true"
-                                data-stakes-label={activeStakesInfo.stakesLabel}
-                                data-big-blind={String(activeStakesInfo.bigBlind)}
-                                data-small-blind={String(activeStakesInfo.smallBlind)}
-                                data-has-explicit-stakes={activeStakesInfo.hasExplicitStakes ? 'true' : 'false'}
-                                style={{
-                                    padding: '2px 7px',
-                                    borderRadius: 5,
-                                    fontSize: 12,
-                                    fontWeight: 800,
-                                    border: '1px solid rgba(56, 189, 248, 0.35)',
-                                    background: 'rgba(56, 189, 248, 0.1)',
-                                    color: '#7dd3fc',
-                                }}
-                            >
-                                {`STAKES: ${activeStakesInfo.stakesLabel}`}
-                            </span>
                             <button
                                 type="button"
                                 data-pot-display-mode-toggle="true"
@@ -6134,37 +6125,16 @@ function UniversalDynamicTable({
                                 onClick={handleToggleDisplayUnit}
                                 style={{
                                     padding: '2px 8px',
-                                    borderRadius: 5,
+                                    borderRadius: 4,
                                     fontSize: 12,
-                                    fontWeight: 800,
+                                    fontWeight: 700,
                                     cursor: 'pointer',
-                                    border: '1px solid rgba(86, 216, 255, 0.45)',
+                                    border: '1px solid rgba(134, 218, 255, 0.38)',
                                     background: displayInChips ? 'rgba(86, 216, 255, 0.2)' : 'rgba(255,255,255,0.05)',
                                     color: '#86daff',
                                 }}
                             >
-                                {displayInChips ? `CHIPS (${activeStakesInfo.stakesLabel})` : 'UNITS: BB'}
-                            </button>
-                            <button
-                                type="button"
-                                data-unit-toggle-entry="settings"
-                                data-display-unit={displayInChips ? 'CHIPS' : 'BB'}
-                                data-display-mode={displayMode}
-                                aria-label="Toggle Display Units Settings"
-                                title="Toggle Display Units Settings (BB / Chips)"
-                                onClick={handleToggleDisplayUnit}
-                                style={{
-                                    padding: '2px 8px',
-                                    borderRadius: 5,
-                                    fontSize: 12,
-                                    fontWeight: 800,
-                                    cursor: 'pointer',
-                                    border: '1px solid rgba(56, 189, 248, 0.45)',
-                                    background: displayInChips ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255,255,255,0.05)',
-                                    color: '#7dd3fc',
-                                }}
-                            >
-                                {displayInChips ? 'SETTINGS: CHIPS' : 'SETTINGS: BB'}
+                                {displayInChips ? `Chips (${activeStakesInfo.stakesLabel})` : 'BB'}
                             </button>
                         </div>
 
@@ -6174,10 +6144,50 @@ function UniversalDynamicTable({
                             data-study-tools-disclosure="true"
                             style={{ width: '100%' }}
                         >
-                            <summary style={{ minHeight: 36, padding: '4px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer', color: '#83deff' }}>
-                                Table &amp; Study Tools (Audio, Rules, HUD, Node-Lock &amp; Simulators)
+                            <summary style={{ minHeight: 36, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#86daff' }}>
+                                Table &amp; Study Tools
                             </summary>
                             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 6 }}>
+                                <span
+                                    data-training-stakes-badge="true"
+                                    data-stakes-label={activeStakesInfo.stakesLabel}
+                                    data-big-blind={String(activeStakesInfo.bigBlind)}
+                                    data-small-blind={String(activeStakesInfo.smallBlind)}
+                                    data-has-explicit-stakes={activeStakesInfo.hasExplicitStakes ? 'true' : 'false'}
+                                    style={{
+                                        padding: '2px 7px',
+                                        borderRadius: 4,
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                        border: '1px solid rgba(134, 218, 255, 0.35)',
+                                        background: 'rgba(10, 24, 41, 0.72)',
+                                        color: '#86daff',
+                                    }}
+                                >
+                                    {`Stakes: ${activeStakesInfo.stakesLabel}`}
+                                </span>
+                                <button
+                                    type="button"
+                                    data-display-toggle-source="settings"
+                                    data-unit-toggle-entry="settings"
+                                    data-display-unit={displayInChips ? 'CHIPS' : 'BB'}
+                                    data-display-mode={displayMode}
+                                    aria-label="Toggle Display Units Settings"
+                                    title="Toggle Display Units Settings (BB / Chips)"
+                                    onClick={handleToggleDisplayUnit}
+                                    style={{
+                                        padding: '2px 8px',
+                                        borderRadius: 4,
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        border: '1px solid rgba(134, 218, 255, 0.4)',
+                                        background: displayInChips ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255,255,255,0.05)',
+                                        color: '#86daff',
+                                    }}
+                                >
+                                    {displayInChips ? 'Units: Chips' : 'Units: BB'}
+                                </button>
                                 {/* On-Table Audio & Motion Parity Control + Scenario Restart */}
                                 <div
                                     data-table-audio-control="true"
@@ -7587,13 +7597,13 @@ function UniversalDynamicTable({
                 // and the question pill without them reaching into hero's hole
                 // cards. Reserve a strip UNDER the felt for them instead, and
                 // let the oval shrink into what is left.
-                paddingBottom: isMobile ? clubArenaHeroClearPx(viewportWidth) : 60,
+                paddingBottom: isMobile ? clubArenaHeroClearPx(viewportWidth) : 24,
             }}>
 
                 <aside className="sp-club-gto-desktop-rail is-left" aria-label="Current Training Decision">
-                    <span>Live Training Decision</span>
+                    <span>Table Spot</span>
                     <strong>{gameTitle || 'GTO Training'}</strong>
-                    <p>{questionText && questionText !== 'Loading question...' ? questionText : contextString}</p>
+                    <p>{`${heroPosition || 'Hero'} vs ${villainPosition || 'Field'} · ${streetLabel} · ${tableStackDepth} BB · Pot ${formatTableAmount(pot)}`}</p>
                     <em>Hand {questionNumber || 1} Of {totalQuestions || 25}</em>
                 </aside>
 
@@ -7622,7 +7632,7 @@ function UniversalDynamicTable({
                                 color: evPopup.color,
                                 textShadow: `0 0 20px ${evPopup.color}44, 0 2px 8px rgba(0,0,0,0.5)`,
                                 pointerEvents: 'none',
-                                fontFamily: "'Inter', -apple-system, sans-serif",
+                                fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                             }}
                         >
                             {evPopup.value} EV
@@ -7675,8 +7685,8 @@ function UniversalDynamicTable({
                             </svg>
                         </button>
                     )}
-                    {/* Active config label */}
-                    {trainerConfig && (
+                    {/* Active config label — hidden in preset-only view where Customize lives in toolbar */}
+                    {trainerConfig && !presetOnly && (
                         <div style={{
                             position: 'absolute',
                             top: 0,
@@ -7987,13 +7997,14 @@ function UniversalDynamicTable({
                                     {!isHero && index === villainSeatIndex && (() => {
                                         const gId = String(gameId || '').toLowerCase();
                                         const rawBounty = scenario?.bountyBb ?? scenario?.bountyAmount ?? scenario?.bountyChips ?? (typeof scenario?.bounty === 'number' ? scenario.bounty : null);
-                                        const hasNumericBounty = Number.isFinite(Number(rawBounty)) && Number(rawBounty) > 0;
+                                        const isFiniteSeatMetric = (v) => v !== null && v !== undefined && String(v).trim() !== '' && Number.isFinite(Number(v));
+                                        const hasNumericBounty = isFiniteSeatMetric(rawBounty) && Number(rawBounty) > 0;
                                         const isPkoSpot = hasNumericBounty || gId === 'mtt-005' || gId === 'mtt-020' || Boolean(scenario?.bounty || scenario?.isPKO || /bounty|pko/i.test(String(gameTitle || '')));
                                         const statsObj = scenario?.villainStats || scenario?.hudStats || null;
                                         const vpipVal = statsObj?.vpip ?? scenario?.vpip ?? null;
                                         const pfrVal = statsObj?.pfr ?? scenario?.pfr ?? null;
                                         const threeBetVal = statsObj?.threeBet ?? statsObj?.three_bet ?? scenario?.threeBet ?? null;
-                                        const hasHudStats = Number.isFinite(Number(vpipVal)) && Number.isFinite(Number(pfrVal));
+                                        const hasHudStats = isFiniteSeatMetric(vpipVal) && isFiniteSeatMetric(pfrVal);
                                         const isExploitSpot = hasHudStats || gId === 'adv-003' || gId === 'adv-015' || gId === 'adv-016' || gId === 'cash-020' || Boolean(scenario?.villainProfile || scenario?.archetype);
                                         return (
                                             <>
@@ -8693,9 +8704,7 @@ function UniversalDynamicTable({
                                 TIME EXPIRED
                             </div>
                         )}
-                        <div style={{ ...styles.questionOfPill, bottom: isMobile ? 3 : 16 }}>
-                            Question {questionNumber} Of {totalQuestions}
-                        </div>
+                        {/* Hand counter already lives in the session rail & left desktop rail — omitted over hero hole cards */}
                     </div>
                 </div>
 
@@ -8739,7 +8748,7 @@ function UniversalDynamicTable({
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ delay: 0.15 }}
                             style={{
-                                fontFamily: "'Inter', sans-serif", fontSize: 22,
+                                fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", fontSize: 22,
                                 fontWeight: 900, color: '#86daff', letterSpacing: 2,
                                 textShadow: '0 2px 8px rgba(86, 216, 255,0.4)',
                             }}
@@ -8775,7 +8784,7 @@ function UniversalDynamicTable({
                             background: `linear-gradient(135deg, ${speedBonusToast.color}22 0%, ${speedBonusToast.color}11 100%)`,
                             border: `1px solid ${speedBonusToast.color}66`,
                             color: speedBonusToast.color,
-                            fontFamily: "'Inter', monospace",
+                            fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                             fontSize: 13, fontWeight: 800, letterSpacing: 1.5,
                             boxShadow: `0 0 20px ${speedBonusToast.color}33`,
                         }}
@@ -9043,7 +9052,7 @@ function UniversalDynamicTable({
                         <span style={{ fontSize: 16, color: rngTheme.fg }}>◆</span>
                         <span style={{
                             fontSize: 20, fontWeight: 900,
-                            color: rngTheme.fg, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                            color: rngTheme.fg, fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                             textShadow: `0 0 10px ${rngTheme.glow}`,
                         }}>
                             {rngRoll}
@@ -9147,7 +9156,7 @@ function UniversalDynamicTable({
                             style={{
                                 fontSize: isCompact ? 12 : 12,
                                 fontWeight: 800,
-                                fontFamily: "'Inter', monospace",
+                                fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                                 color: evNum >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                                 letterSpacing: 0.3,
                             }}
@@ -9422,7 +9431,7 @@ function UniversalDynamicTable({
                                                 style={{ height: '100%', background: barColor, borderRadius: 4 }}
                                             />
                                         </div>
-                                        <div style={{ width: 36, fontSize: 12, fontWeight: 800, color: 'var(--sp-fg)', textAlign: 'right', fontFamily: "'Inter', monospace" }}>{freq}%</div>
+                                        <div style={{ width: 36, fontSize: 12, fontWeight: 800, color: 'var(--sp-fg)', textAlign: 'right', fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>{freq}%</div>
                                     </div>
                                 );
                             }) : <p>Solver Frequencies Unavailable For This Drill.</p>}
@@ -9444,7 +9453,7 @@ function UniversalDynamicTable({
                                         <div key={row.key} style={{ marginBottom: 5 }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 2 }}>
                                                 <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{row.label}</span>
-                                                <span style={{ color: 'var(--sp-fg-dim)', fontFamily: "'Inter', monospace" }}>
+                                                <span style={{ color: 'var(--sp-fg-dim)', fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
                                                     {row.share}% Of Range
                                                 </span>
                                             </div>
@@ -9592,7 +9601,7 @@ function UniversalDynamicTable({
                             >
                                 <div style={{
                                     color: verdictColor,
-                                    fontFamily: "var(--font-rajdhani), 'Rajdhani', 'Inter', sans-serif",
+                                    fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                                     fontSize: 'clamp(26px, 5vw, 38px)',
                                     fontWeight: 950,
                                     letterSpacing: 3,
@@ -10220,7 +10229,7 @@ function UniversalDynamicTable({
                                             style={{ height: '100%', background: barColor, borderRadius: 4, minWidth: freq > 0 ? 2 : 0 }}
                                         />
                                     </div>
-                                    <div style={{ width: 34, fontSize: 12, fontWeight: 800, textAlign: 'right', fontFamily: "'Inter', monospace", color: 'var(--sp-fg)' }}>
+                                    <div style={{ width: 34, fontSize: 12, fontWeight: 800, textAlign: 'right', fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: 'var(--sp-fg)' }}>
                                         {freq}%
                                     </div>
                                 </div>
@@ -10245,14 +10254,14 @@ function UniversalDynamicTable({
                             <span style={{
                                 fontSize: 13, fontWeight: 800, color: classConfig?.color || 'var(--sp-accent-blue)',
                                 letterSpacing: 0.8, textTransform: 'uppercase',
-                                fontFamily: "'Inter', monospace",
+                                fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                             }}>{classConfig?.label || 'Unknown'}</span>
                         </motion.div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>EV:</span>
                             <span style={{
                                 fontSize: 14, fontWeight: 800,
-                                fontFamily: "'Inter', monospace",
+                                fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                                 color: !evLossMeasured
                                     ? 'var(--sp-fg-muted)'
                                     : evLoss > 0
@@ -10376,14 +10385,14 @@ function UniversalDynamicTable({
                                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                                     <div>
                                         <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase' }}>You</div>
-                                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-red)', fontFamily: "'Inter', monospace" }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-red)', fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
                                             {selText} ({selEV >= 0 ? '+' : ''}{selEV.toFixed(2)} BB)
                                         </div>
                                     </div>
                                     <div style={{ color: 'var(--sp-fg-faint)', fontSize: 12 }}>→</div>
                                     <div>
                                         <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase' }}>Optimal</div>
-                                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)', fontFamily: "'Inter', monospace" }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)', fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
                                             {corText} ({corEV >= 0 ? '+' : ''}{corEV.toFixed(2)} BB)
                                         </div>
                                     </div>
@@ -10394,7 +10403,7 @@ function UniversalDynamicTable({
                                     border: '1px solid rgba(239, 68, 68, 0.25)',
                                 }}>
                                     <div style={{ fontSize: 12, color: 'var(--sp-accent-red)', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', textAlign: 'center' }}>Cost</div>
-                                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-red)', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", textAlign: 'center' }}>
+                                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-red)', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)", textAlign: 'center' }}>
                                         -{evCost.toFixed(2)} BB
                                     </div>
                                 </div>
@@ -10572,7 +10581,7 @@ function UniversalDynamicTable({
                                                 style={{ height: '100%', background: barColor, borderRadius: 3 }}
                                             />
                                         </div>
-                                        <div style={{ width: 44, fontSize: 12, fontWeight: 'bold', textAlign: 'right', fontFamily: "'Inter', monospace", color: ev >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)' }}>
+                                        <div style={{ width: 44, fontSize: 12, fontWeight: 'bold', textAlign: 'right', fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: ev >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)' }}>
                                             {ev >= 0 ? '+' : ''}{ev.toFixed(2)}
                                         </div>
                                     </div>
@@ -10911,7 +10920,7 @@ function UniversalDynamicTable({
                                                                             {optText}
                                                                         </span>
                                                                         <span style={{
-                                                                            fontSize: 12, fontWeight: 700, fontFamily: "'Inter', monospace",
+                                                                            fontSize: 12, fontWeight: 700, fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                                                                             color: evNum >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                                                                         }}>
                                                                             {evNum >= 0 ? '+' : ''}{evNum.toFixed(2)}
@@ -11108,7 +11117,7 @@ function UniversalDynamicTable({
                                     const spr = getSPRStrategyGuide(sc.potSize || sc.estimatedPot || 0, sc.stackDepth || sc.effectiveStack || 100);
                                     if (!spr || !spr.guidance) return null;
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(0,212,255,0.03)', borderRadius: 8, border: '1px solid rgba(0,212,255,0.08)', fontSize: 12, lineHeight: 1.5, color: 'var(--sp-accent-cyan)' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5, color: 'var(--sp-accent-cyan)' }}>SPR: </span>{spr.spr && <span style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", marginRight: 4 }}>{spr.spr.toFixed(1)}</span>}{spr.guidance}
+                                        <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5, color: 'var(--sp-accent-cyan)' }}>SPR: </span>{spr.spr && <span style={{ fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)", marginRight: 4 }}>{spr.spr.toFixed(1)}</span>}{spr.guidance}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
@@ -11155,7 +11164,7 @@ function UniversalDynamicTable({
                                     if (!eq) return null;
                                     const eqColor = eq.equity >= 60 ? 'var(--sp-accent-green)' : eq.equity >= 40 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)';
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: `${eqColor}06`, borderRadius: 8, border: `1px solid ${eqColor}15`, fontSize: 12, lineHeight: 1.5, color: eqColor }}>
-                                        <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5 }}>EQUITY: </span><span style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>{eq.equity}%</span> - {eq.rangeDescription}
+                                        <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5 }}>EQUITY: </span><span style={{ fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>{eq.equity}%</span> - {eq.rangeDescription}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}
@@ -11428,7 +11437,7 @@ function UniversalDynamicTable({
                                             : 'linear-gradient(180deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.06) 100%)',
                                         color: 'var(--sd-text)',
                                         fontSize: 15, fontWeight: 800, cursor: 'pointer',
-                                        letterSpacing: 0.8, fontFamily: "'Inter', -apple-system, sans-serif",
+                                        letterSpacing: 0.8, fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                                         boxShadow: isMultiStreetActive
                                             ? '0 0 10px rgba(251,146,60,0.15)'
                                             : '0 0 10px rgba(34,197,94,0.12)',
@@ -11609,7 +11618,7 @@ function UniversalDynamicTable({
                                             border: '1px solid rgba(52, 211, 153, 0.45)',
                                             color: '#a7f3d0',
                                             fontSize: 12,
-                                            fontFamily: "'Inter', monospace",
+                                            fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                                             whiteSpace: 'pre-wrap',
                                             textAlign: 'left',
                                         }}
@@ -11931,7 +11940,7 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         background: 'linear-gradient(135deg,#122732 0%,#071019 47%,#102833 100%)',
-        fontFamily: "'Inter', -apple-system, sans-serif",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         overflow: 'hidden',
     },
 
@@ -11993,7 +12002,7 @@ const styles = {
         letterSpacing: 0.2,
         cursor: 'pointer',
         whiteSpace: 'nowrap',
-        fontFamily: "'Inter', -apple-system, sans-serif",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     },
 
     // #48: icon-only on a phone. Same tap target, same aria-label, 101px back.
@@ -12018,7 +12027,7 @@ const styles = {
         fontSize: 'clamp(12px, 3.2vw, 15px)',
         fontWeight: 800,
         color: 'var(--sp-accent-cyan)',
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         textTransform: 'uppercase',
         letterSpacing: 2.2,
         textShadow: '0 0 12px rgba(0,212,255,0.35)',
@@ -12085,7 +12094,7 @@ const styles = {
     xpPillValue: {
         fontSize: 12,
         fontWeight: 800,
-        fontFamily: "'Inter', monospace",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         lineHeight: 1,
     },
 
@@ -12112,15 +12121,14 @@ const styles = {
     // ── THE QUESTION PANEL — full width, above the table.
     questionPanel: {
         flexShrink: 0,
-        margin: '8px 10px 6px',
-        padding: '11px 16px',
-        borderRadius: 14,
-        background: 'linear-gradient(180deg, rgba(10,11,15,0.98) 0%, rgba(4,5,8,0.99) 100%)',
-        border: '1.5px solid rgba(0,212,255,0.55)',
+        margin: '6px 10px 4px',
+        padding: '8px 14px',
+        borderRadius: 10,
+        background: 'linear-gradient(180deg, rgba(10,20,34,0.96) 0%, rgba(4,10,18,0.98) 100%)',
+        border: '1px solid rgba(134,218,255,0.45)',
         boxShadow: [
-            '0 0 18px rgba(0,212,255,0.26)',
-            '0 0 46px rgba(0,212,255,0.10)',
-            'inset 0 1px 0 rgba(255,255,255,0.05)',
+            '0 0 14px rgba(0,212,255,0.18)',
+            'inset 0 1px 0 rgba(255,255,255,0.08)',
         ].join(', '),
         textAlign: 'center',
     },
@@ -12147,7 +12155,7 @@ const styles = {
         fontSize: 14,
         fontWeight: 'bold',
         color: 'var(--sp-fg)',
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         textTransform: 'uppercase',
         letterSpacing: 1.5,
     },
@@ -12171,7 +12179,7 @@ const styles = {
     scoreValue: {
         fontSize: 16,
         fontWeight: 800,
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         lineHeight: 1,
     },
 
@@ -12327,7 +12335,7 @@ const styles = {
         fontWeight: 800,
         color: 'var(--sp-fg-muted)',
         letterSpacing: 0.5,
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     },
 
     questionPrompt: {
@@ -12465,7 +12473,7 @@ const styles = {
         fontSize: 12,
         fontWeight: 800,
         letterSpacing: 0.6,
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         fontVariantNumeric: 'tabular-nums',
     },
 
@@ -12555,7 +12563,7 @@ const styles = {
         fontSize: 12,
         fontWeight: 'bold',
         color: 'var(--sp-fg-muted)',
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         textAlign: 'center',
         whiteSpace: 'nowrap',
         background: '#2a2a32',
@@ -12581,7 +12589,7 @@ const styles = {
         padding: '8px 0',
         border: 'none',
         cursor: 'pointer',
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         transition: 'all 0.15s ease',
     },
     settingsBtn: {
@@ -12594,7 +12602,7 @@ const styles = {
         fontWeight: 600,
         cursor: 'pointer',
         textAlign: 'left',
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     },
 
     badgeLabel: {
@@ -12664,7 +12672,7 @@ const styles = {
         color: 'var(--sp-fg)',
         fontSize: 16,
         fontWeight: 800,
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         zIndex: 3,
         display: 'flex',
         flexDirection: 'column',
@@ -12725,7 +12733,7 @@ const styles = {
         fontWeight: 700,
         letterSpacing: 0.6,
         whiteSpace: 'nowrap',
-        fontFamily: "'Inter', monospace",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         boxShadow: '0 0 12px rgba(0,212,255,0.12)',
     },
 
@@ -12733,7 +12741,9 @@ const styles = {
     potOverlayRow: {
         display: 'flex',
         justifyContent: 'center',
-        gap: 6,
+        flexWrap: 'wrap',
+        maxWidth: 168,
+        gap: 4,
         marginTop: 2,
     },
 
@@ -12741,10 +12751,10 @@ const styles = {
         fontSize: 12,
         color: 'var(--sp-fg-muted)',
         background: 'rgba(255,255,255,0.06)',
-        padding: '1px 6px',
+        padding: '1px 5px',
         borderRadius: 4,
         fontWeight: '600',
-        letterSpacing: 0.5,
+        letterSpacing: 0.3,
     },
 
     // GAP-5: Progress bar
@@ -12927,7 +12937,7 @@ const styles = {
         minHeight: 54,
         fontSize: 14,
         fontWeight: 800,
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
         background: 'var(--sp-fg-faint)',
@@ -13034,7 +13044,7 @@ const styles = {
     evLossValue: {
         color: 'var(--sp-accent-red)',
         fontWeight: 'bold',
-        fontFamily: "'Inter', 'Courier New', monospace",
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     },
 
     feedbackExplanation: {

@@ -9,6 +9,7 @@ import {
   renderPokerRoadtripMarkdown,
   renderTournamentAlertsMarkdown,
 } from '../../src/lib/seo/markdownIngestion.mjs';
+import { renderWithLiveVenueStats } from '../../src/lib/server/venueStats.mjs';
 
 const RENDERERS = {
   'daily-tournaments': () => renderDailyTournamentsMarkdown(),
@@ -25,7 +26,7 @@ const RENDERERS = {
   'alerts': () => renderTournamentAlertsMarkdown(),
 };
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const { slug } = req.query;
   const key = String(slug || '').trim().toLowerCase();
   const render = RENDERERS[key];
@@ -35,7 +36,9 @@ export default function handler(req, res) {
     return res.status(404).send('Discovery hub Markdown feed not found');
   }
 
-  const md = render();
+  // The room counts in these feeds state this read (live, or the snapshot
+  // when the database cannot answer), the figure /api/ai/facts serves.
+  const md = await renderWithLiveVenueStats(render);
   res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=3600');
   res.setHeader('Vary', 'Accept');

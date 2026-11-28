@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
 import { BANKROLL_RULE_UPSERT } from '../../lib/bankroll/naturalKeys.mjs';
+import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 
 const PREMADE_RULES = [
   {
@@ -17,7 +18,7 @@ const PREMADE_RULES = [
     label: 'Session Stop-Loss',
     description: 'Alert When Session Loss Exceeds This Amount',
     defaultValue: 500,
-    format: (v) => `$${v.toLocaleString()}`,
+    format: (v, displayEUR) => formatCurrency(v, displayEUR),
     unit: '$',
   },
   {
@@ -25,7 +26,7 @@ const PREMADE_RULES = [
     label: 'Daily Stop-Loss',
     description: 'Alert When Total Daily Loss Exceeds This Amount',
     defaultValue: 1000,
-    format: (v) => `$${v.toLocaleString()}`,
+    format: (v, displayEUR) => formatCurrency(v, displayEUR),
     unit: '$',
   },
   {
@@ -41,7 +42,7 @@ const PREMADE_RULES = [
     label: 'Session Win Goal',
     description: 'Notify When Session Profit Reaches This Amount',
     defaultValue: 1000,
-    format: (v) => `$${v.toLocaleString()}`,
+    format: (v, displayEUR) => formatCurrency(v, displayEUR),
     unit: '$',
   },
   {
@@ -49,7 +50,7 @@ const PREMADE_RULES = [
     label: 'Monthly Stop-Loss',
     description: 'Alert When Monthly Loss Exceeds This Amount',
     defaultValue: 5000,
-    format: (v) => `$${v.toLocaleString()}`,
+    format: (v, displayEUR) => formatCurrency(v, displayEUR),
     unit: '$',
   },
   {
@@ -62,7 +63,7 @@ const PREMADE_RULES = [
   },
 ];
 
-export default function BankrollRulesCard({ userId }) {
+export default function BankrollRulesCard({ userId, displayEUR = false }) {
   const [rules, setRules] = useState({}); // { rule_type: { id, value, is_active, label, description, unit } }
   const [customRules, setCustomRules] = useState([]); // custom rules from DB
   const [isLoading, setIsLoading] = useState(true);
@@ -296,7 +297,7 @@ export default function BankrollRulesCard({ userId }) {
     const u = rule.unit || '$';
     if (u === '%') return `${rule.value}%`;
     if (u === 'hrs') return `${rule.value} hrs`;
-    return `$${Number(rule.value).toLocaleString()}`;
+    return formatCurrency(Number(rule.value), displayEUR);
   };
 
   if (!isLoading && loadFailed) {
@@ -383,11 +384,11 @@ export default function BankrollRulesCard({ userId }) {
                   ) : (
                     <button
                       type="button"
-                      aria-label={'Change ' + premade.label + ', Now ' + premade.format(currentValue)}
+                      aria-label={'Change ' + premade.label + ', Now ' + premade.format(currentValue, displayEUR)}
                       style={styles.valueBtn}
                       onClick={() => { setEditingRule(premade.rule_type); setEditValue(String(currentValue)); }}
                     >
-                      {premade.format(currentValue)} ✎
+                      {premade.format(currentValue, displayEUR)} ✎
                     </button>
                   )}
                 </div>

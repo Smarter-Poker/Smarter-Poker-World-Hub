@@ -21,7 +21,7 @@ import {
     fetchLedgerEntries,
 } from '../../lib/bankroll/bankrollSelectors';
 import { getUserLocations } from '../../lib/bankroll/locationMemory';
-import { formatCurrency } from '../../lib/bankroll/currencyUtils';
+import { formatCurrency, formatCurrencyWithSign } from '../../lib/bankroll/currencyUtils';
 import toast from '../../stores/toastStore';
 import TripReport from './TripReport';
 import VenueSelector from './VenueSelector';
@@ -37,7 +37,7 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
-export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger, openTripId }) {
+export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger, openTripId, displayEUR = false }) {
     const [activeTrip, setActiveTrip] = useState(null);
     const [completedTrips, setCompletedTrips] = useState([]);
     const [tripEntries, setTripEntries] = useState([]);
@@ -224,6 +224,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
     if (selectedTripReport) {
         return (
             <TripReport
+                displayEUR={displayEUR}
                 report={selectedTripReport}
                 onBack={() => setSelectedTripReport(null)}
                 onReopen={!activeTrip && selectedTripReport.trip?.status === 'completed'
@@ -313,7 +314,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                                     ...styles.runningStatValue,
                                     color: (activeTrip.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
                                 }}>
-                                    {formatCurrency(activeTrip.totalNet || 0)}
+                                    {formatCurrency(activeTrip.totalNet || 0, displayEUR)}
                                 </span>
                             </div>
                             <div style={styles.runningStat}>
@@ -323,7 +324,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                             <div style={styles.runningStat}>
                                 <span style={styles.runningStatLabel}>Expenses</span>
                                 <span style={{ ...styles.runningStatValue, color: '#ef4444' }}>
-                                    {formatCurrency(activeTrip.totalExpenses || 0)}
+                                    {formatCurrency(activeTrip.totalExpenses || 0, displayEUR)}
                                 </span>
                             </div>
                         </div>
@@ -334,7 +335,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                         <div style={styles.breakdownRow}>
                             {Object.entries(activeTrip.categoryBreakdown || {}).map(([cat, data]) => (
                                 <span key={cat} style={styles.breakdownTag}>
-                                    {CATEGORY_LABELS[cat] || cat}: {formatCurrency(data.net)}
+                                    {CATEGORY_LABELS[cat] || cat}: {formatCurrency(data.net, displayEUR)}
                                 </span>
                             ))}
                         </div>
@@ -366,7 +367,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                                             </div>
                                             <div style={styles.entryRight}>
                                                 <span style={{ ...styles.entryNet, color: net >= 0 ? '#10b981' : '#ef4444' }}>
-                                                    {net >= 0 ? '+' : ''}{formatCurrency(net)}
+                                                    {formatCurrencyWithSign(net, displayEUR)}
                                                 </span>
                                                 <div style={styles.entryActions}>
                                                     {onEditEntry && (
@@ -567,7 +568,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                                         ...styles.tripCardPL,
                                         color: (trip.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
                                     }}>
-                                        {formatCurrency(trip.totalNet || 0)}
+                                        {formatCurrency(trip.totalNet || 0, displayEUR)}
                                     </span>
                                 </span>
                                 <span style={styles.tripCardMeta}>

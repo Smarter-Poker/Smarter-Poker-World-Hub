@@ -14,6 +14,8 @@ import { supabase } from '../supabase';
 // ─── Retry Utility — imported from shared module ────────
 import { withRetry } from './retryUtils';
 import { localDay } from './localDates.mjs';
+import { fetchAllRows } from './ledgerReport.mjs';
+import { idBatches } from '../inBatches.mjs';
 import {
     computeTotalHours as paidHours,
     decorateGigDay,
@@ -55,6 +57,53 @@ async function postgrestGet<T>(path: string): Promise<T> {
         throw new Error(`PostgREST GET failed (${res.status}): ${text}`);
     }
     return res.json();
+}
+
+// PostgREST answers at most 1,000 rows per request. A dealer deals thirty or
+// more downs a shift, so the career read of every down (one request for all
+// events) stopped about a month in: the totals on Events, Venues, the Vault and
+// the Toke Dashboard covered whichever 1,000 downs came back, and the event
+// id list grew in the URL with every event worked. Reads are now 100 events
+// per request and a page at a time.
+const PAGE = 1000;
+
+async function postgrestGetAll<T>(path: string): Promise<T[]> {
+    const rows: T[] = [];
+    for (let offset = 0; ; offset += PAGE) {
+        const page = await postgrestGet<T[]>(`${path}&limit=${PAGE}&offset=${offset}`);
+        rows.push(...(page || []));
+        if (!page || page.length < PAGE) return rows;
+    }
+}
+
+async function postgrestRowsForGigs<T>(table: string, gigIds: string[]): Promise<T[]> {
+    const rows: T[] = [];
+    for (const batch of idBatches(gigIds)) {
+        const idList = batch.map(id => `"${id}"`).join(',');
+        rows.push(...await postgrestGetAll<T>(`/rest/v1/${table}?gig_id=in.(${idList})&select=*&order=id.asc`));
+    }
+    return rows;
+}
+
+async function rowsForGigs(table: string, columns: string, gigIds: string[]): Promise<any[]> {
+    const rows: any[] = [];
+    for (const batch of idBatches(gigIds)) {
+        rows.push(...await fetchAllRows(() => supabase
+            .from(table)
+            .select(columns)
+            .in('gig_id', batch)
+            .order('id', { ascending: true })));
+    }
+    return rows;
+}
+
+/** Every row a query returns, as { data, error } like a single query. */
+async function readAll(makeQuery: () => any): Promise<{ data: any[] | null; error: any }> {
+    try {
+        return { data: await fetchAllRows(makeQuery), error: null };
+    } catch (error) {
+        return { data: null, error };
+    }
 }
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -165,19 +214,18 @@ function decorateDay(day: TokeGigDay, downs: TokeDown[], expenses: TokeExpense[]
 export async function fetchGigs(userId: string): Promise<TokeGig[]> {
     return withRetry(async () => {
         // Direct PostgREST fetch (immune to AbortError from Supabase client)
-        const gigs = await postgrestGet<any[]>(
-            `/rest/v1/toke_gigs?user_id=eq.${userId}&status=neq.deleted&order=start_date.desc`
+        const gigs = await postgrestGetAll<any>(
+            `/rest/v1/toke_gigs?user_id=eq.${userId}&status=neq.deleted&order=start_date.desc,id.desc`
         );
 
         if (!gigs || gigs.length === 0) return [];
 
         const gigIds = gigs.map(g => g.id);
-        const idList = gigIds.map(id => `"${id}"`).join(',');
 
-        // Bulk fetch downs and expenses in parallel
+        // Downs and expenses of every event, 100 events per request, paged
         const [allDownsRaw, allExpsRaw] = await Promise.all([
-            postgrestGet<any[]>(`/rest/v1/toke_downs?gig_id=in.(${idList})&select=*`),
-            postgrestGet<any[]>(`/rest/v1/toke_expenses?gig_id=in.(${idList})&select=*`),
+            postgrestRowsForGigs<any>('toke_downs', gigIds),
+            postgrestRowsForGigs<any>('toke_expenses', gigIds),
         ]);
 
         const downsByGig = new Map<string, TokeDown[]>();
@@ -222,14 +270,14 @@ export async function getActiveGig(userId: string): Promise<TokeGig | null> {
 
         // Load days, downs, and expenses in parallel
         const [daysRaw, downs, expenses] = await Promise.all([
-            postgrestGet<any[]>(
-                `/rest/v1/toke_gig_days?gig_id=eq.${data.id}&order=day_number.asc`
+            postgrestGetAll<any>(
+                `/rest/v1/toke_gig_days?gig_id=eq.${data.id}&order=day_number.asc,id.asc`
             ),
-            postgrestGet<any[]>(
-                `/rest/v1/toke_downs?gig_id=eq.${data.id}&order=started_at.asc`
+            postgrestGetAll<any>(
+                `/rest/v1/toke_downs?gig_id=eq.${data.id}&order=started_at.asc,id.asc`
             ),
-            postgrestGet<any[]>(
-                `/rest/v1/toke_expenses?gig_id=eq.${data.id}&order=created_at.desc`
+            postgrestGetAll<any>(
+                `/rest/v1/toke_expenses?gig_id=eq.${data.id}&order=created_at.desc,id.asc`
             ),
         ]);
 
@@ -698,9 +746,9 @@ export async function getGigReport(userId: string, gigId: string) {
         { data: downsRaw, error: downError },
         { data: expensesRaw, error: expenseError },
     ] = await Promise.all([
-        supabase.from('toke_gig_days').select('*').eq('gig_id', gigId).order('day_number', { ascending: true }),
-        supabase.from('toke_downs').select('*').eq('gig_id', gigId).order('started_at', { ascending: true }),
-        supabase.from('toke_expenses').select('*').eq('gig_id', gigId).order('created_at', { ascending: false }),
+        readAll(() => supabase.from('toke_gig_days').select('*').eq('gig_id', gigId).order('day_number', { ascending: true }).order('id', { ascending: true })),
+        readAll(() => supabase.from('toke_downs').select('*').eq('gig_id', gigId).order('started_at', { ascending: true }).order('id', { ascending: true })),
+        readAll(() => supabase.from('toke_expenses').select('*').eq('gig_id', gigId).order('created_at', { ascending: false }).order('id', { ascending: true })),
     ]);
     // A failed read used to report the event as $0 with no downs.
     if (dayError || downError || expenseError) throw dayError || downError || expenseError;
@@ -752,17 +800,16 @@ export interface TokeAnalytics {
 export async function getTokeAnalytics(userId: string, startDate?: string, endDate?: string): Promise<TokeAnalytics> {
     return withRetry(async () => {
         // Fetch all non-deleted gigs
-        let query = supabase
-            .from('toke_gigs')
-            .select('id, venue_name, start_date, end_date, hourly_rate, status')
-            .eq('user_id', userId)
-            .eq('status', 'completed')
-            .order('start_date', { ascending: true });
-
-        if (startDate) query = query.gte('start_date', startDate);
-        if (endDate) query = query.lte('start_date', endDate);
-        const { data: gigs, error: gigErr } = await query;
-        if (gigErr) throw gigErr;
+        const gigs = await fetchAllRows(() => {
+            let query = supabase
+                .from('toke_gigs')
+                .select('id, venue_name, start_date, end_date, hourly_rate, status')
+                .eq('user_id', userId)
+                .eq('status', 'completed');
+            if (startDate) query = query.gte('start_date', startDate);
+            if (endDate) query = query.lte('start_date', endDate);
+            return query.order('start_date', { ascending: true }).order('id', { ascending: true });
+        });
         if (!gigs || gigs.length === 0) {
             return {
                 careerTokes: 0, totalEvents: 0, totalHours: 0, totalExpenses: 0, tokesPerHour: 0,
@@ -774,14 +821,11 @@ export async function getTokeAnalytics(userId: string, startDate?: string, endDa
 
         const gigIds = gigs.map(g => g.id);
 
-        // Bulk fetch downs and expenses in parallel
-        const [{ data: downsRaw, error: downError }, { data: expsRaw, error: expenseError }] = await Promise.all([
-            supabase.from('toke_downs').select('*').in('gig_id', gigIds),
-            supabase.from('toke_expenses').select('gig_id, amount').in('gig_id', gigIds),
+        // Downs and expenses of every event, 100 events per request, paged
+        const [downsRaw, expsRaw] = await Promise.all([
+            rowsForGigs('toke_downs', '*', gigIds),
+            rowsForGigs('toke_expenses', 'id, gig_id, amount', gigIds),
         ]);
-
-        if (downError) throw downError;
-        if (expenseError) throw expenseError;
 
         const allDowns = (downsRaw || []) as TokeDown[];
         const allExps = (expsRaw || []) as { gig_id: string; amount: number }[];
@@ -794,7 +838,8 @@ export async function getTokeAnalytics(userId: string, startDate?: string, endDa
             downsByGig.get(d.gig_id)!.push(d);
         }
         for (const e of allExps) {
-            expsByGig.set(e.gig_id, (expsByGig.get(e.gig_id) || 0) + (e.amount || 0));
+            // Summed in cents; numeric amounts can arrive as strings.
+            expsByGig.set(e.gig_id, (expsByGig.get(e.gig_id) || 0) + Math.round((Number(e.amount) || 0) * 100));
         }
 
         // Career-level tallies
@@ -815,7 +860,7 @@ export async function getTokeAnalytics(userId: string, startDate?: string, endDa
             const gigDealing = gigDowns.filter(isDealingDown);
             const gigTokes = sumTokes(gigDowns);
             const gigHours = computeTotalHours(gigDowns);
-            const gigExpenses = expsByGig.get(gig.id) || 0;
+            const gigExpenses = (expsByGig.get(gig.id) || 0) / 100;
 
             careerTokes += gigTokes;
             totalHours += gigHours;

@@ -332,6 +332,24 @@ const FIRST_SIGN_IN_SKEW_MS = 60 * 1000;
 export const OAUTH_INTENT_KEY = 'sp_oauth_attribution_intent_v1';
 const OAUTH_INTENT_MAX_AGE_MS = 60 * 60 * 1000;
 const NONCE_RE = /^[a-f0-9]{32}$/;
+const ATTRIBUTION_PAYLOAD_KEYS = [
+  'acquisition_utm_source',
+  'acquisition_landing_path',
+  'unlock_key',
+  'seo_source',
+  'experiment_variant',
+  'acquisition_ai_engine',
+];
+
+/** Return true when metadata contains at least one non-empty attribution signal. */
+export function hasAttributionPayload(meta) {
+  if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return false;
+  for (const key of ATTRIBUTION_PAYLOAD_KEYS) {
+    const value = meta[key];
+    if (typeof value === 'string' && value.trim().length > 0) return true;
+  }
+  return false;
+}
 
 function newNonce(win) {
   const bytes = new Uint8Array(16);
@@ -343,14 +361,15 @@ function newNonce(win) {
 
 /**
  * Called by the sign-up and login pages immediately before
- * supabase.auth.signInWithOAuth. When this browser holds a first touch, it
- * stores a single-use random nonce and returns it; the page appends it to the
- * OAuth redirectTo as `attr`. Returns null when there is no campaign to bind.
+ * supabase.auth.signInWithOAuth. When this browser holds any attribution signal
+ * (UTM/referrer, dark-social landing path, or recent unlock intent), it stores
+ * a single-use random nonce and returns it; the page appends it to the OAuth
+ * redirectTo as `attr`. Returns null when there is no attribution to bind.
  */
 export function beginOAuthAttribution(win = typeof window !== 'undefined' ? window : undefined, now = Date.now()) {
   try {
     if (!win || !win.localStorage) return null;
-    if (!firstTouchMetadata(win, now).acquisition_utm_source) return null;
+    if (!hasAttributionPayload(firstTouchMetadata(win, now))) return null;
     const nonce = newNonce(win);
     if (!nonce) return null;
     win.localStorage.setItem(OAUTH_INTENT_KEY, JSON.stringify({ nonce, started_at: new Date(now).toISOString() }));
@@ -400,7 +419,7 @@ export function attributionForNewAccount(user, win = typeof window !== 'undefine
   if (!intent || intent.nonce !== urlNonce) return null;
   const started = Date.parse(intent.started_at || '');
   if (!Number.isFinite(started) || now - started > OAUTH_INTENT_MAX_AGE_MS || started - now > FIRST_SIGN_IN_SKEW_MS) return null;
-  if (user.user_metadata && user.user_metadata.acquisition_utm_source) return null;
+  if (user.user_metadata && (user.user_metadata.acquisition_utm_source || user.user_metadata.acquisition_landing_path)) return null;
   const provider = (user.app_metadata && user.app_metadata.provider) || '';
   if (!provider || provider === 'email' || provider === 'phone') return null;
   const created = Date.parse(user.created_at || '');
@@ -410,5 +429,5 @@ export function attributionForNewAccount(user, win = typeof window !== 'undefine
   if (created + FIRST_SIGN_IN_SKEW_MS < started) return null;
   if (now - created > NEW_ACCOUNT_WINDOW_MS || created - now > FIRST_SIGN_IN_SKEW_MS) return null;
   const meta = firstTouchMetadata(win, now);
-  return meta.acquisition_utm_source ? meta : null;
+  return hasAttributionPayload(meta) ? meta : null;
 }

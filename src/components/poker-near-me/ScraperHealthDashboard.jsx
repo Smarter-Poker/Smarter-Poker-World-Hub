@@ -18,20 +18,20 @@ import { getAuthUserId, getFreshAccessToken } from '../../lib/authUtils';
 const AUTO_REFRESH_MS = 30000;
 
 const STATUS_COLORS = {
-  healthy: { color: '#3fb950', bg: 'rgba(63,185,80,0.08)', border: 'rgba(63,185,80,0.3)', label: 'HEALTHY' },
-  stale:   { color: '#9fd8ff', bg: 'rgba(159,216,255,0.08)', border: 'rgba(159,216,255,0.3)', label: 'STALE' },
-  dead:    { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)', label: 'DEAD' },
-  warning: { color: '#9fd8ff', bg: 'rgba(159,216,255,0.08)', border: 'rgba(159,216,255,0.3)', label: 'WARNING' },
-  critical:{ color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)', label: 'CRITICAL' },
-  anomaly: { color: '#71c8f4', bg: 'rgba(113,200,244,0.08)', border: 'rgba(113,200,244,0.3)', label: 'ANOMALY' },
-  success: { color: '#3fb950', bg: 'rgba(63,185,80,0.08)', border: 'rgba(63,185,80,0.3)', label: 'SUCCESS' },
-  valid_empty: { color: '#79c0ff', bg: 'rgba(121,192,255,0.08)', border: 'rgba(121,192,255,0.3)', label: 'VALID EMPTY' },
-  progress: { color: '#00d4ff', bg: 'rgba(0,212,255,0.08)', border: 'rgba(0,212,255,0.3)', label: 'PROGRESS' },
-  maintenance: { color: '#7dbad8', bg: 'rgba(125,186,216,0.08)', border: 'rgba(125,186,216,0.3)', label: 'MAINTENANCE' },
-  partial: { color: '#9fd8ff', bg: 'rgba(159,216,255,0.08)', border: 'rgba(159,216,255,0.3)', label: 'PARTIAL' },
-  failed: { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)', label: 'FAILED' },
-  legacy: { color: '#8b949e', bg: 'rgba(139,148,158,0.08)', border: 'rgba(139,148,158,0.3)', label: 'LEGACY' },
-  unknown: { color: '#8b949e', bg: 'rgba(139,148,158,0.08)', border: 'rgba(139,148,158,0.3)', label: 'UNKNOWN' },
+  healthy: { color: '#3fb950', bg: 'rgba(63,185,80,0.08)', border: 'rgba(63,185,80,0.3)', label: 'Healthy' },
+  stale:   { color: '#9fd8ff', bg: 'rgba(159,216,255,0.08)', border: 'rgba(159,216,255,0.3)', label: 'Stale' },
+  dead:    { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)', label: 'Dead' },
+  warning: { color: '#9fd8ff', bg: 'rgba(159,216,255,0.08)', border: 'rgba(159,216,255,0.3)', label: 'Warning' },
+  critical:{ color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)', label: 'Critical' },
+  anomaly: { color: '#71c8f4', bg: 'rgba(113,200,244,0.08)', border: 'rgba(113,200,244,0.3)', label: 'Anomaly' },
+  success: { color: '#3fb950', bg: 'rgba(63,185,80,0.08)', border: 'rgba(63,185,80,0.3)', label: 'Success' },
+  valid_empty: { color: '#79c0ff', bg: 'rgba(121,192,255,0.08)', border: 'rgba(121,192,255,0.3)', label: 'Valid Empty' },
+  progress: { color: '#00d4ff', bg: 'rgba(0,212,255,0.08)', border: 'rgba(0,212,255,0.3)', label: 'Progress' },
+  maintenance: { color: '#7dbad8', bg: 'rgba(125,186,216,0.08)', border: 'rgba(125,186,216,0.3)', label: 'Maintenance' },
+  partial: { color: '#9fd8ff', bg: 'rgba(159,216,255,0.08)', border: 'rgba(159,216,255,0.3)', label: 'Partial' },
+  failed: { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)', label: 'Failed' },
+  legacy: { color: '#8b949e', bg: 'rgba(139,148,158,0.08)', border: 'rgba(139,148,158,0.3)', label: 'Legacy' },
+  unknown: { color: '#8b949e', bg: 'rgba(139,148,158,0.08)', border: 'rgba(139,148,158,0.3)', label: 'Unknown' },
 };
 
 function StatusBadge({ status }) {
@@ -41,7 +41,7 @@ function StatusBadge({ status }) {
       display: 'inline-flex', alignItems: 'center', gap: 5,
       padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 800,
       color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}`,
-      letterSpacing: '0.5px', textTransform: 'uppercase',
+      letterSpacing: '0.5px',
     }}>
       <span style={{
         width: 7, height: 7, borderRadius: '50%', background: cfg.color,
@@ -62,7 +62,7 @@ function StatCard({ label, value, color = '#e0e8f0' }) {
       textAlign: 'center',
     }}>
       <div style={{ fontSize: 20, fontWeight: 800, color, lineHeight: 1.2 }}>{value}</div>
-      <div style={{ fontSize: 12, color: 'rgba(148,163,184,0.6)', fontWeight: 600, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{label}</div>
+      <div style={{ fontSize: 12, color: 'rgba(148,163,184,0.6)', fontWeight: 600, marginTop: 2, letterSpacing: '0.3px' }}>{label}</div>
     </div>
   );
 }
@@ -82,7 +82,7 @@ function SourcePanel({ name, data }) {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#e0e8f0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{name}</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#e0e8f0', letterSpacing: '0.5px' }}>{name}</div>
           <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', marginTop: 2 }}>
             Last Scrape: {data.last_scrape ? new Date(data.last_scrape).toLocaleTimeString() : 'Never'}
           </div>
@@ -378,7 +378,7 @@ export default function ScraperHealthDashboard() {
                 return (
                   <div key={source} style={{ marginBottom: source === 'pokeratlas' ? 0 : 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#e0e8f0', textTransform: 'uppercase' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#e0e8f0' }}>
                         {sourceLabel}
                       </div>
                       <StatusBadge status={s.current_effective_status || s.current_status || 'unknown'} />
@@ -450,7 +450,7 @@ export default function ScraperHealthDashboard() {
                           {new Date(ev.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                         </div>
                         <div>
-                          <div style={{ color: '#e0e8f0', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>
+                          <div style={{ color: '#e0e8f0', fontSize: 12, fontWeight: 600, marginBottom: 2 }}>
                             {ev.source} <span style={{ color: color, fontSize: 12, padding: '2px 6px', background: isRecovery ? 'rgba(63,185,80,0.1)' : 'rgba(239,68,68,0.1)', borderRadius: 4, marginLeft: 6 }}>{ev.type}</span>
                           </div>
                           <div style={{ color: 'rgba(200,214,229,0.8)', fontSize: 12, lineHeight: 1.4, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{ev.message}</div>
@@ -470,7 +470,7 @@ export default function ScraperHealthDashboard() {
             border: '1.5px solid rgba(148,163,184,0.1)',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 6px rgba(0,0,0,0.25)',
           }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(200,214,229,0.5)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Health Thresholds</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(200,214,229,0.5)', marginBottom: 6, letterSpacing: '0.5px' }}>Health Thresholds</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
               <span><span style={{ color: '#3fb950' }}>Healthy</span>: {health.thresholds?.healthy}</span>
               <span><span style={{ color: '#9fd8ff' }}>Stale</span>: {health.thresholds?.stale}</span>

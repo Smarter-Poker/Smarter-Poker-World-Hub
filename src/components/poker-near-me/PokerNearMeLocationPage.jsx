@@ -335,7 +335,7 @@ export default function PokerNearMeLocationPage({
       <div className="pnm-location-hero">
         <DeepRouteSignalDeck
           kind="location"
-          eyebrow="Regional poker network"
+          eyebrow="Regional Poker Network"
           title={title}
           headTitle={placeLabel}
           description={description}
@@ -353,7 +353,7 @@ export default function PokerNearMeLocationPage({
           statusTone={degraded ? 'modeled' : 'live'}
           freshness={{ label: sourceLabel, dateTime: sourceTimestamp || undefined }}
           metrics={[
-            { label: 'Poker venues', value: directoryCount },
+            { label: 'Poker Venues', value: directoryCount },
             { label: stateCode ? 'Cities represented' : 'States represented', value: stateCode ? new Set(venues.map((venue) => venue.city).filter(Boolean)).size : states.length },
             { label: degraded ? 'Snapshot date' : 'Directory check', value: sourceDateLabel || 'Current request' },
           ]}

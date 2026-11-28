@@ -114,7 +114,7 @@ export default function MapTabPanel({
                             onVenueClick={onMapVenueClick}
                             radiusMiles={filters.radius}
                             mapEyebrow="National discovery grid"
-                            mapTitle="Poker discovery map"
+                            mapTitle="Poker Discovery Map"
                             mapDetail={`${filteredVenues.length} filtered locations · drag to explore the country`}
                             mapControls={(
                                 <>

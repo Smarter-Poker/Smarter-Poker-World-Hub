@@ -153,7 +153,7 @@ export default function VenuesTabPanel({
                         onVenueClick={onMapVenueClick}
                         radiusMiles={filters.radius}
                         isFavorited={isFavorited}
-                        mapTitle="Rooms in your search area"
+                        mapTitle="Rooms in Your Search Area"
                         mapDetail={`${sorted.length} matching locations · select a marker for details`}
                         onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url, title })}
                     />

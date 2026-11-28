@@ -1320,7 +1320,6 @@ const styles = `
     font-size: 22px;
     font-weight: 800;
     letter-spacing: 0.04em;
-    text-transform: uppercase;
   }
 
   .tour-header__body {
@@ -1356,7 +1355,6 @@ const styles = `
     color: var(--tour-dim);
     font: 700 12px/1.2 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
   }
 
   .breadcrumb-link {
@@ -1423,7 +1421,6 @@ const styles = `
     font: 800 12px/1 var(--font-rajdhani), Rajdhani, sans-serif;
     letter-spacing: 0.1em;
     text-shadow: 0 1px 0 #000;
-    text-transform: uppercase;
     touch-action: manipulation;
     border: 3px solid transparent;
     border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
@@ -1507,7 +1504,6 @@ const styles = `
     color: var(--tour-muted);
     font: 800 12px/1 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.13em;
-    text-transform: uppercase;
   }
 
   .tour-code-badge[data-tone='gold'] {
@@ -1603,7 +1599,6 @@ const styles = `
     color: var(--tour-blue-soft);
     font: 800 12px/1 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.13em;
-    text-transform: uppercase;
   }
 
   .sp-stop-next .sp-stop-status-label {
@@ -1635,7 +1630,6 @@ const styles = `
     color: var(--tour-blue-soft);
     font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.07em;
-    text-transform: uppercase;
   }
 
   .sp-filter-bar {
@@ -1710,7 +1704,6 @@ const styles = `
     color: var(--tour-dim);
     font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
   }
 
   .sp-event-row {
@@ -1871,7 +1864,6 @@ const styles = `
     font-weight: 800;
     letter-spacing: 0.06em;
     line-height: 1.15;
-    text-transform: uppercase;
   }
 
   .series-count {
@@ -1921,7 +1913,6 @@ const styles = `
 
   .sp-stop-type-badge {
     flex: 0 0 auto;
-    text-transform: uppercase;
   }
 
   .sp-stype-current {
@@ -1970,7 +1961,6 @@ const styles = `
     color: var(--tour-dim);
     font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.09em;
-    text-transform: uppercase;
   }
 
   .about-value,
@@ -2051,7 +2041,6 @@ const styles = `
     color: var(--tour-blue-soft);
     font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
   }
 
   .activity-type-badge[data-activity-type='result'] {
@@ -2128,7 +2117,6 @@ const styles = `
     color: var(--tour-blue-soft);
     font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
   }
 
   @media (max-width: 760px) {
@@ -2239,7 +2227,6 @@ const styles = `
       color: var(--tour-dim);
       font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
       letter-spacing: 0.05em;
-      text-transform: uppercase;
     }
 
     .sp-col-buyin::before { content: 'Buy-In'; }

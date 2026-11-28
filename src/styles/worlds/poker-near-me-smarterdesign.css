@@ -645,3 +645,13 @@ body.world-poker-near-me .pnc[data-pnm-console='painted-chassis-v1'] .pnc-plate 
   color: #ffffff !important;
   text-shadow: 0 1px 1px #0008 !important;
 }
+
+/* Discovery tools (2026-11-28): every control inside the More tools, their
+   subpanels and the scraper and trends readouts keeps a 44px touch target,
+   including the plain buttons that carry no tool class of their own. Heatmap
+   cells and other dense grids opt out with data-allow-small-target. */
+body.world-poker-near-me :is(.more-tools-stack, .pnm-console-tool, .pnm-console-tool-subpanel) button:not([data-allow-small-target], [data-allow-small-target] *) {
+  box-sizing: border-box;
+  min-width: 44px;
+  min-height: 44px;
+}

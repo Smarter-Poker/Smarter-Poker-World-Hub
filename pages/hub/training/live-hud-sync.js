@@ -200,7 +200,7 @@ export default function LiveHudSyncPage() {
         <div className={s.page}>
           <section className={`sd-panel ${s.panel}`} aria-labelledby="live-hud-status-title">
             <p className={s.eyebrow}>Integration Status</p>
-            <h2 id="live-hud-status-title" className={s.sectionTitle}>Live HUD Sync</h2>
+            <h2 id="live-hud-status-title" className={s.sectionTitle}>Not Connected Yet</h2>
             <p className={s.copy}>Physical Beacon Discovery And Bluetooth Pairing Are Not Connected To A Production Service Yet. This Page Will Not Simulate A Device, Connection, Signal Strength, Battery, Or Firmware Version.</p>
             <dl className={s.list}>
               {statusRows.map(([label, value]) => (

@@ -278,7 +278,6 @@ body.world-poker-near-me .pnm-deep-notice__link {
   text-decoration: none;
   text-shadow: 0 0 0.9cqw rgb(49 168 255 / 70%), 0 0 2cqw rgb(49 168 255 / 30%),
     0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .pnm-deep-notice__link:active {
@@ -336,7 +335,6 @@ body.world-poker-near-me .pnc.pnm-deep-notice .pnc-zone.pnc__title {
   letter-spacing: 0.03em !important;
   text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 #6d747c,
     0 0.45cqw 0 #050607, 0 0.7cqw 0.9cqw rgb(0 0 0 / 90%) !important;
-  text-transform: uppercase !important;
   -webkit-text-fill-color: var(--pnc-silver);
 }
 
@@ -384,7 +382,6 @@ body.world-poker-near-me .pnm-location-index__heading {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-shadow: 0 0 0.9cqw rgb(49 168 255 / 55%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .pnm-location-index__list {
@@ -429,7 +426,6 @@ body.world-poker-near-me .pnm-location-index__where {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-align: right;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 

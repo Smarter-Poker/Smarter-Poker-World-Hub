@@ -351,8 +351,7 @@ const STYLES = `
   .bttg-title-row { display: flex; align-items: center; gap: 8px; }
   .bttg-title-row h3 { margin: 0; font-size: 16px; font-weight: 700; color: #fff; }
   .bttg-quality {
-    font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px;
-    text-transform: uppercase; letter-spacing: 0.3px;
+    font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; letter-spacing: 0.3px;
   }
   .bttg-quality-excellent { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
   .bttg-quality-good { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
@@ -364,7 +363,7 @@ const STYLES = `
     padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
     background: rgba(255,255,255,0.03);
   }
-  .bttg-badge-label { display: block; font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; }
+  .bttg-badge-label { display: block; font-size: 12px; color: rgba(255,255,255,0.4); letter-spacing: 0.5px; }
   .bttg-badge-value { display: block; font-size: 14px; font-weight: 700; color: #fff; margin-top: 2px; }
 
   /* === Mini Day Bar Chart === */
@@ -373,8 +372,7 @@ const STYLES = `
     background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06);
   }
   .bttg-day-chart-title {
-    display: block; font-size: 12px; color: rgba(255,255,255,0.4);
-    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 600;
+    display: block; font-size: 12px; color: rgba(255,255,255,0.4); letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 600;
   }
   .bttg-day-bars {
     display: flex; gap: 6px; align-items: flex-end; height: 60px;
@@ -401,8 +399,7 @@ const STYLES = `
     background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06);
   }
   .bttg-game-eta-title {
-    display: block; font-size: 12px; color: rgba(255,255,255,0.4);
-    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 600;
+    display: block; font-size: 12px; color: rgba(255,255,255,0.4); letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 600;
   }
   .bttg-game-eta-row {
     display: flex; align-items: center; gap: 8px; margin-bottom: 8px;

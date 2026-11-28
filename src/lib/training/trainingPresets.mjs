@@ -580,7 +580,13 @@ export function resolvePresetForGame(gameOrId, overrides = {}) {
     basePreset = TRAINING_PRESETS.hu_duel_2max;
   } else if (gameId.startsWith('spins-') || category === 'SPINS') {
     basePreset = TRAINING_PRESETS.spins_hyper_3max;
-  } else if (['cash-005', 'cash-015', 'mtt-018'].includes(gameId)) {
+  } else if (gameId === 'mtt-018') {
+    basePreset = {
+      ...TRAINING_PRESETS.plo4_pot_limit_cash,
+      format: 'mtt',
+      title: 'PLO4 MTT Button Warfare (9-Max)',
+    };
+  } else if (['cash-005', 'cash-015'].includes(gameId)) {
     basePreset = TRAINING_PRESETS.plo4_pot_limit_cash;
   } else if (['mtt-001', 'mtt-008', 'mtt-009', 'mtt-016'].includes(gameId)) {
     basePreset = TRAINING_PRESETS.mtt_short_push_fold;

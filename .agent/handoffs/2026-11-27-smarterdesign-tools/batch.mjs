@@ -62,7 +62,7 @@ for (const route of routes) {
         if (forbidden(cs.color)) bad.push(`${t.slice(0, 40)} [${cs.color}]`);
       }
       const head = document.querySelector('[data-header-art]');
-      const helpImg = document.querySelector('img[src*="help-chrome"]');
+      const helpImg = document.querySelector('img[src*="help-chrome"], img[src*="header-help"]');
       let helpGap = null;
       if (head && helpImg) {
         const h = head.getBoundingClientRect(), i = helpImg.getBoundingClientRect();

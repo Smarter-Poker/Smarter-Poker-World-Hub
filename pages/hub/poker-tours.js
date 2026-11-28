@@ -958,7 +958,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                                 uniformColor="#ffffff"
                                 disableClustering={true}
                                 mapEyebrow="Tour circuit map"
-                                mapTitle="Traveling poker tours"
+                                mapTitle="Traveling Poker Tours"
                                 mapDetail={`${tourVenuesForMap.length} upcoming destinations · select a marker for tour details`}
                                 onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url: safeHref(url), title })}
                             />
@@ -970,7 +970,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                             <div className="tours-results-count">
                                 <strong>{filteredTours.length}</strong> {filteredTours.length === 1 ? 'Tour' : 'Tours'}
                                 {totalMatchingStops > 0 && <span className="tours-stops-count"> &bull; {totalMatchingStops} Upcoming {totalMatchingStops !== 1 ? 'Stops' : 'Stop'}</span>}
-                                {searchQuery && <span className="tours-results-query"> &mdash; "{searchQuery}"</span>}
+                                {searchQuery && <span className="tours-results-query"> &bull; Matching "{searchQuery}"</span>}
                                 {dateRange !== 'all' && <span className="tours-results-query"> &bull; {{
                                     '7d': 'Next 7 Days', '14d': 'Next 2 Weeks', '30d': 'Next 30 Days',
                                     '60d': 'Next 2 Months', '90d': 'Next 3 Months', '6m': 'Next 6 Months', '1y': 'Next Year'
@@ -1032,7 +1032,7 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                             <div className="tours-empty">
                                 <PokerNearMeConsoleIcon name="info" className="tours-glyph" />
                                 <h3>No Matching Tours</h3>
-                                <p>No Tours Match Your Current filters{searchQuery ? ` for "${searchQuery}"` : ''}{dateRange !== 'all' ? ` within ${{'7d':'7 days','14d':'2 weeks','30d':'30 days','60d':'2 months','90d':'3 months','6m':'6 months','1y':'1 year'}[dateRange]}` : ''}{distanceFilter !== 'all' ? ` within ${distanceFilter} miles` : ''}.</p>
+                                <p>No Tours Match Your Current Filters{searchQuery ? ` for "${searchQuery}"` : ''}{dateRange !== 'all' ? ` within ${{'7d':'7 days','14d':'2 weeks','30d':'30 days','60d':'2 months','90d':'3 months','6m':'6 months','1y':'1 year'}[dateRange]}` : ''}{distanceFilter !== 'all' ? ` within ${distanceFilter} miles` : ''}.</p>
                                 <button
                                     className="tours-empty-reset"
                                     onClick={() => { setSearchQuery(''); setDateRange('all'); setSelectedType('all'); setSelectedRegion('all'); setBuyinFilter('all'); setDistanceFilter('all'); setSortBy('distance'); }}
@@ -1230,7 +1230,6 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         font-size: 12px;
                         font-weight: 800;
                         letter-spacing: .08em;
-                        text-transform: uppercase;
                         cursor: pointer;
                     }
                     .tours-geo-notice button:focus-visible {
@@ -1473,7 +1472,6 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         color: rgba(255,255,255,0.5);
                         margin-bottom: 4px;
                         padding: 0 2px;
-                        text-transform: uppercase;
                         letter-spacing: 0.5px;
                     }
 
@@ -1705,7 +1703,6 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         font-weight: 800;
                         letter-spacing: 0.16em;
                         text-shadow: 0 0 6px rgba(49,168,255,0.55), 0 1px 2px rgba(0,0,0,0.85);
-                        text-transform: uppercase;
                     }
                     .tour-logo-container {
                         width: 42px;
@@ -1736,7 +1733,6 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         font-size: 12px;
                         font-weight: 700;
                         letter-spacing: 0.12em;
-                        text-transform: uppercase;
                     }
 
                     /* Card Name */
@@ -1810,7 +1806,6 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         font-size: 12px;
                         font-weight: 700;
                         letter-spacing: 0.08em;
-                        text-transform: uppercase;
                     }
                     .tour-card-tags .tour-region-tag:first-child {
                         padding-left: 0;
@@ -1842,7 +1837,6 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         font-size: 12px;
                         font-weight: 700;
                         color: #9aa8b5;
-                        text-transform: uppercase;
                         letter-spacing: 0.5px;
                         margin-bottom: 8px;
                     }
@@ -1926,7 +1920,6 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                         letter-spacing: 0.1em;
                         text-decoration: none;
                         text-shadow: 0 1px 0 #050607, 0 2px 4px rgba(0,0,0,0.85);
-                        text-transform: uppercase;
                         border: 3px solid transparent;
                         border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
                         background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box;

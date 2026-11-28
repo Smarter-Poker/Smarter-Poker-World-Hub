@@ -21,6 +21,7 @@ import {
 import { buildStakingStatementCsv, normaliseStakingTerms, replayStakingDeal } from '../../lib/bankroll/stakingMath.mjs';
 import toast from '../../stores/toastStore';
 import { localDay, parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
+import { formatCurrency, formatSplit } from '../../lib/bankroll/currencyUtils';
 
 const CATEGORY_LABELS = {
     poker_cash: 'Cash',
@@ -31,19 +32,18 @@ const CATEGORY_LABELS = {
 };
 
 // Staking settles to the cent: whole-dollar rounding showed two $425 shares of
-// an $851 session. Whole amounts stay short, anything else shows cents.
-const formatCurrency = (amount) => {
-    const value = Math.round((Number(amount) || 0) * 100) / 100;
-    const digits = Number.isInteger(value) ? 0 : 2;
-    const text = Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: 2 });
-    return (value < 0 ? '-$' : '$') + text;
-};
+// an $851 session. Whole amounts stay short, anything else shows cents
+// (currencyUtils' 'auto' cents variant, which also follows Display EUR).
+const formatStake = (amount, displayEUR) => formatCurrency(Number(amount) || 0, displayEUR, { cents: 'auto' });
+// Gross, your share, backer share: in euros the two shares still add up to the
+// gross on screen (see formatSplit).
+const formatShares = (gross, player, backer, displayEUR) => formatSplit(Number(gross) || 0, Number(player) || 0, Number(backer) || 0, displayEUR, { cents: 'auto' });
 
 const shortDay = (day, withYear = false) => day
     ? parseLedgerDay(day).toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}) })
     : '';
 
-export default function StakingTracker({ userId, refreshTrigger }) {
+export default function StakingTracker({ userId, refreshTrigger, displayEUR = false }) {
     const [arrangements, setArrangements] = useState([]);
     const [activeArrangement, setActiveArrangement] = useState(null);
     const [sessions, setSessions] = useState([]);
@@ -221,7 +221,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             toast.success('Session linked to staking arrangement');
         } catch (err) {
             console.warn('Error linking entry:', err);
-            toast.error(err?.message?.startsWith('That Session') ? err.message : 'Failed to link session');
+            toast.error(err?.message?.startsWith('That Session') || err?.message?.startsWith('Only Poker') ? err.message : 'Failed to link session');
         } finally {
             setBusyId(null);
             loadData();
@@ -263,6 +263,8 @@ export default function StakingTracker({ userId, refreshTrigger }) {
     };
 
     // --- RENDER ---
+
+    const [grossText, playerText, backerText] = formatShares(stats.totalGrossResult, stats.playerShare, stats.backerShare, displayEUR);
 
     if (isLoading) {
         return (
@@ -331,19 +333,19 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                 ...styles.statValue,
                                 color: stats.totalGrossResult >= 0 ? '#22c55e' : '#ef4444'
                             }}>
-                                {formatCurrency(stats.totalGrossResult)}
+                                {grossText}
                             </div>
                         </div>
                         <div style={styles.statBox}>
                             <div style={styles.statLabel}>YOUR SHARE</div>
                             <div style={{ ...styles.statValue, color: '#22c55e' }}>
-                                {formatCurrency(stats.playerShare)}
+                                {playerText}
                             </div>
                         </div>
                         <div style={styles.statBox}>
                             <div style={styles.statLabel}>BACKER SHARE</div>
                             <div style={{ ...styles.statValue, color: '#3b82f6' }}>
-                                {formatCurrency(stats.backerShare)}
+                                {backerText}
                             </div>
                         </div>
                         <div style={styles.statBox}>
@@ -353,7 +355,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                 color: currentMakeup > 0 ? '#ef4444' : '#22c55e'
                             }}>
                                 {currentMakeup > 0
-                                    ? `-${formatCurrency(currentMakeup)}`
+                                    ? `-${formatStake(currentMakeup, displayEUR)}`
                                     : 'Clear'
                                 }
                             </div>
@@ -365,7 +367,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                         <div style={styles.sessionsSection}>
                             <div style={styles.sectionTitle}>Linked Sessions ({sessions.length})</div>
                             <div style={styles.sessionsScroll}>
-                                {sessions.map(s => (
+                                {sessions.map(s => { const [sGross, sPlayer, sBacker] = formatShares(s.gross_result, s.player_share, s.backer_share, displayEUR); return (
                                     <div key={s.id} style={styles.sessionRow}>
                                         <div style={styles.sessionInfo}>
                                             <span style={styles.sessionDate}>
@@ -378,12 +380,12 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                                 ...styles.sessionNet,
                                                 color: s.gross_result >= 0 ? '#22c55e' : '#ef4444'
                                             }}>
-                                                {formatCurrency(s.gross_result)}
+                                                {sGross}
                                             </span>
                                         </div>
                                         <div style={styles.sessionSplits}>
-                                            <span style={{ color: '#22c55e', fontSize: 14 }}>You: {formatCurrency(s.player_share)}</span>
-                                            <span style={{ color: '#3b82f6', fontSize: 14 }}>Backer: {formatCurrency(s.backer_share)}</span>
+                                            <span style={{ color: '#22c55e', fontSize: 14 }}>You: {sPlayer}</span>
+                                            <span style={{ color: '#3b82f6', fontSize: 14 }}>Backer: {sBacker}</span>
                                             {confirmUnlink === s.id ? (
                                                 <span style={styles.unlinkConfirm}>
                                                     <button type="button" onClick={() => handleUnlink(s)} disabled={!!busyId} style={styles.confirmYesSmall}>Remove</button>
@@ -402,7 +404,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                             )}
                                         </div>
                                     </div>
-                                ))}
+                                ); })}
                             </div>
                         </div>
                     )}
@@ -427,7 +429,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                                     ...styles.sessionNet,
                                                     color: net >= 0 ? '#22c55e' : '#ef4444'
                                                 }}>
-                                                    {formatCurrency(net)}
+                                                    {formatStake(net, displayEUR)}
                                                 </span>
                                             </div>
                                             <button
@@ -448,7 +450,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
 
                     {sessions.length === 0 && unlinkedEntries.length === 0 && (
                         <p style={styles.noSessions}>
-                            No Sessions Logged Since {shortDay(activeArrangement.start_date, true)} Yet. Log A Session And Link It Here.
+                            No Poker Sessions Logged Since {shortDay(activeArrangement.start_date, true)} Yet. Log A Cash Game Or Tournament And Link It Here.
                         </p>
                     )}
 
@@ -508,7 +510,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                 <div style={styles.pastMeta}>
                                     {arr.split_percentage}% / {100 - arr.split_percentage}%
                                     {arr.end_date && ` · Ended ${shortDay(arr.end_date, true)}`}
-                                    {Number(arr.current_makeup) > 0 && ` · Makeup ${formatCurrency(arr.current_makeup)}`}
+                                    {Number(arr.current_makeup) > 0 && ` · Makeup ${formatStake(arr.current_makeup, displayEUR)}`}
                                 </div>
                             </div>
                             <div style={styles.pastActions}>
@@ -612,7 +614,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                     />
                                 </div>
                                 <div>
-                                    <label style={styles.formLabel}>Starting Makeup</label>
+                                    <label style={styles.formLabel}>Starting Makeup ($)</label>
                                     <input
                                         type="number"
                                         min="0" step="0.01" inputMode="decimal"

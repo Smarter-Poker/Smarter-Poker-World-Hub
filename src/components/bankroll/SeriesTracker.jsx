@@ -22,7 +22,7 @@ import {
     fetchLedgerEntries,
 } from '../../lib/bankroll/bankrollSelectors';
 import { getUserLocations } from '../../lib/bankroll/locationMemory';
-import { formatCurrency } from '../../lib/bankroll/currencyUtils';
+import { formatCurrency, formatCurrencyWithSign } from '../../lib/bankroll/currencyUtils';
 import toast from '../../stores/toastStore';
 import TripReport from './TripReport';
 import { localDay, parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
@@ -37,7 +37,7 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
-function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger, openSeriesId }) {
+function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger, openSeriesId, displayEUR = false }) {
     const [activeSeries, setActiveSeries] = useState(null);
     const [completedSeries, setCompletedSeries] = useState([]);
     const [seriesEntries, setSeriesEntries] = useState([]);
@@ -258,6 +258,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
     if (selectedSeriesReport) {
         return (
             <TripReport
+                displayEUR={displayEUR}
                 report={selectedSeriesReport}
                 onBack={() => setSelectedSeriesReport(null)}
                 kind="series"
@@ -363,7 +364,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                                     ...styles.runningStatValue,
                                     color: (activeSeries.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
                                 }}>
-                                    {formatCurrency(activeSeries.totalNet || 0)}
+                                    {formatCurrency(activeSeries.totalNet || 0, displayEUR)}
                                 </span>
                             </div>
                             <div style={styles.runningStat}>
@@ -373,7 +374,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                             <div style={styles.runningStat}>
                                 <span style={styles.runningStatLabel}>Expenses</span>
                                 <span style={{ ...styles.runningStatValue, color: '#ef4444' }}>
-                                    {formatCurrency(activeSeries.totalExpenses || 0)}
+                                    {formatCurrency(activeSeries.totalExpenses || 0, displayEUR)}
                                 </span>
                             </div>
                         </div>
@@ -384,7 +385,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                         <div style={styles.breakdownRow}>
                             {Object.entries(activeSeries.categoryBreakdown || {}).map(([cat, data]) => (
                                 <span key={cat} style={styles.breakdownTag}>
-                                    {CATEGORY_LABELS[cat] || cat}: {formatCurrency(data.net)}
+                                    {CATEGORY_LABELS[cat] || cat}: {formatCurrency(data.net, displayEUR)}
                                 </span>
                             ))}
                         </div>
@@ -416,7 +417,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                                             </div>
                                             <div style={styles.entryRight}>
                                                 <span style={{ ...styles.entryNet, color: net >= 0 ? '#10b981' : '#ef4444' }}>
-                                                    {net >= 0 ? '+' : ''}{formatCurrency(net)}
+                                                    {formatCurrencyWithSign(net, displayEUR)}
                                                 </span>
                                                 <div style={styles.entryActions}>
                                                     {onEditEntry && (
@@ -699,7 +700,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                                         ...styles.seriesCardPL,
                                         color: (series.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
                                     }}>
-                                        {formatCurrency(series.totalNet || 0)}
+                                        {formatCurrency(series.totalNet || 0, displayEUR)}
                                     </span>
                                 </span>
                                 <span style={styles.seriesCardMeta}>

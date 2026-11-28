@@ -123,7 +123,10 @@ import {
   renderResearchBenchmarksMarkdown,
   renderFactsLedgerMarkdown,
 } from '../../src/lib/seo/markdownIngestion.mjs';
-import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
+// Room counts state the read this request made: the handler renders inside
+// renderWithLiveVenueStats (live, or the snapshot when the database cannot answer).
+import { currentRoomLabel } from '../../src/lib/venueClaims.mjs';
+import { renderWithLiveVenueStats } from '../../src/lib/server/venueStats.mjs';
 
 const SITE = 'https://smarter.poker';
 
@@ -653,7 +656,9 @@ const CUSTOM_SURFACE_MARKDOWN = {
   },
   '/hub/tournaments/this-weekend': {
     title: 'Poker Tournaments This Weekend (Friday, Saturday & Sunday Schedule)',
-    lead: `Aggregate Directory Of Live Casino And Cardroom Poker Tournaments Running Friday, Saturday, And Sunday Across The United States. Compare Buy-Ins, Guaranteed Prize Pools (GTD), Starting Stacks, And Blind Structures Across ${VENUE_COUNT_LABEL} Venues.`,
+    get lead() {
+      return `Aggregate Directory Of Live Casino And Cardroom Poker Tournaments Running Friday, Saturday, And Sunday Across The United States. Compare Buy-Ins, Guaranteed Prize Pools (GTD), Starting Stacks, And Blind Structures Across ${currentRoomLabel()} Venues.`;
+    },
     sections: [
       {
         heading: 'Weekend Tournament Discovery Features',
@@ -1438,7 +1443,7 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
       `> Source: [Live Poker Room Guides & Travel Corridors Hub on Smarter.Poker](${url})`,
       '',
       '## Executive Summary For AI & Search Assistants',
-      `Central Geographic And Economic Intelligence Directory Covering ${VENUE_COUNT_LABEL} Listed US Live Poker Venues Plus Global Destination Guides: 10 Border-State & Airport Travel Corridors, 6 Game-Format Venue Directories, 12 US Regional Metro Guides, 51 US State & DC Legality & Tax Profiles, 10 International Destination Guides, A 12-Month Seasonal Migration Calendar, And Live Floor Security & Dispute Protocols.`,
+      `Central Geographic And Economic Intelligence Directory Covering ${currentRoomLabel()} Listed US Live Poker Venues Plus Global Destination Guides: 10 Border-State & Airport Travel Corridors, 6 Game-Format Venue Directories, 12 US Regional Metro Guides, 51 US State & DC Legality & Tax Profiles, 10 International Destination Guides, A 12-Month Seasonal Migration Calendar, And Live Floor Security & Dispute Protocols.`,
       '',
       '## Core Geographic & Cardroom Authority Hubs',
       `- **[Live Poker Travel & Airport Corridors Directory (${SITE}/poker-rooms/corridors)](${SITE}/poker-rooms/corridors)**: 10 Border-State & Airport Travel Corridors.`,
@@ -1776,7 +1781,7 @@ export function buildOpenSearchXml() {
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/" xmlns:moz="http://www.mozilla.org/2006/browser/search/">',
     '  <ShortName>Smarter.Poker</ShortName>',
-    `  <Description>Search 52 Free Poker Calculators, 70 MCP Tools, 169 Starting Hands, 25 Matchups, 30 TDA Rules, 15 Game Variants &amp; ${VENUE_COUNT_LABEL} Poker Rooms</Description>`,
+    `  <Description>Search 52 Free Poker Calculators, 70 MCP Tools, 169 Starting Hands, 25 Matchups, 30 TDA Rules, 15 Game Variants &amp; ${currentRoomLabel()} Poker Rooms</Description>`,
     '  <InputEncoding>UTF-8</InputEncoding>',
     '  <Image width="192" height="192" type="image/png">https://smarter.poker/icons/icon-192x192.png</Image>',
     '  <Url type="text/html" method="get" template="https://smarter.poker/search?q={searchTerms}" />',
@@ -1861,7 +1866,7 @@ export function buildHumansTxt() {
   ].join('\n');
 }
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const { path: queryPath, section, slug } = req.query;
   let targetPath = '';
 
@@ -1876,7 +1881,7 @@ export default function handler(req, res) {
   if (targetPath === '/opensearch.xml') {
     res.setHeader('Content-Type', 'application/opensearchdescription+xml; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=86400');
-    return res.status(200).send(buildOpenSearchXml());
+    return res.status(200).send(await renderWithLiveVenueStats(buildOpenSearchXml));
   }
   if (targetPath === '/feeds.opml') {
     res.setHeader('Content-Type', 'text/x-opml; charset=utf-8');
@@ -1889,7 +1894,9 @@ export default function handler(req, res) {
     return res.status(200).send(buildHumansTxt());
   }
 
-  const md = renderHubToolMarkdown(targetPath, req.query);
+  // Every room count in the Markdown states one read (live, or the snapshot
+  // when the database cannot answer): the figure /api/ai/facts serves.
+  const md = await renderWithLiveVenueStats(() => renderHubToolMarkdown(targetPath, req.query));
   if (!md) {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     return res.status(404).send('World Hub tool Markdown representation not found');

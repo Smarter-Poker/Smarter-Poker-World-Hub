@@ -4263,6 +4263,7 @@ export default function PokerNearMePage({ initialDirectory = null }) {
                 variant="live-venue-intel"
                 context={`pnm-tab-${canonicalSlug}`}
                 title="See Live Waitlists, Peak Hours & Seat Alerts With A Free Account"
+                signedInTitle="See Live Waitlists, Peak Hours And Seat Alerts"
                 redirectPath={`/hub/poker-near-me/${canonicalSlug}`}
               />
             </div>

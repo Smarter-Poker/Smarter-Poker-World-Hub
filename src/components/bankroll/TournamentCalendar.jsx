@@ -10,6 +10,7 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { localDay } from '../../lib/bankroll/localDates.mjs';
+import { formatCurrency, formatCurrencyCompact } from '../../lib/bankroll/currencyUtils';
 import {
     PLAN_STORAGE_KEY,
     calendarDate,
@@ -34,13 +35,13 @@ const LIST_PAGE = 25;
 const weekdays = Array.from({ length: 7 }, (_, index) =>
     formatDate(calendarDate(2021, 7, index + 1), { weekday: 'short' })
 );
-const buyInText = (ev) => (ev.buyIn == null ? 'Buy-In TBA' : `$${ev.buyIn.toLocaleString()}`);
+const buyInText = (ev, displayEUR) => (ev.buyIn == null ? 'Buy-In TBA' : formatCurrency(ev.buyIn, displayEUR));
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function TournamentCalendar({ bankrollTotal = 0 }) {
+export default function TournamentCalendar({ bankrollTotal = 0, displayEUR = false }) {
     const [visibleMonth, setVisibleMonth] = useState(() => new Date());
     const currentMonth = visibleMonth.getMonth();
     const currentYear = visibleMonth.getFullYear();
@@ -183,7 +184,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
                         <div style={{ fontSize: 12, fontWeight: 800, color: '#e2e8f0' }}>Budget Planner - {plan.length} {plan.length === 1 ? 'Event' : 'Events'}</div>
                         <div style={{ fontSize: 14, fontWeight: 900, color: budgetHealth >= 100 ? '#4ade80' : budgetHealth >= 50 ? '#94e7ff' : '#f45142' }}>
-                            ${totalBudgetNeeded.toLocaleString()} Needed
+                            {formatCurrency(totalBudgetNeeded, displayEUR)} Needed
                         </div>
                     </div>
                     <div style={{ height: 6, background: 'rgba(0,0,0,0.4)', borderRadius: 3, overflow: 'hidden' }}>
@@ -207,7 +208,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                         {plan.map(p => (
                             <li key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#cbd5e1' }}>
                                 <span style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
-                                    {p.name} • {formatDate(p.date, { month: 'short', day: 'numeric' })} • {buyInText(p)}
+                                    {p.name} • {formatDate(p.date, { month: 'short', day: 'numeric' })} • {buyInText(p, displayEUR)}
                                 </span>
                                 <button type="button" className="sd-button" aria-label={`Remove ${p.name} From Plan`} onClick={() => toggleInterest(p)} style={{ minWidth: 44, minHeight: 44, padding: 0 }}>
                                     <span aria-hidden="true">✕</span>
@@ -304,7 +305,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                                 <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0' }}>{formatDate(selectedDay, fullDate)} • {dayEventsSelected.length} Series</div>
                                 <button type="button" className="sd-button" onClick={() => setSelectedDay(null)}>Close</button>
                             </div>
-                            <EventList events={dayEventsSelected} planIds={planIds} detailId={detailId} selectedEvent={selectedEvent} onShow={showDetails} onToggle={toggleInterest} />
+                            <EventList events={dayEventsSelected} planIds={planIds} detailId={detailId} selectedEvent={selectedEvent} onShow={showDetails} onToggle={toggleInterest} displayEUR={displayEUR} />
                         </section>
                     )}
                 </>
@@ -312,7 +313,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                 /* List View */
                 <div style={{ marginBottom: 24 }}>
                     {!isLoading && !hasError && upcoming.length === 0 && <p role="status" style={{ fontSize: 14, color: '#9aaec3' }}>No Upcoming Tournament Series Are Listed Yet.</p>}
-                    <EventList events={listed} planIds={planIds} detailId={detailId} selectedEvent={selectedEvent} onShow={showDetails} onToggle={toggleInterest} />
+                    <EventList events={listed} planIds={planIds} detailId={detailId} selectedEvent={selectedEvent} onShow={showDetails} onToggle={toggleInterest} displayEUR={displayEUR} />
                     {upcoming.length > listed.length && (
                         <button type="button" className="sd-button" style={{ marginTop: 12, width: '100%' }} onClick={() => setListCount(c => c + LIST_PAGE)}>
                             Show More ({upcoming.length - listed.length} Left)
@@ -343,7 +344,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 112px), 1fr))', gap: 12, marginBottom: 16 }}>
                         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
                             <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800 }}>Main Event Buy-In</div>
-                            <strong>{selectedEvent.buyIn == null ? 'Not Listed' : `$${selectedEvent.buyIn.toLocaleString()}`}</strong>
+                            <strong>{selectedEvent.buyIn == null ? 'Not Listed' : formatCurrency(selectedEvent.buyIn, displayEUR)}</strong>
                         </div>
                         {[['Start Date', selectedEvent.date], ['End Date', selectedEvent.endDate !== selectedEvent.date ? selectedEvent.endDate : null]].filter(([, date]) => date).map(([label, date]) => (
                             <div key={label} style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
@@ -354,7 +355,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
                         {selectedEvent.guaranteed && (
                             <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10 }}>
                                 <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800 }}>Guaranteed</div>
-                                <div style={{ fontSize: 13, fontWeight: 800, color: '#4ade80', marginTop: 4 }}>{selectedEvent.guaranteed}</div>
+                                <div style={{ fontSize: 13, fontWeight: 800, color: '#4ade80', marginTop: 4 }}>{selectedEvent.guaranteedAmount != null ? formatCurrencyCompact(selectedEvent.guaranteedAmount, displayEUR) : selectedEvent.guaranteed}</div>
                             </div>
                         )}
                         {selectedEvent.eventCount && (
@@ -391,7 +392,7 @@ export default function TournamentCalendar({ bankrollTotal = 0 }) {
     );
 }
 
-function EventList({ events, planIds, detailId, selectedEvent, onShow, onToggle }) {
+function EventList({ events, planIds, detailId, selectedEvent, onShow, onToggle, displayEUR = false }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {events.map(ev => (
@@ -418,7 +419,7 @@ function EventList({ events, planIds, detailId, selectedEvent, onShow, onToggle 
                             <span id={`${detailId}-${ev.id}-meta`} style={{ display: 'block', fontSize: 12, color: '#9aaec3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.location}</span>
                         </span>
                         <span id={`${detailId}-${ev.id}-cost`} style={{ textAlign: 'end', flexShrink: 0 }}>
-                            <strong style={{ display: 'block', fontSize: 14, color: '#fff' }}>{buyInText(ev)}</strong>
+                            <strong style={{ display: 'block', fontSize: 14, color: '#fff' }}>{buyInText(ev, displayEUR)}</strong>
                             <time dateTime={ev.date} style={{ fontSize: 12, color: '#9aaec3' }}>
                                 {formatDate(ev.date, { month: 'short', day: 'numeric' })}
                                 {ev.endDate !== ev.date && ` - ${formatDate(ev.endDate, { month: 'short', day: 'numeric' })}`}

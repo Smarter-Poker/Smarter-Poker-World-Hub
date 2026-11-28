@@ -10,9 +10,10 @@ import { METAL, GRADIENTS, ANIMATIONS } from './metalStyles';
 import { parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
 import { formatUsd, SESSION_CATEGORIES } from '../../lib/bankroll/ledgerReport.mjs';
 import { describeAction } from '../../lib/bankroll/handActions.mjs';
+import { formatCurrencyWithSign } from '../../lib/bankroll/currencyUtils';
 
 
-export default function SessionHandReview({ userId }) {
+export default function SessionHandReview({ userId, displayEUR = false }) {
     const [recentHands, setRecentHands] = useState([]);
     const [recentSessions, setRecentSessions] = useState([]);
     const [linkingHand, setLinkingHand] = useState(null);
@@ -23,8 +24,11 @@ export default function SessionHandReview({ userId }) {
     const [loadError, setLoadError] = useState(null);
     const [linkError, setLinkError] = useState(null);
 
+    // Signed out there is nothing to read: say so instead of sitting on
+    // "Loading Hands" forever (?view=hand-review is a public address).
     useEffect(() => {
         if (userId) loadData();
+        else setLoading(false);
     }, [userId]);
 
     const loadData = async () => {
@@ -128,6 +132,14 @@ export default function SessionHandReview({ userId }) {
         if (['SB', 'BB'].includes(pos)) return METAL.danger;
         return METAL.cyan;
     };
+
+    if (!userId) {
+        return (
+            <div className="sd-panel" style={styles.loadingContainer} role="status">
+                <span>SIGN IN TO LINK YOUR HANDS TO SESSIONS</span>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
@@ -278,7 +290,7 @@ export default function SessionHandReview({ userId }) {
                                             ...styles.sessionResult,
                                             color: (session.result || 0) >= 0 ? METAL.success : METAL.danger
                                         }}>
-                                            {session.result == null ? '-' : ((Number(session.result) > 0 ? '+' : '') + formatUsd(session.result))}
+                                            {session.result == null ? '-' : displayEUR ? formatCurrencyWithSign(Number(session.result), true) : ((Number(session.result) > 0 ? '+' : '') + formatUsd(session.result))}
                                         </span>
                                     </button>
                                 ))

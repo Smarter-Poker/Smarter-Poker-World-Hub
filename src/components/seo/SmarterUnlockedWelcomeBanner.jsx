@@ -47,31 +47,85 @@ function readStoredAccessToken(localStorageRef) {
   }
 }
 
-function sanitizeGuestSpots(rawList) {
+export function sanitizeGuestSpots(rawList) {
   if (!Array.isArray(rawList)) return [];
   const cleaned = [];
   for (const item of rawList.slice(0, 50)) {
     if (!item || typeof item !== 'object') continue;
-    cleaned.push({
+    const spot = {
       id: String(item.id || `spot_${cleaned.length}`).slice(0, 80),
       toolSlug: String(item.toolSlug || 'poker-tool').slice(0, 80),
       toolName: String(item.toolName || 'Smarter.Poker Calculator').slice(0, 140),
       summaryText: String(item.summaryText || '').slice(0, 320),
       url: String(item.url || '').slice(0, 320),
       savedAt: String(item.savedAt || '').slice(0, 40),
-    });
+    };
+    if (typeof item.kind === 'string' && item.kind.trim()) {
+      spot.kind = item.kind.trim().slice(0, 48);
+    }
+    if (typeof item.label === 'string' && item.label.trim()) {
+      spot.label = item.label.trim().slice(0, 140);
+    }
+    if (typeof item.eventDate === 'string' && item.eventDate.trim()) {
+      spot.eventDate = item.eventDate.trim().slice(0, 40);
+    }
+    if (typeof item.startDate === 'string' && item.startDate.trim()) {
+      spot.startDate = item.startDate.trim().slice(0, 40);
+    }
+    if (typeof item.seriesName === 'string' && item.seriesName.trim()) {
+      spot.seriesName = item.seriesName.trim().slice(0, 140);
+    }
+    if (typeof item.venue === 'string' && item.venue.trim()) {
+      spot.venue = item.venue.trim().slice(0, 140);
+    }
+    if (typeof item.path === 'string' && item.path.trim().startsWith('/')) {
+      spot.path = item.path.trim().slice(0, 200);
+    }
+    if (typeof item.reminded_at === 'string' && item.reminded_at.trim()) {
+      spot.reminded_at = item.reminded_at.trim().slice(0, 40);
+    }
+    cleaned.push(spot);
   }
   return cleaned;
 }
 
+export function mergeSavedSpotsPreservingReminders(existingSpots, incomingSpots) {
+  const existingMap = new Map();
+  if (Array.isArray(existingSpots)) {
+    for (const spot of existingSpots) {
+      if (spot && typeof spot === 'object' && spot.id) {
+        existingMap.set(String(spot.id), spot);
+      }
+    }
+  }
+  const merged = [];
+  const seen = new Set();
+  for (const spot of sanitizeGuestSpots(incomingSpots)) {
+    const prev = existingMap.get(spot.id);
+    merged.push(
+      prev?.reminded_at && !spot.reminded_at
+        ? { ...spot, reminded_at: prev.reminded_at }
+        : spot,
+    );
+    seen.add(spot.id);
+  }
+  if (Array.isArray(existingSpots)) {
+    for (const spot of sanitizeGuestSpots(existingSpots)) {
+      if (!seen.has(spot.id)) {
+        merged.push(spot);
+        seen.add(spot.id);
+      }
+    }
+  }
+  return merged.slice(0, 25);
+}
+
 /**
  * Non-blockingly syncs guest calculator saved spots (localStorage sp_saved_spots_v1)
- * to the authenticated player's cloud record (/api/training/tool-records) once per
+ * to BOTH the authenticated player's cloud record (/api/training/tool-records) AND
+ * auth.users.user_metadata.sp_saved_spots_v1 (so Phase D series event reminders
+ * in organicWelcomeDripRunner.mjs can dispatch real upcoming event emails) once per
  * browser session (guarded by sessionStorage sp_spots_synced_v1).
- *
- * Note: /api/poker/player-preferences strictly validates PNM location keys only;
- * /api/training/tool-records is the live Bearer-authenticated cloud persistence
- * endpoint for tool records (upserts on user_id + tool_id + record_key).
  */
 export async function syncGuestSavedSpotsToCloud(deps = {}) {
   const win = typeof window !== 'undefined' ? window : null;
@@ -118,6 +172,27 @@ export async function syncGuestSavedSpotsToCloud(deps = {}) {
     });
 
     if (res && res.ok) {
+      // Mirror structured spots (including series-reminder eventDate/kind) into
+      // auth.users.user_metadata.sp_saved_spots_v1 without adding static _app.js weight.
+      try {
+        if (typeof deps.updateUserMetadata === 'function') {
+          await deps.updateUserMetadata(payload.data.spots);
+        } else if (!deps.fetch && win) {
+          const mod = await import('../../lib/supabase');
+          const sb = mod?.supabase;
+          if (sb?.auth && typeof sb.auth.getUser === 'function' && typeof sb.auth.updateUser === 'function') {
+            const { data: userData } = await sb.auth.getUser();
+            const existingMetaSpots = userData?.user?.user_metadata?.sp_saved_spots_v1;
+            const mergedSpots = mergeSavedSpotsPreservingReminders(existingMetaSpots, payload.data.spots);
+            await sb.auth.updateUser({
+              data: { sp_saved_spots_v1: mergedSpots },
+            });
+          }
+        }
+      } catch (_) {
+        /* non-blocking: tool-records sync already succeeded */
+      }
+
       try {
         sessionStore.setItem(SPOTS_SYNCED_SESSION_KEY, '1');
       } catch (_) {
@@ -140,10 +215,20 @@ export async function syncGuestSavedSpotsToCloud(deps = {}) {
 const UNLOCK_COPY_MAP = {
   'solver-matrix': 'Your Full GTO Preflop & Postflop Solver Library Is Now Unlocked.',
   'calculator-pro': 'Cloud Spot Saving & Multi-Scenario Sync Are Now Active On Your Account.',
+  'calc-session-milestone': 'Your Studied Calculator Spots & Cloud Study History Are Now Synced.',
   'live-venue-intel': 'Live Poker Room Alerts, Waitlist Tracking & Saved Cardrooms Are Now Active.',
   'venue-intel': 'Live Poker Room Alerts, Waitlist Tracking & Saved Cardrooms Are Now Active.',
+  'venue-follow': 'Your Followed Poker Room Is Saved With Live Schedule & Waitlist Alerts.',
+  'local-state-rooms': 'Your State Poker Room Guide, Saved Rooms & Session Tracker Are Active.',
+  'local-city-rooms': 'Your Local City Poker Room Alerts, Schedules & Bankroll Tracker Are Active.',
+  'local-game-rooms': 'Your Live Cash Game Room Alerts & Session Tracker Are Now Active.',
+  'local-corridor-rooms': 'Your Poker Corridor Room Directory & Trip Tracker Are Now Active.',
+  'series-alerts-event-reminder': 'Your Tournament Event Reminder Is Saved To Cloud & Ready For Start Alerts.',
   'series-alerts': 'Tournament Series Reminders & Schedule Tracking Are Now Active.',
+  'video-practice': 'Practice This Strategy Spot Inside 107 Interactive GTO Training Games.',
+  'video-bookmark': 'Your Strategy Video Is Bookmarked & Ready For Your Study Streak.',
   'video-drill': 'Interactive Video Hand Quizzes, Study Playlists & Pro Bookmarks Are Now Active.',
+  'concept-bridge': 'Your Strategy Concept Bridge Is Unlocked Inside 107 Interactive GTO Games.',
   'study-deck': 'Your Personal Poker Study Deck, Leak Tracker & 107 GTO Games Are Unlocked.',
   'dataset-export': 'Full Interactive Filter Matrix, Benchmark Tables & CSV Exports Are Now Active.',
   'training-gto': 'Your Full 5-Category GTO Leak Matrix & 107 Interactive Training Games Are Unlocked.',

@@ -2,20 +2,33 @@
  * Read-Only PostHog Organic SEO Conversion Funnel Rollup.
  *
  * Queries PostHog's HogQL Query API (`https://us.posthog.com`) for aggregate
- * event counts across the 9 canonical SEO conversion funnel events. Zero user
- * rows, distinct IDs, emails, or PII ever leave PostHog or this module.
+ * event counts across the 21 canonical SEO conversion funnel events (every
+ * event name verified 1:1 against live source emitters). Zero user rows,
+ * distinct IDs, emails, or PII ever leave PostHog or this module.
  */
 
 export const SEO_FUNNEL_EVENTS = Object.freeze([
   'seo_mini_gto_drill_answered',
+  'seo_mini_gto_drill_cta_click',
   'seo_leak_finder_complete',
+  'seo_leak_finder_unlock_click',
   'seo_calculator_save_bar_click',
   'seo_quick_signup_opened',
   'seo_quick_signup_oauth_click',
   'seo_quick_signup_email_continue',
   'seo_google_one_tap_success',
   'seo_post_signup_activation_shown',
+  'seo_post_signup_day0_win_click',
   'seo_guest_spots_synced',
+  'seo_local_action_bar_click',
+  'seo_calc_milestone_click',
+  'seo_quick_signup_magic_link_sent',
+  'seo_concept_bridge_click',
+  'seo_calculator_share_click',
+  'seo_mini_gto_drill_share',
+  'seo_member_referral_link_copied',
+  'seo_venue_follow_signup_click',
+  'seo_video_bridge_click',
 ]);
 
 const SEO_FUNNEL_EVENT_SET = new Set(SEO_FUNNEL_EVENTS);
@@ -73,15 +86,27 @@ export function buildSeoFunnelSummary(eventCounts, { windowDays = 7 } = {}) {
 
   const engaged =
     events.seo_mini_gto_drill_answered +
+    events.seo_mini_gto_drill_cta_click +
     events.seo_leak_finder_complete +
-    events.seo_calculator_save_bar_click;
+    events.seo_leak_finder_unlock_click +
+    events.seo_calculator_save_bar_click +
+    events.seo_local_action_bar_click +
+    events.seo_calc_milestone_click +
+    events.seo_concept_bridge_click +
+    events.seo_venue_follow_signup_click +
+    events.seo_video_bridge_click;
   const sheetOpened = events.seo_quick_signup_opened;
   const authIntent =
     events.seo_quick_signup_oauth_click +
     events.seo_quick_signup_email_continue +
+    events.seo_quick_signup_magic_link_sent +
     events.seo_google_one_tap_success;
   const activated = events.seo_post_signup_activation_shown;
   const spotsSynced = events.seo_guest_spots_synced;
+  const viralShares =
+    events.seo_calculator_share_click +
+    events.seo_mini_gto_drill_share +
+    events.seo_member_referral_link_copied;
 
   const stages = {
     engaged,
@@ -89,6 +114,7 @@ export function buildSeoFunnelSummary(eventCounts, { windowDays = 7 } = {}) {
     authIntent,
     activated,
     spotsSynced,
+    viralShares,
   };
 
   const rates = {
@@ -108,7 +134,7 @@ export function buildSeoFunnelSummary(eventCounts, { windowDays = 7 } = {}) {
 }
 
 /**
- * Aggregate-only HogQL query for the 9 canonical SEO funnel events.
+ * Aggregate-only HogQL query for the 17 canonical SEO funnel events.
  * No visitor rows, session IDs, or person properties leave PostHog.
  */
 export function buildSeoFunnelHogqlQuery(start, end) {

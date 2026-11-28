@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Activity, ChevronDown, Layers3, MapPin, Trophy } from 'lucide-react';
 import ResponsiveTable from '../ui/ResponsiveTable';
+import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 import styles from './toke/VenueConsole.module.css';
 import { careerTotals, gameTypeStats as computeGameTypes, rankVenues, tournamentBrackets as computeBrackets } from '../../lib/bankroll/tokeVenueStats.mjs';
 
-const fmt = (value) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
 function PanelHeading({ icon: Icon, title, expanded, onToggle, controls }) {
   return (
@@ -18,16 +18,7 @@ function PanelHeading({ icon: Icon, title, expanded, onToggle, controls }) {
   );
 }
 
-const distributionColumns = [
-  { key: 'totalTokes', label: 'Total Tokes', align: 'right', render: (row) => fmt(row.totalTokes) },
-  { key: 'totalDowns', label: 'Downs', align: 'right' },
-  {
-    key: 'avgTokePerDown',
-    label: 'Tokes Per Down',
-    align: 'right',
-    render: (row) => fmt(row.avgTokePerDown),
-  },
-];
+
 
 const GAME_TYPE_MAP = {
   Holdem: "Hold'em",
@@ -47,7 +38,19 @@ export default function VenueIntelligence({
   error = false,
   signedIn = true,
   onRetry,
+  displayEUR = false,
 }) {
+  const fmt = (value) => formatCurrency(value, displayEUR, { cents: true });
+  const distributionColumns = [
+    { key: 'totalTokes', label: 'Total Tokes', align: 'right', render: (row) => fmt(row.totalTokes) },
+    { key: 'totalDowns', label: 'Downs', align: 'right' },
+    {
+      key: 'avgTokePerDown',
+      label: 'Tokes Per Down',
+      align: 'right',
+      render: (row) => fmt(row.avgTokePerDown),
+    },
+  ];
   const [expanded, setExpanded] = useState(true);
   const [venueSort, setVenueSort] = useState('toke_hr');
   const [venueOpen, setVenueOpen] = useState(true);
@@ -235,7 +238,7 @@ export default function VenueIntelligence({
                 keyField="label"
                 caption="Tournament Buy-In Brackets"
                 rows={tournamentBrackets}
-                columns={[{ key: 'label', label: 'Buy-In' }, ...distributionColumns]}
+                columns={[{ key: 'label', label: displayEUR ? 'Buy-In (USD)' : 'Buy-In' }, ...distributionColumns]}
               />
             </div>
           </section>

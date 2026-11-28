@@ -80,6 +80,7 @@ export function normalizeSeries(row) {
     color: TYPE_COLORS[row.series_type] || TYPE_COLORS.regional,
     seriesType: row.series_type || 'regional',
     guaranteed: compactMoney(guaranteed),
+    guaranteedAmount: guaranteed,
     eventCount: Number.isFinite(Number(row.event_count ?? row.total_events)) && Number(row.event_count ?? row.total_events) > 0
       ? Number(row.event_count ?? row.total_events) : null,
     sourceUrl: row.source_url || null,

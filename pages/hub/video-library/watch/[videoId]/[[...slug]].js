@@ -51,6 +51,8 @@ import dynamic from 'next/dynamic';
 import SEOHead from '../../../../../src/components/video-library/VideoLibrarySEOHead';
 import SmarterConversionCta from '../../../../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../../../../src/components/seo/SmarterAccountUnlockGate';
+import { openQuickSignup } from '../../../../../src/components/seo/SmarterQuickSignupSheet';
+import { trackSeoFunnelEvent } from '../../../../../src/lib/seo/seoFunnelTelemetry';
 import DeferUntilNear from '../../../../../src/components/video-library/DeferUntilNear';
 import HubPageShell from '../../../../../src/components/ui/HubPageShell';
 import VideoLibraryWorkspaceHeader from '../../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
@@ -386,6 +388,72 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
         }
     };
 
+    const currentPath = watchPath(video);
+    const videoTitle = String(video?.title || 'Poker Strategy Video').trim();
+
+    const handleBridgePractice = () => {
+        trackSeoFunnelEvent('seo_video_bridge_click', {
+            action: 'practice',
+            videoId: video.videoId,
+        });
+        openQuickSignup({
+            unlockKey: 'video-practice',
+            source: 'video-gto-bridge-practice',
+            redirectPath: currentPath,
+            eyebrow: 'Interactive Video To GTO Bridge',
+            title: 'Practice This Strategy Spot In 107 GTO Games',
+            subtitle: 'Create Your Free Smarter.Poker Account In 10 Seconds To Drill 107 Interactive GTO Games, Save Watch Progress, And Claim 30-Day Free VIP + 500 Diamonds.',
+            benefits: [
+                '100% Free Forever - Zero Credit Card Required',
+                '107 Interactive GTO Training Games & Solver Drills',
+                'Sync Saved Videos, Playlists & Study Streaks Across Devices',
+            ],
+        });
+    };
+
+    const handleBridgeBookmark = () => {
+        try {
+            const bookmarkEntry = {
+                id: `video-bookmark-${video.videoId}`.slice(0, 80),
+                kind: 'video-bookmark',
+                toolSlug: 'video-bookmark',
+                toolName: 'Video Study Bookmark',
+                label: videoTitle,
+                summaryText: videoTitle.slice(0, 320),
+                path: currentPath,
+                url: currentPath,
+                savedAt: new Date().toISOString(),
+            };
+            const rawSaved = window.localStorage?.getItem('sp_saved_spots_v1');
+            const parsedSaved = rawSaved ? JSON.parse(rawSaved) : [];
+            const existingSaved = Array.isArray(parsedSaved) ? parsedSaved : [];
+            const nextSaved = [
+                bookmarkEntry,
+                ...existingSaved.filter((item) => item && item.id !== bookmarkEntry.id),
+            ].slice(0, 25);
+            window.localStorage?.setItem('sp_saved_spots_v1', JSON.stringify(nextSaved));
+        } catch (_) {
+            /* ignore storage restrictions */
+        }
+        trackSeoFunnelEvent('seo_video_bridge_click', {
+            action: 'bookmark',
+            videoId: video.videoId,
+        });
+        openQuickSignup({
+            unlockKey: 'video-bookmark',
+            source: 'video-gto-bridge-bookmark',
+            redirectPath: currentPath,
+            eyebrow: 'Video Study Streak Sync',
+            title: 'Bookmark Video & Track Study Streak Free',
+            subtitle: 'Create Your Free Smarter.Poker Account In 10 Seconds To Save This Video Bookmark, Track Your Study Streak, And Claim 30-Day Free VIP + 500 Diamonds.',
+            benefits: [
+                '100% Free Forever - Zero Credit Card Required',
+                'Auto-Sync Bookmarked Strategy Videos & Study Streaks',
+                'Unlock 107 Interactive GTO Training Games & Pause Quizzes',
+            ],
+        });
+    };
+
     return (
         <>
             <SEOHead
@@ -461,7 +529,7 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                     <PlayerLinks video={video} />
                                 </section>
 
-                                <div className="vl-hud" role="group" aria-label="Video actions" data-tutorial="watch-actions">
+                                <div className="vl-hud" role="group" aria-label="Video Actions" data-tutorial="watch-actions">
                                     <Link href={videoLibrarySocialShareHref(video)} className="vl-hud-link">Share To Feed</Link>
                                     <button type="button" disabled={!(relatedVideos[0] || channelVideos[0])} onClick={() => playbackQueue.enqueueNext(relatedVideos[0] || channelVideos[0], video)}>Queue Next Video</button>
                                     <Link href={libraryHref} rel="nofollow" className="vl-hud-link is-primary">Save, Playlists And Training</Link>
@@ -489,6 +557,109 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                         {views && <div><dt>Views On YouTube</dt><dd>{views.replace(/\s*Views$/i, '')}</dd></div>}
                                     </dl>
                                 </section>
+                                {!user?.id && (
+                                    <section
+                                        data-testid="video-gto-practice-bridge"
+                                        aria-labelledby="vl-gto-bridge-title"
+                                        style={{
+                                            marginTop: 18,
+                                            padding: '18px 20px',
+                                            background: '#0b1120',
+                                            border: '1px solid #1e3a5f',
+                                            borderRadius: 0,
+                                            boxSizing: 'border-box',
+                                            width: '100%',
+                                            maxWidth: '100%',
+                                            overflowX: 'hidden',
+                                        }}
+                                    >
+                                        <p
+                                            style={{
+                                                margin: '0 0 6px',
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                letterSpacing: '0.12em',
+                                                color: '#38bdf8',
+                                            }}
+                                        >
+                                            INTERACTIVE VIDEO TO GTO BRIDGE
+                                        </p>
+                                        <h2
+                                            id="vl-gto-bridge-title"
+                                            style={{
+                                                margin: '0 0 8px',
+                                                fontSize: 20,
+                                                fontWeight: 700,
+                                                lineHeight: 1.25,
+                                                color: '#f8fafc',
+                                            }}
+                                        >
+                                            Practice This Strategy Spot In 107 GTO Games
+                                        </h2>
+                                        <p
+                                            style={{
+                                                margin: 0,
+                                                fontSize: 14,
+                                                lineHeight: 1.5,
+                                                color: '#cbd5e1',
+                                            }}
+                                        >
+                                            Turn This Hand Study Into Real Table Reps. Drill Matching Spots Across 107 Interactive GTO Games Or Bookmark This Video To Track Your Study Streak Free.
+                                        </p>
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                flexWrap: 'wrap',
+                                                gap: 12,
+                                                marginTop: 14,
+                                                maxWidth: '100%',
+                                            }}
+                                        >
+                                            <button
+                                                type="button"
+                                                data-testid="video-bridge-practice-cta"
+                                                onClick={handleBridgePractice}
+                                                style={{
+                                                    minHeight: 44,
+                                                    padding: '10px 16px',
+                                                    background: '#2563eb',
+                                                    color: '#ffffff',
+                                                    border: '1px solid #38bdf8',
+                                                    borderRadius: 0,
+                                                    fontSize: 14,
+                                                    fontWeight: 700,
+                                                    lineHeight: 1.25,
+                                                    cursor: 'pointer',
+                                                    boxSizing: 'border-box',
+                                                    maxWidth: '100%',
+                                                }}
+                                            >
+                                                Practice Free In 107 GTO Games
+                                            </button>
+                                            <button
+                                                type="button"
+                                                data-testid="video-bridge-bookmark-cta"
+                                                onClick={handleBridgeBookmark}
+                                                style={{
+                                                    minHeight: 44,
+                                                    padding: '10px 16px',
+                                                    background: '#0f172a',
+                                                    color: '#38bdf8',
+                                                    border: '1px solid #1e3a5f',
+                                                    borderRadius: 0,
+                                                    fontSize: 14,
+                                                    fontWeight: 700,
+                                                    lineHeight: 1.25,
+                                                    cursor: 'pointer',
+                                                    boxSizing: 'border-box',
+                                                    maxWidth: '100%',
+                                                }}
+                                            >
+                                                Bookmark Video &amp; Track Study Streak
+                                            </button>
+                                        </div>
+                                    </section>
+                                )}
                                 {/* Below-the-fold account panels mount near the viewport, so
                                     their painted plates are not fetched before a phone scrolls. */}
                                 <DeferUntilNear style={{ marginTop: 18 }} placeholderHeight={740}>

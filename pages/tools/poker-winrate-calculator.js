@@ -16,6 +16,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -282,6 +283,16 @@ export default function PokerWinrateCalculatorPage({
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="poker-winrate-calculator"
+            toolName="Poker Winrate Calculator"
+            eyebrow="Free Winrate Cloud Sync"
+            title="Save This BB/100 & Hourly Winrate Spot Free"
+            description="Keep Session Winrates, Hourly Projections & 95% Confidence Bounds Synced In Your Free Account."
+            ctaLabel="Save Winrate Spot Free"
+            summaryText={`Net Profit $${metrics.safeProfit} Over ${metrics.safeHours} Hrs: ${metrics.bbPer100} BB/100 ($${metrics.hourlyDollars}/Hr), 95% CI ${metrics.ciLow} To ${metrics.ciHigh}`}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-poker-winrate-calculator"

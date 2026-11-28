@@ -215,7 +215,6 @@ body.world-poker-near-me .pnm-map-surface .map-pref-title {
   font: 800 12px/1.2 var(--font-rajdhani), sans-serif;
   letter-spacing: 0.16em;
   text-align: center;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .pnm-map-surface .map-pref-option {
@@ -253,7 +252,6 @@ body.world-poker-near-me .pnm-map-surface .map-pref-label {
   font: 800 14px/1.1 var(--font-rajdhani), sans-serif;
   letter-spacing: 0.05em;
   text-overflow: ellipsis;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -575,7 +573,6 @@ body.world-poker-near-me .pnm-map-dossier__signal {
   color: #d8e4ec;
   font-weight: 850;
   letter-spacing: 0.07em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .pnm-map-dossier__signal--type {
@@ -656,7 +653,6 @@ body.world-poker-near-me .pnm-map-dossier__action {
   letter-spacing: 0.045em;
   text-align: center;
   text-decoration: none !important;
-  text-transform: uppercase;
   cursor: pointer;
   touch-action: manipulation;
   border: 3px solid transparent !important;
@@ -690,7 +686,6 @@ body.world-poker-near-me .pnm-map-surface__escape-hint {
   color: #b9c6cf;
   font: 750 12px/1 var(--font-rajdhani), sans-serif;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   border: 3px solid transparent !important;
   border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
   background: #06111d padding-box !important;
@@ -936,7 +931,6 @@ body.world-poker-near-me .pnm-map-status {
   font: 800 13px/1.35 var(--font-rajdhani), sans-serif;
   letter-spacing: 0.14em;
   text-align: center;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .pnm-map-status--loading {
@@ -984,7 +978,6 @@ body.world-poker-near-me .pnm-map-surface .pnm-map-status button {
   color: #f4f7fb !important;
   font: 800 13px/1 var(--font-rajdhani), sans-serif !important;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
   pointer-events: auto;
@@ -1069,7 +1062,6 @@ body.world-poker-near-me .pnm-map-boundary__title {
   color: #ff5b6e;
   font: 800 16px/1.2 var(--font-rajdhani), sans-serif;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .pnm-map-boundary__copy {
@@ -1182,18 +1174,10 @@ body.world-poker-near-me .road-trip-planner .rtp-input-row > .rtp-remove-btn {
 
 body.world-poker-near-me .road-trip-planner .rtp-role {
   grid-area: role;
-  color: #45adff;
+  /* #SMARTERDESIGN: From, Via and To share one ice ink; red is reserved for errors. */
+  color: #bfe6ff;
   font: 800 13px/1 var(--font-rajdhani), Rajdhani, sans-serif;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-body.world-poker-near-me .road-trip-planner .rtp-input-row--origin .rtp-role {
-  color: #c8ffd2;
-}
-
-body.world-poker-near-me .road-trip-planner .rtp-input-row--destination .rtp-role {
-  color: #ff5b6e;
+  letter-spacing: 0.04em;
 }
 
 body.world-poker-near-me .road-trip-planner .rtp-options {
@@ -1208,7 +1192,6 @@ body.world-poker-near-me .road-trip-planner .rtp-option-label {
   color: #45adff;
   font: 800 12px/1.2 var(--font-rajdhani), Rajdhani, sans-serif;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .road-trip-planner .rtp-date-row {
@@ -1223,7 +1206,6 @@ body.world-poker-near-me .road-trip-planner .rtp-date-sep {
   color: #9aa5b3;
   font: 800 12px/1 var(--font-rajdhani), Rajdhani, sans-serif;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 
 /* Painted plates at native ratio; labels print in the face, never the rim. */
@@ -1247,7 +1229,6 @@ body.world-poker-near-me .road-trip-planner.pnm-console-tool :is(.rtp-add-waypoi
   font: 800 14px/1 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif !important;
   letter-spacing: 0.06em;
   text-align: center;
-  text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
   touch-action: manipulation;
@@ -1361,7 +1342,6 @@ body.world-poker-near-me .pnm-location-picker__searching {
   color: #45adff;
   font: 800 12px/1.2 var(--font-rajdhani), sans-serif;
   letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .pnm-location-picker__results {

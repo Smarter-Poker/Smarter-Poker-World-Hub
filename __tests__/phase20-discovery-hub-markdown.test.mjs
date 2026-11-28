@@ -53,18 +53,18 @@ test('Phase 20: discovery hub markdown renderers emit clean Title Case Markdown 
   }
 });
 
-test('Phase 20: /api/discovery-markdown serves all 5 discovery hubs with text/markdown Content-Type', () => {
+test('Phase 20: /api/discovery-markdown serves all 5 discovery hubs with text/markdown Content-Type', async () => {
   const slugs = ['daily-tournaments', 'events-calendar', 'poker-tours', 'poker-series', 'venues'];
   for (const slug of slugs) {
     const res = createMockRes();
-    handler({ query: { slug } }, res);
+    await handler({ query: { slug } }, res);
     assert.equal(res.statusCode, 200, `slug=${slug} should return 200`);
     assert.equal(res.headers['Content-Type'], 'text/markdown; charset=utf-8');
     assert.ok(res.body.startsWith('# Smarter.Poker '), `slug=${slug} should start with H1`);
   }
 
   const res404 = createMockRes();
-  handler({ query: { slug: 'nonexistent-hub' } }, res404);
+  await handler({ query: { slug: 'nonexistent-hub' } }, res404);
   assert.equal(res404.statusCode, 404);
 });
 

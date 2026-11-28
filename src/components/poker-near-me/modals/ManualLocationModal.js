@@ -132,7 +132,7 @@ export default function ManualLocationModal({
                 <input
                   ref={cityRef}
                   type="text"
-                  placeholder="e.g. Chicago"
+                  placeholder="Like Chicago"
                   value={manualCity}
                   maxLength={100}
                   onChange={(event) => setManualCity(event.target.value)}

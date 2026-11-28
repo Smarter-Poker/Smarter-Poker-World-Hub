@@ -2263,7 +2263,7 @@ export default function PokerNearMeLobby() {
             ))}
             {favFollows.length > 0 && (
               <div style={{ display: 'grid', gap: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(200,214,229,0.45)' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(200,214,229,0.45)' }}>
                   Saved Series &amp; Tours
                 </div>
                 {favFollows.map(f => (
@@ -2281,7 +2281,7 @@ export default function PokerNearMeLobby() {
                   >
                     <span style={{
                       flexShrink: 0, padding: '2px 8px', borderRadius: 0, fontSize: 12, fontWeight: 800,
-                      letterSpacing: '0.06em', textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
                       background: f.type === 'series' ? 'rgba(159,211,255,0.15)' : 'rgba(159,216,255,0.15)',
                       color: f.type === 'series' ? '#9fd3ff' : '#9fd8ff',
                     }}>{f.type}</span>
@@ -3092,7 +3092,6 @@ export default function PokerNearMeLobby() {
         border-radius: 6px;
         font-size: 12px;
         font-weight: 700;
-        text-transform: uppercase;
         letter-spacing: 0.4px;
         margin-bottom: 8px;
       }
@@ -3316,7 +3315,6 @@ export default function PokerNearMeLobby() {
         border-radius: 20px;
         font-size: 12px;
         font-weight: 700;
-        text-transform: uppercase;
         letter-spacing: 0.3px;
         background: rgba(34,197,94,0.12);
         border: 1px solid rgba(34,197,94,0.3);
@@ -3357,7 +3355,6 @@ export default function PokerNearMeLobby() {
         border-radius: 6px;
         font-size: 12px;
         font-weight: 700;
-        text-transform: uppercase;
         letter-spacing: 0.4px;
         border: 1px solid;
       }
@@ -3428,7 +3425,6 @@ export default function PokerNearMeLobby() {
         border-radius: 5px;
         font-size: 12px;
         font-weight: 700;
-        text-transform: uppercase;
         letter-spacing: 0.4px;
       }
       .vc3-badge-featured { background: rgba(134,218,255,0.2); color: #86daff; border: 1px solid rgba(134,218,255,0.35); }
@@ -3463,7 +3459,7 @@ export default function PokerNearMeLobby() {
       }
       .vc3-live-stat { display: flex; align-items: center; gap: 6px; }
       .vc3-live-stat-val { font-size: 16px; font-weight: 800; color: #fff; }
-      .vc3-live-stat-label { font-size: 12px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.3px; }
+      .vc3-live-stat-label { font-size: 12px; color: rgba(255,255,255,0.5); letter-spacing: 0.3px; }
 
       /* Hours */
       .vc3-hours {
@@ -3615,7 +3611,6 @@ export default function PokerNearMeLobby() {
         border-radius: 5px;
         font-size: 12px;
         font-weight: 700;
-        text-transform: uppercase;
         letter-spacing: 0.4px;
       }
       .featured-badge {

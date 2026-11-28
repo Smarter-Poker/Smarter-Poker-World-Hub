@@ -14,6 +14,8 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 body.world-training {
+    font-family: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-variant-numeric: tabular-nums;
     /* Primary: Smarter.Poker cyan */
     --world-primary: #00d4ff;
     --world-primary-rgb: 0, 212, 255;
@@ -113,7 +115,7 @@ body.world-training .sp-arena-lobby__heading {
 
 body.world-training .sp-arena-lobby__heading > div:first-child {
     color: #f4fcff !important;
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif !important;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif) !important;
     font-size: clamp(23px, 4.5vw, 31px) !important;
     font-weight: 800 !important;
     letter-spacing: 0.8px !important;
@@ -175,7 +177,7 @@ body.world-training .sp-arena-lobby__start {
     border-radius: 0 !important;
     background: linear-gradient(180deg, #d9f8ff 0%, #42c6ed 12%, #087ca9 51%, #05364c 100%) !important;
     color: #f7fdff !important;
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif !important;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif) !important;
     letter-spacing: 0.8px !important;
     text-shadow: 0 2px 2px rgba(0, 0, 0, 0.72);
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.52), inset 0 -3px 0 rgba(0, 0, 0, 0.72), 0 12px 24px rgba(0, 92, 129, 0.35) !important;
@@ -344,6 +346,7 @@ body.world-training .sp-level-command-nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 12px;
     margin-bottom: clamp(22px, 4vw, 42px);
 }
@@ -355,7 +358,7 @@ body.world-training .sp-level-game-info {
 body.world-training .sp-level-eyebrow {
     margin-bottom: 8px;
     color: #78dfff;
-    font: 700 12px/1.2 var(--font-jetbrains-mono, monospace);
+    font: 700 12px/1.2 var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     letter-spacing: 0.04em;
     text-transform: uppercase !important;
 }
@@ -396,12 +399,12 @@ body.world-training .sp-level-stats > div + div {
 
 body.world-training .sp-level-stats strong {
     color: #f1fbff;
-    font: 800 clamp(18px, 2.4vw, 28px)/1 var(--font-orbitron, sans-serif);
+    font: 800 clamp(18px, 2.4vw, 28px)/1 var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
 }
 
 body.world-training .sp-level-stats span {
     color: #7f9eae;
-    font: 700 12px/1.2 var(--font-jetbrains-mono, monospace);
+    font: 700 12px/1.2 var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     letter-spacing: .09em;
     text-transform: uppercase !important;
 }
@@ -449,7 +452,7 @@ body.world-training .sp-level-command-art-label {
     align-items: end;
     gap: 12px;
     color: #cdefff;
-    font: 700 12px/1.2 var(--font-jetbrains-mono, monospace);
+    font: 700 12px/1.2 var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     letter-spacing: 0.04em;
     text-transform: uppercase !important;
 }
@@ -546,7 +549,7 @@ body.world-training .sp-setup-live {
     left: 18px;
     bottom: 14px;
     color: #c8f3ff;
-    font: 700 12px/1 var(--font-jetbrains-mono, monospace);
+    font: 700 12px/1 var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     letter-spacing: 0.04em;
     text-transform: uppercase !important;
 }
@@ -602,14 +605,14 @@ body.world-training .sp-setup-config-heading > div {
 
 body.world-training .sp-setup-config-heading span {
     color: #7e9cab;
-    font: 700 12px/1.3 var(--font-jetbrains-mono, monospace);
+    font: 700 12px/1.3 var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     letter-spacing: .04em;
     text-transform: uppercase !important;
 }
 
 body.world-training .sp-setup-config-heading strong {
     color: #ecfaff;
-    font: 700 18px/1.2 var(--font-orbitron, sans-serif);
+    font: 700 18px/1.2 var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
 }
 
 body.world-training .sp-setup-field-grid {
@@ -666,7 +669,7 @@ body.world-training .sp-setup-launch > div {
 
 body.world-training .sp-setup-launch span {
     color: #7897a8;
-    font: 700 12px/1.3 var(--font-jetbrains-mono, monospace);
+    font: 700 12px/1.3 var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     letter-spacing: .04em;
     text-transform: uppercase !important;
 }
@@ -697,7 +700,7 @@ body.world-training .sp-arena-review__header {
 }
 
 body.world-training .sp-arena-review__title {
-    font-family: var(--font-orbitron, sans-serif) !important;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif) !important;
     letter-spacing: .08em !important;
 }
 
@@ -945,7 +948,7 @@ body.world-training .sp-dynamics-panel {
         inset 0 -1px 0 rgba(0,0,0,.9),
         0 18px 42px rgba(0,0,0,.55),
         0 0 28px rgba(56,221,255,.08);
-    font-family: var(--font-share-tech-mono, 'Share Tech Mono', monospace);
+    font-family: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 body.world-training .sp-dynamics-panel::before,
@@ -1002,7 +1005,7 @@ body.world-training .sp-dynamics-seat-ledger h4,
 body.world-training .sp-dynamics-adjustments h4 {
     margin: 0;
     color: #f5fbff;
-    font-family: var(--font-orbitron, 'Orbitron', sans-serif);
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     text-transform: none;
     text-shadow: 0 2px 0 #000, 0 0 16px rgba(56,221,255,.18);
 }
@@ -1071,7 +1074,7 @@ body.world-training .sp-dynamics-source strong {
 body.world-training .sp-dynamics-dock {
     min-width: 122px;
     padding: 0 14px;
-    font-family: var(--font-orbitron, 'Orbitron', sans-serif);
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
@@ -1119,7 +1122,7 @@ body.world-training .sp-dynamics-scenario-rail button > span {
 
 body.world-training .sp-dynamics-scenario-rail button > strong {
     color: inherit;
-    font-family: var(--font-orbitron, 'Orbitron', sans-serif);
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: 12px;
 }
 
@@ -1158,7 +1161,7 @@ body.world-training .sp-dynamics-classification div > span {
 }
 
 body.world-training .sp-dynamics-classification div > strong {
-    font-family: var(--font-orbitron, 'Orbitron', sans-serif);
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: 17px;
 }
 
@@ -1198,7 +1201,7 @@ body.world-training .sp-dynamics-metric span {
 
 body.world-training .sp-dynamics-metric strong {
     color: currentColor;
-    font-family: var(--font-orbitron, 'Orbitron', sans-serif);
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: 21px;
 }
 
@@ -1585,7 +1588,7 @@ body.world-training .sp-training-command > :where(h1, h2) {
     color: #f4fbff !important;
     -webkit-text-fill-color: initial !important;
     background: none !important;
-    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif) !important;
     font-size: clamp(23px, 3vw, 36px) !important;
     line-height: 1.08 !important;
     letter-spacing: 0.018em !important;
@@ -1691,7 +1694,7 @@ body.world-training .sp-training-command button:disabled {
 
 body.world-training .sp-training-command :where(h2, h3, h4) {
     color: #e9f9ff !important;
-    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif) !important;
     letter-spacing: 0.02em !important;
     text-shadow: 0 1px 0 #000, 0 0 18px rgba(67, 211, 255, 0.2);
 }
@@ -1746,7 +1749,7 @@ body.world-training .sp-command-verdict > strong {
     display: block;
     margin-bottom: 12px;
     color: #ff8799;
-    font-family: var(--sp-font-display, "Orbitron", sans-serif);
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: clamp(24px, 5vw, 34px);
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -3292,7 +3295,7 @@ body.world-training .sp-journey-header h1,
 body.world-training .sp-journey-header > div > div:first-child,
 body.world-training .sp-journey-header > div > div > div:first-child {
     color: #f4fbff !important;
-    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif) !important;
     font-size: clamp(17px, 2.2vw, 23px) !important;
     font-weight: 700 !important;
     letter-spacing: 0.015em;
@@ -3330,7 +3333,7 @@ body.world-training .sp-journey-title {
     border-radius: 0 !important;
     color: #f5fbff !important;
     -webkit-text-fill-color: initial !important;
-    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif) !important;
     font-size: clamp(25px, 4.2vw, 43px) !important;
     letter-spacing: 0.015em !important;
     text-align: left !important;
@@ -3393,7 +3396,7 @@ body.world-training .sp-journey-stat-card {
 }
 
 body.world-training .sp-journey-stat-card > div:first-child {
-    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif) !important;
     font-variant-numeric: tabular-nums;
 }
 
@@ -3408,7 +3411,7 @@ body.world-training .sp-journey-section {
 body.world-training .sp-journey-section h2 {
     margin: 0 0 15px !important;
     color: #dff8ff !important;
-    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif) !important;
     font-size: clamp(17px, 2vw, 22px) !important;
 }
 
@@ -3615,7 +3618,7 @@ body.world-training .sp-training-intelligence--leaderboard > h1 {
     color: #f5fbff !important;
     -webkit-text-fill-color: initial !important;
     background: none !important;
-    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif) !important;
     font-size: clamp(22px, 3vw, 34px) !important;
     line-height: 1.08 !important;
     letter-spacing: 0.018em !important;
@@ -3736,7 +3739,7 @@ body.world-training .sp-training-intelligence button[aria-pressed="true"]:not(.s
 
 body.world-training .sp-training-intelligence :where(h2, h3) {
     color: #e8f9ff !important;
-    font-family: var(--sp-font-display, "Orbitron", sans-serif) !important;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif) !important;
     letter-spacing: 0.025em !important;
     text-shadow: 0 1px 0 #000, 0 0 16px rgba(59, 210, 255, 0.18);
 }
@@ -3996,7 +3999,7 @@ body.world-training .sp-training-command--coach .sp-coach-kicker {
     gap: 10px;
     margin-bottom: 17px;
     color: #a8c1cd;
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -4016,7 +4019,7 @@ body.world-training .sp-training-command--coach .sp-coach-hero h1,
 body.world-training .sp-training-command--coach .sp-coach-console h1 {
     margin: 0;
     color: #eff5f7;
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: clamp(39px, 4.4vw, 70px);
     font-weight: 430;
     letter-spacing: 0.012em;
@@ -4071,7 +4074,7 @@ body.world-training .sp-training-command--coach .sp-coach-primary {
         0 7px 0 #05131b,
         0 12px 22px rgba(0, 0, 0, 0.55),
         0 0 23px rgba(var(--coach-blue-rgb), 0.2);
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif !important;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif) !important;
     font-size: 12px !important;
     font-weight: 750 !important;
     letter-spacing: 0.055em;
@@ -4112,7 +4115,7 @@ body.world-training .sp-training-command--coach .sp-coach-completion {
 
 body.world-training .sp-training-command--coach .sp-coach-completion strong {
     color: var(--coach-blue);
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: 26px;
     font-weight: 450;
     text-shadow: 0 0 14px rgba(var(--coach-blue-rgb), 0.6);
@@ -4176,7 +4179,7 @@ body.world-training .sp-training-command--coach .sp-coach-hero-plate {
 
 body.world-training .sp-training-command--coach .sp-coach-hero-plate strong {
     color: var(--coach-gold);
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-weight: 550;
 }
 
@@ -4211,7 +4214,7 @@ body.world-training .sp-training-command--coach .sp-coach-section-header span {
 body.world-training .sp-training-command--coach .sp-coach-section-header h2 {
     margin: 0;
     color: #edf4f6;
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: clamp(20px, 2.3vw, 29px);
     font-weight: 430;
     letter-spacing: 0.02em;
@@ -4365,7 +4368,7 @@ body.world-training .sp-training-command--coach .sp-coach-module-body {
 body.world-training .sp-training-command--coach .sp-coach-module-name {
     display: block;
     color: #edf4f6;
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: clamp(18px, 1.65vw, 23px);
     font-weight: 430;
     letter-spacing: 0.02em;
@@ -4402,7 +4405,7 @@ body.world-training .sp-training-command--coach .sp-coach-module-data > span {
 
 body.world-training .sp-training-command--coach .sp-coach-module-data b {
     color: var(--coach-blue);
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: 13px;
     font-weight: 500;
 }
@@ -4465,7 +4468,7 @@ body.world-training .sp-training-command--coach .sp-coach-phase-readout span {
 
 body.world-training .sp-training-command--coach .sp-coach-lesson-title strong {
     color: #eaf2f5;
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: 15px;
     font-weight: 450;
     letter-spacing: 0.03em;
@@ -4480,7 +4483,7 @@ body.world-training .sp-training-command--coach .sp-coach-phase-readout {
 
 body.world-training .sp-training-command--coach .sp-coach-phase-readout strong {
     color: var(--coach-blue);
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: 12px;
     font-weight: 550;
     letter-spacing: 0.03em;
@@ -4591,7 +4594,7 @@ body.world-training .sp-training-command--coach .sp-coach-visual-label strong {
     display: block;
     margin-top: 4px;
     color: #d6e3e8;
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: 13px;
     font-weight: 430;
 }
@@ -4718,7 +4721,7 @@ body.world-training .sp-training-command--coach .sp-coach-option-key {
     color: var(--coach-blue);
     background: linear-gradient(180deg, #202c33, #05080a);
     box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), 0 4px 10px #000;
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: 12px;
 }
 
@@ -4798,7 +4801,7 @@ body.world-training .sp-training-command--coach .sp-coach-verdict-answer span {
 }
 
 body.world-training .sp-training-command--coach .sp-coach-verdict-status strong {
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: 18px;
     font-weight: 500;
     letter-spacing: 0.08em;
@@ -4907,7 +4910,7 @@ body.world-training .sp-training-command--coach .sp-coach-score {
 
 body.world-training .sp-training-command--coach .sp-coach-score strong {
     color: var(--coach-blue);
-    font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+    font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
     font-size: 58px;
     font-weight: 430;
     line-height: 1;
