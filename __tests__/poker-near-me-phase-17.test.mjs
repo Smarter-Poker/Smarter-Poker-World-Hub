@@ -292,44 +292,23 @@ test('mobile command controls use continuous contained frames', async () => {
     assert.ok(selector.startsWith('body.world-poker-near-me '), `unscoped menu rule: ${selector}`);
   }
 
-  // 5. One frame per control, and it is the painted art: every drawer control
-  // has its CSS border, radius and shadow zeroed, and nothing in the layer
-  // draws a border, radius, shadow, gradient or clip of its own.
-  assert.match(
-    css,
-    /:is\([^)]*\.sp-command-utility-rail[^)]*\.sp-command-search input[^)]*\.sp-menu-row,\s*\.sp-grid-tile,\s*\.sp-icon-btn\s*\)\s*\{\s*border:\s*0 !important;\s*border-radius:\s*0 !important;\s*box-shadow:\s*none !important;/
-  );
-  for (const [, property, value] of css.matchAll(/(?:^|[;{\s])(border(?:-radius)?|box-shadow)\s*:\s*([^;}]+)/g)) {
-    assert.match(value.trim(), property === 'box-shadow' ? /^none( !important)?$/ : /^0( !important)?$/, `${property}: ${value}`);
-  }
-  assert.doesNotMatch(css, /(?:linear|radial|conic)-gradient\(|clip-path|:hover/i);
-
-  // 6. The frames are complete: each well and plate keeps the art's native
-  // ratio (search-well.png 1829 x 313 with its painted band in the top 271
-  // rows, button-secondary.png 348 x 114), is anchored so no edge is cut,
-  // and is never stretched.
-  const pngSize = (png) => [png.readUInt32BE(16), png.readUInt32BE(20)];
-  assert.deepEqual(pngSize(wellPng), [1829, 313]);
-  assert.deepEqual(pngSize(platePng), [348, 114]);
+  // 5-6. One frame per control (#SMARTERDESIGN, Dan 2026-11-27, which retired
+  // the painted wells and plates): each drawer row, deck tile, search field and
+  // utility rail carries ONE chrome-row rim on its own rule, is a 44px+ target,
+  // and nothing in the layer adds a radius, a second border or a hover effect.
   const rule = (selector) => {
     const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1] || '';
   };
   const scope = "body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1']";
-  const row = rule(`${scope} .sp-menu-row`);
-  assert.match(row, /aspect-ratio:\s*1829 \/ 271;/);
-  assert.match(row, /min-height:\s*0 !important;/);
-  assert.match(row, /search-well\.webp/);
-  assert.match(row, /background-position:\s*center top !important;/);
-  assert.match(row, /background-size:\s*100% auto !important;/);
-  const tile = rule(`${scope} .sp-grid-tile`);
-  assert.match(tile, /aspect-ratio:\s*348 \/ 114;/);
-  assert.match(tile, /min-height:\s*0 !important;/);
-  assert.match(tile, /button-secondary\.png/);
-  assert.match(tile, /background-size:\s*100% auto !important;/);
-  assert.doesNotMatch(css, /100% 100%/);
-  assert.match(rule(`${scope} .sp-command-search input`), /height:\s*var\(--pnm-row-height\) !important;[\s\S]*background-position:\s*center top !important;/);
-  assert.match(css, /--pnm-row-height:\s*calc\(var\(--pnm-row-width\) \* 271 \/ 1829\);/);
+  for (const control of ['.sp-menu-row', '.sp-grid-tile', '.sp-command-search input', '.sp-command-utility-rail']) {
+    assert.match(rule(`${scope} ${control}`), /border-image: url\('\/images\/smarterdesign\/chrome-row\.webp'\) 13 \/ 4px stretch !important;/, control);
+  }
+  assert.match(rule(`${scope} .sp-menu-row`), /min-height: 48px !important;/);
+  assert.match(rule(`${scope} .sp-grid-tile`), /min-height: 48px !important;/);
+  for (const [, value] of css.matchAll(/(?:^|[;{\s])border-radius\s*:\s*([^;}]+)/g)) assert.match(value.trim(), /^0( !important)?$/);
+  assert.doesNotMatch(css, /:hover|painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/);
+  void wellPng; void platePng;
 
   // 7. No rail runs behind the controls to intersect their frames, and the
   // generic decorative fragments stay removed.
@@ -339,8 +318,8 @@ test('mobile command controls use continuous contained frames', async () => {
   assert.match(css, /\.sp-grid-tile::after\s*\{\s*content:\s*none !important;\s*\}/);
   assert.match(css, /\.sp-menu-row,\s*\.sp-grid-tile\s*\)::before/);
 
-  // 8. The current page keeps a distinct, painted state.
-  assert.match(rule(`${scope} .sp-grid-tile[aria-current='page']`), /button-primary\.png/);
+  // 8. The current page keeps a distinct cobalt state.
+  assert.match(rule(`${scope} .sp-grid-tile[aria-current='page']`), /chrome-active-v2\.webp/);
   assert.match(rule(`${scope} .sp-menu-row[aria-current='page']`), /color:\s*#45adff !important;[\s\S]*filter:/);
 });
 

@@ -19,16 +19,16 @@ const AUTO_REFRESH_MS = 30000;
 
 const STATUS_COLORS = {
   healthy: { color: '#3fb950', bg: 'rgba(63,185,80,0.08)', border: 'rgba(63,185,80,0.3)', label: 'HEALTHY' },
-  stale:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', label: 'STALE' },
+  stale:   { color: '#9fd8ff', bg: 'rgba(159,216,255,0.08)', border: 'rgba(159,216,255,0.3)', label: 'STALE' },
   dead:    { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)', label: 'DEAD' },
-  warning: { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', label: 'WARNING' },
+  warning: { color: '#9fd8ff', bg: 'rgba(159,216,255,0.08)', border: 'rgba(159,216,255,0.3)', label: 'WARNING' },
   critical:{ color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)', label: 'CRITICAL' },
-  anomaly: { color: '#b366ff', bg: 'rgba(179,102,255,0.08)', border: 'rgba(179,102,255,0.3)', label: 'ANOMALY' },
+  anomaly: { color: '#71c8f4', bg: 'rgba(113,200,244,0.08)', border: 'rgba(113,200,244,0.3)', label: 'ANOMALY' },
   success: { color: '#3fb950', bg: 'rgba(63,185,80,0.08)', border: 'rgba(63,185,80,0.3)', label: 'SUCCESS' },
   valid_empty: { color: '#79c0ff', bg: 'rgba(121,192,255,0.08)', border: 'rgba(121,192,255,0.3)', label: 'VALID EMPTY' },
   progress: { color: '#00d4ff', bg: 'rgba(0,212,255,0.08)', border: 'rgba(0,212,255,0.3)', label: 'PROGRESS' },
-  maintenance: { color: '#d8bb7d', bg: 'rgba(216,187,125,0.08)', border: 'rgba(216,187,125,0.3)', label: 'MAINTENANCE' },
-  partial: { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', label: 'PARTIAL' },
+  maintenance: { color: '#7dbad8', bg: 'rgba(125,186,216,0.08)', border: 'rgba(125,186,216,0.3)', label: 'MAINTENANCE' },
+  partial: { color: '#9fd8ff', bg: 'rgba(159,216,255,0.08)', border: 'rgba(159,216,255,0.3)', label: 'PARTIAL' },
   failed: { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)', label: 'FAILED' },
   legacy: { color: '#8b949e', bg: 'rgba(139,148,158,0.08)', border: 'rgba(139,148,158,0.3)', label: 'LEGACY' },
   unknown: { color: '#8b949e', bg: 'rgba(139,148,158,0.08)', border: 'rgba(139,148,158,0.3)', label: 'UNKNOWN' },
@@ -93,8 +93,8 @@ function SourcePanel({ name, data }) {
         <StatCard label="Minutes Ago" value={data.minutes_ago ?? '-'} color={statusCfg.color} />
         <StatCard label="Venues" value={data.venues ?? 0} />
         <StatCard label={data.data_mode === 'catalog' ? 'Catalog Games' : 'Records'} value={data.catalog_games ?? data.records ?? 0} />
-        <StatCard label={modeled ? 'Est. Tables' : 'Live Tables'} value={liveCountKnown ? (data.tables_running ?? 0) : 'Unknown'} color={liveCountKnown ? (modeled ? '#d8bb7d' : '#3fb950') : '#d8e4ec'} />
-        <StatCard label={modeled ? 'Est. Waiting' : 'Waiting'} value={liveCountKnown ? (data.players_waiting ?? 0) : 'Unknown'} color={liveCountKnown ? (modeled ? '#d8bb7d' : '#ffffff') : '#d8e4ec'} />
+        <StatCard label={modeled ? 'Est. Tables' : 'Live Tables'} value={liveCountKnown ? (data.tables_running ?? 0) : 'Unknown'} color={liveCountKnown ? (modeled ? '#7dbad8' : '#3fb950') : '#d8e4ec'} />
+        <StatCard label={modeled ? 'Est. Waiting' : 'Waiting'} value={liveCountKnown ? (data.players_waiting ?? 0) : 'Unknown'} color={liveCountKnown ? (modeled ? '#7dbad8' : '#ffffff') : '#d8e4ec'} />
       </div>
       {data.run_status && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
@@ -389,7 +389,7 @@ export default function ScraperHealthDashboard() {
                       <StatCard label="Avg Records" value={s.avg_records} color="#3fb950" />
                       <StatCard label="Total Errors" value={s.total_errors} color={s.total_errors > 0 ? '#ef4444' : '#3fb950'} />
                       <StatCard label="Progress" value={s.progress_cycles || 0} color="#00d4ff" />
-                      <StatCard label="Maintenance" value={s.maintenance_cycles || 0} color="#d8bb7d" />
+                      <StatCard label="Maintenance" value={s.maintenance_cycles || 0} color="#7dbad8" />
                     </div>
                     {s.current_effective_reason && (
                       <div style={{ marginBottom: 10, padding: '8px 10px', border: '1px solid rgba(170,184,196,0.18)', borderRadius: 4, color: 'rgba(216,228,236,0.75)', fontSize: 12 }}>
@@ -473,7 +473,7 @@ export default function ScraperHealthDashboard() {
             <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(200,214,229,0.5)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Health Thresholds</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
               <span><span style={{ color: '#3fb950' }}>Healthy</span>: {health.thresholds?.healthy}</span>
-              <span><span style={{ color: '#f59e0b' }}>Stale</span>: {health.thresholds?.stale}</span>
+              <span><span style={{ color: '#9fd8ff' }}>Stale</span>: {health.thresholds?.stale}</span>
               <span><span style={{ color: '#ef4444' }}>Dead</span>: {health.thresholds?.dead}</span>
             </div>
           </div>

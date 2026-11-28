@@ -16,9 +16,9 @@ test('planning name field owns the unwarped painted aperture rather than an unco
   const well = css.match(/\.well\s*\{([^}]+)\}/)?.[1] || '';
   const input = css.match(/\.input\s*\{([^}]+)\}/)?.[1] || '';
   assert.match(well, /width:\s*min\(100%,\s*420px\)/);
-  assert.match(well, /aspect-ratio:\s*1829\s*\/\s*313/);
+  // #SMARTERDESIGN (2026-11-27): one chrome-row well replaces the painted aperture.
   assert.match(well, /box-sizing:\s*border-box/);
-  assert.match(well, /center\s*\/\s*contain\s+no-repeat/);
+  assert.match(well, /border-image: url\('\/images\/smarterdesign\/chrome-row\.webp'\)/);
   assert.match(input, /min-height:\s*48px/); assert.match(input, /font-size:\s*16px/);
   assert.match(input, /padding:\s*12px\s+24px/);
 });

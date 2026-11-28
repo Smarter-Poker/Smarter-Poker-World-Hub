@@ -21,7 +21,7 @@ const TOUR_COLORS_MAP = {
     wpt: { bg: '#ef4444', text: '#fff' },
     mspt: { bg: '#3b82f6', text: '#fff' },
     bestbet: { bg: '#22c55e', text: '#000' },
-    ept: { bg: '#8b5cf6', text: '#fff' },
+    ept: { bg: '#4f9cff', text: '#fff' },
     rgps: { bg: '#22d3ee', text: '#000' },
     hpt: { bg: '#94a3b8', text: '#000' },
     default: { bg: '#6b7280', text: '#fff' },

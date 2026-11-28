@@ -7,19 +7,20 @@ import BankrollHeaderAdd from './BankrollHeaderAdd';
 
 import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useEffect, useCallback } from 'react';
-import { fetchLedgerEntries, deleteLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
+import { fetchReportLedger, deleteLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
+import { entryCents, formatSignedCents } from '../../lib/bankroll/ledgerMath.mjs';
 import LedgerTimeline from './LedgerTimeline';
 import LogEntryModal from './LogEntryModal';
 import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
 
 const CATEGORY_META = {
-    poker_cash: { label: 'Cash Games', icon: '🃏', color: '#22c55e' },
-    poker_mtt: { label: 'Tournaments', icon: '🏆', color: '#a9c6e6' },
-    casino_table: { label: 'Table Games', icon: '🎲', color: '#61d0e8' },
-    slots: { label: 'Slots', icon: '🎲', color: '#a1bbd5' },
-    sports: { label: 'Sports Betting', icon: '⚽', color: '#a1bbd5' },
-    expense: { label: 'Expenses', icon: '💸', color: '#6b7280' },
+    poker_cash: { label: 'Cash Games', single: 'Cash Game', color: '#22c55e' },
+    poker_mtt: { label: 'Tournaments', single: 'Tournament', color: '#a9c6e6' },
+    casino_table: { label: 'Table Games', single: 'Table Game', color: '#61d0e8' },
+    slots: { label: 'Slots', single: 'Slots Session', color: '#a1bbd5' },
+    sports: { label: 'Sports Betting', single: 'Sports Bet', color: '#a1bbd5' },
+    expense: { label: 'Expenses', single: 'Expense', color: '#6b7280' },
 };
 
 export default function CategoryOverview({ userId, categoryFilter }) {
@@ -27,23 +28,27 @@ export default function CategoryOverview({ userId, categoryFilter }) {
     const [locations, setLocations] = useState([]);
     const [trips, setTrips] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadFailed, setLoadFailed] = useState(false);
     const [showLogModal, setShowLogModal] = useState(false);
     const [editEntry, setEditEntry] = useState(null);
 
-    const meta = CATEGORY_META[categoryFilter] || { label: categoryFilter, icon: '📊', color: '#94a3b8' };
+    const meta = CATEGORY_META[categoryFilter] || { label: categoryFilter, single: 'Entry', color: '#94a3b8' };
 
     const loadData = useCallback(async () => {
         if (!userId || !categoryFilter) return;
         setIsLoading(true);
         try {
-            const data = await fetchLedgerEntries(userId, {
+            // Every row in the category, not the newest 200: Total P&L, Sessions
+            // and Win Rate are lifetime figures, and a capped read under-counted
+            // them for anyone with more than 200 entries.
+            const data = await fetchReportLedger(userId, {
                 category: categoryFilter,
                 includeExpenses: categoryFilter === 'expense',
-                limit: 200,
             });
             setEntries(data || []);
+            setLoadFailed(false);
 
-            // Load locations & trips for modal
+            // Locations and trips only feed the modal's pickers.
             const [{ data: locs }, { data: trps }] = await Promise.all([
                 supabase.from('bankroll_locations').select('*').eq('user_id', userId),
                 supabase.from('bankroll_trips').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
@@ -51,7 +56,9 @@ export default function CategoryOverview({ userId, categoryFilter }) {
             setLocations(locs || []);
             setTrips(trps || []);
         } catch (err) {
+            // A failed read is not "No Entries Yet".
             console.warn('Error loading category data:', err);
+            setLoadFailed(true);
         } finally {
             setIsLoading(false);
         }
@@ -70,11 +77,13 @@ export default function CategoryOverview({ userId, categoryFilter }) {
         setEntries(prev => prev.filter(e => e.id !== entryId));
         try {
             await deleteLedgerEntry(userId, entryId);
-            toast.success('Entry deleted');
+            toast.success('Entry Deleted');
+            // The dashboard tiles and chart listen for this.
+            window.dispatchEvent(new CustomEvent('bankroll-updated'));
             await loadData();
         } catch (err) {
             console.warn('Delete failed:', err);
-            toast.error('Failed to delete entry');
+            toast.error('Failed To Delete Entry');
             await loadData();
         }
     };
@@ -92,12 +101,9 @@ export default function CategoryOverview({ userId, categoryFilter }) {
     };
 
     const totalSessions = entries.length;
-    const totalPL = entries.reduce((sum, e) => {
-        if (e.category === 'expense') return sum - Math.abs(e.gross_in || 0);
-        return sum + ((e.gross_out || 0) - (e.gross_in || 0));
-    }, 0);
-    const avgResult = totalSessions > 0 ? totalPL / totalSessions : 0;
-    const wins = entries.filter(e => (e.gross_out || 0) - (e.gross_in || 0) > 0).length;
+    const totalCents = entries.reduce((sum, e) => sum + entryCents(e), 0);
+    const avgCents = totalSessions > 0 ? Math.round(totalCents / totalSessions) : 0;
+    const wins = entries.filter(e => entryCents(e) > 0).length;
     const winRate = totalSessions > 0 ? Math.round((wins / totalSessions) * 100) : 0;
 
     return (
@@ -118,24 +124,24 @@ export default function CategoryOverview({ userId, categoryFilter }) {
             <div style={styles.statsRow}>
                 <div style={styles.statCard}>
                     <span style={styles.statLabel}>Total P&L</span>
-                    <span style={{ ...styles.statValue, color: totalPL >= 0 ? '#22c55e' : '#ef4444' }}>
-                        {totalPL >= 0 ? '+' : '-'}${Math.abs(totalPL).toLocaleString()}
+                    <span style={{ ...styles.statValue, color: totalCents >= 0 ? '#22c55e' : '#ef4444' }}>
+                        {loadFailed || isLoading ? '-' : formatSignedCents(totalCents)}
                     </span>
                 </div>
                 <div style={styles.statCard}>
                     <span style={styles.statLabel}>Sessions</span>
-                    <span style={styles.statValue}>{totalSessions}</span>
+                    <span style={styles.statValue}>{loadFailed || isLoading ? '-' : totalSessions}</span>
                 </div>
                 <div style={styles.statCard}>
                     <span style={styles.statLabel}>Avg Result</span>
-                    <span style={{ ...styles.statValue, color: avgResult >= 0 ? '#22c55e' : '#ef4444' }}>
-                        {avgResult >= 0 ? '+' : '-'}${Math.abs(Math.round(avgResult)).toLocaleString()}
+                    <span style={{ ...styles.statValue, color: avgCents >= 0 ? '#22c55e' : '#ef4444' }}>
+                        {loadFailed || isLoading ? '-' : formatSignedCents(avgCents)}
                     </span>
                 </div>
                 {categoryFilter !== 'expense' && (
                     <div style={styles.statCard}>
                         <span style={styles.statLabel}>Win Rate</span>
-                        <span style={styles.statValue}>{winRate}%</span>
+                        <span style={styles.statValue}>{loadFailed || isLoading ? '-' : winRate + '%'}</span>
                     </div>
                 )}
             </div>
@@ -143,23 +149,28 @@ export default function CategoryOverview({ userId, categoryFilter }) {
             {/* Entry List */}
             <div style={styles.entriesSection}>
                 <h2 style={styles.sectionTitle}>
-                    All {meta.label} ({totalSessions})
+                    All {meta.label}{loadFailed || isLoading ? '' : ` (${totalSessions})`}
                 </h2>
 
                 {isLoading ? (
-                    <div style={styles.loadingMessage}>Loading Entries...</div>
+                    <div style={styles.loadingMessage} role="status">Loading Entries...</div>
+                ) : loadFailed ? (
+                    <div style={styles.emptyState} role="alert">
+                        <p style={styles.emptyText}>Could Not Load {meta.label}. Check Your Connection.</p>
+                        <button type="button" style={styles.addButton} onClick={loadData}>Try Again</button>
+                    </div>
                 ) : entries.length === 0 ? (
                     <div style={styles.emptyState}>
-                        <span style={{ fontSize: 40 }}>{meta.icon}</span>
-                        <p style={styles.emptyText}>No {meta.label.toLowerCase()} Entries Yet</p>
+                        <p style={styles.emptyText}>No {meta.label} Logged Yet</p>
                         <button
+                            type="button"
                             style={styles.addButton}
                             onClick={() => {
                                 setEditEntry(null);
                                 setShowLogModal(true);
                             }}
                         >
-                            + Log Your First {meta.label.replace(/s$/, '')}
+                            + Log Your First {meta.single}
                         </button>
                     </div>
                 ) : (

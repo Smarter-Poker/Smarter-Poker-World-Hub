@@ -18,6 +18,7 @@ import {
   splitStakingSession,
   stakingRowsToRewrite,
 } from './stakingMath.mjs';
+import { bankrollBalanceCents, centsToDollars, toCents } from './ledgerMath.mjs';
 
 export interface LedgerEntry {
   id: string;
@@ -235,6 +236,9 @@ function categoryToSegment(category: string): string {
       return 'sports';
     case 'expense':
       return 'poker'; // expenses deduct from poker segment
+    case 'deposit':
+    case 'withdrawal':
+      return 'poker'; // Adjust Bankroll moves money in and out of the poker segment
     default:
       return 'poker';
   }
@@ -249,7 +253,8 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
   let categories: string[] = [];
   switch (segmentType) {
     case 'poker':
-      categories = ['poker_cash', 'poker_mtt', 'expense'];
+      // Adjust Bankroll deposits and withdrawals land on the poker segment.
+      categories = ['poker_cash', 'poker_mtt', 'expense', 'deposit', 'withdrawal'];
       break;
     case 'casino':
       categories = ['casino_table', 'slots'];
@@ -269,14 +274,7 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
     .eq('is_revision', false)
     .in('category', categories);
 
-  let segmentTotal = 0;
-  entries?.forEach((e: any) => {
-    if (e.category === 'expense') {
-      segmentTotal -= Math.abs(e.gross_in || 0);
-    } else {
-      segmentTotal += (e.gross_out || 0) - (e.gross_in || 0);
-    }
-  });
+  const segmentCents = bankrollBalanceCents(entries || [], []);
 
   // Make sure the segment row exists without racing a concurrent creator: a
   // select-then-insert pair lost that race and hit the (user_id, segment_type)
@@ -297,7 +295,7 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
     .maybeSingle();
 
   // Add initial deposit (from Adjust Bankroll modal) to the ledger-derived total
-  const totalWithDeposits = segmentTotal + (existing?.initial_deposit || 0);
+  const totalWithDeposits = centsToDollars(segmentCents + toCents(existing?.initial_deposit));
   const { error: err_bankroll_segments_03601 } = await supabase
     .from('bankroll_segments')
     .update({
@@ -323,7 +321,7 @@ export async function createLedgerEntry(
       category: entry.category,
       location_id: entry.location_id,
       trip_id: entry.trip_id,
-      entry_date: entry.entry_date || new Date().toISOString().split('T')[0],
+      entry_date: entry.entry_date || localDay(),
       start_time: entry.start_time,
       end_time: entry.end_time,
       gross_in: entry.gross_in || 0,
@@ -436,13 +434,23 @@ export async function deleteLedgerEntry(
   userId: string,
   entryId: string
 ): Promise<void> {
-  const { error } = await supabase
+  // A delete that matched nothing (already gone, or not this player's) used to
+  // report "Entry Deleted". Ask for the removed row back and say so if none.
+  const { data, error } = await supabase
     .from('bankroll_ledger')
     .delete()
     .eq('id', entryId)
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .select('id, category');
 
   if (error) throw error;
+  if (!data || data.length === 0) throw new Error('Entry Not Found');
+
+  try {
+    await recalculateSegmentBalance(userId, categoryToSegment(data[0].category || 'poker_cash'));
+  } catch (segError) {
+    console.warn('[Bankroll] Failed to update segment balance:', segError);
+  }
 }
 
 /**
@@ -617,7 +625,7 @@ export async function completeTrip(userId: string, tripId: string): Promise<Trip
     .from('bankroll_trips')
     .update({
       status: 'completed',
-      end_date: new Date().toISOString().split('T')[0],
+      end_date: localDay(),
     })
     .eq('user_id', userId)
     .eq('id', tripId)
@@ -889,7 +897,7 @@ export async function completeSeries(userId: string, seriesId: string): Promise<
     .from('bankroll_trips')
     .update({
       status: 'completed',
-      end_date: new Date().toISOString().split('T')[0],
+      end_date: localDay(),
     })
     .eq('user_id', userId)
     .eq('id', seriesId)
@@ -1154,25 +1162,23 @@ export async function setStartingBankroll(userId: string, amount: number): Promi
     .eq('segment_type', 'poker');
   if (err_bankroll_segments_wwjic) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_wwjic.message);
 
-  // Log as a ledger entry for audit trail
-  const { error: err_bankroll_ledger_7o3ix } = await supabase.from('bankroll_ledger').insert({
-    user_id: userId,
-    category: 'deposit',
-    entry_date: new Date().toISOString().split('T')[0],
-    gross_in: amount,
-    gross_out: 0,
-    net_result: amount,
-    // CHECK 13 (2026-08-14): is_adjustment is not a column — its presence made
-    // the whole insert 42703 (warn swallowed), so the "Starting bankroll"
-    // audit-trail entry was never written. category 'deposit' already marks it.
-    notes: 'Starting bankroll',
-  });
-  if (err_bankroll_ledger_7o3ix) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_7o3ix.message);
+  // No ledger row: the starting bankroll is initial_deposit, and the Bankroll
+  // Balance adds every deposit row to it, so a "Starting bankroll" deposit row
+  // would count the same money twice. (The insert that used to sit here named
+  // the generated net_result column and was refused on every call, so no such
+  // row was ever written; the balance never depended on one.)
 }
 
 /**
- * Adjust bankroll — deposit or withdraw from external sources
- * type: 'deposit' (adding money in) or 'withdrawal' (taking money out)
+ * Adjust bankroll: deposit or withdraw money from outside the game.
+ *
+ * The ledger row IS the adjustment. The Bankroll Balance tile adds every
+ * deposit and subtracts every withdrawal (calculateTotalBankroll), and the
+ * poker segment's stored balance is recomputed from the same rows. Until
+ * 2026-11-27 this read-modify-wrote current_balance (which nothing displays and
+ * the next logged session overwrote) while the balance tile skipped deposit
+ * and withdrawal rows, so an adjustment changed nothing the player could see.
+ * The row is dated on the player's own calendar day, not the UTC one.
  */
 export async function adjustBankroll(
   userId: string,
@@ -1180,64 +1186,32 @@ export async function adjustBankroll(
   type: 'deposit' | 'withdrawal',
   reason?: string
 ): Promise<void> {
-  const signedAmount = type === 'deposit' ? amount : -amount;
+  if (type !== 'deposit' && type !== 'withdrawal') throw new Error('Choose Deposit Or Withdraw');
+  const cents = toCents(amount);
+  if (!(cents > 0)) throw new Error('Enter An Amount Greater Than $0');
+  const value = centsToDollars(cents);
 
-  // Update the poker segment balance
-  const { data: current, error: fetchErr } = await supabase
-    .from('bankroll_segments')
-    .select('current_balance')
-    .eq('user_id', userId)
-    .eq('segment_type', 'poker')
-    .maybeSingle();
-
-  if (fetchErr) {
-    console.warn('[adjustBankroll] Failed to fetch segment:', fetchErr);
-    throw new Error('Failed to read current balance');
-  }
-
-  const newBalance = (current?.current_balance || 0) + signedAmount;
-
-  const { error: updateErr } = await supabase
-    .from('bankroll_segments')
-    .update({
-      current_balance: newBalance,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userId)
-    .eq('segment_type', 'poker');
-
-  if (updateErr) {
-    console.warn('[adjustBankroll] Failed to update segment:', updateErr);
-    throw new Error('Failed to update balance');
-  }
-
-  // Log as ledger entry for audit trail
-  // gross_in = money put on table (buy-in), gross_out = money taken off (cashout)
-  // deposit: money added to bankroll → gross_out (like cashing out from an ATM into your roll)
-  // withdrawal: money removed from bankroll → gross_in (like buying in / spending)
-  // NOTE: net_result is a generated column (gross_out - gross_in), do NOT insert it explicitly
+  // gross_out = money into the roll, gross_in = money out of it, so the
+  // generated net_result (gross_out - gross_in) carries the sign. net_result
+  // is a generated column and must never be inserted.
   const { error: insertErr } = await supabase.from('bankroll_ledger').insert({
     user_id: userId,
     category: type,
-    entry_date: new Date().toISOString().split('T')[0],
-    gross_in: type === 'withdrawal' ? amount : 0,
-    gross_out: type === 'deposit' ? amount : 0,
-    notes: reason || (type === 'deposit' ? 'Bankroll deposit' : 'Bankroll withdrawal'),
+    entry_date: localDay(),
+    gross_in: type === 'withdrawal' ? value : 0,
+    gross_out: type === 'deposit' ? value : 0,
+    notes: (reason || '').trim() || (type === 'deposit' ? 'Bankroll deposit' : 'Bankroll withdrawal'),
   });
 
   if (insertErr) {
     console.warn('[adjustBankroll] Failed to insert ledger entry:', insertErr);
-    // Try to rollback the segment update
-    const { error: err_bankroll_segments_m2q4f } = await supabase
-      .from('bankroll_segments')
-      .update({
-        current_balance: current?.current_balance || 0,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
-      .eq('segment_type', 'poker');
-    if (err_bankroll_segments_m2q4f) console.warn('[Supabase] Silent mutation failed in bankroll_segments:', err_bankroll_segments_m2q4f.message);
-    throw new Error('Failed to record adjustment');
+    throw new Error('Failed To Record Adjustment');
+  }
+
+  try {
+    await recalculateSegmentBalance(userId, 'poker');
+  } catch (segError) {
+    console.warn('[Bankroll] Failed to update segment balance:', segError);
   }
 }
 
