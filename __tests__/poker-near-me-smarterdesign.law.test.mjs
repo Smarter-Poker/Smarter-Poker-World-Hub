@@ -130,3 +130,48 @@ test('no gold, amber, yellow, purple or pink colour survives in Poker Near Me so
   }
   assert.deepEqual(offenders, []);
 });
+
+test('no Poker Near Me label is shouted by an uppercase transform', () => {
+  // #SMARTERDESIGN labels are Title Case in the source text itself. A
+  // text-transform: uppercase (CSS or a React style object) turns that Title
+  // Case into capitals at render time, so it is refused everywhere in the
+  // family: stylesheets, in-page <style> blocks and inline styles.
+  const walk = (dir) => readdirSync(new URL(dir, ROOT), { withFileTypes: true }).flatMap((entry) => (
+    entry.isDirectory() ? walk(`${dir}${entry.name}/`) : [`${dir}${entry.name}`]
+  ));
+  const files = [
+    ...walk('src/components/poker-near-me/').filter((f) => /\.(jsx?|mjs|css)$/.test(f)),
+    ...readdirSync(new URL('src/styles/worlds/', ROOT)).filter((f) => /^poker-near-me.*\.css$/.test(f)).map((f) => `src/styles/worlds/${f}`),
+    'styles/poker-near-me.css',
+    'src/components/poker/VenueReviews.js',
+    'pages/hub/poker-near-me/lobby.js', 'pages/hub/poker-near-me/[pnmTab].js', 'pages/hub/poker-near-me/index.js',
+    'pages/hub/events-calendar.js', 'pages/hub/poker-tours.js', 'pages/hub/poker-series.js',
+    'pages/hub/series/[id].js', 'pages/hub/tours/[code].js', 'pages/hub/home-games.js',
+    'pages/hub/home-games/[slug].js', 'pages/hub/venues/[id].js', 'pages/hub/daily-tournaments.js',
+  ];
+  assert.ok(files.length >= 50, `found ${files.length} Poker Near Me sources`);
+  const shouting = [];
+  for (const file of files) {
+    const src = stripComments(read(file));
+    for (const m of src.matchAll(/text-transform\s*:\s*uppercase|textTransform\s*:\s*['"`]uppercase/g)) {
+      shouting.push(`${file}:${src.slice(0, m.index).split('\n').length}`);
+    }
+  }
+  assert.deepEqual(shouting, []);
+});
+
+test('every Poker Near Me popup carries a labeled 44px Close control', () => {
+  const dialogs = {
+    'src/components/poker-near-me/CasinoActionDialog.jsx': /className="pnm-console-dialog__close"[\s\S]*?aria-label=\{`Close \$\{title \|\| 'confirmation'\} dialog`\}[\s\S]*?>\s*Close\s*</,
+    'src/components/poker-near-me/modals/LoginPromptModal.js': /className="pnm-console-dialog__close"[\s\S]*?aria-label="Close sign in dialog"[\s\S]*?>\s*Close\s*</,
+    'src/components/poker-near-me/modals/ManualLocationModal.js': /className="pnm-console-dialog__close"[\s\S]*?>\s*Close\s*</,
+    'src/components/poker-near-me/modals/LocationEnablePopup.js': /className="pnm-console-dialog__close"/,
+    'src/components/poker-near-me/VenueReviews.jsx': /className="pnm-console-dialog__close"[\s\S]*?>\s*Close\s*</,
+    'src/components/poker-near-me/ReportGameModal.jsx': /aria-label="Close report game dialog"[\s\S]*?minWidth: 44, minHeight: 44[\s\S]*?<span>Close<\/span>/,
+    'src/components/poker-near-me/SocialLayer.jsx': /className="sl-modal-close" aria-label="Close invite dialog"[\s\S]*?<span>Close<\/span>/,
+    'src/components/poker-near-me/GlobalSearchOverlay.jsx': /className="gso-back sp-icon-btn"[^>]*aria-label="Close"[^>]*'--sp-btn-size': '44px'/,
+  };
+  for (const [file, pin] of Object.entries(dialogs)) assert.match(read(file), pin, file);
+  const css = read('src/styles/worlds/poker-near-me-console-dialogs.css');
+  assert.match(css, /\.pnm-console-dialog__close \{[^}]*min-height: 44px;/);
+});

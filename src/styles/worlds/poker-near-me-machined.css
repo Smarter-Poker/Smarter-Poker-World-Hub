@@ -106,7 +106,6 @@ body.world-poker-near-me .vc3-card::before {
 
 body.world-poker-near-me .vc3-badge {
   border-radius: 2px !important;
-  text-transform: uppercase;
   letter-spacing: 0.075em;
 }
 
@@ -136,7 +135,6 @@ body.world-poker-near-me .vc3-cash-count {
   background: rgba(20, 62, 44, 0.36);
   font: 750 12px/1 var(--font-premium-body);
   letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .pnm-location-card__cash[data-modeled='true'] {
@@ -267,7 +265,6 @@ body.world-poker-near-me .pnm-map-surface__eyebrow {
   color: #63cbf7;
   font: 750 12px/1 var(--font-premium-body);
   letter-spacing: 0.18em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .pnm-map-surface__identity strong {
@@ -312,7 +309,6 @@ body.world-poker-near-me .pnm-map-surface__controls :is(.pnm-map-radius-control,
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.045) !important;
   font: 700 12px/1 var(--font-premium-body);
   letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .pnm-map-surface__controls .pnm-map-radius-control select {
@@ -345,7 +341,6 @@ body.world-poker-near-me .pnm-map-surface__fullscreen-control {
   box-shadow: inset 3px 0 #3eb8ec, inset 0 1px rgba(255, 255, 255, 0.055);
   font: 750 12px/1 var(--font-premium-body);
   letter-spacing: 0.09em;
-  text-transform: uppercase;
   cursor: pointer;
 }
 
@@ -487,7 +482,6 @@ body.world-poker-near-me .pnm-map-error-state button {
   background: #071923;
   font: 750 12px/1 var(--font-premium-body);
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   cursor: pointer;
 }
 
@@ -504,7 +498,6 @@ body.world-poker-near-me .pnm-map-surface__escape-hint {
   background: #050a0f;
   font: 700 12px/1 var(--font-premium-body);
   letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 /* The page roots are isolated stacking contexts. Raise the exact root that
@@ -637,7 +630,6 @@ body.world-poker-near-me .pnm-live-map-toggle > small {
   color: #82cae8;
   font: 750 12px/1 var(--font-premium-body);
   letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .pnm-deep-deck__status[data-tone='neutral'] {

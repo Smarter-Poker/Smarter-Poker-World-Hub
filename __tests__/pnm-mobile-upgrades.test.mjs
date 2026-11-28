@@ -138,7 +138,7 @@ test('every overlay the pages open is a back-gesture sheet with a 44px close', (
     // and the 44px close is the console's own printed Close control.
     'src/components/poker-near-me/VenueReviews.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /useScrimDismiss\(onClose\)/, /<PokerNearMeConsole[\s\S]*?titleId="pnm-venue-reviews-title"/, /className="pnm-console-dialog__close"/],
     'src/components/poker-near-me/VenueCard.js': [/useModalHistory\(checkinModal, closeCheckin\)/, /useScrimDismiss\(closeCheckin\)/, /<PokerNearMeConsole[\s\S]*?titleId="pnm-venue-checkin-title"/, /className="pnm-console-dialog__close"/],
-    'src/components/poker-near-me/ReportGameModal.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /useScrimDismiss\(onClose\)/, /@media \(max-width: 600px\)/, /\.rgm-handle \{ display: block; width: 44px; height: 4px;/, /width: 44, height: 44, minWidth: 44, minHeight: 44/],
+    'src/components/poker-near-me/ReportGameModal.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /useScrimDismiss\(onClose\)/, /@media \(max-width: 600px\)/, /\.rgm-handle \{ display: block; width: 44px; height: 4px;/, /aria-label="Close report game dialog"[\s\S]*?minWidth: 44, minHeight: 44[\s\S]*?<span>Close<\/span>/],
     'src/components/poker-near-me/SocialLayer.jsx': [/useModalHistory\(!!inviteModal, closeInvite\)/, /useScrimDismiss\(closeInvite\)/, /<PokerNearMePanelShell[\s\S]*?role="dialog"[\s\S]*?aria-modal="true"/, /<PokerNearMeConsoleIcon name="close" \/>/],
     'src/components/poker-near-me/GlobalSearchOverlay.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /safe-area-inset-top/],
   };

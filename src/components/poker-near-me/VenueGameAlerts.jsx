@@ -334,13 +334,13 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
                       <span style={{
                         fontSize: 12, color: '#4ade80', fontWeight: 700,
                         background: 'rgba(34,197,94,0.15)', padding: '1px 6px', borderRadius: 4,
-                      }}>LIVE NOW</span>
+                      }}>Live Now</span>
                     )}
                     {estimated && (
                       <span style={{
                         fontSize: 12, color: '#bfe6ff', fontWeight: 700,
                         background: 'rgba(191,230,255,0.12)', padding: '1px 6px', borderRadius: 4,
-                      }} title="Modelled from historical activity, not a live count">LIKELY RUNNING (EST.)</span>
+                      }} title="Modelled from historical activity, not a live count">Likely Running, Estimated</span>
                     )}
                   </div>
                 </div>
@@ -364,8 +364,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
       {!liveLoading && liveGameTypes.length > 0 && (
         <div style={{ marginTop: 16 }}>
           <div style={{
-            fontSize: 12, fontWeight: 700, color: 'rgba(200,214,229,0.5)',
-            textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8,
+            fontSize: 12, fontWeight: 700, color: 'rgba(200,214,229,0.5)', letterSpacing: '0.5px', marginBottom: 8,
           }}>
             {hasObservedGames ? 'Popular Games Running Now' : 'Popular Games - Estimated Activity'}
           </div>

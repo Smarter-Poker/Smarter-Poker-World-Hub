@@ -1438,7 +1438,6 @@ const styles = `
     font: 800 12px/1 var(--font-rajdhani), Rajdhani, sans-serif;
     letter-spacing: 0.07em;
     text-align: center;
-    text-transform: uppercase;
     white-space: nowrap;
     touch-action: manipulation;
     border: 3px solid transparent;
@@ -1509,7 +1508,6 @@ const styles = `
     color: var(--ec-blue-soft);
     font: 800 12px/1 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
   }
 
   .pnm-location-city {
@@ -1559,7 +1557,6 @@ const styles = `
     color: var(--ec-blue);
     font: 800 12px/1 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.2em;
-    text-transform: uppercase;
   }
 
   body.world-poker-near-me .ec-page .ec-title {
@@ -1570,7 +1567,6 @@ const styles = `
     line-height: 0.98 !important;
     letter-spacing: -0.025em !important;
     text-shadow: none !important;
-    text-transform: uppercase;
   }
 
   .ec-cyan {
@@ -1588,7 +1584,6 @@ const styles = `
     font: 700 12px/1.5 var(--font-inter), Inter, sans-serif !important;
     letter-spacing: 0.06em !important;
     text-align: left !important;
-    text-transform: uppercase;
   }
 
   .ec-source-counts,
@@ -1716,7 +1711,6 @@ const styles = `
     color: #aeb9c8;
     font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
   }
 
   body.world-poker-near-me .ec-page .ec-filter-select.ec-filter-select {
@@ -1794,7 +1788,6 @@ const styles = `
   .ec-empty-title {
     color: #f4f7fb !important;
     font-size: 18px !important;
-    text-transform: uppercase;
   }
 
   .ec-empty-btn {
@@ -1844,7 +1837,6 @@ const styles = `
     font-size: 15px;
     font-weight: 800;
     letter-spacing: 0.06em;
-    text-transform: uppercase;
   }
 
   .ec-date-header.today .ec-date-label {
@@ -1932,7 +1924,6 @@ const styles = `
     color: var(--ec-blue-soft);
     font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.05em;
-    text-transform: uppercase;
   }
 
   .ev-source[data-source='tour'],
@@ -2069,7 +2060,6 @@ const styles = `
     font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.06em;
     text-align: center;
-    text-transform: uppercase;
   }
 
   .ec-grid {
@@ -2222,7 +2212,6 @@ const styles = `
     font-size: 22px;
     font-weight: 800;
     letter-spacing: 0.05em;
-    text-transform: uppercase;
   }
 
   .loc-error {
@@ -2267,7 +2256,6 @@ const styles = `
     color: #aeb9c8;
     font: 800 12px/1.2 var(--font-inter), Inter, sans-serif;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
   }
 
   body.world-poker-near-me .loc-modal .loc-input,

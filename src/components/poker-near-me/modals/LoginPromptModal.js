@@ -113,6 +113,14 @@ export default function LoginPromptModal({
             </p>
           </div>
         </PokerNearMeConsole>
+        <button
+          type="button"
+          className="pnm-console-dialog__close"
+          onClick={closePrompt}
+          aria-label="Close sign in dialog"
+        >
+          Close
+        </button>
       </section>
     </div>
   );

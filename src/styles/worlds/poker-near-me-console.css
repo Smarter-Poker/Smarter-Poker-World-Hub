@@ -120,7 +120,6 @@ body.world-poker-near-me {
   font-size: 2.6cqw;
   font-weight: 700;
   letter-spacing: 0.18em;
-  text-transform: uppercase;
 }
 
 .pnc__title {
@@ -128,7 +127,6 @@ body.world-poker-near-me {
   font-size: 7cqw;
   font-weight: 800;
   letter-spacing: 0.03em;
-  text-transform: uppercase;
 }
 
 .pnc__subtitle {
@@ -136,7 +134,6 @@ body.world-poker-near-me {
   font-size: 3.2cqw;
   font-weight: 600;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .pnc__pill {
@@ -145,7 +142,6 @@ body.world-poker-near-me {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-align: center;
-  text-transform: uppercase;
 }
 
 .pnc-ink--silver {
@@ -229,7 +225,6 @@ body.world-poker-near-me {
   font-size: calc(4.2cqw * var(--pnc-fit, 1));
   font-weight: 800;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -276,7 +271,6 @@ body.world-poker-near-me {
   font-size: 2.7cqw;
   font-weight: 700;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -325,7 +319,6 @@ p.pnc-label {
   font-size: 2.8cqw;
   font-weight: 700;
   letter-spacing: 0.13em;
-  text-transform: uppercase;
 }
 
 .pnc-data-row__value {

@@ -198,7 +198,6 @@ body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-console-submit
   color: #f4f7fb !important;
   font: 800 14px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
   cursor: pointer;
   touch-action: manipulation;
   border: 3px solid transparent !important;
@@ -294,7 +293,6 @@ body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-section-head__
   color: #45adff;
   font: 700 13px/1.1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-section-head__count {
@@ -434,7 +432,6 @@ body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-result__kind {
   flex: none;
   font: 700 12px/1.25 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-result__place {
@@ -516,7 +513,6 @@ body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-summary__scope
   color: #9aa5b3;
   font: 700 12px/1.3 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-summary__intent {
@@ -542,7 +538,6 @@ body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-empty__title {
   color: #e4e7ec;
   font: 800 18px/1.2 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-empty--error .gso-empty__title {
@@ -566,7 +561,6 @@ body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-retry {
   color: #f4f7fb;
   font: 800 14px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
   cursor: pointer;
   touch-action: manipulation;
   border: 3px solid transparent;
@@ -688,7 +682,6 @@ body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail-row__la
   color: #45adff;
   font: 700 12px/1.25 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail-row__value {
@@ -721,7 +714,6 @@ body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail__stops-
   font: 700 13px/1.2 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
   font-size: 13px !important;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-detail__actions {
@@ -743,7 +735,6 @@ body.world-poker-near-me .gso-console-overlay[role='dialog'] .gso-lit-action {
   font: 800 15px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
   letter-spacing: 0.12em;
   text-decoration: none;
-  text-transform: uppercase;
   cursor: pointer;
   touch-action: manipulation;
 }

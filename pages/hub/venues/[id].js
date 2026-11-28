@@ -766,7 +766,6 @@ function VenueTypeBadge({ type }) {
           font-size: 12px;
           font-weight: 700;
           letter-spacing: 0.5px;
-          text-transform: uppercase;
           background: ${colors.bg};
           border: 1px solid ${colors.border};
           color: ${colors.text};
@@ -2137,88 +2136,8 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
               />
             )}
 
-            {/* ============================================ */}
-            {/* MAP & DIRECTIONS SECTION                     */}
-            {/* ============================================ */}
-            {venue.latitude && venue.longitude && !locationConflict && (
-              <section className="map-section">
-                <h2 className="section-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  Location
-                </h2>
-                <MapSurfaceFrame
-                  eyebrow="Venue coordinates"
-                  title={venue.name + ' location'}
-                  detail={buildVenueAddress(venue) || 'Select full screen for detailed map navigation'}
-                  onLayoutChange={handleVenueMapLayoutChange}
-                >
-                  <div className="venue-map-wrapper pnm-map-stage">
-                    {(tileStatus === 'degraded' || tileStatus === 'unavailable') && (
-                      <PokerNearMePanelShell as="aside" className="pnm-map-tile-warning" bodyClassName="pnm-map-status__copy" data-map-tile-warning="true" data-map-tile-status={tileStatus} role="status">
-                        <p>Map Background Unavailable Or Incomplete. Venue Marker And Directions Remain Available.</p>
-                        <button type="button" className="pnm-map-status__action" data-map-tile-retry="true" onClick={() => mapSessionRef.current?.retryTiles()}>Retry Map Background</button>
-                        <a className="pnm-map-status__action" data-map-tile-list="true" href="/hub/poker-near-me/venues">Browse Venue List</a>
-                      </PokerNearMePanelShell>
-                    )}
-                    <div
-                      ref={mapContainerRef}
-                      className="venue-map-container pnm-leaflet-map"
-                      role="region"
-                      aria-label={venue.name + ' interactive location map'}
-                      aria-busy={!mapReady && !mapError}
-                      tabIndex={0}
-                      data-map-foundation="shared-v3"
-                      data-map-ready={mapReady ? 'true' : 'false'}
-                    />
-                    {mapError && (
-                      <div className="pnm-map-error-state" role="alert">
-                        <p>{mapError}</p>
-                        <button
-                          type="button"
-                          onClick={function () {
-                            resetPokerMapRuntime();
-                            setMapLoadAttempt(function (value) { return value + 1; });
-                          }}
-                        >Retry Map</button>
-                      </div>
-                    )}
-                  </div>
-                </MapSurfaceFrame>
-                <div className="map-actions">
-                  <button
-                    onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('directions'); }}
-                    className="directions-btn"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                    </svg>
-                    Get Directions
-                  </button>
-                  <button
-                    onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('search'); }}
-                    className="viewmap-btn"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
-                      <line x1="8" y1="2" x2="8" y2="18" />
-                      <line x1="16" y1="6" x2="16" y2="22" />
-                    </svg>
-                    View On Map
-                  </button>
-                  {venue.address && (
-                    <span className="map-address-text">
-                      {venue.address}{venue.city ? ', ' + venue.city : ''}{venue.state ? ', ' + venue.state : ''}
-                    </span>
-                  )}
-                </div>
-              </section>
-            )}
-
             <DeepRouteSignalDeck
-              eyebrow="Venue intelligence"
+              eyebrow="Venue Intelligence"
               title={venue.name}
               description={venue.about || venue.description || venue.tagline || ('Live poker details, schedules, player signals, and room information for ' + venue.name + '.')}
               /* A LOGO IS NOT A ROOM (2026-09-29). The hero is a full bleed
@@ -2269,12 +2188,12 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                     : 'Live feed timestamp available',
                   dateTime: bravoLiveTables.last_updated,
                 }
-                : { label: 'Venue profile record' }}
+                : { label: 'Venue Profile Record' }}
               metrics={[
                 { label: 'Location', value: [venue.city, venue.state].filter(Boolean).join(', ') || 'See venue details' },
-                { label: 'Room type', value: String(venue.venue_type || 'Poker room').replace(/_/g, ' ') },
+                { label: 'Room Type', value: String(venue.venue_type || 'Poker room').replace(/_/g, ' ') },
                 { label: 'Schedules', value: String(countSchedules(venue)) },
-                { label: 'Player rating', value: totalReviews > 0 ? avgRating.toFixed(1) + ' / 5' : 'Not yet rated' },
+                { label: 'Player Rating', value: totalReviews > 0 ? avgRating.toFixed(1) + ' / 5' : 'Not yet rated' },
               ]}
               actions={(
                 <>
@@ -2366,7 +2285,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 lineHeight: '1.5',
                 color: '#cbd5e1'
               }}>
-                <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '4px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '4px', fontSize: '12px', letterSpacing: '0.5px' }}>
                   Quick Overview
                 </strong>
                 <p style={{ margin: 0 }}>{buildVenueFactKernel(venue)}</p>
@@ -2460,6 +2379,86 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 </div>
               )}
             </PokerNearMePanelShell>
+
+            {/* ============================================ */}
+            {/* MAP & DIRECTIONS SECTION                     */}
+            {/* ============================================ */}
+            {venue.latitude && venue.longitude && !locationConflict && (
+              <section className="map-section">
+                <h2 className="section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  Location
+                </h2>
+                <MapSurfaceFrame
+                  eyebrow="Venue Coordinates"
+                  title={venue.name + ' location'}
+                  detail={buildVenueAddress(venue) || 'Select full screen for detailed map navigation'}
+                  onLayoutChange={handleVenueMapLayoutChange}
+                >
+                  <div className="venue-map-wrapper pnm-map-stage">
+                    {(tileStatus === 'degraded' || tileStatus === 'unavailable') && (
+                      <PokerNearMePanelShell as="aside" className="pnm-map-tile-warning" bodyClassName="pnm-map-status__copy" data-map-tile-warning="true" data-map-tile-status={tileStatus} role="status">
+                        <p>Map Background Unavailable Or Incomplete. Venue Marker And Directions Remain Available.</p>
+                        <button type="button" className="pnm-map-status__action" data-map-tile-retry="true" onClick={() => mapSessionRef.current?.retryTiles()}>Retry Map Background</button>
+                        <a className="pnm-map-status__action" data-map-tile-list="true" href="/hub/poker-near-me/venues">Browse Venue List</a>
+                      </PokerNearMePanelShell>
+                    )}
+                    <div
+                      ref={mapContainerRef}
+                      className="venue-map-container pnm-leaflet-map"
+                      role="region"
+                      aria-label={venue.name + ' interactive location map'}
+                      aria-busy={!mapReady && !mapError}
+                      tabIndex={0}
+                      data-map-foundation="shared-v3"
+                      data-map-ready={mapReady ? 'true' : 'false'}
+                    />
+                    {mapError && (
+                      <div className="pnm-map-error-state" role="alert">
+                        <p>{mapError}</p>
+                        <button
+                          type="button"
+                          onClick={function () {
+                            resetPokerMapRuntime();
+                            setMapLoadAttempt(function (value) { return value + 1; });
+                          }}
+                        >Retry Map</button>
+                      </div>
+                    )}
+                  </div>
+                </MapSurfaceFrame>
+                <div className="map-actions">
+                  <button
+                    onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('directions'); }}
+                    className="directions-btn"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                    </svg>
+                    Get Directions
+                  </button>
+                  <button
+                    onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('search'); }}
+                    className="viewmap-btn"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
+                      <line x1="8" y1="2" x2="8" y2="18" />
+                      <line x1="16" y1="6" x2="16" y2="22" />
+                    </svg>
+                    View On Map
+                  </button>
+                  {venue.address && (
+                    <span className="map-address-text">
+                      {venue.address}{venue.city ? ', ' + venue.city : ''}{venue.state ? ', ' + venue.state : ''}
+                    </span>
+                  )}
+                </div>
+              </section>
+            )}
 
             <div style={{ margin: '18px 0', display: 'grid', gap: 18 }}>
               <SmarterAccountUnlockGate
@@ -2567,7 +2566,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 </div>
                 {waitlistOnly.length > 0 && (
                   <div style={{ padding: '8px 16px 4px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(56, 189, 248,0.7)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Waitlist Only</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(56, 189, 248,0.7)', letterSpacing: 1, marginBottom: 6 }}>Waitlist Only</div>
                     <div className="bravo-live-games-grid">
                       {waitlistOnly.map(function (g, idx) {
                         return (
@@ -3106,7 +3105,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 // visitor's after hydration, which is not a real mismatch.
                 suppressHydrationWarning
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#86daff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
@@ -3179,7 +3178,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
                   {venue && venue.name ? venue.name + ' Waiting List' : 'Club Commander Waiting List'}
-                  <span className="live-count-badge" style={{ background: 'rgba(76, 175, 80, 0.15)', color: '#4CAF50', borderColor: '#4CAF5040' }}>LIVE</span>
+                  <span className="live-count-badge" style={{ background: 'rgba(134, 218, 255, 0.12)', color: '#bfe6ff', borderColor: 'rgba(134, 218, 255, 0.35)' }}>Live</span>
                 </h2>
 
                 <div className="waitlist-board">
@@ -3693,7 +3692,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
               {showPostForm && (
                 <form className="inline-form" onSubmit={handlePostActivity}>
                   <div className="form-group">
-                    <label className="form-label">What&apos;S Happening?</label>
+                    <label className="form-label">What Is Happening?</label>
                     <textarea
                       className="form-textarea"
                       rows="3"
@@ -4203,7 +4202,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-size:12px;
           font-weight: 700;
           letter-spacing: 0.5px;
-          text-transform: uppercase;
           background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 212, 255, 0.1));
           border: 1px solid rgba(0, 212, 255, 0.4);
           color: #00D4FF;
@@ -4217,7 +4215,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-size:12px;
           font-weight: 700;
           letter-spacing: 0.5px;
-          text-transform: uppercase;
           background: rgba(34, 197, 94, 0.12);
           border: 1px solid rgba(34, 197, 94, 0.3);
           color: #22c55e;
@@ -4276,7 +4273,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-size: 12px;
           font-weight: 800;
           letter-spacing: .08em;
-          text-transform: uppercase;
           cursor: pointer;
         }
         .venue-action-notice button:focus-visible {
@@ -4407,7 +4403,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           color: #9bd0ea;
           font-size:12px;
           letter-spacing: 0.12em;
-          text-transform: uppercase;
         }
         .venue-location-integrity p {
           margin: 4px 0 0;
@@ -4454,7 +4449,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-size:12px;
           font-weight: 600;
           color: #64748b;
-          text-transform: uppercase;
           letter-spacing: 0.5px;
         }
         .info-value {
@@ -4520,7 +4514,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
         .today-badge {
           font-size:12px;
           font-weight: 700;
-          text-transform: uppercase;
           letter-spacing: 0.5px;
           padding: 2px 10px;
           border-radius: 0;
@@ -4574,7 +4567,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-weight: 600;
           padding: 3px 10px;
           border-radius: 0;
-          text-transform: uppercase;
           letter-spacing: 0.3px;
         }
         .detail-chip.game-type {
@@ -4630,9 +4622,10 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           margin: 12px auto 0;
           padding: 8px 16px;
           font-size: 12px;
-          color: #22c55e;
-          background: rgba(34, 197, 94, 0.06);
-          border: 1px solid rgba(34, 197, 94, 0.2);
+          /* #SmarterDesign: a data date is support text, so silver ink; green is for real success. */
+          color: #c3cfdb;
+          background: rgba(134, 218, 255, 0.05);
+          border: 1px solid rgba(170, 184, 196, 0.22);
           border-radius: 0;
           text-align: center;
           font-weight: 500;
@@ -4730,7 +4723,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-size: 12px;
           font-weight: 600;
           color: #94a3b8;
-          text-transform: uppercase;
           letter-spacing: 0.5px;
         }
         .form-input,
@@ -4864,7 +4856,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-weight: 800;
           color: #fff;
           letter-spacing: 0.06em;
-          text-transform: uppercase;
           text-shadow: 0 1px 3px rgba(0,0,0,0.5);
         }
         .waitlist-column-body {
@@ -4903,7 +4894,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-size:12px;
           font-weight: 700;
           color: rgba(255,255,255,0.5);
-          text-transform: uppercase;
           letter-spacing: 0.08em;
           border-top: 1px solid rgba(255,255,255,0.08);
           background: rgba(255,255,255,0.03);
@@ -4921,7 +4911,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           color: #fff;
           font-size: 14px;
           font-weight: 700;
-          text-transform: uppercase;
           letter-spacing: 0.06em;
           border-radius: 0;
           text-decoration: none;
@@ -4936,7 +4925,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-size:12px;
           color: rgba(255,255,255,0.3);
           letter-spacing: 0.06em;
-          text-transform: uppercase;
         }
 
         /* ========================================= */
@@ -4954,7 +4942,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           border-radius: 0;
           font-size:12px;
           font-weight: 700;
-          text-transform: uppercase;
           letter-spacing: 0.3px;
           background: rgba(34, 197, 94, 0.12);
           border: 1px solid rgba(34, 197, 94, 0.25);
@@ -4988,7 +4975,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-size: 13px;
           font-weight: 700;
           color: #00D4FF;
-          text-transform: uppercase;
           letter-spacing: 0.3px;
         }
         .live-game-stakes {
@@ -5321,7 +5307,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           border-radius: 0;
           font-size:12px;
           font-weight: 700;
-          text-transform: uppercase;
           letter-spacing: 0.3px;
           border: 1px solid;
         }
@@ -5569,7 +5554,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           border-radius: 0;
           font-size:12px;
           font-weight: 700;
-          text-transform: uppercase;
           letter-spacing: 0.3px;
           background: rgba(74, 222, 128, 0.15);
           border: 1px solid rgba(74, 222, 128, 0.3);
@@ -5632,7 +5616,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-size:12px;
           font-weight: 700;
           color: #00D4FF;
-          text-transform: uppercase;
           letter-spacing: 0.5px;
         }
         .related-series-name {
@@ -5718,7 +5701,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-size:12px;
           font-weight: 600;
           color: #64748b;
-          text-transform: uppercase;
           letter-spacing: 0.3px;
         }
         .nearby-venue-distance {
@@ -5788,7 +5770,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           color: #4ade80;
           margin: 0;
           letter-spacing: 0.3px;
-          text-transform: uppercase;
         }
         .bravo-live-count {
           font-size: 13px;
@@ -5832,7 +5813,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-weight: 700;
           color: #f1f5f9;
           margin-bottom: 6px;
-          text-transform: uppercase;
           letter-spacing: 0.2px;
           line-height: 1.3;
         }
@@ -5872,7 +5852,6 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           font-size:12px;
           color: rgba(255, 255, 255, 0.35);
           letter-spacing: 0.3px;
-          text-transform: uppercase;
           font-weight: 600;
         }
         .bravo-live-scroll-btn {

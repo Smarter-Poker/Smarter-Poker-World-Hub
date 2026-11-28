@@ -384,7 +384,6 @@ body.world-poker-near-me .lobby-stat__label {
   color: #91a0af;
   font: 700 12px/1.2 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
   letter-spacing: .06em;
-  text-transform: uppercase;
 }
 
 /* Shared discovery selectors and filter wells. */
@@ -408,7 +407,6 @@ body.world-poker-near-me :is(.pnm-top-tab, .pnm-sub-tab, .day-btn, .daily-filter
   letter-spacing: .05em;
   text-align: center;
   text-overflow: ellipsis;
-  text-transform: uppercase;
   white-space: nowrap;
   border: 3px solid transparent !important;
   border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
@@ -466,7 +464,6 @@ body.world-poker-near-me .daily-filter-separator {
   color: #93a2b1;
   font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
 }
 
 /* Compact three-slice cards authored in live HTML. */
@@ -513,7 +510,6 @@ body.world-poker-near-me .more-tool-arrow {
 body.world-poker-near-me .more-tool-name {
   color: #eef5fb;
   font-family: var(--font-rajdhani), Rajdhani, Inter, sans-serif;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .more-tool-desc {
@@ -614,7 +610,6 @@ body.world-poker-near-me :is(.load-more-btn, .pnm-empty-state button, .empty-sta
   color: #eef5fb !important;
   font: 800 13px/1.05 var(--font-rajdhani), Rajdhani, Inter, sans-serif !important;
   letter-spacing: .05em;
-  text-transform: uppercase;
   border: 3px solid transparent !important;
   border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch !important;
   background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box !important;
@@ -854,7 +849,6 @@ body.world-poker-near-me .pnm-console-cta.pnm-console-cta {
   letter-spacing: 0.05em;
   text-align: center;
   text-decoration: none;
-  text-transform: uppercase;
   white-space: nowrap;
   animation: none !important;
   border: 3px solid transparent !important;
@@ -1050,7 +1044,6 @@ body.world-poker-near-me .pnm-state-panel__title {
   font-size: 17px;
   font-weight: 800;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .pnm-state-panel__copy {
@@ -1121,7 +1114,6 @@ body.world-poker-near-me .pnm-gps-btn.pnm-gps-btn {
   font-size: 13px !important;
   font-weight: 800 !important;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
   white-space: nowrap;
   border: 3px solid transparent !important;
   border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;

@@ -428,8 +428,9 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                     >
                         <div className="sl-modal-header">
                             <h3>Invite To Table</h3>
-                            <button type="button" className="sl-modal-close" aria-label="Close" onClick={closeInvite}>
+                            <button type="button" className="sl-modal-close" aria-label="Close invite dialog" onClick={closeInvite}>
                                 <PokerNearMeConsoleIcon name="close" />
+                                <span>Close</span>
                             </button>
                         </div>
                         <p className="sl-modal-text">
