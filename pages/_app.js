@@ -1000,8 +1000,10 @@ export default function App({ Component, pageProps }) {
   // their in-flight work and keyboard state settle. Leaks consumes settings=1
   // after opening its sheet; Review changes ?hand= after selecting a saved hand.
   // Remounting either would close the sheet or reset the player's active filters.
+  // Bankroll Manager switches every section with ?view= / ?type=: a remount per
+  // tap re-read the whole ledger and reset its location and game-type filters.
   // Other routes retain the historical full-URL error-boundary reset behavior.
-  const pageErrorBoundaryKey = resolvedPath === '/hub/reels' || resolvedPath === '/horses' || resolvedPath === '/hub/video-library' || resolvedPath === '/hub/personal-assistant/leaks' || resolvedPath === '/hub/personal-assistant/review'
+  const pageErrorBoundaryKey = resolvedPath === '/hub/reels' || resolvedPath === '/horses' || resolvedPath === '/hub/bankroll-manager' || resolvedPath === '/hub/video-library' || resolvedPath === '/hub/personal-assistant/leaks' || resolvedPath === '/hub/personal-assistant/review'
     ? resolvedPath
     : router.asPath;
   // Every Poker Near Me route owns a complete SEOHead. Keeping the generic
