@@ -12,10 +12,8 @@ import BankrollHeaderAdd from './BankrollHeaderAdd';
  */
 
 import { GRADIENTS, METAL } from './metalStyles';
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { fetchReportLedger } from '../../lib/bankroll/bankrollSelectors';
-import { withoutHidden } from '../../lib/bankroll/pendingDeletes.mjs';
-import { usePendingDeletes, scheduleLedgerDelete } from './usePendingDeletes';
+import { useState, useEffect, useCallback } from 'react';
+import { fetchReportLedger, deleteLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
 import { entryCents } from '../../lib/bankroll/ledgerMath.mjs';
 import { formatCentsCurrency } from '../../lib/bankroll/currencyUtils';
 import LedgerTimeline from './LedgerTimeline';
@@ -31,11 +29,7 @@ const CATEGORY_META = {
 };
 
 export default function CategoryOverview({ userId, categoryFilter, onAddEntry, onEditEntry, displayEUR = false }) {
-    const [loadedEntries, setEntries] = useState([]);
-    // Deletes wait out their undo window (usePendingDeletes); the totals
-    // below are summed from the rows still shown, so they move at once.
-    const { hidden } = usePendingDeletes(userId);
-    const entries = useMemo(() => withoutHidden(loadedEntries, hidden), [loadedEntries, hidden]);
+    const [entries, setEntries] = useState([]);
     // Signed out there is nothing to load; it must not sit on "Loading" forever.
     const [isLoading, setIsLoading] = useState(Boolean(userId));
     const [loadFailed, setLoadFailed] = useState(false);
@@ -76,12 +70,18 @@ export default function CategoryOverview({ userId, categoryFilter, onAddEntry, o
 
     const handleEditEntry = (entry) => { onEditEntry?.(entry); };
 
-    const handleDeleteEntry = (entryId) => {
-        if (!userId) { toast.error('You Must Be Logged In'); return; }
-        // Hidden now, with Undo; sent when the window closes. Once sent, the
-        // queue fires 'bankroll-updated', which reloads this list and the
-        // dashboard. A failure brings the row back with the error.
-        scheduleLedgerDelete(userId, entries.find(e => e.id === entryId) || { id: entryId });
+    const handleDeleteEntry = async (entryId) => {
+        setEntries(prev => prev.filter(e => e.id !== entryId));
+        try {
+            await deleteLedgerEntry(userId, entryId);
+            toast.success('Entry Deleted');
+            // The dashboard tiles, the chart and this list listen for this.
+            window.dispatchEvent(new CustomEvent('bankroll-updated'));
+        } catch (err) {
+            console.warn('Delete failed:', err);
+            toast.error('Failed To Delete Entry');
+            await loadData();
+        }
     };
 
     const openAddEntry = () => { onAddEntry?.(); };

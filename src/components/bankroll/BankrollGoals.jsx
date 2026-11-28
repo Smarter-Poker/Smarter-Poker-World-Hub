@@ -5,9 +5,7 @@ import BankrollHeaderAdd from './BankrollHeaderAdd';
  */
 
 import { GRADIENTS, METAL } from './metalStyles';
-import { useState, useEffect, useMemo } from 'react';
-import { usePendingDeletes, scheduleDelete } from './usePendingDeletes';
-import { withoutHidden } from '../../lib/bankroll/pendingDeletes.mjs';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { localDay, parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
@@ -28,10 +26,7 @@ const PERIOD_OPTIONS = [
 // from a periodPL prop fed by stats.monthlyPL, a field getBankrollStats never
 // returned, so every goal sat at $0 and 0% however the player was doing.
 export default function BankrollGoals({ userId, displayEUR = false }) {
-    const [loadedGoals, setGoals] = useState([]);
-    // Removing a goal waits out an undo window (usePendingDeletes).
-    const { hidden } = usePendingDeletes(userId);
-    const goals = useMemo(() => withoutHidden(loadedGoals, hidden, 'goal'), [loadedGoals, hidden]);
+    const [goals, setGoals] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [loadFailed, setLoadFailed] = useState(false);
     const [progress, setProgress] = useState({ goalId: null, cents: null, failed: false });
@@ -112,11 +107,17 @@ export default function BankrollGoals({ userId, displayEUR = false }) {
         }
     }
 
-    // Hidden now with Undo; the one delete call is sent when the window
-    // closes. A failure brings the goal back with the error.
-    function deleteGoal(goalId) {
-        if (!userId) return;
-        scheduleDelete(userId, 'goal', goalId, 'Goal Removed');
+    async function deleteGoal(goalId) {
+        try {
+            const { error } = await supabase.from('bankroll_goals').delete().eq('id', goalId).eq('user_id', userId);
+            if (error) throw error;
+            setGoals(prev => prev.filter(g => g.id !== goalId));
+            toast.success('Goal Removed');
+        } catch (err) {
+            // Keep the goal on screen: it is still saved.
+            console.warn('[BankrollGoals] Delete error:', err);
+            toast.error('Failed To Remove Goal');
+        }
     }
 
     // Goal days are calendar days in the player's own time zone. Comparing
