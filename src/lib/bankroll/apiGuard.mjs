@@ -114,6 +114,15 @@ export function taxReportRequest(query, now = new Date()) {
   return { year, format, today };
 }
 
+/** GET /api/bankroll/tax-packet query: the same strict year as the tax report; always a PDF. */
+export function taxPacketRequest(query, now = new Date()) {
+  const q = query && typeof query === 'object' ? query : {};
+  if (q.format !== undefined && q.format !== 'pdf') return { error: 'Format must be pdf' };
+  const input = taxReportRequest({ year: q.year, today: q.today }, now);
+  if (input.error) return input;
+  return { year: input.year, today: input.today };
+}
+
 /**
  * An optional position for the nearby-venue read, rounded to two decimals
  * (about a kilometre): enough to pick venues, not a precise location trail.
