@@ -1,5 +1,25 @@
 /* #SMARTERDESIGN. These nine-slice rims are the original Club Arena console
    assets. Only their edges are painted; type and figures remain live DOM. */
+
+/* THE CROSS-REPO PALETTE (2026-11-28). World Hub and Club Arena read the same
+   token names, so a colour is changed once per repo by name, never chased
+   through literals. Values: docs/SMARTERDESIGN.md, "Cross-repo palette".
+   Declared on :root under names nothing read before, so adding them changes
+   no rendered pixel. The scoped --sd-ice / --sd-silver / --sd-text below keep
+   their existing values and are the same inks as --sd-ice, --sd-silver and
+   --sd-white-ink here. */
+:root {
+  --sd-ice-strong: #74dfff;
+  --sd-silver-dim: #9fbacc;
+  --sd-white-ink: #f2f7ff;
+  --sd-cobalt-1: #1981ec;
+  --sd-cobalt-2: #0c55c0;
+  --sd-cobalt-3: #07377e;
+  --sd-cobalt-4: #125bba;
+  --sd-house-green: #4dc660;
+  --sd-error-red: #ff5b6e;
+  --sd-error-rule: #f02849;
+}
 .smarterdesign, .bankroll-modal {
   --sd-ink: #040d18;
   --sd-surface: #0a1829;
