@@ -8,6 +8,8 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
+import { openQuickSignup } from '../../../src/components/seo/SmarterQuickSignupSheet';
+import { trackSeoFunnelEvent } from '../../../src/lib/seo/seoFunnelTelemetry';
 import { redactPublicVenue } from '../../../src/lib/poker-near-me/publicVenuePrivacy.mjs';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -1575,7 +1577,62 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
       if (_ft) { fetchHeaders['Authorization'] = 'Bearer ' + _ft; hasToken = true; }
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
-    if (!hasToken) return; // Anonymous follow state saved to localStorage only (above)
+    if (!hasToken) {
+      if (newState === true) {
+        var venueName = (venue && venue.name) ? String(venue.name).trim() : 'This Poker Room';
+        var venuePath = '/hub/venues/' + venueId;
+        try {
+          var venueFollowSpot = {
+            id: ('venue-follow-' + venueId).slice(0, 80),
+            kind: 'venue-follow',
+            toolSlug: 'venue-follow',
+            toolName: 'Followed Poker Room',
+            label: venueName,
+            summaryText: venueName.slice(0, 320),
+            path: venuePath,
+            url: venuePath,
+            savedAt: new Date().toISOString(),
+          };
+          var rawSavedSpots = window.localStorage?.getItem('sp_saved_spots_v1');
+          var parsedSavedSpots = rawSavedSpots ? JSON.parse(rawSavedSpots) : [];
+          var existingSavedSpots = Array.isArray(parsedSavedSpots) ? parsedSavedSpots : [];
+          var nextSavedSpots = [
+            venueFollowSpot,
+            ...existingSavedSpots.filter(function (item) { return item && item.id !== venueFollowSpot.id; }),
+          ].slice(0, 25);
+          window.localStorage?.setItem('sp_saved_spots_v1', JSON.stringify(nextSavedSpots));
+        } catch (_) {
+          /* ignore storage restrictions */
+        }
+        trackSeoFunnelEvent('seo_venue_follow_signup_click', {
+          venueId: venueId,
+          venueName: venueName,
+        });
+        try {
+          window.dispatchEvent(
+            new CustomEvent('sp:peak-utility-pwa', {
+              detail: { unlockKey: 'venue-follow' },
+            }),
+          );
+        } catch (_) {
+          /* non-blocking */
+        }
+        openQuickSignup({
+          unlockKey: 'venue-follow',
+          eyebrow: 'Free Poker Room Alerts',
+          title: 'Save Your Followed Room & Get Live Waitlist Alerts',
+          subtitle: 'Create Your Free Smarter.Poker Account In 10 Seconds To Sync Followed Rooms, Live Schedules, And Claim 30-Day Free VIP + 500 Diamonds.',
+          source: 'venue-follow-button',
+          redirectPath: venuePath,
+          benefits: [
+            '100% Free Forever - Zero Credit Card Required',
+            'Sync Followed Poker Rooms & Live Tournament Schedules',
+            'Claim 30-Day Free VIP + 500 Diamonds On Phone Verify',
+          ],
+        });
+      }
+      return;
+    }
 
     var prevFollowed = isFollowed;
     var prevCount = followerCount;
