@@ -89,7 +89,14 @@ for (const route of ROUTES) {
       try {
         if (!PerformanceObserver.supportedEntryTypes?.includes('largest-contentful-paint')) return;
         new PerformanceObserver((list) => {
-          for (const e of list.getEntries()) w.__mobileBudgetLcp.push(e.startTime);
+          for (const e of list.getEntries()) {
+            w.__mobileBudgetLcp.push(e.startTime);
+            // Named in the failure message, so an LCP miss says WHAT painted last.
+            const el = (e as PerformanceEntry & { element?: Element | null; url?: string }).element;
+            const url = (e as PerformanceEntry & { url?: string }).url || '';
+            (w as unknown as { __mobileBudgetLcpWho?: string }).__mobileBudgetLcpWho =
+              `${el ? `<${el.tagName.toLowerCase()} class="${String(el.getAttribute('class') || '').slice(0, 80)}">` : '(detached)'}${url ? ` ${url.slice(-90)}` : ''}`;
+          }
         }).observe({ type: 'largest-contentful-paint', buffered: true });
         w.__mobileBudgetLcpSupported = true;
       } catch (_) {
@@ -111,6 +118,7 @@ for (const route of ROUTES) {
       const lcp: number = w.__mobileBudgetLcp?.length ? w.__mobileBudgetLcp[w.__mobileBudgetLcp.length - 1] : 0;
       const overflow = document.documentElement.scrollWidth - window.innerWidth;
       let smallText = 0;
+      const smallTextNodes: string[] = [];
       let tinyTargets = 0;
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       const seen = new Set<Element>();
@@ -125,7 +133,10 @@ for (const route of ROUTES) {
         // The approved header is artwork scaled to the viewport; its badge
         // digits are pinned by global-header-approved.test.mjs, not here.
         if (el.closest('.approved-global-header, [data-artwork]')) continue;
-        if (parseFloat(cs.fontSize) < 12 && !el.closest('[data-allow-small]')) smallText += 1;
+        if (parseFloat(cs.fontSize) < 12 && !el.closest('[data-allow-small]')) {
+          smallText += 1;
+          if (smallTextNodes.length < 8) smallTextNodes.push(`${cs.fontSize} <${el.tagName.toLowerCase()} class="${String(el.getAttribute('class') || '').slice(0, 60)}"> "${(walker.currentNode.textContent || '').trim().slice(0, 40)}"`);
+        }
       }
       for (const el of Array.from(document.querySelectorAll('button, a[role="button"], [role="button"]'))) {
         const cs = getComputedStyle(el);
@@ -143,7 +154,8 @@ for (const route of ROUTES) {
         if (el.closest('[data-allow-small-target]')) continue;
         if (r.width < 44 || r.height < 44) tinyTargets += 1;
       }
-      return { lcp, lcpSupported, overflow, smallText, tinyTargets };
+      const lcpElement = (w as unknown as { __mobileBudgetLcpWho?: string }).__mobileBudgetLcpWho || '';
+      return { lcp, lcpSupported, overflow, smallText, tinyTargets, smallTextNodes, lcpElement };
     });
 
     await Promise.all(scriptMeasurements);
@@ -157,12 +169,15 @@ for (const route of ROUTES) {
     test.info().annotations.push({ type: 'budget', description: JSON.stringify({ route, jsKb, ...metrics }) });
 
     expect(metrics.overflow, `${route} scrolls sideways by ${metrics.overflow}px`).toBeLessThanOrEqual(0);
-    expect(jsKb, `${route} ships ${jsKb}KB of JS (budget ${budget.jsKb}KB)`).toBeLessThanOrEqual(budget.jsKb);
+    // A miss names the heaviest scripts, so the log says what to cut.
+    const heaviest = [...scripts].sort((x, y) => (y.bytes || 0) - (x.bytes || 0)).slice(0, 15)
+      .map((s) => `${((s.bytes || 0) / 1024).toFixed(1)}KB ${s.url.replace(/^https?:\/\/[^/]+/, '').replace(/\?.*$/, '')}`).join('\n  ');
+    expect(jsKb, `${route} ships ${jsKb}KB of JS (budget ${budget.jsKb}KB); heaviest:\n  ${heaviest}`).toBeLessThanOrEqual(budget.jsKb);
     expect(metrics.lcpSupported, `${route} ran in a browser without Largest Contentful Paint`).toBe(true);
     expect(metrics.lcp, `${route} never reported a Largest Contentful Paint`).toBeGreaterThan(0);
-    expect(metrics.lcp, `${route} LCP ${Math.round(metrics.lcp)}ms (budget ${budget.lcpMs}ms)`).toBeLessThanOrEqual(budget.lcpMs);
+    expect(metrics.lcp, `${route} LCP ${Math.round(metrics.lcp)}ms (budget ${budget.lcpMs}ms); last LCP element ${metrics.lcpElement}`).toBeLessThanOrEqual(budget.lcpMs);
     if (budget.converted) {
-      expect(metrics.smallText, `${route} renders ${metrics.smallText} text nodes under 12px`).toBe(0);
+      expect(metrics.smallText, `${route} renders ${metrics.smallText} text nodes under 12px: ${metrics.smallTextNodes.join('; ')}`).toBe(0);
       expect(metrics.tinyTargets, `${route} has ${metrics.tinyTargets} tap targets under 44px`).toBe(0);
     }
   });

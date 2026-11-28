@@ -912,6 +912,27 @@ function PresenceHeartbeat() {
   return null;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// JARVIS MOUNTS ON FIRST OPEN (2026-11-27)
+//
+// next/dynamic kept JarvisPanel out of the _app chunk, but it was rendered
+// unconditionally, so its chunk (~33 KB compressed) was still fetched on
+// every page right after hydration, counted against every route's mobile JS
+// budget (e2e/mobile-budget.spec.ts). JarvisPanel returns null while closed
+// and does no work then (its only effect starts a conversation when isOpen
+// turns true), so it mounts on the first open and STAYS mounted - closing and
+// reopening keeps the conversation exactly as before. (GlobalPiPManager no
+// longer imports LiveStreamService, #3259, so it stays rendered as it is.)
+// ═══════════════════════════════════════════════════════════════════════════
+function DeferredJarvisPanel({ isOpen, onClose }) {
+  const [opened, setOpened] = useState(isOpen);
+  useEffect(() => {
+    if (isOpen) setOpened(true);
+  }, [isOpen]);
+  if (!opened && !isOpen) return null;
+  return <JarvisPanel isOpen={isOpen} onClose={onClose} />;
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // MARKETPLACE ROUTES THAT OWN THEIR FOOTER
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1367,7 +1388,7 @@ export default function App({ Component, pageProps }) {
                                   />
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Jarvis Panel" fallback={<></>}>
-                                  <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
+                                  <DeferredJarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Global PiP Manager" fallback={<></>}>
                                   <GlobalPiPManager />
