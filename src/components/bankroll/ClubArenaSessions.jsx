@@ -24,10 +24,12 @@ import { localDayOffset, parseLedgerDay } from '../../lib/bankroll/localDates.mj
 import {
   CHIP_RATE_NOTE,
   fetchClubArenaSessions,
+  externalRefOf,
   fetchLoggedMarkers,
   formatChipCents,
+  isAlreadyLoggedError,
+  isLogged,
   ledgerEntryFor,
-  markerOf,
   unloggedSessions,
   venueName,
 } from '../../lib/bankroll/clubArenaSessions.mjs';
@@ -79,21 +81,28 @@ export function useClubArenaSessions(userId, initialSinceDay) {
     let done = 0;
     try {
       // Read the ledger again right before writing: another tab or device may
-      // have logged some of these since the list was drawn.
+      // have logged some of these since the list was drawn. The unique
+      // (user_id, external_ref) index is what finally keeps it single: an
+      // insert it refuses (23505) was logged elsewhere a moment ago.
       const fresh = await fetchLoggedMarkers(supabase, userId);
       const venueIds = new Map();
       for (const session of targets) {
-        const marker = markerOf(session);
-        if (fresh.has(marker)) continue;
+        const ref = externalRefOf(session);
+        if (isLogged(fresh, session)) continue;
         const venue = venueName(session.clubName);
         if (!venueIds.has(venue)) venueIds.set(venue, await getOrCreateLocation(userId, venue, 'online'));
-        await createLedgerEntry(userId, ledgerEntryFor(session, { locationId: venueIds.get(venue) }));
-        fresh.add(marker);
-        done += 1;
-        setState((prev) => ({ ...prev, sessions: prev.sessions.map((s) => (s.marker === marker ? { ...s, logged: true } : s)) }));
+        try {
+          await createLedgerEntry(userId, ledgerEntryFor(session, { locationId: venueIds.get(venue) }));
+          done += 1;
+        } catch (error) {
+          if (!isAlreadyLoggedError(error)) throw error;
+        }
+        fresh.add(ref);
+        setState((prev) => ({ ...prev, sessions: prev.sessions.map((s) => (s.marker === session.marker ? { ...s, logged: true } : s)) }));
       }
-      setState((prev) => ({ ...prev, sessions: prev.sessions.map((s) => (fresh.has(s.marker) ? { ...s, logged: true } : s)) }));
-      toast.success(done === 1 ? 'Club Arena Session Logged' : `${done} Club Arena Sessions Logged`);
+      setState((prev) => ({ ...prev, sessions: prev.sessions.map((s) => (isLogged(fresh, s) ? { ...s, logged: true } : s)) }));
+      if (done > 0) toast.success(done === 1 ? 'Club Arena Session Logged' : `${done} Club Arena Sessions Logged`);
+      else toast.info(targets.length === 1 ? 'That Session Was Already Logged' : 'Those Sessions Were Already Logged');
     } catch (error) {
       console.warn('[ClubArenaSessions] Log failed:', error);
       toast.error(done > 0 ? `${done} Logged, Then One Failed. Try Again.` : 'Could Not Log That Session. Try Again.');

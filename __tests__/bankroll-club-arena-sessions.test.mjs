@@ -9,7 +9,12 @@ import {
   bestPlacings,
   cashMarker,
   chipCentsToUsdCents,
+  externalRefOf,
   fetchClubArenaSessions,
+  fetchLoggedMarkers,
+  isAlreadyLoggedError,
+  isLogged,
+  refOfMarker,
   formatChipCents,
   groupCashSittings,
   groupTournamentEntries,
@@ -302,6 +307,7 @@ function fakeSupabase(tablesData, { failTable } = {}) {
         if (op === 'in') rows = rows.filter((r) => val.includes(r[col]));
         if (op === 'gte') rows = rows.filter((r) => r[col] >= val);
         if (op === 'ilike') rows = rows.filter((r) => String(r[col] || '').includes('[club-arena:'));
+        if (op === 'like') rows = rows.filter((r) => String(r[col] || '').startsWith(String(val).replace(/%$/, '')));
       }
       if (range) rows = rows.slice(range[0], range[1] + 1);
       return { data: rows, error: null };
@@ -312,6 +318,7 @@ function fakeSupabase(tablesData, { failTable } = {}) {
       in(c, v) { q.filters.push(['in', c, v]); return chain; },
       gte(c, v) { q.filters.push(['gte', c, v]); return chain; },
       ilike(c, v) { q.filters.push(['ilike', c, v]); return chain; },
+      like(c, v) { q.filters.push(['like', c, v]); return chain; },
       order() { return chain; },
       range(a, b) { seen.push(q); return Promise.resolve(answer([a, b])); },
       then(resolve, reject) { seen.push(q); return Promise.resolve(answer(null)).then(resolve, reject); },
@@ -380,4 +387,53 @@ test('the panel is wired: Log sheet and dashboard mount it, and it logs through 
   assert.match(modal, /<ClubArenaSessionsPanel userId=\{userId\}/);
   const page = readFileSync(new URL('../pages/hub/bankroll-manager.js', import.meta.url), 'utf8');
   assert.match(page, /<ClubArenaSessionsPrompt userId=\{userId\}/);
+});
+
+// external_ref (installed 2026-11-28): the import's own dedupe key.
+test('every import carries its external_ref, in the shape the database accepts', () => {
+  const { sessions } = buildClubArenaSessions(sampleInput());
+  const cash = sessions.find((s) => s.key === 'cash-a');
+  const mtt = sessions.find((s) => s.kind === 'mtt');
+  assert.equal(externalRefOf(cash), 'club-arena:cash:cash-a');
+  assert.equal(externalRefOf(mtt), `club-arena:mtt:${mtt.key}`);
+  assert.equal(ledgerEntryFor(cash).external_ref, 'club-arena:cash:cash-a');
+  assert.equal(ledgerEntryFor(mtt).external_ref, `club-arena:mtt:${mtt.key}`);
+  // bankroll_ledger_external_ref_shape: '^[a-z][a-z0-9_-]*:' and 3-200 characters.
+  for (const ref of [externalRefOf(cash), externalRefOf(mtt)]) {
+    assert.match(ref, /^[a-z][a-z0-9_-]*:/);
+    assert.ok(ref.length >= 3 && ref.length <= 200);
+  }
+  // The legacy marker is still written for older readers.
+  assert.ok(ledgerEntryFor(cash).notes.split('\n').includes('[club-arena:cash:cash-a]'));
+});
+
+test('dedupe reads external_ref first and old notes markers for rows imported before it', async () => {
+  assert.equal(refOfMarker('[club-arena:mtt:m1]'), 'club-arena:mtt:m1');
+  assert.equal(refOfMarker('[club-arena:other:m1]'), null);
+  const world2 = {
+    bankroll_ledger: [
+      { id: 'n1', user_id: ME, external_ref: 'club-arena:cash:c9', notes: 'edited, marker removed' },
+      { id: 'n2', user_id: ME, external_ref: null, notes: 'old import\n[club-arena:mtt:m7]' },
+      { id: 'n3', user_id: ME, external_ref: 'csv:imp:1', notes: null },
+      { id: 'n4', user_id: OTHER, external_ref: 'club-arena:cash:c1', notes: '[club-arena:mtt:mt]' },
+    ],
+  };
+  const { client, seen } = fakeSupabase(world2);
+  const logged = await fetchLoggedMarkers(client, ME);
+  assert.deepEqual([...logged].sort(), ['club-arena:cash:c9', 'club-arena:mtt:m7']);
+  assert.ok(seen.filter((q) => q.table === 'bankroll_ledger').every((q) => q.filters.some(([op, c, v]) => op === 'eq' && c === 'user_id' && v === ME)));
+  assert.equal(isLogged(logged, { kind: 'cash', key: 'c9' }), true, 'a row whose notes were edited is still logged');
+  assert.equal(isLogged(logged, { kind: 'mtt', key: 'm7' }), true, 'a row imported before external_ref is still logged');
+  assert.equal(isLogged(logged, { kind: 'cash', key: 'c1' }), false, "another player's import does not count");
+  assert.equal(isLogged(new Set(['[club-arena:cash:x]']), { kind: 'cash', key: 'x' }), true, 'a set of markers still works');
+});
+
+test('an insert refused by the unique external_ref index is "already logged", nothing else is', async () => {
+  assert.equal(isAlreadyLoggedError({ code: '23505', message: 'duplicate key value violates unique constraint "bankroll_ledger_user_external_ref_key"' }), true);
+  assert.equal(isAlreadyLoggedError({ code: '42501' }), false);
+  assert.equal(isAlreadyLoggedError(null), false);
+  const { readFileSync } = await import('node:fs');
+  const component = readFileSync(new URL('../src/components/bankroll/ClubArenaSessions.jsx', import.meta.url), 'utf8');
+  assert.match(component, /if \(!isAlreadyLoggedError\(error\)\) throw error;/);
+  assert.match(component, /if \(isLogged\(fresh, session\)\) continue;/);
 });

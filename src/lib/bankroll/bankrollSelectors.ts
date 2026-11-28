@@ -301,11 +301,35 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
 }
 
 /**
+ * Columns createLedgerEntry writes only when the caller names them, so every
+ * existing caller inserts exactly what it always did:
+ * - entry currency (installed 2026-11-28): a session typed in another
+ *   currency; gross_in / gross_out stay US dollars (entryCurrency.mjs);
+ * - external_ref (installed 2026-11-28): the source of an imported row,
+ *   unique per player, so a second import of it fails with 23505;
+ * - id and created_at, plus the columns the form never sets, for a restore
+ *   from Recently Deleted that puts the deleted row back exactly
+ *   (ledgerHistory.mjs restorableRow).
+ */
+const OPTIONAL_LEDGER_COLUMNS = [
+  'id', 'created_at', 'external_ref',
+  'entry_currency', 'fx_rate_to_usd', 'original_gross_in', 'original_gross_out',
+  'assistant_flagged', 'flag_reason', 'table_count', 'buy_in_count', 'seat_type', 'table_texture',
+  'rake_amount', 'addon_count', 'payout_amount', 'format_tags', 'betting_style', 'slot_theme',
+  'parlay_legs', 'expense_vendor', 'is_revision', 'original_entry_id', 'revision_reason',
+];
+
+/**
  * The row createLedgerEntry writes. Import Sessions writes the same row, so an
  * imported session is stored exactly as a typed one.
  */
 function ledgerInsertRow(userId: string, entry: Partial<LedgerEntry>) {
+  const optional = {};
+  for (const column of OPTIONAL_LEDGER_COLUMNS) {
+    if ((entry as any)[column] !== undefined) optional[column] = (entry as any)[column];
+  }
   return {
+    ...optional,
     user_id: userId,
     category: entry.category,
     location_id: entry.location_id,
@@ -357,6 +381,7 @@ export async function recalculateBankrollBalances(
 /**
  * Create a new ledger entry
  */
+
 export async function createLedgerEntry(
   userId: string,
   entry: Partial<LedgerEntry>

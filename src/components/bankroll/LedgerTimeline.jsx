@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { entryCents, isMovementRow, sessionHours, toCents } from '../../lib/bankroll/ledgerMath.mjs';
 import { formatCentsCurrency } from '../../lib/bankroll/currencyUtils';
+import { foreignEntryNote } from '../../lib/bankroll/entryCurrency.mjs';
 
 const CATEGORY_COLORS = {
   poker_cash: '#22c55e',
@@ -213,6 +214,11 @@ function EntryRow({ entry, index, onEdit: editHandler, onDelete: deleteHandler, 
         {!entry._isTripSummary && details && !entry.location_name && (
           <span style={styles.entryDetails}>{details}</span>
         )}
+        {/* Typed in another currency: the amount as typed and its rate. The
+            result above is the stored US dollar figure (Display EUR applies). */}
+        {!entry._isTripSummary && foreignEntryNote(entry) && (
+          <span style={styles.entryForeign} data-testid="entry-foreign-note">{foreignEntryNote(entry)}</span>
+        )}
       </div>
       {entry.emotional_tag && (
         <span
@@ -316,6 +322,11 @@ export default function LedgerTimeline({ entries, isLoading, onEdit, onDelete, d
 }
 
 const styles = {
+  entryForeign: {
+    flexBasis: '100%',
+    fontSize: 12,
+    color: '#94e7ff',
+  },
   timeline: {
     display: 'flex',
     flexDirection: 'column',

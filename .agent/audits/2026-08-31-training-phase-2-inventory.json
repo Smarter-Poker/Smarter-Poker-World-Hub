@@ -47271,7 +47271,7 @@
         {
           "element": "button",
           "name": "`Help For ${title}`",
-          "line": 50,
+          "line": 51,
           "handler": "() => { if (!dialog.current.open) dialog.current.showModal(); }",
           "destination": null,
           "type": "button",
@@ -47281,7 +47281,7 @@
         {
           "element": "button",
           "name": "Close Help",
-          "line": 58,
+          "line": 59,
           "handler": "close",
           "destination": null,
           "type": "button",
@@ -47291,7 +47291,7 @@
         {
           "element": "button",
           "name": "Page Tutorial",
-          "line": 62,
+          "line": 63,
           "handler": "() => { launchTutorial.current = true; close(); }",
           "destination": null,
           "type": "button",
@@ -47331,7 +47331,7 @@
       "functions": [
         {
           "name": "BankrollHelp",
-          "line": 41,
+          "line": 42,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -47339,7 +47339,7 @@
         },
         {
           "name": "close",
-          "line": 46,
+          "line": 47,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -94366,11 +94366,11 @@
       "effectRef": "pages/hub/training/weakness-scanner.js"
     },
     {
-      "id": "src/components/bankroll/BankrollHelp.jsx:50:1",
+      "id": "src/components/bankroll/BankrollHelp.jsx:51:1",
       "file": "src/components/bankroll/BankrollHelp.jsx",
       "element": "button",
       "name": "`Help For ${title}`",
-      "line": 50,
+      "line": 51,
       "handler": "() => { if (!dialog.current.open) dialog.current.showModal(); }",
       "destination": null,
       "type": "button",
@@ -94379,11 +94379,11 @@
       "effectRef": "src/components/bankroll/BankrollHelp.jsx"
     },
     {
-      "id": "src/components/bankroll/BankrollHelp.jsx:58:2",
+      "id": "src/components/bankroll/BankrollHelp.jsx:59:2",
       "file": "src/components/bankroll/BankrollHelp.jsx",
       "element": "button",
       "name": "Close Help",
-      "line": 58,
+      "line": 59,
       "handler": "close",
       "destination": null,
       "type": "button",
@@ -94392,11 +94392,11 @@
       "effectRef": "src/components/bankroll/BankrollHelp.jsx"
     },
     {
-      "id": "src/components/bankroll/BankrollHelp.jsx:62:3",
+      "id": "src/components/bankroll/BankrollHelp.jsx:63:3",
       "file": "src/components/bankroll/BankrollHelp.jsx",
       "element": "button",
       "name": "Page Tutorial",
-      "line": 62,
+      "line": 63,
       "handler": "() => { launchTutorial.current = true; close(); }",
       "destination": null,
       "type": "button",
@@ -136208,6 +136208,7 @@
           "src/lib/__tests__/supabaseKeys.test.mjs",
           "src/lib/authUtils.js",
           "src/lib/authUtils.ts",
+          "src/lib/bankroll/stakingStatement.mjs",
           "src/lib/clubInvite.js",
           "src/lib/seo/publicFeedData.js",
           "src/lib/sharedGameLink.js",
@@ -148839,6 +148840,7 @@
           "src/lib/__tests__/supabaseKeys.test.mjs",
           "src/lib/authUtils.js",
           "src/lib/authUtils.ts",
+          "src/lib/bankroll/stakingStatement.mjs",
           "src/lib/clubInvite.js",
           "src/lib/seo/publicFeedData.js",
           "src/lib/sharedGameLink.js",

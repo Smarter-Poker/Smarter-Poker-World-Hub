@@ -38,12 +38,18 @@
 // so.
 //
 // DEDUPE
-// bankroll_ledger has no source or external-id column, so each imported row's
-// notes carry a deterministic marker, `[club-arena:cash:<first leg id>]` or
-// `[club-arena:mtt:<tournament id>]`, and a session whose marker is already in
-// the player's ledger shows as logged and is never offered again. The column
-// this wants is `bankroll_ledger.external_ref text` with a unique index on
-// (user_id, external_ref) where external_ref is not null.
+// Since 2026-11-28 every imported row carries `external_ref`
+// 'club-arena:cash:<first leg id>' or 'club-arena:mtt:<tournament id>', and
+// bankroll_ledger has a unique index on (user_id, external_ref) where it is
+// not null (migration 20261128101901_bankroll_ledger_external_ref). A
+// session is "already logged" when its external_ref is in the player's
+// ledger, or, for rows imported before that column existed, when its notes
+// carry the old marker `[club-arena:cash:<id>]` / `[club-arena:mtt:<id>]`.
+// The marker is still written to notes so the import reads the same to the
+// player and older copies of this page still dedupe, but it is no longer what
+// keeps the import single: a player can edit notes, not external_ref. An
+// insert the index refuses (23505: another tab or device logged it first) is
+// "already logged", not a failure.
 
 import { toCents } from './ledgerMath.mjs';
 import { localDay } from './localDates.mjs';
@@ -70,6 +76,26 @@ export function cashMarker(key) { return `${MARKER_PREFIX}cash:${key}]`; }
 export function mttMarker(tournamentId) { return `${MARKER_PREFIX}mtt:${tournamentId}]`; }
 export function markerOf(session) {
   return session.kind === 'cash' ? cashMarker(session.key) : mttMarker(session.key);
+}
+
+export const EXTERNAL_REF_PREFIX = 'club-arena:';
+/** The bankroll_ledger.external_ref of one session. */
+export function externalRefOf(session) {
+  return `${EXTERNAL_REF_PREFIX}${session.kind === 'cash' ? 'cash' : 'mtt'}:${session.key}`;
+}
+/** '[club-arena:cash:x]' -> 'club-arena:cash:x', so old markers and new refs compare as one set. */
+export function refOfMarker(marker) {
+  const m = /^\[(club-arena:(?:cash|mtt):[0-9a-zA-Z-]+)\]$/.exec(String(marker || ''));
+  return m ? m[1] : null;
+}
+/** Is this session in the set of logged refs (or legacy markers)? */
+export function isLogged(logged, session) {
+  if (!logged) return false;
+  return logged.has(externalRefOf(session)) || logged.has(markerOf(session));
+}
+/** An insert the (user_id, external_ref) index refused: the session is already logged. */
+export function isAlreadyLoggedError(error) {
+  return Boolean(error) && error.code === '23505';
 }
 
 /** Every Club Arena marker found in a list of ledger notes. */
@@ -287,7 +313,8 @@ export function buildClubArenaSessions({
       topUps: Math.max(0, s.fundings - 1),
     };
     row.marker = markerOf(row);
-    row.logged = logged.has(row.marker);
+    row.externalRef = externalRefOf(row);
+    row.logged = isLogged(logged, row);
     sessions.push(row);
   }
 
@@ -320,7 +347,8 @@ export function buildClubArenaSessions({
       position: Number.isInteger(placing?.position) && placing.position > 0 ? placing.position : null,
     };
     row.marker = markerOf(row);
-    row.logged = logged.has(row.marker);
+    row.externalRef = externalRefOf(row);
+    row.logged = isLogged(logged, row);
     sessions.push(row);
   }
 
@@ -350,6 +378,7 @@ export function ledgerEntryFor(session, { locationId = null } = {}) {
     gross_out: grossOut,
     game_type: session.gameType,
     notes: lines.join('\n'),
+    external_ref: externalRefOf(session),
   };
   if (session.kind === 'cash') {
     entry.stakes = session.stakes;
@@ -427,15 +456,33 @@ export function readWindow(sinceDay) {
   return { sinceIso, readFrom };
 }
 
-/** The notes markers already in this player's ledger, every page. */
+/**
+ * What this player has already imported: every Club Arena external_ref in
+ * their ledger, plus the notes markers of rows imported before external_ref
+ * existed, all as refs ('club-arena:cash:<id>'). Every page of both reads.
+ */
 export async function fetchLoggedMarkers(supabase, userId) {
-  const rows = await readAllPages(() => supabase
-    .from('bankroll_ledger')
-    .select('id, notes')
-    .eq('user_id', userId)
-    .ilike('notes', '%[club-arena:%')
-    .order('id', { ascending: true }), 'Your Bankroll Ledger');
-  return markersIn(rows.map((r) => r.notes));
+  const [refRows, noteRows] = await Promise.all([
+    readAllPages(() => supabase
+      .from('bankroll_ledger')
+      .select('id, external_ref')
+      .eq('user_id', userId)
+      .like('external_ref', `${EXTERNAL_REF_PREFIX}%`)
+      .order('id', { ascending: true }), 'Your Bankroll Ledger'),
+    readAllPages(() => supabase
+      .from('bankroll_ledger')
+      .select('id, notes')
+      .eq('user_id', userId)
+      .ilike('notes', '%[club-arena:%')
+      .order('id', { ascending: true }), 'Your Bankroll Ledger'),
+  ]);
+  const logged = new Set();
+  for (const row of refRows) if (row.external_ref) logged.add(row.external_ref);
+  for (const marker of markersIn(noteRows.map((r) => r.notes))) {
+    const ref = refOfMarker(marker);
+    if (ref) logged.add(ref);
+  }
+  return logged;
 }
 
 /** One finishing row per tournament: the best place, and the latest bust time. */
