@@ -7,6 +7,7 @@ import { getFreshAccessToken } from '../../lib/authUtils';
 import VIPGateModal from '../ui/VIPGateModal';
 import view from './JarvisLeakInsights.module.css';
 import BankrollImageHeader from './BankrollImageHeader';
+import { localDay } from '../../lib/bankroll/localDates.mjs';
 
 const money = value => value == null ? 'Not Measured' : value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 const date = iso => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso + 'T00:00:00Z'));
@@ -44,7 +45,7 @@ function Results({ report }) {
       </section>}
     </>}
     <details className={view.method}><summary>How These Figures Are Calculated</summary>
-      <p>The Analysis Uses Your Cash Game, Tournament, Casino Table, Slot And Sports Entries Dated Within The Selected UTC Calendar Days. It Excludes Deposits, Withdrawals, Expenses And Superseded Entries.</p>
+      <p>The Analysis Uses Your Cash Game, Tournament, Casino Table, Slot And Sports Entries Dated Within The Selected Calendar Days, Ending Today On Your Own Calendar. It Excludes Deposits, Withdrawals, Expenses And Superseded Entries.</p>
       <p>Winning Percentage Counts Profitable Sessions Divided By Sessions With A Recorded Result. Hourly Results Use Earnings And Time From The Same Timed Sessions. Drawdown Starts At Zero And Follows Each Day’s Closing Net.</p>
       <p>Period Comparisons Require At Least {sample.minimumComparison} Measured Sessions In Both This Window And The Preceding {window.days} Days, With Complete Results In Both.</p>
     </details>
@@ -84,7 +85,7 @@ function OwnerInsights({ userId }) {
         if (!token) throw new Error('Sign in to review your ledger.');
         const response = await fetch('/api/jarvis/bankroll-analysis', {
           method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-          cache: 'no-store', signal: controller.signal, body: JSON.stringify({ days }),
+          cache: 'no-store', signal: controller.signal, body: JSON.stringify({ days, today: localDay() }),
         });
         const data = await response.json();
         if (!response.ok || !data.success || !data.insights) throw new Error(data.error || 'Your ledger analysis is unavailable.');

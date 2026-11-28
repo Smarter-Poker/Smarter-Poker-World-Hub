@@ -7,6 +7,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { CATEGORY_NAMES, entryNetCents, fetchAllRows, formatUsd, summarizeLedger } from '../../../src/lib/bankroll/ledgerReport.mjs';
 
 
 
@@ -40,51 +41,28 @@ export default async function handler(req, res) {
           // Query parameters
           const { startDate, endDate, category } = req.query;
 
-          // Build query
-          let query = getSupabase()
-              .from('bankroll_ledger')
-              .select(`
-          id,
-          entry_date,
-          category,
-          gross_in,
-          gross_out,
-          notes,
-          stakes,
-          location_id,
-          bankroll_locations(name)
-        `)
-              .eq('user_id', userId)
-              .order('entry_date', { ascending: false });
-
-          if (startDate) {
-              query = query.gte('entry_date', startDate);
-          }
-          if (endDate) {
-              query = query.lte('entry_date', endDate);
-          }
-          if (category && category !== 'all') {
-              query = query.eq('category', category);
-          }
-
-          const { data: entries, error } = await query;
-          if (error) throw error;
-
-          // Calculate summary stats
-          let totalGrossIn = 0;
-          let totalGrossOut = 0;
-          let winCount = 0;
-          let sessionCount = entries?.length || 0;
-
-          entries?.forEach(entry => {
-              totalGrossIn += entry.gross_in || 0;
-              totalGrossOut += entry.gross_out || 0;
-              if ((entry.gross_out - entry.gross_in) > 0) winCount++;
+          // Every current row: superseded revisions are excluded (they were
+          // counted alongside the entry that replaced them) and the read pages
+          // past PostgREST's row cap instead of truncating the totals.
+          const entries = await fetchAllRows(() => {
+              let query = getSupabase()
+                  .from('bankroll_ledger')
+                  .select('id, entry_date, category, gross_in, gross_out, notes, stakes, location_id, created_at, bankroll_locations(name)')
+                  .eq('user_id', userId)
+                  .eq('is_revision', false);
+              if (startDate) query = query.gte('entry_date', startDate);
+              if (endDate) query = query.lte('entry_date', endDate);
+              if (category && category !== 'all') query = query.eq('category', category);
+              return query
+                  .order('entry_date', { ascending: false })
+                  .order('created_at', { ascending: false })
+                  .order('id', { ascending: false });
           });
 
-          const netResult = totalGrossOut - totalGrossIn;
-          const winRate = sessionCount > 0 ? ((winCount / sessionCount) * 100).toFixed(1) : 0;
-          const avgSession = sessionCount > 0 ? (netResult / sessionCount).toFixed(0) : 0;
+          // Sessions, win rate and net cover gaming entries only. Deposits and
+          // withdrawals are bankroll movements, not results.
+          const totals = summarizeLedger(entries);
+          const generatedDay = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.today || '')) ? req.query.today : new Date().toISOString().slice(0, 10);
 
           // Generate PDF
           // Dynamic-import jspdf only after auth + feature-gate pass (Phase 4.3)
@@ -106,7 +84,7 @@ export default async function handler(req, res) {
               ? `${startDate} to ${endDate}`
               : 'All Time';
           doc.text(`Period: ${dateRangeText}`, pageWidth / 2, 28, { align: 'center' });
-          doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 34, { align: 'center' });
+          doc.text(`Generated: ${generatedDay}`, pageWidth / 2, 34, { align: 'center' });
 
           // Summary Stats Box
           doc.setFontSize(14);
@@ -117,12 +95,16 @@ export default async function handler(req, res) {
           doc.setTextColor(60, 60, 60);
 
           const summaryData = [
-              ['Total Sessions', sessionCount.toString()],
-              ['Net Result', `$${netResult.toLocaleString()}`],
-              ['Win Rate', `${winRate}%`],
-              ['Avg Session', `$${avgSession}`],
-              ['Total Buy-ins', `$${totalGrossIn.toLocaleString()}`],
-              ['Total Cash-outs', `$${totalGrossOut.toLocaleString()}`],
+              ['Gaming Sessions', totals.sessions.toString()],
+              ['Session Net', formatUsd(totals.sessionNet)],
+              ['Win Rate', `${totals.winRate}%`],
+              ['Avg Session', formatUsd(totals.averageSession)],
+              ['Session Buy-ins', formatUsd(totals.totalBuyIns)],
+              ['Session Cash-outs', formatUsd(totals.totalCashOuts)],
+              ['Expenses', formatUsd(-totals.expenses)],
+              ['Net After Expenses', formatUsd(totals.netAfterExpenses)],
+              ['Deposits', formatUsd(totals.deposits)],
+              ['Withdrawals', formatUsd(totals.withdrawals)],
           ];
 
           autoTable(doc, {
@@ -148,14 +130,16 @@ export default async function handler(req, res) {
           doc.text('Session Details', 14, yPos);
           yPos += 4;
 
-          const tableData = entries?.slice(0, 50).map(entry => ([
+          // Every entry is listed; autoTable paginates. The old 50-row cut
+          // left the rest of the ledger out of the document without a word.
+          const tableData = entries.map(entry => ([
               entry.entry_date,
-              entry.category?.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || '',
+              CATEGORY_NAMES[entry.category] || entry.category || '',
               entry.bankroll_locations?.name || '-',
-              `$${entry.gross_in?.toLocaleString() || 0}`,
-              `$${entry.gross_out?.toLocaleString() || 0}`,
-              `$${((entry.gross_out || 0) - (entry.gross_in || 0)).toLocaleString()}`
-          ])) || [];
+              formatUsd(entry.gross_in || 0),
+              formatUsd(entry.gross_out || 0),
+              formatUsd(entryNetCents(entry) / 100)
+          ]));
 
           autoTable(doc, {
               startY: yPos,
@@ -201,12 +185,12 @@ export default async function handler(req, res) {
           const pdfBuffer = doc.output('arraybuffer');
 
           res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', `attachment; filename="bankroll-report-${new Date().toISOString().split('T')[0]}.pdf"`);
+          res.setHeader('Content-Disposition', `attachment; filename="bankroll-report-${generatedDay}.pdf"`);
           res.send(Buffer.from(pdfBuffer));
 
       } catch (err) {
           console.warn('[PDF Export] Error:', err);
-          res.status(500).json({ error: err.message });
+          res.status(500).json({ error: 'PDF export failed' });
       }
 
   } catch (err) {

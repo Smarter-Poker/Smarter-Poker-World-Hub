@@ -173,6 +173,7 @@ import './bankroll-ledger-math.test.mjs';
 import './bankroll-receipts-are-read-kept-and-sent.test.mjs';
 import './bankroll-trip-math.test.mjs';
 import './bankroll-tournament-schedule.test.mjs';
+import './bankroll-reports-audit.test.mjs';
 import './bankroll-local-dates.test.mjs';
 import './bankroll-jarvis-session-insights.test.mjs';
 import './toke-dealer-reference.test.mjs';
