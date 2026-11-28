@@ -472,16 +472,21 @@ const TRIP_ENTRY_COLUMNS = 'id, trip_id, category, gross_in, gross_out, net_resu
  * Ledger rows for many trips in one query (was one query per trip). A failed
  * read throws: showing a trip at $0 because its rows did not load would be a lie.
  */
+const TRIP_ID_BATCH = 100;
+
 async function fetchTripEntryRows(userId: string, tripIds: string[]) {
-  if (!tripIds.length) return [];
-  const { data, error } = await supabase
-    .from('bankroll_ledger')
-    .select(TRIP_ENTRY_COLUMNS)
-    .eq('user_id', userId)
-    .eq('is_revision', false)
-    .in('trip_id', tripIds);
-  if (error) throw error;
-  return data || [];
+  const rows = [];
+  for (let start = 0; start < tripIds.length; start += TRIP_ID_BATCH) {
+    const { data, error } = await supabase
+      .from('bankroll_ledger')
+      .select(TRIP_ENTRY_COLUMNS)
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .in('trip_id', tripIds.slice(start, start + TRIP_ID_BATCH));
+    if (error) throw error;
+    rows.push(...(data || []));
+  }
+  return rows;
 }
 
 async function listTripsOfType(userId: string, tripType: 'trip' | 'series'): Promise<Trip[]> {

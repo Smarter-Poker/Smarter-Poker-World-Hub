@@ -199,7 +199,7 @@ test('trip and series selectors share one implementation and use local dates', (
   const sel = src('src/lib/bankroll/bankrollSelectors.ts');
   assert.doesNotMatch(sel, /end_date: new Date\(\)\.toISOString\(\)/, 'completion date is the local day');
   assert.match(sel, /completionEndDate\(row\.start_date, localDay\(\)\)/);
-  assert.match(sel, /\.in\('trip_id', tripIds\)/, 'one entries query for all trips');
+  assert.match(sel, /\.in\('trip_id', tripIds\.slice\(start, start \+ TRIP_ID_BATCH\)\)/, 'entries for all trips in bounded batches, not one query per trip');
   assert.match(sel, /export async function reopenTrip/);
   assert.match(sel, /export async function reopenSeries/);
 });
