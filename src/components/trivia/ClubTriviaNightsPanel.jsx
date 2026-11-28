@@ -684,6 +684,8 @@ export default function ClubTriviaNightsPanel({
                                 key={`${activeQuestion.position}-${idx}`}
                                 index={idx}
                                 option={toTitleCase(String(option))}
+                                rawOption={String(option)}
+                                formatText={toTitleCase}
                                 selectedAnswer={selectedAnswers[currentQuestionIdx] >= 0 ? selectedAnswers[currentQuestionIdx] : null}
                                 showResult={false}
                                 disabled={busyKey === `submit:${activeRun.clubTournamentId}`}

@@ -21,6 +21,7 @@ import {
     createPvpQuoteAuthority,
     defaultPvpStake,
     derivePvpSessionProgress,
+    effectivePvpPollDelay,
     formatPvpDuration,
     isActivePvpState,
     isAuthoritativePvpQuote,
@@ -869,11 +870,12 @@ export default function PvpCompetitiveExperience({
 
     useEffect(() => {
         if (!user?.id || bootState !== 'ready' || showLobby) return undefined;
-        const baseDelay = pvpPollDelay(dto);
-        if (baseDelay == null) return undefined;
-        const delay = realtimeConnected && Number.isFinite(realtimePollMs) && realtimePollMs >= baseDelay
-            ? Math.min(10_000, Math.floor(realtimePollMs))
-            : baseDelay;
+        const delay = effectivePvpPollDelay(dto, {
+            realtimeConnected,
+            realtimePollMs,
+            serverClockAnchor: clockAnchor,
+        });
+        if (delay == null) return undefined;
         let disposed = false;
         let timer = null;
         const controller = new AbortController();
@@ -902,7 +904,7 @@ export default function PvpCompetitiveExperience({
             controller.abort();
             if (timer) window.clearTimeout(timer);
         };
-    }, [bootState, dto, readLatestStatus, realtimeConnected, realtimePollMs, showLobby, user?.id]);
+    }, [bootState, clockAnchor, dto, readLatestStatus, realtimeConnected, realtimePollMs, showLobby, user?.id]);
 
     useEffect(() => {
         if (typeof onSyncContextChange !== 'function') return;
@@ -1899,6 +1901,13 @@ export default function PvpCompetitiveExperience({
                                         ink="blue"
                                         onClick={() => setShareModalOpen(true)}
                                     />
+                                    <Link
+                                        href="/hub/trivia/study"
+                                        className="tc-word tc-ink--blue"
+                                        data-pvp-study-misses="true"
+                                    >
+                                        Study Your Misses
+                                    </Link>
                                 </div>
                             ) : null}
                             {isSettledResult && effectiveReviewSessionId ? (

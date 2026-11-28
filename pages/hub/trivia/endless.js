@@ -1718,6 +1718,8 @@ export default function EndlessModePage() {
                                                     key={index}
                                                     index={index}
                                                     option={toTitleCase(option)}
+                                                    rawOption={option}
+                                                    formatText={toTitleCase}
                                                     selectedAnswer={trivia.selectedAnswer}
                                                     correctIndex={verdict ? verdict.correctDisplayIndex : null}
                                                     showResult={trivia.showResult}

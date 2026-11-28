@@ -28,6 +28,7 @@ import * as audio from '../../lib/trivia/triviaAudio';
 import { triggerTriviaHaptic } from '../../lib/trivia/triviaHaptics';
 import useVIP from '../../hooks/useVIP';
 import useTriviaTimer from '../../hooks/useTriviaTimer';
+import useTriviaKeyboardControls from '../../hooks/useTriviaKeyboardControls';
 
 
 // ══ Escalating stake values per question ══
@@ -696,33 +697,22 @@ export default function TriviaGame({
     const cashOutBtnRef = useRef(null);
     const answerConfirmed = !serverGrader || Boolean(verdicts[currentIndex]);
     const canAdvanceQuestion = selectedAnswer !== null && answerConfirmed && !isAnswerPending;
+
+    useTriviaKeyboardControls({
+        enabled: Boolean(currentQuestion),
+        optionCount: currentQuestion?.options?.length || 0,
+        canSelect: selectedAnswer === null && !isLocked && Boolean(currentQuestion),
+        canAdvance: !isArcadeMode && canAdvanceQuestion,
+        eliminatedIndices: eliminatedOptions,
+        onSelectOption: selectAnswer,
+        onAdvance: advanceQuestion,
+    });
+
     const onGameKeyDown = (e) => {
         if (e.metaKey || e.ctrlKey || e.altKey) return;
         const target = e.target;
-        if (target?.closest?.('button, a, input, textarea, select, summary, [contenteditable="true"], [role="dialog"], [aria-modal="true"]')) return;
-
-        const key = e.key;
-
-        // Shortcuts are intentionally scoped to the focused gameplay surface;
-        // typing or activating header, dialog and report controls cannot answer.
-        if (selectedAnswer === null && !isLocked && currentQuestion) {
-            let idx = -1;
-            if (/^[1-9]$/.test(key)) idx = parseInt(key, 10) - 1;
-            else if (/^[a-jA-J]$/.test(key)) idx = key.toLowerCase().charCodeAt(0) - 97;
-            if (idx >= 0 && idx < (currentQuestion.options?.length || 0) && !eliminatedOptions.includes(idx)) {
-                e.preventDefault();
-                selectAnswer(idx);
-                return;
-            }
-        }
-
-        if ((key === 'Enter' || key === ' ') && !isArcadeMode && canAdvanceQuestion) {
-            e.preventDefault();
-            advanceQuestion();
-            return;
-        }
-
-        if (key === 'Escape' && cashOutBtnRef.current) {
+        if (target?.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"], [aria-modal="true"]')) return;
+        if (e.key === 'Escape' && cashOutBtnRef.current) {
             e.preventDefault();
             cashOutBtnRef.current.focus();
         }
@@ -940,6 +930,8 @@ export default function TriviaGame({
                                 key={`${currentQuestion.id}-${index}`}
                                 index={index}
                                 option={toTitleCase(option)}
+                                rawOption={option}
+                                formatText={toTitleCase}
                                 selectedAnswer={selectedAnswer}
                                 correctIndex={revealed ? revealedCorrectIndex : -1}
                                 showResult={revealed}

@@ -11,7 +11,7 @@
  * Status and heartbeat also align the Smarter Horse claim with the stored
  * deadline: when a live searching ticket's horse_eligible_at is at most a few
  * seconds away, the request waits for it and polls once more, so fallback
- * happens at the persisted 20-45 s instant instead of at the next client poll.
+ * happens at the persisted 15-30 s instant instead of at the next client poll.
  */
 import { getServerUserWithFallback } from '../serverAuth';
 import { applyRateLimit, LIMITS } from '../apiRateLimit';

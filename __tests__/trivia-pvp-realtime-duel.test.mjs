@@ -27,10 +27,11 @@ test('PvP page wires useTriviaRealtimeSync for active match/ticket states and sl
     assert.match(pvpPage, /realtimePollMs=\{realtimeSync\.effectivePollMs\}/);
     assert.match(pvpPage, /realtimeEventCount=\{realtimeEventCount\}/);
 
-    // PvpCompetitiveExperience slows fallback polling when Realtime is connected
-    // and triggers an immediate sequenced status/heartbeat refresh on Realtime events.
+    // PvpCompetitiveExperience delegates realtime polling backoff and searching
+    // horse-deadline alignment to effectivePvpPollDelay, and triggers an immediate
+    // sequenced status/heartbeat refresh on Realtime events.
     assert.match(pvpExperience, /onSyncContextChange\(/);
-    assert.match(pvpExperience, /realtimeConnected && Number\.isFinite\(realtimePollMs\) && realtimePollMs >= baseDelay/);
+    assert.match(pvpExperience, /effectivePvpPollDelay\(dto, \{[\s\S]{0,140}realtimeConnected,[\s\S]{0,140}realtimePollMs,/);
     assert.match(pvpExperience, /if \(realtimeEventCount <= lastRealtimeEventRef\.current\) return undefined/);
     assert.match(pvpExperience, /lastRealtimeEventRef\.current = realtimeEventCount/);
     assert.match(pvpExperience, /readLatestStatus\(\{[\s\S]{0,140}action: current\.state === 'searching' \? 'heartbeat' : 'status'/);

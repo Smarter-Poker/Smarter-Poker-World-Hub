@@ -1856,6 +1856,8 @@ export default function SurvivalGamePage() {
                                                     key={`${currentQuestion.id}-${index}`}
                                                     index={index}
                                                     option={toTitleCase(option)}
+                                                    rawOption={option}
+                                                    formatText={toTitleCase}
                                                     selectedAnswer={trivia.selectedAnswer}
                                                     correctIndex={verdict ? verdict.correctDisplayIndex : null}
                                                     showResult={trivia.showResult}
