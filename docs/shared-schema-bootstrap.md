@@ -69,3 +69,34 @@ auth-trigger fixtures, proving all named audit checks, extra-trigger tolerance,
 missing/disabled-trigger refusal, unknown-check refusal and browser-role denial.
 It receives its own exact path/hash receipt; its source and production state
 are unchanged by this admission repair.
+
+## Migrations installed after the baseline (2026-11-28)
+
+The pinned baseline has no refresh route. Its source is Club Arena commit
+`672c582d`, which never reached that repository's main, and Club Arena main has
+no `supabase/bootstrap` or `scripts/schema-rebuild` to refresh from. From
+2026-11-12 every ordinary Hub migration failed this check as an unqualified
+transition. Main stayed red for sixteen days, and a check that is always red
+protects nothing.
+
+`supabase/history/installed-after-baseline.json` is the refreshed baseline for
+those files. It lists each migration merged after the pin that production's
+`supabase_migrations.schema_migrations` records as installed. Each entry gives
+the path, the exact sha256, the installed version and the installed name. The
+installed version is the one production recorded. It differs from the file
+prefix where the migration went in through a tool that assigns its own version.
+Every entry is then held exactly like the pinned files: a deleted file or
+changed bytes fail, and an entry cannot restate a pinned or qualified file.
+A migration file that is not recorded is still refused, by name.
+
+To admit a new migration, first install it through the migration-safety
+workflow, then append its entry with the version production recorded. An entry
+without an installed version is refused, so SQL that has not run is never
+admitted. The qualified M1, digest and marketplace transitions above, and the
+pinned inventory, are unchanged.
+
+When this was added, one merged file had never been installed:
+`20261114163409_digest_error_spike_counts_people_not_test_browsers.sql`.
+Production's `fn_sp_digest_attention` does not contain its new block, and no
+installed migration has its name. It is deliberately left unrecorded, so this
+check names it until it is installed or retired.
