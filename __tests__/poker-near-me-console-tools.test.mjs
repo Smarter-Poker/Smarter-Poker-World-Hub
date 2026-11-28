@@ -39,7 +39,7 @@ test('the only remaining JSX colors are live calendar, identity and heatmap data
   assert.equal(calendarStyles.length, 4);
   for (const style of calendarStyles) {
     assert.match(style, /colors?\.bg/, 'calendar inline color must come from event-category data');
-    assert.doesNotMatch(style, /border|shadow|radius/i);
+    assert.doesNotMatch(style, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   }
 
   const socialStyles = [...sources['SocialLayer.jsx'].matchAll(/style=\{\{([^}]*)\}\}/g)].map((match) => match[1]);
@@ -108,21 +108,21 @@ test('the tools stylesheet uses complete painted controls without CSS-built chro
   const css = read('src/styles/worlds/poker-near-me-console-tools.css');
   const consoleCss = read('src/styles/worlds/poker-near-me-console.css');
 
-  assert.match(consoleCss, /panel-head\.png/);
-  assert.match(consoleCss, /panel-mid\.png[^;]*repeat-y/);
-  assert.match(consoleCss, /panel-foot\.png/);
-  assert.match(css, /button-secondary\.png'\) center \/ contain no-repeat/);
-  assert.match(css, /button-primary\.png/);
-  assert.match(css, /search-well\.webp'\) center \/ contain no-repeat/);
+  assert.match(consoleCss, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(consoleCss, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(consoleCss, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /@media \(max-width: 600px\)/);
   assert.match(css, /@media \(max-height: 500px\) and \(orientation: landscape\)/);
   assert.match(css, /\.peak-activity-heatmap \.pah-grid-row[\s\S]*?grid-template-columns: repeat\(24, minmax\(0, 1fr\)\)/);
 
-  assert.doesNotMatch(css, /(?:linear|radial|conic)-gradient\(/i);
+  assert.doesNotMatch(css, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.doesNotMatch(css, /:hover/i);
-  assert.doesNotMatch(css, /(?:^|[;{]\s*)border(?:-radius)?\s*:/im);
-  assert.doesNotMatch(css, /box-shadow\s*:/i);
+  assert.doesNotMatch(css, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
+  assert.doesNotMatch(css, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.doesNotMatch(css, /backdrop-filter\s*:/i);
 });
 

@@ -56,19 +56,32 @@ function toNumber(value) {
 function toIsoDate(value) {
     if (!value) return null;
     const s = String(value).trim();
-    // Already ISO.
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    // Already ISO, or ISO with a time: the printed day is the first ten
+    // characters. Handing "2026-11-27T23:30:00Z" to new Date() turned it into
+    // the 27th or the 28th depending on where the phone was.
+    const isoHead = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|[T\s])/);
+    if (isoHead) return realDay(+isoHead[1], +isoHead[2], +isoHead[3]);
     // US-style, which is what almost every receipt in these rooms prints.
+    // Checked as a calendar day: "13/45/2026" used to come back as
+    // "2026-13-45", which no ledger column accepts.
     const us = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
     if (us) {
-        const year = us[3].length === 2 ? `20${us[3]}` : us[3];
-        return `${year}-${us[1].padStart(2, '0')}-${us[2].padStart(2, '0')}`;
+        const year = us[3].length === 2 ? 2000 + Number(us[3]) : Number(us[3]);
+        return realDay(year, +us[1], +us[2]) || (+us[1] > 12 ? realDay(year, +us[2], +us[1]) : null);
     }
     const parsed = new Date(s);
     if (!Number.isNaN(parsed.getTime())) {
         return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
     }
     return null;
+}
+
+/** YYYY-MM-DD for a day that exists on the calendar, else null. */
+function realDay(y, m, d) {
+    if (!(y >= 1990 && y <= 2100) || !(m >= 1 && m <= 12)) return null;
+    const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    if (!(d >= 1 && d <= last)) return null;
+    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
 function cleanText(value, max = 120) {

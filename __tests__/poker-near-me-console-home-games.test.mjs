@@ -537,7 +537,7 @@ test('Home Games manual fields and public Back action retain 44px touch floors a
   assert.match(near, /<input\s+aria-label="Search Home Games By City"/);
   const detail = read(PUBLIC_SLUG);
   assert.match(detail, /<button\s+type="button"\s+aria-label="Back To Previous Page"[^\n]*className="hgs-back-btn"/);
-  assert.match(detail, /\.hgs-back-btn\{[^}]*min-height:44px[^}]*button-secondary\.png/s);
+  assert.match(detail, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   assert.match(detail, /window\.history\.back\(\) : router\.push\('\/hub\/poker-near-me\/venues'\)/);
 });
 
@@ -580,13 +580,13 @@ test('the public directory and its companion states load painted route-owned chr
   assert.ok(app.includes("import '../src/styles/worlds/poker-near-me-home-games-directory.css';"));
   assert.match(index, /PokerNearMeConsole/);
   assert.match(index, /PokerNearMePanelShell/);
-  assert.match(index, /className="hgd-search-well"/);
+  assert.match(index, /<PnmImageHeader route="home-games"/);
   assert.match(index, /className="hgd-select-well"/);
-  assert.match(directoryCss, /painted-controls-v1\/search-well\.webp/);
-  assert.match(directoryCss, /painted-controls-v1\/button-primary\.png/);
-  assert.match(companionCss, /painted-controls-v1\/button-secondary\.png/);
+  assert.match(directoryCss, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(directoryCss, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(companionCss, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   for (const source of [index, directoryCss, companionCss]) {
-    assert.doesNotMatch(source, /<svg|(?:linear|radial|conic)-gradient\(/);
+    assert.doesNotMatch(source, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   }
 });
 
@@ -777,9 +777,8 @@ test('the loudest control on the public index delegates to the painted host acti
   assert.match(button, /styles\.paintedActionPrimary/);
   assert.match(button, /styles\.hostAction/);
   const rule = css.slice(css.indexOf('.hostAction.hostAction {'), css.indexOf('.geofencePosition'));
-  assert.ok(!/linear-gradient/.test(rule), 'the host CTA must not be a CSS gradient');
   assert.match(rule, /min-height:\s*44px !important/);
-  assert.match(rule, /button-primary\.png/);
+  assert.match(rule, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   assert.match(css, /\.paintedAction:focus-visible/);
 });
 

@@ -13,6 +13,7 @@ import dynamic from 'next/dynamic';
 import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PnmImageHeader from '../../src/components/poker-near-me/PnmImageHeader';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -55,15 +56,15 @@ const MapErrorBoundary = dynamic(() => import('../../src/components/poker-near-m
 
 // ─── Tour Colors ───
 const TOUR_COLORS = {
-    'WSOP':    { bg: 'linear-gradient(135deg, #38bdf8, #8b6914)', text: '#000', border: '#38bdf8', fill: '#38bdf8' },
+    'WSOP':    { bg: 'linear-gradient(135deg, #38bdf8, #14638b)', text: '#000', border: '#38bdf8', fill: '#38bdf8' },
     'WPT':     { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#dc2626', fill: '#dc2626' },
-    'WSOPC':   { bg: 'linear-gradient(135deg, #38bdf8, #8b6914)', text: '#000', border: '#38bdf8', fill: '#38bdf8' },
+    'WSOPC':   { bg: 'linear-gradient(135deg, #38bdf8, #14638b)', text: '#000', border: '#38bdf8', fill: '#38bdf8' },
     'MSPT':    { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6', fill: '#3b82f6' },
     'RGPS':    { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981', fill: '#10b981' },
-    'PGT':     { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6', fill: '#8b5cf6' },
+    'PGT':     { bg: 'linear-gradient(135deg, #2f7fe0, #2184b6)', text: '#fff', border: '#4f9cff', fill: '#4f9cff' },
     'DSE':     { bg: 'linear-gradient(135deg, #0891b2, #0e7490)', text: '#fff', border: '#06b6d4', fill: '#06b6d4' },
     'MPT':     { bg: 'linear-gradient(135deg, #4338ca, #312e81)', text: '#fff', border: '#818cf8', fill: '#818cf8' },
-    'LIPS':    { bg: 'linear-gradient(135deg, #be185d, #831843)', text: '#fff', border: '#ec4899', fill: '#ec4899' },
+    'LIPS':    { bg: 'linear-gradient(135deg, #1887be, #185f83)', text: '#fff', border: '#5aa9ff', fill: '#5aa9ff' },
     'VENETIAN':{ bg: 'linear-gradient(135deg, #075985, #0c4a6e)', text: '#fff', border: '#38bdf8', fill: '#0284c7' },
     'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563', fill: '#6b7280' }
 };
@@ -90,10 +91,10 @@ const TOUR_LOGO_MAP = {
 const SERIES_TYPE_INFO = {
     major:      { label: 'Major', color: '#38bdf8' },
     circuit:    { label: 'Circuit', color: '#3b82f6' },
-    high_roller:{ label: 'High Roller', color: '#8b5cf6' },
+    high_roller:{ label: 'High Roller', color: '#4f9cff' },
     regional:   { label: 'Regional', color: '#10b981' },
     grassroots: { label: 'Grassroots', color: '#38bdf8' },
-    charity:    { label: 'Charity', color: '#ec4899' },
+    charity:    { label: 'Charity', color: '#5aa9ff' },
 };
 
 // ─── Helpers ───
@@ -203,11 +204,11 @@ function deriveVenueBadge(series, seriesName) {
 function deriveSeriesCategory(seriesName, city) {
     const n = ((seriesName || '') + ' ' + (city || '')).toLowerCase();
     if (/\b(card house|card room|cardroom|lounge|poker room|poker lounge|tcl\b|tch\b|lodge|hustler|bay 101|kings|lucky hearts|peppermill|bicycle|commerce|garden|rivers casino|harlow|foxhole|bestbet|parx|prime social|social poker|elite poker|live poker classic)\b/.test(n))
-        return { label: 'Card Room', color: '#8b5cf6' };
+        return { label: 'Card Room', color: '#4f9cff' };
     if (/\b(park|downs|kennel|track|meadow|racing|fairground)\b/.test(n))
-        return { label: 'Card Room', color: '#8b5cf6' };
+        return { label: 'Card Room', color: '#4f9cff' };
     if (/\b(charity|benefit|foundation)\b/.test(n))
-        return { label: 'Charity', color: '#ec4899' };
+        return { label: 'Charity', color: '#5aa9ff' };
     if (/\b(online|social club)\b/.test(n))
         return { label: 'Poker Club', color: '#06b6d4' };
     // Everything else is hosted by a casino
@@ -824,8 +825,8 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                 <main data-pnm-secondary-foundation="interaction-v1">
 
                 {/* ═══ PAGE TITLE ═══ */}
-                <div className="pnm-title-bar">
-                    <h1 className="pnm-title">POKER SERIES</h1>
+                <div className="pnm-title-bar pnm-sd-titlebar">
+                    <div className="smarterdesign"><PnmImageHeader route="series" /></div>
                     <p className="pnm-subtitle">
                         {filteredSeries.length} Series &bull; {liveCount == null ? 'Status Updating' : `${liveCount} Live Now`} &bull; {totalEvents} Events
                     </p>
@@ -1780,8 +1781,8 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                     .pnm-source-state--cached .pnm-source-state__signal,
                     .pnm-source-state--error .pnm-source-state__signal,
                     .pnm-source-state--degraded .pnm-source-state__signal {
-                        background: #f4b942;
-                        box-shadow: 0 0 10px rgba(244, 185, 66, 0.62);
+                        background: #46b7f0;
+                        box-shadow: 0 0 10px rgba(70, 183, 240, 0.62);
                     }
                     .pnm-source-state time {
                         color: #aeb9c8;
@@ -1791,10 +1792,10 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                     .pnm-source-state button {
                         min-height: 32px;
                         padding: 5px 10px;
-                        border: 1px solid rgba(244, 185, 66, 0.42);
+                        border: 1px solid rgba(70, 183, 240, 0.42);
                         border-radius: 5px;
-                        background: rgba(244, 185, 66, 0.08);
-                        color: #f6cf7b;
+                        background: rgba(70, 183, 240, 0.08);
+                        color: #7dccf4;
                         font: inherit;
                         cursor: pointer;
                     }
@@ -2194,10 +2195,6 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         align-items: center;
                         justify-content: center;
                         padding: 0 18px;
-                        border: 0;
-                        border-radius: 0;
-                        background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / 100% 100% no-repeat;
-                        box-shadow: none;
                         color: #e4e7ec;
                         font-size: 12px;
                         font-weight: 800;
@@ -2205,11 +2202,22 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         text-decoration: none;
                         text-shadow: 0 1px 0 #050607, 0 2px 4px rgba(0,0,0,0.85);
                         text-transform: uppercase;
+                        border: 3px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+                        background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box;
+                        border-radius: 0;
+                        box-shadow: none;
+                        color: #f2f7ff;
                     }
                     .tour-action-btn.primary {
-                        background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
                         color: #f4f7fb;
                         text-shadow: 0 0 8px rgba(140,210,255,0.85), 0 2px 4px rgba(0,0,0,0.7);
+                        border: 3px solid transparent;
+                        border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch;
+                        background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box;
+                        border-radius: 0;
+                        box-shadow: none;
+                        color: #ffffff;
                     }
                     .tour-action-btn:active {
                         filter: brightness(1.2);
@@ -2322,7 +2330,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         inset: 0;
                         background:
                             radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
-                            radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                            radial-gradient(ellipse at 80% 80%, rgba(79,156,255, 0.08) 0%, transparent 50%),
                             radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
                             linear-gradient(180deg, #020408 0%, #0a1628 30%, #0d1b2a 50%, #0a1628 70%, #020408 100%);
                         z-index: -2;

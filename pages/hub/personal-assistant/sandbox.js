@@ -29,6 +29,7 @@ import {
   Layers, Users, LayoutGrid, Flame, Bookmark, FolderOpen, Upload, FileCode,
   Film, Share2, ClipboardList, BarChart3, ShieldAlert, Check,
   PlayCircle, Trash2, Loader2, RefreshCw, ExternalLink, Volume2, VolumeX, Keyboard,
+  MoreHorizontal, Bot, Sparkles,
 } from 'lucide-react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -60,6 +61,11 @@ import {
 import {
   getClubArenaTheme, onClubArenaThemeChange,
 } from '../../../src/lib/clubArenaTheme';
+import {
+  COMMON_POKER_SPOTS, formatStakeAmount,
+} from '../../../src/lib/sandbox/handEvaluatorSimple.mjs';
+import SimpleHandSummary from '../../../src/components/sandbox/SimpleHandSummary';
+import VisualOpponentSlider from '../../../src/components/sandbox/VisualOpponentSlider';
 import SandboxPokerTable, { TableCard } from '../../../src/components/sandbox/SandboxPokerTable';
 import { handleSpatialGridKeyDown } from '../../../src/components/sandbox/spatialNavigation.mjs';
 import {
@@ -67,7 +73,7 @@ import {
 } from '../../../src/components/sandbox/reviewHandoff.mjs';
 import { replayScenarioFromEntry } from '../../../src/components/sandbox/replayScenario.mjs';
 import {
-  T, F, S, R, btn, iconBtn, pill, cardCompact, sectionTitle, numeric as NUM,
+  T, F, S, R, btn, pill, cardCompact, sectionTitle, numeric as NUM,
 } from '../../../src/components/sandbox/paTokens';
 import {
   PAStyles as SharedPAStyles, BottomSheet, EmptyState, ErrorState,
@@ -197,6 +203,19 @@ const DESKTOP_HOTKEYS = [
   { key: '?', label: 'Toggle Keyboard Shortcuts Guide' },
 ];
 const MAX_VILLAINS = 5;
+const PA_SANDBOX_PREFS_KEY = 'pa_sandbox_prefs_v1';
+const STAKES_DISPLAY_OPTIONS = [
+  { id: 'bb', label: 'BB' },
+  { id: '1_2', label: '$1/$2' },
+  { id: '2_5', label: '$2/$5' },
+];
+const SIMPLE_TABS = [
+  { id: 'play', label: 'Play & Odds' },
+  { id: 'opponent', label: 'Opponent' },
+  { id: 'save', label: 'Save & Share' },
+];
+const HERO_STACK_PRESETS = [50, 100, 150, 200];
+const POT_SIZE_PRESETS = [6.5, 15, 30, 50];
 const DEFAULT_VILLAINS = [
   { id: 0, position: 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: 100, range: '' },
 ];
@@ -366,10 +385,6 @@ const MOBILE_RANK_ROWS = [
   RANKS.slice(5, 10),
   RANKS.slice(10),
 ];
-const MOBILE_SUIT_ROWS = [
-  SUITS.slice(0, 2),
-  SUITS.slice(2, 4),
-];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CARD PICKER SHEET (CSS-only responsive + Spatial Keyboard Navigation)
@@ -380,17 +395,23 @@ function CardPickerSheet({
   isOpen, onClose, onSelect, usedCards = [], mode, pickProgress, heroCardCount = 2, onRandomCard, onRandomFlop,
 }) {
   const [rank, setRank] = useState(null);
+  const [activeSuitCode, setActiveSuitCode] = useState('s');
   const [activeDesktopCard, setActiveDesktopCard] = useState(null);
   const [activeMobileRank, setActiveMobileRank] = useState(null);
-  const [activeMobileSuit, setActiveMobileSuit] = useState(null);
   const desktopGridRef = useRef(null);
   const mobileRankGridRef = useRef(null);
   const mobileSuitGridRef = useRef(null);
   const returnFocusElRef = useRef(null);
-  const prevRankRef = useRef(null);
 
   const used = useMemo(() => new Set(usedCards || []), [usedCards]);
-  const freeCountFor = useCallback((r) => SUITS.filter((s) => !used.has(`${r}${s.code}`)).length, [used]);
+  const activeSuit = useMemo(
+    () => SUITS.find((s) => s.code === activeSuitCode) || SUITS[0],
+    [activeSuitCode],
+  );
+  const freeCountForSuit = useCallback(
+    (suitCode) => RANKS.filter((r) => !used.has(`${r}${suitCode}`)).length,
+    [used],
+  );
 
   const firstFreeCard = useMemo(() => {
     for (const s of SUITS) {
@@ -402,13 +423,10 @@ function CardPickerSheet({
     return null;
   }, [used]);
 
-  const firstFreeRank = useMemo(() => RANKS.find((r) => freeCountFor(r) > 0) || null, [freeCountFor]);
-
-  const firstFreeSuitForRank = useMemo(() => {
-    if (!rank) return null;
-    const found = SUITS.find((s) => !used.has(`${rank}${s.code}`));
-    return found ? `${rank}${found.code}` : null;
-  }, [rank, used]);
+  const firstFreeRankInSuit = useMemo(
+    () => RANKS.find((r) => !used.has(`${r}${activeSuitCode}`)) || null,
+    [used, activeSuitCode],
+  );
 
   useEffect(() => {
     if (isOpen && typeof document !== 'undefined') {
@@ -416,25 +434,8 @@ function CardPickerSheet({
     }
     if (!isOpen) {
       setRank(null);
-      prevRankRef.current = null;
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    const prevRank = prevRankRef.current;
-    prevRankRef.current = rank;
-    if (!isOpen || prevRank === rank) return;
-    if (rank) {
-      const target = mobileSuitGridRef.current?.querySelector('button[role="gridcell"][tabindex="0"]:not([disabled])')
-        || mobileSuitGridRef.current?.querySelector('button[role="gridcell"]:not([disabled])');
-      target?.focus?.({ preventScroll: true });
-    } else if (prevRank) {
-      const target = mobileRankGridRef.current?.querySelector(`button[data-rank-code="${prevRank}"]:not([disabled])`)
-        || mobileRankGridRef.current?.querySelector('button[role="gridcell"][tabindex="0"]:not([disabled])')
-        || mobileRankGridRef.current?.querySelector('button[role="gridcell"]:not([disabled])');
-      target?.focus?.({ preventScroll: true });
-    }
-  }, [isOpen, rank]);
 
   useEffect(() => {
     if (!activeDesktopCard || used.has(activeDesktopCard)) {
@@ -443,16 +444,10 @@ function CardPickerSheet({
   }, [activeDesktopCard, used, firstFreeCard]);
 
   useEffect(() => {
-    if (!activeMobileRank || freeCountFor(activeMobileRank) === 0) {
-      setActiveMobileRank(firstFreeRank);
+    if (!activeMobileRank || used.has(`${activeMobileRank}${activeSuitCode}`)) {
+      setActiveMobileRank(firstFreeRankInSuit);
     }
-  }, [activeMobileRank, freeCountFor, firstFreeRank]);
-
-  useEffect(() => {
-    if (rank && (!activeMobileSuit || !activeMobileSuit.startsWith(rank) || used.has(activeMobileSuit))) {
-      setActiveMobileSuit(firstFreeSuitForRank);
-    }
-  }, [rank, activeMobileSuit, used, firstFreeSuitForRank]);
+  }, [activeMobileRank, activeSuitCode, used, firstFreeRankInSuit]);
 
   const handleCloseWithRestore = useCallback(() => {
     const prevEl = returnFocusElRef.current;
@@ -508,18 +503,18 @@ function CardPickerSheet({
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
-      setRank(null);
+      handleCloseWithRestore();
       return;
     }
     handleSpatialGridKeyDown(e, {
       container: mobileSuitGridRef.current,
       itemSelector: 'button[role="gridcell"]:not([disabled])',
       onMove: (el) => {
-        const code = el?.getAttribute?.('data-card-code');
-        if (code) setActiveMobileSuit(code);
+        const sc = el?.getAttribute?.('data-suit-code');
+        if (sc) setActiveSuitCode(sc);
       },
     });
-  }, []);
+  }, [handleCloseWithRestore]);
 
   const isHero = mode === 'hero';
   const title = isHero
@@ -542,7 +537,7 @@ function CardPickerSheet({
         return false;
       }}
       title={title}
-      subtitle={rank ? `Choose A Suit For ${rank}` : 'Choose Rank And Suit (Arrow Keys Navigate Grid)'}
+      subtitle={`Tap A Suit Then Tap A Rank (${activeSuit.symbol} ${activeSuit.label})`}
       ariaLabel={title}
       maxWidth={680}
       footer={(
@@ -563,13 +558,59 @@ function CardPickerSheet({
         </>
       )}
     >
-      {/* Mobile two-step rank -> suit */}
+      {/* Mobile thumb-friendly 2-tap picker: 4 Big Suit Tabs + Giant 13-Rank Buttons */}
       <div className="deck-mobile-only">
-        {!rank ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+          <div
+            ref={mobileSuitGridRef}
+            role="grid"
+            aria-label="Select Card Suit"
+            data-mobile-suit-tabs="true"
+            onKeyDown={onMobileSuitKeyDown}
+            style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}
+          >
+            <div
+              role="row"
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: S.xs }}
+            >
+              {SUITS.map((s) => {
+                const isSelected = activeSuitCode === s.code;
+                const avail = freeCountForSuit(s.code);
+                return (
+                  <button
+                    key={s.code}
+                    type="button"
+                    role="gridcell"
+                    data-suit-code={s.code}
+                    tabIndex={isSelected ? 0 : -1}
+                    aria-pressed={isSelected}
+                    aria-label={`${s.label}, ${avail} Cards Left`}
+                    className="pa-btn"
+                    onClick={() => setActiveSuitCode(s.code)}
+                    style={{
+                      ...btn(isSelected ? 'primary' : 'secondary'),
+                      minHeight: 54,
+                      minWidth: 44,
+                      padding: '4px 6px',
+                      flexDirection: 'column',
+                      gap: 2,
+                      color: isSelected ? '#F1F5FC' : s.color,
+                      borderBottom: isSelected ? '3px solid #63E7FF' : undefined,
+                    }}
+                  >
+                    <span style={{ fontSize: 20, fontWeight: 800, lineHeight: 1 }}>{s.symbol}</span>
+                    <span style={{ fontSize: F.caption, fontWeight: 700, lineHeight: 1.1 }}>{s.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div
             ref={mobileRankGridRef}
             role="grid"
-            aria-label="Select Card Rank"
+            aria-label={`Select Rank For ${activeSuit.label}`}
+            data-mobile-rank-grid="true"
             onKeyDown={onMobileRankKeyDown}
             style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}
           >
@@ -577,90 +618,49 @@ function CardPickerSheet({
               <div
                 key={`rank-row-${rowIdx}`}
                 role="row"
-                style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: S.sm }}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${rowRanks.length === 3 ? 3 : 5}, minmax(0, 1fr))`,
+                  gap: S.sm,
+                }}
               >
                 {rowRanks.map((r) => {
-                  const free = freeCountFor(r);
-                  const isRovingActive = activeMobileRank === r && free > 0;
+                  const code = `${r}${activeSuit.code}`;
+                  const taken = used.has(code);
+                  const displayRank = r === 'T' ? '10' : r;
+                  const isRovingActive = activeMobileRank === r && !taken;
                   return (
                     <button
-                      key={r}
+                      key={code}
                       type="button"
                       role="gridcell"
                       data-rank-code={r}
+                      data-card-code={code}
                       tabIndex={isRovingActive ? 0 : -1}
                       className="pa-btn"
-                      disabled={free === 0}
+                      disabled={taken}
                       onFocus={() => setActiveMobileRank(r)}
-                      onClick={() => setRank(r)}
-                      aria-label={`Rank ${r}, ${free} Suits Available`}
+                      onClick={() => pick(code)}
+                      aria-label={`${displayRank} Of ${activeSuit.label}`}
                       style={{
-                        ...btn('secondary', { disabled: free === 0 }),
-                        minHeight: 52, minWidth: 44, padding: 0, flexDirection: 'column', gap: 2,
-                        fontSize: 18, fontWeight: 800,
+                        ...btn('secondary', { disabled: taken }),
+                        minHeight: 56,
+                        minWidth: 44,
+                        padding: 0,
+                        fontSize: 19,
+                        fontWeight: 800,
+                        color: taken ? T.textDim : activeSuit.color,
+                        opacity: taken ? 0.35 : 1,
                       }}
                     >
-                      <span>{r}</span>
-                      <span style={{ fontSize: F.caption, color: T.textDim }}>{free}</span>
+                      <span>{displayRank}{activeSuit.symbol}</span>
                     </button>
                   );
                 })}
               </div>
             ))}
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
-            <button
-              type="button"
-              className="pa-btn"
-              onClick={() => setRank(null)}
-              style={{ ...btn('ghost'), alignSelf: 'flex-start', color: T.accent }}
-            >
-              Back To Ranks
-            </button>
-            <div
-              ref={mobileSuitGridRef}
-              role="grid"
-              aria-label={`Select Suit For ${rank}`}
-              onKeyDown={onMobileSuitKeyDown}
-              style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}
-            >
-              {MOBILE_SUIT_ROWS.map((rowSuits, rowIdx) => (
-                <div
-                  key={`suit-row-${rowIdx}`}
-                  role="row"
-                  style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: S.sm }}
-                >
-                  {rowSuits.map((s) => {
-                    const code = `${rank}${s.code}`;
-                    const taken = used.has(code);
-                    const isRovingActive = activeMobileSuit === code && !taken;
-                    return (
-                      <button
-                        key={s.code}
-                        type="button"
-                        role="gridcell"
-                        data-card-code={code}
-                        tabIndex={isRovingActive ? 0 : -1}
-                        className="pa-btn"
-                        disabled={taken}
-                        onFocus={() => setActiveMobileSuit(code)}
-                        onClick={() => pick(code)}
-                        aria-label={`${rank} Of ${s.label}`}
-                        style={{
-                          ...btn('secondary', { disabled: taken }),
-                          minHeight: 56, minWidth: 44, fontSize: 18, fontWeight: 800, color: taken ? T.textDim : s.color,
-                        }}
-                      >
-                        <span>{rank}{s.symbol} {s.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Desktop full 4x13 grid with roving tabindex + spatial arrow navigation */}
@@ -1264,6 +1264,195 @@ function HotkeysSheet({ isOpen, onClose }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// QUICK ON-TABLE POT / STACK EDIT SHEET (Direct Felt Tap Editing)
+// ═══════════════════════════════════════════════════════════════════════════
+function QuickStackPotSheet({
+  target, onClose, heroStack, potBase, stakesDisplay, onApplyStack, onApplyPot,
+}) {
+  const isStack = target === 'heroStack';
+  const isOpen = target === 'heroStack' || target === 'pot';
+  const presets = isStack ? HERO_STACK_PRESETS : POT_SIZE_PRESETS;
+  const currentVal = isStack ? heroStack : potBase;
+  const [draft, setDraft] = useState(String(currentVal ?? (isStack ? 100 : 6.5)));
+
+  useEffect(() => {
+    if (isOpen) {
+      setDraft(String(currentVal ?? (isStack ? 100 : 6.5)));
+    }
+  }, [isOpen, currentVal, isStack]);
+
+  const handleApply = (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    const num = Number(draft);
+    if (!Number.isFinite(num)) return;
+    if (isStack) {
+      onApplyStack(Math.max(5, Math.min(1000, Math.round(num * 10) / 10)));
+    } else {
+      onApplyPot(Math.max(1, Math.min(500, Math.round(num * 10) / 10)));
+    }
+    onClose();
+  };
+
+  return (
+    <BottomSheet
+      open={isOpen}
+      onClose={onClose}
+      title={isStack ? 'Edit Your Stack' : 'Edit Starting Pot'}
+      subtitle={isStack ? 'Tap A Quick Stack Preset Or Enter Custom Big Blinds.' : 'Tap A Quick Pot Size Or Enter Custom Big Blinds.'}
+      ariaLabel={isStack ? 'Edit Your Stack' : 'Edit Starting Pot'}
+      maxWidth={480}
+      footer={(
+        <button type="button" className="pa-btn" onClick={handleApply} style={btn('primary', { block: true })}>
+          Apply To Table
+        </button>
+      )}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: S.xs }}>
+          {presets.map((val) => {
+            const active = Math.abs(Number(currentVal) - val) < 0.05;
+            return (
+              <button
+                key={`preset-${val}`}
+                type="button"
+                className="pa-btn"
+                aria-pressed={active}
+                onClick={() => {
+                  if (isStack) onApplyStack(val);
+                  else onApplyPot(val);
+                  onClose();
+                }}
+                style={{
+                  ...btn(active ? 'primary' : 'secondary'),
+                  minHeight: 46,
+                  padding: '0 6px',
+                  fontSize: F.caption,
+                  fontWeight: 800,
+                }}
+              >
+                {formatStakeAmount(val, stakesDisplay)}
+              </button>
+            );
+          })}
+        </div>
+
+        <form onSubmit={handleApply} style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
+          <label htmlFor="quick-felt-value" style={{ fontSize: F.caption, color: T.textMuted, fontWeight: 700 }}>
+            {isStack ? 'Custom Stack (BB)' : 'Custom Pot (BB)'}
+          </label>
+          <input
+            id="quick-felt-value"
+            type="number"
+            min={isStack ? 5 : 1}
+            max={isStack ? 1000 : 500}
+            step={isStack ? 1 : 0.5}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            style={{
+              width: '100%', minHeight: 44, padding: '8px 12px', boxSizing: 'border-box',
+              background: T.surface2, border: `1px solid ${T.borderHi}`, borderRadius: R.sm,
+              color: T.text, fontSize: F.input, ...NUM,
+            }}
+          />
+        </form>
+      </div>
+    </BottomSheet>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HEADER TOOLS SHEET (Clean Overflow For Audio, Hotkeys, Lab Actions)
+// ═══════════════════════════════════════════════════════════════════════════
+function ToolsSheet({
+  isOpen, onClose, soundEnabled, onToggleSound, autoOpponent, onToggleAutoOpponent,
+  experienceMode, onChangeExperienceMode, onOpenHotkeys, onOpenSetup,
+  onOpenSaveHand, onOpenStudyFolders, onOpenTemplates, onOpenImportHH, onOpenShare,
+}) {
+  return (
+    <BottomSheet
+      open={isOpen}
+      onClose={onClose}
+      title="Sandbox Tools"
+      titleIcon={<MoreHorizontal size={18} strokeWidth={2} color={T.accent} />}
+      subtitle="Quick Workspace Controls, Audio, Shortcuts And Study Tools."
+      ariaLabel="Sandbox Tools"
+      maxWidth={500}
+      footer={(
+        <button type="button" className="pa-btn" onClick={onClose} style={btn('primary', { block: true })}>
+          Close
+        </button>
+      )}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: S.xs }}>
+          <button
+            type="button"
+            className="pa-btn"
+            onClick={onToggleSound}
+            aria-pressed={soundEnabled}
+            style={btn(soundEnabled ? 'primary' : 'secondary', { block: true })}
+          >
+            {soundEnabled ? <Volume2 size={16} strokeWidth={2} aria-hidden="true" /> : <VolumeX size={16} strokeWidth={2} aria-hidden="true" />}
+            {soundEnabled ? 'Sound On' : 'Sound Off'}
+          </button>
+          <button
+            type="button"
+            className="pa-btn"
+            onClick={onToggleAutoOpponent}
+            aria-pressed={autoOpponent}
+            style={btn(autoOpponent ? 'primary' : 'secondary', { block: true })}
+          >
+            <Bot size={16} strokeWidth={2} aria-hidden="true" />
+            {autoOpponent ? 'Auto Opponent On' : 'Auto Opponent Off'}
+          </button>
+          <button
+            type="button"
+            className="pa-btn"
+            onClick={() => { onClose(); onOpenHotkeys(); }}
+            style={btn('secondary', { block: true })}
+          >
+            <Keyboard size={16} strokeWidth={2} aria-hidden="true" /> Keyboard Shortcuts
+          </button>
+          <button
+            type="button"
+            className="pa-btn"
+            onClick={() => {
+              onChangeExperienceMode(experienceMode === 'simple' ? 'pro' : 'simple');
+              onClose();
+            }}
+            style={btn('secondary', { block: true })}
+          >
+            <Sparkles size={16} strokeWidth={2} aria-hidden="true" />
+            {experienceMode === 'simple' ? 'Switch To Pro Lab' : 'Switch To Simple Mode'}
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: S.xs, marginTop: S.xs }}>
+          <button type="button" className="pa-btn" onClick={() => { onClose(); onOpenSetup(); }} style={btn('secondary', { block: true })}>
+            <SlidersHorizontal size={16} strokeWidth={2} aria-hidden="true" /> Table &amp; Theme
+          </button>
+          <button type="button" className="pa-btn" onClick={() => { onClose(); onOpenSaveHand(); }} style={btn('secondary', { block: true })}>
+            <Bookmark size={16} strokeWidth={2} aria-hidden="true" /> Save Hand
+          </button>
+          <button type="button" className="pa-btn" onClick={() => { onClose(); onOpenStudyFolders(); }} style={btn('secondary', { block: true })}>
+            <FolderOpen size={16} strokeWidth={2} aria-hidden="true" /> Open Folders
+          </button>
+          <button type="button" className="pa-btn" onClick={() => { onClose(); onOpenTemplates(); }} style={btn('secondary', { block: true })}>
+            <Bookmark size={16} strokeWidth={2} aria-hidden="true" /> Open Templates
+          </button>
+          <button type="button" className="pa-btn" onClick={() => { onClose(); onOpenImportHH(); }} style={btn('secondary', { block: true })}>
+            <Upload size={16} strokeWidth={2} aria-hidden="true" /> Import Hands
+          </button>
+          <button type="button" className="pa-btn" onClick={() => { onClose(); onOpenShare(); }} style={btn('secondary', { block: true })}>
+            <Share2 size={16} strokeWidth={2} aria-hidden="true" /> Share Spot
+          </button>
+        </div>
+      </div>
+    </BottomSheet>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // TEMPLATES SHEET (Backed by /api/assistant/sandbox/sandbox-templates)
 // ═══════════════════════════════════════════════════════════════════════════
 function TemplatesSheet({
@@ -1296,7 +1485,7 @@ function TemplatesSheet({
             id="tpl-name-input"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. BTN vs BB 3-Bet Flop"
+            placeholder="E.G. BTN Vs BB 3-Bet Flop"
             style={{
               flex: '1 1 180px', minHeight: 44, padding: '8px 12px', boxSizing: 'border-box',
               background: T.surface2, border: `1px solid ${T.borderHi}`, borderRadius: R.sm,
@@ -1472,6 +1661,75 @@ export default function VirtualSandboxPage() {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [tapSeatIdx, setTapSeatIdx] = useState(null);
   const [showHotkeys, setShowHotkeys] = useState(false);
+  const [quickEditTarget, setQuickEditTarget] = useState(null); // null | 'pot' | 'heroStack'
+  const [showToolsSheet, setShowToolsSheet] = useState(false);
+
+  // ── Everyday-Player Simplicity Preferences (Persisted in pa_sandbox_prefs_v1) ──
+  const [experienceMode, setExperienceMode] = useState('simple'); // 'simple' | 'pro'
+  const [stakesDisplay, setStakesDisplay] = useState('bb'); // 'bb' | '1_2' | '2_5'
+  const [autoOpponent, setAutoOpponent] = useState(false);
+  const [coachMarksDismissed, setCoachMarksDismissed] = useState(true);
+  const prefsHydratedRef = useRef(false);
+  const [activeSimpleTab, setActiveSimpleTab] = useState('play'); // 'play' | 'opponent' | 'save'
+  const [activeSpotId, setActiveSpotId] = useState('top_pair');
+  const [prevEquity, setPrevEquity] = useState(null);
+  const [lastDealtCard, setLastDealtCard] = useState(null);
+  const [opponentSliderPercent, setOpponentSliderPercent] = useState(25);
+  const [opponentSliderGroups, setOpponentSliderGroups] = useState([]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(PA_SANDBOX_PREFS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.experienceMode === 'simple' || parsed?.experienceMode === 'pro') {
+          setExperienceMode(parsed.experienceMode);
+        }
+        if (parsed?.stakesDisplay === 'bb' || parsed?.stakesDisplay === '1_2' || parsed?.stakesDisplay === '2_5') {
+          setStakesDisplay(parsed.stakesDisplay);
+        }
+        if (typeof parsed?.autoOpponent === 'boolean') {
+          setAutoOpponent(parsed.autoOpponent);
+        }
+        setCoachMarksDismissed(Boolean(parsed?.coachMarksDismissed));
+      } else {
+        setCoachMarksDismissed(false);
+      }
+    } catch (_e) {
+      setCoachMarksDismissed(false);
+    } finally {
+      prefsHydratedRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !prefsHydratedRef.current) return;
+    try {
+      window.localStorage.setItem(
+        PA_SANDBOX_PREFS_KEY,
+        JSON.stringify({
+          experienceMode,
+          stakesDisplay,
+          autoOpponent,
+          coachMarksDismissed,
+        }),
+      );
+    } catch (_e) { /* storage unavailable */ }
+  }, [experienceMode, stakesDisplay, autoOpponent, coachMarksDismissed]);
+
+  const handleDismissCoachMarks = useCallback(() => {
+    setCoachMarksDismissed(true);
+  }, []);
+
+  useEffect(() => {
+    if (!lastDealtCard) return;
+    const latestCard = board.river || board.turn || null;
+    if (latestCard !== lastDealtCard) {
+      setLastDealtCard(null);
+      setPrevEquity(null);
+    }
+  }, [board.turn, board.river, lastDealtCard]);
 
   // ── Templates State ──
   const [templates, setTemplates] = useState([]);
@@ -2060,6 +2318,10 @@ export default function VirtualSandboxPage() {
       return;
     }
     if (deckTarget === 'board') {
+      if (board.flop.length === 3 && (!board.turn || !board.river)) {
+        setPrevEquity(equity?.heroEquity != null ? Number(equity.heroEquity) : null);
+        setLastDealtCard(cardStr);
+      }
       setBoard((prev) => {
         if ((prev.flop || []).length < 3) return { ...prev, flop: [...(prev.flop || []), cardStr] };
         if (!prev.turn) return { ...prev, turn: cardStr };
@@ -2069,6 +2331,8 @@ export default function VirtualSandboxPage() {
       return;
     }
     if (deckTarget?.kind === 'flop') {
+      setPrevEquity(null);
+      setLastDealtCard(null);
       setBoard((prev) => {
         const nextFlop = [...(prev.flop || [])];
         nextFlop[deckTarget.idx] = cardStr;
@@ -2079,17 +2343,21 @@ export default function VirtualSandboxPage() {
       return;
     }
     if (deckTarget === 'turn') {
+      setPrevEquity(equity?.heroEquity != null ? Number(equity.heroEquity) : null);
+      setLastDealtCard(cardStr);
       setBoard((prev) => ({ ...prev, turn: cardStr }));
       setShowDeck(false);
       setDeckTarget(null);
       return;
     }
     if (deckTarget === 'river') {
+      setPrevEquity(equity?.heroEquity != null ? Number(equity.heroEquity) : null);
+      setLastDealtCard(cardStr);
       setBoard((prev) => ({ ...prev, river: cardStr }));
       setShowDeck(false);
       setDeckTarget(null);
     }
-  }, [deckTarget, heroPickStep, variantCardCount, pushUndo, playSound]);
+  }, [deckTarget, heroPickStep, variantCardCount, pushUndo, playSound, board, equity]);
 
   const handleSelectRunoutCard = useCallback((cardStr) => {
     if (activePlayBlock || !cardStr) return;
@@ -2099,6 +2367,8 @@ export default function VirtualSandboxPage() {
     }
     if (board.flop.length === 3 && !board.turn) {
       pushUndo();
+      setPrevEquity(equity?.heroEquity != null ? Number(equity.heroEquity) : null);
+      setLastDealtCard(cardStr);
       setBoard((prev) => ({ ...prev, turn: cardStr }));
       playSound?.('card');
       haptic('light');
@@ -2107,12 +2377,14 @@ export default function VirtualSandboxPage() {
     }
     if (board.flop.length === 3 && board.turn && !board.river) {
       pushUndo();
+      setPrevEquity(equity?.heroEquity != null ? Number(equity.heroEquity) : null);
+      setLastDealtCard(cardStr);
       setBoard((prev) => ({ ...prev, river: cardStr }));
       playSound?.('card');
       haptic('light');
       toast.success(`Dealt ${cardStr} On River`);
     }
-  }, [activePlayBlock, allUsedCards, board, pushUndo, playSound, haptic]);
+  }, [activePlayBlock, allUsedCards, board, pushUndo, playSound, haptic, equity]);
 
   const dealRandomSpot = useCallback(() => {
     if (activePlayBlock) return;
@@ -2126,6 +2398,9 @@ export default function VirtualSandboxPage() {
     setActionHistory([]);
     setPreflopPosts([]);
     setReplayIndex(null);
+    setActiveSpotId(null);
+    setPrevEquity(null);
+    setLastDealtCard(null);
     playSound?.('card');
     haptic('light');
   }, [variantCardCount, pushUndo, playSound, haptic, activePlayBlock]);
@@ -2136,6 +2411,8 @@ export default function VirtualSandboxPage() {
       pushUndo();
       const needed = 3 - board.flop.length;
       const drawn = pickRandomCards(needed, allUsedCards);
+      setPrevEquity(null);
+      setLastDealtCard(null);
       setBoard((prev) => ({ ...prev, flop: [...prev.flop, ...drawn] }));
       playSound?.('card');
       return;
@@ -2143,25 +2420,69 @@ export default function VirtualSandboxPage() {
     if (!board.turn) {
       pushUndo();
       const [turnCard] = pickRandomCards(1, allUsedCards);
-      if (turnCard) setBoard((prev) => ({ ...prev, turn: turnCard }));
+      if (turnCard) {
+        setPrevEquity(equity?.heroEquity != null ? Number(equity.heroEquity) : null);
+        setLastDealtCard(turnCard);
+        setBoard((prev) => ({ ...prev, turn: turnCard }));
+      }
       playSound?.('card');
       return;
     }
     if (!board.river) {
       pushUndo();
       const [riverCard] = pickRandomCards(1, allUsedCards);
-      if (riverCard) setBoard((prev) => ({ ...prev, river: riverCard }));
+      if (riverCard) {
+        setPrevEquity(equity?.heroEquity != null ? Number(equity.heroEquity) : null);
+        setLastDealtCard(riverCard);
+        setBoard((prev) => ({ ...prev, river: riverCard }));
+      }
       playSound?.('card');
     }
-  }, [board, allUsedCards, pushUndo, playSound, activePlayBlock]);
+  }, [board, allUsedCards, pushUndo, playSound, activePlayBlock, equity]);
 
   const dealRandomBoard = useCallback(() => {
     if (activePlayBlock) return;
     pushUndo();
     const flop = pickRandomCards(3, heroCardsMemo);
+    setPrevEquity(null);
+    setLastDealtCard(null);
     setBoard({ flop, turn: null, river: null });
     playSound?.('card');
   }, [heroCardsMemo, pushUndo, playSound, activePlayBlock]);
+
+  const handleLoadCommonSpot = useCallback((spot) => {
+    if (activePlayBlock || !spot) return;
+    pushUndo();
+    setVariant('nlh');
+    setExtraHeroCards([]);
+    setVillainHoleCards({});
+    setManualActorKey(null);
+    setGameType(spot.gameType || 'cash');
+    setHeroPosition(spot.heroPosition || 'BTN');
+    setHeroStack(Number(spot.heroStack) || 100);
+    setPotBase(Number(spot.potBase) || 6.5);
+    setHeroHand({
+      card1: spot.heroHand?.card1 || null,
+      card2: spot.heroHand?.card2 || null,
+    });
+    const spotBoard = spot.board || {};
+    setBoard({
+      flop: Array.isArray(spotBoard.flop) ? spotBoard.flop.filter(Boolean).slice(0, 3) : [],
+      turn: spotBoard.turn || null,
+      river: spotBoard.river || null,
+    });
+    setVillains(withVillainIds(Array.isArray(spot.villains) && spot.villains.length > 0 ? spot.villains : DEFAULT_VILLAINS));
+    setActiveVillainIdx(0);
+    setActionHistory(Array.isArray(spot.actionHistory) ? spot.actionHistory.map((a) => ({ ...a })) : []);
+    setPreflopPosts([]);
+    setReplayIndex(null);
+    setActiveSpotId(spot.id || null);
+    setPrevEquity(null);
+    setLastDealtCard(null);
+    playSound?.('card');
+    haptic('light');
+    toast.success(`Loaded "${spot.label}" Spot`);
+  }, [activePlayBlock, pushUndo, playSound, haptic]);
 
   const resetTable = useCallback(() => {
     pushUndo();
@@ -2175,6 +2496,9 @@ export default function VirtualSandboxPage() {
     setPreflopPosts([]);
     setReplayIndex(null);
     setPotBase(6.5);
+    setActiveSpotId(null);
+    setPrevEquity(null);
+    setLastDealtCard(null);
     haptic('light');
     toast.success('Table Cleared');
   }, [pushUndo, recordExplorationSnapshot, haptic]);
@@ -2208,6 +2532,19 @@ export default function VirtualSandboxPage() {
       ];
     });
   }, [heroPosition]);
+
+  const handleVisualSliderChange = useCallback((rangeString, percent, nextGroups) => {
+    setOpponentSliderPercent(percent);
+    if (Array.isArray(nextGroups)) setOpponentSliderGroups(nextGroups);
+    patchVillain(safeVillainIdx, { range: rangeString || '' });
+  }, [patchVillain, safeVillainIdx]);
+
+  const handleAddVillainFromFelt = useCallback(() => {
+    if (activePlayBlock || villains.length >= MAX_VILLAINS) return;
+    addVillain();
+    haptic('light');
+    toast.success('Added Opponent Seat');
+  }, [activePlayBlock, villains.length, addVillain, haptic]);
 
   const removeVillain = useCallback((idx) => {
     if (villains.length <= 1 || idx < 0 || idx >= villains.length) return;
@@ -2531,6 +2868,114 @@ export default function VirtualSandboxPage() {
     recordPaMilestone('sandbox_action', { variant, surface: 'sandbox' });
   }, [activePlayBlock, handState.terminal, tableActiveActorKey, villains, pushUndo, currentStreet, heroPosition, playSound, haptic, variant]);
 
+  // ── Deterministic Style-Based Villain Auto-Play (Tight / Typical / Loose) ──
+  const handleSimulateVillain = useCallback(() => {
+    if (activePlayBlock || handState.terminal || replayIndex != null) return;
+    if (!tableActiveActorKey || tableActiveActorKey === 'hero') return;
+
+    const vMatch = String(tableActiveActorKey).match(/^villain_(\d+)$/);
+    const vIdx = vMatch ? Number(vMatch[1]) : 0;
+    const targetVillain = villains[vIdx] || villains[0];
+    const archId = String(targetVillain?.archetype?.id || 'gto_neutral').toLowerCase();
+
+    let style = 'typical';
+    if (archId.includes('nit') || archId.includes('tight') || archId.includes('rock') || archId.includes('tag')) {
+      style = archId === 'tag' ? 'typical' : 'tight';
+    } else if (archId.includes('loose') || archId.includes('lag') || archId.includes('fish') || archId.includes('maniac') || archId.includes('station')) {
+      style = 'loose';
+    }
+
+    const seedInput = `${communityCards.join('')}|${actionHistory.length}|${tableActiveActorKey}|${Math.round(Number(tablePot) * 10)}`;
+    let hash = 0;
+    for (let i = 0; i < seedInput.length; i += 1) {
+      hash = ((hash * 31) + seedInput.charCodeAt(i)) % 997;
+    }
+    const bucket = hash % 10; // 0..9 deterministic roll
+
+    const seatObj = (activeTableState?.players || []).find((p) => p.key === actorEngineKey);
+    const actorStack = Math.max(1, Number(seatObj?.remaining) || Number(targetVillain?.stack) || 100);
+    const potVal = Math.max(1, Number(tablePot) || 6.5);
+    const isPloVar = variant !== 'nlh';
+    const minBet = Math.min(actorStack, activeActorFacingBet > 0 ? Math.max(Math.round(activeActorFacingBet * 4) / 2, 2) : 1);
+    const maxBet = isPloVar
+      ? Math.min(actorStack, Math.max(minBet, Math.round((3 * activeActorFacingBet + potVal) * 2) / 2))
+      : actorStack;
+
+    const clampSize = (raw) => Math.max(minBet, Math.min(maxBet, Math.round(raw * 2) / 2));
+
+    if (activeActorFacingBet > 0) {
+      const ratio = activeActorFacingBet / potVal;
+      const shouldFold = (style === 'tight' && ratio >= 0.7 && bucket < 5)
+        || (style === 'typical' && ratio >= 1.1 && bucket < 3)
+        || (style === 'loose' && ratio >= 2.0 && bucket < 2);
+      if (shouldFold) {
+        handleTableQuickAction({ action: 'fold', amount: 0, label: 'Fold', actorKey: tableActiveActorKey });
+        return;
+      }
+
+      const canRaise = actorStack > activeActorFacingBet + 1 && maxBet > activeActorFacingBet;
+      const shouldRaise = canRaise && (
+        (style === 'loose' && bucket >= 7)
+        || (style === 'typical' && ratio <= 0.55 && bucket >= 8)
+        || (style === 'tight' && ratio <= 0.4 && bucket === 9)
+      );
+      if (shouldRaise) {
+        const raiseTo = clampSize(Math.max(activeActorFacingBet * 2.5, potVal * 0.75));
+        const isShove = !isPloVar && raiseTo >= actorStack;
+        handleTableQuickAction({
+          action: isShove ? 'allin' : 'raise',
+          amount: raiseTo,
+          raiseTo,
+          label: isShove ? `All-In ${raiseTo} BB` : `Raise ${raiseTo} BB`,
+          actorKey: tableActiveActorKey,
+        });
+        return;
+      }
+
+      const callAmt = Math.min(actorStack, activeActorFacingBet);
+      handleTableQuickAction({
+        action: callAmt >= actorStack ? 'allin' : 'call',
+        amount: callAmt,
+        label: callAmt >= actorStack ? `All-In ${callAmt} BB` : `Call ${callAmt} BB`,
+        actorKey: tableActiveActorKey,
+      });
+      return;
+    }
+
+    // Checked to villain
+    const shouldBet = (style === 'loose' && bucket >= 3)
+      || (style === 'typical' && bucket >= 5)
+      || (style === 'tight' && bucket >= 6);
+    if (shouldBet) {
+      const mult = style === 'loose' ? 0.66 : style === 'tight' ? 0.33 : 0.5;
+      const betAmt = clampSize(Math.max(1, potVal * mult));
+      const isShove = !isPloVar && betAmt >= actorStack;
+      handleTableQuickAction({
+        action: isShove ? 'allin' : 'bet',
+        amount: betAmt,
+        label: isShove ? `All-In ${betAmt} BB` : `Bet ${betAmt} BB`,
+        actorKey: tableActiveActorKey,
+      });
+      return;
+    }
+
+    handleTableQuickAction({ action: 'check', amount: 0, label: 'Check', actorKey: tableActiveActorKey });
+  }, [
+    activePlayBlock, handState.terminal, replayIndex, tableActiveActorKey, villains,
+    communityCards, actionHistory.length, tablePot, activeTableState, actorEngineKey,
+    variant, activeActorFacingBet, handleTableQuickAction,
+  ]);
+
+  // ── Auto Opponent Beat (650ms deterministic follow-up ONLY when autoOpponent is enabled) ──
+  useEffect(() => {
+    if (!autoOpponent || activePlayBlock || handState.terminal || replayIndex != null) return undefined;
+    if (!tableActiveActorKey || tableActiveActorKey === 'hero') return undefined;
+    const timer = setTimeout(() => {
+      handleSimulateVillain();
+    }, 650);
+    return () => clearTimeout(timer);
+  }, [autoOpponent, activePlayBlock, handState.terminal, replayIndex, tableActiveActorKey, handleSimulateVillain]);
+
   const canDealNext = !board.river && !activePlayBlock;
 
   // ── Desktop Poker Hotkeys (F, C, B, 1-5, Space, ArrowLeft, ArrowRight, Z, ?) ──
@@ -2553,7 +2998,8 @@ export default function VirtualSandboxPage() {
       // Pause table action hotkeys while a modal or card picker is open
       if (showDeck || showSetup || showRangeExplorer || showRangeHeatGrid || showVillainPresets
         || showSaveHand || showStudyFolders || showImportHH || showSolverImport || showTemplates
-        || showHandReplay || showShareScenario || showSessionReport || tapSeatIdx != null || showHotkeys) {
+        || showHandReplay || showShareScenario || showSessionReport || tapSeatIdx != null
+        || showHotkeys || quickEditTarget != null || showToolsSheet) {
         return;
       }
       if (activePlayBlock) return;
@@ -2629,6 +3075,7 @@ export default function VirtualSandboxPage() {
     showDeck, showSetup, showRangeExplorer, showRangeHeatGrid, showVillainPresets,
     showSaveHand, showStudyFolders, showImportHH, showSolverImport, showTemplates,
     showHandReplay, showShareScenario, showSessionReport, tapSeatIdx, showHotkeys,
+    quickEditTarget, showToolsSheet,
     activePlayBlock, handleTableQuickAction, tableActiveActorKey, activeActorFacingBet,
     variant, activeTableState, actorEngineKey, heroStack, tablePot, selectedBetPreset,
     canDealNext, dealNextStreet, actionHistory.length, replayIndex, undoStack.length, popUndo,
@@ -2650,6 +3097,639 @@ export default function VirtualSandboxPage() {
     street: currentStreet,
     actionLine: actionHistory.map((a) => `${a.isHero || a.actor === 'hero' ? 'Hero' : (a.player || a.position || 'Villain')} ${a.label || a.action || ''}`.trim()).join(' -> '),
   }), [heroPosition, heroCardsMemo, communityCards, tablePot, heroStack, currentStreet, actionHistory]);
+
+  const isSimpleMode = experienceMode === 'simple';
+
+  const metricsStrip = (
+    <section className="sandbox-metrics-strip" aria-label="Live Scenario Telemetry">
+      <div className="metric-tile">
+        <span className="metric-label">Hero Hand</span>
+        <strong className="metric-value">
+          {heroCardsMemo.length >= 2 ? heroCardsMemo.join(' ') : 'Pick Cards'}
+        </strong>
+        <span className="metric-sub">
+          {variant !== 'nlh' ? `${variant.toUpperCase()} · ${heroPosition}` : (heroClassLabel || `${heroPosition} · ${formatStakeAmount(heroStack, stakesDisplay)}`)}
+        </span>
+      </div>
+      <div className="metric-tile">
+        <span className="metric-label">Monte Carlo Equity</span>
+        <strong className="metric-value" style={{ color: equity?.heroEquity != null && Number(equity.heroEquity) >= 50 ? T.success : T.accent }}>
+          {equityComputing && !equity
+            ? 'Computing…'
+            : equity?.heroEquity != null && Number.isFinite(Number(equity.heroEquity))
+              ? `${Number(equity.heroEquity).toFixed(1)}%`
+              : 'Not Available'}
+        </strong>
+        <span className="metric-sub">
+          {equityRefining
+            ? `${equityLabel || 'Preview'} · Refining 10k…`
+            : equity?.sampleSize
+              ? `${equityLabel || 'Equity'} · ${Number(equity.sampleSize).toLocaleString()} Trials`
+              : (equityLabel || 'Select Two Hero Cards')}
+        </span>
+      </div>
+      <div className="metric-tile">
+        <span className="metric-label">Pot &amp; SPR</span>
+        <strong className="metric-value">{stakesDisplay === 'bb' ? `${Number(tablePot).toFixed(1)} BB` : formatStakeAmount(tablePot, stakesDisplay)}</strong>
+        <span className="metric-sub">
+          SPR {tableSpr != null && Number.isFinite(Number(tableSpr)) ? tableSpr : 'Not Available'} · {`${villains.length} ${villains.length === 1 ? 'Villain' : 'Villains'}`}
+        </span>
+      </div>
+      <div className="metric-tile">
+        <span className="metric-label">Board Texture</span>
+        <strong className="metric-value">{boardTexture?.label || 'Preflop'}</strong>
+        <span className="metric-sub">{currentStreet.toUpperCase()} · {gameType === 'tournament' ? 'Tournament' : 'Cash'}</span>
+      </div>
+    </section>
+  );
+
+  const villainSeatTabs = villains.length > 1 ? (
+    <div className="seat-selector-row" role="tablist" aria-label="Active Villain Seat">
+      {villains.map((v, idx) => {
+        const active = idx === safeVillainIdx;
+        return (
+          <button
+            key={v.id ?? idx}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            className="pa-btn"
+            onClick={() => setActiveVillainIdx(idx)}
+            style={{
+              ...btn(active ? 'primary' : 'secondary'),
+              minHeight: 38, padding: '0 12px', fontSize: F.caption,
+            }}
+          >
+            Seat {idx + 1}: {v.position}
+          </button>
+        );
+      })}
+    </div>
+  ) : null;
+
+  const pokerTablePanel = (
+    <section className="workspace-panel" aria-label="Poker Table">
+      <div className="panel-header-row">
+        <h2 className="panel-heading">
+          Poker Table · {heroPosition}{variant !== 'nlh' ? ` · ${variant.toUpperCase()}` : ''}
+        </h2>
+        <div className="panel-btn-group">
+          <button
+            type="button"
+            className="pa-btn"
+            onClick={() => setShowHeatmap((v) => !v)}
+            aria-pressed={showHeatmap}
+            disabled={communityCards.length < 3 || !!activePlayBlock}
+            style={{
+              ...btn(showHeatmap ? 'primary' : 'secondary', { disabled: communityCards.length < 3 || !!activePlayBlock }),
+              padding: '0 12px', fontSize: F.caption,
+            }}
+          >
+            <Layers size={14} strokeWidth={2} aria-hidden="true" /> Heatmap
+          </button>
+          <button
+            type="button"
+            className="pa-btn"
+            onClick={popUndo}
+            disabled={undoStack.length === 0 || !!activePlayBlock}
+            aria-label="Undo Last Table Change"
+            style={{ ...btn('secondary', { disabled: undoStack.length === 0 || !!activePlayBlock }), padding: '0 12px', fontSize: F.caption }}
+          >
+            <Undo2 size={14} strokeWidth={2} aria-hidden="true" /> Undo
+          </button>
+        </div>
+      </div>
+
+      {/* Compact 1-Line Equity / Pot / SPR Strip Above Felt */}
+      <div className="table-telemetry-inline" aria-label="Compact Table Telemetry">
+        <span style={{ color: equity?.heroEquity != null && Number(equity.heroEquity) >= 50 ? T.success : T.accent, fontWeight: 800, ...NUM }}>
+          {isSimpleMode ? 'Win Chance' : 'EQ'} {equity?.heroEquity != null && Number.isFinite(Number(equity.heroEquity)) ? `${Number(equity.heroEquity).toFixed(1)}%` : 'Not Available'}
+        </span>
+        <span style={{ color: '#DCE5EF', fontWeight: 700, ...NUM }}>
+          Pot {stakesDisplay === 'bb' ? `${Number(tablePot).toFixed(1)} BB` : formatStakeAmount(tablePot, stakesDisplay)}
+        </span>
+        <span style={{ color: '#86DAFF', fontWeight: 700, ...NUM }}>
+          SPR {tableSpr != null && Number.isFinite(Number(tableSpr)) ? tableSpr : 'Not Available'}
+        </span>
+        {(anteBb > 0 || straddleBb > 0 || bombPotBb > 0) && (
+          <span style={{ color: '#4DE0A5', fontWeight: 700 }}>
+            {[anteBb > 0 ? `Ante ${anteBb}` : null, straddleBb > 0 ? `Str ${straddleBb}` : null, bombPotBb > 0 ? `Bomb ${bombPotBb}` : null].filter(Boolean).join(' · ')}
+          </span>
+        )}
+      </div>
+
+      <div
+        className="table-stage"
+        style={{ position: 'relative' }}
+      >
+        <MemoSandboxPokerTable
+          heroCards={heroCardsMemo}
+          communityCards={tableCards}
+          pot={Number(tablePot) || 0}
+          heroPosition={heroPosition}
+          heroStack={Math.round(activeTableState.remaining.hero)}
+          villains={tableVillains}
+          street={tableStreet}
+          variant={variant}
+          tableSkinId={tableSkinId}
+          roomBgId={roomBgId}
+          cardBackId={cardBackId}
+          dealerButtonId={dealerButtonId}
+          deckStyle={deckStyle}
+          themePreviewOverride={themePreviewOverride}
+          stakesDisplay={stakesDisplay}
+          simpleMode={isSimpleMode}
+          onTapPot={() => { if (!activePlayBlock) setQuickEditTarget('pot'); }}
+          onTapHeroStack={() => { if (!activePlayBlock) setQuickEditTarget('heroStack'); }}
+          onAddVillainSeat={handleAddVillainFromFelt}
+          onSimulateVillain={handleSimulateVillain}
+          showCoachMarks={isSimpleMode && !coachMarksDismissed}
+          onDismissCoachMarks={handleDismissCoachMarks}
+          activeActorKey={tableActiveActorKey}
+          seatActions={tableSeatActions}
+          foldedSeats={tableFoldedSeats}
+          potOdds={activeActorPotOdds}
+          mdf={activeActorMdf}
+          villainHoleCards={villainHoleCards}
+          streetBets={tableStreetBets}
+          facingBet={activeActorFacingBet}
+          actionsDisabled={!!activePlayBlock || Boolean(handState.terminal)}
+          onQuickAction={handleTableQuickAction}
+          selectedBetPreset={selectedBetPreset}
+          onSelectBetPreset={setSelectedBetPreset}
+          onSelectActor={(seatKey) => setManualActorKey(seatKey)}
+          onTapSeat={(_seatKey, villainIdx) => {
+            if (activePlayBlock || typeof villainIdx !== 'number') return;
+            setActiveVillainIdx(villainIdx);
+            setTapSeatIdx(villainIdx);
+          }}
+          boardTexture={boardTexture}
+          showTextureBadge={false}
+          equity={equity?.heroEquity}
+          equityLabel={equityLabel}
+          spr={tableSpr}
+          showDealHint={canDealNext && heroCardsMemo.length >= 2}
+          onTapHeroCards={openHeroPicker}
+          onTapBoard={openBoardPicker}
+          onReset={resetTable}
+          onRemoveHeroCard={(idx) => {
+            pushUndo();
+            const nextCards = [...heroCardsMemo];
+            nextCards.splice(idx, 1);
+            setHeroHand({ card1: nextCards[0] || null, card2: nextCards[1] || null });
+            setExtraHeroCards(nextCards.slice(2));
+          }}
+          onRemoveBoardCard={(idx) => {
+            pushUndo();
+            const next = [...communityCards];
+            next.splice(idx, 1);
+            setBoard({
+              flop: next.slice(0, 3),
+              turn: next[3] || null,
+              river: next[4] || null,
+            });
+          }}
+          onSwipeLeft={dealNextStreet}
+          onSwipeRight={() => {
+            if (!board.river && !board.turn) return;
+            pushUndo();
+            if (board.river) setBoard((b) => ({ ...b, river: null }));
+            else setBoard((b) => ({ ...b, turn: null }));
+          }}
+        />
+
+        <EquityHeatmapOverlay
+          isVisible={showHeatmap && communityCards.length >= 3}
+          board={board}
+          heroPosition={heroPosition}
+          villains={villains}
+          equity={equity}
+        />
+      </div>
+
+      {/* Quick Table Controls */}
+      <div className="quick-action-row">
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={openHeroPicker}
+          disabled={!!activePlayBlock}
+          style={{ ...btn('secondary', { disabled: !!activePlayBlock }), flex: '1 1 120px' }}
+        >
+          Pick Hero Cards
+        </button>
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={dealNextStreet}
+          disabled={!canDealNext}
+          style={{ ...btn('primary', { disabled: !canDealNext }), flex: '1 1 120px' }}
+        >
+          <PlayCircle size={16} strokeWidth={2} aria-hidden="true" />
+          {board.flop.length < 3 ? 'Deal Flop' : !board.turn ? 'Deal Turn' : !board.river ? 'Deal River' : 'River Dealt'}
+        </button>
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={dealRandomSpot}
+          disabled={!!activePlayBlock}
+          style={{ ...btn('secondary', { disabled: !!activePlayBlock }), flex: '1 1 120px' }}
+        >
+          <Shuffle size={16} strokeWidth={2} aria-hidden="true" /> Random Spot
+        </button>
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={resetTable}
+          disabled={!!activePlayBlock}
+          style={{ ...btn('secondary', { disabled: !!activePlayBlock }), flex: '0 1 auto' }}
+        >
+          <RotateCcw size={16} strokeWidth={2} aria-hidden="true" /> Reset
+        </button>
+      </div>
+    </section>
+  );
+
+  const boardBuilderPanel = (
+    <section className="workspace-panel" aria-label="Board Builder">
+      <div className="panel-header-row">
+        <h2 className="panel-heading">Board Cards</h2>
+        <div className="panel-btn-group">
+          <button
+            type="button"
+            className="pa-btn"
+            onClick={dealRandomBoard}
+            disabled={!!activePlayBlock}
+            style={{ ...btn('secondary', { disabled: !!activePlayBlock }), padding: '0 12px', fontSize: F.caption }}
+          >
+            <Shuffle size={14} strokeWidth={2} aria-hidden="true" /> Random Flop
+          </button>
+          {communityCards.length > 0 && (
+            <button
+              type="button"
+              className="pa-btn"
+              onClick={() => { pushUndo(); setPrevEquity(null); setLastDealtCard(null); setBoard({ flop: [], turn: null, river: null }); }}
+              disabled={!!activePlayBlock}
+              style={{ ...btn('ghost', { disabled: !!activePlayBlock }), padding: '0 10px', fontSize: F.caption, color: T.textMuted }}
+            >
+              Clear Board
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="board-slots-row">
+        {[0, 1, 2].map((idx) => (
+          <CardSlot
+            key={`flop-${idx}`}
+            card={board.flop[idx] || null}
+            label={`Flop ${idx + 1}`}
+            onTap={() => { if (!activePlayBlock) { setDeckTarget({ kind: 'flop', idx }); setShowDeck(true); } }}
+            onRemove={board.flop[idx] ? () => {
+              pushUndo();
+              const nextFlop = [...board.flop];
+              nextFlop.splice(idx, 1);
+              setBoard((prev) => ({ ...prev, flop: nextFlop, turn: nextFlop.length < 3 ? null : prev.turn, river: nextFlop.length < 3 ? null : prev.river }));
+            } : null}
+          />
+        ))}
+        <CardSlot
+          card={board.turn}
+          label="Turn"
+          onTap={() => { if (!activePlayBlock) { setDeckTarget('turn'); setShowDeck(true); } }}
+          onRemove={board.turn ? () => { pushUndo(); setBoard((prev) => ({ ...prev, turn: null, river: null })); } : null}
+        />
+        <CardSlot
+          card={board.river}
+          label="River"
+          onTap={() => { if (!activePlayBlock) { setDeckTarget('river'); setShowDeck(true); } }}
+          onRemove={board.river ? () => { pushUndo(); setBoard((prev) => ({ ...prev, river: null })); } : null}
+        />
+      </div>
+    </section>
+  );
+
+  const actionBuilderPanel = (
+    <section className="workspace-panel" aria-label="Action Builder And Replay">
+      <div className="panel-header-row">
+        <h2 className="panel-heading">Action Sequence &amp; Replay</h2>
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={() => { recordExplorationSnapshot('Logged For Replay'); setShowHandReplay(true); }}
+          style={{ ...btn('secondary'), padding: '0 12px', fontSize: F.caption }}
+        >
+          <Film size={14} strokeWidth={2} aria-hidden="true" /> Hand Replay ({sessionLog.length})
+        </button>
+      </div>
+
+      <p className="limit-callout">
+        Multiway Action Builder Supports 2-6 Seats With Running Pot, Effective Stack, And Active Players
+        Per Street. Authored Scenarios Remain Strictly Ungraded.
+      </p>
+
+      <StreetTimeline
+        streetHistory={streetHistory}
+        activeStreet={Math.max(0, streetHistory.findIndex((s) => s.street === tableStreet))}
+        onSelectStreet={(idx) => {
+          const entry = streetHistory[idx];
+          const lastAction = entry?.actions?.[entry.actions.length - 1];
+          setReplayIndex(typeof lastAction?.index === 'number' ? lastAction.index : null);
+        }}
+      />
+
+      {actionHistory.length > 0 && (
+        <ActionReplayBar
+          actions={actionHistory}
+          replayIndex={replayIndex}
+          onReplayTo={(idx) => setReplayIndex(idx)}
+          onExitReplay={() => setReplayIndex(null)}
+        />
+      )}
+
+      <ActionHistoryBuilder
+        actions={actionHistory}
+        onAdd={(entry) => {
+          if (activePlayBlock) return;
+          pushUndo();
+          setActionHistory((prev) => [...prev, { ...entry, street: entry?.street || currentStreet }]);
+          setReplayIndex(null);
+          playSound?.('chip');
+        }}
+        onRemove={(idx) => {
+          pushUndo();
+          setActionHistory((prev) => prev.filter((_, i) => i !== idx));
+          setReplayIndex(null);
+        }}
+        onClear={() => {
+          pushUndo();
+          setActionHistory([]);
+          setReplayIndex(null);
+        }}
+        street={currentStreet}
+        heroPosition={heroPosition}
+        villainPosition={primaryVillain?.position || 'BB'}
+        villains={villains}
+        potSize={effectiveBasePot}
+        heroStack={heroStack}
+        villainStack={Number(primaryVillain?.stack) || 100}
+        preflopPosts={preflopPosts}
+        handState={handState}
+        disabled={!!activePlayBlock}
+      />
+    </section>
+  );
+
+  const opponentRangesPanel = (
+    <section className="workspace-panel" aria-label="Opponent Ranges And Presets">
+      <div className="panel-header-row">
+        <h2 className="panel-heading">Opponent Ranges &amp; Presets</h2>
+        <div className="panel-btn-group">
+          <button
+            type="button"
+            className="pa-btn"
+            onClick={() => setShowVillainPresets(true)}
+            disabled={!!activePlayBlock}
+            style={{ ...btn('secondary', { disabled: !!activePlayBlock }), padding: '0 12px', fontSize: F.caption }}
+          >
+            <Users size={14} strokeWidth={2} aria-hidden="true" /> Presets
+          </button>
+          <button
+            type="button"
+            className="pa-btn"
+            onClick={() => setShowRangeHeatGrid(true)}
+            disabled={!!activePlayBlock}
+            aria-label="Open 13x13 Opponent Range Heat Grid"
+            style={{ ...btn('secondary', { disabled: !!activePlayBlock }), padding: '0 12px', fontSize: F.caption }}
+          >
+            <Flame size={14} strokeWidth={2} aria-hidden="true" /> Heat Grid
+          </button>
+          <button
+            type="button"
+            className="pa-btn"
+            onClick={() => setShowRangeExplorer(true)}
+            disabled={!!activePlayBlock}
+            style={{ ...btn('primary', { disabled: !!activePlayBlock }), padding: '0 12px', fontSize: F.caption }}
+          >
+            <LayoutGrid size={14} strokeWidth={2} aria-hidden="true" /> Range Editor
+          </button>
+        </div>
+      </div>
+
+      {!isSimpleMode && villainSeatTabs}
+
+      <VillainReadCard villain={primaryVillain} />
+
+      <div style={{ marginTop: S.md }}>
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={() => setShowRangeHeatGrid(true)}
+          disabled={!!activePlayBlock}
+          style={btn('secondary', { block: true, disabled: !!activePlayBlock })}
+        >
+          <Flame size={16} strokeWidth={2} aria-hidden="true" />
+          Range Grid · {primaryVillain?.position || 'BB'} Vs {communityCards.length ? communityCards.join(' ') : 'Preflop'}
+        </button>
+      </div>
+    </section>
+  );
+
+  const runoutsPanel = (
+    <section className="workspace-panel" aria-label="Runouts And Preflop Reference">
+      <div className="panel-header-row">
+        <h2 className="panel-heading">
+          {isSimpleMode
+            ? (communityCards.length >= 3 && communityCards.length < 5 ? 'Best & Worst Next Cards' : 'Preflop Starting Hand Chart')
+            : 'Equity Runouts & Preflop Reference'}
+        </h2>
+        {runoutsComputing && (
+          <span style={pill('neutral')}>
+            <Loader2 size={12} strokeWidth={2} className="pa-spin" aria-hidden="true" /> Simulating
+          </span>
+        )}
+      </div>
+
+      {communityCards.length >= 3 && communityCards.length < 5 ? (
+        runouts ? (
+          <RunoutChart runoutData={runouts} onSelectRunoutCard={handleSelectRunoutCard} />
+        ) : (
+          <p className="panel-note">
+            Pick Two Hero Cards And A Flop Or Turn Board To Compute Next-Card Runout Equity Distribution.
+          </p>
+        )
+      ) : (
+                  <PreflopChartOverlay
+                    position={heroPosition}
+                    scenario={preflopScenario}
+                    rangeGrid={preflopRangeGrid}
+                    rangePercent={preflopRangePercent}
+                    onChangeScenario={setPreflopScenario}
+                    onPickHand={(handLabel) => {
+                      if (!handLabel || handLabel.length < 2 || activePlayBlock) return;
+                      const combo = expandRangeToCombos(handLabel, new Set(communityCards))[0];
+                      if (!combo) {
+                        toast.error('No Available Cards For This Hand On The Current Board');
+                        return;
+                      }
+                      pushUndo();
+                      setHeroHand({ card1: combo[0], card2: combo[1] });
+                    }}
+                  />
+      )}
+    </section>
+  );
+
+  const studyLibraryPanel = (
+    <section className="workspace-panel" aria-label="Study Library And Workspace Tools">
+      <h2 className="panel-heading">Study Library, Imports &amp; Sharing</h2>
+
+      <div className="tools-grid">
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={() => setShowSaveHand(true)}
+          disabled={!!activePlayBlock}
+          style={btn('primary', { block: true, disabled: !!activePlayBlock })}
+        >
+          <Bookmark size={16} strokeWidth={2} aria-hidden="true" /> Save To Folder
+        </button>
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={() => setShowStudyFolders(true)}
+          disabled={!!activePlayBlock}
+          style={btn('secondary', { block: true, disabled: !!activePlayBlock })}
+        >
+          <FolderOpen size={16} strokeWidth={2} aria-hidden="true" /> Study Folders
+        </button>
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={() => { setShowTemplates(true); loadTemplates(); }}
+          disabled={!!activePlayBlock}
+          style={btn('secondary', { block: true, disabled: !!activePlayBlock })}
+        >
+          <Bookmark size={16} strokeWidth={2} aria-hidden="true" /> Templates
+        </button>
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={() => setShowImportHH(true)}
+          disabled={!!activePlayBlock}
+          style={btn('secondary', { block: true, disabled: !!activePlayBlock })}
+        >
+          <Upload size={16} strokeWidth={2} aria-hidden="true" /> Import Hand History
+        </button>
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={() => setShowSolverImport(true)}
+          disabled={!!activePlayBlock}
+          style={btn('secondary', { block: true, disabled: !!activePlayBlock })}
+        >
+          <FileCode size={16} strokeWidth={2} aria-hidden="true" /> Import Solver Node
+        </button>
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={() => setShowShareScenario(true)}
+          style={btn('secondary', { block: true })}
+        >
+          <Share2 size={16} strokeWidth={2} aria-hidden="true" /> Internal Share
+        </button>
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={() => { recordExplorationSnapshot('Session Report Snapshot'); setShowSessionReport(true); }}
+          style={btn('secondary', { block: true })}
+        >
+          <ClipboardList size={16} strokeWidth={2} aria-hidden="true" /> Session Report
+        </button>
+        <button
+          type="button"
+          className="pa-btn"
+          onClick={() => setShowAnalytics((v) => !v)}
+          aria-expanded={showAnalytics}
+          style={btn('secondary', { block: true })}
+        >
+          <BarChart3 size={16} strokeWidth={2} aria-hidden="true" /> Historical Stats
+        </button>
+      </div>
+
+      {/* Image Export Card */}
+      <div style={{ marginTop: S.md }}>
+        <ExportCard
+          results={null}
+          scenario={exportScenarioPayload}
+          equity={equity}
+          villainRange={activeVillainRange}
+        />
+      </div>
+
+      {/* Saved Account Bookmarks Preview */}
+      <div className="bookmarks-block">
+        <div className="panel-header-row">
+          <span style={{ ...sectionTitle, marginBottom: 0 }}>Recent Bookmarks</span>
+          {userId && (
+            <button
+              type="button"
+              className="pa-btn"
+              onClick={refetchBookmarks}
+              style={{ ...btn('ghost'), minHeight: 36, padding: '0 8px', fontSize: F.caption, color: T.accent }}
+            >
+              Refresh
+            </button>
+          )}
+        </div>
+        {authInitializing || bookmarksLoading ? (
+          <Skeleton h={44} />
+        ) : bookmarksError ? (
+          <ErrorState title="Bookmarks Unavailable" body={bookmarksError} onRetry={refetchBookmarks} />
+        ) : !userId ? (
+          <p className="panel-note">Sign In To Sync Bookmarks And Study Folders Across Devices.</p>
+        ) : bookmarks.length === 0 ? (
+          <p className="panel-note">No Bookmarked Hands Yet. Save Any Spot To A Study Folder Above.</p>
+        ) : (
+          <div className="bookmarks-list">
+            {bookmarks.slice(0, 4).map((bm) => (
+              <button
+                key={bm.id}
+                type="button"
+                className="bookmark-row"
+                onClick={() => {
+                  const raw = bm.scenario_json || bm;
+                  restoreScenario({
+                    heroHand: raw.heroHand || (raw.hero_hand ? { card1: String(raw.hero_hand).slice(0, 2), card2: String(raw.hero_hand).slice(2, 4) } : null),
+                    heroPosition: raw.heroPosition || raw.hero_position || 'BTN',
+                    heroStack: raw.heroStack || raw.hero_stack || 100,
+                    board: raw.board || {
+                      flop: raw.board_flop ? String(raw.board_flop).split(/[,\s]+/).filter(Boolean) : [],
+                      turn: raw.board_turn || null,
+                      river: raw.board_river || null,
+                    },
+                  });
+                  toast.success('Bookmark Loaded On Table');
+                }}
+              >
+                <span className="bookmark-hand">{bm.hero_hand || bm.title || 'Saved Spot'}</span>
+                <span className="bookmark-meta">{bm.hero_position || 'BTN'} · Load</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+
+  const historicalAnalyticsPanel = showAnalytics ? (
+    <section className="workspace-panel" aria-label="Historical Session Analytics">
+      <p className="panel-note" style={{ marginBottom: S.sm }}>
+        Read-Only Historical Archive. Ungraded Virtual Sandbox Exploration Never Modifies These Records.
+      </p>
+      <SessionAnalytics userId={userId} />
+    </section>
+  ) : null;
 
   return (
     <div className="sandbox-page-root">
@@ -2681,35 +3761,84 @@ export default function VirtualSandboxPage() {
         <div
           className="sandbox-workspace"
           data-training-authority="authored-sandbox-ungraded"
+          data-experience-mode={experienceMode}
           aria-labelledby="sandbox-workspace-title"
         >
-          {/* ── Top Title & Honesty Bar ── */}
+          {/* ── Ultra-Clean Top Header + Compact Practice Badge ── */}
           <header className="sandbox-header-card">
             <div className="sandbox-header-top">
-              <div>
-                <p className="sandbox-eyebrow">Personal Assistant · Virtual Sandbox</p>
-                <h1 id="sandbox-workspace-title" className="sandbox-title">Virtual Sandbox</h1>
+              <div className="sandbox-title-block">
+                <div className="sandbox-title-row">
+                  <h1 id="sandbox-workspace-title" className="sandbox-title">Virtual Sandbox</h1>
+                  <span style={pill('accent')}>Ungraded Exploration Workspace</span>
+                  {reviewHandoffSource && (
+                    <span style={pill('success')}>Loaded From Review My Play</span>
+                  )}
+                </div>
               </div>
               <div className="sandbox-header-actions">
+                <div
+                  className="header-segmented"
+                  role="group"
+                  aria-label="Workspace Experience Mode"
+                  data-experience-toggle="true"
+                >
+                  <button
+                    type="button"
+                    className={`seg-btn${isSimpleMode ? ' active' : ''}`}
+                    aria-pressed={isSimpleMode}
+                    onClick={() => setExperienceMode('simple')}
+                  >
+                    Simple
+                  </button>
+                  <button
+                    type="button"
+                    className={`seg-btn${!isSimpleMode ? ' active' : ''}`}
+                    aria-pressed={!isSimpleMode}
+                    onClick={() => setExperienceMode('pro')}
+                  >
+                    Pro
+                  </button>
+                </div>
+
+                <div
+                  className="header-segmented"
+                  role="group"
+                  aria-label="Stakes Display Mode"
+                  data-stakes-toggle="true"
+                >
+                  {STAKES_DISPLAY_OPTIONS.map((opt) => {
+                    const active = stakesDisplay === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        className={`seg-btn${active ? ' active' : ''}`}
+                        aria-pressed={active}
+                        onClick={() => setStakesDisplay(opt.id)}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <button
                   type="button"
                   className="pa-btn"
-                  onClick={() => setShowHotkeys(true)}
-                  aria-label="Desktop Poker Hotkeys"
-                  title="Keyboard Shortcuts (?)"
-                  style={iconBtn({ color: T.textMuted })}
+                  onClick={() => setAutoOpponent((v) => !v)}
+                  aria-pressed={autoOpponent}
+                  data-auto-opponent-toggle="true"
+                  disabled={!!activePlayBlock}
+                  style={{
+                    ...btn(autoOpponent ? 'primary' : 'secondary', { disabled: !!activePlayBlock }),
+                    padding: '0 10px',
+                    fontSize: F.caption,
+                  }}
                 >
-                  <Keyboard size={18} strokeWidth={2} aria-hidden="true" />
+                  <Bot size={15} strokeWidth={2} aria-hidden="true" /> Auto Opponent
                 </button>
-                <button
-                  type="button"
-                  className="pa-btn"
-                  onClick={toggleSound}
-                  aria-label={soundEnabled ? 'Mute Sandbox Audio' : 'Enable Sandbox Audio'}
-                  style={iconBtn({ color: soundEnabled ? T.accent : T.textDim })}
-                >
-                  {soundEnabled ? <Volume2 size={18} strokeWidth={2} aria-hidden="true" /> : <VolumeX size={18} strokeWidth={2} aria-hidden="true" />}
-                </button>
+
                 <button
                   type="button"
                   className="pa-btn"
@@ -2719,32 +3848,40 @@ export default function VirtualSandboxPage() {
                 >
                   <SlidersHorizontal size={16} strokeWidth={2} aria-hidden="true" /> Setup
                 </button>
+
+                <button
+                  type="button"
+                  className="pa-btn"
+                  onClick={() => setShowToolsSheet(true)}
+                  aria-label="More Sandbox Tools"
+                  data-tools-trigger="true"
+                  style={btn('secondary')}
+                >
+                  <span>Tools</span>
+                  <MoreHorizontal size={16} strokeWidth={2} aria-hidden="true" />
+                </button>
               </div>
             </div>
 
-            {/* Compact Honesty Status Row + Collapsible Disclosed Limits */}
+            {/* Compact Collapsible Honesty Disclosure */}
             <div
               className="honesty-banner"
               role="note"
               aria-label="Study Authority And Disclosed Limits"
               data-tutorial="evidence-gate"
             >
-              <div className="honesty-pill-row">
-                <span style={pill('accent')}>Ungraded Exploration Workspace</span>
-                <span style={pill('neutral')}>No Fabricated GTO Grades Or EV</span>
-                <span style={pill('neutral')}>
-                  {workerReady ? 'Worker Equity Ready' : 'Local Equity Engine'}
-                </span>
-                {reviewHandoffSource && (
-                  <span style={pill('success')}>Loaded From Review My Play</span>
-                )}
-              </div>
               <details className="pa-disclosure honesty-disclosure">
                 <summary>
                   <span>Workspace Scope &amp; Disclosed Limits</span>
-                  <small>Ungraded Study Boundary</small>
+                  <small>{workerReady ? 'Worker Equity Ready · Ungraded Practice' : 'Local Equity Engine · Ungraded Practice'}</small>
                 </summary>
                 <div className="pa-disclosure-body">
+                  <div className="honesty-pill-row" style={{ marginBottom: 8 }}>
+                    <span style={pill('neutral')}>No Fabricated GTO Grades Or EV</span>
+                    <span style={pill('neutral')}>
+                      {workerReady ? 'Worker Equity Ready' : 'Local Equity Engine'}
+                    </span>
+                  </div>
                   <p className="honesty-copy">
                     Authored Scenarios In The Virtual Sandbox Do Not Produce GTO Grades, Solver EV, Accuracy Scores,
                     Streaks, Or Training Progress. For Verified Solver-Backed Grading, Use A Signed Training Or Audited
@@ -2781,637 +3918,178 @@ export default function VirtualSandboxPage() {
             </section>
           )}
 
-          {/* ── Live Metrics Strip ── */}
-          <section className="sandbox-metrics-strip" aria-label="Live Scenario Telemetry">
-            <div className="metric-tile">
-              <span className="metric-label">Hero Hand</span>
-              <strong className="metric-value">
-                {heroCardsMemo.length >= 2 ? heroCardsMemo.join(' ') : 'Pick Cards'}
-              </strong>
-              <span className="metric-sub">
-                {variant !== 'nlh' ? `${variant.toUpperCase()} · ${heroPosition}` : (heroClassLabel || `${heroPosition} · ${heroStack} BB`)}
-              </span>
+          {/* ── 1-Tap Common Poker Spots Bar Above The Club Arena Table ── */}
+          <section className="common-spots-panel" aria-label="Common Poker Spots" data-common-spots="true">
+            <div className="common-spots-head">
+              <Sparkles size={15} strokeWidth={2} color={T.accent} aria-hidden="true" />
+              <span className="common-spots-label">Try A Common Spot</span>
             </div>
-            <div className="metric-tile">
-              <span className="metric-label">Monte Carlo Equity</span>
-              <strong className="metric-value" style={{ color: equity?.heroEquity != null && Number(equity.heroEquity) >= 50 ? T.success : T.accent }}>
-                {equityComputing && !equity
-                  ? 'Computing…'
-                  : equity?.heroEquity != null && Number.isFinite(Number(equity.heroEquity))
-                    ? `${Number(equity.heroEquity).toFixed(1)}%`
-                    : 'Not Available'}
-              </strong>
-              <span className="metric-sub">
-                {equityRefining
-                  ? `${equityLabel || 'Preview'} · Refining 10k…`
-                  : equity?.sampleSize
-                    ? `${equityLabel || 'Equity'} · ${Number(equity.sampleSize).toLocaleString()} Trials`
-                    : (equityLabel || 'Select Two Hero Cards')}
-              </span>
-            </div>
-            <div className="metric-tile">
-              <span className="metric-label">Pot &amp; SPR</span>
-              <strong className="metric-value">{Number(tablePot).toFixed(1)} BB</strong>
-              <span className="metric-sub">
-                SPR {tableSpr != null && Number.isFinite(Number(tableSpr)) ? tableSpr : 'Not Available'} · {`${villains.length} ${villains.length === 1 ? 'Villain' : 'Villains'}`}
-              </span>
-            </div>
-            <div className="metric-tile">
-              <span className="metric-label">Board Texture</span>
-              <strong className="metric-value">{boardTexture?.label || 'Preflop'}</strong>
-              <span className="metric-sub">{currentStreet.toUpperCase()} · {gameType === 'tournament' ? 'Tournament' : 'Cash'}</span>
+            <div className="common-spots-chips" role="group" aria-label="Curated Poker Scenarios">
+              {COMMON_POKER_SPOTS.map((spot) => {
+                const active = activeSpotId === spot.id;
+                return (
+                  <button
+                    key={spot.id}
+                    type="button"
+                    className={`spot-chip pa-btn${active ? ' active' : ''}`}
+                    aria-pressed={active}
+                    disabled={!!activePlayBlock}
+                    onClick={() => handleLoadCommonSpot(spot)}
+                    title={spot.subtitle}
+                  >
+                    <span>{spot.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </section>
 
-          {/* ── Primary Two-Column Workspace (Collapses to 1 column <= 768px) ── */}
-          <div className="sandbox-main-grid">
-            {/* LEFT COLUMN: Native Poker Table + Board Strip + Action Builder */}
-            <div className="sandbox-col">
-              <section className="workspace-panel" aria-label="Poker Table">
-                <div className="panel-header-row">
-                  <h2 className="panel-heading">
-                    Poker Table · {heroPosition}{variant !== 'nlh' ? ` · ${variant.toUpperCase()}` : ''}
-                  </h2>
-                  <div className="panel-btn-group">
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      onClick={() => setShowHeatmap((v) => !v)}
-                      aria-pressed={showHeatmap}
-                      disabled={communityCards.length < 3 || !!activePlayBlock}
-                      style={{
-                        ...btn(showHeatmap ? 'primary' : 'secondary', { disabled: communityCards.length < 3 || !!activePlayBlock }),
-                        padding: '0 12px', fontSize: F.caption,
-                      }}
-                    >
-                      <Layers size={14} strokeWidth={2} aria-hidden="true" /> Heatmap
-                    </button>
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      onClick={popUndo}
-                      disabled={undoStack.length === 0 || !!activePlayBlock}
-                      aria-label="Undo Last Table Change"
-                      style={{ ...btn('secondary', { disabled: undoStack.length === 0 || !!activePlayBlock }), padding: '0 12px', fontSize: F.caption }}
-                    >
-                      <Undo2 size={14} strokeWidth={2} aria-hidden="true" /> Undo
-                    </button>
-                  </div>
-                </div>
+          {/* ── SIMPLE MODE (Everyday-Player Focused Flow) vs PRO MODE (Full 2-Column Lab) ── */}
+          {isSimpleMode ? (
+            <div className="simple-workspace-stack">
+              {/* 1. Hero Club Arena Table */}
+              {pokerTablePanel}
 
-                {/* Compact 1-Line Equity / Pot / SPR Strip Above Felt */}
-                <div className="table-telemetry-inline" aria-label="Compact Table Telemetry">
-                  <span style={{ color: equity?.heroEquity != null && Number(equity.heroEquity) >= 50 ? T.success : T.accent, fontWeight: 800, ...NUM }}>
-                    EQ {equity?.heroEquity != null && Number.isFinite(Number(equity.heroEquity)) ? `${Number(equity.heroEquity).toFixed(1)}%` : 'Not Available'}
-                  </span>
-                  <span style={{ color: '#DCE5EF', fontWeight: 700, ...NUM }}>
-                    Pot {Number(tablePot).toFixed(1)} BB
-                  </span>
-                  <span style={{ color: '#86DAFF', fontWeight: 700, ...NUM }}>
-                    SPR {tableSpr != null && Number.isFinite(Number(tableSpr)) ? tableSpr : 'Not Available'}
-                  </span>
-                  {(anteBb > 0 || straddleBb > 0 || bombPotBb > 0) && (
-                    <span style={{ color: '#4DE0A5', fontWeight: 700 }}>
-                      {[anteBb > 0 ? `Ante ${anteBb}` : null, straddleBb > 0 ? `Str ${straddleBb}` : null, bombPotBb > 0 ? `Bomb ${bombPotBb}` : null].filter(Boolean).join(' · ')}
-                    </span>
-                  )}
-                </div>
+              {/* 2. Multiway Active Villain Seat Selector (Always Visible When villains.length > 1) */}
+              {villainSeatTabs && (
+                <section className="workspace-panel" aria-label="Multiway Opponent Seats">
+                  {villainSeatTabs}
+                </section>
+              )}
 
-                <div
-                  className="table-stage"
-                  style={{ position: 'relative' }}
-                >
-                  <MemoSandboxPokerTable
+              {/* 3. Three Clean Tabs Below The Table (Play & Odds | Opponent | Save & Share) */}
+              <div
+                className="simple-tabs-bar"
+                role="tablist"
+                aria-label="Simple Sandbox Sections"
+                data-simple-tabs="true"
+              >
+                {SIMPLE_TABS.map((tab) => {
+                  const active = activeSimpleTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      className={`simple-tab-btn pa-btn${active ? ' active' : ''}`}
+                      onClick={() => setActiveSimpleTab(tab.id)}
+                    >
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* 4. Active Tab Content */}
+              {activeSimpleTab === 'play' && (
+                <div className="simple-tab-panel" role="tabpanel" aria-label="Play And Odds">
+                  <SimpleHandSummary
                     heroCards={heroCardsMemo}
-                    communityCards={tableCards}
-                    pot={Number(tablePot) || 0}
-                    heroPosition={heroPosition}
-                    heroStack={Math.round(activeTableState.remaining.hero)}
-                    villains={tableVillains}
-                    street={tableStreet}
-                    variant={variant}
-                    tableSkinId={tableSkinId}
-                    roomBgId={roomBgId}
-                    cardBackId={cardBackId}
-                    dealerButtonId={dealerButtonId}
-                    deckStyle={deckStyle}
-                    themePreviewOverride={themePreviewOverride}
-                    activeActorKey={tableActiveActorKey}
-                    seatActions={tableSeatActions}
-                    foldedSeats={tableFoldedSeats}
-                    potOdds={activeActorPotOdds}
-                    mdf={activeActorMdf}
-                    villainHoleCards={villainHoleCards}
-                    streetBets={tableStreetBets}
+                    boardCards={communityCards}
+                    equity={equity?.heroEquity ?? null}
+                    prevEquity={prevEquity}
+                    lastDealtCard={lastDealtCard}
                     facingBet={activeActorFacingBet}
-                    actionsDisabled={!!activePlayBlock || Boolean(handState.terminal)}
-                    onQuickAction={handleTableQuickAction}
-                    selectedBetPreset={selectedBetPreset}
-                    onSelectBetPreset={setSelectedBetPreset}
-                    onSelectActor={(seatKey) => setManualActorKey(seatKey)}
-                    onTapSeat={(_seatKey, villainIdx) => {
-                      if (activePlayBlock || typeof villainIdx !== 'number') return;
-                      setActiveVillainIdx(villainIdx);
-                      setTapSeatIdx(villainIdx);
-                    }}
-                    boardTexture={boardTexture}
-                    showTextureBadge={false}
-                    equity={equity?.heroEquity}
-                    equityLabel={equityLabel}
-                    spr={tableSpr}
-                    showDealHint={canDealNext && heroCardsMemo.length >= 2}
-                    onTapHeroCards={openHeroPicker}
-                    onTapBoard={openBoardPicker}
-                    onReset={resetTable}
-                    onRemoveHeroCard={(idx) => {
-                      pushUndo();
-                      const nextCards = [...heroCardsMemo];
-                      nextCards.splice(idx, 1);
-                      setHeroHand({ card1: nextCards[0] || null, card2: nextCards[1] || null });
-                      setExtraHeroCards(nextCards.slice(2));
-                    }}
-                    onRemoveBoardCard={(idx) => {
-                      pushUndo();
-                      const next = [...communityCards];
-                      next.splice(idx, 1);
-                      setBoard({
-                        flop: next.slice(0, 3),
-                        turn: next[3] || null,
-                        river: next[4] || null,
-                      });
-                    }}
-                    onSwipeLeft={dealNextStreet}
-                    onSwipeRight={() => {
-                      if (!board.river && !board.turn) return;
-                      pushUndo();
-                      if (board.river) setBoard((b) => ({ ...b, river: null }));
-                      else setBoard((b) => ({ ...b, turn: null }));
-                    }}
+                    potOdds={activeActorPotOdds}
+                    pot={Number(tablePot) || 0}
+                    heroStack={Math.round(activeTableState.remaining.hero)}
+                    stakesDisplay={stakesDisplay}
+                    simpleMode={true}
                   />
 
-                  <EquityHeatmapOverlay
-                    isVisible={showHeatmap && communityCards.length >= 3}
-                    board={board}
-                    heroPosition={heroPosition}
-                    villains={villains}
-                    equity={equity}
-                  />
-                </div>
-
-                {/* Quick Table Controls */}
-                <div className="quick-action-row">
-                  <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={openHeroPicker}
-                    disabled={!!activePlayBlock}
-                    style={{ ...btn('secondary', { disabled: !!activePlayBlock }), flex: '1 1 120px' }}
-                  >
-                    Pick Hero Cards
-                  </button>
-                  <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={dealNextStreet}
-                    disabled={!canDealNext}
-                    style={{ ...btn('primary', { disabled: !canDealNext }), flex: '1 1 120px' }}
-                  >
-                    <PlayCircle size={16} strokeWidth={2} aria-hidden="true" />
-                    {board.flop.length < 3 ? 'Deal Flop' : !board.turn ? 'Deal Turn' : !board.river ? 'Deal River' : 'River Dealt'}
-                  </button>
                   <button
                     type="button"
                     className="pa-btn"
                     onClick={dealRandomSpot}
                     disabled={!!activePlayBlock}
-                    style={{ ...btn('secondary', { disabled: !!activePlayBlock }), flex: '1 1 120px' }}
-                  >
-                    <Shuffle size={16} strokeWidth={2} aria-hidden="true" /> Random Spot
-                  </button>
-                  <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={resetTable}
-                    disabled={!!activePlayBlock}
-                    style={{ ...btn('secondary', { disabled: !!activePlayBlock }), flex: '0 1 auto' }}
-                  >
-                    <RotateCcw size={16} strokeWidth={2} aria-hidden="true" /> Reset
-                  </button>
-                </div>
-              </section>
-
-              {/* Board Builder Strip */}
-              <section className="workspace-panel" aria-label="Board Builder">
-                <div className="panel-header-row">
-                  <h2 className="panel-heading">Board Cards</h2>
-                  <div className="panel-btn-group">
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      onClick={dealRandomBoard}
-                      disabled={!!activePlayBlock}
-                      style={{ ...btn('secondary', { disabled: !!activePlayBlock }), padding: '0 12px', fontSize: F.caption }}
-                    >
-                      <Shuffle size={14} strokeWidth={2} aria-hidden="true" /> Random Flop
-                    </button>
-                    {communityCards.length > 0 && (
-                      <button
-                        type="button"
-                        className="pa-btn"
-                        onClick={() => { pushUndo(); setBoard({ flop: [], turn: null, river: null }); }}
-                        disabled={!!activePlayBlock}
-                        style={{ ...btn('ghost', { disabled: !!activePlayBlock }), padding: '0 10px', fontSize: F.caption, color: T.textMuted }}
-                      >
-                        Clear Board
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="board-slots-row">
-                  {[0, 1, 2].map((idx) => (
-                    <CardSlot
-                      key={`flop-${idx}`}
-                      card={board.flop[idx] || null}
-                      label={`Flop ${idx + 1}`}
-                      onTap={() => { if (!activePlayBlock) { setDeckTarget({ kind: 'flop', idx }); setShowDeck(true); } }}
-                      onRemove={board.flop[idx] ? () => {
-                        pushUndo();
-                        const nextFlop = [...board.flop];
-                        nextFlop.splice(idx, 1);
-                        setBoard((prev) => ({ ...prev, flop: nextFlop, turn: nextFlop.length < 3 ? null : prev.turn, river: nextFlop.length < 3 ? null : prev.river }));
-                      } : null}
-                    />
-                  ))}
-                  <CardSlot
-                    card={board.turn}
-                    label="Turn"
-                    onTap={() => { if (!activePlayBlock) { setDeckTarget('turn'); setShowDeck(true); } }}
-                    onRemove={board.turn ? () => { pushUndo(); setBoard((prev) => ({ ...prev, turn: null, river: null })); } : null}
-                  />
-                  <CardSlot
-                    card={board.river}
-                    label="River"
-                    onTap={() => { if (!activePlayBlock) { setDeckTarget('river'); setShowDeck(true); } }}
-                    onRemove={board.river ? () => { pushUndo(); setBoard((prev) => ({ ...prev, river: null })); } : null}
-                  />
-                </div>
-              </section>
-
-              {/* Street Timeline, Replay Bar & Multiway Action Builder (2-6 Seats) */}
-              <section className="workspace-panel" aria-label="Action Builder And Replay">
-                <div className="panel-header-row">
-                  <h2 className="panel-heading">Action Sequence &amp; Replay</h2>
-                  <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={() => { recordExplorationSnapshot('Logged For Replay'); setShowHandReplay(true); }}
-                    style={{ ...btn('secondary'), padding: '0 12px', fontSize: F.caption }}
-                  >
-                    <Film size={14} strokeWidth={2} aria-hidden="true" /> Hand Replay ({sessionLog.length})
-                  </button>
-                </div>
-
-                <p className="limit-callout">
-                  Multiway Action Builder Supports 2-6 Seats With Running Pot, Effective Stack, And Active Players
-                  Per Street. Authored Scenarios Remain Strictly Ungraded.
-                </p>
-
-                <StreetTimeline
-                  streetHistory={streetHistory}
-                  activeStreet={Math.max(0, streetHistory.findIndex((s) => s.street === tableStreet))}
-                  onSelectStreet={(idx) => {
-                    const entry = streetHistory[idx];
-                    const lastAction = entry?.actions?.[entry.actions.length - 1];
-                    setReplayIndex(typeof lastAction?.index === 'number' ? lastAction.index : null);
-                  }}
-                />
-
-                {actionHistory.length > 0 && (
-                  <ActionReplayBar
-                    actions={actionHistory}
-                    replayIndex={replayIndex}
-                    onReplayTo={(idx) => setReplayIndex(idx)}
-                    onExitReplay={() => setReplayIndex(null)}
-                  />
-                )}
-
-                <ActionHistoryBuilder
-                  actions={actionHistory}
-                  onAdd={(entry) => {
-                    if (activePlayBlock) return;
-                    pushUndo();
-                    setActionHistory((prev) => [...prev, { ...entry, street: entry?.street || currentStreet }]);
-                    setReplayIndex(null);
-                    playSound?.('chip');
-                  }}
-                  onRemove={(idx) => {
-                    pushUndo();
-                    setActionHistory((prev) => prev.filter((_, i) => i !== idx));
-                    setReplayIndex(null);
-                  }}
-                  onClear={() => {
-                    pushUndo();
-                    setActionHistory([]);
-                    setReplayIndex(null);
-                  }}
-                  street={currentStreet}
-                  heroPosition={heroPosition}
-                  villainPosition={primaryVillain?.position || 'BB'}
-                  villains={villains}
-                  potSize={effectiveBasePot}
-                  heroStack={heroStack}
-                  villainStack={Number(primaryVillain?.stack) || 100}
-                  preflopPosts={preflopPosts}
-                  handState={handState}
-                  disabled={!!activePlayBlock}
-                />
-              </section>
-            </div>
-
-            {/* RIGHT COLUMN: Opponent Ranges, Runouts, Study Library, Tools */}
-            <div className="sandbox-col">
-              {/* Opponent Ranges & Presets */}
-              <section className="workspace-panel" aria-label="Opponent Ranges And Presets">
-                <div className="panel-header-row">
-                  <h2 className="panel-heading">Opponent Ranges &amp; Presets</h2>
-                  <div className="panel-btn-group">
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      onClick={() => setShowVillainPresets(true)}
-                      disabled={!!activePlayBlock}
-                      style={{ ...btn('secondary', { disabled: !!activePlayBlock }), padding: '0 12px', fontSize: F.caption }}
-                    >
-                      <Users size={14} strokeWidth={2} aria-hidden="true" /> Presets
-                    </button>
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      onClick={() => setShowRangeHeatGrid(true)}
-                      disabled={!!activePlayBlock}
-                      aria-label="Open 13x13 Opponent Range Heat Grid"
-                      style={{ ...btn('secondary', { disabled: !!activePlayBlock }), padding: '0 12px', fontSize: F.caption }}
-                    >
-                      <Flame size={14} strokeWidth={2} aria-hidden="true" /> Heat Grid
-                    </button>
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      onClick={() => setShowRangeExplorer(true)}
-                      disabled={!!activePlayBlock}
-                      style={{ ...btn('primary', { disabled: !!activePlayBlock }), padding: '0 12px', fontSize: F.caption }}
-                    >
-                      <LayoutGrid size={14} strokeWidth={2} aria-hidden="true" /> Range Editor
-                    </button>
-                  </div>
-                </div>
-
-                {villains.length > 1 && (
-                  <div className="seat-selector-row" role="tablist" aria-label="Active Villain Seat">
-                    {villains.map((v, idx) => {
-                      const active = idx === safeVillainIdx;
-                      return (
-                        <button
-                          key={v.id ?? idx}
-                          type="button"
-                          role="tab"
-                          aria-selected={active}
-                          className="pa-btn"
-                          onClick={() => setActiveVillainIdx(idx)}
-                          style={{
-                            ...btn(active ? 'primary' : 'secondary'),
-                            minHeight: 38, padding: '0 12px', fontSize: F.caption,
-                          }}
-                        >
-                          Seat {idx + 1}: {v.position}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <VillainReadCard villain={primaryVillain} />
-
-                <div style={{ marginTop: S.md }}>
-                  <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={() => setShowRangeHeatGrid(true)}
-                    disabled={!!activePlayBlock}
-                    style={btn('secondary', { block: true, disabled: !!activePlayBlock })}
-                  >
-                    <Flame size={16} strokeWidth={2} aria-hidden="true" />
-                    Range Grid · {primaryVillain?.position || 'BB'} Vs {communityCards.length ? communityCards.join(' ') : 'Preflop'}
-                  </button>
-                </div>
-              </section>
-
-              {/* Range & Nut Advantage (Flop / Turn / River) */}
-              {communityCards.length >= 3 && (
-                <RangeAdvantagePanel
-                  heroCards={heroCardsMemo}
-                  heroPosition={heroPosition}
-                  villainRange={activeVillainRange}
-                  villainPosition={primaryVillain?.position || 'BB'}
-                  villainLabel={`Villain ${safeVillainIdx + 1} (${primaryVillain?.position || 'BB'})`}
-                  communityCards={communityCards}
-                  variant={variant}
-                />
-              )}
-
-              {/* Runouts & Preflop Reference */}
-              <section className="workspace-panel" aria-label="Runouts And Preflop Reference">
-                <div className="panel-header-row">
-                  <h2 className="panel-heading">Equity Runouts &amp; Preflop Reference</h2>
-                  {runoutsComputing && (
-                    <span style={pill('neutral')}>
-                      <Loader2 size={12} strokeWidth={2} className="pa-spin" aria-hidden="true" /> Simulating
-                    </span>
-                  )}
-                </div>
-
-                {communityCards.length >= 3 && communityCards.length < 5 ? (
-                  runouts ? (
-                    <RunoutChart runoutData={runouts} onSelectRunoutCard={handleSelectRunoutCard} />
-                  ) : (
-                    <p className="panel-note">
-                      Pick Two Hero Cards And A Flop Or Turn Board To Compute Next-Card Runout Equity Distribution.
-                    </p>
-                  )
-                ) : (
-                  <PreflopChartOverlay
-                    position={heroPosition}
-                    scenario={preflopScenario}
-                    rangeGrid={preflopRangeGrid}
-                    rangePercent={preflopRangePercent}
-                    onChangeScenario={setPreflopScenario}
-                    onPickHand={(handLabel) => {
-                      if (!handLabel || handLabel.length < 2 || activePlayBlock) return;
-                      const combo = expandRangeToCombos(handLabel, new Set(communityCards))[0];
-                      if (!combo) {
-                        toast.error('No Available Cards For This Hand On The Current Board');
-                        return;
-                      }
-                      pushUndo();
-                      setHeroHand({ card1: combo[0], card2: combo[1] });
-                    }}
-                  />
-                )}
-              </section>
-
-              {/* Saved Studies, Templates, Imports & Export Tools */}
-              <section className="workspace-panel" aria-label="Study Library And Workspace Tools">
-                <h2 className="panel-heading">Study Library, Imports &amp; Sharing</h2>
-
-                <div className="tools-grid">
-                  <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={() => setShowSaveHand(true)}
-                    disabled={!!activePlayBlock}
+                    data-deal-new-hand="true"
                     style={btn('primary', { block: true, disabled: !!activePlayBlock })}
                   >
-                    <Bookmark size={16} strokeWidth={2} aria-hidden="true" /> Save To Folder
+                    <Shuffle size={16} strokeWidth={2} aria-hidden="true" /> Deal New Hand
                   </button>
-                  <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={() => setShowStudyFolders(true)}
-                    disabled={!!activePlayBlock}
-                    style={btn('secondary', { block: true, disabled: !!activePlayBlock })}
-                  >
-                    <FolderOpen size={16} strokeWidth={2} aria-hidden="true" /> Study Folders
-                  </button>
-                  <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={() => { setShowTemplates(true); loadTemplates(); }}
-                    disabled={!!activePlayBlock}
-                    style={btn('secondary', { block: true, disabled: !!activePlayBlock })}
-                  >
-                    <Bookmark size={16} strokeWidth={2} aria-hidden="true" /> Templates
-                  </button>
-                  <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={() => setShowImportHH(true)}
-                    disabled={!!activePlayBlock}
-                    style={btn('secondary', { block: true, disabled: !!activePlayBlock })}
-                  >
-                    <Upload size={16} strokeWidth={2} aria-hidden="true" /> Import Hand History
-                  </button>
-                  <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={() => setShowSolverImport(true)}
-                    disabled={!!activePlayBlock}
-                    style={btn('secondary', { block: true, disabled: !!activePlayBlock })}
-                  >
-                    <FileCode size={16} strokeWidth={2} aria-hidden="true" /> Import Solver Node
-                  </button>
-                  <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={() => setShowShareScenario(true)}
-                    style={btn('secondary', { block: true })}
-                  >
-                    <Share2 size={16} strokeWidth={2} aria-hidden="true" /> Internal Share
-                  </button>
-                  <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={() => { recordExplorationSnapshot('Session Report Snapshot'); setShowSessionReport(true); }}
-                    style={btn('secondary', { block: true })}
-                  >
-                    <ClipboardList size={16} strokeWidth={2} aria-hidden="true" /> Session Report
-                  </button>
-                  <button
-                    type="button"
-                    className="pa-btn"
-                    onClick={() => setShowAnalytics((v) => !v)}
-                    aria-expanded={showAnalytics}
-                    style={btn('secondary', { block: true })}
-                  >
-                    <BarChart3 size={16} strokeWidth={2} aria-hidden="true" /> Historical Stats
-                  </button>
-                </div>
 
-                {/* Image Export Card */}
-                <div style={{ marginTop: S.md }}>
-                  <ExportCard
-                    results={null}
-                    scenario={exportScenarioPayload}
-                    equity={equity}
-                    villainRange={activeVillainRange}
+                  {runoutsPanel}
+                </div>
+              )}
+
+              {activeSimpleTab === 'opponent' && (
+                <div className="simple-tab-panel" role="tabpanel" aria-label="Opponent Controls">
+                  <VisualOpponentSlider
+                    valuePercent={opponentSliderPercent}
+                    activeGroups={opponentSliderGroups}
+                    onChangeRange={handleVisualSliderChange}
+                    onOpenGrid={() => setShowRangeExplorer(true)}
                   />
-                </div>
-
-                {/* Saved Account Bookmarks Preview */}
-                <div className="bookmarks-block">
-                  <div className="panel-header-row">
-                    <span style={{ ...sectionTitle, marginBottom: 0 }}>Recent Bookmarks</span>
-                    {userId && (
-                      <button
-                        type="button"
-                        className="pa-btn"
-                        onClick={refetchBookmarks}
-                        style={{ ...btn('ghost'), minHeight: 36, padding: '0 8px', fontSize: F.caption, color: T.accent }}
-                      >
-                        Refresh
-                      </button>
-                    )}
-                  </div>
-                  {authInitializing || bookmarksLoading ? (
-                    <Skeleton h={44} />
-                  ) : bookmarksError ? (
-                    <ErrorState title="Bookmarks Unavailable" body={bookmarksError} onRetry={refetchBookmarks} />
-                  ) : !userId ? (
-                    <p className="panel-note">Sign In To Sync Bookmarks And Study Folders Across Devices.</p>
-                  ) : bookmarks.length === 0 ? (
-                    <p className="panel-note">No Bookmarked Hands Yet. Save Any Spot To A Study Folder Above.</p>
-                  ) : (
-                    <div className="bookmarks-list">
-                      {bookmarks.slice(0, 4).map((bm) => (
-                        <button
-                          key={bm.id}
-                          type="button"
-                          className="bookmark-row"
-                          onClick={() => {
-                            const raw = bm.scenario_json || bm;
-                            restoreScenario({
-                              heroHand: raw.heroHand || (raw.hero_hand ? { card1: String(raw.hero_hand).slice(0, 2), card2: String(raw.hero_hand).slice(2, 4) } : null),
-                              heroPosition: raw.heroPosition || raw.hero_position || 'BTN',
-                              heroStack: raw.heroStack || raw.hero_stack || 100,
-                              board: raw.board || {
-                                flop: raw.board_flop ? String(raw.board_flop).split(/[,\s]+/).filter(Boolean) : [],
-                                turn: raw.board_turn || null,
-                                river: raw.board_river || null,
-                              },
-                            });
-                            toast.success('Bookmark Loaded On Table');
-                          }}
-                        >
-                          <span className="bookmark-hand">{bm.hero_hand || bm.title || 'Saved Spot'}</span>
-                          <span className="bookmark-meta">{bm.hero_position || 'BTN'} · Load</span>
-                        </button>
-                      ))}
-                    </div>
+                  {opponentRangesPanel}
+                  {communityCards.length >= 3 && (
+                    <RangeAdvantagePanel
+                      heroCards={heroCardsMemo}
+                      heroPosition={heroPosition}
+                      villainRange={activeVillainRange}
+                      villainPosition={primaryVillain?.position || 'BB'}
+                      villainLabel={`Villain ${safeVillainIdx + 1} (${primaryVillain?.position || 'BB'})`}
+                      communityCards={communityCards}
+                      variant={variant}
+                    />
                   )}
                 </div>
-              </section>
-
-              {/* Optional Collapsible Historical Session Analytics (Read-Only) */}
-              {showAnalytics && (
-                <section className="workspace-panel" aria-label="Historical Session Analytics">
-                  <p className="panel-note" style={{ marginBottom: S.sm }}>
-                    Read-Only Historical Archive. Ungraded Virtual Sandbox Exploration Never Modifies These Records.
-                  </p>
-                  <SessionAnalytics userId={userId} />
-                </section>
               )}
+
+              {activeSimpleTab === 'save' && (
+                <div className="simple-tab-panel" role="tabpanel" aria-label="Save And Share">
+                  {studyLibraryPanel}
+                  {historicalAnalyticsPanel}
+                </div>
+              )}
+
+              {/* 5. Always-Reachable Table Details & Study Library (Below Tabs In Simple Mode) */}
+              <div className="simple-lower-details">
+                {boardBuilderPanel}
+                {actionBuilderPanel}
+                {metricsStrip}
+                {activeSimpleTab !== 'save' && studyLibraryPanel}
+                {activeSimpleTab !== 'save' && historicalAnalyticsPanel}
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* ── Pro Mode: Live Metrics Strip ── */}
+              {metricsStrip}
+
+              {/* ── Pro Mode: Primary Two-Column Workspace (Collapses to 1 column <= 768px) ── */}
+              <div className="sandbox-main-grid">
+                {/* LEFT COLUMN: Native Poker Table + Board Strip + Action Builder */}
+                <div className="sandbox-col">
+                  {pokerTablePanel}
+                  {boardBuilderPanel}
+                  {actionBuilderPanel}
+                </div>
+
+                {/* RIGHT COLUMN: Opponent Ranges, Runouts, Study Library, Tools */}
+                <div className="sandbox-col">
+                  {opponentRangesPanel}
+
+                  {/* Range & Nut Advantage (Flop / Turn / River) */}
+                  {communityCards.length >= 3 && (
+                    <RangeAdvantagePanel
+                      heroCards={heroCardsMemo}
+                      heroPosition={heroPosition}
+                      villainRange={activeVillainRange}
+                      villainPosition={primaryVillain?.position || 'BB'}
+                      villainLabel={`Villain ${safeVillainIdx + 1} (${primaryVillain?.position || 'BB'})`}
+                      communityCards={communityCards}
+                      variant={variant}
+                    />
+                  )}
+
+                  {runoutsPanel}
+                  {studyLibraryPanel}
+                  {historicalAnalyticsPanel}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* ── Verified Solver Destinations Bar (Honest Routing For Graded Study) ── */}
           <section className="workspace-panel sandbox-verified-panel" aria-label="Verified Solver-Backed Destinations">
@@ -3551,6 +4229,44 @@ export default function VirtualSandboxPage() {
       <HotkeysSheet
         isOpen={showHotkeys}
         onClose={() => setShowHotkeys(false)}
+      />
+
+      <QuickStackPotSheet
+        target={quickEditTarget}
+        onClose={() => setQuickEditTarget(null)}
+        heroStack={heroStack}
+        potBase={potBase}
+        stakesDisplay={stakesDisplay}
+        onApplyStack={(val) => {
+          pushUndo();
+          setHeroStack(val);
+          haptic('light');
+          toast.success(`Stack Set To ${formatStakeAmount(val, stakesDisplay)}`);
+        }}
+        onApplyPot={(val) => {
+          pushUndo();
+          setPotBase(val);
+          haptic('light');
+          toast.success(`Pot Set To ${formatStakeAmount(val, stakesDisplay)}`);
+        }}
+      />
+
+      <ToolsSheet
+        isOpen={showToolsSheet}
+        onClose={() => setShowToolsSheet(false)}
+        soundEnabled={soundEnabled}
+        onToggleSound={toggleSound}
+        autoOpponent={autoOpponent}
+        onToggleAutoOpponent={() => setAutoOpponent((v) => !v)}
+        experienceMode={experienceMode}
+        onChangeExperienceMode={setExperienceMode}
+        onOpenHotkeys={() => setShowHotkeys(true)}
+        onOpenSetup={() => setShowSetup(true)}
+        onOpenSaveHand={() => setShowSaveHand(true)}
+        onOpenStudyFolders={() => setShowStudyFolders(true)}
+        onOpenTemplates={() => { setShowTemplates(true); loadTemplates(); }}
+        onOpenImportHH={() => setShowImportHH(true)}
+        onOpenShare={() => setShowShareScenario(true)}
       />
 
       <TemplatesSheet
@@ -3705,7 +4421,7 @@ export default function VirtualSandboxPage() {
         }
 
         .sandbox-header-card,
-        .workspace-panel {
+        .sandbox-page-root :global(.workspace-panel) {
           padding: 14px;
           border: 5px solid transparent;
           border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
@@ -3718,7 +4434,21 @@ export default function VirtualSandboxPage() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 12px;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .sandbox-title-block {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+        }
+
+        .sandbox-title-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
           flex-wrap: wrap;
         }
 
@@ -3733,13 +4463,154 @@ export default function VirtualSandboxPage() {
         .sandbox-title {
           margin: 0;
           color: #f1f5fc;
-          font: 800 clamp(22px, 4vw, 28px) / 1.1 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+          font: 800 clamp(20px, 3.6vw, 26px) / 1.1 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
         }
 
         .sandbox-header-actions {
           display: flex;
           align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        .header-segmented {
+          display: inline-flex;
+          align-items: stretch;
+          padding: 2px;
+          border-radius: 8px;
+          background: rgba(5, 13, 24, 0.85);
+          border: 1px solid rgba(140, 161, 180, 0.34);
+          gap: 2px;
+        }
+
+        .seg-btn {
+          min-height: 40px;
+          min-width: 44px;
+          padding: 0 10px;
+          border: 1px solid transparent;
+          border-radius: 6px;
+          background: transparent;
+          color: #b6c8d6;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+
+        .seg-btn.active {
+          background: linear-gradient(180deg, #1981ec 0%, #0c55c0 55%, #07377e 100%);
+          border-color: rgba(99, 231, 255, 0.55);
+          border-block-end: 3px solid #63e7ff;
+          color: #f1f5fc;
+        }
+
+        .seg-btn:focus-visible,
+        .spot-chip:focus-visible,
+        .simple-tab-btn:focus-visible {
+          outline: 2px solid #83deff;
+          outline-offset: 2px;
+        }
+
+        .common-spots-panel {
+          padding: 10px 12px;
+          border: 3px solid transparent;
+          border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+          border-radius: 10px;
+          background: linear-gradient(155deg, #15283d 0%, #091827 52%, #050d17 100%);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .common-spots-head {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+
+        .common-spots-label {
+          color: #83deff;
+          font: 700 12px / 1.2 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .common-spots-chips {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+          flex: 1 1 auto;
+        }
+
+        .spot-chip {
+          min-height: 44px;
+          padding: 0 12px;
+          border: 2px solid rgba(140, 161, 180, 0.34);
+          border-radius: 8px;
+          background: linear-gradient(180deg, #1c334b 0%, #0e1f33 65%, #081523 100%);
+          color: #dce5ef;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+
+        .spot-chip.active {
+          border-color: #63e7ff;
+          border-block-end: 3px solid #63e7ff;
+          background: linear-gradient(180deg, #1981ec 0%, #0c55c0 45%, #07377e 100%);
+          color: #f1f5fc;
+        }
+
+        .simple-workspace-stack {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .simple-tabs-bar {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 8px;
+          padding: 6px;
+          border: 3px solid transparent;
+          border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+          border-radius: 10px;
+          background: linear-gradient(155deg, #132539 0%, #091726 55%, #050d17 100%);
+        }
+
+        .simple-tab-btn {
+          min-height: 46px;
+          padding: 0 10px;
+          border: 1px solid rgba(140, 161, 180, 0.28);
+          border-radius: 8px;
+          background: linear-gradient(180deg, #1c334b 0%, #0d1f32 70%, #071420 100%);
+          color: #b6c8d6;
+          font: 700 14px / 1.2 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+          cursor: pointer;
+        }
+
+        .simple-tab-btn.active {
+          border-color: #63e7ff;
+          border-block-end: 3px solid #63e7ff;
+          background: linear-gradient(180deg, #1981ec 0%, #0c55c0 45%, #07377e 100%);
+          color: #f1f5fc;
+        }
+
+        .simple-tab-panel {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .simple-lower-details {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
         }
 
         .honesty-banner {
@@ -3800,13 +4671,13 @@ export default function VirtualSandboxPage() {
           line-height: 1.45;
         }
 
-        .sandbox-metrics-strip {
+        .sandbox-page-root :global(.sandbox-metrics-strip) {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 8px;
         }
 
-        .metric-tile {
+        .sandbox-page-root :global(.metric-tile) {
           min-width: 0;
           padding: 10px 12px;
           border: 3px solid transparent;
@@ -3818,13 +4689,13 @@ export default function VirtualSandboxPage() {
           gap: 2px;
         }
 
-        .metric-label {
+        .sandbox-page-root :global(.metric-label) {
           color: #9aabba;
           font: 700 12px / 1.2 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
           text-transform: uppercase;
         }
 
-        .metric-value {
+        .sandbox-page-root :global(.metric-value) {
           color: #f1f5fc;
           font-size: 16px;
           font-weight: 800;
@@ -3834,7 +4705,7 @@ export default function VirtualSandboxPage() {
           white-space: nowrap;
         }
 
-        .metric-sub {
+        .sandbox-page-root :global(.metric-sub) {
           color: #b6c8d6;
           font-size: 12px;
           line-height: 1.3;
@@ -3850,7 +4721,7 @@ export default function VirtualSandboxPage() {
           align-items: start;
         }
 
-        .table-telemetry-inline {
+        .sandbox-page-root :global(.table-telemetry-inline) {
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -3872,7 +4743,7 @@ export default function VirtualSandboxPage() {
           min-width: 0;
         }
 
-        .panel-header-row {
+        .sandbox-page-root :global(.panel-header-row) {
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -3881,26 +4752,26 @@ export default function VirtualSandboxPage() {
           margin-bottom: 10px;
         }
 
-        .panel-heading {
+        .sandbox-page-root :global(.panel-heading) {
           margin: 0;
           color: #f1f5fc;
           font: 700 16px / 1.2 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
         }
 
-        .panel-btn-group {
+        .sandbox-page-root :global(.panel-btn-group) {
           display: flex;
           gap: 6px;
           flex-wrap: wrap;
         }
 
-        .panel-note {
+        .sandbox-page-root :global(.panel-note) {
           margin: 4px 0 0;
           color: #b6c8d6;
           font-size: 12px;
           line-height: 1.45;
         }
 
-        .limit-callout {
+        .sandbox-page-root :global(.limit-callout) {
           margin: 0 0 10px;
           padding: 8px 10px;
           border-left: 3px solid #63e7ff;
@@ -3911,54 +4782,54 @@ export default function VirtualSandboxPage() {
           line-height: 1.45;
         }
 
-        .table-stage {
+        .sandbox-page-root :global(.table-stage) {
           width: 100%;
           border-radius: 9px;
           overflow: hidden;
         }
 
-        .quick-action-row {
+        .sandbox-page-root :global(.quick-action-row) {
           display: flex;
           gap: 8px;
           flex-wrap: wrap;
           margin-top: 10px;
         }
 
-        .board-slots-row {
+        .sandbox-page-root :global(.board-slots-row) {
           display: flex;
           gap: 8px;
           flex-wrap: wrap;
           align-items: center;
         }
 
-        .seat-selector-row {
+        .sandbox-page-root :global(.seat-selector-row) {
           display: flex;
           gap: 6px;
           flex-wrap: wrap;
           margin-bottom: 10px;
         }
 
-        .tools-grid {
+        .sandbox-page-root :global(.tools-grid) {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 8px;
           margin-top: 10px;
         }
 
-        .bookmarks-block {
+        .sandbox-page-root :global(.bookmarks-block) {
           margin-top: 12px;
           padding-top: 12px;
           border-top: 1px solid rgba(140, 161, 180, 0.24);
         }
 
-        .bookmarks-list {
+        .sandbox-page-root :global(.bookmarks-list) {
           display: flex;
           flex-direction: column;
           gap: 6px;
           margin-top: 6px;
         }
 
-        .bookmark-row {
+        .sandbox-page-root :global(.bookmark-row) {
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -3976,11 +4847,11 @@ export default function VirtualSandboxPage() {
           text-align: left;
         }
 
-        .bookmark-hand {
+        .sandbox-page-root :global(.bookmark-hand) {
           font-weight: 700;
         }
 
-        .bookmark-meta {
+        .sandbox-page-root :global(.bookmark-meta) {
           color: #83deff;
           font-size: 12px;
           font-weight: 700;
@@ -4076,16 +4947,16 @@ export default function VirtualSandboxPage() {
           padding: 8px 12px;
         }
 
-        .deck-mobile-only {
+        :global(.deck-mobile-only) {
           display: none;
         }
 
-        .deck-desktop-only {
+        :global(.deck-desktop-only) {
           display: block;
         }
 
         @media (max-width: 900px) {
-          .sandbox-metrics-strip {
+          .sandbox-page-root :global(.sandbox-metrics-strip) {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
@@ -4110,33 +4981,42 @@ export default function VirtualSandboxPage() {
             padding: 10px 12px;
           }
 
-          .sandbox-main-grid {
+          .common-spots-panel {
             order: 2;
+            padding: 8px 10px;
+          }
+
+          .simple-workspace-stack,
+          .sandbox-main-grid {
+            order: 3;
             grid-template-columns: 1fr;
           }
 
-          .sandbox-metrics-strip {
-            order: 3;
-          }
-
-          .sandbox-verified-panel {
+          .sandbox-page-root :global(.sandbox-metrics-strip) {
             order: 4;
           }
 
-          .summary-disclosure {
+          .sandbox-verified-panel {
             order: 5;
           }
 
-          .sandbox-command-bar,
-          .tools-grid {
+          .summary-disclosure {
+            order: 6;
+          }
+
+          .sandbox-command-bar {
             grid-template-columns: 1fr;
           }
 
-          .deck-mobile-only {
+          .sandbox-page-root :global(.tools-grid) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          :global(.deck-mobile-only) {
             display: block;
           }
 
-          .deck-desktop-only {
+          :global(.deck-desktop-only) {
             display: none;
           }
         }

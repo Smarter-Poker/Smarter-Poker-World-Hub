@@ -185,7 +185,7 @@ export default function LobbyCanvas() {
         position: 'absolute',
         top: 0, left: 0, right: 0,
         height: 1,
-        background: 'linear-gradient(90deg, transparent, rgba(110,231,239,0.4), rgba(255,215,0,0.2), rgba(110,231,239,0.4), transparent)',
+        background: 'linear-gradient(90deg, transparent, rgba(110,231,239,0.4), rgba(134,218,255,0.2), rgba(110,231,239,0.4), transparent)',
         zIndex: 20,
       }} />
 

@@ -66,6 +66,7 @@ export default function BankrollRulesCard({ userId }) {
   const [rules, setRules] = useState({}); // { rule_type: { id, value, is_active, label, description, unit } }
   const [customRules, setCustomRules] = useState([]); // custom rules from DB
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
   const [editValue, setEditValue] = useState('');
 
@@ -101,7 +102,13 @@ export default function BankrollRulesCard({ userId }) {
       });
       setRules(ruleMap);
       setCustomRules(customs);
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); } finally {
+      setLoadFailed(false);
+    } catch (err) {
+      // A failed read used to draw every rule switched off, which is not what
+      // the player has set. Say it failed and offer a retry instead.
+      console.warn('[BankrollRules] Load error:', err?.message || err);
+      setLoadFailed(true);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -292,6 +299,18 @@ export default function BankrollRulesCard({ userId }) {
     return `$${Number(rule.value).toLocaleString()}`;
   };
 
+  if (!isLoading && loadFailed) {
+    return (
+      <div className="sd-panel" style={styles.container}>
+        <h3 style={styles.title}>Bankroll Rules</h3>
+        <div role="alert" style={{ padding: 20, textAlign: 'center', color: '#b6c9dd', fontSize: 14, display: 'grid', gap: 12, justifyItems: 'center' }}>
+          Could Not Load Your Rules. Check Your Connection.
+          <button type="button" style={styles.addRuleBtn} onClick={loadRules}>Try Again</button>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="sd-panel" style={styles.container}>
@@ -325,6 +344,10 @@ export default function BankrollRulesCard({ userId }) {
                   <span style={styles.ruleDesc}>{premade.description}</span>
                 </div>
                 <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isActive}
+                  aria-label={premade.label}
                   onClick={() => handleToggle(premade)}
                   style={{
                     ...styles.toggle,
@@ -343,18 +366,24 @@ export default function BankrollRulesCard({ userId }) {
                     <div style={styles.editRow}>
                       <input
                         type="number"
+                        inputMode="decimal"
+                        min="0"
+                        aria-label={premade.label + ' Value'}
                         value={editValue}
                         onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveValue(premade); }}
                         style={styles.editInput}
                         autoFocus
                         placeholder={String(currentValue)}
                       />
                       <span style={styles.editUnit}>{premade.unit}</span>
-                      <button style={styles.saveBtn} onClick={() => handleSaveValue(premade)}>Save</button>
-                      <button style={styles.cancelBtn} onClick={() => { setEditingRule(null); setEditValue(''); }}>✕</button>
+                      <button type="button" style={styles.saveBtn} onClick={() => handleSaveValue(premade)}>Save</button>
+                      <button type="button" aria-label="Cancel" style={styles.cancelBtn} onClick={() => { setEditingRule(null); setEditValue(''); }}>✕</button>
                     </div>
                   ) : (
                     <button
+                      type="button"
+                      aria-label={'Change ' + premade.label + ', Now ' + premade.format(currentValue)}
                       style={styles.valueBtn}
                       onClick={() => { setEditingRule(premade.rule_type); setEditValue(String(currentValue)); }}
                     >
@@ -387,13 +416,18 @@ export default function BankrollRulesCard({ userId }) {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <button
+                        type="button"
                         onClick={() => handleDeleteCustom(cr)}
-                        style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: 14, cursor: 'pointer', padding: '2px 4px' }}
-                        title="Delete Rule"
+                        style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: 14, cursor: 'pointer', padding: '2px 4px', minHeight: 44 }}
+                        aria-label={'Delete ' + (cr.label || 'Custom Rule')}
                       >
-                        🗑
+                        Delete
                       </button>
                       <button
+                        type="button"
+                        role="switch"
+                        aria-checked={!!cr.is_active}
+                        aria-label={cr.label || 'Custom Rule'}
                         onClick={() => handleToggleCustom(cr)}
                         style={{
                           ...styles.toggle,
@@ -413,6 +447,9 @@ export default function BankrollRulesCard({ userId }) {
                         <div style={styles.editRow}>
                           <input
                             type="number"
+                            inputMode="decimal"
+                            min="0"
+                            aria-label={(cr.label || 'Custom Rule') + ' Value'}
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
                             style={styles.editInput}
@@ -420,11 +457,13 @@ export default function BankrollRulesCard({ userId }) {
                             placeholder={String(cr.value)}
                           />
                           <span style={styles.editUnit}>{cr.unit || '$'}</span>
-                          <button style={styles.saveBtn} onClick={() => handleSaveCustomValue(cr)}>Save</button>
-                          <button style={styles.cancelBtn} onClick={() => { setEditingRule(null); setEditValue(''); }}>✕</button>
+                          <button type="button" style={styles.saveBtn} onClick={() => handleSaveCustomValue(cr)}>Save</button>
+                          <button type="button" aria-label="Cancel" style={styles.cancelBtn} onClick={() => { setEditingRule(null); setEditValue(''); }}>✕</button>
                         </div>
                       ) : (
                         <button
+                          type="button"
+                          aria-label={'Change ' + (cr.label || 'Custom Rule') + ', Now ' + formatCustomValue(cr)}
                           style={styles.valueBtn}
                           onClick={() => { setEditingRule(cr.id); setEditValue(String(cr.value)); }}
                         >
@@ -455,12 +494,16 @@ export default function BankrollRulesCard({ userId }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <span style={{ fontSize: 14, fontWeight: 600, color: '#edf6ff' }}>New Custom Rule</span>
             <button
+              type="button"
+              aria-label="Close New Custom Rule"
               onClick={() => { setShowAddForm(false); setNewLabel(''); setNewDescription(''); setNewValue(''); setNewUnit('$'); }}
               style={{ background: 'none', border: 'none', color: '#b6c9dd', fontSize: 16, cursor: 'pointer' }}
             >✕</button>
           </div>
           <input
             type="text"
+            aria-label="Rule Name"
+            maxLength={60}
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             placeholder="Rule Name (e.g. Weekly Loss Limit)"
@@ -468,6 +511,8 @@ export default function BankrollRulesCard({ userId }) {
           />
           <input
             type="text"
+            aria-label="Rule Description"
+            maxLength={160}
             value={newDescription}
             onChange={(e) => setNewDescription(e.target.value)}
             placeholder="Description (optional)"
@@ -476,12 +521,16 @@ export default function BankrollRulesCard({ userId }) {
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <input
               type="number"
+              inputMode="decimal"
+              min="0"
+              aria-label="Threshold Value"
               value={newValue}
               onChange={(e) => setNewValue(e.target.value)}
               placeholder="Threshold Value"
               style={{ ...styles.formInput, flex: 1 }}
             />
             <select
+              aria-label="Threshold Unit"
               value={newUnit}
               onChange={(e) => setNewUnit(e.target.value)}
               style={styles.formSelect}
@@ -492,6 +541,7 @@ export default function BankrollRulesCard({ userId }) {
             </select>
           </div>
           <button
+            type="button"
             onClick={handleAddCustomRule}
             disabled={isSaving}
             style={{

@@ -157,8 +157,13 @@ test('every overlay the pages open is a back-gesture sheet with a 44px close', (
     /useModalHistory\(showLoginPrompt, closeLoginPrompt\)/,
     /useModalHistory\(showEnablePopup, closeEnablePopup\)/,
     /useModalHistory\(showManualLocation, closeManualLocation\)/,
-    /paddingTop: 'calc\(env\(safe-area-inset-top, 0px\) \+ 12px\)'/,
+    // #SMARTERDESIGN (2026-11-27): the sheet's top bar is .pnm-sd-panel-bar,
+    // whose safe-area top padding lives in poker-near-me-smarterdesign.css.
+    /className="pnm-sd-panel-bar"/,
   ]) assert.match(lobby, pin, `lobby ${pin}`);
+  assert.match(read('src/styles/worlds/poker-near-me-smarterdesign.css'),
+    /\.pnm-sd-panel-bar \{[^}]*padding: calc\(env\(safe-area-inset-top, 0px\) \+ 10px\)/,
+    'the feature sheet bar clears the status bar');
   assert.doesNotMatch(lobby, /showVoiceSearch|voiceScrim|voiceDialogRef/, 'retired voice sheets must not retain history or focus handlers');
   assert.match(read(TAB_PAGE), /useModalHistory\(iframeModal\.isOpen, closeIframeModal\)/);
   const css = read('styles/poker-near-me.css');

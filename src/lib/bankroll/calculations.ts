@@ -5,6 +5,23 @@
 
 import { supabase } from '../supabase';
 import { withRetry } from './retryUtils';
+import { bankrollBalanceCents, centsToDollars, sessionHours, toCents } from './ledgerMath.mjs';
+
+const sumCents = (rows: any[] | null, field = 'net_result') =>
+  centsToDollars((rows || []).reduce((sum, row) => sum + toCents(row?.[field]), 0));
+
+// PostgREST returns at most 1000 rows per request, so a lifetime sum read in
+// one request silently stopped at the 1000th entry. Page until a short page.
+const PAGE = 1000;
+async function readAllRows(makeQuery: () => any): Promise<any[]> {
+  const rows: any[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await makeQuery().order('id', { ascending: true }).range(from, from + PAGE - 1);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < PAGE) return rows;
+  }
+}
 
 // All gambling categories that count as "sessions" — excludes accounting-only entries
 const SESSION_CATEGORIES = ['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports'];
@@ -55,45 +72,26 @@ export interface CategoryStats {
 }
 
 /**
- * Calculate total bankroll from all ledger entries + initial deposits
- * Computes directly from bankroll_ledger for accuracy, plus initial_deposit from segments
+ * The Bankroll Balance tile: the starting bankroll (bankroll_segments.initial_deposit)
+ * plus every session and expense plus every Adjust Bankroll deposit and
+ * withdrawal, summed in cents by ledgerMath. Deposits and withdrawals used to
+ * be skipped here, so Adjust Bankroll never moved the balance it adjusts.
+ * A failed read throws instead of showing the player a $0 balance.
  */
 export async function calculateTotalBankroll(userId: string): Promise<number> {
-  // Get all non-revision ledger entries
-  const { data: entries, error: ledgerError } = await supabase
-    .from('bankroll_ledger')
-    .select('gross_in, gross_out, category')
-    .eq('user_id', userId)
-    .eq('is_revision', false);
-
-  if (ledgerError || !entries) return 0;
-
-  // Sum net results from all entries
-  let total = 0;
-  entries.forEach((e: any) => {
-    // Skip deposit/withdrawal — they are bankroll movements already tracked in segments
-    if (e.category === 'deposit' || e.category === 'withdrawal') return;
-    if (e.category === 'expense') {
-      total -= Math.abs(e.gross_in || 0);
-    } else {
-      total += (e.gross_out || 0) - (e.gross_in || 0);
-    }
-  });
-
-  // Add initial deposits from segments (from Adjust Bankroll modal)
-  const { data: segments } = await supabase
-    .from('bankroll_segments')
-    .select('initial_deposit, segment_type')
-    .eq('user_id', userId)
-    .neq('segment_type', 'life');
-
-  if (segments) {
-    segments.forEach((seg: any) => {
-      total += (seg.initial_deposit || 0);
-    });
-  }
-
-  return total;
+  const [entries, { data: segments, error: segmentError }] = await Promise.all([
+    readAllRows(() => supabase
+      .from('bankroll_ledger')
+      .select('id, gross_in, gross_out, category')
+      .eq('user_id', userId)
+      .eq('is_revision', false)),
+    supabase
+      .from('bankroll_segments')
+      .select('initial_deposit, segment_type')
+      .eq('user_id', userId),
+  ]);
+  if (segmentError) throw segmentError;
+  return centsToDollars(bankrollBalanceCents(entries || [], segments || []));
 }
 
 /**
@@ -106,21 +104,20 @@ export async function calculateAllInNet(
   endDate?: string,
   locationId?: string
 ): Promise<number> {
-  let query = supabase
-    .from('bankroll_ledger')
-    .select('net_result')
-    .eq('user_id', userId)
-    .eq('is_revision', false)
-    .not('category', 'in', '("deposit","withdrawal")');
+  const data = await readAllRows(() => {
+    let query = supabase
+      .from('bankroll_ledger')
+      .select('net_result')
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .not('category', 'in', '("deposit","withdrawal")');
 
-  if (startDate) query = query.gte('entry_date', startDate);
-  if (endDate) query = query.lte('entry_date', endDate);
-  if (locationId) query = query.eq('location_id', locationId);
-
-  const { data, error } = await query;
-  if (error || !data) return 0;
-
-  return data.reduce((sum, entry) => sum + (entry.net_result || 0), 0);
+    if (startDate) query = query.gte('entry_date', startDate);
+    if (endDate) query = query.lte('entry_date', endDate);
+    if (locationId) query = query.eq('location_id', locationId);
+    return query;
+  });
+  return sumCents(data);
 }
 
 /**
@@ -132,21 +129,20 @@ export async function calculatePokerNet(
   endDate?: string,
   locationId?: string
 ): Promise<number> {
-  let query = supabase
-    .from('bankroll_ledger')
-    .select('net_result')
-    .eq('user_id', userId)
-    .eq('is_revision', false)
-    .in('category', ['poker_cash', 'poker_mtt']);
+  const data = await readAllRows(() => {
+    let query = supabase
+      .from('bankroll_ledger')
+      .select('net_result')
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .in('category', ['poker_cash', 'poker_mtt']);
 
-  if (startDate) query = query.gte('entry_date', startDate);
-  if (endDate) query = query.lte('entry_date', endDate);
-  if (locationId) query = query.eq('location_id', locationId);
-
-  const { data, error } = await query;
-  if (error || !data) return 0;
-
-  return data.reduce((sum, entry) => sum + (entry.net_result || 0), 0);
+    if (startDate) query = query.gte('entry_date', startDate);
+    if (endDate) query = query.lte('entry_date', endDate);
+    if (locationId) query = query.eq('location_id', locationId);
+    return query;
+  });
+  return sumCents(data);
 }
 
 /**
@@ -158,21 +154,20 @@ export async function calculateNonPokerNet(
   endDate?: string,
   locationId?: string
 ): Promise<number> {
-  let query = supabase
-    .from('bankroll_ledger')
-    .select('net_result')
-    .eq('user_id', userId)
-    .eq('is_revision', false)
-    .in('category', ['casino_table', 'slots', 'sports']);
+  const data = await readAllRows(() => {
+    let query = supabase
+      .from('bankroll_ledger')
+      .select('net_result')
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .in('category', ['casino_table', 'slots', 'sports']);
 
-  if (startDate) query = query.gte('entry_date', startDate);
-  if (endDate) query = query.lte('entry_date', endDate);
-  if (locationId) query = query.eq('location_id', locationId);
-
-  const { data, error } = await query;
-  if (error || !data) return 0;
-
-  return data.reduce((sum, entry) => sum + (entry.net_result || 0), 0);
+    if (startDate) query = query.gte('entry_date', startDate);
+    if (endDate) query = query.lte('entry_date', endDate);
+    if (locationId) query = query.eq('location_id', locationId);
+    return query;
+  });
+  return sumCents(data);
 }
 
 /**
@@ -183,20 +178,19 @@ export async function calculateExpenseTotal(
   tripId?: string,
   locationId?: string
 ): Promise<number> {
-  let query = supabase
-    .from('bankroll_ledger')
-    .select('net_result')
-    .eq('user_id', userId)
-    .eq('is_revision', false)
-    .eq('category', 'expense');
+  const data = await readAllRows(() => {
+    let query = supabase
+      .from('bankroll_ledger')
+      .select('net_result')
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .eq('category', 'expense');
 
-  if (tripId) query = query.eq('trip_id', tripId);
-  if (locationId) query = query.eq('location_id', locationId);
-
-  const { data, error } = await query;
-  if (error || !data) return 0;
-
-  return Math.abs(data.reduce((sum, entry) => sum + (entry.net_result || 0), 0));
+    if (tripId) query = query.eq('trip_id', tripId);
+    if (locationId) query = query.eq('location_id', locationId);
+    return query;
+  });
+  return Math.abs(sumCents(data));
 }
 
 /**
@@ -208,39 +202,32 @@ export async function calculateHourlyRate(
   stakes?: string,
   locationId?: string
 ): Promise<number> {
-  let query = supabase
-    .from('bankroll_ledger')
-    .select('net_result, start_time, end_time')
-    .eq('user_id', userId)
-    .eq('is_revision', false)
-    .not('start_time', 'is', null)
-    .not('end_time', 'is', null);
+  const data = await readAllRows(() => {
+    let query = supabase
+      .from('bankroll_ledger')
+      .select('net_result, start_time, end_time')
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .not('start_time', 'is', null)
+      .not('end_time', 'is', null);
 
-  if (category) {
-    query = query.eq('category', category);
-  } else {
-    query = query.in('category', ['poker_cash', 'poker_mtt']);
-  }
-
-  if (stakes) query = query.eq('stakes', stakes);
-  if (locationId) query = query.eq('location_id', locationId);
-
-  const { data, error } = await query;
-  if (error || !data || data.length === 0) return 0;
-
-  let totalNet = 0;
-  let totalHours = 0;
-
-  data.forEach((entry) => {
-    totalNet += entry.net_result || 0;
-    if (entry.start_time && entry.end_time) {
-      const start = new Date(entry.start_time).getTime();
-      const end = new Date(entry.end_time).getTime();
-      totalHours += (end - start) / (1000 * 60 * 60);
+    if (category) {
+      query = query.eq('category', category);
+    } else {
+      query = query.in('category', ['poker_cash', 'poker_mtt']);
     }
-  });
 
-  return totalHours > 0 ? totalNet / totalHours : 0;
+    if (stakes) query = query.eq('stakes', stakes);
+    if (locationId) query = query.eq('location_id', locationId);
+    return query;
+  });
+  if (!data || data.length === 0) return 0;
+
+  let totalHours = 0;
+  data.forEach((entry) => {
+    totalHours += sessionHours(entry.start_time, entry.end_time);
+  });
+  return totalHours > 0 ? sumCents(data) / totalHours : 0;
 }
 
 /**
@@ -348,11 +335,7 @@ export async function calculateCategoryStats(
     totalNet += entry.net_result || 0;
     if (entry.net_result > 0) winningCount++;
     if (entry.net_result < 0) losingCount++;
-    if (entry.start_time && entry.end_time) {
-      const start = new Date(entry.start_time).getTime();
-      const end = new Date(entry.end_time).getTime();
-      totalHours += (end - start) / (1000 * 60 * 60);
-    }
+    totalHours += sessionHours(entry.start_time, entry.end_time);
   });
 
   return {
@@ -424,9 +407,7 @@ export async function getBankrollStats(
 
     let totalHours = 0;
     sessions?.forEach((s) => {
-      if (s.start_time && s.end_time) {
-        totalHours += (new Date(s.end_time).getTime() - new Date(s.start_time).getTime()) / (1000 * 60 * 60);
-      }
+      totalHours += sessionHours(s.start_time, s.end_time);
     });
 
     // Get travel ROI from most recent trip

@@ -742,7 +742,9 @@ test('the OCR route checks entitlement server-side, not with the browser gate', 
 test('OCR runs alongside the upload so its result survives a retry', () => {
     const src = read(RECEIPT);
     const idx = src.indexOf('const uploadApprovedScan');
-    const body = src.slice(idx, idx + 2600);
+    // To the end of the function, not a character count that stops covering
+    // the loop the moment a line is added above it.
+    const body = src.slice(idx, src.indexOf('const runOcr', idx));
     assert.match(body, /const ocrPromise = runOcr\(/, 'OCR must start before the upload loop');
     assert.ok(
         body.indexOf('const ocrPromise') < body.indexOf('for (let attempt'),
@@ -753,7 +755,10 @@ test('OCR runs alongside the upload so its result survives a retry', () => {
 
 test('an unsaved scan cannot be thrown away by accident', () => {
     const src = read(RECEIPT);
-    assert.match(src, /const hasUnsavedScan = Boolean\(approvedScan\) && !uploadedUrl;/, 'pending must be defined');
+    // Uploaded is not saved: until the page has the scan (and writes its
+    // bankroll_receipts row) it is listed nowhere. A scan held on the device
+    // is safe and is not "unsaved".
+    assert.match(src, /const hasUnsavedScan = Boolean\(approvedScan \|\| uploadedUrl\) && !handedOver && !heldOnDevice;/, 'pending must be defined');
     assert.match(src, /const confirmDiscard = useCallback/, 'discarding must ask');
     assert.match(src, /window\.addEventListener\('beforeunload', warn\)/, 'a reload must warn too');
     assert.match(src, /onClick=\{requestReset\}/, 'NEW SCAN must go through the guard');

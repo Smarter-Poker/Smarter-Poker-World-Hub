@@ -46,11 +46,17 @@ test('every Daily Challenges surface adopts the casino realism visual system', (
   assert.match(triviaPage, /trivia-daily-casino/);
   assert.match(memoryPage, /function DailyLocalPracticeCard/);
   assert.match(memoryPage, /className="preflop-daily-card/);
-  assert.match(memoryPage, /DAILY LOCAL PRACTICE/);
+  assert.match(memoryPage, /DAILY LOCAL PRACTICE/i);
   assert.match(memoryCss, /body\.world-preflop-charts \.preflop-daily-card/);
   assert.match(personalQuiz, /daily-personal-quiz-casino\.module\.css/);
 
-  for (const css of [trainingCss, goalsCss, challengesCss, personalQuizCss, memoryCss]) {
+  // Preflop Charts moved from the casino gold token to #SMARTERDESIGN
+  // (Dan, 2026-11-27: "THE SAME #SMARTERDESIGN UPGRADE TO EVERY SINGLE PAGE"),
+  // where gold, amber and yellow type are banned (docs/SMARTERDESIGN.md,
+  // Color). Its cyan token stays; the gold token must be gone.
+  assert.match(memoryCss, /#25c8ff/i);
+  assert.doesNotMatch(memoryCss, /#f2b84b|#f4c44e|#ffd700/i, 'Preflop Charts carries no gold token under #SMARTERDESIGN');
+  for (const css of [trainingCss, goalsCss, challengesCss, personalQuizCss]) {
     assert.match(css, /#25c8ff/i, 'Electric cyan token is required');
     assert.match(css, /#f2b84b|#f4c44e/i, 'Vault gold token is required');
     assert.match(css, /border-radius:\s*2px/i, 'Physical straight-edged controls are required');

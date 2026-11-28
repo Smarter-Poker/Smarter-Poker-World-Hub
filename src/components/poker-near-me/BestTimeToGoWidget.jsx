@@ -24,7 +24,7 @@ function intensityColor(intensity) {
 function confidenceColor(conf) {
   if (conf >= 80) return '#4ade80';
   if (conf >= 50) return '#00D4FF';
-  if (conf >= 30) return '#fbbf24';
+  if (conf >= 30) return '#bfe6ff';
   return '#f87171';
 }
 
@@ -356,7 +356,7 @@ const STYLES = `
   }
   .bttg-quality-excellent { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
   .bttg-quality-good { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
-  .bttg-quality-limited { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+  .bttg-quality-limited { background: rgba(159,216,255,0.15); color: #bfe6ff; border: 1px solid rgba(159,216,255,0.3); }
 
   .bttg-summary { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
   .bttg-badge {
@@ -412,7 +412,7 @@ const STYLES = `
   .bttg-game-eta-row:last-child { margin-bottom: 0; }
   .bttg-game-eta-chip {
     padding: 3px 8px; border-radius: 5px; font-size: 12px; font-weight: 700;
-    background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.25);
+    background: rgba(79,156,255,0.15); color: #9fd3ff; border: 1px solid rgba(79,156,255,0.25);
     white-space: nowrap; flex-shrink: 0;
   }
   .bttg-game-eta-label {

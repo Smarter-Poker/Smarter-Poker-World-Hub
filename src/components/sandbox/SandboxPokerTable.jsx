@@ -25,8 +25,12 @@
  */
 import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { RotateCcw, Pencil, X as XIcon, Check, Minus, Plus } from 'lucide-react';
+import { RotateCcw, Pencil, X as XIcon, Check, Minus, Plus, Sparkles } from 'lucide-react';
 import { T, F, R, Z, usePrefersReducedMotion } from './paTokens';
+import {
+    formatStakeAmount,
+    describeBetSizingPlain,
+} from '../../lib/sandbox/handEvaluatorSimple.mjs';
 import {
     getClubArenaTheme,
     onClubArenaThemeChange,
@@ -469,6 +473,30 @@ const BASE_WIDTH = 360;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const roundHalf = (v) => Math.round(v * 2) / 2;
 
+const SIMPLE_ARCHETYPE_LABELS = {
+    'gto neutral': 'Typical Player',
+    nit: 'Very Tight',
+    tag: 'Tight Solid',
+    lag: 'Loose Aggressive',
+    fish: 'Loose Player',
+    'calling station': 'Calls A Lot',
+    maniac: 'Very Aggressive',
+};
+
+function formatArchetypeDisplay(name, simpleMode) {
+    const raw = String(name || 'GTO Neutral');
+    if (!simpleMode) return raw;
+    return SIMPLE_ARCHETYPE_LABELS[raw.trim().toLowerCase()] || raw;
+}
+
+const EMPTY_SEAT_RAIL_SPOT = {
+    0: { x: 50, y: 12 },
+    1: { x: 85, y: 24 },
+    2: { x: 50, y: 12 },
+    3: { x: 16, y: 24 },
+    4: { x: 50, y: 12 },
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN CLUB ARENA POKER TABLE COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
@@ -516,6 +544,14 @@ export default function SandboxPokerTable({
     readOnly = false,
     selectedBetPreset = null,
     onSelectBetPreset = null,
+    stakesDisplay = 'bb',
+    simpleMode = false,
+    onTapPot = null,
+    onTapHeroStack = null,
+    onAddVillainSeat = null,
+    onSimulateVillain = null,
+    showCoachMarks = false,
+    onDismissCoachMarks = null,
 }) {
     const reduce = usePrefersReducedMotion();
     const rootRef = useRef(null);
@@ -687,7 +723,22 @@ export default function SandboxPokerTable({
     const betVerb = callAmount > 0 ? 'raise' : 'bet';
 
     const showPotOddsPill = callAmount > 0 && potOdds != null && Number.isFinite(Number(potOdds));
-    const liveStatusAnnouncement = `${streetLabel.charAt(0).toUpperCase() + streetLabel.slice(1)}, Pot ${potValue.toFixed(1)} Big Blinds${activeSeat ? `, Turn ${activeSeat.displayName}` : ''}${callAmount > 0 ? `, Facing ${callAmount} Big Blinds` : ''}${hasEquity ? `, Equity ${equityValue.toFixed(1)} Percent` : ''}`;
+    const potDisplayText = formatStakeAmount(potValue, stakesDisplay);
+    const callDisplayText = formatStakeAmount(callAmount, stakesDisplay);
+    const betDisplayText = formatStakeAmount(betSize, stakesDisplay);
+    const maxBetDisplayText = formatStakeAmount(maxBet, stakesDisplay);
+    const canTapPot = !readOnly && typeof onTapPot === 'function';
+    const canAddSeat = !readOnly && typeof onAddVillainSeat === 'function' && villainList.length < 5;
+    const emptySeatSpot = canAddSeat ? (EMPTY_SEAT_RAIL_SPOT[villainList.length] || null) : null;
+    const isVillainTurn = Boolean(activeSeat && !activeSeat.isHero);
+    const showAutoPlayVillain = !readOnly && isVillainTurn && typeof onSimulateVillain === 'function';
+    const betSizingHelperText = describeBetSizingPlain({
+        betBb: betSize,
+        potBb: potValue,
+        facingBetBb: callAmount,
+        stakesDisplay,
+    });
+    const liveStatusAnnouncement = `${streetLabel.charAt(0).toUpperCase() + streetLabel.slice(1)}, Pot ${potDisplayText}${activeSeat ? `, Turn ${activeSeat.displayName}` : ''}${callAmount > 0 ? `, Facing ${callDisplayText}` : ''}${hasEquity ? `, Win Chance ${equityValue.toFixed(1)} Percent` : ''}`;
 
     const heroPodShiftLeft = heroCards.length >= 5 ? 36 : heroCards.length >= 4 ? 40 : null;
 
@@ -859,44 +910,89 @@ export default function SandboxPokerTable({
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
                         zIndex: Z.felt,
-                        pointerEvents: 'none',
+                        pointerEvents: canTapPot ? 'auto' : 'none',
                     }}
                 >
-                    <motion.div
-                        key={`pot-${potValue.toFixed(1)}`}
-                        data-arena-pot="true"
-                        initial={reduce ? false : { scale: 0.94 }}
-                        animate={{ scale: 1 }}
-                        transition={reduce ? { duration: 0 } : { duration: 0.18 }}
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 7,
-                            padding: '4px 14px',
-                            borderRadius: 999,
-                            background: 'rgba(8, 12, 22, 0.82)',
-                            border: '1px solid rgba(174, 192, 208, 0.34)',
-                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14)',
-                            WebkitBackdropFilter: 'blur(10px)',
-                            backdropFilter: 'blur(10px)',
-                            whiteSpace: 'nowrap',
-                        }}
-                    >
-                        <ArenaChipStackIcon size={16} />
-                        <span style={{
-                            fontSize: 12, fontWeight: 800, color: '#83DEFF',
-                            letterSpacing: '0.1em', textTransform: 'uppercase',
-                        }}>
-                            POT
-                        </span>
-                        <span style={{
-                            fontSize: 15, fontWeight: 800, color: '#FFFFFF',
-                            fontVariantNumeric: 'tabular-nums',
-                            textShadow: '0 1px 3px rgba(0,0,0,0.75)',
-                        }}>
-                            {potValue.toFixed(1)} BB
-                        </span>
-                    </motion.div>
+                    {canTapPot ? (
+                        <motion.button
+                            key={`pot-${potValue.toFixed(1)}`}
+                            type="button"
+                            data-no-swipe="true"
+                            data-arena-pot="true"
+                            aria-label={`Edit Pot Size (${potDisplayText})`}
+                            onClick={onTapPot}
+                            initial={reduce ? false : { scale: 0.94 }}
+                            animate={{ scale: 1 }}
+                            transition={reduce ? { duration: 0 } : { duration: 0.18 }}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 7,
+                                padding: '4px 14px',
+                                minHeight: 34,
+                                borderRadius: 999,
+                                background: 'rgba(8, 12, 22, 0.86)',
+                                border: '1px solid rgba(134, 218, 255, 0.5)',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14)',
+                                WebkitBackdropFilter: 'blur(10px)',
+                                backdropFilter: 'blur(10px)',
+                                whiteSpace: 'nowrap',
+                                cursor: 'pointer',
+                                touchAction: 'manipulation',
+                            }}
+                        >
+                            <ArenaChipStackIcon size={16} />
+                            <span style={{
+                                fontSize: 12, fontWeight: 800, color: '#83DEFF',
+                                letterSpacing: '0.1em', textTransform: 'uppercase',
+                            }}>
+                                POT
+                            </span>
+                            <span style={{
+                                fontSize: 15, fontWeight: 800, color: '#FFFFFF',
+                                fontVariantNumeric: 'tabular-nums',
+                                textShadow: '0 1px 3px rgba(0,0,0,0.75)',
+                            }}>
+                                {potDisplayText}
+                            </span>
+                        </motion.button>
+                    ) : (
+                        <motion.div
+                            key={`pot-${potValue.toFixed(1)}`}
+                            data-arena-pot="true"
+                            initial={reduce ? false : { scale: 0.94 }}
+                            animate={{ scale: 1 }}
+                            transition={reduce ? { duration: 0 } : { duration: 0.18 }}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 7,
+                                padding: '4px 14px',
+                                borderRadius: 999,
+                                background: 'rgba(8, 12, 22, 0.82)',
+                                border: '1px solid rgba(174, 192, 208, 0.34)',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14)',
+                                WebkitBackdropFilter: 'blur(10px)',
+                                backdropFilter: 'blur(10px)',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            <ArenaChipStackIcon size={16} />
+                            <span style={{
+                                fontSize: 12, fontWeight: 800, color: '#83DEFF',
+                                letterSpacing: '0.1em', textTransform: 'uppercase',
+                            }}>
+                                POT
+                            </span>
+                            <span style={{
+                                fontSize: 15, fontWeight: 800, color: '#FFFFFF',
+                                fontVariantNumeric: 'tabular-nums',
+                                textShadow: '0 1px 3px rgba(0,0,0,0.75)',
+                            }}>
+                                {potDisplayText}
+                            </span>
+                        </motion.div>
+                    )}
                 </div>
 
                 {/* Club Arena Community Board Lane centered at 45.5% across the felt */}
@@ -987,7 +1083,7 @@ export default function SandboxPokerTable({
                         whiteSpace: 'nowrap',
                     }}>
                         <span>{streetLabel.charAt(0).toUpperCase() + streetLabel.slice(1)}</span>
-                        {spr != null && Number.isFinite(Number(spr)) && (
+                        {!simpleMode && spr != null && Number.isFinite(Number(spr)) && (
                             <span style={{ color: '#86DAFF', fontVariantNumeric: 'tabular-nums' }}>
                                 SPR {spr}
                             </span>
@@ -997,7 +1093,7 @@ export default function SandboxPokerTable({
                                 color: equityValue >= 50 ? T.success : equityValue < 35 ? T.danger : T.accent,
                                 fontVariantNumeric: 'tabular-nums',
                             }}>
-                                {equityValue.toFixed(1)}% EQ
+                                {simpleMode ? `${Math.round(equityValue)}% Win` : `${equityValue.toFixed(1)}% EQ`}
                             </span>
                         )}
                     </div>
@@ -1015,9 +1111,15 @@ export default function SandboxPokerTable({
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.55)',
                             }}
                         >
-                            <span>Pot Odds {Number(potOdds).toFixed(1)}%</span>
-                            {mdf != null && Number.isFinite(Number(mdf)) && (
-                                <span>· MDF {Number(mdf).toFixed(1)}%</span>
+                            {simpleMode ? (
+                                <span>{`Need ${Math.round(Number(potOdds))}% To Call`}</span>
+                            ) : (
+                                <>
+                                    <span>Pot Odds {Number(potOdds).toFixed(1)}%</span>
+                                    {mdf != null && Number.isFinite(Number(mdf)) && (
+                                        <span>· MDF {Number(mdf).toFixed(1)}%</span>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}
@@ -1103,7 +1205,7 @@ export default function SandboxPokerTable({
                                 }}
                             >
                                 <ArenaChipStackIcon size={13} />
-                                <span>{betAmt % 1 === 0 ? betAmt : betAmt.toFixed(1)} BB</span>
+                                <span>{formatStakeAmount(betAmt, stakesDisplay)}</span>
                             </motion.div>
                         </div>
                     );
@@ -1246,20 +1348,48 @@ export default function SandboxPokerTable({
                                     }}>
                                         {seat.displayName}
                                     </div>
-                                    <div style={{
-                                        fontSize: 13, fontWeight: 800, lineHeight: 1.2, marginTop: 1,
-                                        color: seat.isHero ? '#4DE0A5' : '#FFFFFF',
-                                        fontVariantNumeric: 'tabular-nums',
-                                    }}>
-                                        {Number(seat.stack) || 0} BB
-                                    </div>
+                                    {seat.isHero && !readOnly && typeof onTapHeroStack === 'function' ? (
+                                        <button
+                                            type="button"
+                                            data-no-swipe="true"
+                                            aria-label={`Edit Your Stack (${formatStakeAmount(seat.stack, stakesDisplay)})`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onTapHeroStack();
+                                            }}
+                                            style={{
+                                                background: 'rgba(77, 224, 165, 0.12)',
+                                                border: '1px solid rgba(77, 224, 165, 0.38)',
+                                                borderRadius: 6,
+                                                padding: '1px 6px',
+                                                marginTop: 2,
+                                                fontSize: 13,
+                                                fontWeight: 800,
+                                                lineHeight: 1.2,
+                                                color: '#4DE0A5',
+                                                fontVariantNumeric: 'tabular-nums',
+                                                cursor: 'pointer',
+                                                touchAction: 'manipulation',
+                                            }}
+                                        >
+                                            <span>{formatStakeAmount(seat.stack, stakesDisplay)}</span>
+                                        </button>
+                                    ) : (
+                                        <div style={{
+                                            fontSize: 13, fontWeight: 800, lineHeight: 1.2, marginTop: 1,
+                                            color: seat.isHero ? '#4DE0A5' : '#FFFFFF',
+                                            fontVariantNumeric: 'tabular-nums',
+                                        }}>
+                                            {formatStakeAmount(seat.stack, stakesDisplay)}
+                                        </div>
+                                    )}
                                     {!seat.isHero && seat.archetype && (
                                         <div style={{
                                             fontSize: 12, fontWeight: 600, lineHeight: 1.15, marginTop: 1,
                                             color: '#9EB4C8',
                                             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                                         }}>
-                                            {seat.archetype}
+                                            {formatArchetypeDisplay(seat.archetype, simpleMode)}
                                         </div>
                                     )}
                                     {badgeText && badgeStyle && (
@@ -1354,6 +1484,46 @@ export default function SandboxPokerTable({
                     );
                 })}
 
+                {/* Subtle + Seat button on an empty rail spot for direct on-table multiway editing */}
+                {emptySeatSpot && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: `${emptySeatSpot.y}%`,
+                            left: `${emptySeatSpot.x}%`,
+                            transform: 'translate(-50%, -50%)',
+                            zIndex: 11,
+                        }}
+                    >
+                        <button
+                            type="button"
+                            data-no-swipe="true"
+                            data-arena-add-seat="true"
+                            aria-label="Add Opponent Seat"
+                            onClick={() => onAddVillainSeat?.()}
+                            style={{
+                                minHeight: 34,
+                                padding: '4px 10px',
+                                borderRadius: 999,
+                                background: 'rgba(8, 18, 32, 0.82)',
+                                border: '1.5px dashed rgba(134, 218, 255, 0.55)',
+                                color: '#86DAFF',
+                                fontSize: 12,
+                                fontWeight: 800,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 4px 10px rgba(0, 0, 0, 0.55)',
+                                touchAction: 'manipulation',
+                            }}
+                        >
+                            <span>+ Seat</span>
+                        </button>
+                    </div>
+                )}
+
                 {/* Subtle swipe deal hint tucked along bottom edge clear of Hero pod */}
                 {!readOnly && showDealHint && (
                     <div style={{
@@ -1368,6 +1538,58 @@ export default function SandboxPokerTable({
                     </div>
                 )}
             </div>
+
+            {/* Optional 3-Step First-Visit Quick Start Strip (Non-Blocking Below Felt) */}
+            {!readOnly && showCoachMarks && (
+                <div
+                    role="region"
+                    aria-label="Quick Table Guide"
+                    data-arena-coach-marks="true"
+                    data-no-swipe="true"
+                    style={{
+                        marginTop: 4,
+                        padding: '10px 12px',
+                        borderRadius: 10,
+                        background: 'linear-gradient(155deg, #182d43 0%, #0b1c2c 48%, #050e18 92%)',
+                        border: '1px solid rgba(86, 216, 255, 0.45)',
+                        boxShadow: 'inset 0 1px 0 rgba(201, 223, 240, 0.14), 0 6px 16px rgba(0, 0, 0, 0.36)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 10,
+                        flexWrap: 'wrap',
+                    }}
+                >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: '1 1 200px', minWidth: 0 }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: '#86DAFF', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                            Quick Start Guide
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#F1F5FC', lineHeight: 1.35 }}>
+                            1. Tap Your Cards · 2. Tap Bet Or Check · 3. Watch Your Win Chance Update
+                        </span>
+                    </div>
+                    <button
+                        type="button"
+                        data-no-swipe="true"
+                        onClick={() => onDismissCoachMarks?.()}
+                        style={{
+                            minHeight: 40,
+                            padding: '0 14px',
+                            borderRadius: 8,
+                            border: '1px solid #56D8FF',
+                            background: 'linear-gradient(180deg, #1981EC, #0C55C0 45%, #07377E 100%)',
+                            color: '#FFFFFF',
+                            fontSize: 13,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            touchAction: 'manipulation',
+                        }}
+                    >
+                        <span>Got It</span>
+                    </button>
+                </div>
+            )}
 
             {/* Club Arena 3-Button Action Panel + Bet Slider + Actor Toggle (hidden in readOnly mode) */}
             {!readOnly && onQuickAction && (
@@ -1384,8 +1606,8 @@ export default function SandboxPokerTable({
                         borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
                     }}
                 >
-                    {/* Actor Selector Header (Act For Hero Or Any Active Villain) */}
-                    {onSelectActor && (
+                    {/* Actor Selector Header (Act For Hero Or Any Active Villain + 1-Tap Auto Play) */}
+                    {(onSelectActor || showAutoPlayVillain) && (
                         <div
                             role="group"
                             aria-label="Acting Seat On Felt"
@@ -1400,7 +1622,7 @@ export default function SandboxPokerTable({
                             <span style={{ fontSize: 12, fontWeight: 700, color: '#9EB4C8', marginRight: 2 }}>
                                 Acting:
                             </span>
-                            {seatArr.filter((s) => !s.folded).map((seat) => {
+                            {onSelectActor && seatArr.filter((s) => !s.folded).map((seat) => {
                                 const selected = isSeatKeyMatch(seat.key, activeSeat?.key, villainList.length);
                                 return (
                                     <button
@@ -1428,9 +1650,36 @@ export default function SandboxPokerTable({
                                     </button>
                                 );
                             })}
+                            {showAutoPlayVillain && (
+                                <button
+                                    type="button"
+                                    className="pa-btn"
+                                    data-arena-auto-play-villain="true"
+                                    disabled={actionsDisabled}
+                                    onClick={() => onSimulateVillain(activeSeat?.key, activeSeat?.villainIndex)}
+                                    style={{
+                                        marginLeft: 'auto',
+                                        minHeight: 34,
+                                        padding: '0 10px',
+                                        borderRadius: 999,
+                                        border: '1px solid #4DE0A5',
+                                        background: 'linear-gradient(180deg, rgba(22, 126, 90, 0.65), rgba(8, 52, 38, 0.92))',
+                                        color: '#D5FFF0',
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 5,
+                                        cursor: actionsDisabled ? 'not-allowed' : 'pointer',
+                                    }}
+                                >
+                                    <Sparkles size={13} aria-hidden="true" />
+                                    <span>{`Auto Play ${activeSeat.displayName}`}</span>
+                                </button>
+                            )}
                             {isPlo && (
                                 <span style={{
-                                    marginLeft: 'auto',
+                                    marginLeft: showAutoPlayVillain ? 0 : 'auto',
                                     fontSize: 12,
                                     fontWeight: 800,
                                     color: '#86DAFF',
@@ -1439,7 +1688,7 @@ export default function SandboxPokerTable({
                                     background: 'rgba(8, 124, 250, 0.16)',
                                     border: '1px solid rgba(86, 216, 255, 0.35)',
                                 }}>
-                                    Pot Limit · Max {maxBet} BB
+                                    {`Pot Limit · Max ${maxBetDisplayText}`}
                                 </span>
                             )}
                         </div>
@@ -1518,7 +1767,7 @@ export default function SandboxPokerTable({
                             step={0.5}
                             value={betSize}
                             disabled={actionsDisabled || maxBet <= minBet}
-                            aria-label="Bet Sizing Slider In Big Blinds"
+                            aria-label="Bet Sizing Slider"
                             onChange={(e) => setSliderBetSize(clamp(Number(e.target.value), minBet, maxBet))}
                             style={{
                                 flex: 1,
@@ -1546,15 +1795,30 @@ export default function SandboxPokerTable({
                             <Plus size={14} strokeWidth={2.5} aria-hidden="true" />
                         </button>
                         <span style={{
-                            minWidth: 58,
+                            minWidth: 64,
                             textAlign: 'right',
                             fontSize: 12,
                             fontWeight: 800,
                             color: '#4DE0A5',
                             fontVariantNumeric: 'tabular-nums',
                         }}>
-                            {betSize % 1 === 0 ? betSize : betSize.toFixed(1)} BB
+                            {betDisplayText}
                         </span>
+                    </div>
+
+                    {/* Plain-English Bet Sizing Helper */}
+                    <div
+                        data-arena-bet-helper="true"
+                        style={{
+                            textAlign: 'center',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: '#9EB4C8',
+                            lineHeight: 1.3,
+                            padding: '0 4px 2px',
+                        }}
+                    >
+                        {betSizingHelperText}
                     </div>
 
                     {/* Club Arena Tactile 3-Button Row (ControlThemeTokens.css + ActionPanel.css 1:1) */}
@@ -1589,7 +1853,7 @@ export default function SandboxPokerTable({
                             disabled={actionsDisabled}
                             onClick={() => onQuickAction(
                                 callAmount > 0
-                                    ? { action: 'call', amount: callAmount, label: `Call ${callAmount} BB`, actorKey: activeSeat?.key || 'hero' }
+                                    ? { action: 'call', amount: callAmount, label: `Call ${callDisplayText}`, actorKey: activeSeat?.key || 'hero' }
                                     : { action: 'check', amount: 0, label: 'Check', actorKey: activeSeat?.key || 'hero' },
                             )}
                             style={{
@@ -1611,7 +1875,7 @@ export default function SandboxPokerTable({
                             <span>{callAmount > 0 ? 'Call' : 'Check'}</span>
                             {callAmount > 0 && (
                                 <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.94, fontVariantNumeric: 'tabular-nums' }}>
-                                    {callAmount} BB
+                                    {callDisplayText}
                                 </span>
                             )}
                         </button>
@@ -1625,10 +1889,10 @@ export default function SandboxPokerTable({
                                 amount: betSize,
                                 ...(betVerb === 'raise' ? { raiseTo: betSize } : {}),
                                 label: isAllIn
-                                    ? `All-In ${betSize} BB`
+                                    ? `All-In ${betDisplayText}`
                                     : isMaxPot
-                                        ? `Max Pot ${betSize} BB`
-                                        : `${betVerb === 'raise' ? 'Raise' : 'Bet'} ${betSize} BB`,
+                                        ? `Max Pot ${betDisplayText}`
+                                        : `${betVerb === 'raise' ? 'Raise' : 'Bet'} ${betDisplayText}`,
                                 actorKey: activeSeat?.key || 'hero',
                             })}
                             style={{
@@ -1649,7 +1913,7 @@ export default function SandboxPokerTable({
                         >
                             <span>{isAllIn ? 'All-In' : isMaxPot ? 'Max Pot' : (callAmount > 0 ? 'Raise' : 'Bet')}</span>
                             <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.95, fontVariantNumeric: 'tabular-nums' }}>
-                                {betSize % 1 === 0 ? betSize : betSize.toFixed(1)} BB
+                                {betDisplayText}
                             </span>
                         </button>
                     </div>

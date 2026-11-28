@@ -22,8 +22,12 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
     const [isWin, setIsWin] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [failed, setFailed] = useState(false);
 
     const selectedCategory = QUICK_CATEGORIES.find(c => c.id === category);
+    const isExpense = category === 'expense';
+    // A positive amount with at most two decimals; "-5", "0" and "1e3" are not.
+    const valid = /^\d+(?:\.\d{1,2})?$/.test(amount) && Number(amount) > 0;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -31,13 +35,16 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
         // Sweep-5 audit fix: add isSubmitting guard to prevent double-submit
         // (rapid clicks before button disables) and wrap body in try/finally so
         // an uncaught throw can't leave isSubmitting stuck at true forever.
-        if (!amount || !userId || isSubmitting) return;
+        if (!valid || !userId || isSubmitting) return;
 
         setIsSubmitting(true);
         try {
-            const numAmount = parseFloat(amount);
-            const grossIn = isWin ? 0 : numAmount;
-            const grossOut = isWin ? numAmount : 0;
+            const numAmount = Math.round(parseFloat(amount) * 100) / 100;
+            // An expense is always money out; the win/loss toggle does not apply
+            // (it used to record a "winning" expense as income).
+            const isIncome = category !== 'expense' && isWin;
+            const grossIn = isIncome ? 0 : numAmount;
+            const grossOut = isIncome ? numAmount : 0;
 
             const formData = {
                 category,
@@ -54,6 +61,8 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
                 setTimeout(() => setShowSuccess(false), 2000);
             } catch (error) {
                 console.warn('Quick log failed:', error);
+                setFailed(true);
+                setTimeout(() => setFailed(false), 4000);
             }
         } finally {
             setIsSubmitting(false);
@@ -74,7 +83,7 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
         <div className="sd-panel" style={styles.container}>
             <div style={styles.header}>
                 <h4 style={styles.title}>Quick Log</h4>
-                <button onClick={onOpenFullModal} style={styles.fullLogBtn}>
+                <button type="button" onClick={onOpenFullModal} style={styles.fullLogBtn}>
                     Full Form →
                 </button>
             </div>
@@ -87,6 +96,7 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
                             key={cat.id}
                             type="button"
                             onClick={() => setCategory(cat.id)}
+                            aria-pressed={category === cat.id}
                             style={{
                                 ...styles.categoryBtn,
                                 ...(category === cat.id ? {
@@ -94,18 +104,21 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
                                     background: `${cat.color}20`,
                                 } : {}),
                             }}
-                            title={cat.label}
                         >
-                            <span style={styles.categoryIcon}>{cat.icon}</span>
+                            {/* The icons were emoji and were removed, which left
+                                five blank buttons. The label is the button. */}
+                            <span style={styles.categoryIcon}>{cat.label}</span>
                         </button>
                     ))}
                 </div>
 
                 {/* Amount Input */}
                 <div style={styles.inputRow}>
-                    <div style={styles.winLossToggle}>
+                    {!isExpense && <div style={styles.winLossToggle} role="group" aria-label="Result">
                         <button
                             type="button"
+                            aria-pressed={isWin}
+                            aria-label="Win"
                             onClick={() => setIsWin(true)}
                             style={{
                                 ...styles.toggleBtn,
@@ -116,6 +129,8 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
                         </button>
                         <button
                             type="button"
+                            aria-pressed={!isWin}
+                            aria-label="Loss"
                             onClick={() => setIsWin(false)}
                             style={{
                                 ...styles.toggleBtn,
@@ -124,27 +139,27 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
                         >
                             −
                         </button>
-                    </div>
+                    </div>}
 
                     <div style={styles.amountWrapper}>
                         <span style={styles.dollarSign}>$</span>
                         <input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
+                            aria-label="Amount"
                             value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            placeholder="0"
+                            onChange={(e) => { if (/^\d*(?:\.\d{0,2})?$/.test(e.target.value)) setAmount(e.target.value); }}
+                            placeholder="0.00"
                             style={styles.amountInput}
-                            min="0"
-                            step="any"
                         />
                     </div>
 
                     <motion.button
                         type="submit"
-                        disabled={!amount || isSubmitting}
+                        disabled={!valid || isSubmitting}
                         style={{
                             ...styles.submitBtn,
-                            opacity: !amount || isSubmitting ? 0.5 : 1,
+                            opacity: !valid || isSubmitting ? 0.5 : 1,
                         }}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
@@ -156,10 +171,10 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
                 {/* Category Label */}
                 <div style={styles.categoryLabel}>
                     <span style={{ color: selectedCategory?.color }}>
-                        {selectedCategory?.icon} {selectedCategory?.label}
+                        {selectedCategory?.label}
                     </span>
                     <span style={styles.resultLabel}>
-                        {isWin ? '• Win' : '• Loss'}
+                        {isExpense ? '• Money Out' : isWin ? '• Win' : '• Loss'}
                     </span>
                 </div>
             </form>
@@ -173,7 +188,18 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
                         exit={{ opacity: 0 }}
                         style={styles.successBanner}
                     >
-                        ✓ Logged Successfully!
+                        Logged Successfully
+                    </motion.div>
+                )}
+                {failed && (
+                    <motion.div
+                        role="alert"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        style={{ ...styles.successBanner, background: '#b3261e' }}
+                    >
+                        Not Saved. Please Try Again.
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -209,13 +235,16 @@ const styles = {
     },
     form: {},
     categoryRow: {
-        display: 'flex',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))',
         gap: 6,
         marginBottom: 12,
     },
     categoryBtn: {
-        flex: 1,
+        minWidth: 0,
+        minHeight: 44,
         padding: '8px 4px',
+        color: '#edf6ff',
         background: 'rgba(255,255,255,0.15)',
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
@@ -223,7 +252,8 @@ const styles = {
         transition: 'all 0.2s',
     },
     categoryIcon: {
-        fontSize: 18,
+        fontSize: 14,
+        fontWeight: 600,
     },
     inputRow: {
         display: 'flex',
