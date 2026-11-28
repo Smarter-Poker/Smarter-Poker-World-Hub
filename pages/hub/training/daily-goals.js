@@ -183,9 +183,8 @@ export default function DailyGoalsPage() {
       if (sessionsPayload?.success !== true || !Array.isArray(sessionsPayload.sessions)) {
         throw new Error('Verified Training history was not returned.');
       }
-      const rawStreakDays = bonusPayload?.streakDays;
-      const hasValidStreakDays = rawStreakDays !== null && rawStreakDays !== undefined && String(rawStreakDays).trim() !== '' && Number.isFinite(Number(rawStreakDays));
-      if (bonusPayload?.success !== true || !hasValidStreakDays) {
+      const hasValidStreakDays = bonusPayload?.streakDays !== null && bonusPayload?.streakDays !== undefined && String(bonusPayload.streakDays).trim() !== '';
+      if (bonusPayload?.success !== true || !Number.isFinite(Number(bonusPayload.streakDays)) || !hasValidStreakDays) {
         throw new Error('Verified Training streak was not returned.');
       }
       setData(generateGoals(sessionsPayload.sessions));
