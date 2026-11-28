@@ -45,6 +45,7 @@ import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { PodErrorBoundary } from '../../../src/components/poker-near-me/ControllerRecovery';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PnmImageHeader from '../../../src/components/poker-near-me/PnmImageHeader';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from '../../../src/components/poker-near-me/PokerNearMeConsole';
 // BottomNavBar removed — Poker Near Me has its own navigation grid
 
@@ -308,7 +309,7 @@ export default function PokerNearMeLobby() {
   // Also restored from pnm_location_enabled flag (set on GPS success).
   // Initialized to a constant and hydrated after mount: reading localStorage in a
   // useState initializer makes the server HTML and the first client render
-  // disagree (React #418). Deferring is safe here — the only consumer is the
+  // disagree (React #116088). Deferring is safe here — the only consumer is the
   // auto-prompt effect further down, which returns early until `prefsLoaded`
   // flips, and `prefsLoaded` is only ever set from the mount data-load effect
   // that is declared AFTER this one (so this hydration lands first).
@@ -433,7 +434,7 @@ export default function PokerNearMeLobby() {
 
   // ─── Deep Link: read URL params on mount ───
   // Uses URLSearchParams directly instead of router.query (which can be empty on first render)
-  // Panel opening is delayed via double-rAF to survive React #418 hydration mismatches
+  // Panel opening is delayed via double-rAF to survive React #116088 hydration mismatches
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const pod = params.get('pod');
@@ -2087,14 +2088,14 @@ export default function PokerNearMeLobby() {
                 aria-label="Filter Map By State"
                 value={mapStateFilter}
                 onChange={(e) => setFilters(prev => ({ ...prev, mapState: e.target.value }))}
-                style={{ background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(148,163,184,0.15)', borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 100, minHeight: 44, boxSizing: 'border-box' }}>
+                style={{ background: 'rgba(134,218,255,0.08)', border: '1px solid rgba(148,163,184,0.15)', borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 100, minHeight: 44, boxSizing: 'border-box' }}>
                 <option value="all" style={{ background: '#0d1a2a' }}>All States</option>
                 {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
                   <option key={st} value={st} style={{ background: '#0d1a2a' }}>{st}</option>
                 ))}
               </select>
               <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', marginLeft: 'auto' }}>
-                <span style={{ color: '#d4a853', fontWeight: 700 }}>{mapVenues.filter(v => v.latitude && v.longitude).length}</span> Venues On Map
+                <span style={{ color: '#86daff', fontWeight: 700 }}>{mapVenues.filter(v => v.latitude && v.longitude).length}</span> Venues On Map
               </span>
             </div>
             <VenueMapPanel
@@ -2181,14 +2182,14 @@ export default function PokerNearMeLobby() {
               locationState={locationState}
             />
             {/* Trip Cost Calculator — accessible from Trip Planner */}
-            <div style={{ marginTop: 20, padding: '16px 0', borderTop: '1px solid rgba(212,168,83,0.1)' }}>
+            <div style={{ marginTop: 20, padding: '16px 0', borderTop: '1px solid rgba(134,218,255,0.1)' }}>
               <button
                 onClick={() => { setActivePod('tripcost'); playPanelOpenSound(); }}
                 style={{
                   width: '100%', padding: '12px 20px', borderRadius: 12,
-                  border: '1px solid rgba(212,168,83,0.3)',
-                  background: 'linear-gradient(135deg, rgba(212,168,83,0.08), rgba(212,168,83,0.03))',
-                  color: '#d4a853', fontSize: 14, fontWeight: 700,
+                  border: '1px solid rgba(134,218,255,0.3)',
+                  background: 'linear-gradient(135deg, rgba(134,218,255,0.08), rgba(134,218,255,0.03))',
+                  color: '#86daff', fontSize: 14, fontWeight: 700,
                   cursor: 'pointer', fontFamily: 'inherit',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   transition: 'all 0.2s',
@@ -2281,8 +2282,8 @@ export default function PokerNearMeLobby() {
                     <span style={{
                       flexShrink: 0, padding: '2px 8px', borderRadius: 0, fontSize: 12, fontWeight: 800,
                       letterSpacing: '0.06em', textTransform: 'uppercase',
-                      background: f.type === 'series' ? 'rgba(210,168,255,0.15)' : 'rgba(56,189,248,0.16)',
-                      color: f.type === 'series' ? '#d2a8ff' : '#38bdf8',
+                      background: f.type === 'series' ? 'rgba(159,211,255,0.15)' : 'rgba(159,216,255,0.15)',
+                      color: f.type === 'series' ? '#9fd3ff' : '#9fd8ff',
                     }}>{f.type}</span>
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{f.name}</span>
@@ -2306,9 +2307,9 @@ export default function PokerNearMeLobby() {
                 onClick={() => { setActivePod('compare'); }}
                 style={{
                   width: '100%', padding: '10px 16px', borderRadius: 10, marginTop: 12,
-                  border: '1px solid rgba(212,168,83,0.25)',
-                  background: 'linear-gradient(135deg, rgba(212,168,83,0.06), rgba(212,168,83,0.02))',
-                  color: '#d4a853', fontSize: 13, fontWeight: 700,
+                  border: '1px solid rgba(134,218,255,0.25)',
+                  background: 'linear-gradient(135deg, rgba(134,218,255,0.06), rgba(134,218,255,0.02))',
+                  color: '#86daff', fontSize: 13, fontWeight: 700,
                   cursor: 'pointer', fontFamily: 'inherit',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   transition: 'all 0.2s',
@@ -2342,7 +2343,7 @@ export default function PokerNearMeLobby() {
                 onClick={() => { setActivePod('roadtrip'); }}
                 style={{
                   background: 'none', border: '1px solid rgba(148,163,184,0.15)',
-                  borderRadius: 8, padding: '8px 20px', color: '#d4a853',
+                  borderRadius: 8, padding: '8px 20px', color: '#86daff',
                   fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                   transition: 'all 0.2s',
                 }}
@@ -2517,6 +2518,9 @@ export default function PokerNearMeLobby() {
         onMenuClick={() => setMenuOpen(true)}
       >
       <PokerNearMeFamilyNav />
+      <div className="smarterdesign pnm-sd-top">
+        <PnmImageHeader route="lobby" />
+      </div>
       <div className="pnm-lobby-page" data-pnm-realism="machined-v2">
         {/* ═══ SERVER-RENDERED CRAWLABLE LAYER ═══
             LobbyCanvas and LobbyOverlay are both ssr:false, so without this
@@ -2525,7 +2529,6 @@ export default function PokerNearMeLobby() {
             tech; the link list is aria-hidden and not tab-focusable because it
             duplicates the hotspot grid the overlay renders once hydrated. */}
         <div className="pnm-lobby-seo">
-          <h1>Poker Near Me</h1>
           <p>Find Live Poker Rooms, Casinos, Card Rooms, Home Games And Tournaments Near You.</p>
           <nav aria-hidden="true" aria-label="Poker Near Me sections">
             <ul>
@@ -2602,7 +2605,7 @@ export default function PokerNearMeLobby() {
           <>
             {/* Full-screen panel overlay */}
             <div
-              className="lobby-panel-page"
+              className="lobby-panel-page smarterdesign pnm-sd-panel-page"
               ref={panelRef}
               role="dialog"
               aria-modal="true"
@@ -2613,47 +2616,27 @@ export default function PokerNearMeLobby() {
                 // controls rendered underneath the header and could not be
                 // clicked, particularly at desktop widths.
                 position: 'fixed', inset: 0, zIndex: 10100,
-                background: 'linear-gradient(160deg, #0c1828, #060a14)',
+                background: 'var(--sd-ink, #040d18)',
                 display: 'flex', flexDirection: 'column', overflow: 'hidden',
                 animation: 'lobby-panelSlideUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
               }}
             >
               {/* Header. Full-screen layer: the top chrome sits below the status
                   bar (mobile phase 0b) and both controls are 44px. */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '12px 16px 10px',
-                paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
-                borderBottom: '1px solid rgba(110, 231, 239, 0.12)',
-                background: 'rgba(6, 15, 28, 0.95)',
-                flexShrink: 0,
-              }}>
+              <div className="pnm-sd-panel-bar">
                 <button
                   ref={panelBackBtnRef}
                   type="button"
                   onClick={handlePanelClose}
-                  aria-label="Back to grid"
-                  style={{
-                    background: 'rgba(110, 231, 239, 0.08)', border: '1px solid rgba(110, 231, 239, 0.15)',
-                    color: '#d4a853',
-                    cursor: 'pointer', padding: '0 14px', borderRadius: 8, minHeight: 44,
-                    fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    touchAction: 'manipulation',
-                  }}
+                  aria-label="Back To Poker Near Me"
+                  className="sd-button pnm-sd-panel-bar__back"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
                   Back
                 </button>
-                <h2 style={{
-                  fontFamily: 'var(--font-premium-display)',
-                  fontSize: 20, fontWeight: 700, margin: 0,
-                  background: 'linear-gradient(90deg, #e0e8f0, #d4a853)',
-                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }} id="pnm-panel-title">{panelContent.title}</h2>
+                <h2 className="pnm-sd-panel-bar__title" id="pnm-panel-title">{panelContent.title}</h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {/* Share deep link button */}
                   {/* [AUDIT] The clipboard fallback used to do
@@ -2668,11 +2651,11 @@ export default function PokerNearMeLobby() {
                     onClick={handleShareClick}
                     id="pnm-share-btn"
                     className="sp-icon-btn"
-                    aria-label="Share link"
-                    title="Copy shareable link"
+                    aria-label="Share Link"
+                    title="Copy Shareable Link"
                     style={{ '--sp-btn-size': '44px',
                       background: 'none', border: 'none',
-                      color: shareCopied ? '#3fb950' : 'rgba(200, 214, 229, 0.4)',
+                      color: shareCopied ? '#3fb950' : '#bdd0e2',
                       cursor: 'pointer', padding: 0, borderRadius: 8,
                       transition: 'color 0.2s', fontSize: 12, fontWeight: 700,
                       fontFamily: 'inherit',
@@ -2694,10 +2677,10 @@ export default function PokerNearMeLobby() {
                     type="button"
                     onClick={handlePanelClose}
                     className="sp-icon-btn"
-                    aria-label="Close panel"
+                    aria-label="Close Panel"
                     style={{ '--sp-btn-size': '44px',
                       background: 'none', border: 'none',
-                      color: 'rgba(200, 214, 229, 0.5)',
+                      color: '#bdd0e2',
                       cursor: 'pointer', padding: 0, borderRadius: 8,
                       minWidth: 44, minHeight: 44, width: 44, height: 44,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2715,11 +2698,7 @@ export default function PokerNearMeLobby() {
                   Mobile phase 3: a wrapping row (it used to be a hidden-scrollbar
                   rail, so on a phone the last five pods were only reachable by
                   sliding). */}
-              <div style={{
-                display: 'flex', flexWrap: 'wrap', gap: 4, padding: '6px 12px', flexShrink: 0,
-                borderBottom: '1px solid rgba(148,163,184,0.06)',
-                background: 'rgba(6,15,28,0.6)',
-              }}>
+              <div className="sd-tabs pnm-sd-panel-tabs" role="group" aria-label="Switch Poker Near Me Section">
                 {[
                   { id: 'nearme', icon: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z', label: 'Near Me' },
                   { id: 'search', icon: 'M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-5.2-5.2', label: 'Search' },
@@ -2735,40 +2714,25 @@ export default function PokerNearMeLobby() {
                 ].map(p => (
                   <button key={p.id} type="button" onClick={() => { haptic('light'); setActivePod(p.id); playClickSound(); }}
                     aria-current={activePod === p.id ? 'true' : undefined}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 4, minHeight: 44,
-                      padding: '0 10px', borderRadius: 6, fontSize: 12, fontWeight: 700,
-                      border: activePod === p.id ? '1px solid rgba(212,168,83,0.4)' : '1px solid transparent',
-                      background: activePod === p.id ? 'rgba(212,168,83,0.1)' : 'transparent',
-                      color: activePod === p.id ? '#d4a853' : 'rgba(200,214,229,0.35)',
-                      cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-                      letterSpacing: '0.02em',
-                    }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d={p.icon}/></svg>
+                    aria-pressed={activePod === p.id}>
+                    <svg width="14" height="14" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d={p.icon}/></svg>
                     {p.label}
                   </button>
                 ))}
               </div>
               {/* GPS Intel Banner — contextual stats when GPS active */}
               {userLocation && (activePod === 'nearme' || activePod === 'search' || activePod === 'livegames' || activePod === 'daily') && (
-                <div style={{
-                  display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'center',
-                  padding: '8px 20px', flexShrink: 0,
-                  background: 'linear-gradient(90deg, rgba(63,185,80,0.06), rgba(63,185,80,0.02), rgba(63,185,80,0.06))',
-                  borderBottom: '1px solid rgba(63,185,80,0.1)',
-                  flexWrap: 'wrap',
-                  fontSize: 12, color: 'rgba(200,214,229,0.55)', fontWeight: 600,
-                }}>
+                <div className="pnm-sd-panel-intel">
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span style={{ color: '#3fb950' }}>{venues.filter(v => v.distance_mi != null && v.distance_mi <= 50).length}</span> Venues Nearby
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#86daff" strokeWidth="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span className="pnm-sd-panel-intel__value">{venues.filter(v => v.distance_mi != null && v.distance_mi <= 50).length}</span> Venues Nearby
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2"><path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7"/></svg>
-                    <span style={{ color: '#d4a853' }}>{dailyTournaments.length.toLocaleString()}</span> Tournaments
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#86daff" strokeWidth="2" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7"/></svg>
+                    <span className="pnm-sd-panel-intel__value">{dailyTournaments.length.toLocaleString()}</span> Tournaments
                   </span>
                   {locationCity && (
-                    <span style={{ color: 'rgba(200,214,229,0.35)', fontSize: 12 }}>
+                    <span className="pnm-sd-panel-intel__place">
                       {locationCity}{locationState ? `, ${locationState}` : ''}
                     </span>
                   )}
@@ -2788,13 +2752,13 @@ export default function PokerNearMeLobby() {
                   style={{ '--sp-btn-size': '44px',
                     position: 'sticky', bottom: 20, left: '50%', transform: 'translateX(-50%)',
                     width: 44, height: 44, borderRadius: '50%', cursor: 'pointer',
-                    background: 'linear-gradient(135deg, rgba(148,163,184,0.12), rgba(212,168,83,0.05))',
-                    border: '1px solid rgba(212,168,83,0.3)',
-                    color: '#d4a853', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--sd-control, #0e2236)',
+                    border: '2px solid #6f8ea9',
+                    color: '#f2f7ff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
                     transition: 'all 0.2s', zIndex: 5,
                   }}
-                  aria-label="Scroll to top"
+                  aria-label="Scroll To Top"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <polyline points="18 15 12 9 6 15"/>
@@ -3044,9 +3008,9 @@ export default function PokerNearMeLobby() {
       }
       .entity-card:hover,
       .entity-card:active {
-        border-color: rgba(212,168,83,0.3);
+        border-color: rgba(134,218,255,0.3);
         background: linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(10, 18, 32, 0.96));
-        box-shadow: 0 6px 28px rgba(212,168,83,0.1), 0 2px 12px rgba(0,0,0,0.35);
+        box-shadow: 0 6px 28px rgba(134,218,255,0.1), 0 2px 12px rgba(0,0,0,0.35);
         transform: translateY(-2px);
       }
       .entity-card h4 {
@@ -3167,7 +3131,7 @@ export default function PokerNearMeLobby() {
       /* Venue Stakes */
       .venue-stakes {
         font-size: 13px;
-        color: rgba(212,168,83,0.9);
+        color: rgba(134,218,255,0.9);
         margin: 0 0 8px;
         font-weight: 600;
       }
@@ -3287,14 +3251,14 @@ export default function PokerNearMeLobby() {
         box-shadow: 0 0 12px rgba(59,130,246,0.15);
       }
       .venue-action-pill.details {
-        background: rgba(212,168,83,0.12);
-        color: #d4a853;
-        border-color: rgba(212,168,83,0.25);
+        background: rgba(134,218,255,0.12);
+        color: #86daff;
+        border-color: rgba(134,218,255,0.25);
       }
       .venue-action-pill.details:hover,
       .venue-action-pill.details:active {
-        background: rgba(212,168,83,0.22);
-        box-shadow: 0 0 12px rgba(212,168,83,0.15);
+        background: rgba(134,218,255,0.22);
+        box-shadow: 0 0 12px rgba(134,218,255,0.15);
       }
 
       /* Legacy action classes preserved for compatibility */
@@ -3324,7 +3288,7 @@ export default function PokerNearMeLobby() {
       .vc3-card:active {
         filter: brightness(1.08);
         background: linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(10, 18, 32, 0.96));
-        box-shadow: 0 6px 28px rgba(212,168,83,0.1), 0 2px 12px rgba(0,0,0,0.35);
+        box-shadow: 0 6px 28px rgba(134,218,255,0.1), 0 2px 12px rgba(0,0,0,0.35);
         transform: translateY(-2px);
       }
 
@@ -3446,10 +3410,10 @@ export default function PokerNearMeLobby() {
         gap: 6px;
         margin: 4px 0 6px;
       }
-      .vc3-host-name { font-size: 13px; color: #d4a853; font-weight: 600; }
-      .vc3-host-link { font-size: 12px; color: #d4a853; text-decoration: none; margin-left: auto; padding: 2px 8px; border: 1px solid rgba(212,168,83,0.3); border-radius: 4px; }
+      .vc3-host-name { font-size: 13px; color: #86daff; font-weight: 600; }
+      .vc3-host-link { font-size: 12px; color: #86daff; text-decoration: none; margin-left: auto; padding: 2px 8px; border: 1px solid rgba(134,218,255,0.3); border-radius: 4px; }
       .vc3-host-link:hover,
-      .vc3-host-link:active { background: rgba(212,168,83,0.15); }
+      .vc3-host-link:active { background: rgba(134,218,255,0.15); }
       .vc3-description { font-size: 13px; color: rgba(255,255,255,0.5); margin: 0 0 8px; font-style: italic; }
 
       /* Badge Row */
@@ -3467,9 +3431,9 @@ export default function PokerNearMeLobby() {
         text-transform: uppercase;
         letter-spacing: 0.4px;
       }
-      .vc3-badge-featured { background: rgba(212,168,83,0.2); color: #d4a853; border: 1px solid rgba(212,168,83,0.35); }
+      .vc3-badge-featured { background: rgba(134,218,255,0.2); color: #86daff; border: 1px solid rgba(134,218,255,0.35); }
       .vc3-badge-newcomer { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
-      .vc3-badge-promo { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+      .vc3-badge-promo { background: rgba(79,156,255,0.15); color: #9fd3ff; border: 1px solid rgba(79,156,255,0.3); }
       .vc3-badge-tourney { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
       .vc3-badge-live {
         background: rgba(239,68,68,0.18); color: #ef4444; border: 1px solid rgba(239,68,68,0.4);
@@ -3533,7 +3497,7 @@ export default function PokerNearMeLobby() {
         align-items: center;
         gap: 5px;
         font-size: 13px;
-        color: rgba(212,168,83,0.9);
+        color: rgba(134,218,255,0.9);
         margin: 0 0 8px;
         font-weight: 600;
       }
@@ -3624,9 +3588,9 @@ export default function PokerNearMeLobby() {
       .vc3-pill-review { background: rgba(59,130,246,0.12); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
       .vc3-pill-review:hover,
       .vc3-pill-review:active { background: rgba(59,130,246,0.22); box-shadow: 0 0 12px rgba(59,130,246,0.15); }
-      .vc3-pill-details { background: rgba(212,168,83,0.12); color: #d4a853; border-color: rgba(212,168,83,0.25); }
+      .vc3-pill-details { background: rgba(134,218,255,0.12); color: #86daff; border-color: rgba(134,218,255,0.25); }
       .vc3-pill-details:hover,
-      .vc3-pill-details:active { background: rgba(212,168,83,0.22); box-shadow: 0 0 12px rgba(212,168,83,0.15); }
+      .vc3-pill-details:active { background: rgba(134,218,255,0.22); box-shadow: 0 0 12px rgba(134,218,255,0.15); }
 
       /* ═══ VC3 MOBILE RESPONSIVE ═══ */
       @media (max-width: 768px) {
@@ -3655,9 +3619,9 @@ export default function PokerNearMeLobby() {
         letter-spacing: 0.4px;
       }
       .featured-badge {
-        background: rgba(212,168,83,0.2);
-        color: #d4a853;
-        border: 1px solid rgba(212,168,83,0.35);
+        background: rgba(134,218,255,0.2);
+        color: #86daff;
+        border: 1px solid rgba(134,218,255,0.35);
       }
       .newcomer-badge {
         background: rgba(34,197,94,0.15);
@@ -3665,9 +3629,9 @@ export default function PokerNearMeLobby() {
         border: 1px solid rgba(34,197,94,0.3);
       }
       .promo-badge {
-        background: rgba(139,92,246,0.15);
-        color: #a78bfa;
-        border: 1px solid rgba(139,92,246,0.3);
+        background: rgba(79,156,255,0.15);
+        color: #9fd3ff;
+        border: 1px solid rgba(79,156,255,0.3);
       }
       .tourney-badge {
         background: rgba(239,68,68,0.12);
@@ -3708,12 +3672,12 @@ export default function PokerNearMeLobby() {
         border-radius: 5px;
         font-size: 12px;
         font-weight: 500;
-        background: rgba(212,168,83,0.08);
+        background: rgba(134,218,255,0.08);
         color: rgba(255,255,255,0.75);
         border: 1.5px solid rgba(148,163,184,0.1);
       }
       .tag.game {
-        background: rgba(212,168,83,0.08);
+        background: rgba(134,218,255,0.08);
         border: 1.5px solid rgba(148,163,184,0.1);
       }
       .tag.distance { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }

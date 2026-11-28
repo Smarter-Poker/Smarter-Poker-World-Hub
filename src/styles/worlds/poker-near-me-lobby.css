@@ -120,8 +120,11 @@
 /* ─── FIRST PAINT (LobbyOverlay chunk still loading) ─── */
 .pnm-lobby-skeleton__well {
   width: min(100%, 520px);
-  aspect-ratio: 1829 / 313;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: #06111d padding-box;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .pnm-lobby-skeleton__grid {

@@ -31,7 +31,7 @@
  *
  * ARCHITECTURE: Uses R3F's own createRoot API for a module-level singleton.
  *
- * React #418 hydration errors on this 950+ page Next.js app cause repeated
+ * React #116088 hydration errors on this 950+ page Next.js app cause repeated
  * unmount/remount cycles. If the R3F Canvas is inside React's tree, each
  * cycle destroys the WebGL context before Three.js can finish initializing.
  *

@@ -22,6 +22,7 @@ import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PnmImageHeader from '../../src/components/poker-near-me/PnmImageHeader';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from '../../src/components/poker-near-me/PokerNearMeConsole';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -902,10 +903,12 @@ export default function EventsCalendarPage({ fallbackData, initialDateKey }) {
         <div className="ec-space-bg" />
         <div className="ec-space-overlay" />
 
-        {/* ── Page Header ── */}
+        {/* ── Page Header (#SMARTERDESIGN image header, Dan 2026-11-27) ── */}
+        <div className="smarterdesign pnm-sd-top">
+          <PnmImageHeader route="events-calendar" />
+        </div>
         <header className="ec-map-page-header"><div className="ec-map-page-header__body">
           <div className="ec-hero-copy">
-          <h1 className="ec-title"><span className="ec-white">Events</span> <span className="ec-cyan">Calendar</span></h1>
           <p className="ec-subtitle">
             {loading ? 'Loading...' : `${totalCount.toLocaleString()} Tournaments Found`}
             {stats.sources && !loading && (
@@ -1296,7 +1299,7 @@ const styles = `
     --ec-dim: #65717f;
     --ec-blue: #31a8ff;
     --ec-blue-soft: #8fd4ff;
-    --ec-gold: #d6b76a;
+    --ec-gold: #6ab2d6;
     --ec-alert: #ff7078;
   }
 
@@ -1428,13 +1431,8 @@ const styles = `
     justify-content: center;
     gap: 7px;
     min-height: 44px;
-    aspect-ratio: 348 / 114;
     padding: 0 16px;
     overflow: hidden;
-    border: 0;
-    border-radius: 0;
-    background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat;
-    box-shadow: none;
     color: var(--ec-silver);
     cursor: pointer;
     font: 800 12px/1 var(--font-rajdhani), Rajdhani, sans-serif;
@@ -1443,14 +1441,25 @@ const styles = `
     text-transform: uppercase;
     white-space: nowrap;
     touch-action: manipulation;
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box;
+    border-radius: 0;
+    box-shadow: none;
+    color: #f2f7ff;
   }
 
   .ec-empty-btn,
   .ec-today-btn,
   .loc-gps-btn,
   .loc-submit {
-    background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
     color: #f4f7fb;
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch;
+    background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box;
+    border-radius: 0;
+    box-shadow: none;
+    color: #ffffff;
   }
 
   body.world-poker-near-me :is(
@@ -1477,21 +1486,22 @@ const styles = `
     display: flex;
     width: min(100%, 390px);
     min-height: 48px;
-    aspect-ratio: 1829 / 313;
     align-items: center;
     gap: 8px;
     padding: 0 clamp(28px, 8%, 52px);
-    border: 0;
-    border-radius: 0;
-    background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat;
-    box-shadow: none;
     color: var(--ec-silver);
+    border: 3px solid transparent;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: #06111d padding-box;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   body.world-poker-near-me .ec-page .pnm-location-pill {
-    border: 0 !important;
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+    background: #06111d padding-box !important;
     border-radius: 0 !important;
-    background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
     box-shadow: none !important;
   }
 
@@ -1587,7 +1597,7 @@ const styles = `
   }
 
   .ec-smart-agg-note {
-    color: #d9b35c;
+    color: #5cafd9;
   }
 
   .ec-hero-search {
@@ -1597,11 +1607,11 @@ const styles = `
   body.world-poker-near-me .ec-page .ec-search-wrap.ec-search-wrap {
     width: 100% !important;
     min-height: 48px;
-    aspect-ratio: 1829 / 313;
     padding: 0 clamp(24px, 8%, 48px) !important;
-    border: 0 !important;
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+    background: #06111d padding-box !important;
     border-radius: 0 !important;
-    background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center / contain no-repeat !important;
     box-shadow: none !important;
   }
 
@@ -1648,19 +1658,25 @@ const styles = `
     flex: 0 0 138px;
     min-width: 138px !important;
     min-height: 44px !important;
-    aspect-ratio: 348 / 114;
     padding: 0 12px !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: transparent url('/images/pnm-console/painted-controls-v1/button-secondary.png') center / contain no-repeat !important;
-    box-shadow: none !important;
     color: var(--ec-silver) !important;
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+    background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: #f2f7ff !important;
   }
 
   body.world-poker-near-me .ec-page .ec-day-tab.ec-day-tab.active,
   body.world-poker-near-me .ec-page .ec-day-tab.ec-day-tab[aria-pressed='true'] {
-    background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
     color: #f4f7fb !important;
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch !important;
+    background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
   }
 
   body.world-poker-near-me .ec-page .ec-day-tab.ec-day-tab.today:not(.active) {
@@ -1708,18 +1724,15 @@ const styles = `
     min-width: 0 !important;
     height: auto !important;
     min-height: 44px !important;
-    aspect-ratio: 348 / 114;
     padding: 0 12% !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background-color: transparent !important;
-    background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
-    background-position: center !important;
-    background-repeat: no-repeat !important;
-    background-size: contain !important;
-    box-shadow: none !important;
     color: #eef5fb !important;
     font-size: 16px !important;
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+    background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: #f2f7ff !important;
   }
 
   .ec-filter-select option,
@@ -1984,7 +1997,7 @@ const styles = `
   }
 
   .ev-recurrence {
-    color: #d9b35c;
+    color: #5cafd9;
   }
 
   .ev-stale {
@@ -2275,9 +2288,12 @@ const styles = `
   }
 
   body.world-poker-near-me .loc-modal .loc-input {
-    aspect-ratio: 1829 / 313;
     padding: 0 10% !important;
-    background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+    background: #06111d padding-box !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
 
   .loc-input::placeholder {
@@ -2285,9 +2301,13 @@ const styles = `
   }
 
   body.world-poker-near-me .loc-modal .loc-select {
-    aspect-ratio: 348 / 114;
     padding: 0 14% !important;
-    background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
+    border: 3px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+    background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: #f2f7ff !important;
   }
 
   .loc-popular {

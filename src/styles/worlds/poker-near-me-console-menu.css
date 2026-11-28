@@ -45,19 +45,18 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   border-left: 1px solid rgba(170, 184, 196, 0.38) !important;
 }
 
-/* One frame per control: the painted art. No CSS border, radius, shadow or
-   blur is drawn over it, and the generic decorative fragments are removed. */
+/* One frame per control (#SMARTERDESIGN, 2026-11-27): the rows, deck tiles,
+   search field and utility rail each carry their own chrome rim (declared on
+   their rules below), so they are not in this reset; everything else in the
+   drawer draws no border, radius, shadow or blur, and the generic decorative
+   fragments are removed. */
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] :is(
-  .sp-command-utility-rail,
   .sp-command-grid-mark,
   .sp-command-context,
   .sp-command-search,
-  .sp-command-search input,
   .sp-command-utility-button,
   .sp-command-offline,
   .sp-command-identity,
-  .sp-menu-row,
-  .sp-grid-tile,
   .sp-icon-btn
 ) {
   border: 0 !important;
@@ -101,7 +100,11 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   height: var(--pnm-row-height) !important;
   min-height: 0 !important;
   padding: 6px var(--pnm-menu-inset) 4px !important;
-  background: url('/images/pnm-console/painted-controls-v1/search-well.webp') center top / 100% auto no-repeat content-box, #010305 !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: #06111d padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-brand {
@@ -222,11 +225,11 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   min-height: 0 !important;
   padding: 0 calc(var(--pnm-face-inline) + 36px) var(--pnm-face-lift) calc(var(--pnm-face-inline) + 36px) !important;
   color: #e9f1f7 !important;
-  background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
-  background-position: center top !important;
-  background-repeat: no-repeat !important;
-  background-size: 100% auto !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: #06111d padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search input::placeholder {
@@ -252,19 +255,18 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   box-sizing: border-box !important;
   width: calc(100% - 2 * var(--pnm-menu-inset)) !important;
   height: auto !important;
-  min-height: 0 !important;
-  aspect-ratio: 1829 / 271;
+  min-height: 48px !important;
   margin: 0 var(--pnm-menu-inset) 4px !important;
   padding: 0 var(--pnm-face-inline) var(--pnm-face-lift) !important;
   gap: 10px !important;
   color: #dfe8ef !important;
   line-height: 1.2;
-  background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/search-well.webp') !important;
-  background-position: center top !important;
-  background-repeat: no-repeat !important;
-  background-size: 100% auto !important;
   transition: none !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: #06111d padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row[aria-current='page'] {
@@ -288,8 +290,7 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile {
   box-sizing: border-box !important;
   height: auto !important;
-  min-height: 0 !important;
-  aspect-ratio: 348 / 114;
+  min-height: 48px !important;
   padding: 0 4% 0 6.5% !important;
   flex-direction: row !important;
   align-items: center !important;
@@ -297,18 +298,23 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   gap: 6px !important;
   overflow: hidden !important;
   color: #eef4fa !important;
-  background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-size: 100% auto !important;
   transition: none !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #f2f7ff !important;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile[aria-current='page'] {
-  background-color: transparent !important;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
   filter: brightness(1.08);
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile > span:last-child {
@@ -451,9 +457,12 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   box-sizing: border-box !important;
   height: auto !important;
   min-height: 0 !important;
-  aspect-ratio: 1829 / 271;
   padding: 0 var(--pnm-face-inline) var(--pnm-face-lift) !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center top / 100% auto no-repeat !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: #06111d padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-assist > div:first-child > button[aria-expanded] img {
@@ -488,14 +497,15 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   width: calc(100% - 2 * var(--pnm-menu-inset)) !important;
   height: auto !important;
   min-height: 0 !important;
-  aspect-ratio: 1829 / 271;
   margin: 0 var(--pnm-menu-inset) !important;
   padding: 0 var(--pnm-face-inline) var(--pnm-face-lift) !important;
   color: #dfe8ef !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.webp') center top / 100% auto no-repeat !important;
   transition: none !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: #06111d padding-box !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-identity {

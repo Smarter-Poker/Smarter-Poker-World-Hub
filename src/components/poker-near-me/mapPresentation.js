@@ -19,8 +19,8 @@ export const POKER_VENUE_TYPE_COLORS = Object.freeze({
   poker_club: { fill: '#48c7ff', glow: 'rgba(72,199,255,0.5)', badgeBg: 'rgba(72,199,255,0.14)' },
   charity: { fill: '#7da8c4', glow: 'rgba(125,168,196,0.48)', badgeBg: 'rgba(125,168,196,0.14)' },
   home_game: { fill: '#82909d', glow: 'rgba(130,144,157,0.5)', badgeBg: 'rgba(130,144,157,0.14)' },
-  tour_stop: { fill: '#c9a85a', glow: 'rgba(201,168,90,0.5)', badgeBg: 'rgba(201,168,90,0.14)' },
-  poker_tour: { fill: '#c9a85a', glow: 'rgba(201,168,90,0.5)', badgeBg: 'rgba(201,168,90,0.14)' },
+  tour_stop: { fill: '#5aa4c9', glow: 'rgba(90,164,201,0.5)', badgeBg: 'rgba(90,164,201,0.14)' },
+  poker_tour: { fill: '#5aa4c9', glow: 'rgba(90,164,201,0.5)', badgeBg: 'rgba(90,164,201,0.14)' },
 });
 
 // The legend is generated from the same accents the markers, labels and
@@ -34,9 +34,9 @@ export const POKER_MAP_LEGEND_ITEMS = Object.freeze([
 ]);
 
 export const POKER_TOUR_COLORS = Object.freeze({
-  WSOP: '#c9a227', WPT: '#dc2626', WSOPC: '#c9a227', MSPT: '#3b82f6', RGPS: '#10b981',
-  PGT: '#8b5cf6', NAPT: '#f87171', BPO: '#38bdf8', FPN: '#818cf8', LIPS: '#ec4899',
-  ROUGHRIDER: '#d97706', PAT: '#22c55e', GCPT: '#06b6d4',
+  WSOP: '#86daff', WPT: '#dc2626', WSOPC: '#86daff', MSPT: '#3b82f6', RGPS: '#10b981',
+  PGT: '#4f9cff', NAPT: '#f87171', BPO: '#38bdf8', FPN: '#818cf8', LIPS: '#5aa9ff',
+  ROUGHRIDER: '#5fb8ec', PAT: '#22c55e', GCPT: '#06b6d4',
 });
 
 const DEFAULT_LOGO = '/smarter-poker-logo-nobg.webp';
@@ -245,7 +245,7 @@ function venueDetailPath(venue) {
 function trustLevel(score) {
   if (score >= 4.5) return { label: 'Excellent', color: '#c8ffd2' };
   if (score >= 4) return { label: 'Good', color: '#45adff' };
-  if (score >= 3) return { label: 'Moderate', color: '#d6ad52' };
+  if (score >= 3) return { label: 'Moderate', color: '#52aad6' };
   return { label: 'Unrated', color: '#9aa5b3' };
 }
 

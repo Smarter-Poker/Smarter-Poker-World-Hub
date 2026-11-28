@@ -264,10 +264,10 @@ test('console components keep master slices separate and live values in DOM zone
   assert.match(component, /pnc-panel__head[\s\S]*pnc-panel__body[\s\S]*pnc-panel__foot/);
   assert.match(component, /completePlatePair/);
   assert.match(component, /ResizeObserver/);
-  assert.match(css, /panel-head\.png/);
-  assert.match(css, /panel-mid\.png[^;]*repeat-y/);
-  assert.match(css, /panel-foot\.png/);
-  assert.doesNotMatch(css, /(?:linear|radial|conic)-gradient\(/i);
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.doesNotMatch(css, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.doesNotMatch(css, /:hover/i);
 });
 
@@ -301,12 +301,12 @@ test('Poker Near Me hamburger drawer uses complete painted controls without gene
   assert.equal(source.sha256, '3b7f2e34a8f018188a9c4fa3c7c12933c65309b829c7b43bb20a9b53644be59e');
   assert.match(menu, /data-pnm-console=.*painted-command-drawer-v1/);
   assert.match(menu, /sp-command-item-icon--\$\{pokerNearMeCommandIcon/);
-  assert.doesNotMatch(menu, /data-world-command-menu='poker-near-me'[\s\S]{0,240}(?:linear|radial|conic)-gradient/i);
-  for (const asset of ['icon-menu.png', 'icon-edit.png', 'icon-close.png', 'button-primary.png', 'button-secondary.png', 'search-well.webp']) {
+  assert.doesNotMatch(menu, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
+  for (const asset of ['icon-menu.png', 'icon-edit.png', 'icon-close.png', 'chrome-row.webp', 'chrome-active-v2.webp']) {
     assert.match(css, new RegExp(asset.replace('.', '\\.')));
   }
   assert.match(css, /min-height:\s*44px/);
-  assert.doesNotMatch(css, /(?:linear|radial|conic)-gradient\(|:hover/i);
+  assert.doesNotMatch(css, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
 });
 
 test('lobby, daily listings, discovery tools and location indexes use painted controls', () => {
@@ -318,19 +318,22 @@ test('lobby, daily listings, discovery tools and location indexes use painted co
 
   for (const [name, source] of Object.entries({ lobby, daily, more })) {
     assert.doesNotMatch(source, /<svg\b/i, `${name} cannot draw generic vector controls`);
-    assert.doesNotMatch(source, /(?:linear|radial|conic)-gradient\(/i, `${name} cannot fake materials`);
+    assert.doesNotMatch(source, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   }
   assert.match(lobby, /PokerNearMeConsoleIcon/);
-  assert.match(lobby, /PokerNearMePanelShell/);
+  // #SMARTERDESIGN (2026-11-27): the lobby readouts are sd-metric tiles.
+  assert.match(lobby, /className="lobby-stat sd-metric"/);
   assert.match(daily, /PokerNearMePanelShell/);
   assert.match(more, /PokerNearMePanelShell/);
   assert.match(locations, /PokerNearMePanelShell/);
-  assert.match(css, /search-well\.webp/);
-  assert.match(css, /button-primary\.png/);
-  assert.match(css, /button-secondary\.png/);
+  // The painted wells and plates these surfaces still declare are each
+  // re-skinned by the #SMARTERDESIGN layer (poker-near-me-smarterdesign.css).
+  const sd = read('src/styles/worlds/poker-near-me-smarterdesign.css');
+  assert.match(sd, /chrome-row\.webp/);
+  assert.match(sd, /chrome-active-v2\.webp/);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /@media \(orientation: landscape\)[\s\S]*?\[data-global-bottom-nav='true'\][\s\S]*?position:\s*relative !important/);
-  assert.doesNotMatch(css, /(?:linear|radial|conic)-gradient\(|:hover/i);
+  assert.doesNotMatch(css, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
 });
 
 test('console artwork provenance and no-baked-data policy ship with the assets', () => {

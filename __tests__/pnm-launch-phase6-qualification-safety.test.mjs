@@ -28,7 +28,8 @@ test('shared daily route has one authoritative main containing its heading, filt
     if (node.type === 'JSXElement') {
       const name = node.openingElement.name.name;
       if (name === 'main') { mains.push(node); inside = true; }
-      if (name === 'h1' && inside) headingInside = true;
+      // #SMARTERDESIGN (2026-11-27): the page h1 is rendered by PnmImageHeader.
+      if ((name === 'h1' || name === 'PnmImageHeader') && inside) headingInside = true;
       if (name === 'form' && inside) searchInside = true;
     }
     for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(child => walk(child, inside)); else if (value && typeof value === 'object') walk(value, inside);

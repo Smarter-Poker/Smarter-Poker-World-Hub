@@ -20,7 +20,7 @@ body.world-poker-near-me {
   --pnm-command-ion-line: rgba(53, 189, 244, 0.58);
   --pnm-command-frost: #e8f3fa;
   --pnm-command-muted: #9aa9b8;
-  --pnm-command-medal: #d8b45a;
+  --pnm-command-medal: #5aaed8;
   --pnm-command-inset:
     inset 0 1px 0 rgba(255, 255, 255, 0.055),
     inset 0 0 0 1px rgba(0, 0, 0, 0.72);
@@ -786,9 +786,9 @@ body.world-poker-near-me :is(
 ) {
   min-height: 44px !important;
   padding: 0 14px !important;
-  border: 1px solid rgba(216, 180, 90, 0.38) !important;
+  border: 1px solid rgba(90, 174, 216, 0.38) !important;
   border-radius: 2px !important;
-  color: #ead69f !important;
+  color: #9fd1ea !important;
   background: #151006 !important;
   box-shadow: var(--pnm-command-inset) !important;
   font-size: 12px !important;
