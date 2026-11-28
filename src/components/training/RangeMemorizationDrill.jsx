@@ -210,7 +210,7 @@ function RangeMemorizationDrill() {
             background: result ? (result.correct ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)') : 'rgba(255,255,255,0.05)',
             border: `2px solid ${result ? (result.correct ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)') : 'rgba(255,255,255,0.1)'}`,
           }}>
-            <div style={{ fontSize: 48, fontWeight: 900, color: '#fff', fontFamily: 'monospace', letterSpacing: 4 }}>
+            <div style={{ fontSize: 48, fontWeight: 900, color: '#fff', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', letterSpacing: 4 }}>
               {handDisplay}
             </div>
             <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
@@ -272,7 +272,7 @@ function RangeMemorizationDrill() {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {history.map((h, i) => (
                 <div key={i} style={{
-                  padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, fontFamily: 'monospace',
+                  padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                   background: h.correct ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
                   color: h.correct ? '#10b981' : '#ef4444',
                   border: `1px solid ${h.correct ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,

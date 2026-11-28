@@ -121,7 +121,7 @@ function CumulativeEVChart({ handHistory, width = 500, height = 160 }) {
                         fontSize={12}
                         fontWeight={600}
                         textAnchor="end"
-                        style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}
+                        style={{ fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}
                     >
                         {v > 0 ? '+' : ''}{v.toFixed(1)}
                     </text>
@@ -139,7 +139,7 @@ function CumulativeEVChart({ handHistory, width = 500, height = 160 }) {
                     fill={lineColor}
                     fontSize={12}
                     fontWeight={800}
-                    style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}
+                    style={{ fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}
                 >
                     {finalEV >= 0 ? '+' : ''}{finalEV.toFixed(2)} BB
                 </text>
@@ -193,7 +193,7 @@ function PositionHeatmap({ handHistory }) {
                     }}>
                         <div style={{
                             fontSize: 12, fontWeight: 800, color: '#e2e8f0',
-                            fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                            fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                         }}>
                             {p.position}
                         </div>
@@ -423,7 +423,7 @@ export default function EVLossTracker({ handHistory, compact = false }) {
                         Total EV Lost
                     </div>
                     <div style={{
-                        fontSize: 20, fontWeight: 800, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                        fontSize: 20, fontWeight: 800, fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                         color: summary.totalLoss > 0 ? '#ef4444' : '#22c55e',
                     }}>
                         {summary.totalLoss > 0 ? '-' : ''}{summary.totalLoss.toFixed(2)} BB
@@ -431,19 +431,19 @@ export default function EVLossTracker({ handHistory, compact = false }) {
                 </div>
                 <div style={{ display: 'flex', gap: 16, textAlign: 'center' }}>
                     <div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: '#86daff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#86daff', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>
                             {summary.avgLoss.toFixed(2)}
                         </div>
                         <div style={{ fontSize: 12, color: '#64748b' }}>BB/Hand</div>
                     </div>
                     <div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: '#00d4ff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#00d4ff', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>
                             {summary.accuracy.toFixed(0)}%
                         </div>
                         <div style={{ fontSize: 12, color: '#64748b' }}>Accuracy</div>
                     </div>
                     <div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#ef4444', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>
                             {summary.worstLoss.toFixed(1)}
                         </div>
                         <div style={{ fontSize: 12, color: '#64748b' }}>Worst</div>

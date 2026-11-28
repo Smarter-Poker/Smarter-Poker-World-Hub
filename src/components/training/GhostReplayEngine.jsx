@@ -237,7 +237,7 @@ const styles = {
         fontSize: 12, fontWeight: 800, padding: '2px 8px', borderRadius: 4, fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif"
     },
     evLabel: {
-        fontSize: 12, fontWeight: 700, textAlign: 'right', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace"
+        fontSize: 12, fontWeight: 700, textAlign: 'right', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)"
     },
     controls: {
         display: 'flex', alignItems: 'center', padding: '16px 20px', gap: 16,

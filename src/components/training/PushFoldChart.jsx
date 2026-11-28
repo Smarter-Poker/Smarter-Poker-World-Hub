@@ -63,7 +63,7 @@ export default function PushFoldChart() {
             <span style={{ fontSize: 13, fontWeight: 800, color: chart.color }}>{chart.percentage}</span>
           </div>
         </div>
-        <div style={{ background: `${chart.color}08`, borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: 'monospace' }}>
+        <div style={{ background: `${chart.color}08`, borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Shove Range</div>
           <div style={{ fontSize: 12, color: chart.color, lineHeight: 1.5 }}>{chart.shoveRange}</div>
         </div>

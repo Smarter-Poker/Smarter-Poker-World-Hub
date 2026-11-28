@@ -250,7 +250,7 @@ export default function LiveHudSyncPage() {
                 onChange={(e) => setHandInputText(e.target.value)}
                 placeholder="Paste Club Arena, PokerStars, Or GGPoker Hand History Text..."
                 rows={4}
-                style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13 }}
+                style={{ fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', fontSize: 13 }}
               />
               <button
                 type="button"

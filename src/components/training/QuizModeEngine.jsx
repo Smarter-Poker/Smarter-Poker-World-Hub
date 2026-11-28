@@ -262,7 +262,7 @@ export default function QuizModeEngine() {
         {difficulty.timer > 0 && (
           <div style={{
             color: timeLeft <= 5 ? '#ef4444' : '#f1f5f9',
-            fontSize: 20, fontWeight: 800, fontFamily: 'monospace',
+            fontSize: 20, fontWeight: 800, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
           }}>
             {timeLeft}s
           </div>

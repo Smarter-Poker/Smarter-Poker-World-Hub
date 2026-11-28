@@ -79,7 +79,7 @@ export default function PKOSolverGuide() {
             <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>SHOVING ADJUSTMENT</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{scenario.shoving}</div>
           </div>
-          <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6', fontFamily: 'monospace' }}>
+          <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>EXAMPLE</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{scenario.example}</div>
           </div>
@@ -99,10 +99,10 @@ export default function PKOSolverGuide() {
         {BOUNTY_MATH.map((row, i) => (
           <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 1fr', padding: '8px 12px',
             borderBottom: '1px solid rgba(255,255,255,0.03)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-            <span style={{ fontSize: 12, color: '#e2e8f0', fontFamily: 'monospace' }}>{row.stack}</span>
-            <span style={{ fontSize: 12, color: '#86daff', fontFamily: 'monospace' }}>{row.bounty}</span>
-            <span style={{ fontSize: 12, color: '#22c55e', fontWeight: 700, fontFamily: 'monospace' }}>{row.adj}</span>
-            <span style={{ fontSize: 12, color: '#3b82f6', fontWeight: 700, fontFamily: 'monospace' }}>{row.evGain}</span>
+            <span style={{ fontSize: 12, color: '#e2e8f0', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{row.stack}</span>
+            <span style={{ fontSize: 12, color: '#86daff', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{row.bounty}</span>
+            <span style={{ fontSize: 12, color: '#22c55e', fontWeight: 700, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{row.adj}</span>
+            <span style={{ fontSize: 12, color: '#3b82f6', fontWeight: 700, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{row.evGain}</span>
           </div>
         ))}
       </div>

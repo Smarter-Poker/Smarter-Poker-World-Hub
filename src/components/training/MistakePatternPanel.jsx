@@ -291,7 +291,7 @@ const styles = {
         display: 'flex', flexDirection: 'column', gap: 1,
     },
     evLossValue: {
-        fontSize: 12, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+        fontSize: 12, color: '#ef4444', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
     },
     severityBadge: {
         fontSize: 12, fontWeight: 700,

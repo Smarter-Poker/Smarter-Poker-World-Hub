@@ -50,7 +50,7 @@ export default function IsoRaiseStrategy() {
         </div>
         <div style={{ background: `${spot.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, borderLeft: `3px solid ${spot.color}` }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: spot.color }}>Range</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{spot.range}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{spot.range}</div>
         </div>
         <p style={{ fontSize: 12, color: '#cbd5e1' }}>{spot.reason}</p>
       </motion.div>

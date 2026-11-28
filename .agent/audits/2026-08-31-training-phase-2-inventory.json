@@ -9675,6 +9675,7 @@
           "tests": [
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/training-daily-goals-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-history-outage-honesty.test.mjs"
           ]
         },
@@ -9688,6 +9689,7 @@
           "tests": [
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/training-daily-goals-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-history-outage-honesty.test.mjs"
           ]
         },
@@ -9703,6 +9705,7 @@
           "tests": [
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/training-daily-goals-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-history-outage-honesty.test.mjs"
           ]
         },
@@ -9717,6 +9720,7 @@
           "tests": [
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/training-daily-goals-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-history-outage-honesty.test.mjs"
           ]
         },
@@ -9730,6 +9734,7 @@
           "tests": [
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/training-daily-goals-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-history-outage-honesty.test.mjs"
           ]
         },
@@ -9742,6 +9747,7 @@
           "tests": [
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/training-daily-goals-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-history-outage-honesty.test.mjs"
           ]
         },
@@ -9754,6 +9760,7 @@
           "tests": [
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/training-daily-goals-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-history-outage-honesty.test.mjs"
           ]
         },
@@ -9767,6 +9774,7 @@
           "tests": [
             "__tests__/daily-challenges-casino-realism.test.mjs",
             "__tests__/training-daily-goals-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-history-outage-honesty.test.mjs"
           ]
         }
@@ -9774,6 +9782,7 @@
       "existingTests": [
         "__tests__/daily-challenges-casino-realism.test.mjs",
         "__tests__/training-daily-goals-authority.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-history-outage-honesty.test.mjs"
       ],
       "uncoveredStates": []
@@ -27350,6 +27359,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs"
@@ -27380,6 +27390,7 @@
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs"
@@ -27414,6 +27425,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs"
@@ -27434,6 +27446,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs"
@@ -27462,6 +27475,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs"
@@ -27498,6 +27512,7 @@
             "src/tutorials/index.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs"
@@ -27514,6 +27529,7 @@
             "src/data/trainingImageHeaders.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs"
@@ -27535,6 +27551,7 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs"
@@ -27542,6 +27559,7 @@
         }
       },
       "existingTests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/trivia-club-spectator-training.test.mjs"
@@ -46055,7 +46073,7 @@
         {
           "element": "button",
           "name": "View Structure Flow",
-          "line": 240,
+          "line": 241,
           "handler": "() => setActiveTab('structure')",
           "destination": null,
           "type": "button",
@@ -46065,7 +46083,7 @@
         {
           "element": "button",
           "name": "View Push/Fold",
-          "line": 249,
+          "line": 250,
           "handler": "() => setActiveTab('pushfold')",
           "destination": null,
           "type": "button",
@@ -46123,6 +46141,14 @@
           "name": "loadPlannerState",
           "line": 50,
           "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isPositiveMetric",
+          "line": 61,
+          "references": 5,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -93740,11 +93766,11 @@
       "effectRef": "pages/hub/training/tilt-guard.js"
     },
     {
-      "id": "pages/hub/training/tournament-prep.js:240:1",
+      "id": "pages/hub/training/tournament-prep.js:241:1",
       "file": "pages/hub/training/tournament-prep.js",
       "element": "button",
       "name": "View Structure Flow",
-      "line": 240,
+      "line": 241,
       "handler": "() => setActiveTab('structure')",
       "destination": null,
       "type": "button",
@@ -93753,11 +93779,11 @@
       "effectRef": "pages/hub/training/tournament-prep.js"
     },
     {
-      "id": "pages/hub/training/tournament-prep.js:249:2",
+      "id": "pages/hub/training/tournament-prep.js:250:2",
       "file": "pages/hub/training/tournament-prep.js",
       "element": "button",
       "name": "View Push/Fold",
-      "line": 249,
+      "line": 250,
       "handler": "() => setActiveTab('pushfold')",
       "destination": null,
       "type": "button",
@@ -105335,6 +105361,7 @@
       "tests": [
         "__tests__/daily-challenges-casino-realism.test.mjs",
         "__tests__/training-daily-goals-authority.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-history-outage-honesty.test.mjs"
       ]
     },
@@ -115635,6 +115662,7 @@
         }
       ],
       "tests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs"
       ]
@@ -116988,7 +117016,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs"
+      ]
     },
     {
       "file": "src/components/sandbox/paTokens.js",

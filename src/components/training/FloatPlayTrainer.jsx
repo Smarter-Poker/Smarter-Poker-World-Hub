@@ -109,7 +109,7 @@ function FloatPlayTrainer() {
               border: `1px solid ${expandedHand === i ? 'rgba(14,165,233,0.2)' : 'rgba(255,255,255,0.06)'}`,
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'monospace' }}>{ex.hand}</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{ex.hand}</span>
                 <span style={{ fontSize: 12, fontWeight: 600, color: ex.action.includes('Fold') || ex.action.includes('Give up') ? '#ef4444' : ex.action.includes('Check Turn') || ex.action.includes('check-fold') ? '#86daff' : '#10b981' }}>
                   {ex.action}
                 </span>

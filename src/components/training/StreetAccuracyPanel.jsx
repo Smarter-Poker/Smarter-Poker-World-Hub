@@ -191,7 +191,7 @@ const styles = {
         display: 'flex', flexDirection: 'column', gap: 1,
     },
     accuracyValue: { fontSize: 13, fontWeight: 'bold' },
-    evValue: { fontSize: 12, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" },
+    evValue: { fontSize: 12, color: '#ef4444', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" },
     countCol: {
         width: 32, textAlign: 'right',
         display: 'flex', flexDirection: 'column',

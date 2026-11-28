@@ -70,11 +70,11 @@ export default function ProgressDashboard() {
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>Key Metrics</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{area.metrics}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{area.metrics}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>Checkpoints</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{area.checkpoints}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', whiteSpace: 'pre-wrap' }}>{area.checkpoints}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>Mastery Signal</div>

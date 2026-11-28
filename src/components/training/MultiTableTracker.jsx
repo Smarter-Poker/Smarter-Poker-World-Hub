@@ -228,7 +228,7 @@ function MultiTableTracker() {
                   const val = parseProfit(h);
                   return (
                     <span key={i} style={{
-                      padding: '3px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, fontFamily: 'monospace',
+                      padding: '3px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                       background: val >= 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
                       color: val >= 0 ? '#10b981' : '#ef4444',
                     }}>{h}</span>

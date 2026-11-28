@@ -281,7 +281,7 @@ const styles = {
         borderRadius: 4,
         color: '#86daff',
         fontSize: 12,
-        fontFamily: 'monospace',
+        fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     },
     readyFullScreen: {
         width: '100%',

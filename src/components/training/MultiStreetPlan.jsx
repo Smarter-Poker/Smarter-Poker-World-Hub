@@ -58,7 +58,7 @@ export default function MultiStreetPlan() {
       <motion.div key={planIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: plan.color, marginBottom: 4 }}>{plan.hand}</div>
-        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10, fontFamily: 'monospace' }}>{plan.example}</div>
+        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{plan.example}</div>
         <div style={{ display: 'grid', gap: 8 }}>
           {[
             { label: 'Flop Plan', text: plan.flop, color: '#22c55e' },

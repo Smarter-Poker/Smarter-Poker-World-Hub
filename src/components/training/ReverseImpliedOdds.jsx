@@ -61,7 +61,7 @@ export default function ReverseImpliedOdds() {
           <span style={{ fontSize: 24 }}>{spot.icon}</span>
           <span style={{ fontSize: 15, fontWeight: 800, color: spot.color }}>{spot.spot}</span>
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'monospace' }}>
+        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Hand & Board</div>
           <div style={{ fontSize: 12, color: '#e2e8f0' }}>{spot.hand}</div>
         </div>

@@ -50,7 +50,7 @@ export default function HiJackStrategy() {
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{topic.text}</p>
         <div style={{ background: `${topic.color}08`, borderLeft: `3px solid ${topic.color}`, borderRadius: 8, padding: 10 }}>
-          <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{topic.detail}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{topic.detail}</div>
         </div>
       </motion.div>
 

@@ -55,7 +55,7 @@ export default function UTGRangeGuide() {
         {format.hands.map((tier, i) => (
           <div key={i} style={{ background: `${tier.color}08`, borderLeft: `3px solid ${tier.color}`, borderRadius: 8, padding: 10, marginBottom: 8 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: tier.color }}>{tier.tier}</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{tier.cards}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{tier.cards}</div>
           </div>
         ))}
 
