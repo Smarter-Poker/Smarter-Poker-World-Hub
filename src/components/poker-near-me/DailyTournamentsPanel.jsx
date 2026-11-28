@@ -483,14 +483,14 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
               background: 'linear-gradient(180deg, rgba(14,165,233,0.15), rgba(2,132,199,0.05))', color: '#38bdf8', border: '1px solid rgba(14,165,233,0.2)',
               padding: '6px 12px', borderRadius: 6, marginTop: 10, textDecoration: 'none', letterSpacing: '0.05em'
             }}>
-              VIEW STRUCTURE PDF
+              View Structure PDF
             </a>
           )}
           
           {/* Clustered Flights Dropdown */}
           {t.is_clustered && isExpanded && t.flights?.length > 1 && (
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed rgba(255,255,255,0.08)' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Included Flights</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 8, letterSpacing: '0.05em' }}>Included Flights</div>
                 <div style={{ display: 'grid', gap: 6 }}>
                       {t.flights.map((f, idx) => (
                         <div key={f.id || `${f.start_time || ''}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: 4, fontSize: 12, color: '#cbd5e1' }}>
@@ -521,8 +521,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
               border: selectedDay === day ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
               background: selectedDay === day ? 'linear-gradient(180deg, rgba(255,255,255,0.15), rgba(200,214,229,0.08))' : 'linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95))',
               color: selectedDay === day ? '#ffffff' : 'rgba(148,163,184,0.6)',
-              fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-              textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.25s', boxShadow: selectedDay === day ? 'inset 0 1px 0 rgba(255,255,255,0.15), 0 0 10px rgba(255,255,255,0.1)' : 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3)'
+              fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.05em', transition: 'all 0.25s', boxShadow: selectedDay === day ? 'inset 0 1px 0 rgba(255,255,255,0.15), 0 0 10px rgba(255,255,255,0.1)' : 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3)'
             }}
           >
             {/* [DTP1] Uses todayIndex from useMemo inside component, not stale module-level TODAY_INDEX */}
@@ -658,8 +657,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
           color: rgba(255,255,255,0.5); font-size: 18px; font-weight: 700;
         }
         .ev-source {
-          display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: 0.05em;
-          text-transform: uppercase; padding: 2px 6px; border-radius: 4px; border: 1px solid;
+          display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: 0.05em; padding: 2px 6px; border-radius: 4px; border: 1px solid;
         }
 
         @media (max-width: 640px) {

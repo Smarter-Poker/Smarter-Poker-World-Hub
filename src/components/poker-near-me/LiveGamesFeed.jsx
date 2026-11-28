@@ -129,9 +129,9 @@ function SourceBadge({ source, dataMode }) {
             <span style={{
                 fontSize: 12, letterSpacing: '0.3px', color: '#d8e4ec',
                 background: 'rgba(170,184,196,0.1)', border: '1px solid rgba(170,184,196,0.28)',
-                padding: '2px 6px', borderRadius: 4, fontWeight: 800, textTransform: 'uppercase',
+                padding: '2px 6px', borderRadius: 4, fontWeight: 800,
             }} title="Game listing only; current table count is unknown">
-                CATALOG
+                Catalog
             </span>
         );
     }
@@ -145,9 +145,8 @@ function SourceBadge({ source, dataMode }) {
                 padding: '2px 6px',
                 borderRadius: 4,
                 fontWeight: 800,
-                textTransform: 'uppercase',
             }} title="Modeled from qualified saved observations, not a current live report">
-                ESTIMATED
+                Estimated
             </span>
         );
     }
@@ -156,7 +155,7 @@ function SourceBadge({ source, dataMode }) {
             <span style={{
                 fontSize: 12, letterSpacing: '0.3px', color: LGF_ADVISORY.inkSoft,
                 background: LGF_ADVISORY.well, border: `1px solid ${LGF_ADVISORY.edge}`,
-                padding: '2px 6px', borderRadius: 4, fontWeight: 800, textTransform: 'uppercase',
+                padding: '2px 6px', borderRadius: 4, fontWeight: 800,
             }} title="Observed and modeled rows are shown together">
                 OBSERVED + ESTIMATED
             </span>
@@ -171,9 +170,8 @@ function SourceBadge({ source, dataMode }) {
             padding: '2px 6px',
             borderRadius: 4,
             fontWeight: 800,
-            textTransform: 'uppercase',
         }}>
-            {isLive ? 'LIVE OBSERVED' : (source === 'catalog' ? 'CATALOG' : 'NO CURRENT DATA')}
+            {isLive ? 'Live Observed' : (source === 'catalog' ? 'Catalog' : 'No Current Data')}
         </span>
     );
 }
@@ -857,7 +855,7 @@ function LiveGamesFeed({
         return (
             <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.04)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, paddingBottom: 5, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(224,232,240,0.7)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Game Breakdown</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(224,232,240,0.7)', letterSpacing: '0.5px' }}>Game Breakdown</span>
                 </div>
                 {displayGames.map((g, i) => {
                     if (!g || typeof g.game !== 'string') return null;
@@ -1094,27 +1092,27 @@ function LiveGamesFeed({
                         {/* Catalog room capacity is not live activity. Live rows keep
                             the running badge; catalog rows keep the count unknown. */}
                         {isCatalog ? (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(170,184,196,0.1)', color: '#d8e4ec', border: '1px solid rgba(170,184,196,0.28)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, letterSpacing: '0.4px', background: 'rgba(170,184,196,0.1)', color: '#d8e4ec', border: '1px solid rgba(170,184,196,0.28)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                                 Games Listed, Live Count Unknown
                             </span>
                         ) : v._hasPublishedActivity && isModelled ? (
                             /* Modelled counts: no pulsing "live" dot, no "Running" claim. */
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: LGF_ADVISORY.well, color: LGF_ADVISORY.ink, border: `1px solid ${LGF_ADVISORY.edge}`, display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, letterSpacing: '0.4px', background: LGF_ADVISORY.well, color: LGF_ADVISORY.ink, border: `1px solid ${LGF_ADVISORY.edge}`, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                 title="Modeled from qualified saved observations, not a current live report">
                                 {v.totalTables} {v.totalTables !== 1 ? 'Tables' : 'Table'} Estimated
                             </span>
                         ) : v._hasPublishedActivity && isMixed ? (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: LGF_ADVISORY.well, color: LGF_ADVISORY.inkSoft, border: `1px solid ${LGF_ADVISORY.edge}`, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, letterSpacing: '0.4px', background: LGF_ADVISORY.well, color: LGF_ADVISORY.inkSoft, border: `1px solid ${LGF_ADVISORY.edge}`, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                                 {v.totalTables} Tables Observed + Estimated
                             </span>
                         ) : v._isLive ? (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 0 12px rgba(34,197,94,0.2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, letterSpacing: '0.4px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 0 12px rgba(34,197,94,0.2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', animation: 'lgf-pulse 1.5s ease-in-out infinite' }} />
                                 {v.totalTables} {v.totalTables !== 1 ? 'Tables' : 'Table'} Running
                             </span>
                         ) : (
                             v.totalTables > 0 && (
-                                <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.18)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                                <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, letterSpacing: '0.4px', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.18)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                                     {v.totalTables} {v.totalTables !== 1 ? 'Tables' : 'Table'}
                                 </span>
                             )
@@ -1124,7 +1122,7 @@ function LiveGamesFeed({
                             computed for every live venue in mergedVenues and then never rendered —
                             players_waiting only surfaced inside the collapsed per-game breakdown. */}
                         {v._isLive && v.totalWait > 0 && (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(255,255,255,0.1)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)' }}>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, letterSpacing: '0.4px', background: 'rgba(255,255,255,0.1)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)' }}>
                                 {v.totalWait} Waiting{v.waitEstimate && v.waitEstimate.label ? ` - ${v.waitEstimate.label}` : ''}
                             </span>
                         )}
@@ -1132,13 +1130,13 @@ function LiveGamesFeed({
                         {/* WIRING FIX: checkinCounts was passed by both call sites and never read,
                             so the Live tab showed no check-in signal at all. */}
                         {checkinCount > 0 && (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(110,231,239,0.12)', color: '#6ee7ef', border: '1px solid rgba(110,231,239,0.28)' }}>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, letterSpacing: '0.4px', background: 'rgba(110,231,239,0.12)', color: '#6ee7ef', border: '1px solid rgba(110,231,239,0.28)' }}>
                                 {checkinCount} Here Today
                             </span>
                         )}
 
                         {!v._hasPublishedActivity && !isCatalog && (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, background: LGF_ADVISORY.well, color: LGF_ADVISORY.ink, border: `1px solid ${LGF_ADVISORY.edge}`, textTransform: 'uppercase' }}>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 700, background: LGF_ADVISORY.well, color: LGF_ADVISORY.ink, border: `1px solid ${LGF_ADVISORY.edge}` }}>
                                 {v.is_stale
                                     ? 'No Current Data'
                                     : v.data_mode === 'live'
@@ -1176,11 +1174,11 @@ function LiveGamesFeed({
                                when we have it, otherwise say plainly that we have no data. */
                             <div style={{ padding: '8px 0', marginTop: 4 }}>
                                 {Array.isArray(v.stakes_cash) && v.stakes_cash.length > 0 ? (
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.5px' }}>
                                         Stakes Played {v.stakes_cash.slice(0, 4).join('  ')}
                                     </span>
                                 ) : (
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.5px' }}>
                                         No Live Game Data
                                     </span>
                                 )}
@@ -1253,7 +1251,7 @@ function LiveGamesFeed({
                         return (
                             <div style={{ marginTop: 6, fontSize: 12, color: staleInfo.stale ? LGF_CAUTION.inkSoft : 'rgba(200,214,229,0.25)', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}
                                 title={new Date(v.last_updated).toLocaleString()}>
-                                {staleInfo.stale && (<span style={{ fontSize: 12, padding: '1px 5px', borderRadius: 3, background: LGF_CAUTION.well, color: LGF_CAUTION.ink, border: `1px solid ${LGF_CAUTION.edge}`, fontWeight: 700, textTransform: 'uppercase' }}>STALE</span>)}
+                                {staleInfo.stale && (<span style={{ fontSize: 12, padding: '1px 5px', borderRadius: 3, background: LGF_CAUTION.well, color: LGF_CAUTION.ink, border: `1px solid ${LGF_CAUTION.edge}`, fontWeight: 700 }}>Stale</span>)}
                                 Updated {staleInfo.age}
                             </div>
                         );
@@ -1438,7 +1436,7 @@ function LiveGamesFeed({
                                 userLocation={effectiveLocation}
                                 radiusMiles={filterRadius}
                                 mapEyebrow="Cash game signal grid"
-                                mapTitle="Where games usually run"
+                                mapTitle="Where Games Usually Run"
                                 mapDetail={globalStats.dataMode === 'live'
                                     ? 'Current verified reports · select a room for table details'
                                     : 'Historical estimates are labeled · select a room for source details'}

@@ -522,7 +522,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   return (
     <MapSurfaceFrame
       className="pnm-map-surface--fill pnm-map-surface--primary"
-      eyebrow="National discovery grid"
+      eyebrow="National Discovery Grid"
       title="Explore poker rooms"
       detail={`${mappedVenueCount} mapped locations · pan the map to search another area`}
       onLayoutChange={handleMapLayoutChange}

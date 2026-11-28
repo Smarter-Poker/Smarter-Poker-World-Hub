@@ -48574,7 +48574,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 226,
+          "line": 229,
           "handler": null,
           "destination": "preset.unlockedHref",
           "type": null,
@@ -48584,7 +48584,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 291,
+          "line": 294,
           "handler": "handleOpenQuickSheet",
           "destination": "signupHref",
           "type": null,
@@ -48594,7 +48594,7 @@
         {
           "element": "link",
           "name": "Sign In To Existing Account",
-          "line": 299,
+          "line": 302,
           "handler": null,
           "destination": "loginHref",
           "type": null,
@@ -48650,7 +48650,7 @@
         },
         {
           "name": "handleOpenQuickSheet",
-          "line": 197,
+          "line": 200,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -94144,11 +94144,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:226:1",
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:229:1",
       "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 226,
+      "line": 229,
       "handler": null,
       "destination": "preset.unlockedHref",
       "type": null,
@@ -94157,11 +94157,11 @@
       "effectRef": "src/components/seo/SmarterAccountUnlockGate.jsx"
     },
     {
-      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:291:2",
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:294:2",
       "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 291,
+      "line": 294,
       "handler": "handleOpenQuickSheet",
       "destination": "signupHref",
       "type": null,
@@ -94170,11 +94170,11 @@
       "effectRef": "src/components/seo/SmarterAccountUnlockGate.jsx"
     },
     {
-      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:299:3",
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:302:3",
       "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
       "element": "link",
       "name": "Sign In To Existing Account",
-      "line": 299,
+      "line": 302,
       "handler": null,
       "destination": "loginHref",
       "type": null,

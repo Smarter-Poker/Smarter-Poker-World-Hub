@@ -59,7 +59,6 @@
   letter-spacing: .075em;
   text-align: center;
   text-decoration: none;
-  text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
   touch-action: manipulation;
@@ -180,7 +179,6 @@
   color: #45adff;
   font: 700 12px/1 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
   letter-spacing: .16em;
-  text-transform: uppercase;
 }
 
 .fieldWell {
@@ -274,7 +272,6 @@
   color: #e4e7ec;
   font: 800 clamp(20px, 4.2cqw, 28px)/1.12 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
   letter-spacing: .05em;
-  text-transform: uppercase;
 }
 
 .copy,

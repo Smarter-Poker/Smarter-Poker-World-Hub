@@ -54,14 +54,14 @@ const POPULAR_STATES = [
 ];
 
 const VENUE_TYPES = [
-    { label: 'All venues', value: '' },
+    { label: 'All Venues', value: '' },
     { label: 'Casinos', value: 'Casino' },
-    { label: 'Card rooms', value: 'Card Room' },
+    { label: 'Card Rooms', value: 'Card Room' },
     { label: 'Charity', value: 'Charity' },
 ];
 
 const BUYIN_RANGES = [
-    { label: 'All buy-ins', min: null, max: null },
+    { label: 'All Buy-Ins', min: null, max: null },
     { label: 'Under $50', min: null, max: 50 },
     { label: '$50 - $100', min: 50, max: 100 },
     { label: '$100 - $200', min: 100, max: 200 },
@@ -883,7 +883,6 @@ export default function DailyTournaments() {
                         font-weight: 700;
                         margin: 0;
                         letter-spacing: 2px;
-                        text-transform: uppercase;
                         text-shadow: 0 0 20px rgba(0,212,255,0.3);
                     }
                     .dt-header .white { color: #fff; }
@@ -907,7 +906,6 @@ export default function DailyTournaments() {
                         font-size: 12px;
                         font-weight: 700;
                         letter-spacing: 0.055em;
-                        text-transform: uppercase;
                     }
                     .dt-source-state__signal {
                         width: 7px;
@@ -962,7 +960,6 @@ export default function DailyTournaments() {
                         cursor: pointer;
                         transition: all 0.2s;
                         white-space: nowrap;
-                        text-transform: uppercase;
                         letter-spacing: 0.5px;
                     }
                     .day-today-dot {
@@ -1136,7 +1133,6 @@ export default function DailyTournaments() {
                         font-weight: 600;
                         color: #aeb9c8;
                         padding: 4px 0;
-                        text-transform: uppercase;
                     }
                     .cal-grid {
                         display: grid;

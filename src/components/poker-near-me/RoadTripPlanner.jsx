@@ -595,7 +595,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                         <input
                             type="text"
                             aria-label="Trip origin"
-                            placeholder="Origin (e.g., Dallas, TX)"
+                            placeholder="Origin, Like Dallas, TX"
                             value={origin}
                             onChange={e => setOrigin(e.target.value)}
                             className="rtp-input"
@@ -628,7 +628,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                         <input
                             type="text"
                             aria-label="Trip destination"
-                            placeholder="Destination (e.g., Las Vegas, NV)"
+                            placeholder="Destination, Like Las Vegas, NV"
                             value={destination}
                             onChange={e => setDestination(e.target.value)}
                             className="rtp-input"
@@ -750,7 +750,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                         <div className="rtp-map-shell" id={mapPanelId} hidden={!mapExpanded}>
                             <MapSurfaceFrame
                                 className="pnm-map-surface--road-trip"
-                                eyebrow="Route intelligence"
+                                eyebrow="Route Intelligence"
                                 title="Poker road trip map"
                                 detail={`${routeResult?.stops?.length || 0} stops · ${routeResult?.venues?.length || 0} rooms along this route`}
                                 onLayoutChange={handleMapLayoutChange}

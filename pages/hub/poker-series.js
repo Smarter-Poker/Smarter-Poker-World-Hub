@@ -937,7 +937,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                             uniformColor="#ffffff"
                             clusterTourStops={true}
                             mapEyebrow="Series circuit map"
-                            mapTitle="Poker series destinations"
+                            mapTitle="Poker Series Destinations"
                             mapDetail={`${seriesVenuesForMap.length} series locations · select a marker for schedules`}
                             onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url: safeHref(url), title })}
                         />
@@ -950,7 +950,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                                 <strong>{filteredSeries.length}</strong> {filteredSeries.length === 1 ? 'Series' : 'Series Found'}
                                 {liveCount > 0 && <span className="tours-stops-count"> &bull; {liveCount} Live Now</span>}
                                 {totalEvents > 0 && <span className="tours-stops-count"> &bull; {totalEvents} Events</span>}
-                                {searchQuery && <span className="tours-results-query"> &mdash; &ldquo;{searchQuery}&rdquo;</span>}
+                                {searchQuery && <span className="tours-results-query"> &bull; Matching &ldquo;{searchQuery}&rdquo;</span>}
                                 {dateRange !== 'all' && <span className="tours-results-query"> &bull; {{
                                     '7d': 'Next 7 Days', '14d': 'Next 2 Weeks', '30d': 'Next 30 Days',
                                     '60d': 'Next 2 Months', '90d': 'Next 3 Months', '6m': 'Next 6 Months', '1y': 'Next Year'
@@ -991,7 +991,7 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                             <div className="tours-empty">
                                 <PokerNearMeConsoleIcon name="info" className="tours-glyph" />
                                 <h3>No Matching Series</h3>
-                                <p>No Series Match Your Current filters{searchQuery ? ` for "${searchQuery}"` : ''}{dateRange !== 'all' ? ` within ${{'7d':'7 days','14d':'2 weeks','30d':'30 days','60d':'2 months','90d':'3 months','6m':'6 months','1y':'1 year'}[dateRange]}` : ''}.</p>
+                                <p>No Series Match Your Current Filters{searchQuery ? ` for "${searchQuery}"` : ''}{dateRange !== 'all' ? ` within ${{'7d':'7 days','14d':'2 weeks','30d':'30 days','60d':'2 months','90d':'3 months','6m':'6 months','1y':'1 year'}[dateRange]}` : ''}.</p>
                                 <button className="tours-empty-reset" onClick={resetFilters}>
                                     Reset All Filters
                                 </button>
@@ -1084,17 +1084,17 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                                                     <PokerNearMeConsoleIcon name="location" className="tour-card-glyph" />
                                                     {live && (
                                                         <span style={{ color: '#22c55e', fontWeight: 700, fontSize: 12, letterSpacing: '0.3px' }}>
-                                                            LIVE NOW
+                                                            Live Now
                                                         </span>
                                                     )}
                                                     {upcoming && !live && (
                                                         <span style={{ color: '#60a5fa', fontWeight: 700, fontSize: 12, letterSpacing: '0.3px' }}>
-                                                            UPCOMING
+                                                            Upcoming
                                                         </span>
                                                     )}
                                                     {!live && !upcoming && (
                                                         <span style={{ color: '#9aa8b5', fontWeight: 600, fontSize: 12 }}>
-                                                            SCHEDULED
+                                                            Scheduled
                                                         </span>
                                                     )}
                                                 </div>
@@ -1671,7 +1671,6 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         color: rgba(255,255,255,0.5);
                         margin-bottom: 4px;
                         padding: 0 2px;
-                        text-transform: uppercase;
                         letter-spacing: 0.5px;
                     }
                     .sidebar-select {
@@ -1765,7 +1764,6 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         font-size: 12px;
                         font-weight: 700;
                         letter-spacing: 0.035em;
-                        text-transform: uppercase;
                     }
                     .pnm-source-state__signal {
                         width: 7px;
@@ -1896,7 +1894,6 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         font-weight: 700;
                         letter-spacing: 0.14em;
                         text-shadow: 0 0 6px rgba(49,168,255,0.55), 0 1px 2px rgba(0,0,0,0.85);
-                        text-transform: uppercase;
                     }
                     .series-more__list {
                         display: grid;
@@ -1934,7 +1931,6 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         font-weight: 600;
                         letter-spacing: 0.08em;
                         text-align: right;
-                        text-transform: uppercase;
                         white-space: nowrap;
                     }
                     a.series-more__link:active .series-more__name {
@@ -2028,7 +2024,6 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         text-shadow:
                             0 0 6px rgba(49,168,255,0.55),
                             0 1px 2px rgba(0,0,0,0.85);
-                        text-transform: uppercase;
                     }
                     .tour-code-badge[data-known='true'] span {
                         font-size: 14px;
@@ -2096,7 +2091,6 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         font-size: 12px;
                         font-weight: 700;
                         letter-spacing: 0.08em;
-                        text-transform: uppercase;
                     }
                     .tour-card-tags .tour-region-tag:first-child {
                         padding-left: 0;
@@ -2130,7 +2124,6 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         font-size: 12px;
                         font-weight: 700;
                         color: #9aa8b5;
-                        text-transform: uppercase;
                         letter-spacing: 0.5px;
                         margin-bottom: 8px;
                     }
@@ -2201,7 +2194,6 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                         letter-spacing: 0.1em;
                         text-decoration: none;
                         text-shadow: 0 1px 0 #050607, 0 2px 4px rgba(0,0,0,0.85);
-                        text-transform: uppercase;
                         border: 3px solid transparent;
                         border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
                         background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box;

@@ -421,7 +421,7 @@ export function getCrowdLevel(venue, checkinCount = 0) {
  */
 export function estimateWaitTime(playersWaiting, tablesRunning = 1) {
     if (!playersWaiting || playersWaiting <= 0) {
-        return { minutes: 0, label: 'No wait' };
+        return { minutes: 0, label: 'No Wait' };
     }
     // Heuristic: ~12 min per waiting player, scaled by table count
     // More tables = faster seat turnover
@@ -477,17 +477,17 @@ export function loadFilters(key, defaults) {
 
 // ─── CURATED INITIALS COLOR PALETTE ───
 const INITIALS_PALETTE = [
-    { bg: 'rgba(255,255,255,0.25)', border: 'rgba(255,255,255,0.5)', text: '#ffffff' },   // Gold
+    { bg: 'rgba(255,255,255,0.25)', border: 'rgba(255,255,255,0.5)', text: '#ffffff' },   // White
     { bg: 'rgba(0,212,255,0.2)', border: 'rgba(0,212,255,0.5)', text: '#00d4ff' },       // Cyan
     { bg: 'rgba(239,68,68,0.2)', border: 'rgba(239,68,68,0.5)', text: '#ef4444' },       // Red
     { bg: 'rgba(34,197,94,0.2)', border: 'rgba(34,197,94,0.5)', text: '#22c55e' },       // Green
-    { bg: 'rgba(79,156,255,0.2)', border: 'rgba(79,156,255,0.5)', text: '#4f9cff' },     // Purple
+    { bg: 'rgba(79,156,255,0.2)', border: 'rgba(79,156,255,0.5)', text: '#4f9cff' },     // Cobalt
     { bg: 'rgba(59,130,246,0.2)', border: 'rgba(59,130,246,0.5)', text: '#3b82f6' },     // Blue
-    { bg: 'rgba(72,181,236,0.2)', border: 'rgba(72,181,236,0.5)', text: '#5aa9ff' },     // Pink
-    { bg: 'rgba(159,216,255,0.2)', border: 'rgba(159,216,255,0.5)', text: '#9fd8ff' },     // Amber
+    { bg: 'rgba(72,181,236,0.2)', border: 'rgba(72,181,236,0.5)', text: '#5aa9ff' },     // Ice Blue
+    { bg: 'rgba(159,216,255,0.2)', border: 'rgba(159,216,255,0.5)', text: '#9fd8ff' },     // Pale Ice
     { bg: 'rgba(20,184,166,0.2)', border: 'rgba(20,184,166,0.5)', text: '#14b8a6' },     // Teal
-    { bg: 'rgba(249,115,22,0.2)', border: 'rgba(249,115,22,0.5)', text: '#f97316' },     // Orange
-    { bg: 'rgba(90,169,255,0.2)', border: 'rgba(90,169,255,0.5)', text: '#5aa9ff' },     // Violet
+    { bg: 'rgba(134,218,255,0.2)', border: 'rgba(134,218,255,0.5)', text: '#86daff' },     // Cyan Ice
+    { bg: 'rgba(90,169,255,0.2)', border: 'rgba(90,169,255,0.5)', text: '#5aa9ff' },     // Steel Blue
     { bg: 'rgba(6,182,212,0.2)', border: 'rgba(6,182,212,0.5)', text: '#06b6d4' },       // Sky
 ];
 

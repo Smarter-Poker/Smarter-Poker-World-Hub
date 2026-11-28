@@ -1244,7 +1244,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             lineHeight: '1.5',
             color: '#cbd5e1'
           }}>
-            <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '4px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '4px', fontSize: '12px', letterSpacing: '0.5px' }}>
               Series Overview
             </strong>
             <p style={{ margin: 0 }}>{buildSeriesFactKernel(series, venueName, formatDateRange(series.start_date, series.end_date))}</p>
@@ -1822,7 +1822,6 @@ const styles = `
     font-weight: 800;
     letter-spacing: 0.16em;
     text-shadow: 0 0 6px rgba(49,168,255,0.55), 0 1px 2px rgba(0,0,0,0.85);
-    text-transform: uppercase;
   }
 
   body.world-poker-near-me .series-header .type-badge,
@@ -1839,7 +1838,6 @@ const styles = `
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.12em;
-    text-transform: uppercase;
   }
 
 
@@ -1875,7 +1873,6 @@ const styles = `
     font-weight: 800;
     letter-spacing: 0.1em;
     text-shadow: 0 1px 0 #050607, 0 2px 4px rgba(0,0,0,0.85);
-    text-transform: uppercase;
     border: 3px solid transparent !important;
     border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
     background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
@@ -1977,7 +1974,6 @@ const styles = `
     font-size: 12px;
     font-weight: 600;
     color: #64748b;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 6px;
   }
@@ -2159,7 +2155,6 @@ const styles = `
     font-size:12px;
     font-weight: 700;
     color: #64748b;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
     padding: 10px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -2307,7 +2302,6 @@ const styles = `
     font-size:12px;
     font-weight: 700;
     color: #64748b;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
   }
   .detail-value {
@@ -2381,7 +2375,6 @@ const styles = `
     font-size:12px;
     font-weight: 700;
     color: #64748b;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
     padding: 10px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -2489,7 +2482,6 @@ const styles = `
   .ind-result-label {
     font-size:12px;
     font-weight: 600;
-    text-transform: uppercase;
     letter-spacing: 0.3px;
     color: #64748b;
   }

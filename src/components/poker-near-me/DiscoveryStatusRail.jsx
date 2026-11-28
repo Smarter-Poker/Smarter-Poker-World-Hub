@@ -8,10 +8,10 @@ function formatAge(minutes) {
 }
 
 function liveFeedLabel(mode) {
-  if (mode === 'live') return { label: 'Live observations', tone: 'live' };
-  if (mode === 'mixed') return { label: 'Observed + modeled', tone: 'modeled' };
-  if (mode === 'estimated') return { label: 'Modeled coverage', tone: 'modeled' };
-  if (mode === 'none') return { label: 'Feed offline', tone: 'offline' };
+  if (mode === 'live') return { label: 'Live Observations', tone: 'live' };
+  if (mode === 'mixed') return { label: 'Observed + Modeled', tone: 'modeled' };
+  if (mode === 'estimated') return { label: 'Modeled Coverage', tone: 'modeled' };
+  if (mode === 'none') return { label: 'Feed Offline', tone: 'offline' };
   return { label: 'Connecting', tone: 'pending' };
 }
 

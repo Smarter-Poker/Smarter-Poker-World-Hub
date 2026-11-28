@@ -106,12 +106,12 @@ test('actual Series restores favorites after mount and refreshes every status at
     try {
       await renderer.act(async () => { tree = renderer.create(React.createElement(Page, props)); });
       assert.equal(tree.root.findByProps({ 'aria-label': 'Favorite series' }).props['aria-pressed'], 'true');
-      assert.match(JSON.stringify(tree.toJSON()), /LIVE NOW/);
+      assert.match(JSON.stringify(tree.toJSON()), /"Live Now"/);
       assert.match(JSON.stringify(tree.toJSON()), /Boundary Event/);
       const midnight = [...timers].find(([, timer]) => timer.ms === 60000); assert.ok(midnight, 'existing local-midnight refresh remains scheduled');
       clock('2026-10-12T00:00:01Z'); timers.delete(midnight[0]);
       await renderer.act(async () => midnight[1].fn());
-      assert.doesNotMatch(JSON.stringify(tree.toJSON()), /LIVE NOW/);
+      assert.doesNotMatch(JSON.stringify(tree.toJSON()), /"Live Now"/);
       assert.doesNotMatch(JSON.stringify(tree.toJSON()), /Boundary Event/, 'expired event preview advances with the same clock');
       const subtitle = tree.root.findByProps({ className: 'pnm-subtitle' });
       assert.match(subtitle.children.join(''), /0 Live Now/, 'memoized count changes with the same midnight clock');
