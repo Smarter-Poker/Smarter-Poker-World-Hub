@@ -42,6 +42,12 @@ const SEO_UNLOCK_PREFIXES = [
     '/learn/',
     '/hub/series/',
     '/hub/venues/',
+    '/hub/poker-near-me',
+    '/hub/tours/',
+    '/hub/video-library/watch/',
+    '/poker-rooms/',
+    '/glossary/',
+    '/rules/',
     '/compare/',
     '/freerolls',
 ];
@@ -117,6 +123,18 @@ export function describePendingDestination(nextPath) {
     }
     if (pathname === '/freerolls' || pathname.startsWith('/freerolls/')) {
         return 'Your Free Daily Freeroll Schedule';
+    }
+    if (pathname === '/glossary' || pathname.startsWith('/glossary/')) {
+        return 'Your Interactive Poker Concept & GTO Drills';
+    }
+    if (pathname === '/rules' || pathname.startsWith('/rules/')) {
+        return 'Your Poker Floor Rule & Table Tools';
+    }
+    if (pathname.startsWith('/hub/video-library/watch')) {
+        return 'Your Bookmarked Strategy Video & GTO Drills';
+    }
+    if (pathname === '/hub/tours' || pathname.startsWith('/hub/tours/')) {
+        return 'Your Live Poker Tour Schedule';
     }
     return 'Your Smarter.Poker Destination';
 }

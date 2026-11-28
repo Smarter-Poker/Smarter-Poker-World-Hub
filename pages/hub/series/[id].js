@@ -903,6 +903,13 @@ export default function SeriesDetailPage({ seoSeries = null }) {
         .slice(0, 40) || 'event';
       const reminderEntry = {
         id: `series-reminder-${seriesIdSlug}-${eventNumOrSlug}`.slice(0, 80),
+        kind: 'series-reminder',
+        label: eventLabel.slice(0, 140),
+        eventDate: evt?.start_date ? String(evt.start_date).slice(0, 40) : '',
+        startDate: evt?.start_date ? String(evt.start_date).slice(0, 40) : '',
+        seriesName: seriesLabel.slice(0, 140),
+        venue: String(series?.venue_name || series?.venue || '').slice(0, 140),
+        path: redirectTarget,
         toolSlug: 'series-event-reminder',
         toolName: 'Tournament Event Reminder',
         summaryText: `${eventLabel} (${buyInLabel} · ${dateLabel}) At ${seriesLabel}`.slice(0, 320),

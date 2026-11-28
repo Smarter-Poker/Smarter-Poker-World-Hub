@@ -47,14 +47,26 @@ const BANNED_GOLD_RE = /#(?:ffd700|d4af37|f5c542|f59e0b|fbbf24|eab308|d97706)\b/
 test('SEO_FUNNEL_EVENTS and buildSeoFunnelSummary compute exact stage totals, null-safe rates, and zero PII', () => {
   assert.deepEqual([...SEO_FUNNEL_EVENTS], [
     'seo_mini_gto_drill_answered',
+    'seo_mini_gto_drill_cta_click',
     'seo_leak_finder_complete',
+    'seo_leak_finder_unlock_click',
     'seo_calculator_save_bar_click',
     'seo_quick_signup_opened',
     'seo_quick_signup_oauth_click',
     'seo_quick_signup_email_continue',
     'seo_google_one_tap_success',
     'seo_post_signup_activation_shown',
+    'seo_post_signup_day0_win_click',
     'seo_guest_spots_synced',
+    'seo_local_action_bar_click',
+    'seo_calc_milestone_click',
+    'seo_quick_signup_magic_link_sent',
+    'seo_concept_bridge_click',
+    'seo_calculator_share_click',
+    'seo_mini_gto_drill_share',
+    'seo_member_referral_link_copied',
+    'seo_venue_follow_signup_click',
+    'seo_video_bridge_click',
   ]);
 
   const summary = buildSeoFunnelSummary(
@@ -85,6 +97,7 @@ test('SEO_FUNNEL_EVENTS and buildSeoFunnelSummary compute exact stage totals, nu
     authIntent: 50,
     activated: 25,
     spotsSynced: 15,
+    viralShares: 0,
   });
   assert.equal(summary.rates.engagedToSheetPct, 40);
   assert.equal(summary.rates.sheetToAuthIntentPct, 62.5);
@@ -103,6 +116,7 @@ test('SEO_FUNNEL_EVENTS and buildSeoFunnelSummary compute exact stage totals, nu
     authIntent: 0,
     activated: 0,
     spotsSynced: 0,
+    viralShares: 0,
   });
   assert.equal(empty.rates.engagedToSheetPct, null);
   assert.equal(empty.rates.sheetToAuthIntentPct, null);

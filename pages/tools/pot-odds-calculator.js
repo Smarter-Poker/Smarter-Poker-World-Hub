@@ -16,6 +16,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -301,6 +302,16 @@ export default function PotOddsCalculatorPage({
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="pot-odds-calculator"
+            toolName="Pot Odds & MDF Calculator"
+            eyebrow="Free Math Cloud Sync"
+            title="Save This Pot Odds & MDF Spot To Your Free Cloud Account"
+            description="Sync Required Calling Equity, Minimum Defense Frequency & Draw Outs Across Phone & Desktop."
+            ctaLabel="Save Pot Odds Spot Free"
+            summaryText={`Pot $${metrics.safePot}, Facing Bet $${metrics.safeBet} (${metrics.betPctOfPot}% Pot): Pot Odds ${metrics.potOddsRatio}:1, Req Equity ${metrics.reqEquity}%, MDF ${metrics.mdf}%`}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-pot-odds-calculator"

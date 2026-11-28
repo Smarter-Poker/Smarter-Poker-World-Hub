@@ -350,13 +350,6 @@ export default function SmarterQuickSignupSheet() {
           source: payload.source,
           redirectPath: payload.redirectPath,
         });
-        trackFunnelEvent('seo_quick_signup_magic_link_sent', {
-          unlock_key: payload.unlockKey,
-          source: payload.source,
-          redirect_path: payload.redirectPath,
-          experiment_variant: experimentVariant,
-          ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),
-        });
       } catch (_) {
         /* non-blocking */
       }
@@ -390,6 +383,18 @@ export default function SmarterQuickSignupSheet() {
           setMagicLinkError(error.message || 'Unable To Send Magic Sign-In Link Right Now. Try Again In A Moment.');
         }
         return;
+      }
+
+      try {
+        trackFunnelEvent('seo_quick_signup_magic_link_sent', {
+          unlock_key: payload.unlockKey,
+          source: payload.source,
+          redirect_path: payload.redirectPath,
+          experiment_variant: experimentVariant,
+          ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),
+        });
+      } catch (_) {
+        /* non-blocking */
       }
 
       setMagicLinkSent(true);

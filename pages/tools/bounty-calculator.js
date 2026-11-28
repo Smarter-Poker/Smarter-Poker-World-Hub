@@ -16,6 +16,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -305,6 +306,16 @@ export default function BountyCalculatorPage({
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="bounty-calculator"
+            toolName="PKO & Mystery Bounty Calculator"
+            eyebrow="Free Bounty Cloud Sync"
+            title="Save This PKO & Mystery Bounty Spot Free"
+            description="Sync Bounty Chip Equivalents, Calling Equity Discounts & MTT Knockout Spots To Your Free Account."
+            ctaLabel="Save Bounty Spot Free"
+            summaryText={`Target Bounty $${metrics.safeTargetBounty} (${metrics.bountyMultiplier}x): +${metrics.bountyChipEquivalent} Chips, Adjusted Req Equity ${metrics.bountyAdjustedReqEquity}%`}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-bounty-calculator"

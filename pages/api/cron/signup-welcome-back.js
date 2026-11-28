@@ -95,7 +95,8 @@ async function handler(req, res) {
         }
 
         // Idempotent Day-0 organic activation welcome drip + Phase B Day-1 behavioral
-        // activation nudge for unverified organic signups (single bounded user pass).
+        // activation nudge + Phase C Day-3 unverified VIP urgency + Phase D upcoming
+        // saved series event reminders (single bounded user pass, zero net-new crons).
         // Isolated try/catch: never turns signup-welcome-back red.
         let organicDrip = null;
         try {
@@ -103,9 +104,14 @@ async function handler(req, res) {
                 sendEmail: sendBulkEmail,
                 maxSends: 20,
                 maxDay1Sends: 20,
+                maxDay3Sends: 20,
+                maxReminderSends: 20,
                 windowHours: 48,
                 day1MinHours: 20,
                 day1MaxHours: 96,
+                day3MinHours: 68,
+                day3MaxHours: 168,
+                reminderLeadHours: 24,
                 deadline: startedAt + 295_000,
                 log: (m) => console.log(m),
             });

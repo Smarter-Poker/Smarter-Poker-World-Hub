@@ -1028,6 +1028,11 @@ import './otc-tier5-overlay-and-pwa-peak-20261128.law.test.mjs';
 import './otc-tier5-metered-calc-and-magic-link-20261128.law.test.mjs';
 import './otc-tier5-glossary-rules-bridges-20261128.law.test.mjs';
 import './otc-tier5-day1-drip-and-bofu-switchers-20261128.law.test.mjs';
+import './otc-tier6-calculator-ecosystem-20261128.law.test.mjs';
+import './otc-tier6-day3-and-event-reminders-20261128.law.test.mjs';
+import './otc-tier6-venue-video-conversion-20261128.law.test.mjs';
+import './otc-tier6-attribution-and-full-funnel-20261128.law.test.mjs';
+import './otc-forensic-all-phases-hardening-20261128.law.test.mjs';
 import './site-wide-payload-budget.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {

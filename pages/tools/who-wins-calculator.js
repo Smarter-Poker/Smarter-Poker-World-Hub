@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -676,6 +677,16 @@ export default function WhoWinsCalculatorPage() {
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="who-wins-calculator"
+              toolName="Showdown & Kicker Resolver"
+              eyebrow="Free Showdown Cloud Sync"
+              title="Save This Showdown & Kicker Ruling Free"
+              description="Save 7-Card Hand Rulings, Split-Pot Checks & Tricky Kicker Disputes To Your Free Cloud Library."
+              ctaLabel="Save Showdown Spot Free"
+              summaryText={`Board [${boardInput}] | P1 (${p1Input}) Vs P2 (${p2Input}): ${showdown.winnerBanner}`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-who-wins-calculator"
