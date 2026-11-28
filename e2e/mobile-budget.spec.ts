@@ -104,6 +104,40 @@ for (const route of ROUTES) {
       }
     });
 
+
+    await page.addInitScript(() => {
+      const w = window as any;
+      w.__diag = { lcp: [], dom: [] };
+      try {
+        new PerformanceObserver((list) => {
+          for (const e of list.getEntries() as any[]) {
+            const el = e.element;
+            w.__diag.lcp.push({ t: Math.round(e.startTime), r: Math.round(e.renderTime || 0), l: Math.round(e.loadTime || 0), size: e.size, el: el ? `${el.tagName}.${String(el.getAttribute('class') || '').slice(0, 40)}` : null, url: (e.url || '').slice(-60), node: el });
+          }
+        }).observe({ type: 'largest-contentful-paint', buffered: true });
+      } catch (_) {}
+      const sel = 'img.bn-artwork-image, img.approved-global-header__art, header.approved-global-header, nav.bn-artwork-nav';
+      const mo = new MutationObserver((muts) => {
+        for (const m of muts) {
+          for (const n of Array.from(m.addedNodes) as any[]) {
+            if (n.nodeType !== 1) continue;
+            const hits = [n.matches?.(sel) ? n : null, ...Array.from(n.querySelectorAll?.(sel) || [])].filter(Boolean) as any[];
+            for (const h of hits) w.__diag.dom.push({ t: Math.round(performance.now()), op: 'add', el: `${h.tagName}.${String(h.getAttribute('class') || '').slice(0, 30)}`, parent: h.parentElement?.tagName });
+          }
+          for (const n of Array.from(m.removedNodes) as any[]) {
+            if (n.nodeType !== 1) continue;
+            const hits = [n.matches?.(sel) ? n : null, ...Array.from(n.querySelectorAll?.(sel) || [])].filter(Boolean) as any[];
+            for (const h of hits) w.__diag.dom.push({ t: Math.round(performance.now()), op: 'remove', el: `${h.tagName}.${String(h.getAttribute('class') || '').slice(0, 30)}` });
+          }
+        }
+      });
+      const arm = () => mo.observe(document.documentElement, { childList: true, subtree: true });
+      if (document.documentElement) arm(); else document.addEventListener('readystatechange', arm, { once: true });
+      document.addEventListener('DOMContentLoaded', () => {
+        w.__diag.dcl = Math.round(performance.now());
+        w.__diag.ssr = Array.from(document.querySelectorAll(sel)).map((h: any) => `${h.tagName}.${String(h.getAttribute('class') || '').slice(0, 30)}`);
+      });
+    });
     await page.goto(route, { waitUntil: 'load', timeout: 90_000 });
     await page.waitForTimeout(1500);
     await page.waitForFunction(() => {
@@ -158,6 +192,17 @@ for (const route of ROUTES) {
       return { lcp, lcpSupported, overflow, smallText, tinyTargets, smallTextNodes, lcpElement };
     });
 
+
+    const diag = await page.evaluate(() => {
+      const w = window as any;
+      const res = performance.getEntriesByType('resource').filter((r: any) => /global-header|footers|approved-chrome|\.css|_next\/static\/chunks\/pages/.test(r.name)).map((r: any) => ({ n: r.name.replace(/^https?:\/\/[^/]+/, '').slice(-70), s: Math.round(r.startTime), rs: Math.round(r.responseStart), e: Math.round(r.responseEnd), kb: Math.round((r.transferSize || 0) / 1024) }));
+      const nav: any = performance.getEntriesByType('navigation')[0] || {};
+      const marks = performance.getEntriesByType('mark').map((m: any) => `${m.name}@${Math.round(m.startTime)}`).filter((x: string) => /Next|hydrat|before/i.test(x));
+      const measures = performance.getEntriesByType('measure').map((m: any) => `${m.name}@${Math.round(m.startTime)}+${Math.round(m.duration)}`);
+      const lcp = (w.__diag?.lcp || []).map((e: any) => ({ ...e, connected: e.node ? e.node.isConnected : null, node: undefined }));
+      return { dcl: w.__diag?.dcl, load: Math.round(nav.loadEventStart || 0), ttfb: Math.round(nav.responseStart || 0), respEnd: Math.round(nav.responseEnd || 0), ssr: w.__diag?.ssr, lcp, dom: w.__diag?.dom, res, marks, measures, ua: navigator.userAgent.slice(-40), dpr: devicePixelRatio, vw: innerWidth };
+    });
+    console.log(`DIAG ${route} ${JSON.stringify(diag)}`);
     await Promise.all(scriptMeasurements);
     const jsBytes = scripts.reduce((n, s) => n + (s.bytes || 0), 0);
     const jsKb = Math.round(jsBytes / 1024);
