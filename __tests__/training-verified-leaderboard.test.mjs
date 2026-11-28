@@ -11,6 +11,11 @@ import {
   getTrainingLeaderboardCategory,
   normalizeTrainingLeaderboardCategory,
 } from '../src/lib/training/leaderboardDimensions.mjs';
+import {
+  LEADERBOARD_MIN_QUESTIONS,
+  minQuestionsForPeriod,
+  qualificationFor,
+} from '../src/lib/training/leaderboardQualification.mjs';
 
 const migration = readFileSync(new URL(
   '../supabase/migrations/20260907010000_training_server_authoritative_completion.sql',
@@ -35,6 +40,8 @@ function response() {
 }
 
 async function loadRoute({
+  rankedRows = [],
+  provisionalRows = [],
   rankData = {
     myRank: 7,
     myEntry: {
@@ -56,8 +63,14 @@ async function loadRoute({
       const builder = {
         select() { return this; },
         eq(column, value) { query.filters.push([column, value]); return this; },
-        order() { return this; },
-        limit() { return Promise.resolve({ data: [], error: null }); },
+        gte(column, value) { query.filters.push([column, '>=', value]); return this; },
+        lt(column, value) { query.filters.push([column, '<', value]); return this; },
+        order(column, options) { (query.order ||= []).push([column, options?.ascending]); return this; },
+        limit(n) {
+          query.limit = n;
+          const sample = query.filters.some((f) => f[1] === '<') ? provisionalRows : rankedRows;
+          return Promise.resolve({ data: sample.slice(0, n), error: null });
+        },
         in() { return Promise.resolve({ data: [], error: null }); },
       };
       return builder;
@@ -89,6 +102,7 @@ async function loadRoute({
       getTrainingLeaderboardCategory,
       normalizeTrainingLeaderboardCategory,
     },
+    '../../../src/lib/training/leaderboardQualification.mjs': { minQuestionsForPeriod, qualificationFor },
   };
   const module = new SourceTextModule(route, { identifier: 'training-leaderboard.js' });
   await module.link(async (specifier) => {
@@ -164,12 +178,15 @@ test('the API selects exactly one verified overall, game, or category dimension'
     const res = response();
     await handler({ method: 'GET', query }, res);
     assert.equal(res.statusCode, 200);
-    assert.equal(queries.length, 1);
-    assert.equal(queries[0].table, 'training_verified_leaderboard');
-    assert.deepEqual(
-      queries[0].filters.slice(-query.expected.length),
-      query.expected,
-    );
+    // One ranked read, then one provisional read when the ranked tier does
+    // not fill the page (leaderboardQualification). Both are the same verified
+    // dimension; only the questions_answered tier differs.
+    assert.equal(queries.length, 2);
+    for (const board of queries) {
+      assert.equal(board.table, 'training_verified_leaderboard');
+      const dimensionFilters = board.filters.filter((f) => f[0] !== 'questions_answered');
+      assert.deepEqual(dimensionFilters.slice(-query.expected.length), query.expected);
+    }
   }
 
   for (const query of [
@@ -202,17 +219,19 @@ test('authenticated leaderboard responses expose exact server-ranked viewer stat
   assert.equal(res.body.myEntry.userId, '00000000-0000-0000-0000-000000000007');
   assert.equal(rpcCalls.length, 1);
   assert.deepEqual(rpcCalls[0], {
-    name: 'fn_training_verified_leaderboard_rank_v2',
+    name: 'fn_training_verified_leaderboard_rank_v3',
     args: {
       p_user_id: '00000000-0000-0000-0000-000000000007',
       p_period_type: 'weekly',
       p_period_key: getLeaderboardPeriodKey('weekly', new Date()),
       p_dimension_type: 'category',
       p_dimension_key: 'cash',
+      p_min_questions: 50,
     },
   });
   assert.equal(queries[0].table, 'training_verified_leaderboard');
-  assert.equal(queries[1].table, 'profiles');
+  assert.equal(queries[1].table, 'training_verified_leaderboard');
+  assert.equal(queries.at(-1).table, 'profiles');
 });
 
 test('an authenticated user without verified competition state has no fabricated rank', async () => {
@@ -255,4 +274,42 @@ test('verified leaderboard storage and writer remain service-only', () => {
     migration,
     /GRANT EXECUTE ON FUNCTION public\.fn_training_verified_leaderboard_rank_v2\([\s\S]*?TO service_role/i,
   );
+});
+
+test('accuracy is ranked only over a minimum sample; small samples are provisional and listed after', async () => {
+  const row = (id, answered, correct) => ({
+    user_id: `00000000-0000-0000-0000-00000000000${id}`,
+    sessions_completed: 1,
+    questions_answered: answered,
+    questions_correct: correct,
+    accuracy: Math.round((correct / answered) * 1000) / 10,
+    gtow_score_avg: 0,
+    best_streak: 0,
+  });
+  // 738 correct of 820 (90%) is ranked; 1 of 1 (100%) is provisional.
+  const { handler, queries } = await loadRoute({
+    rankedRows: [row(1, 820, 738)],
+    provisionalRows: [row(2, 1, 1)],
+  });
+  const res = response();
+  await handler({ method: 'GET', headers: {}, query: { period: 'alltime', limit: '100' } }, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.minQuestions, 100);
+  assert.deepEqual(res.body.leaderboard.map((e) => [e.rank, e.questionsCorrect, e.qualified]), [[1, 738, true], [2, 1, false]]);
+  assert.equal(res.body.leaderboard[1].questionsToQualify, 99);
+  const [ranked, provisional] = queries.filter((q) => q.table === 'training_verified_leaderboard');
+  assert.deepEqual(ranked.filters.find((f) => f[0] === 'questions_answered'), ['questions_answered', '>=', 100]);
+  assert.equal(ranked.order[0][0], 'accuracy');
+  assert.deepEqual(provisional.filters.find((f) => f[0] === 'questions_answered'), ['questions_answered', '<', 100]);
+  assert.equal(provisional.order[0][0], 'questions_correct');
+  assert.equal(provisional.limit, 99);
+});
+
+test('the rank RPC v3 orders ranked players first and stays service-only', () => {
+  const v3 = readFileSync(new URL('../supabase/migrations/20261128060000_training_leaderboard_minimum_sample.sql', import.meta.url), 'utf8');
+  assert.match(v3, /CREATE OR REPLACE FUNCTION public\.fn_training_verified_leaderboard_rank_v3\(/);
+  assert.match(v3, /WHEN mine\.questions_answered >= params\.min_q THEN\s*better\.questions_answered >= params\.min_q/);
+  assert.match(v3, /REVOKE ALL ON FUNCTION public\.fn_training_verified_leaderboard_rank_v3\([\s\S]*?FROM PUBLIC, anon, authenticated/);
+  assert.match(v3, /GRANT EXECUTE ON FUNCTION public\.fn_training_verified_leaderboard_rank_v3\([\s\S]*?TO service_role/);
+  assert.deepEqual(LEADERBOARD_MIN_QUESTIONS, { daily: 20, weekly: 50, monthly: 100, alltime: 100 });
 });

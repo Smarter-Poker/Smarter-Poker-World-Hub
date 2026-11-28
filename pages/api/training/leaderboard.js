@@ -14,6 +14,7 @@ import {
     getTrainingLeaderboardCategory,
     normalizeTrainingLeaderboardCategory,
 } from '../../../src/lib/training/leaderboardDimensions.mjs';
+import { minQuestionsForPeriod, qualificationFor } from '../../../src/lib/training/leaderboardQualification.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -114,33 +115,42 @@ export default async function handler(req, res) {
           // Only the clean, service-owned aggregate is competition authority.
           // The legacy training_leaderboard table remains preserved for audit
           // continuity, but its historical browser-authored rows are excluded.
-          let leaderboardQuery = supabase
-              .from('training_verified_leaderboard')
-              .select(`
-                  user_id,
-                  sessions_completed,
-                  questions_answered,
-                  questions_correct,
-                  accuracy,
-                  gtow_score_avg,
-                  best_streak
-              `)
-              .eq('period_type', period)
-              .eq('period_key', periodKey);
+          //
+          // Accuracy is only ranked over a sample (leaderboardQualification):
+          // players at or above the period minimum are RANKED by accuracy;
+          // players below it are PROVISIONAL, listed after every ranked player
+          // by correct answers. One correct answer can no longer outrank 738.
+          const minQuestions = minQuestionsForPeriod(period);
+          const boardQuery = () => {
+              let query = supabase
+                  .from('training_verified_leaderboard')
+                  .select(`
+                      user_id,
+                      sessions_completed,
+                      questions_answered,
+                      questions_correct,
+                      accuracy,
+                      gtow_score_avg,
+                      best_streak
+                  `)
+                  .eq('period_type', period)
+                  .eq('period_key', periodKey);
+              if (gameId) {
+                  query = query
+                      .eq('dimension_type', 'game')
+                      .eq('game_id', gameId);
+              } else if (category) {
+                  query = query
+                      .eq('dimension_type', 'category')
+                      .eq('category', category);
+              } else {
+                  query = query.eq('dimension_type', 'overall');
+              }
+              return query;
+          };
 
-          if (gameId) {
-              leaderboardQuery = leaderboardQuery
-                  .eq('dimension_type', 'game')
-                  .eq('game_id', gameId);
-          } else if (category) {
-              leaderboardQuery = leaderboardQuery
-                  .eq('dimension_type', 'category')
-                  .eq('category', category);
-          } else {
-              leaderboardQuery = leaderboardQuery.eq('dimension_type', 'overall');
-          }
-
-          const { data: leaderboard, error } = await leaderboardQuery
+          const { data: rankedRows, error } = await boardQuery()
+              .gte('questions_answered', minQuestions)
               .order('accuracy', { ascending: false })
               .order('questions_correct', { ascending: false })
               .order('user_id', { ascending: true })
@@ -148,16 +158,31 @@ export default async function handler(req, res) {
 
           if (error) throw error;
 
+          let provisionalRows = [];
+          const remaining = boundedLimit - (rankedRows || []).length;
+          if (remaining > 0) {
+              const { data: provisionalData, error: provisionalError } = await boardQuery()
+                  .lt('questions_answered', minQuestions)
+                  .order('questions_correct', { ascending: false })
+                  .order('accuracy', { ascending: false })
+                  .order('user_id', { ascending: true })
+                  .limit(remaining);
+              if (provisionalError) throw provisionalError;
+              provisionalRows = provisionalData || [];
+          }
+          const leaderboard = [...(rankedRows || []), ...provisionalRows];
+
           let viewerRank = { myRank: null, myEntry: null };
           if (viewer) {
               const { data: rankData, error: rankError } = await supabase.rpc(
-                  'fn_training_verified_leaderboard_rank_v2',
+                  'fn_training_verified_leaderboard_rank_v3',
                   {
                       p_user_id: viewer.id,
                       p_period_type: period,
                       p_period_key: periodKey,
                       p_dimension_type: dimensionType,
                       p_dimension_key: dimensionKey,
+                      p_min_questions: minQuestions,
                   }
               );
               if (rankError) throw rankError;
@@ -208,13 +233,15 @@ export default async function handler(req, res) {
               questionsAnswered: entry.questions_answered,
               questionsCorrect: entry.questions_correct,
               gtowScoreAvg: entry.gtow_score_avg,
-              bestStreak: entry.best_streak
+              bestStreak: entry.best_streak,
+              ...qualificationFor(entry.questions_answered, period),
           }));
           const myEntry = viewerRank.myEntry
               ? {
                   ...viewerRank.myEntry,
                   username: profilesMap[viewerRank.myEntry.userId]?.username || 'Anonymous',
                   avatarUrl: profilesMap[viewerRank.myEntry.userId]?.avatar_url,
+                  ...qualificationFor(viewerRank.myEntry.questionsAnswered, period),
               }
               : null;
 
@@ -225,6 +252,7 @@ export default async function handler(req, res) {
               dimensionType,
               dimensionKey,
               leaderboard: rankings,
+              minQuestions,
               myRank: viewerRank.myRank,
               myEntry,
               timestamp: new Date().toISOString()
