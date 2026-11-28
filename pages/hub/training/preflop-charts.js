@@ -19,6 +19,8 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import RangeGrid from '../../../src/components/training/RangeGrid';
 import PreflopChartStats from '../../../src/components/training/PreflopChartStats';
+import ChartStudyProgress from '../../../src/components/training/ChartStudyProgress';
+import { chartKeyFor } from '../../../src/lib/training/chartStudy';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
@@ -449,6 +451,9 @@ export default function PreflopCharts() {
               />
             )}
           </div>
+
+          {/* Chart study reward (gto_chart_study): server-recorded, signed-in only */}
+          <ChartStudyProgress chartKey={chartKeyFor(scenario, position)} />
 
           {/* ●●● Scenario Description ●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
           <section className={`sd-panel ${at.panel} ${at.tight}`} aria-labelledby="pc-about-title">
