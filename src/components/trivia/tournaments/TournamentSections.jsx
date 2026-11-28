@@ -1,5 +1,7 @@
 import { useMemo, useRef } from 'react';
 import TriviaAnswerOption from '../TriviaAnswerOption';
+import TriviaCardText from '../TriviaCardText';
+import TriviaQuestionProgress from '../TriviaQuestionProgress';
 import { TriviaGlassAction } from '../console/TriviaConsole';
 import { toTitleCase } from '../../../lib/trivia/titleCase';
 import {
@@ -7,6 +9,7 @@ import {
     currentPathMatchupIds,
     exactDiamonds,
     formatCountdown,
+    formatTournamentHorseCount,
     participantLabel,
     registrationAction,
     secondsUntil,
@@ -149,7 +152,7 @@ export function TournamentEventLedger({ tournament, summary, nowMs, onReminder, 
                     { label: 'Rake', value: `${exactDiamonds(tournament.rakePerEntry)} Diamond${Number(tournament.rakePerEntry) === 1 ? '' : 's'}` },
                     { label: 'Estimated Prize Pool', value: `${exactDiamonds(tournament.estimatedPrizePool)} Diamonds`, ink: 'blue' },
                     { label: 'Human Field', value: exactDiamonds(tournament.humansEntered) },
-                    { label: 'Smarter Horses', value: `${exactDiamonds(tournament.horsesEntered)} / ${exactDiamonds(tournament.horseTarget)}`, ink: 'blue' },
+                    { label: 'Smarter Horses', value: formatTournamentHorseCount(tournament), ink: 'blue' },
                     { label: 'Capacity', value: exactDiamonds(tournament.bracketCapacity) },
                     { label: 'Rules', value: tournament.rulesVersionId, wrap: true, preserveCase: true },
                     { label: 'Questions Per Round', value: exactDiamonds(format.questionsPerRound) },
@@ -439,6 +442,7 @@ export function TournamentHistory({ history, loading, error, signedIn, pending, 
 
 export function TournamentQuestionStage({ session, question, secondsLeft, selected, pending, error, onAnswer, onSkip, onFinish, onRetry }) {
     const progress = sessionProgress(session);
+    const activeIndex = Math.max(0, (Number(question?.position) || 1) - 1);
     return (
         <section className="tt-play" aria-labelledby="tt-question-title">
             <TournamentRows label="Round Progress" rows={[
@@ -446,11 +450,32 @@ export function TournamentQuestionStage({ session, question, secondsLeft, select
                 { label: 'Recorded', value: `${exactDiamonds(progress.complete)} / ${exactDiamonds(progress.total)}` },
                 { label: 'Server Shot Clock', value: Number.isFinite(secondsLeft) ? `${secondsLeft} Seconds` : 'Awaiting Server', ink: secondsLeft <= 5 ? 'red' : 'blue' },
             ]} />
+            {progress.total > 0 ? (
+                <TriviaQuestionProgress
+                    total={progress.total}
+                    currentIndex={activeIndex}
+                    label={`Question ${exactDiamonds(question?.position)} Of ${exactDiamonds(progress.total)}`}
+                />
+            ) : null}
             {error ? <TournamentStateBanner title="Answer Not Recorded" message={error} tone="red" role="alert" action={{ label: 'Retry From Server', onClick: onRetry }} /> : null}
-            <h2 id="tt-question-title" className="tt-question">{toTitleCase(question?.question || 'Opening Question')}</h2>
+            <h2 id="tt-question-title" className="tt-question">
+                <TriviaCardText text={question?.question || 'Opening Question'} formatText={toTitleCase} />
+            </h2>
             <div className="tt-options">
                 {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3: shared accessible option primitive, driven only by the authoritative tournament answer state. */}
-                {(question?.options || []).map((option, index) => <TriviaAnswerOption key={`${question.id}-${index}`} index={index} option={toTitleCase(String(option))} selectedAnswer={selected} showResult={false} disabled={pending || selected !== null} onSelect={onAnswer} />)}
+                {(question?.options || []).map((option, index) => (
+                    <TriviaAnswerOption
+                        key={`${question.id}-${index}`}
+                        index={index}
+                        option={toTitleCase(String(option))}
+                        rawOption={String(option)}
+                        formatText={toTitleCase}
+                        selectedAnswer={selected}
+                        showResult={false}
+                        disabled={pending || selected !== null}
+                        onSelect={onAnswer}
+                    />
+                ))}
             </div>
             <p className="tt-play__privacy tc-ink--muted">The Server Records The First Answer. Verdicts Stay Hidden Until The Round Closes.</p>
             <div className="tt-actions"><TriviaGlassAction label={pending ? 'Recording' : 'Skip Question'} disabled={pending || selected !== null} onClick={onSkip} /><TriviaGlassAction label="Finish Round" disabled={pending} onClick={onFinish} /></div>

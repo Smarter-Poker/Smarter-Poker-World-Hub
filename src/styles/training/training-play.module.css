@@ -231,6 +231,8 @@
   grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
   gap: 8px;
 }
+/* Segment labels ("Upcoming") never split mid-word. */
+.segmented > .button { white-space: nowrap; }
 
 .button {
   display: inline-flex;

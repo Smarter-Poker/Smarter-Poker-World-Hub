@@ -494,7 +494,7 @@ export default function TriviaStudyDeck() {
                                                                 onClick={() => handleDrillAnswer(idx)}
                                                             >
                                                                 <span className="study-option__letter">{OPTION_LETTERS[idx] || String(idx + 1)}</span>
-                                                                <span className="study-option__text">{optText}</span>
+                                                                <span className="study-option__text"><TriviaCardText text={optText} /></span>
                                                                 {isAnswered && isCorrect ? (
                                                                     <span className="study-option__tag">Correct</span>
                                                                 ) : isAnswered && isChosen && !isCorrect ? (
@@ -513,7 +513,7 @@ export default function TriviaStudyDeck() {
                                                                 : 'Review Again - Reset To Box 1'}
                                                         </h3>
                                                         <p className="study-explanation__body">
-                                                            {currentDrillCard.explanation || 'Review The Correct Option Above And Drill Similar Spots In Training.'}
+                                                            <TriviaCardText text={currentDrillCard.explanation || 'Review The Correct Option Above And Drill Similar Spots In Training.'} />
                                                         </p>
                                                     </section>
                                                 ) : null}
@@ -684,7 +684,7 @@ export default function TriviaStudyDeck() {
                                                         return (
                                                             <li key={`${activeCard.questionId}-${idx}`} className={`study-option${stateClass}`}>
                                                                 <span className="study-option__letter">{OPTION_LETTERS[idx] || String(idx + 1)}</span>
-                                                                <span className="study-option__text">{optText}</span>
+                                                                <span className="study-option__text"><TriviaCardText text={optText} /></span>
                                                                 {isFlipped && isCorrect ? (
                                                                     <span className="study-option__tag">Correct Answer</span>
                                                                 ) : null}
@@ -697,7 +697,7 @@ export default function TriviaStudyDeck() {
                                                     <section className="study-explanation" aria-label="Answer Explanation">
                                                         <h3 className="study-explanation__heading">Explanation</h3>
                                                         <p className="study-explanation__body">
-                                                            {activeCard.explanation || 'Review The Correct Option Above And Drill Similar Spots In Training.'}
+                                                            <TriviaCardText text={activeCard.explanation || 'Review The Correct Option Above And Drill Similar Spots In Training.'} />
                                                         </p>
                                                     </section>
                                                 ) : null}

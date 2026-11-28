@@ -309,6 +309,7 @@ export default function HandLabV2() {
   const [brainVariant, setBrainVariant] = useState('nlh');
 
   useEffect(() => {
+    if (!getAccessToken()) return undefined;
     let active = true;
     (async () => {
       try {
@@ -736,6 +737,8 @@ export default function HandLabV2() {
                       <button
                         type="button"
                         key={card}
+                        data-allow-small="true"
+                        data-training-raw-control="true"
                         className={at.pick}
                         onClick={() => handleCardSelect(rank, suit)}
                         disabled={isUsed || !selectedSlot}

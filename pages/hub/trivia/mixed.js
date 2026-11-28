@@ -898,6 +898,8 @@ export default function MixedModePage() {
                                                 key={idx}
                                                 index={idx}
                                                 option={toTitleCase(option)}
+                                                rawOption={option}
+                                                formatText={toTitleCase}
                                                 selectedAnswer={selectedAnswer}
                                                 correctIndex={verdict ? verdict.correctDisplayIndex : null}
                                                 showResult={showResult}

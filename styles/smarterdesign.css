@@ -110,6 +110,32 @@
 }
 .sd-header-help.sd-header-help.sd-header-help:focus-visible { box-shadow: none; outline: none; }
 .sd-header-help.sd-header-help.sd-header-help:focus-visible::after { opacity: 1; }
+/* No page skin may box the painted "?". Page-wide button rules (Training's
+   bevel and chrome layer, the store's square focus outline and radius 0) kept
+   outranking this control with !important plus higher specificity. Important
+   declarations in a cascade layer beat every unlayered important declaration
+   whatever its specificity, so this layer is the control's last word on its
+   own skin. Geometry stays above, driven by the --sd-help-* frame numbers. */
+@layer sd-header-help {
+  .sd-header-help,
+  .sd-header-help:hover,
+  .sd-header-help:active,
+  .sd-header-help:focus,
+  .sd-header-help:focus-visible {
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    filter: none !important;
+    transform: none !important;
+  }
+  .sd-header-help::after {
+    inset: 4px !important;
+    border-radius: 50% !important;
+    box-shadow: 0 0 0 2px #94deff !important;
+  }
+}
 /* "Back To Dashboard" is never inside an image header: it sits directly above
    it (Dan, 2026-11-27). BankrollImageHeader renders this row from its `back`
    prop so no page can put the link back inside the frame. */

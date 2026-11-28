@@ -92,6 +92,7 @@ export default function SessionNotesPage() {
       const saved = localStorage.getItem('session-notes');
       if (saved) setNotes(JSON.parse(saved));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    if (!getAccessToken()) return;
     authedFetch('/api/training/tool-records?tool_id=session-notes&limit=25')
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {

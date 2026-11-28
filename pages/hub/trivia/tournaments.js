@@ -12,6 +12,7 @@ import TriviaConsoleDialog from '../../../src/components/trivia/console/TriviaCo
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
 import { TriviaGlassAction } from '../../../src/components/trivia/console/TriviaConsole';
 import useTriviaRealtimeSync from '../../../src/hooks/useTriviaRealtimeSync';
+import useTriviaKeyboardControls from '../../../src/hooks/useTriviaKeyboardControls';
 import NightlyReminderButton from '../../../src/components/trivia/NightlyReminderButton';
 import NightlySpectatorBanner from '../../../src/components/trivia/NightlySpectatorBanner';
 import MonthlyChampionshipPanel from '../../../src/components/trivia/MonthlyChampionshipPanel';
@@ -48,8 +49,10 @@ import {
     isTournamentActionCurrent,
     secondsUntil,
     serverNowMs,
+    tournamentConnectedPollDelay,
     tournamentEntryDialogAction,
     tournamentErrorMessage,
+    tournamentPollDelay,
     tournamentViewState,
 } from '../../../src/components/trivia/tournaments/tournamentModel.mjs';
 
@@ -743,7 +746,18 @@ function TournamentPageExperience({ user, authLoading }) {
 
     const activeRun = Boolean(myRun?.current);
     const activeEvent = ['held', 'live', 'settling'].includes(tournament?.state);
-    const basePollDelay = activeRun ? 3000 : activeEvent ? 8000 : 45000;
+    const basePollDelay = tournamentPollDelay({
+        state: tournament?.state,
+        activeRun,
+        startsAt: tournament?.startsAt,
+        nowMs,
+    });
+    const connectedPollDelay = tournamentConnectedPollDelay({
+        state: tournament?.state,
+        activeRun,
+        startsAt: tournament?.startsAt,
+        nowMs,
+    });
 
     const handleRealtimePush = useCallback(() => {
         if (!tournamentId || !online) return;
@@ -761,7 +775,7 @@ function TournamentPageExperience({ user, authLoading }) {
         enabled: Boolean(tournamentId && pageState === 'ready' && online),
         broadcastEvents: ['tournament_update', 'bracket_update', 'round_update', 'settlement_update'],
         fallbackPollMs: basePollDelay,
-        connectedPollMs: Math.max(basePollDelay * 3, 15000),
+        connectedPollMs: connectedPollDelay,
         onSync: handleRealtimePush,
     });
 
@@ -993,6 +1007,14 @@ function TournamentPageExperience({ user, authLoading }) {
             if (canAdoptTournamentAction(actionLease)) setPending('');
         }
     }, [activeQuestion, beginTournamentAction, canAdoptTournamentAction, hydrateSession, loadCore, pending, tournamentId]);
+
+    useTriviaKeyboardControls({
+        enabled: Boolean(activeQuestion && session && pageState === 'ready'),
+        optionCount: Array.isArray(activeQuestion?.options) ? activeQuestion.options.length : 0,
+        canSelect: Boolean(activeQuestion && !pending && selectedAnswer === null),
+        canAdvance: false,
+        onSelectOption: submitAnswer,
+    });
 
     const finishRound = useCallback(async () => {
         if (!tournamentId || pending) return;

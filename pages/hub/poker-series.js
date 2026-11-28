@@ -64,7 +64,7 @@ const TOUR_COLORS = {
     'DSE':     { bg: 'linear-gradient(135deg, #0891b2, #0e7490)', text: '#fff', border: '#06b6d4', fill: '#06b6d4' },
     'MPT':     { bg: 'linear-gradient(135deg, #4338ca, #312e81)', text: '#fff', border: '#818cf8', fill: '#818cf8' },
     'LIPS':    { bg: 'linear-gradient(135deg, #be185d, #831843)', text: '#fff', border: '#ec4899', fill: '#ec4899' },
-    'VENETIAN':{ bg: 'linear-gradient(135deg, #854d0e, #713f12)', text: '#fff', border: '#d97706', fill: '#d97706' },
+    'VENETIAN':{ bg: 'linear-gradient(135deg, #075985, #0c4a6e)', text: '#fff', border: '#38bdf8', fill: '#0284c7' },
     'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563', fill: '#6b7280' }
 };
 

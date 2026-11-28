@@ -61,7 +61,17 @@
 .page .deck .featureCard .featureArtWrap > .featureArt { height: 100%; }
 .page :is(img, svg, image) { image-rendering: auto; }
 .featureBody { display: flex; flex-direction: column; justify-content: center; align-items: stretch; min-width: 0; padding: 10px 53px 21px 27px; gap: 0; }
+.featureEyebrowRow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 2px; }
 .featureEyebrow { margin-left: 12px; color: var(--pa-cyan); font-size: clamp(1.125rem, 2.3vw, 1.75rem); line-height: 1.05; font-weight: 700; letter-spacing: 0.015em; }
+.debriefBadge {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 36px; padding: 4px 11px;
+  border: 1px solid #56d8ff; border-radius: 999px;
+  background: linear-gradient(180deg, rgba(8, 124, 250, 0.32), rgba(4, 29, 64, 0.72));
+  color: #e6f8ff; font-size: 0.8125rem; font-weight: 700; line-height: 1.15; text-decoration: none;
+  white-space: nowrap;
+}
+.debriefBadge:hover { border-color: #9de8ff; color: #ffffff; filter: brightness(1.12); }
+.debriefBadge:active { transform: translateY(1px); }
 .featureTitle {
   margin: 0; color: var(--pa-silver); font: 900 clamp(2rem, 4vw, 3.125rem) / 1.04 Arial, Helvetica, sans-serif; letter-spacing: 0.005em;
   text-shadow: 0 1px 0 #fff8, 0 2px 0 #939496, 0 4px 3px #000; overflow-wrap: break-word;
@@ -123,6 +133,12 @@
 }
 @media (forced-colors: active) {
   .landingTitle, .featureTitle, .utilityCopy strong, .featureCtaPrimary > span:not(.chromeOverlay), .featureCtaSecondary > span:not(.chromeOverlay) { background-image: none; color: CanvasText; filter: none; -webkit-text-stroke: 0; }
+}
+@media (min-width: 601px) {
+  .featureCardLeaks .featureArtWrap svg {
+    transform: scale(1.22);
+    transform-origin: center center;
+  }
 }
 @media (min-width: 1160px) { .landingMain { transform: translateX(3.5px); } }
 .settingsButton:hover, .featureCtaPrimary:hover, .featureCtaSecondary:hover { filter: brightness(1.17); }
@@ -219,6 +235,7 @@
   .page .featureCtaPrimary, .page .featureCtaSecondary { min-height: 56px; font-size: 1.75rem; }
   .featureCardLeaks { grid-template-columns: minmax(0, 1fr); }
   .featureCardLeaks .featureArtWrap { grid-row: auto; aspect-ratio: 16 / 9; margin: 10px 10px 0; border-radius: 14px; overflow: hidden; background: #040a12; }
+  .featureCardLeaks .featureArtWrap svg { transform: none; }
   .featureCardLeaks .featureBody { padding: 10px 17px 0; gap: 3px; }
   .page .featureCardLeaks .featureTitle { font-size: 1.75rem !important; }
   .featureCardLeaks .featureSubtitle { font-size: 0.875rem; }

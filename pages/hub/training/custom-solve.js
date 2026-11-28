@@ -175,6 +175,8 @@ function BoardCardSelector({ boardCards, setBoardCards }) {
                     <button
                       key={card}
                       type="button"
+                      data-allow-small="true"
+                      data-training-raw-control="true"
                       className={cs.rankPick}
                       data-suit={suit.s}
                       disabled={used}

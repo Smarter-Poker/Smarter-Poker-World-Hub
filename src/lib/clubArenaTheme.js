@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- *  CLUB ARENA THEME BRIDGE — one table look, every surface (Dan 2026-08-30)
+ *  CLUB ARENA THEME BRIDGE - one table look, every surface (Dan 2026-08-30)
  * ═══════════════════════════════════════════════════════════════════════════════
  *
  * Dan, verbatim: "WHAT EVER TABLE YOU HAVE SELECTED ... TABLE, BACKGROUND,
@@ -192,7 +192,71 @@ const FELT_GRADIENTS = {
   amethyst_cavern: 'linear-gradient(135deg, #180c24 40%, #7d3fae 75%, #d9bcee)',
   carbon_ion: 'linear-gradient(135deg, #232326 55%, #1fb392)',
   jade_city: 'linear-gradient(135deg, #14261c 40%, #2fae6f 75%, #9fe8c0)',
+  final_table: 'linear-gradient(135deg, #1b2442 40%, #2d4c8a 75%, #0c1428)',
 };
+
+/** Clean catalog of Club Arena table skins for customizer pickers. */
+export const CLUB_ARENA_SKINS = [
+  { id: 'classic_green', label: 'Classic Green', swatch: '#0f9d63' },
+  { id: 'ocean_blue', label: 'Ocean Blue', swatch: '#1a4a7a' },
+  { id: 'crimson', label: 'Crimson', swatch: '#7a1a3a' },
+  { id: 'electric_purple', label: 'Electric Purple', swatch: '#4a1a7a' },
+  { id: 'golden_sand', label: 'Golden Sand', swatch: '#7a6a1a' },
+  { id: 'neon_city', label: 'Neon City', swatch: '#2ad4d4' },
+  { id: 'ice_cavern', label: 'Ice Cavern', swatch: '#3f6fae' },
+  { id: 'carbon_red', label: 'Carbon Red', swatch: '#b3221f' },
+  { id: 'arctic_white', label: 'Arctic White', swatch: '#3f8fd4' },
+  { id: 'mahogany_red', label: 'Mahogany Red', swatch: '#8b2620' },
+  { id: 'amethyst_cavern', label: 'Amethyst Cavern', swatch: '#7d3fae' },
+  { id: 'carbon_ion', label: 'Carbon Ion', swatch: '#1fb392' },
+  { id: 'jade_city', label: 'Jade City', swatch: '#2fae6f' },
+  { id: 'final_table', label: 'Final Table', swatch: '#2d4c8a' },
+];
+
+/** Clean catalog of key Club Arena room backdrops. */
+export const CLUB_ARENA_BACKGROUNDS = [
+  { id: 'midnight', label: 'Midnight', swatch: '#0b1424' },
+  { id: 'royal_indigo', label: 'Royal Indigo', swatch: '#1e2756' },
+  { id: 'emerald_room', label: 'Emerald Room', swatch: '#0e3b2c' },
+  { id: 'crimson_lounge', label: 'Crimson Lounge', swatch: '#4a1524' },
+  { id: 'ocean_abyss', label: 'Ocean Abyss', swatch: '#0c2d48' },
+  { id: 'golden_dusk', label: 'Golden Dusk', swatch: '#4d3a1a' },
+  { id: 'galaxy', label: 'Galaxy', swatch: '#24194a' },
+  { id: 'carbon_grid', label: 'Carbon Grid', swatch: '#1f2937' },
+  { id: 'ice_frost', label: 'Ice Frost', swatch: '#1e3a5f' },
+  { id: 'jade_neon', label: 'Jade Neon', swatch: '#0f4c43' },
+  { id: 'final_table_broadcast', label: 'Final Table Broadcast', swatch: '#1a2744' },
+];
+
+/** Clean catalog of all 12 Club Arena card backs. */
+export const CLUB_ARENA_CARD_BACKS = [
+  { id: 'classic_blue', label: 'Classic Blue', swatch: '#1565c0' },
+  { id: 'classic_red', label: 'Classic Red', swatch: '#b91c1c' },
+  { id: 'royal', label: 'Royal', swatch: '#1d4ed8' },
+  { id: 'neon', label: 'Neon', swatch: '#0891b2' },
+  { id: 'galaxy', label: 'Galaxy', swatch: '#4c1d95' },
+  { id: 'diamond', label: 'Diamond', swatch: '#0ea5e9' },
+  { id: 'dragon', label: 'Dragon', swatch: '#991b1b' },
+  { id: 'gold', label: 'Gold', swatch: '#92400e' },
+  { id: 'carbon', label: 'Carbon', swatch: '#1f2937' },
+  { id: 'holographic', label: 'Holographic', swatch: '#0284c7' },
+  { id: 'club-branded', label: 'Club Branded', swatch: '#0f766e' },
+  { id: 'diamond-foil', label: 'Diamond Foil', swatch: '#38bdf8' },
+];
+
+/** Clean catalog of all 10 Club Arena dealer button designs. */
+export const CLUB_ARENA_DEALER_BUTTONS = [
+  { id: 'classic-white', label: 'Classic White', ...DEALER_BUTTON_STYLES['classic-white'] },
+  { id: 'red-d-gear', label: 'Red Gear', ...DEALER_BUTTON_STYLES['red-d-gear'] },
+  { id: 'gray-d-gear', label: 'Steel Gear', ...DEALER_BUTTON_STYLES['gray-d-gear'] },
+  { id: 'blue-crystal', label: 'Blue Crystal', ...DEALER_BUTTON_STYLES['blue-crystal'] },
+  { id: 'gold-star', label: 'Gold Star', ...DEALER_BUTTON_STYLES['gold-star'] },
+  { id: 'sports-themed', label: 'Emerald Sport', ...DEALER_BUTTON_STYLES['sports-themed'] },
+  { id: 'jade-seal', label: 'Jade Seal', ...DEALER_BUTTON_STYLES['jade-seal'] },
+  { id: 'amethyst-chip', label: 'Amethyst Chip', ...DEALER_BUTTON_STYLES['amethyst-chip'] },
+  { id: 'carbon-ion', label: 'Carbon Ion', ...DEALER_BUTTON_STYLES['carbon-ion'] },
+  { id: 'ocean-pearl', label: 'Ocean Pearl', ...DEALER_BUTTON_STYLES['ocean-pearl'] },
+];
 
 /* Arena's ambience/backdrop, verbatim, so the page composition matches. */
 const AMBIENCE = [
@@ -256,6 +320,18 @@ export function resolveArenaDealerButton(buttonId, themeId) {
 export function resolveArenaCardBackUrl(cardsId) {
   const id = CARD_BACK_IDS.includes(cardsId) ? cardsId : 'classic_blue';
   return `${CARD_BACK_BASE}/${id}.webp`;
+}
+
+/**
+ * Resolve a playing card artwork URL for either Club Arena's 4-color WebP deck
+ * or the classic 2-color bundled PNG deck (spades/clubs black, hearts/diamonds red).
+ */
+export function resolveArenaCardUrl(suitName, rankName, deckStyle = '4color') {
+  if (!suitName || !rankName) return null;
+  if (deckStyle === '2color') {
+    return `/cards/${suitName}_${rankName}.png`;
+  }
+  return `/hub/club-arena/cards/4color/${suitName}_${rankName}.webp`;
 }
 
 /** The signed-in user's id, from the shared same-origin Supabase session. */

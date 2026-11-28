@@ -14,7 +14,7 @@
  */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { FolderOpen, Play, Trash2, Search, RotateCcw } from 'lucide-react';
+import { FolderOpen, Play, Trash2, Search, RotateCcw, Copy, Check } from 'lucide-react';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import { readPersistenceResponse, persistenceMessage } from '../../lib/personal-assistant/persistenceContract';
 import { T, F, S, R, btn, pill, numeric } from './paTokens';
@@ -36,13 +36,151 @@ function parseState(raw) {
     }
 }
 
+const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
+const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+const HANDLE_RE = /(^|[\s(])@[A-Za-z0-9_.-]{2,32}\b/g;
+const POSITION_WORDS = new Set(['UTG', 'UTG1', 'UTG2', 'LJ', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB', 'HERO', 'VILLAIN', 'REG', 'FISH', 'TAG', 'LAG', 'NIT', 'REC', 'PRO', 'UNKNOWN', 'EP', 'LP', 'BU', 'STR', 'STRADDLE']);
+const OPPONENT_LABEL_RE = /\b(villain|opponent|player|user|username|handle)\s*[:=]\s*([A-Za-z0-9_.-]{2,32})/gi;
+const VS_NAME_RE = /\b(vs\.?|against)\s+([A-Za-z0-9_.-]{2,32})\b/gi;
+
+/**
+ * Strictly scrubs UUIDs, email addresses, @handles, and opponent usernames
+ * before exporting an anonymized study packet.
+ */
+export function scrubStudyText(raw) {
+    if (raw == null) return '';
+    let text = String(raw)
+        .replace(/[\u0000-\u001f\u007f]/g, ' ')
+        .replace(/\u2014/g, ' - ')
+        .replace(UUID_RE, '[Redacted]')
+        .replace(EMAIL_RE, '[Redacted]')
+        .replace(HANDLE_RE, '$1Villain')
+        .replace(OPPONENT_LABEL_RE, (_m, label, candidate) => {
+            if (POSITION_WORDS.has(String(candidate || '').toUpperCase())) return `${label}: ${candidate}`;
+            return `${label}: Villain`;
+        })
+        .replace(VS_NAME_RE, (_m, prep, candidate) => {
+            if (POSITION_WORDS.has(String(candidate || '').toUpperCase())) return `${prep} ${candidate}`;
+            return `${prep} Villain`;
+        })
+        .replace(/\s+/g, ' ')
+        .trim();
+    return text;
+}
+
+function extractBoardCards(state) {
+    if (!state) return [];
+    if (Array.isArray(state.board)) return state.board.filter(Boolean).map(String);
+    if (state.board && typeof state.board === 'object') {
+        const flop = Array.isArray(state.board.flop) ? state.board.flop.filter(Boolean) : [];
+        const turn = state.board.turn ? [state.board.turn] : [];
+        const river = state.board.river ? [state.board.river] : [];
+        return [...flop, ...turn, ...river].map(String);
+    }
+    if (typeof state.board === 'string' && state.board.trim()) {
+        return state.board.trim().split(/[\s,]+/).filter(Boolean);
+    }
+    return [];
+}
+
+function extractHeroCards(state) {
+    if (!state) return [];
+    const hh = state.heroHand;
+    if (Array.isArray(hh)) return hh.filter(Boolean).map(String);
+    if (typeof hh === 'string' && hh.trim()) return hh.trim().split(/[\s,]+/).filter(Boolean);
+    if (hh && typeof hh === 'object') {
+        const ordered = [hh.card1, hh.card2, hh.card3, hh.card4, hh.card5, hh.card6].filter(Boolean);
+        if (ordered.length > 0) return ordered.map(String);
+    }
+    return [];
+}
+
+function inferStreet(state, boardCards) {
+    const raw = typeof state?.street === 'string' ? state.street.trim() : '';
+    if (raw) return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    if (boardCards.length >= 5) return 'River';
+    if (boardCards.length === 4) return 'Turn';
+    if (boardCards.length >= 3) return 'Flop';
+    return 'Preflop';
+}
+
+function formatPot(state) {
+    const potNum = Number(state?.potSize ?? state?.pot);
+    if (Number.isFinite(potNum) && potNum > 0) return `${potNum.toFixed(1)} BB`;
+    if (typeof state?.pot === 'string' && state.pot.trim()) return scrubStudyText(state.pot);
+    return 'Not Set';
+}
+
+/**
+ * Builds a clean, anonymized Markdown study digest for a Study Folder.
+ */
+export function buildStudyPacketMarkdown(folderName, folderHands) {
+    const safeFolder = scrubStudyText(folderName || 'Study Folder') || 'Study Folder';
+    const list = Array.isArray(folderHands) ? folderHands : [];
+    const lines = [
+        `# Study Packet: ${safeFolder}`,
+        `Saved Hands: ${list.length} · Anonymized Study Digest`,
+        '',
+    ];
+
+    list.forEach((hand, idx) => {
+        const state = parseState(hand?.state_json);
+        const heroCards = extractHeroCards(state);
+        const boardCards = extractBoardCards(state);
+        const position = scrubStudyText(state?.heroPosition || 'Unknown').toUpperCase() || 'UNKNOWN';
+        const street = inferStreet(state, boardCards);
+        const pot = formatPot(state);
+        const rawNote = state?.note || state?.notes || hand?.note || hand?.notes || '';
+        const cleanNote = scrubStudyText(rawNote);
+        const cleanTags = Array.isArray(hand?.tags)
+            ? hand.tags.map(t => scrubStudyText(t)).filter(Boolean)
+            : [];
+
+        lines.push(`## Hand ${idx + 1}: ${position} (${heroCards.length ? heroCards.join(' ') : 'No Cards'})`);
+        lines.push(`- Street: ${street}`);
+        lines.push(`- Position: ${position}`);
+        lines.push(`- Hero Cards: ${heroCards.length ? heroCards.join(' ') : 'Not Set'}`);
+        lines.push(`- Board: ${boardCards.length ? boardCards.join(' ') : 'Preflop'}`);
+        lines.push(`- Pot: ${pot}`);
+        if (cleanTags.length > 0) {
+            lines.push(`- Tags: ${cleanTags.map(t => `#${t}`).join(', ')}`);
+        }
+        if (cleanNote) {
+            lines.push(`- Notes: ${cleanNote}`);
+        }
+        lines.push('');
+    });
+
+    lines.push('*Anonymized Study Digest · Smarter.Poker Club Arena*');
+    return lines.join('\n');
+}
+
+async function copyTextToClipboard(text) {
+    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(text);
+        return true;
+    }
+    if (typeof document !== 'undefined') {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-9999px';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) return true;
+    }
+    throw new Error('Clipboard unavailable');
+}
+
 function describe(state) {
-    const board = state?.board?.flop?.filter(Boolean).join(' ')
-        || (Array.isArray(state?.board) ? state.board.filter(Boolean).join(' ') : '')
-        || 'Preflop';
-    const hero = state?.heroHand
-        ? `${state.heroHand.card1 || '?'}${state.heroHand.card2 || '?'}`
-        : 'Unknown';
+    const boardList = extractBoardCards(state);
+    const board = boardList.join(' ') || 'Preflop';
+    const heroList = extractHeroCards(state);
+    const hero = heroList.length ? heroList.join('') : 'Unknown';
     return {
         board,
         hero,
@@ -63,8 +201,10 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
     const [query, setQuery] = useState('');
     const [activeTag, setActiveTag] = useState(null);
     const [page, setPage] = useState(1);
+    const [copiedFolder, setCopiedFolder] = useState(null);
 
     const confirmTimer = useRef(null);
+    const copyTimer = useRef(null);
     const parseCache = useRef(new Map());
     const fetchRequestId = useRef(0);
     const requestHands = useAbortableFetch(12000);
@@ -73,6 +213,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
     useEffect(() => () => {
         fetchRequestId.current += 1;
         if (confirmTimer.current) clearTimeout(confirmTimer.current);
+        if (copyTimer.current) clearTimeout(copyTimer.current);
     }, []);
 
     const stateFor = useCallback((hand) => {
@@ -251,6 +392,27 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
         [hands, activeFolder],
     );
 
+    const handleCopyStudyPacket = useCallback(async (targetFolderName) => {
+        const folderToCopy = targetFolderName || activeFolder;
+        if (!folderToCopy) return;
+        const targetHands = hands.filter(h => h.folder_name === folderToCopy);
+        if (targetHands.length === 0) {
+            toast.error('No Saved Hands In This Folder To Copy');
+            return;
+        }
+        try {
+            const markdown = buildStudyPacketMarkdown(folderToCopy, targetHands);
+            await copyTextToClipboard(markdown);
+            setCopiedFolder(folderToCopy);
+            if (copyTimer.current) clearTimeout(copyTimer.current);
+            copyTimer.current = setTimeout(() => setCopiedFolder(null), 2200);
+            toast.success(`Study Packet Copied (${targetHands.length} ${targetHands.length === 1 ? 'Hand' : 'Hands'})`);
+        } catch (err) {
+            console.warn('[StudyFolders] Copy study packet failed:', err?.message || err);
+            toast.error('Could Not Copy Study Packet To Clipboard');
+        }
+    }, [activeFolder, hands]);
+
     const tags = useMemo(() => {
         const set = new Set();
         folderHands.forEach(h => (h.tags || []).forEach(t => set.add(t)));
@@ -386,8 +548,31 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                         </div>
                     )}
 
-                    <div style={{ fontSize: F.caption, color: T.textMuted, ...numeric }}>
-                        {`${filtered.length} ${filtered.length === 1 ? 'Setup' : 'Setups'} In ${activeFolder || 'Not Available'}`}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.sm, flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: F.caption, color: T.textMuted, ...numeric }}>
+                            {`${filtered.length} ${filtered.length === 1 ? 'Setup' : 'Setups'} In ${activeFolder || 'Not Available'}`}
+                        </div>
+                        {activeFolder && folderHands.length > 0 && (
+                            <button
+                                type="button"
+                                className="pa-btn"
+                                data-copy-study-packet="true"
+                                data-folder-name={activeFolder}
+                                onClick={() => handleCopyStudyPacket(activeFolder)}
+                                aria-label={`Copy Anonymized Study Packet For ${activeFolder}`}
+                                style={{
+                                    ...btn('secondary'),
+                                    padding: '0 14px',
+                                    fontSize: F.label,
+                                    minHeight: 44,
+                                    color: copiedFolder === activeFolder ? T.success : T.accent,
+                                    borderColor: copiedFolder === activeFolder ? 'rgba(77,224,165,0.45)' : 'rgba(99,231,255,0.42)',
+                                }}
+                            >
+                                {copiedFolder === activeFolder ? <Check size={16} strokeWidth={2} /> : <Copy size={16} strokeWidth={2} />}
+                                {copiedFolder === activeFolder ? 'Packet Copied' : 'Copy Study Packet'}
+                            </button>
+                        )}
                     </div>
 
                     {filtered.length === 0 ? (

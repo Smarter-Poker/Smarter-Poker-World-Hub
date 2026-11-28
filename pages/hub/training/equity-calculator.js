@@ -100,6 +100,8 @@ function CardGrid({ title, usedCards, onPick, onClose }) {
               <button
                 type="button"
                 key={card}
+                data-allow-small="true"
+                data-training-raw-control="true"
                 className={at.pick}
                 onClick={() => !used && onPick(rank, suit)}
                 disabled={used}

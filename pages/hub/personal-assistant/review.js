@@ -16,6 +16,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import {
@@ -51,7 +52,13 @@ import { getAccessToken, getFreshAccessToken } from '../../../src/lib/authUtils'
 import { useModalHistory } from '../../../src/hooks/useModalHistory';
 import { anonymizeHandForShare } from '../../../src/lib/personal-assistant/anonymizeHandForShare.mjs';
 import { collectSavedHandsExport } from '../../../src/lib/personal-assistant/savedHandExport.mjs';
+import { recordPaMilestone } from '../../../src/lib/personal-assistant/telemetry.mjs';
 import styles from '../../../src/styles/worlds/PersonalAssistantReview.module.css';
+
+const SandboxPokerTable = dynamic(
+  () => import('../../../src/components/sandbox/SandboxPokerTable'),
+  { ssr: false },
+);
 
 const REQUEST_TIMEOUT_MS = 12000;
 const PAGE_SIZE = 25;
@@ -93,6 +100,80 @@ const STREET_LABELS = {
   turn: 'Turn',
   river: 'River',
 };
+
+const SMART_POSITIONS = ['All', 'BTN', 'CO', 'BB', 'SB', 'MP', 'UTG'];
+const SMART_POT_TYPES = ['All', 'SRP', '3-Bet', '4-Bet'];
+const SMART_VARIANTS = ['All', 'NLH', 'PLO'];
+
+const ILLUSTRATIVE_SAMPLE_HAND = Object.freeze({
+  id: 'sample-hand-preview',
+  isSamplePreview: true,
+  hand_number: 101,
+  variant: 'NLH',
+  small_blind: 1,
+  big_blind: 2,
+  pot_total: 108,
+  created_at: null,
+  hand_data: {
+    source: 'sample-preview',
+    tableName: 'Illustrative Sample Hand (Not Saved To Your Account)',
+    format: 'cash',
+    heroPosition: 'BTN',
+    heroCards: ['Ah', 'Kh'],
+    heroNet: 54,
+    effectiveStack: 200,
+    communityCards: ['Ks', '7c', '2d', '9h', '4s'],
+    boards: [{ index: 1, label: 'Board 1', cards: ['Ks', '7c', '2d', '9h', '4s'] }],
+    players: [
+      { seatIndex: 1, name: 'You', position: 'BTN', isHero: true, startingStack: 200, stack: 200, netResult: 54, holeCards: ['Ah', 'Kh'] },
+      { seatIndex: 2, name: 'Villain CO', position: 'CO', isHero: false, startingStack: 200, stack: 200, netResult: -54, showedCards: false, holeCards: [] },
+    ],
+    streets: [
+      {
+        name: 'preflop',
+        cards: [],
+        actions: [
+          { position: 'CO', playerName: 'Villain CO', isHero: false, action: 'raise', amount: 6 },
+          { position: 'BTN', playerName: 'You', isHero: true, action: 'raise', amount: 18 },
+          { position: 'CO', playerName: 'Villain CO', isHero: false, action: 'call', amount: 12 },
+        ],
+      },
+      {
+        name: 'flop',
+        cards: ['Ks', '7c', '2d'],
+        actions: [
+          { position: 'CO', playerName: 'Villain CO', isHero: false, action: 'check', amount: 0 },
+          { position: 'BTN', playerName: 'You', isHero: true, action: 'bet', amount: 12 },
+          { position: 'CO', playerName: 'Villain CO', isHero: false, action: 'call', amount: 12 },
+        ],
+      },
+      {
+        name: 'turn',
+        cards: ['9h'],
+        actions: [
+          { position: 'CO', playerName: 'Villain CO', isHero: false, action: 'check', amount: 0 },
+          { position: 'BTN', playerName: 'You', isHero: true, action: 'bet', amount: 24 },
+          { position: 'CO', playerName: 'Villain CO', isHero: false, action: 'call', amount: 24 },
+        ],
+      },
+      {
+        name: 'river',
+        cards: ['4s'],
+        actions: [
+          { position: 'CO', playerName: 'Villain CO', isHero: false, action: 'check', amount: 0 },
+          { position: 'BTN', playerName: 'You', isHero: true, action: 'check', amount: 0 },
+        ],
+      },
+    ],
+    review: {
+      status: 'saved',
+      notes: '',
+      tags: ['3-Bet Pot'],
+      revision: 1,
+      analysisState: 'not_analyzed',
+    },
+  },
+});
 
 function toStandardCardCode(card) {
   let code = '';
@@ -595,6 +676,112 @@ function broadcastSavedHandsSync(payload) {
   }
 }
 
+function getHandPosition(hand) {
+  const hero = getHeroPlayer(hand);
+  const raw = String(hero?.position || hand?.hand_data?.heroPosition || '').trim().toUpperCase();
+  if (raw === 'HJ' || raw === 'LJ' || raw === 'MP1' || raw === 'MP2') return 'MP';
+  if (raw === 'UTG+1' || raw === 'EP') return 'UTG';
+  if (raw === 'BU' || raw === 'BUTTON') return 'BTN';
+  return raw || '';
+}
+
+function getHandPotBb(hand) {
+  const bb = Number(hand?.big_blind || 0);
+  const pot = Number(hand?.pot_total || 0);
+  if (bb > 0 && pot > 0) return Math.round((pot / bb) * 10) / 10;
+  const fallback = Number(hand?.hand_data?.potBb || 0);
+  return Number.isFinite(fallback) && fallback > 0 ? fallback : 0;
+}
+
+function getHandPotType(hand) {
+  const meta = getReviewMeta(hand);
+  const tagText = meta.tags.join(' ').toLowerCase();
+  if (tagText.includes('4-bet') || tagText.includes('4bet')) return '4-Bet';
+  if (tagText.includes('3-bet') || tagText.includes('3bet')) return '3-Bet';
+  const streets = getStreets(hand);
+  const preflop = streets.find((s) => String(s?.name || '').toLowerCase() === 'preflop');
+  if (preflop && Array.isArray(preflop.actions)) {
+    const raises = preflop.actions.filter((a) => {
+      const verb = String(a?.action || '').toLowerCase();
+      return verb === 'raise' || verb === 'allin' || verb === 'all_in';
+    }).length;
+    if (raises >= 3) return '4-Bet';
+    if (raises === 2) return '3-Bet';
+  }
+  return 'SRP';
+}
+
+function getHandVariantCategory(hand) {
+  const heroCards = getHeroCards(hand);
+  const raw = String(hand?.variant || hand?.hand_data?.variant || 'NLH').toLowerCase();
+  if (raw.includes('plo') || raw.includes('omaha') || heroCards.length >= 4) return 'PLO';
+  return 'NLH';
+}
+
+function buildReplayerArenaProps(hand, activeStep, heroCards, variantInfo) {
+  const hero = getHeroPlayer(hand);
+  const bb = Number(hand?.big_blind || 0);
+  const cleanHeroCards = heroCards.map(toStandardCardCode).filter(Boolean);
+  const cleanBoard = (activeStep?.boardCards || []).map(toStandardCardCode).filter(Boolean);
+  const rawPos = String(hero?.position || hand?.hand_data?.heroPosition || 'BTN').toUpperCase();
+  const heroPosition = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].includes(rawPos) ? rawPos : 'BTN';
+
+  const heroStackRaw = Number(hero?.startingStack ?? hero?.stack ?? hand?.hand_data?.effectiveStack ?? (bb > 0 ? bb * 100 : 100));
+  const heroStack = bb > 0 && heroStackRaw > 0
+    ? Math.max(1, Math.round((heroStackRaw / bb) * 10) / 10)
+    : Math.max(1, Math.round(heroStackRaw || 100));
+
+  const potRaw = Number(activeStep?.runningPot ?? hand?.pot_total ?? 0);
+  const pot = bb > 0 && potRaw > 0
+    ? Math.max(0, Math.round((potRaw / bb) * 10) / 10)
+    : Math.max(0, Math.round(potRaw * 10) / 10);
+
+  const playersList = Array.isArray(hand?.hand_data?.players) ? hand.hand_data.players : [];
+  const opponents = playersList.filter((p) => p && !p.isHero).slice(0, 5);
+  const villains = opponents.length > 0
+    ? opponents.map((p, idx) => {
+      const oppStackRaw = Number(p?.startingStack ?? p?.stack ?? (bb > 0 ? bb * 100 : 100));
+      const oppStack = bb > 0 && oppStackRaw > 0
+        ? Math.max(1, Math.round((oppStackRaw / bb) * 10) / 10)
+        : Math.max(1, Math.round(oppStackRaw || 100));
+      const oppPos = String(p?.position || `V${idx + 1}`).toUpperCase();
+      return {
+        id: idx,
+        position: oppPos,
+        stack: oppStack,
+      };
+    })
+    : [{ id: 0, position: heroPosition === 'BB' ? 'BTN' : 'BB', stack: heroStack }];
+
+  // Only reveal villain hole cards when explicitly shown at showdown; never leak hidden cards.
+  const villainHoleCards = {};
+  opponents.forEach((p, idx) => {
+    if (p?.showedCards === true && p?.cardsVisibility !== 'hidden' && Array.isArray(p?.holeCards) && p.holeCards.length >= 2) {
+      const shown = p.holeCards.map(toStandardCardCode).filter(Boolean);
+      if (shown.length >= 2) {
+        villainHoleCards[`villain_${idx}`] = shown;
+      }
+    }
+  });
+
+  const stepName = String(activeStep?.name || 'preflop').toLowerCase();
+  const street = ['preflop', 'flop', 'turn', 'river'].includes(stepName) ? stepName : 'flop';
+  const vLabel = String(variantInfo?.label || 'NLH').toLowerCase();
+  const variant = vLabel.includes('plo6') ? 'plo6' : vLabel.includes('plo5') ? 'plo5' : vLabel.includes('plo') ? 'plo4' : 'nlh';
+
+  return {
+    heroCards: cleanHeroCards,
+    communityCards: cleanBoard,
+    pot,
+    heroPosition,
+    heroStack,
+    villains,
+    villainHoleCards,
+    street,
+    variant,
+  };
+}
+
 async function fetchJsonWithTimeout(url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
   const controller = new AbortController();
   const externalSignal = options.signal;
@@ -639,6 +826,16 @@ export default function PersonalAssistantReviewPage() {
   const [filterTag, setFilterTag] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  // Smart Filter Chips (client-side refinement over loaded queue)
+  const [chipPosition, setChipPosition] = useState('All');
+  const [chipPotType, setChipPotType] = useState('All');
+  const [chipBigPotOnly, setChipBigPotOnly] = useState(false);
+  const [chipVariant, setChipVariant] = useState('All');
+
+  // 1-Tap Illustrative Sample Hand preview for empty / signed-out states
+  const [sampleHandActive, setSampleHandActive] = useState(false);
+  const [sampleStreetIdx, setSampleStreetIdx] = useState(1);
 
   // Post-session Suggested Hands To Review
   const [suggestedLoading, setSuggestedLoading] = useState(false);
@@ -729,13 +926,30 @@ export default function PersonalAssistantReviewPage() {
     return `/auth/login?redirect=${encodeURIComponent(rawAsPath)}`;
   }, [router?.asPath, requestedQueryHandId]);
 
+  const hasSmartFilters = Boolean(
+    chipPosition !== 'All' || chipPotType !== 'All' || chipBigPotOnly || chipVariant !== 'All',
+  );
+
+  const displayedHands = useMemo(() => {
+    if (!hasSmartFilters) return hands;
+    return hands.filter((hand) => {
+      if (chipPosition !== 'All' && getHandPosition(hand) !== chipPosition) return false;
+      if (chipPotType !== 'All' && getHandPotType(hand) !== chipPotType) return false;
+      if (chipBigPotOnly && getHandPotBb(hand) < 40) return false;
+      if (chipVariant !== 'All' && getHandVariantCategory(hand) !== chipVariant) return false;
+      return true;
+    });
+  }, [hands, hasSmartFilters, chipPosition, chipPotType, chipBigPotOnly, chipVariant]);
+
   const selectedHand = useMemo(
-    () => hands.find((h) => String(h.id) === String(selectedHandId)) || null,
-    [hands, selectedHandId],
+    () => displayedHands.find((h) => String(h.id) === String(selectedHandId))
+      || hands.find((h) => String(h.id) === String(selectedHandId))
+      || null,
+    [displayedHands, hands, selectedHandId],
   );
 
   const hasActiveFilters = Boolean(
-    filterStatus || filterSource || filterFormat || filterTag || debouncedQuery,
+    filterStatus || filterSource || filterFormat || filterTag || debouncedQuery || hasSmartFilters,
   );
 
   const buildFilterQueryParams = useCallback((cursor = '') => {
@@ -1631,8 +1845,30 @@ export default function PersonalAssistantReviewPage() {
     } catch {
       /* sandbox also falls back to ?fromReview=<id> fetch if storage is unavailable */
     }
+    recordPaMilestone('review_opened_on_table', { surface: 'review', variant: variantInfo.label });
     router.push(`/hub/personal-assistant/sandbox?fromReview=${encodeURIComponent(selectedHand.id)}`);
   }, [selectedHand, router]);
+
+  const handleLoadSampleHand = useCallback(() => {
+    setSampleHandActive(true);
+    setSampleStreetIdx(1);
+    recordPaMilestone('sample_hand_loaded', { surface: 'review' });
+  }, []);
+
+  const handleExploreSampleInSandbox = useCallback(() => {
+    const heroCards = getHeroCards(ILLUSTRATIVE_SAMPLE_HAND);
+    const boards = getBoards(ILLUSTRATIVE_SAMPLE_HAND);
+    const streets = getStreets(ILLUSTRATIVE_SAMPLE_HAND);
+    const variantInfo = getVariantInfo(ILLUSTRATIVE_SAMPLE_HAND, heroCards, boards, streets);
+    const payload = buildSandboxHandoffPayload(ILLUSTRATIVE_SAMPLE_HAND, heroCards, boards, variantInfo);
+    try {
+      window.sessionStorage.setItem(SANDBOX_HANDOFF_KEY, JSON.stringify(payload));
+    } catch {
+      /* ignore restricted storage */
+    }
+    recordPaMilestone('review_opened_on_table', { surface: 'review', source: 'sample' });
+    router.push(`/hub/personal-assistant/sandbox?fromReview=${encodeURIComponent(ILLUSTRATIVE_SAMPLE_HAND.id)}`);
+  }, [router]);
 
   const handleShareAnonymized = useCallback(async () => {
     if (!selectedHand) return;
@@ -1935,6 +2171,33 @@ export default function PersonalAssistantReviewPage() {
     ? Math.min(activeStreetIdx, replayerSteps.length - 1)
     : 0;
   const activeStep = replayerSteps[clampedStreetIdx] || null;
+  const replayerArenaProps = useMemo(
+    () => (selectedHand && activeStep
+      ? buildReplayerArenaProps(selectedHand, activeStep, selectedHeroCards, selectedVariantInfo)
+      : null),
+    [selectedHand, activeStep, selectedHeroCards, selectedVariantInfo],
+  );
+
+  const sampleReplayerSteps = useMemo(() => {
+    if (!sampleHandActive) return [];
+    return buildReplayerSteps(
+      ILLUSTRATIVE_SAMPLE_HAND,
+      getBoards(ILLUSTRATIVE_SAMPLE_HAND),
+      getStreets(ILLUSTRATIVE_SAMPLE_HAND),
+    );
+  }, [sampleHandActive]);
+  const clampedSampleStreetIdx = sampleReplayerSteps.length > 0
+    ? Math.min(sampleStreetIdx, sampleReplayerSteps.length - 1)
+    : 0;
+  const activeSampleStep = sampleReplayerSteps[clampedSampleStreetIdx] || null;
+  const sampleArenaProps = useMemo(() => {
+    if (!sampleHandActive || !activeSampleStep) return null;
+    const heroCards = getHeroCards(ILLUSTRATIVE_SAMPLE_HAND);
+    const boards = getBoards(ILLUSTRATIVE_SAMPLE_HAND);
+    const streets = getStreets(ILLUSTRATIVE_SAMPLE_HAND);
+    const variantInfo = getVariantInfo(ILLUSTRATIVE_SAMPLE_HAND, heroCards, boards, streets);
+    return buildReplayerArenaProps(ILLUSTRATIVE_SAMPLE_HAND, activeSampleStep, heroCards, variantInfo);
+  }, [sampleHandActive, activeSampleStep]);
 
   const selectedPlayers = Array.isArray(selectedHand?.hand_data?.players) ? selectedHand.hand_data.players : [];
   const selectedWinnersByBoard = Array.isArray(selectedHand?.hand_data?.winnersByBoard)
@@ -1973,6 +2236,10 @@ export default function PersonalAssistantReviewPage() {
     setFilterTag('');
     setSearchInput('');
     setDebouncedQuery('');
+    setChipPosition('All');
+    setChipPotType('All');
+    setChipBigPotOnly(false);
+    setChipVariant('All');
   }, []);
 
   return (
@@ -2020,7 +2287,10 @@ export default function PersonalAssistantReviewPage() {
                       className={styles.secondaryBtn}
                       data-testid="export-json-btn"
                       disabled={Boolean(exportingFormat)}
-                      onClick={() => handleExportHands('json')}
+                      onClick={() => {
+                        recordPaMilestone('study_exported', { format: 'json', surface: 'review' });
+                        handleExportHands('json');
+                      }}
                     >
                       <Download size={15} aria-hidden="true" />
                       {exportingFormat === 'json' ? 'Exporting…' : 'Export JSON'}
@@ -2030,7 +2300,10 @@ export default function PersonalAssistantReviewPage() {
                       className={styles.secondaryBtn}
                       data-testid="export-text-btn"
                       disabled={Boolean(exportingFormat)}
-                      onClick={() => handleExportHands('text')}
+                      onClick={() => {
+                        recordPaMilestone('study_exported', { format: 'text', surface: 'review' });
+                        handleExportHands('text');
+                      }}
                     >
                       <Download size={15} aria-hidden="true" />
                       {exportingFormat === 'text' ? 'Exporting…' : 'Export Text'}
@@ -2181,9 +2454,20 @@ export default function PersonalAssistantReviewPage() {
                 <div className={styles.emptyState}>
                   <h2>Sign In To Review Your Saved Hands</h2>
                   <p>Your Saved Hands And Private Notes Are Owner-Scoped And Require An Active Account.</p>
-                  <Link href={signInHref} className={styles.primaryBtn} data-testid="review-signin-cta">
-                    Sign In
-                  </Link>
+                  <div className={styles.actionBar}>
+                    <Link href={signInHref} className={styles.primaryBtn} data-testid="review-signin-cta">
+                      Sign In
+                    </Link>
+                    <button
+                      type="button"
+                      className={styles.secondaryBtn}
+                      data-sample-hand-trigger="true"
+                      onClick={handleLoadSampleHand}
+                    >
+                      <FlaskConical size={15} aria-hidden="true" />
+                      <span>Load Sample Hand</span>
+                    </button>
+                  </div>
                 </div>
               </section>
             )}
@@ -2210,12 +2494,141 @@ export default function PersonalAssistantReviewPage() {
                     Tap Log This Hand Inside Club Arena Previous Hands, Or Log A Hand From Personal Assistant Home To Start Building Your Review Queue.
                   </p>
                   <div className={styles.actionBar}>
-                    <Link href="/hub/personal-assistant" className={styles.primaryBtn}>
+                    <button
+                      type="button"
+                      className={styles.primaryBtn}
+                      data-sample-hand-trigger="true"
+                      onClick={handleLoadSampleHand}
+                    >
+                      <FlaskConical size={15} aria-hidden="true" />
+                      <span>Load Sample Hand</span>
+                    </button>
+                    <Link href="/hub/personal-assistant" className={styles.secondaryBtn}>
                       Back To Personal Assistant
                     </Link>
                     <Link href="/hub/personal-assistant/leaks" className={styles.secondaryBtn}>
                       Open My Leaks
                     </Link>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {sampleHandActive && hands.length === 0 && (loadStatus === 'signed_out' || loadStatus === 'ready') && activeSampleStep && (
+              <section className={styles.panel} aria-label="Illustrative Sample Hand Replayer" data-sample-hand-preview="true">
+                <div className={styles.sampleBanner} role="status">
+                  <span>Illustrative Sample Hand (Not Saved To Your Account)</span>
+                  <div className={styles.actionBar}>
+                    <button
+                      type="button"
+                      className={styles.primaryBtn}
+                      data-sample-explore-sandbox="true"
+                      onClick={handleExploreSampleInSandbox}
+                    >
+                      <FlaskConical size={15} aria-hidden="true" />
+                      <span>Explore Sample In Sandbox</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.compactBtn}
+                      onClick={() => setSampleHandActive(false)}
+                    >
+                      <span>Close Sample</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.replayerBox}>
+                  <div className={styles.replayerHead}>
+                    <span className={styles.replayerTitle}>Sample Street-By-Street Replayer</span>
+                    <div role="tablist" aria-label="Sample Hand Streets" className={styles.streetTablist}>
+                      {sampleReplayerSteps.map((step, idx) => {
+                        const isActive = idx === clampedSampleStreetIdx;
+                        return (
+                          <button
+                            key={`sample-tab-${step.name}`}
+                            type="button"
+                            role="tab"
+                            aria-selected={isActive}
+                            tabIndex={isActive ? 0 : -1}
+                            className={`${styles.streetTab} ${isActive ? styles.streetTabActive : ''}`}
+                            onClick={() => setSampleStreetIdx(idx)}
+                          >
+                            <span>{step.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className={styles.replayerStage}>
+                    {sampleArenaProps && (
+                      <div className={styles.replayerArenaWrap} data-review-arena-table="true">
+                        <SandboxPokerTable
+                          heroCards={sampleArenaProps.heroCards}
+                          communityCards={sampleArenaProps.communityCards}
+                          pot={sampleArenaProps.pot}
+                          heroPosition={sampleArenaProps.heroPosition}
+                          heroStack={sampleArenaProps.heroStack}
+                          villains={sampleArenaProps.villains}
+                          villainHoleCards={sampleArenaProps.villainHoleCards}
+                          street={sampleArenaProps.street}
+                          variant={sampleArenaProps.variant}
+                          readOnly
+                        />
+                      </div>
+                    )}
+                    <div className={styles.replayerMetrics}>
+                      <div className={styles.cardsGroup} aria-label={`${activeSampleStep.label} Community Cards`}>
+                        <span className={styles.boardLabel}>{activeSampleStep.label} Board:</span>
+                        {activeSampleStep.boardCards.length > 0 ? (
+                          activeSampleStep.boardCards.map((c, cIdx) => {
+                            const tok = formatCardToken(c);
+                            return (
+                              <span
+                                key={`sample-c-${cIdx}`}
+                                data-pa-verbatim="true"
+                                className={`${styles.cardChip} ${tok.red ? styles.cardRed : ''}`}
+                              >
+                                {tok.text}
+                              </span>
+                            );
+                          })
+                        ) : (
+                          <span className={styles.panelCount}>No Community Cards Dealt</span>
+                        )}
+                      </div>
+                      <div className={styles.replayerMetricGroup}>
+                        <span className={styles.replayerMetricChip}>
+                          Pot: {formatChips(activeSampleStep.runningPot)}
+                        </span>
+                        {activeSampleStep.spr && (
+                          <span className={styles.replayerMetricChip}>
+                            SPR: {activeSampleStep.spr}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {activeSampleStep.actions.length > 0 && (
+                      <ul className={styles.actionList}>
+                        {activeSampleStep.actions.map((a, aIdx) => (
+                          <li
+                            key={`sample-a-${aIdx}`}
+                            className={`${styles.actionRow} ${a.isHero ? styles.actionRowHero : ''}`}
+                          >
+                            <span>
+                              {a.position ? `${a.position} · ` : ''}
+                              <strong>{a.playerName || (a.isHero ? 'You' : 'Villain')}</strong>
+                              {a.isHero ? ' (Hero)' : ''}
+                            </span>
+                            <span>
+                              {formatActionVerb(a.action)}
+                              {Number(a.amount) > 0 ? ` ${formatChips(a.amount)}` : ''}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               </section>
@@ -2292,10 +2705,71 @@ export default function PersonalAssistantReviewPage() {
                           <option value="tournament">Tournament</option>
                         </select>
                       </div>
+                      <div className={styles.smartFilterGroups} aria-label="Smart Filter Chips" data-smart-filter-chips="true">
+                        <div className={styles.smartFilterRow} role="group" aria-label="Position Filter">
+                          <span className={styles.smartFilterLabel}>Pos:</span>
+                          {SMART_POSITIONS.map((pos) => {
+                            const active = chipPosition === pos;
+                            return (
+                              <button
+                                key={`pos-chip-${pos}`}
+                                type="button"
+                                aria-pressed={active}
+                                className={`${styles.smartChipBtn} ${active ? styles.smartChipBtnActive : ''}`}
+                                onClick={() => setChipPosition(pos)}
+                              >
+                                <span>{pos}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div className={styles.smartFilterRow} role="group" aria-label="Pot Type And Size Filter">
+                          <span className={styles.smartFilterLabel}>Pot:</span>
+                          {SMART_POT_TYPES.map((potType) => {
+                            const active = chipPotType === potType;
+                            return (
+                              <button
+                                key={`pot-chip-${potType}`}
+                                type="button"
+                                aria-pressed={active}
+                                className={`${styles.smartChipBtn} ${active ? styles.smartChipBtnActive : ''}`}
+                                onClick={() => setChipPotType(potType)}
+                              >
+                                <span>{potType}</span>
+                              </button>
+                            );
+                          })}
+                          <button
+                            type="button"
+                            aria-pressed={chipBigPotOnly}
+                            className={`${styles.smartChipBtn} ${chipBigPotOnly ? styles.smartChipBtnActive : ''}`}
+                            onClick={() => setChipBigPotOnly((prev) => !prev)}
+                          >
+                            <span>40+ BB</span>
+                          </button>
+                        </div>
+                        <div className={styles.smartFilterRow} role="group" aria-label="Variant Filter">
+                          <span className={styles.smartFilterLabel}>Game:</span>
+                          {SMART_VARIANTS.map((variantOption) => {
+                            const active = chipVariant === variantOption;
+                            return (
+                              <button
+                                key={`var-chip-${variantOption}`}
+                                type="button"
+                                aria-pressed={active}
+                                className={`${styles.smartChipBtn} ${active ? styles.smartChipBtnActive : ''}`}
+                                onClick={() => setChipVariant(variantOption)}
+                              >
+                                <span>{variantOption}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                       {hasActiveFilters && (
                         <div className={styles.filterFooterRow}>
                           <span>
-                            {filterTag ? `Tag: ${filterTag}` : `${hands.length} Matching`}
+                            {filterTag ? `Tag: ${filterTag}` : `${displayedHands.length} Matching`}
                           </span>
                           <button
                             type="button"
@@ -2308,7 +2782,7 @@ export default function PersonalAssistantReviewPage() {
                       )}
                     </div>
 
-                    {hands.length === 0 ? (
+                    {displayedHands.length === 0 ? (
                       <div className={styles.emptyState}>
                         <h2>{nextCursor ? 'No Matching Hands In This Batch' : 'No Matching Hands'}</h2>
                         <p>{nextCursor
@@ -2320,7 +2794,7 @@ export default function PersonalAssistantReviewPage() {
                       </div>
                     ) : (
                       <div className={styles.handList}>
-                        {hands.map((hand) => {
+                        {displayedHands.map((hand) => {
                           const meta = getReviewMeta(hand);
                           const isSelected = String(hand.id) === String(selectedHand?.id);
                           const heroNet = Number(hand.hand_data?.heroNet ?? hand.hand_data?.players?.find((p) => p.isHero)?.netResult ?? 0);
@@ -2552,6 +3026,22 @@ export default function PersonalAssistantReviewPage() {
                               aria-labelledby={`street-tab-${activeStep.name}`}
                               className={styles.replayerStage}
                             >
+                              {replayerArenaProps && (
+                                <div className={styles.replayerArenaWrap} data-review-arena-table="true">
+                                  <SandboxPokerTable
+                                    heroCards={replayerArenaProps.heroCards}
+                                    communityCards={replayerArenaProps.communityCards}
+                                    pot={replayerArenaProps.pot}
+                                    heroPosition={replayerArenaProps.heroPosition}
+                                    heroStack={replayerArenaProps.heroStack}
+                                    villains={replayerArenaProps.villains}
+                                    villainHoleCards={replayerArenaProps.villainHoleCards}
+                                    street={replayerArenaProps.street}
+                                    variant={replayerArenaProps.variant}
+                                    readOnly
+                                  />
+                                </div>
+                              )}
                               <div className={styles.replayerMetrics}>
                                 {Array.isArray(activeStep.boards)
                                 && activeStep.boards.length > 1

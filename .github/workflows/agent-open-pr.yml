@@ -86,8 +86,9 @@ jobs:
             --jq '.commit.message | split("\n")[0]')
 
           # Unfinished work is never proposed (PR #3170, 2026-11-27): a bookmark,
-          # handoff or wip branch, or a head commit that says wip, bookmark or
-          # unfinished, gets no pull request and therefore no auto-merge.
+          # handoff or wip branch, or a head commit marked wip, bookmark:,
+          # handoff: or [do-not-ship], gets no pull request and therefore no
+          # auto-merge. A PR opened later can be held with the do-not-ship label.
           set +e
           HOLD=$(bash .github/scripts/unfinished-work-guard.sh "$BRANCH" "$TITLE")
           HOLD_RC=$?

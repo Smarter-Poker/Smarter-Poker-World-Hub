@@ -16,7 +16,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/horseBrainTrainingAdapter';
@@ -507,6 +507,7 @@ export default function FlashcardsPage() {
     // Trigger initial deck generation after sm2Data loads
     sm2LoadedRef.current = true;
     setDeckGenKey(k => k + 1);
+    if (!getAccessToken()) return;
     authedFetch('/api/training/tool-records?tool_id=flashcards&limit=50')
       .then((res) => (res && res.ok ? res.json() : null))
       .then((json) => {
@@ -626,7 +627,7 @@ export default function FlashcardsPage() {
       try {
         localStorage.setItem('flashcard-sm2', JSON.stringify(updated));
       } catch (e) { console.warn('[App] Handled exception:', e); }
-      authedFetch('/api/training/tool-records', {
+      if (getAccessToken()) authedFetch('/api/training/tool-records', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -31,64 +31,53 @@ function hasStoredAuthSession() {
   return false;
 }
 
+// The teaser under each headline names the features a free account opens.
+// It never shows example rows of solver frequencies, timestamps, EVs, table
+// counts or any other figure: those read as real analysis of the page the
+// player is on, and they were invented. A number here must come from real
+// data in this repo (107 is the canonical TRAINING_LIBRARY game count).
 const PRESETS = {
   'solver-matrix': {
     eyebrow: 'Free Account Unlock',
-    title: 'See Full Multi-Position Solver Frequencies & Drill Tree',
+    title: 'See Full Preflop Solver Charts & Drill Every Spot',
     subtitle:
-      'Create A Free Smarter.Poker Account To Unlock Complete 6-Max & 9-Max Solver Splits, 3-Bet/4-Bet Responses, And Unlimited Interactive GTO Drills.',
-    ctaLabel: 'Unlock Full Solver Matrix Free',
+      'Create A Free Smarter.Poker Account To Unlock Complete Preflop Charts, 3-Bet And 4-Bet Responses, And Interactive GTO Drills.',
+    ctaLabel: 'Unlock Full Solver Charts Free',
     unlockedHref: '/hub/training',
     unlockedLabel: 'Open Live GTO Training',
-    columns: ['Position', 'Open / 3-Bet', 'Vs 3-Bet Call', '4-Bet Value / Bluff', 'EV (BB/100)'],
-    rows: [
-      ['UTG (100BB)', '100% Open 2.5x', '64% Call / 36% 4-Bet', '82% Value / 18% Bluff', '+14.8 BB'],
-      ['CO (100BB)', '100% Open 2.5x', '71% Call / 29% 4-Bet', '76% Value / 24% Bluff', '+22.4 BB'],
-      ['BTN (100BB)', '100% Open 2.2x', '78% Call / 22% 4-Bet', '70% Value / 30% Bluff', '+31.9 BB'],
-      ['BB Defense', '44% 3-Bet / 56% Call', 'Mixed Flop C-Bet Tree', 'Exploitative Pool Shift', '+18.2 BB'],
-    ],
+    locked: ['Full Preflop Charts', 'Vs 3-Bet Responses', 'Saved Hands', 'Accuracy Tracking', 'GTO Drills'],
     benefits: [
-      'Unlock Full 6-Position & 40BB/100BB/200BB Solver Matrices',
+      'Unlock Full Preflop Solver Charts For Every Position',
       'Save Any Starting Hand To Your Daily GTO Drill Queue',
-      'Track Accuracy, Leak Score & EV Gains Across 107 Free Games',
+      'Track Your Accuracy Across 107 Free Training Games',
     ],
   },
   'calculator-pro': {
     eyebrow: 'Free Account Unlock',
     title: 'Save Scenarios, Compare Ranges & Export Calculations Free',
     subtitle:
-      'Keep Every Calculation In Your Free Smarter.Poker Cloud Workspace, Export CSV Reports, And Launch Live GTO Training From Your Exact Spot.',
+      'Keep Every Calculation In Your Free Smarter.Poker Workspace And Launch GTO Training From Your Exact Spot.',
     ctaLabel: 'Create Free Account To Save & Unlock',
     unlockedHref: '/hub/training/range-builder',
     unlockedLabel: 'Open Cloud Range Builder',
-    columns: ['Saved Spot', 'Stack / Format', 'Solver Action', 'Equity / EV', 'Cloud Sync'],
-    rows: [
-      ['BTN Vs BB 3-Bet', '100BB 6-Max Cash', '4-Bet / Call Split', '58.4% / +3.9 BB', 'Synced'],
-      ['ICM Bubble Shove', '12BB Final Table', 'Push Top 34.2%', '+1.64% $EV', 'Synced'],
-      ['Turn Check-Raise', 'SPR 3.4 Live 2/5', 'Semi-Bluff 62%', '+4.12 BB', 'Synced'],
-    ],
+    locked: ['Saved Scenarios', 'Custom Presets', 'Range Exports', 'Cloud Sync', 'Bankroll Link'],
     benefits: [
-      'Save Unlimited Calculator Scenarios & Custom Presets',
+      'Save Calculator Scenarios & Custom Presets',
       'Export Ranges & Equity Tables To Your Study Library',
-      'Sync Results Directly With Bankroll Manager & GTO Training',
+      'Sync Results With Bankroll Manager & GTO Training',
     ],
   },
   'live-venue-intel': {
     eyebrow: 'Free Live Room Intel',
-    title: 'See Live Waitlists, Peak Hours & Seat Alerts With A Free Account',
+    title: 'Track Peak Hours, Favorite Rooms & Series Alerts With A Free Account',
     subtitle:
-      'Unlock Real-Time Table Counts, Hourly Peak-Traffic Heatmaps, Favorite Room Tracking, And Instant Tournament Series Alerts Across 715+ Poker Rooms.',
+      'Unlock Peak-Hour Trends, Favorite Room Tracking, And Tournament Series Alerts For Verified Poker Rooms.',
     ctaLabel: 'Unlock Live Room Intel Free',
     unlockedHref: '/hub/poker-near-me/lobby',
     unlockedLabel: 'Open Live Poker Near Me',
-    columns: ['Live Game', 'Tables Running', 'Waitlist', 'Peak Window', 'Alert Status'],
-    rows: [
-      ['1/3 No-Limit Hold Em', '11 Active Tables', '4 Players Waiting', 'Fri-Sat 8:00 PM', 'Live Alert Ready'],
-      ['2/5 No-Limit Hold Em', '6 Active Tables', '2 Players Waiting', 'Fri-Sat 9:00 PM', 'Live Alert Ready'],
-      ['PLO / Mixed Games', '3 Active Tables', 'Open Seat Now', 'Thu-Sun 7:30 PM', 'Live Alert Ready'],
-    ],
+    locked: ['Peak-Hour Trends', 'Favorite Rooms', 'Series Alerts', 'Schedule Sync', 'Session Logging'],
     benefits: [
-      'Unlock Hourly Peak-Traffic Heatmaps & Busiest-Day Trends',
+      'Unlock Peak-Hour Trends & Busiest-Day Patterns',
       'Save Favorite Poker Rooms & Sync Tournament Schedules',
       'Log Live Cash & MTT Sessions Into Free Bankroll Manager',
     ],
@@ -97,19 +86,14 @@ const PRESETS = {
     eyebrow: 'Free Study Account',
     title: 'Unlock Interactive Hand Quizzes, Bookmarks & Pro Feeds Free',
     subtitle:
-      'Turn Every Poker Video Into Measurable Win-Rate Gains. Bookmark Key Hands, Follow Favorite Pros, And Drill The Exact Spot In GTO Training.',
+      'Bookmark Key Hands, Follow Favorite Pros, And Drill The Spots You Watch In GTO Training.',
     ctaLabel: 'Create Free Account To Bookmark & Drill',
     unlockedHref: '/hub/video-library',
     unlockedLabel: 'Open Video Study Library',
-    columns: ['Timestamp', 'Decision Spot', 'GTO Line', 'Pool Leak', 'Drill Link'],
-    rows: [
-      ['04:18', 'Flop Check-Raise IP', 'Call 68% / Raise 32%', 'Over-Folding 19%', 'Launch Drill'],
-      ['11:42', 'Turn Overbet 125%', 'Polarized Value/Bluff', 'Under-Bluffing 14%', 'Launch Drill'],
-      ['18:05', 'River Thin Value', 'Bet 50% Pot', 'Missed Value +3.2BB', 'Launch Drill'],
-    ],
+    locked: ['Hand Quizzes', 'Video Bookmarks', 'Study Playlists', 'Pro Feeds', 'GTO Drills'],
     benefits: [
-      'Bookmark Video Timestamps & Build Custom Study Playlists',
-      'Follow Verified Poker Creators & Tournament Channels',
+      'Bookmark Videos & Build Custom Study Playlists',
+      'Follow Poker Creators & Tournament Channels',
       'Jump Straight From Any Video Into 107 Free GTO Drills',
     ],
   },
@@ -121,12 +105,7 @@ const PRESETS = {
     ctaLabel: 'Unlock Study Deck & Quizzes Free',
     unlockedHref: '/hub/training/skill-tree',
     unlockedLabel: 'Open Interactive Skill Tree',
-    columns: ['Module', 'Spot Drills', 'Cheat Sheet', 'Leak Tracker', 'Access'],
-    rows: [
-      ['Preflop Foundations', '24 Interactive Spots', 'Full Matrix Ready', 'Auto-Graded', 'Free Account'],
-      ['Postflop C-Betting', '32 Interactive Spots', 'Board Texture Grid', 'Auto-Graded', 'Free Account'],
-      ['Tournament ICM & PKO', '28 Interactive Spots', 'Push/Fold Charts', 'Auto-Graded', 'Free Account'],
-    ],
+    locked: ['Saved Guides', 'Spot Quizzes', 'Cheat Sheets', 'Leak Tracker', 'Skill Tree'],
     benefits: [
       'Save Strategy Guides & Formulas To Your Study Dashboard',
       'Unlock 107 Interactive GTO Training Games & Skill Tree',
@@ -135,20 +114,15 @@ const PRESETS = {
   },
   'dataset-export': {
     eyebrow: 'Free Research & Comparison Access',
-    title: 'See Full Interactive Filter Matrix & Export Data With A Free Account',
+    title: 'Filter, Save & Export This Data With A Free Account',
     subtitle:
-      'Filter Every Verified Poker Room, Tournament Series, And Research Dataset Live Inside Smarter.Poker - Free With Your Account.',
+      'Filter Verified Poker Rooms, Tournament Series, And Research Datasets Inside Smarter.Poker - Free With Your Account.',
     ctaLabel: 'Unlock Full Interactive Data Free',
     unlockedHref: '/hub',
     unlockedLabel: 'Open Smarter.Poker Hub',
-    columns: ['Metric / Filter', 'Full Verified Scope', 'Live Updates', 'Export / Save', 'Cost'],
-    rows: [
-      ['Poker Rooms Directory', '715+ Verified Venues', 'Daily Live Sync', 'Favorites + Alerts', '100% Free'],
-      ['Tournament Schedules', 'Live Series & Circuits', 'Daily Schedule Sync', 'Calendar Export', '100% Free'],
-      ['GTO & Strategy Datasets', '169 Hands + 50+ Tools', 'Solver Verified', 'Cloud Bookmarks', '100% Free'],
-    ],
+    locked: ['Room Filters', 'Saved Comparisons', 'Calendar Export', 'Custom Notes', 'Cloud Bookmarks'],
     benefits: [
-      'Filter 715+ Poker Rooms By Stakes, Rake, Distance & Waitlist',
+      'Filter Verified Poker Rooms By Stakes, Games & Distance',
       'Save Comparisons, Research Benchmarks & Custom Notes',
       'Access Free Bankroll Tracker, Training Games & Poker Clubs',
     ],
@@ -161,12 +135,7 @@ const PRESETS = {
     ctaLabel: 'Create Free Member Account',
     unlockedHref: '/hub/wire',
     unlockedLabel: 'Open Member Wire Feed',
-    columns: ['Member Feature', 'Weekly Drop', 'Interactive Access', 'Archive', 'Tier'],
-    rows: [
-      ['GTO Spot Of The Week', 'Every Issue', 'Vote + Solver Reveal', 'Full History', 'Free Account'],
-      ['Live Series Alerts', 'Regional + Major', '1-Click Calendar Sync', 'All Tours', 'Free Account'],
-      ['Poker Magazine Issues', 'Digital + Rooms', 'Bookmark & Share', 'All Editions', 'Free Account'],
-    ],
+    locked: ['Weekly Hand Polls', 'Wire Archive', 'Magazine Issues', 'Series Alerts', 'Calendar Sync'],
     benefits: [
       'Vote On Interactive Solver Spots & See Community Splits',
       'Unlock Full Smarter.Poker Magazine & Weekly Wire Archives',
@@ -183,8 +152,6 @@ export default function SmarterAccountUnlockGate({
   subtitle,
   ctaLabel,
   benefits,
-  columns,
-  rows,
   redirectPath,
   className = '',
 }) {
@@ -204,8 +171,6 @@ export default function SmarterAccountUnlockGate({
   const resolvedSubtitle = subtitle || preset.subtitle;
   const resolvedCta = ctaLabel || preset.ctaLabel;
   const resolvedBenefits = Array.isArray(benefits) && benefits.length > 0 ? benefits : preset.benefits;
-  const resolvedCols = Array.isArray(columns) && columns.length > 0 ? columns : preset.columns;
-  const resolvedRows = Array.isArray(rows) && rows.length > 0 ? rows : preset.rows;
 
   const signupHref = buildSignupUrl({
     redirectPath: currentPath,
@@ -266,30 +231,13 @@ export default function SmarterAccountUnlockGate({
         </div>
       </div>
 
-      <div className={styles.unlockPreviewWrap} aria-hidden="true">
-        <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
-          <table className={styles.unlockPreviewTable}>
-            <thead>
-              <tr>
-                {resolvedCols.map((col) => (
-                  <th key={col}>{col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className={styles.unlockBlurred}>
-              {resolvedRows.map((row, idx) => (
-                <tr key={idx}>
-                  {row.map((cell, cIdx) => (
-                    <td key={cIdx}>{cell}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className={styles.unlockOverlayScrim}>
-          <span className={styles.unlockLockBadge}>Free Account Required To View Full Data</span>
-        </div>
+      <div className={styles.unlockLockedWrap}>
+        <span className={styles.unlockLockBadge}>Unlocks With A Free Account</span>
+        <ul className={styles.unlockLockedList} aria-label="Features A Free Account Unlocks">
+          {preset.locked.map((feature) => (
+            <li key={feature} className={styles.unlockLockedItem}>{feature}</li>
+          ))}
+        </ul>
       </div>
 
       <ul className={styles.unlockBenefits}>

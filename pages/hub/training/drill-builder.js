@@ -337,8 +337,15 @@ export default function DrillBuilderPage() {
       return;
     }
     try {
+      const { data: sessionData } = await getSupabase().auth.getSession();
+      if (!sessionData?.session?.user) {
+        return;
+      }
       const { data: userData, error: userError } = await getSupabase().auth.getUser();
-      if (userError) throw userError;
+      if (userError) {
+        if (/session missing/i.test(userError?.message || '')) return;
+        throw userError;
+      }
       if (!userData?.user) {
         setSaveError('Sign In To Load Saved Drills.');
         return;
