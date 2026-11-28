@@ -1,0 +1,51 @@
+diff --git a/e2e/fixtures/personalAssistantBrowser.ts b/e2e/fixtures/personalAssistantBrowser.ts
+index 97cabac1..3af452bc 100644
+--- a/e2e/fixtures/personalAssistantBrowser.ts
++++ b/e2e/fixtures/personalAssistantBrowser.ts
+@@ -76,7 +76,38 @@ export async function installPersonalAssistantFixtures(page: Page, context: Brow
+     requests: [] as Array<{ handHistoryText: string; evidenceScope: string; source: string }>,
+     savedHands: new Map<string, ReturnType<typeof buildImportedSavedHandRows>[number]>(),
+   };
+-  page.on('pageerror', error => errors.push(error.message));
++  // WebKit logs "Fetch API cannot load <url> due to access control checks." for
++  // a fetch that the page starts while its document is being unloaded, even
++  // when the page catches the rejection, and Playwright reports every WebKit
++  // console error from the javascript source as a page error. Reproduced in
++  // isolation: a fetch() issued from a pagehide listener, with .catch(), on a
++  // same-origin fulfilled route, raises exactly this "error" on reload. Global
++  // chrome (header stats, the phone read, news preferences, saved-hand reads,
++  // chunk warm-ups) refreshes on visibility and lifecycle events, so every
++  // navigation in this suite can produce one, which made the WebKit project
++  // flaky. They are not exceptions in the page. Only that exact message, for a
++  // URL this fixture serves (the app origin or the mocked Supabase REST/Auth
++  // paths), within a few seconds of a main-frame navigation, is set aside;
++  // anything else is still a failure.
++  const isWebKit = context.browser()?.browserType().name() === 'webkit';
++  let lastMainFrameNavigation = -Infinity;
++  page.on('request', request => {
++    if (request.isNavigationRequest() && request.frame() === page.mainFrame()) lastMainFrameNavigation = Date.now();
++  });
++  const unloadFetches: string[] = [];
++  const isUnloadFetchLog = (error: Error) => {
++    if (!isWebKit || Date.now() - lastMainFrameNavigation > 5000) return false;
++    // Playwright splits WebKit's text at its first colon, so the scheme lands
++    // in error.name and the rest of the URL in error.message.
++    const match = `${error.name}:${error.message}`.match(/^Fetch API cannot load (https?):\/*(\S+) due to access control checks\.$/);
++    if (!match) return false;
++    const url = new URL(`${match[1]}://${match[2]}`);
++    return url.origin === origin || /^\/(rest|auth)\/v1\//.test(url.pathname);
++  };
++  page.on('pageerror', error => {
++    if (isUnloadFetchLog(error)) unloadFetches.push(error.message);
++    else errors.push(error.message);
++  });
+   await page.addInitScript(({ auth }) => {
+     localStorage.setItem('smarter-poker-auth', JSON.stringify(auth));
+     localStorage.setItem(`sp_firstrun_notif_v2_${auth.user.id}`, String(Date.now()));
+@@ -188,5 +219,5 @@ export async function installPersonalAssistantFixtures(page: Page, context: Brow
+     // or mutation is forwarded to the real app server or another origin.
+     return json(route, { success: true, data: [], notifications: [], balance: 0 });
+   });
+-  return { errors, unexpected, apiRequests, imports };
++  return { errors, unexpected, apiRequests, imports, unloadFetches };
+ }

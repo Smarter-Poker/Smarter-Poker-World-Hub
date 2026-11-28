@@ -1,0 +1,415 @@
+From ff1bd2bb2cf95fd39dc954189a19d6b6b16a8ef2 Mon Sep 17 00:00:00 2001
+From: Smarter-Poker <254329056+Smarter-Poker@users.noreply.github.com>
+Date: Fri, 27 Nov 2026 22:53:50 -0600
+Subject: [PATCH] fix(ci): Global Footer E2E gates report real breakage again
+
+- Training: the open World command menu painted beneath the portaled
+  header and guest bar (isolated route shell). The shell now rises above
+  them while its drawer is open; 022 measures the layers.
+- Poker Near Me: Report A Bug lost its 48px floor in #3209 (34px).
+- Every page: GlobalPiPManager no longer imports LiveStreamService, so the
+  LiveKit SDK (527 KB decoded) stays off pages that never stream.
+- SEO kit and Video Library eyebrows no longer render under 12px.
+- 05 Diamond Store: the fallback package art is the #3201 header scene.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01UxDLnLyJhQ4UcGZ3k6pajX
+---
+ __tests__/_test-guards-exist.test.mjs         |  2 +
+ ...s-off-pages-that-never-stream.law.test.mjs | 72 +++++++++++++++++++
+ ...-menu-paints-above-the-header.law.test.mjs | 29 ++++++++
+ e2e/022-world-menu-visual.spec.ts             | 31 ++++++++
+ e2e/05-diamond-store.spec.ts                  |  4 +-
+ src/components/seo/SmarterSeoKit.module.css   |  2 +-
+ src/components/social/GlobalPiPManager.jsx    | 22 ++++--
+ src/components/ui/HamburgerMenu.jsx           |  1 +
+ .../VideoLibraryWorkspaceHeader.module.css    |  2 +-
+ src/services/LiveStreamService.js             |  2 +
+ src/services/activeLiveStream.js              | 25 +++++++
+ .../worlds/poker-near-me-console-menu.css     |  5 +-
+ src/styles/worlds/training.css                | 10 +++
+ 13 files changed, 198 insertions(+), 9 deletions(-)
+ create mode 100644 __tests__/the-live-stream-sdk-stays-off-pages-that-never-stream.law.test.mjs
+ create mode 100644 __tests__/the-open-command-menu-paints-above-the-header.law.test.mjs
+ create mode 100644 src/services/activeLiveStream.js
+
+diff --git a/__tests__/_test-guards-exist.test.mjs b/__tests__/_test-guards-exist.test.mjs
+index 934325c4..de776ef3 100644
+--- a/__tests__/_test-guards-exist.test.mjs
++++ b/__tests__/_test-guards-exist.test.mjs
+@@ -1003,6 +1003,8 @@ import './otc-tier1-overlay-attribution-onetap-20261127.law.test.mjs';
+ import './otc-tier2-leak-finder-and-activation-20261127.law.test.mjs';
+ import './otc-tier2-bofu-compare-and-matchups-20261127.law.test.mjs';
+ import './otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs';
++import './the-live-stream-sdk-stays-off-pages-that-never-stream.law.test.mjs';
++import './the-open-command-menu-paints-above-the-header.law.test.mjs';
+ 
+ test('every guard in __tests__ is reachable by CI', () => {
+     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
+diff --git a/__tests__/the-live-stream-sdk-stays-off-pages-that-never-stream.law.test.mjs b/__tests__/the-live-stream-sdk-stays-off-pages-that-never-stream.law.test.mjs
+new file mode 100644
+index 00000000..ddf855f0
+--- /dev/null
++++ b/__tests__/the-live-stream-sdk-stays-off-pages-that-never-stream.law.test.mjs
+@@ -0,0 +1,72 @@
++/**
++ * THE LIVE STREAM SDK STAYS OFF PAGES THAT NEVER STREAM (2026-11-28)
++ *
++ * _app mounts GlobalPiPManager on every page. It was already dynamic (see
++ * the-app-shell-stays-light.law.test.mjs), but its own chunk statically
++ * imported LiveStreamService, and with it livekit-client: 527 KB decoded,
++ * about 141 KB over the wire, fetched on every World root right after
++ * hydration for a widget that renders null unless a stream is live. On
++ * 2026-11-28 that chunk was the largest single reason ten World roots failed
++ * the mobile JS budget in Global Footer E2E.
++ *
++ * A stream only exists after GoLiveModal or LiveStreamViewer loaded the
++ * service, so the service registers itself in src/services/activeLiveStream.js
++ * and the PiP reads it from there.
++ */
++import assert from 'node:assert/strict';
++import { existsSync, readFileSync, statSync } from 'node:fs';
++import { dirname, join, normalize } from 'node:path';
++import test from 'node:test';
++
++const ROOT = process.cwd();
++const read = (file) => readFileSync(join(ROOT, file), 'utf8');
++
++function resolveSpec(spec, from) {
++  if (!spec.startsWith('.')) return null;
++  const base = normalize(join(dirname(from), spec));
++  for (const c of [base, `${base}.js`, `${base}.jsx`, `${base}.ts`, `${base}.tsx`, join(base, 'index.js'), join(base, 'index.jsx')]) {
++    if (existsSync(join(ROOT, c)) && statSync(join(ROOT, c)).isFile()) return c;
++  }
++  return null;
++}
++
++function staticGraph(entry) {
++  const files = new Set();
++  const bare = new Set();
++  const stack = [entry];
++  while (stack.length) {
++    const file = stack.pop();
++    if (files.has(file)) continue;
++    files.add(file);
++    const src = read(file).replace(/import\(\s*['"][^'"]+['"]\s*\)/g, 'import(0)');
++    for (const [, spec] of src.matchAll(/^\s*import\s+(?:[\s\S]*?from\s+)?['"]([^'"]+)['"]/gm)) {
++      const resolved = resolveSpec(spec, file);
++      if (resolved) stack.push(resolved);
++      else if (!spec.startsWith('.')) bare.add(spec);
++    }
++  }
++  return { files, bare };
++}
++
++test('GlobalPiPManager reaches neither LiveStreamService nor livekit-client statically', () => {
++  const { files, bare } = staticGraph('src/components/social/GlobalPiPManager.jsx');
++  assert.ok(!files.has('src/services/LiveStreamService.js'), 'GlobalPiPManager imports LiveStreamService again');
++  assert.ok(![...bare].some((spec) => spec === 'livekit-client' || spec.startsWith('livekit-client/')), 'livekit-client is reachable from GlobalPiPManager');
++});
++
++test('the service registers its singleton where the PiP reads it', () => {
++  const service = read('src/services/LiveStreamService.js');
++  assert.match(service, /import \{ registerLiveStreamService \} from '\.\/activeLiveStream';/);
++  assert.match(service, /export const liveStreamService = new LiveStreamService\(\);\s*\nregisterLiveStreamService\(liveStreamService\);/);
++  assert.match(read('src/components/social/GlobalPiPManager.jsx'), /getLiveStreamService\(\)/);
++});
++
++test('no registered service reads as no stream', async () => {
++  const handle = await import('../src/services/activeLiveStream.js');
++  assert.equal(handle.getLiveStreamService(), null);
++  const fake = { room: {}, currentStreamId: 's1' };
++  handle.registerLiveStreamService(fake);
++  assert.equal(handle.getLiveStreamService(), fake);
++  handle.registerLiveStreamService(null);
++  assert.equal(handle.getLiveStreamService(), null);
++});
+diff --git a/__tests__/the-open-command-menu-paints-above-the-header.law.test.mjs b/__tests__/the-open-command-menu-paints-above-the-header.law.test.mjs
+new file mode 100644
+index 00000000..0eb5b808
+--- /dev/null
++++ b/__tests__/the-open-command-menu-paints-above-the-header.law.test.mjs
+@@ -0,0 +1,29 @@
++/**
++ * THE OPEN COMMAND MENU PAINTS ABOVE THE HEADER (2026-11-28)
++ *
++ * UniversalHeader portals the header to <body> at z 10050 but renders the
++ * World command menu in place. On Training the route shell is isolated
++ * (isolation: isolate keeps its z-index:-1 decorations inside it), so the open
++ * drawer was capped at the shell's level and the header and guest bar painted
++ * over its title, edit and close controls on every Training page.
++ * e2e/022-world-menu-visual.spec.ts measures the layers in a browser; this
++ * pins the two halves of the fix so neither is dropped on its own.
++ */
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import test from 'node:test';
++
++const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
++
++test('the drawer exposes its open state', () => {
++  assert.match(read('src/components/ui/HamburgerMenu.jsx'), /data-open=\{isOpen \? 'true' : 'false'\}/);
++});
++
++test('the isolated Training shell rises above the header while its drawer is open', () => {
++  const css = read('src/styles/worlds/training.css');
++  assert.match(css, /body\.world-training \.sp-training-route-shell \{[^}]*isolation: isolate;/);
++  const rule = css.match(/body\.world-training \.sp-training-route-shell:has\(\.sp-drawer\[data-open='true'\]\) \{([^}]*)\}/);
++  assert.ok(rule, 'the open-drawer rule on the Training route shell is missing');
++  const z = Number(rule[1].match(/z-index:\s*(\d+)/)?.[1]);
++  assert.ok(z > 10050, `the open shell must sit above the portaled header (10050), got ${z}`);
++});
+diff --git a/e2e/022-world-menu-visual.spec.ts b/e2e/022-world-menu-visual.spec.ts
+index e86c3737..fb9d2cc1 100644
+--- a/e2e/022-world-menu-visual.spec.ts
++++ b/e2e/022-world-menu-visual.spec.ts
+@@ -27,6 +27,37 @@ async function openMenu(page: Page, world: WorldMenuVisualCase) {
+   await expect(drawer).toHaveAttribute('data-world-menu-scheme', world.scheme);
+   await expect(drawer).toHaveAttribute('data-world-menu-texture', world.texture);
+   await expect(drawer.locator(`[data-world-primary-commands="${world.id}"] .sp-grid-tile`)).toHaveCount(6);
++  // The open drawer is a modal: it must paint above the portaled global
++  // header, the guest bar and the footer. A page wrapper that creates a
++  // stacking context (the Training route shell is isolated) caps every
++  // descendant at the wrapper's own level, so compare root-level layers.
++  // A pixel snapshot alone missed this: the header and guest bar covered the
++  // Training drawer's title and close controls for days while the ratio
++  // stayed under its tolerance at 1440px.
++  const layers = await drawer.evaluate((element) => {
++    const rootLevel = (node: Element) => {
++      let level = 0;
++      for (let current: Element | null = node; current && current !== document.body && current !== document.documentElement; current = current.parentElement) {
++        const style = getComputedStyle(current);
++        const positioned = style.position !== 'static';
++        const creates = (positioned && style.zIndex !== 'auto')
++          || style.position === 'fixed' || style.position === 'sticky'
++          || style.isolation === 'isolate' || style.transform !== 'none'
++          || style.filter !== 'none' || Number(style.opacity) < 1;
++        if (creates) level = style.zIndex === 'auto' ? 0 : Number(style.zIndex);
++      }
++      return level;
++    };
++    const header = document.querySelector('.approved-global-header');
++    const guestBar = document.querySelector('[data-testid="guest-conversion-bar"]');
++    return {
++      drawer: rootLevel(element),
++      header: header ? rootLevel(header) : null,
++      guestBar: guestBar ? rootLevel(guestBar) : null,
++    };
++  });
++  if (layers.header !== null) expect(layers.drawer, `${world.label} drawer paints under the global header`).toBeGreaterThan(layers.header);
++  if (layers.guestBar !== null) expect(layers.drawer, `${world.label} drawer paints under the guest bar`).toBeGreaterThan(layers.guestBar);
+   await page.addStyleTag({
+     content: '*,*::before,*::after{animation:none!important;caret-color:transparent!important;font-family:Arial,sans-serif!important;}',
+   });
+diff --git a/e2e/05-diamond-store.spec.ts b/e2e/05-diamond-store.spec.ts
+index 69e38d24..b5ae0327 100644
+--- a/e2e/05-diamond-store.spec.ts
++++ b/e2e/05-diamond-store.spec.ts
+@@ -1045,9 +1045,11 @@ test.describe('5. Storefront Routes And Design Contract', () => {
+       'background-position',
+       '50% 50%'
+     );
++    // A package with no sheet position falls back to the Diamonds header scene,
++    // the #SMARTERDESIGN store art (#3201), never a blank frame.
+     await expect(page.locator('[data-diamond-package="titan"] [data-package-media]')).toHaveCSS(
+       'background-image',
+-      /diamond-vault-hero/
++      /smarterdesign\/headers\/store-diamonds-scene\.webp/
+     );
+ 
+     catalog = [PAGE1_DIAMOND_PACKAGES[0], PAGE1_DIAMOND_PACKAGES[1], unknownPackage];
+diff --git a/src/components/seo/SmarterSeoKit.module.css b/src/components/seo/SmarterSeoKit.module.css
+index b0b79090..a5763f07 100644
+--- a/src/components/seo/SmarterSeoKit.module.css
++++ b/src/components/seo/SmarterSeoKit.module.css
+@@ -296,7 +296,7 @@
+     inset 0 1px 0 rgb(134 218 255 / 45%),
+     0 1px 0 #010509;
+   color: var(--sk-ice);
+-  font: 700 11px/1.2 var(--sk-type);
++  font: 700 12px/1.2 var(--sk-type); /* never under 12px (mobile budget law) */
+   letter-spacing: 0.09em;
+   text-transform: uppercase;
+ }
+diff --git a/src/components/social/GlobalPiPManager.jsx b/src/components/social/GlobalPiPManager.jsx
+index bfcdc623..8078f8cf 100644
+--- a/src/components/social/GlobalPiPManager.jsx
++++ b/src/components/social/GlobalPiPManager.jsx
+@@ -1,7 +1,9 @@
+ import React, { useEffect, useState, useRef } from 'react';
+ import { useRouter } from 'next/router';
+ import { Maximize2, X, Mic, MicOff, Video, VideoOff } from 'lucide-react';
+-import { liveStreamService } from '../../services/LiveStreamService';
++// Never import LiveStreamService here: it pulls the LiveKit SDK into every
++// page. The service registers itself once a streaming surface loads it.
++import { getLiveStreamService } from '../../services/activeLiveStream';
+ 
+ export default function GlobalPiPManager() {
+     const router = useRouter();
+@@ -27,7 +29,10 @@ export default function GlobalPiPManager() {
+         const checkStream = () => {
+             // BUG-FIX-13: don't re-activate if user dismissed this session's PiP
+             if (dismissedRef.current) return;
+-            const hasStream = liveStreamService.room !== null && liveStreamService.currentStreamId !== null;
++            const liveStreamService = getLiveStreamService();
++            const hasStream = Boolean(liveStreamService)
++                && liveStreamService.room !== null
++                && liveStreamService.currentStreamId !== null;
+             const isLiveRoute = router.pathname.includes('/social-media') || router.pathname.includes('/hub/live');
+             
+             // Activate PiP if there's a stream and we are NOT on the social/live page
+@@ -55,7 +60,8 @@ export default function GlobalPiPManager() {
+         // autoplay-restricted browsers and detach on cleanup.
+         const bind = () => {
+             const el = videoRef.current;
+-            if (!el) return;
++            const liveStreamService = getLiveStreamService();
++            if (!el || !liveStreamService) return;
+             const stream = liveStreamService.isBroadcaster
+                 ? liveStreamService.localStream
+                 : liveStreamService._remoteMediaStream;
+@@ -114,6 +120,12 @@ export default function GlobalPiPManager() {
+     };
+ 
+     const handleEndOrLeave = async () => {
++        const liveStreamService = getLiveStreamService();
++        if (!liveStreamService) {
++            dismissedRef.current = true;
++            setIsActive(false);
++            return;
++        }
+         if (streamContext?.isBroadcaster) {
+             // AUDIT-FIX: only set dismissed+inactive AFTER the user confirms.
+             // Previously setIsActive(false) fired unconditionally before the
+@@ -186,7 +198,7 @@ export default function GlobalPiPManager() {
+                 <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4 z-10">
+                     <button 
+                         onClick={async () => {
+-                            const muted = await liveStreamService.toggleMute();
++                            const muted = await getLiveStreamService()?.toggleMute();
+                             setIsMuted(muted);
+                         }}
+                         className={`p-3 rounded-full backdrop-blur-md transition-all ${isMuted ? 'bg-red-500/80 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}
+@@ -195,7 +207,7 @@ export default function GlobalPiPManager() {
+                     </button>
+                     <button 
+                         onClick={async () => {
+-                            const muted = await liveStreamService.toggleVideo();
++                            const muted = await getLiveStreamService()?.toggleVideo();
+                             setIsVideoMuted(muted);
+                         }}
+                         className={`p-3 rounded-full backdrop-blur-md transition-all ${isVideoMuted ? 'bg-red-500/80 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}
+diff --git a/src/components/ui/HamburgerMenu.jsx b/src/components/ui/HamburgerMenu.jsx
+index 3e62b90f..ff74375f 100644
+--- a/src/components/ui/HamburgerMenu.jsx
++++ b/src/components/ui/HamburgerMenu.jsx
+@@ -1278,6 +1278,7 @@ function HamburgerMenuContent({
+         data-world-menu-scheme={activeWorld?.menuPalette?.scheme || 'global'}
+         data-world-menu-texture={activeWorld?.menuPalette?.texture || 'none'}
+         data-direction={direction}
++        data-open={isOpen ? 'true' : 'false'}
+         data-responsive-composition={isFacebookMenu ? 'preserved' : 'adaptive'}
+         data-menu-symbol="hamburger"
+         onTouchStart={handleTouchStart}
+diff --git a/src/components/video-library/VideoLibraryWorkspaceHeader.module.css b/src/components/video-library/VideoLibraryWorkspaceHeader.module.css
+index 7b4a0db5..aaba69bb 100644
+--- a/src/components/video-library/VideoLibraryWorkspaceHeader.module.css
++++ b/src/components/video-library/VideoLibraryWorkspaceHeader.module.css
+@@ -182,7 +182,7 @@
+   overflow: hidden;
+   white-space: nowrap;
+   text-overflow: ellipsis;
+-  font: 750 clamp(10px, 1.1cqi, 12px)/1.2 'Barlow Condensed', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
++  font: 750 12px/1.2 'Barlow Condensed', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+   color: #a2dfff;
+   letter-spacing: 0.16em;
+ }
+diff --git a/src/services/LiveStreamService.js b/src/services/LiveStreamService.js
+index ee9aa4cd..9e93c8b0 100644
+--- a/src/services/LiveStreamService.js
++++ b/src/services/LiveStreamService.js
+@@ -24,6 +24,7 @@ import { supabase } from '../lib/supabase';
+ import * as READS from './liveStreamReads';
+ import { getAccessToken, getFreshAccessToken } from '../lib/authUtils';
+ import { busEmit } from '../engine/EventBus';
++import { registerLiveStreamService } from './activeLiveStream';
+ 
+ const logError = (ctx, err) => console.warn(`[LiveStream:${ctx}]`, err?.message || err);
+ 
+@@ -1670,4 +1671,5 @@ class LiveStreamService {
+ 
+ // Singleton
+ export const liveStreamService = new LiveStreamService();
++registerLiveStreamService(liveStreamService);
+ export default LiveStreamService;
+diff --git a/src/services/activeLiveStream.js b/src/services/activeLiveStream.js
+new file mode 100644
+index 00000000..ab3b6705
+--- /dev/null
++++ b/src/services/activeLiveStream.js
+@@ -0,0 +1,25 @@
++/**
++ * The live stream that is running in this tab, if any - without the LiveKit SDK.
++ *
++ * GlobalPiPManager is mounted by _app on every page, and it only ever renders
++ * for a stream that GoLiveModal or LiveStreamViewer already started. It used to
++ * import LiveStreamService directly, which statically imports livekit-client,
++ * so every page of the estate downloaded the whole SDK (527 KB decoded, about
++ * 141 KB over the wire) a moment after hydration, for a widget that renders
++ * null unless a stream is live. That alone pushed most World roots over their
++ * mobile JS budget.
++ *
++ * A stream cannot exist until LiveStreamService has been loaded by the surface
++ * that starts it, so the service registers its singleton here when its module
++ * evaluates, and the PiP reads it from here. No service registered means no
++ * stream, and the SDK stays off pages that never stream.
++ */
++let activeService = null;
++
++export function registerLiveStreamService(service) {
++  activeService = service || null;
++}
++
++export function getLiveStreamService() {
++  return activeService;
++}
+diff --git a/src/styles/worlds/poker-near-me-console-menu.css b/src/styles/worlds/poker-near-me-console-menu.css
+index 17dfd9d6..479dd502 100644
+--- a/src/styles/worlds/poker-near-me-console-menu.css
++++ b/src/styles/worlds/poker-near-me-console-menu.css
+@@ -496,7 +496,10 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
+   box-sizing: border-box !important;
+   width: calc(100% - 2 * var(--pnm-menu-inset)) !important;
+   height: auto !important;
+-  min-height: 0 !important;
++  /* The painted face's aspect-ratio used to give this button its ~52px height.
++     The chrome rim (#3209) dropped that ratio, which left a 34px tap target,
++     so it keeps the 48px floor the menu rows and deck tiles carry. */
++  min-height: 48px !important;
+   margin: 0 var(--pnm-menu-inset) !important;
+   padding: 0 var(--pnm-face-inline) var(--pnm-face-lift) !important;
+   color: #dfe8ef !important;
+diff --git a/src/styles/worlds/training.css b/src/styles/worlds/training.css
+index 20e39e3e..7d9db0f9 100644
+--- a/src/styles/worlds/training.css
++++ b/src/styles/worlds/training.css
+@@ -2600,6 +2600,16 @@ body.world-training .sp-training-route-shell {
+     background: #040d18;
+ }
+ 
++/* The isolated shell keeps page decorations (z-index: -1) inside it, but it
++   also traps the World command menu, which UniversalHeader renders in place
++   while it portals the header itself to <body> at z 10050. Closed, the shell
++   stays at the page layer. Open, the whole shell rises above the header
++   (10050), the guest bar (850) and the footer (900), so the modal drawer and
++   its backdrop cover them exactly as on every other World. */
++body.world-training .sp-training-route-shell:has(.sp-drawer[data-open='true']) {
++    z-index: 10100;
++}
++
+ body.world-training .sp-training-page-stage {
+     position: relative;
+     min-height: calc(100dvh - 59px);
+-- 
+2.43.0
+
