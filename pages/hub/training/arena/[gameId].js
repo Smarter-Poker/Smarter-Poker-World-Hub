@@ -43,23 +43,23 @@ import {
 const GodModeArena = dynamic(() => import('../../../../src/components/training/GodModeArena'), {
     ssr: false,
     loading: () => (
-        <div style={{
+        <div className="smarterdesign" style={{
             minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
             background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#64748b',
-            fontFamily: "'Inter', -apple-system, sans-serif",
+            color: '#bdd0e2',
+            fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         }}>
-            <div style={{ textAlign: 'center' }}>
+            <div className="sd-panel" style={{ textAlign: 'center', padding: '24px 32px' }}>
                 <div style={{
-                    width: 40, height: 40, border: '3px solid rgba(0,212,255,0.2)',
-                    borderTopColor: '#00d4ff', borderRadius: '50%',
+                    width: 40, height: 40, border: '3px solid rgba(134,218,255,0.22)',
+                    borderTopColor: '#86daff', borderRadius: '50%',
                     animation: 'spin 0.8s linear infinite',
-                    margin: '0 auto 16px',
+                    margin: '0 auto 14px',
                 }} />
-                <div style={{ fontSize: 14, fontWeight: 600 }}>Loading Arena...</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#f2f7ff' }}>Loading Arena...</div>
             </div>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
@@ -83,40 +83,37 @@ class ArenaErrorBoundary extends React.Component {
         if (this.state.hasError) {
             const err = this.state.error;
             return (
-                <div style={{
+                <div className="smarterdesign" style={{
                     minHeight: '100dvh',
                     background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#94a3b8', fontFamily: "'Inter', sans-serif", padding: 24,
+                    color: '#bdd0e2', fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", padding: 24,
                 }}>
-                    <div style={{ maxWidth: 600, textAlign: 'center' }}>
-                        <div style={{ fontSize: 48, marginBottom: 16 }}>▲</div>
-                        <h2 style={{ color: '#ef4444', fontSize: 22, marginBottom: 12 }}>Arena Crash Detected</h2>
+                    <div className="sd-panel" style={{ maxWidth: 600, width: '100%', textAlign: 'center', padding: 24 }}>
+                        <div style={{ fontSize: 40, marginBottom: 12, color: '#86daff' }}>▲</div>
+                        <h2 style={{ color: '#f2f7ff', fontSize: 22, marginBottom: 12, fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>Arena Crash Detected</h2>
                         <div style={{
                             background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-                            borderRadius: 8, padding: 16, textAlign: 'left', fontSize: 13,
-                            fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-                            maxHeight: 300, overflow: 'auto', marginBottom: 16,
+                            padding: 14, textAlign: 'left', fontSize: 13,
+                            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                            maxHeight: 260, overflow: 'auto', marginBottom: 16,
                         }}>
-                            <div style={{ color: '#ef4444', fontWeight: 'bold', marginBottom: 8 }}>
+                            <div style={{ color: '#fca5a5', fontWeight: 700, marginBottom: 8 }}>
                                 {err?.message || 'Unknown error'}
                             </div>
-                            <div style={{ color: '#64748b', fontSize: 12 }}>
+                            <div style={{ color: '#94a3b8', fontSize: 12 }}>
                                 {err?.stack?.substring(0, 800) || 'No stack trace'}
                             </div>
                             {this.state.errorInfo?.componentStack && (
-                                <div style={{ color: '#475569', fontSize: 12, marginTop: 8 }}>
+                                <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 8 }}>
                                     {this.state.errorInfo.componentStack.substring(0, 500)}
                                 </div>
                             )}
                         </div>
                         <button
+                            type="button"
+                            className="sd-button sd-primary"
                             onClick={() => window.location.reload()}
-                            style={{
-                                background: '#00d4ff', color: '#000', border: 'none',
-                                padding: '10px 24px', borderRadius: 20, fontSize: 14,
-                                fontWeight: 600, cursor: 'pointer',
-                            }}
                         >
                             Reload Arena
                         </button>
@@ -577,7 +574,7 @@ export default function TrainingArenaPage() {
                         color: '#e6f3ff',
                         fontSize: 12,
                         fontWeight: 700,
-                        fontFamily: "'Inter', -apple-system, sans-serif",
+                        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                         zIndex: 50,
                     }}
                 >
@@ -680,7 +677,7 @@ export default function TrainingArenaPage() {
                         color: '#ecfdf5',
                         fontSize: 12,
                         fontWeight: 700,
-                        fontFamily: "'Inter', -apple-system, sans-serif",
+                        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                         zIndex: 50,
                     }}
                 >
@@ -721,7 +718,7 @@ export default function TrainingArenaPage() {
                         color: '#e6f3ff',
                         fontSize: 12,
                         fontWeight: 700,
-                        fontFamily: "'Inter', -apple-system, sans-serif",
+                        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                         zIndex: 50,
                     }}
                 >
@@ -758,7 +755,7 @@ export default function TrainingArenaPage() {
                         color: '#f4fbff',
                         fontSize: 12,
                         fontWeight: 800,
-                        fontFamily: "'Inter', -apple-system, sans-serif",
+                        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                         zIndex: 50,
                     }}
                 >
@@ -794,7 +791,7 @@ export default function TrainingArenaPage() {
                         color: '#f4fbff',
                         fontSize: 12,
                         fontWeight: 800,
-                        fontFamily: "'Inter', -apple-system, sans-serif",
+                        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                         zIndex: 50,
                     }}
                 >
@@ -829,7 +826,7 @@ export default function TrainingArenaPage() {
                         color: '#f0f9ff',
                         fontSize: 12,
                         fontWeight: 700,
-                        fontFamily: "'Inter', -apple-system, sans-serif",
+                        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                         zIndex: 50,
                     }}
                 >
