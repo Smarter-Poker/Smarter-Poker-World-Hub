@@ -1927,6 +1927,18 @@ function HamburgerMenuContent({
           rule ever needs to lose such a tie, bump the other rule's specificity
           explicitly instead of relying on document order. */}
       <style dangerouslySetInnerHTML={{ __html: `
+        /* The open menu is a modal, but UniversalHeader renders it in place
+           while it portals the header to <body> at z 10050. Any page wrapper
+           that makes a stacking context (Training's isolated route shell, the
+           Video Library header area at z 40) capped the drawer at that
+           wrapper's level, so the header, the guest bar (850) and the footer
+           (900) painted over its title and close controls. While it is open,
+           every ancestor is lifted to the drawer's own layer. z-index has no
+           effect on a static, non-flex ancestor, so only the wrappers that
+           actually trap it change, and only until the drawer closes. */
+        body :has(.sp-drawer[data-open='true']) {
+          z-index: 10100 !important;
+        }
         .sp-command-backdrop {
           backdrop-filter: blur(7px) saturate(.72);
           -webkit-backdrop-filter: blur(7px) saturate(.72);

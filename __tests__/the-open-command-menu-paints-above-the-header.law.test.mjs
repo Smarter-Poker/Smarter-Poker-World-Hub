@@ -2,10 +2,11 @@
  * THE OPEN COMMAND MENU PAINTS ABOVE THE HEADER (2026-11-28)
  *
  * UniversalHeader portals the header to <body> at z 10050 but renders the
- * World command menu in place. On Training the route shell is isolated
- * (isolation: isolate keeps its z-index:-1 decorations inside it), so the open
- * drawer was capped at the shell's level and the header and guest bar painted
- * over its title, edit and close controls on every Training page.
+ * World command menu in place. Any page wrapper that creates a stacking
+ * context caps the open drawer at that wrapper's level: Training's isolated
+ * route shell, Preflop Charts and the Video Library header area (z 40) all let
+ * the header and guest bar paint over the drawer's title, edit and close
+ * controls.
  * e2e/022-world-menu-visual.spec.ts measures the layers in a browser; this
  * pins the two halves of the fix so neither is dropped on its own.
  */
@@ -19,11 +20,10 @@ test('the drawer exposes its open state', () => {
   assert.match(read('src/components/ui/HamburgerMenu.jsx'), /data-open=\{isOpen \? 'true' : 'false'\}/);
 });
 
-test('the isolated Training shell rises above the header while its drawer is open', () => {
-  const css = read('src/styles/worlds/training.css');
-  assert.match(css, /body\.world-training \.sp-training-route-shell \{[^}]*isolation: isolate;/);
-  const rule = css.match(/body\.world-training \.sp-training-route-shell:has\(\.sp-drawer\[data-open='true'\]\) \{([^}]*)\}/);
-  assert.ok(rule, 'the open-drawer rule on the Training route shell is missing');
-  const z = Number(rule[1].match(/z-index:\s*(\d+)/)?.[1]);
-  assert.ok(z > 10050, `the open shell must sit above the portaled header (10050), got ${z}`);
+test('every ancestor of the open drawer rises to the drawer layer, above the header', () => {
+  const menu = read('src/components/ui/HamburgerMenu.jsx');
+  const rule = menu.match(/body :has\(\.sp-drawer\[data-open='true'\]\) \{([^}]*)\}/);
+  assert.ok(rule, 'the open-drawer ancestor rule is missing from the command menu styles');
+  const z = Number(rule[1].match(/z-index:\s*(\d+)\s*!important/)?.[1]);
+  assert.ok(z > 10050, `open-drawer ancestors must sit above the portaled header (10050), got ${z}`);
 });
