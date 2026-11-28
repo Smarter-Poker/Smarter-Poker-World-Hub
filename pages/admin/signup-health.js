@@ -25,6 +25,7 @@ import consoleStyles from '../../src/components/admin/OperatorAdminSurface.modul
 import GrowthScorecard from '../../src/components/admin/GrowthScorecard';
 import { loadGrowthScorecard } from '../../src/lib/acquisition/growthScorecard.mjs';
 import { loadRecentSignupAttribution } from '../../src/lib/acquisition/attributionSummary.mjs';
+import { loadSeoFunnelRollup } from '../../src/lib/acquisition/seoFunnelRollup.mjs';
 
 /**
  * [2026-07-25] REACHABILITY FIX — same as /admin/auth-health: browsers never
@@ -50,12 +51,16 @@ export async function getServerSideProps({ req, res }) {
     }
     const adm = createClient(url, srKey, { auth: { persistSession: false } });
 
-    const [healthRes, heartbeatsRes, errorsRes, growth, attribution] = await Promise.all([
+    const [healthRes, heartbeatsRes, errorsRes, growth, attribution, seoFunnel] = await Promise.all([
         adm.from('signup_health_view').select('*').maybeSingle(),
         adm.from('probe_heartbeats').select('id, probe_name, status, duration_ms, occurred_at').order('occurred_at', { ascending: false }).limit(20),
         adm.from('signup_errors').select('id, email, trigger_name, error_code, error_msg, occurred_at').order('occurred_at', { ascending: false }).limit(50),
         loadGrowthScorecard(adm),
         loadRecentSignupAttribution(adm),
+        (typeof loadSeoFunnelRollup === 'function'
+            ? Promise.resolve().then(() => loadSeoFunnelRollup({ windowDays: 7, timeoutMs: 3000 }))
+            : Promise.resolve({ available: false, reason: 'unconfigured', window_days: 7, events: {}, stages: null, rates: null }))
+            .catch(() => ({ available: false, reason: 'fetch_error', window_days: 7, events: {}, stages: null, rates: null })),
     ]);
 
     return {
@@ -67,6 +72,7 @@ export async function getServerSideProps({ req, res }) {
             generatedAt: new Date().toISOString(),
             growth,
             attribution,
+            seoFunnel,
         },
     };
 }
@@ -117,6 +123,7 @@ export default function SignupHealthDashboard(props) {
         generatedAt: props.generatedAt || null,
         growth: props.growth || null,
         attribution: props.attribution || props.data?.attribution || null,
+        seoFunnel: props.seoFunnel || props.data?.seoFunnel || null,
     });
 
     useEffect(() => {
@@ -156,6 +163,7 @@ export default function SignupHealthDashboard(props) {
                         generatedAt: json.generatedAt,
                         growth: json.growth,
                         attribution: json.attribution || healthProbe?.attribution || null,
+                        seoFunnel: json.seoFunnel || healthProbe?.seoFunnel || null,
                     });
                 }
             } catch (e) {
@@ -208,6 +216,8 @@ export default function SignupHealthDashboard(props) {
             <GrowthScorecard report={state.growth} />
 
             <AttributionScorecard attribution={state.attribution} />
+
+            <LiveOrganicFunnelScorecard seoFunnel={state.seoFunnel} />
 
             {health && (
                 <section className={consoleStyles.panel} style={S.section}>
@@ -548,6 +558,174 @@ function AttributionScorecard({ attribution }) {
     );
 }
 
+function formatFunnelRate(rate) {
+    if (typeof rate !== 'number' || !Number.isFinite(rate)) return 'N/A';
+    return `${rate}%`;
+}
+
+function LiveOrganicFunnelScorecard({ seoFunnel }) {
+    const isAvailable = Boolean(seoFunnel && seoFunnel.available === true && seoFunnel.stages);
+    const windowDays = Number.isInteger(seoFunnel?.window_days) && seoFunnel.window_days > 0
+        ? seoFunnel.window_days
+        : 7;
+    const stages = isAvailable ? seoFunnel.stages : null;
+    const rates = isAvailable && seoFunnel.rates && typeof seoFunnel.rates === 'object'
+        ? seoFunnel.rates
+        : {};
+
+    const stageRows = stages ? [
+        {
+            key: 'engaged',
+            label: 'Tool/Drill Engaged',
+            count: Number(stages.engaged || 0),
+            accent: '#00D4FF',
+            stepRate: null,
+            stepContext: 'Entry Stage',
+        },
+        {
+            key: 'sheetOpened',
+            label: 'Quick Signup Opened',
+            count: Number(stages.sheetOpened || 0),
+            accent: '#38bdf8',
+            stepRate: rates.engagedToSheetPct,
+            stepContext: 'From Tool/Drill Engaged',
+        },
+        {
+            key: 'authIntent',
+            label: 'OAuth / Email Click',
+            count: Number(stages.authIntent || 0),
+            accent: '#0ea5e9',
+            stepRate: rates.sheetToAuthIntentPct,
+            stepContext: 'From Quick Signup Opened',
+        },
+        {
+            key: 'activated',
+            label: 'Account Activated',
+            count: Number(stages.activated || 0),
+            accent: '#86daff',
+            stepRate: rates.authIntentToActivatedPct,
+            stepContext: 'From OAuth / Email Click',
+        },
+        {
+            key: 'spotsSynced',
+            label: 'Cloud Spots Synced',
+            count: Number(stages.spotsSynced || 0),
+            accent: '#65e8aa',
+            stepRate: rates.activatedToSyncedPct,
+            stepContext: 'From Account Activated',
+        },
+    ] : [];
+
+    const maxStageCount = stageRows.reduce((max, row) => Math.max(max, row.count), 0);
+
+    const unavailableDetail = (() => {
+        if (seoFunnel?.reason === 'unconfigured') {
+            return 'PostHog Reporting Credentials Are Not Configured For This Environment.';
+        }
+        if (seoFunnel?.reason === 'timeout') {
+            return 'PostHog Reporting Query Timed Out. Reload To Retry.';
+        }
+        return 'PostHog Reporting Feed Could Not Be Reached. Reload To Retry.';
+    })();
+
+    return (
+        <section
+            id="live-organic-funnel-scorecard"
+            aria-labelledby="live-organic-funnel-title"
+            className={consoleStyles.panel}
+            style={{ ...S.section, borderRadius: 0, border: '1px solid #2b4663', background: '#0a1a2b' }}
+        >
+            <div style={S.attrHeader}>
+                <div>
+                    <h2 id="live-organic-funnel-title" style={{ ...S.h2, marginBottom: 6, color: '#f2f7ff' }}>
+                        Live Organic Conversion Funnel (7-Day Telemetry)
+                    </h2>
+                    <p style={{ ...S.p, color: '#bdd0e2' }}>
+                        Rolling {windowDays}-Day PostHog Aggregate Event Telemetry With Zero PII.
+                    </p>
+                </div>
+                <span style={S.attrBadge}>
+                    {isAvailable ? 'Live PostHog Telemetry' : 'PostHog Telemetry Unavailable'}
+                </span>
+            </div>
+
+            {!isAvailable ? (
+                <div style={S.funnelUnavailableBox} role="status" data-state="unavailable">
+                    <div style={S.funnelUnavailableTitle}>PostHog Telemetry Unavailable</div>
+                    <p style={{ ...S.p, color: '#bdd0e2', marginTop: 6 }}>
+                        {unavailableDetail}
+                    </p>
+                </div>
+            ) : (
+                <>
+                    <div style={S.funnelList} data-state="available">
+                        {stageRows.map((stage, idx) => {
+                            const widthPct = maxStageCount > 0 && stage.count > 0
+                                ? Math.max(2, Math.min(100, Math.round((stage.count / maxStageCount) * 100)))
+                                : 0;
+                            return (
+                                <div
+                                    key={stage.key}
+                                    style={S.funnelRow}
+                                    data-funnel-stage={stage.key}
+                                >
+                                    <div style={S.funnelRowHeader}>
+                                        <div style={S.funnelStageLabel}>
+                                            <span style={S.funnelStepIndex}>{idx + 1}.</span> {stage.label}
+                                        </div>
+                                        <div style={S.funnelStageMetrics}>
+                                            <span style={S.funnelStageCount}>{stage.count.toLocaleString('en-US')}</span>
+                                            <span style={S.funnelStepRate}>
+                                                {idx === 0
+                                                    ? stage.stepContext
+                                                    : `${formatFunnelRate(stage.stepRate)} Conversion (${stage.stepContext})`}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div
+                                        style={S.funnelBarTrack}
+                                        role="progressbar"
+                                        aria-label={stage.label}
+                                        aria-valuenow={stage.count}
+                                        aria-valuemin={0}
+                                        aria-valuemax={maxStageCount || 100}
+                                    >
+                                        <div
+                                            style={{
+                                                ...S.funnelBarFill,
+                                                width: `${widthPct}%`,
+                                                background: stage.accent,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div style={S.funnelRateSummaryGrid}>
+                        <div className={consoleStyles.metric} style={{ ...S.attrCard, borderLeft: '3px solid #38bdf8' }}>
+                            <div style={S.attrLabel}>Engaged To Sheet Opened</div>
+                            <div style={S.attrValue}>{formatFunnelRate(rates.engagedToSheetPct)}</div>
+                            <div style={S.attrMeta}>Stage 1 To Stage 2 Rate</div>
+                        </div>
+                        <div className={consoleStyles.metric} style={{ ...S.attrCard, borderLeft: '3px solid #0ea5e9' }}>
+                            <div style={S.attrLabel}>Sheet Opened To Auth Click</div>
+                            <div style={S.attrValue}>{formatFunnelRate(rates.sheetToAuthIntentPct)}</div>
+                            <div style={S.attrMeta}>Stage 2 To Stage 3 Rate</div>
+                        </div>
+                        <div className={consoleStyles.metric} style={{ ...S.attrCard, borderLeft: '3px solid #86daff' }}>
+                            <div style={S.attrLabel}>Auth Click To Activated</div>
+                            <div style={S.attrValue}>{formatFunnelRate(rates.authIntentToActivatedPct)}</div>
+                            <div style={S.attrMeta}>Stage 3 To Stage 4 Rate</div>
+                        </div>
+                    </div>
+                </>
+            )}
+        </section>
+    );
+}
+
 function Stat({ label, value, alert, hint }) {
     return (
         <div className={consoleStyles.metric} style={{
@@ -586,4 +764,17 @@ const S = {
     attrLabel: { fontSize: 12, color: '#bdd0e2', fontWeight: 600, letterSpacing: 0.3 },
     attrValue: { fontSize: 26, fontWeight: 700, color: '#f2f7ff', marginTop: 6 },
     attrMeta: { fontSize: 12, color: '#aabcc4', marginTop: 4 },
+    funnelUnavailableBox: { background: '#071321', border: '1px solid #2b4663', borderLeft: '3px solid #38bdf8', borderRadius: 0, padding: 16, marginTop: 8 },
+    funnelUnavailableTitle: { fontSize: 14, fontWeight: 700, color: '#f2f7ff', letterSpacing: 0.3 },
+    funnelList: { display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8 },
+    funnelRow: { background: '#0d1f33', border: '1px solid #2b4663', borderRadius: 0, padding: 14 },
+    funnelRowHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+    funnelStageLabel: { fontSize: 14, fontWeight: 600, color: '#f2f7ff' },
+    funnelStepIndex: { color: '#00D4FF', fontWeight: 700 },
+    funnelStageMetrics: { display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' },
+    funnelStageCount: { fontSize: 20, fontWeight: 700, color: '#f2f7ff' },
+    funnelStepRate: { fontSize: 12, color: '#86daff', fontWeight: 600 },
+    funnelBarTrack: { width: '100%', height: 10, background: '#071321', border: '1px solid #1e3a57', borderRadius: 0, overflow: 'hidden' },
+    funnelBarFill: { height: '100%', borderRadius: 0, transition: 'width 200ms ease' },
+    funnelRateSummaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginTop: 16 },
 };

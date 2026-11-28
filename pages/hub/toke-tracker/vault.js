@@ -10,6 +10,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
+import { useTokePrefs } from '../../../src/components/bankroll/toke/useTokePrefs';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { TokeWorkspace } from '../../../src/components/bankroll/toke/TokeWorkspace';
 import DealerVault from '../../../src/components/bankroll/DealerVault';
@@ -23,9 +24,16 @@ export default function DealerVaultPage() {
     const { user } = useAvatar();
     const userId = user?.id;
     const [mounted, setMounted] = useState(false);
-    const [completedGigs, setCompletedGigs] = useState([]);
+    // Completed gigs, tagged with whose they are and whether the read failed.
+    // A failed read used to leave an empty list, so the Tax Summary said "No
+    // Completed Events" and the 1099 alerts vanished for a dealer who had
+    // dozens: an empty state that lied. It now says it could not load.
+    const [gigData, setGigData] = useState(null);
+    const gigRead = useRef(0);
+    const currentGigs = gigData?.owner === userId ? gigData : null;
+    const completedGigs = currentGigs?.gigs || [];
+    const gigStatus = !userId ? 'signed-out' : !currentGigs ? 'loading' : currentGigs.error ? 'error' : 'ready';
     const [menuOpen, setMenuOpen] = useState(false);
-    const [tokePrefs, setTokePrefs] = useState({});
     const [showTaxSummary, setShowTaxSummary] = useState(false);
 
     // The Taxes command remains useful for a new dealer with no completed
@@ -46,27 +54,25 @@ export default function DealerVaultPage() {
         );
     }, [router]);
 
-    // SSR-safe: hydrate prefs + mount flag on client only
+    // SSR-safe: mount flag on client only (preferences: useTokePrefs)
     useEffect(() => {
         setMounted(true);
-        try {
-            const stored = localStorage.getItem('toke-tracker-prefs');
-            if (stored) setTokePrefs(JSON.parse(stored));
-        } catch (e) { console.warn('[App] Handled exception:', e); }
     }, []);
 
     // Load completed gigs for 1099 threshold alerts
     const loadGigs = useCallback(async () => {
+        const read = ++gigRead.current;
         if (!userId) return;
         try {
             const gigs = await fetchGigs(userId);
-            setCompletedGigs(gigs.filter(g => g.status === 'completed'));
+            if (gigRead.current === read) setGigData({ owner: userId, gigs: gigs.filter(g => g.status === 'completed') });
         } catch (err) {
+            if (gigRead.current === read) setGigData(prev => ({ owner: userId, gigs: prev?.owner === userId ? prev.gigs : [], error: true }));
             console.warn('Error loading gigs for vault:', err);
         }
     }, [userId]);
 
-    useEffect(() => { loadGigs(); }, [loadGigs]);
+    useEffect(() => { loadGigs(); return () => { gigRead.current++; }; }, [loadGigs]);
 
     useEffect(() => {
         window.addEventListener('toke-gig-completed', loadGigs);
@@ -95,37 +101,8 @@ export default function DealerVaultPage() {
         return () => supabase.removeChannel(channel);
     }, [userId, debouncedLoadGigs]);
 
-    const updatePref = useCallback(async (key, value) => {
-        let newPrefs;
-        setTokePrefs(prev => {
-            newPrefs = { ...prev, [key]: value };
-            return newPrefs;
-        });
-        await new Promise(r => setTimeout(r, 0));
-        if (!newPrefs) return;
-        window.dispatchEvent(new CustomEvent('toke-settings-sync', { detail: newPrefs }));
-        try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch (e) { console.warn('[App] Handled exception:', e); }
-        if (!userId) return;
-        try {
-            const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).maybeSingle();
-            const settings = profile?.settings || {};
-            settings.tokeTracker = newPrefs;
-            const { error: err_profiles_ajgs9 } = await supabase.from('profiles').update({ settings }).eq('id', userId);
-            if (err_profiles_ajgs9) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_ajgs9.message);
-        } catch (err) { console.warn('[TokeTracker] Pref save error:', err); }
-    }, [userId]);
-
-    useEffect(() => {
-        const handler = (e) => { if (e.detail) setTokePrefs(e.detail); };
-        window.addEventListener('toke-settings-sync', handler);
-        return () => window.removeEventListener('toke-settings-sync', handler);
-    }, []);
-
-    const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, {
-        setShiftNotifications: (v) => updatePref('shiftNotifications', v),
-        setAutoSaveShifts: (v) => updatePref('autoSaveShifts', v),
-        setDownTimerAlerts: (v) => updatePref('downTimerAlerts', v)
-    });
+    const { prefs: tokePrefs, handlers: prefHandlers } = useTokePrefs(userId);
+    const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, prefHandlers);
 
     // AEO phase 3 (2026-09-18): the head used to sit below this guard.
     // The guard is true on the server, so the branch a crawler always
@@ -183,6 +160,8 @@ export default function DealerVaultPage() {
                     {showTaxSummary && (
                         <TaxSummaryModal
                             completedGigs={completedGigs}
+                            status={gigStatus}
+                            onRetry={loadGigs}
                             onClose={closeTaxSummary}
                         />
                     )}

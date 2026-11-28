@@ -19,8 +19,11 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import { openQuickSignup } from '../../../src/components/seo/SmarterQuickSignupSheet';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
+import { trackSeoFunnelEvent } from '../../../src/lib/seo/seoFunnelTelemetry';
+import seoKitStyles from '../../../src/components/seo/SmarterSeoKit.module.css';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import GeoCitationCapsule from '../../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../../src/components/seo/GeoFollowUpChain';
@@ -76,11 +79,41 @@ export async function getServerSideProps(context) {
   };
 }
 
+const GAME_CONTEXT_LABELS = {
+  'pot-limit-omaha': 'PLO',
+  'double-board-bomb-pots': 'Bomb Pot',
+  'daily-nlh-tournaments': 'Daily NLH',
+  'bad-beat-jackpots': 'Bad Beat Jackpot',
+  'time-rake-membership-clubs': 'Time-Rake',
+  'high-stakes-cash-games': 'High-Stakes',
+};
+
 export default function PokerRoomsByGameDetailPage({ gameVertical, peerVerticals = [], venueCountLabel = VENUE_COUNT_LABEL }) {
   if (!gameVertical) return null;
 
   const canonicalPath = byGameGuidePath(gameVertical.slug);
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
+  const gameContextLabel = GAME_CONTEXT_LABELS[gameVertical.slug] || gameVertical.shortTitle;
+
+  const handleFollowLocalRooms = () => {
+    trackSeoFunnelEvent('seo_local_action_bar_click', {
+      vertical: 'by-game',
+      slug: gameVertical.slug,
+    });
+    openQuickSignup({
+      unlockKey: 'local-game-rooms',
+      source: 'local-game-action-bar',
+      redirectPath: canonicalPath,
+      eyebrow: `Free ${gameContextLabel} Poker Alerts`,
+      title: `Follow ${gameContextLabel} Poker Rooms Free`,
+      subtitle: 'Save Favorite Rooms, Get Tournament Start Reminders & Track Live Bankroll Sessions Free',
+      benefits: [
+        `Save Favorite ${gameContextLabel} Listed Poker Rooms & Quick Access`,
+        'Get Tournament Start Reminders & Series Alerts Free',
+        'Log Cash & Tournament Sessions In Free Bankroll Manager',
+      ],
+    });
+  };
 
   const jsonLd = [
     {
@@ -196,6 +229,126 @@ export default function PokerRoomsByGameDetailPage({ gameVertical, peerVerticals
             </Link>
           </div>
         </header>
+
+        {/* #SMARTERDESIGN Local Player Action Strip */}
+        <section
+          aria-label={`Follow ${gameContextLabel} Poker Rooms And Log Sessions`}
+          data-testid="local-player-action-strip"
+          className={seoKitStyles.kit}
+          style={{
+            marginBottom: 24,
+            padding: '16px 18px',
+            background: 'linear-gradient(180deg, #111827 0%, #0b1120 100%)',
+            border: '1px solid #2563eb',
+            boxShadow: 'inset 0 1px 0 rgba(56, 189, 248, 0.35), 0 8px 20px rgba(0, 0, 0, 0.45)',
+            borderRadius: 0,
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '14px 16px',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+            <span className={seoKitStyles.eyebrowTag}>
+              Free {gameContextLabel} Player Action Bar
+            </span>
+            <h2
+              style={{
+                margin: '8px 0 4px 0',
+                fontSize: 17,
+                fontWeight: 800,
+                color: '#f8fafc',
+                lineHeight: 1.25,
+              }}
+            >
+              Follow {gameContextLabel} Poker Rooms &amp; Log Live Sessions Free
+            </h2>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 13.5,
+                lineHeight: 1.5,
+                color: '#cbd5e1',
+              }}
+            >
+              Save Favorite Rooms, Get Tournament Start Reminders &amp; Track Live Bankroll Sessions Free.
+            </p>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: 10,
+              flex: '1 1 260px',
+              justifyContent: 'flex-start',
+              maxWidth: '100%',
+              minWidth: 0,
+            }}
+          >
+            <button
+              type="button"
+              data-testid="local-follow-rooms-cta"
+              onClick={handleFollowLocalRooms}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: 44,
+                padding: '10px 16px',
+                background: '#2563eb',
+                border: '1px solid #38bdf8',
+                borderRadius: 0,
+                color: '#ffffff',
+                fontSize: 13.5,
+                fontWeight: 800,
+                lineHeight: 1.25,
+                textAlign: 'center',
+                whiteSpace: 'normal',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                cursor: 'pointer',
+              }}
+            >
+              Follow {gameContextLabel} Poker Rooms Free
+            </button>
+            <Link
+              href="/hub/bankroll-manager"
+              data-testid="local-bankroll-cta"
+              onClick={() =>
+                trackSeoFunnelEvent('seo_local_action_bar_click', {
+                  vertical: 'by-game',
+                  slug: gameVertical.slug,
+                  action: 'bankroll',
+                })
+              }
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: 44,
+                padding: '10px 16px',
+                background: '#0b1120',
+                border: '1px solid #38bdf8',
+                borderRadius: 0,
+                color: '#38bdf8',
+                fontSize: 13.5,
+                fontWeight: 700,
+                lineHeight: 1.25,
+                textAlign: 'center',
+                textDecoration: 'none',
+                whiteSpace: 'normal',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+              }}
+            >
+              {"Log Tonight's Session Free"}
+            </Link>
+          </div>
+        </section>
 
         {/* Top Curated Venues Matrix */}
         <section aria-label="Top Curated Venues Comparison Matrix" style={styles.sectionPlate}>

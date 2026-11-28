@@ -14,7 +14,7 @@
     "dependencyFiles": 428,
     "componentFiles": 73,
     "hookFiles": 16,
-    "ctas": 499,
+    "ctas": 500,
     "dialogs": 26,
     "persistenceFiles": 100,
     "realtimeFiles": 7,
@@ -48986,7 +48986,7 @@
         {
           "element": "link",
           "name": "Claim 30-Day VIP + 500 Diamonds",
-          "line": 423,
+          "line": 512,
           "handler": "() => dismiss('claim-vip')",
           "destination": "/hub/verify-phone?welcome=1",
           "type": null,
@@ -48996,7 +48996,7 @@
         {
           "element": "link",
           "name": "Launch 107 GTO Games",
-          "line": 431,
+          "line": 520,
           "handler": "() => dismiss('launch-training')",
           "destination": "/hub/training",
           "type": null,
@@ -49006,7 +49006,7 @@
         {
           "element": "button",
           "name": "Dismiss Account Unlocked Banner",
-          "line": 439,
+          "line": 528,
           "handler": "() => dismiss('dismiss')",
           "destination": null,
           "type": "button",
@@ -49016,7 +49016,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 496,
+          "line": 585,
           "handler": "() => markDay0Win(item.id)",
           "destination": "item.href",
           "type": null,
@@ -49026,12 +49026,22 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 558,
+          "line": 647,
           "handler": "() => dismiss(`gravity-${link.href}`)",
           "destination": "link.href",
           "type": null,
           "disabled": null,
           "wiring": "destination"
+        },
+        {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 684,
+          "handler": "handleCopyInviteLink",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
         }
       ],
       "dialogs": {
@@ -49065,15 +49075,15 @@
       },
       "functions": [
         {
-          "name": "readStoredAccessToken",
-          "line": 26,
+          "name": "buildMemberShareReferralUrl",
+          "line": 24,
           "references": 2,
-          "exported": false,
+          "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
-          "name": "sanitizeGuestSpots",
+          "name": "readStoredAccessToken",
           "line": 38,
           "references": 2,
           "exported": false,
@@ -49081,8 +49091,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "sanitizeGuestSpots",
+          "line": 50,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "syncGuestSavedSpotsToCloud",
-          "line": 64,
+          "line": 76,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -49090,7 +49108,7 @@
         },
         {
           "name": "buildDay0ChecklistState",
-          "line": 143,
+          "line": 155,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -49098,7 +49116,7 @@
         },
         {
           "name": "resolveHubGravityLinks",
-          "line": 171,
+          "line": 183,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -49106,14 +49124,6 @@
         },
         {
           "name": "readLocalSavedSpotCount",
-          "line": 224,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "readCompletedDay0Wins",
           "line": 236,
           "references": 2,
           "exported": false,
@@ -49121,7 +49131,7 @@
           "namedFunctionExpression": false
         },
         {
-          "name": "hasStoredAuthSession",
+          "name": "readCompletedDay0Wins",
           "line": 248,
           "references": 2,
           "exported": false,
@@ -49129,8 +49139,24 @@
           "namedFunctionExpression": false
         },
         {
-          "name": "recordPendingSeoUnlock",
+          "name": "hasStoredAuthSession",
           "line": 260,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "readStoredMemberIdentity",
+          "line": 272,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "recordPendingSeoUnlock",
+          "line": 307,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -49138,7 +49164,7 @@
         },
         {
           "name": "promotePendingSeoUnlock",
-          "line": 275,
+          "line": 322,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -49146,7 +49172,7 @@
         },
         {
           "name": "resolveWelcomeBody",
-          "line": 300,
+          "line": 347,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -49154,15 +49180,23 @@
         },
         {
           "name": "SmarterUnlockedWelcomeBanner",
-          "line": 311,
+          "line": 358,
           "references": 1,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
+          "name": "handleCopyInviteLink",
+          "line": 422,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "markDay0Win",
-          "line": 355,
+          "line": 444,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -49170,7 +49204,7 @@
         },
         {
           "name": "dismiss",
-          "line": 376,
+          "line": 465,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -94204,11 +94238,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:423:1",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:512:1",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "Claim 30-Day VIP + 500 Diamonds",
-      "line": 423,
+      "line": 512,
       "handler": "() => dismiss('claim-vip')",
       "destination": "/hub/verify-phone?welcome=1",
       "type": null,
@@ -94217,11 +94251,11 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:431:2",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:520:2",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "Launch 107 GTO Games",
-      "line": 431,
+      "line": 520,
       "handler": "() => dismiss('launch-training')",
       "destination": "/hub/training",
       "type": null,
@@ -94230,11 +94264,11 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:439:3",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:528:3",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "button",
       "name": "Dismiss Account Unlocked Banner",
-      "line": 439,
+      "line": 528,
       "handler": "() => dismiss('dismiss')",
       "destination": null,
       "type": "button",
@@ -94243,11 +94277,11 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:496:4",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:585:4",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 496,
+      "line": 585,
       "handler": "() => markDay0Win(item.id)",
       "destination": "item.href",
       "type": null,
@@ -94256,16 +94290,29 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:558:5",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:647:5",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 558,
+      "line": 647,
       "handler": "() => dismiss(`gravity-${link.href}`)",
       "destination": "link.href",
       "type": null,
       "disabled": null,
       "wiring": "destination",
+      "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
+    },
+    {
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:684:6",
+      "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 684,
+      "handler": "handleCopyInviteLink",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
@@ -131827,6 +131874,10 @@
         "externalReferenceFiles": [
           "pages/hub/bankroll-manager.js",
           "pages/learn/hands/[hand].js",
+          "pages/poker-rooms/by-game/[game].js",
+          "pages/poker-rooms/corridors/[slug].js",
+          "pages/poker-rooms/guides/[city].js",
+          "pages/poker-rooms/states/[state].js",
           "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -131856,7 +131907,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "recordPendingSeoUnlock",
-        "line": 260,
+        "line": 307,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -131872,7 +131923,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "promotePendingSeoUnlock",
-        "line": 275,
+        "line": 322,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -131889,7 +131940,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "SmarterUnlockedWelcomeBanner",
-        "line": 311,
+        "line": 358,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -134723,6 +134774,10 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/poker-rooms/by-game/[game].js",
+          "pages/poker-rooms/corridors/[slug].js",
+          "pages/poker-rooms/guides/[city].js",
+          "pages/poker-rooms/states/[state].js",
           "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
@@ -144404,6 +144459,10 @@
         "externalReferenceFiles": [
           "pages/hub/bankroll-manager.js",
           "pages/learn/hands/[hand].js",
+          "pages/poker-rooms/by-game/[game].js",
+          "pages/poker-rooms/corridors/[slug].js",
+          "pages/poker-rooms/guides/[city].js",
+          "pages/poker-rooms/states/[state].js",
           "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -144433,7 +144492,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "recordPendingSeoUnlock",
-        "line": 260,
+        "line": 307,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -144449,7 +144508,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "promotePendingSeoUnlock",
-        "line": 275,
+        "line": 322,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -144466,7 +144525,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "SmarterUnlockedWelcomeBanner",
-        "line": 311,
+        "line": 358,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -147300,6 +147359,10 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/poker-rooms/by-game/[game].js",
+          "pages/poker-rooms/corridors/[slug].js",
+          "pages/poker-rooms/guides/[city].js",
+          "pages/poker-rooms/states/[state].js",
           "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
