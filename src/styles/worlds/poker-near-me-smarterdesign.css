@@ -638,3 +638,10 @@ body.world-poker-near-me .pnm-sd-top .pnm-sd-header,
 body.world-poker-near-me .pnm-sd-titlebar .pnm-sd-header {
   width: 100%;
 }
+
+/* Plate labels read white on chrome and cobalt (the old blue ink was meant
+   for painted silver plates and vanished on the cobalt primary). */
+body.world-poker-near-me .pnc[data-pnm-console='painted-chassis-v1'] .pnc-plate .pnc-plate__text[class*='pnc-ink--'] {
+  color: #ffffff !important;
+  text-shadow: 0 1px 1px #0008 !important;
+}
