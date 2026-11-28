@@ -13,6 +13,8 @@
  *   --sha waits (up to 6 minutes) for /api/health to report that revision,
  *   so the check reads the deployment that triggered it.
  */
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export const PREFLOP_PAGES = [
@@ -62,7 +64,12 @@ async function main() {
   const sha = arg('--sha');
   const live = await waitForRevision(base, sha);
   if (live) console.log(`  /api/health reports ${live}`);
-  const { chromium } = await import('playwright');
+  // CI installs Playwright into its own folder (PLAYWRIGHT_DIR) so the
+  // browser it downloads and the library this script loads are one copy.
+  const pwDir = process.env.PLAYWRIGHT_DIR;
+  const { chromium } = pwDir
+    ? createRequire(path.join(pwDir, 'package.json'))('playwright')
+    : await import('playwright');
   // CI installs Playwright's Chromium; a machine with only Chrome can point
   // PLAYWRIGHT_CHROMIUM_EXECUTABLE at it.
   const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined;
