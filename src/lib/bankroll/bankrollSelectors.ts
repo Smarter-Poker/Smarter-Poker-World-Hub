@@ -499,6 +499,22 @@ export async function deleteLedgerEntry(
   return data[0];
 }
 
+/**
+ * Return receipts filed to an entry that is already gone to Receipts Waiting.
+ * The undo queue (pendingDeletes.mjs) calls this when a retried delete finds
+ * its row already deleted by an earlier attempt whose page closed before it
+ * finished. It only matches receipts still assigned to that id, so after a
+ * completed release it changes nothing.
+ */
+export async function releaseDeletedEntryReceipts(userId: string, entryId: string): Promise<void> {
+  const { error } = await supabase
+    .from('bankroll_receipts')
+    .update(RECEIPT_UNASSIGN)
+    .eq('user_id', userId)
+    .eq('assigned_id', entryId);
+  if (error) throw error;
+}
+
 // Trip and series rows in bankroll_trips share these helpers; trip_type tells
 // them apart ('trip' by default, 'series' for the Series Tracker). Totals come
 // from tripMath.mjs so the tracker, the report and Recent Activity agree.

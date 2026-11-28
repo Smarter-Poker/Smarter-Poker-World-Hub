@@ -6,14 +6,15 @@ import BankrollHeaderAdd from './BankrollHeaderAdd';
  */
 
 import { GRADIENTS, METAL } from './metalStyles';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { usePendingDeletes, scheduleDelete } from './usePendingDeletes';
+import { withoutHidden } from '../../lib/bankroll/pendingDeletes.mjs';
 import StakingSharePanel from './StakingSharePanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     fetchStakingArrangements,
     createStakingArrangement,
     updateStakingArrangement,
-    deleteStakingArrangement,
     deactivateAllArrangements,
     loadStakingDeal,
     linkStakingSession,
@@ -45,7 +46,9 @@ const shortDay = (day, withYear = false) => day
     : '';
 
 export default function StakingTracker({ userId, refreshTrigger, displayEUR = false }) {
-    const [arrangements, setArrangements] = useState([]);
+    const [loadedArrangements, setArrangements] = useState([]);
+    const { hidden } = usePendingDeletes(userId);
+    const arrangements = useMemo(() => withoutHidden(loadedArrangements, hidden, 'staking_deal'), [loadedArrangements, hidden]);
     const [activeArrangement, setActiveArrangement] = useState(null);
     const [sessions, setSessions] = useState([]);
     const [stats, setStats] = useState({ totalGrossResult: 0, playerShare: 0, backerShare: 0, sessionCount: 0 });
@@ -202,16 +205,11 @@ export default function StakingTracker({ userId, refreshTrigger, displayEUR = fa
         }
     };
 
-    const handleDelete = async (id) => {
-        try {
-            await deleteStakingArrangement(id);
-            toast.success('Arrangement deleted');
-            setConfirmDelete(null);
-            loadData();
-        } catch (err) {
-            console.warn('Error deleting arrangement:', err);
-            toast.error('Failed to delete');
-        }
+    // Hidden now with Undo; the one delete call is sent when the window
+    // closes, then 'bankroll-entry-deleted' reloads this view.
+    const handleDelete = (id) => {
+        setConfirmDelete(null);
+        scheduleDelete(userId, 'staking_deal', id, 'Arrangement Deleted');
     };
 
     const handleLinkEntry = async (entry) => {

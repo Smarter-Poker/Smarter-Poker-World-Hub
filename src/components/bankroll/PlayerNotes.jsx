@@ -5,7 +5,9 @@ import BankrollHeaderAdd from './BankrollHeaderAdd';
  */
 
 import { GRADIENTS, METAL } from './metalStyles';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { usePendingDeletes, scheduleDelete } from './usePendingDeletes';
+import { withoutHidden } from '../../lib/bankroll/pendingDeletes.mjs';
 import { useModalHistory } from '../../hooks/useModalHistory';
 import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,7 +27,10 @@ const PLAYER_TYPE_LABELS = {
 };
 
 export default function PlayerNotes({ userId }) {
-    const [players, setPlayers] = useState([]);
+    const [loadedPlayers, setPlayers] = useState([]);
+    // Deleting a player waits out an undo window (usePendingDeletes).
+    const { hidden } = usePendingDeletes(userId);
+    const players = useMemo(() => withoutHidden(loadedPlayers, hidden, 'player_note'), [loadedPlayers, hidden]);
     const [isLoading, setIsLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
     const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -328,14 +333,10 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
         if (!confirm('Delete this player?')) return;
 
         setSaveError(null);
-        try {
-            const { error } = await supabase.from('player_notes').delete().eq('id', player.id).eq('user_id', userId);
-            if (error) throw error;
-            onDelete();
-        } catch (err) {
-            console.warn('[PlayerModal] Delete error:', err);
-            setSaveError('Could Not Delete This Player. Try Again.');
-        }
+        // Hidden now with Undo; the one delete call is sent when the window
+        // closes. A failure brings the player back with the error.
+        scheduleDelete(userId, 'player_note', player.id, 'Player Deleted');
+        onDelete();
     }
 
     return (
