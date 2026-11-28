@@ -450,3 +450,16 @@ test('FORENSIC LAW F7: dark-social OAuth attribution works without utm_source an
     'SmarterUnlockedWelcomeBanner must NOT add static supabase or analytics imports to _app.js',
   );
 });
+
+// F8: SmarterCalculatorSaveBar actions container wraps cleanly inside 390px cards
+test('FORENSIC LAW F8: .calcSaveActions allows flex-shrink and max-width 100% so Share Spot never overflows narrow 390px cards', () => {
+  const css = read('src/components/seo/SmarterSeoKit.module.css');
+  const start = css.indexOf('.calcSaveActions {');
+  const end = css.indexOf('}', start);
+  assert.ok(start > 0 && end > start, '.calcSaveActions rule must exist');
+  const block = css.slice(start, end);
+  assert.match(block, /flex-wrap:\s*wrap/, '.calcSaveActions must wrap on narrow viewports');
+  assert.match(block, /max-width:\s*100%/, '.calcSaveActions must bound width to 100% of card');
+  assert.match(block, /min-width:\s*0/, '.calcSaveActions must set min-width: 0 so flex items can wrap');
+  assert.doesNotMatch(block, /flex:\s*0\s+0\s+auto/, '.calcSaveActions must NOT set flex: 0 0 auto (prevents wrapping)');
+});
