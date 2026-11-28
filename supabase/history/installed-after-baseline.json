@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Hub migrations merged after the pinned shared baseline (Club Arena 672c582d, 2026-10-22) and recorded as installed in production supabase_migrations.schema_migrations (read 2026-11-28 by installed name). Each entry is immutable history from here on: check-shared-schema-lineage.py fails if its file is deleted or its bytes change. installedVersion is the version production recorded; it differs from the file prefix where the migration was installed through a tool that assigns its own version. A new migration is admitted only by appending its entry after it is installed; nothing here admits SQL that has not run.",
+  "files": [
+    {
+      "path": "supabase/migrations/20261112225638_daily_content_engine_i1.sql",
+      "sha256": "fe818210c9d5d76fea21be2a7ceb0355f553aa92609807283d92f11431c8394e",
+      "installedVersion": "20261112225638",
+      "installedName": "daily_content_engine_i1"
+    },
+    {
+      "path": "supabase/migrations/20261112232448_daily_content_least_privilege_grants.sql",
+      "sha256": "4a3735b055214ee2cd7c6d18b3c82a3b42a0c32b99499e0b08d350b8bb42a9ca",
+      "installedVersion": "20261112232448",
+      "installedName": "daily_content_least_privilege_grants"
+    },
+    {
+      "path": "supabase/migrations/20261117190500_messenger_saved_statements.sql",
+      "sha256": "9e43cfbdfce82639a681493e629d051e19cb488539de9cb7aa7e810492988783",
+      "installedVersion": "20261117192249",
+      "installedName": "messenger_saved_statements"
+    },
+    {
+      "path": "supabase/migrations/20261117190600_weekly_statement_messenger_delivery.sql",
+      "sha256": "01af816937b5f3dc029d9aa2ead3b13c26a1de318501e4f08adea358be6910c3",
+      "installedVersion": "20261117192255",
+      "installedName": "weekly_statement_messenger_delivery"
+    },
+    {
+      "path": "supabase/migrations/20261117190700_accounting_received_payments.sql",
+      "sha256": "2a2aba362c9a0c336dbfcc42745cf3003dee394e7aca9730a6fc05f1b4d4dd70",
+      "installedVersion": "20261117192300",
+      "installedName": "accounting_received_payments"
+    },
+    {
+      "path": "supabase/migrations/20261117190800_union_readers_include_received_payments.sql",
+      "sha256": "7c2799225db9112c0cae760198635978eb30dcf34f73cd1353fc3b7a97711ff6",
+      "installedVersion": "20261117192304",
+      "installedName": "union_readers_include_received_payments"
+    },
+    {
+      "path": "supabase/migrations/20261117203000_notice_board_staff_and_cashout_links.sql",
+      "sha256": "78a04191e493f8e301c77949ef1e391d45458804b60f05bfc13608b568fb6fe4",
+      "installedVersion": "20261117210315",
+      "installedName": "notice_board_staff_and_cashout_links"
+    },
+    {
+      "path": "supabase/migrations/20261117203100_escalated_cashouts_settle_to_club_bank.sql",
+      "sha256": "d5b304aa868684776037c840007846d6c9fedc30553d56c12b7b2d0b764e5d6b",
+      "installedVersion": "20261117210322",
+      "installedName": "escalated_cashouts_settle_to_club_bank"
+    },
+    {
+      "path": "supabase/migrations/20261117211500_schema_manifest_function_contracts.sql",
+      "sha256": "fcd82497b36b2aa76803e65ea39f7588d1ecece906bb294cb1896546f15dd8b6",
+      "installedVersion": "20261117211304",
+      "installedName": "schema_manifest_function_contracts"
+    },
+    {
+      "path": "supabase/migrations/20261117212500_weekly_club_statement_complete_details.sql",
+      "sha256": "6544f765a2e87c3c2e9915edc761df2031a8ff3cc06ef56faa127dfb5466fb2d",
+      "installedVersion": "20261117213721",
+      "installedName": "weekly_club_statement_complete_details"
+    },
+    {
+      "path": "supabase/migrations/20261123191000_fleet_content_cleanup_and_topics_sync.sql",
+      "sha256": "780fa1c7fb81767db5fbc45a220ad447e95002a849123c86a3d846184c029a58",
+      "installedVersion": "20261123191000",
+      "installedName": "fleet_content_cleanup_and_topics_sync"
+    },
+    {
+      "path": "supabase/migrations/20261124041500_trivia_pvp_horse_ready_subsidy_fix.sql",
+      "sha256": "48048df893182277fbbc70ce84d22216369bc9359865450e574fe70591fc0620",
+      "installedVersion": "20261124041500",
+      "installedName": "trivia_pvp_horse_ready_subsidy_fix"
+    },
+    {
+      "path": "supabase/migrations/20261124041600_trivia_p12_enable_competitive_certificates.sql",
+      "sha256": "cd7a03645b7d5daa8ace9a0f13d61b8333bcf3f96d3c6d394e8fd46d3c735d50",
+      "installedVersion": "20261124041600",
+      "installedName": "trivia_p12_enable_competitive_certificates"
+    },
+    {
+      "path": "supabase/migrations/20261124052600_trivia_tournament_health_activation_window.sql",
+      "sha256": "6d0922784de18e28fb03eb925d380e13875c89c258815621e2ac8b883f78cdaa",
+      "installedVersion": "20261124052600",
+      "installedName": "trivia_tournament_health_activation_window"
+    },
+    {
+      "path": "supabase/migrations/20261124060500_trivia_p3_v3_solo_hardening.sql",
+      "sha256": "441847d53bc1b9b2734164ea72ca14b2ed5dd2816e0eca70dd9fafe5be258bf4",
+      "installedVersion": "20261124060500",
+      "installedName": "trivia_p3_v3_solo_hardening"
+    },
+    {
+      "path": "supabase/migrations/20261124061800_trivia_finalize_question_lock_order.sql",
+      "sha256": "1ef78006a47febdd013db2ea39b4426f17247841053ece6746e37b9c37408b77",
+      "installedVersion": "20261124061800",
+      "installedName": "trivia_finalize_question_lock_order"
+    },
+    {
+      "path": "supabase/migrations/20261124142200_trivia_v3_survival_difficulty_and_treasury_ops.sql",
+      "sha256": "ae16369fe9173cbf1529109af91cc32fbd52c7dbb136b508b1d1fec52b0aad05",
+      "installedVersion": "20261124142200",
+      "installedName": "trivia_v3_survival_difficulty_and_treasury_ops"
+    },
+    {
+      "path": "supabase/migrations/20261124142400_trivia_integrity_elo_horse_tiers.sql",
+      "sha256": "975392e92d9ee7c6dc48a2c7c9a454d391accf2668ead490b0711e6b06ad6851",
+      "installedVersion": "20261124142400",
+      "installedName": "trivia_integrity_elo_horse_tiers"
+    },
+    {
+      "path": "supabase/migrations/20261124142600_trivia_friend_challenges_reminders_seasons.sql",
+      "sha256": "47a233899414a1646b29f8b4b3efd3aaa0c239770022bc945999e449a1bdd0af",
+      "installedVersion": "20261124142600",
+      "installedName": "trivia_friend_challenges_reminders_seasons"
+    },
+    {
+      "path": "supabase/migrations/20261124142800_trivia_study_deck_and_pool_curation.sql",
+      "sha256": "556c4dde01ee4078583b020802805ae7683db9d84c54e0508f98aed5478bd425",
+      "installedVersion": "20261124142800",
+      "installedName": "trivia_study_deck_and_pool_curation"
+    },
+    {
+      "path": "supabase/migrations/20261124150500_payout_overdue_owner_notify_and_telegram_notice_board.sql",
+      "sha256": "b077d586a69ed70c34045f3528e1192eb80b049be86bb4f3b687462ae5a1b051",
+      "installedVersion": "20261124150500",
+      "installedName": "payout_overdue_owner_notify_and_telegram_notice_board"
+    },
+    {
+      "path": "supabase/migrations/20261124173600_trivia_club_private_tournaments.sql",
+      "sha256": "e82cfa574e4bd51090118f064b4c6d00e61fea4af4b45251e8b66e79346aa85d",
+      "installedVersion": "20261124173600",
+      "installedName": "trivia_club_private_tournaments"
+    },
+    {
+      "path": "supabase/migrations/20261124173800_trivia_reminder_dispatch_and_funnel_metrics.sql",
+      "sha256": "c5b4db61ff4ee94ec03c494dd18afc43104cdef33d1a37d91f69564e8f3bc7fa",
+      "installedVersion": "20261124173800",
+      "installedName": "trivia_reminder_dispatch_and_funnel_metrics"
+    },
+    {
+      "path": "supabase/migrations/20261124180000_notice_board_phase2_reads_acks_media_mentions_and_overdue_config.sql",
+      "sha256": "e2ea481dfcb7d1e45055ef940fdd3dba9b6454c3d262cd764422584db48c30f5",
+      "installedVersion": "20261124180000",
+      "installedName": "notice_board_phase2_reads_acks_media_mentions_and_overdue_config"
+    },
+    {
+      "path": "supabase/migrations/20261124190000_notice_board_hardening_auto_escalate_realtime_and_parity.sql",
+      "sha256": "9aed85bc863f01cc2b79aa7eba163013ffae1e0887b9a781166c5c1c0fc370f0",
+      "installedVersion": "20261124190000",
+      "installedName": "notice_board_hardening_auto_escalate_realtime_and_parity"
+    },
+    {
+      "path": "supabase/migrations/20261124200800_trivia_elo_matchmaking_and_friend_duels.sql",
+      "sha256": "10810dc4bcba71a007ba7e91b2894fea55e103162abf9a511114f69caacdc49e",
+      "installedVersion": "20261124200800",
+      "installedName": "trivia_elo_matchmaking_and_friend_duels"
+    },
+    {
+      "path": "supabase/migrations/20261124201000_trivia_streak_consumption_milestones_championship.sql",
+      "sha256": "b91e2eb41392a70d347bb7d67d446ca6168c04346ee1b7caf4ba13d5d4ef35f1",
+      "installedVersion": "20261124201000",
+      "installedName": "trivia_streak_consumption_milestones_championship"
+    },
+    {
+      "path": "supabase/migrations/20261124201200_trivia_club_nights_gameplay_lifecycle.sql",
+      "sha256": "868cbff10ffc7c21140769d0b349c360e716cc2a673badf4113239c61314bfa6",
+      "installedVersion": "20261124201200",
+      "installedName": "trivia_club_nights_gameplay_lifecycle"
+    },
+    {
+      "path": "supabase/migrations/20261124202000_trivia_ops_funnel_solo_filter_fix.sql",
+      "sha256": "ea8b34359ce6cd49d4dbc2bbc15ed91775898a4bdd7a96ed6341c5fdb7aea59a",
+      "installedVersion": "20261124202000",
+      "installedName": "trivia_ops_funnel_solo_filter_fix"
+    },
+    {
+      "path": "supabase/migrations/20261124221500_pa_rls_lifecycle_and_lease_hardening.sql",
+      "sha256": "57865d3770e3ab7ce54d68c8e2cdd5ee8da56f29bb78c9ebf68937bbec8b4559",
+      "installedVersion": "20261124221500",
+      "installedName": "pa_rls_lifecycle_and_lease_hardening"
+    },
+    {
+      "path": "supabase/migrations/20261125020000_notice_board_phase4_full_upgrade_and_hardening.sql",
+      "sha256": "ca2d9bc65d07b7a2c0b9292d333a59cf35498ab8f9d68b84f8a21a1fca61fe8a",
+      "installedVersion": "20261125020000",
+      "installedName": "notice_board_phase4_full_upgrade_and_hardening"
+    },
+    {
+      "path": "supabase/migrations/20261125021500_pa_watermark_and_single_hand_rpc.sql",
+      "sha256": "99fb87d040db2801bba813d9d039af00f87e7efaacffe5056f48d5b5d30d6529",
+      "installedVersion": "20261125021500",
+      "installedName": "pa_watermark_and_single_hand_rpc"
+    },
+    {
+      "path": "supabase/migrations/20261125024500_trivia_reminder_push_outbox.sql",
+      "sha256": "c18147983d39c332193e60467938863bb78f8b0ac201daaf426f430af6d0e58b",
+      "installedVersion": "20261125024500",
+      "installedName": "trivia_reminder_push_outbox"
+    },
+    {
+      "path": "supabase/migrations/20261125024600_trivia_nightly_burnin_scorecard_rpc.sql",
+      "sha256": "ba1a05f00ee29997b9fa50c122ded33645011be39597c521c291c695e8686dca",
+      "installedVersion": "20261125024600",
+      "installedName": "trivia_nightly_burnin_scorecard_rpc"
+    },
+    {
+      "path": "supabase/migrations/20261125030000_notice_board_phase5_hardening_threads_audit_and_storage.sql",
+      "sha256": "8a7591863646e2f0715f0fe5f00aff4a80901b51670a3159cc9ed48ab4191190",
+      "installedVersion": "20261125030000",
+      "installedName": "notice_board_phase5_hardening_threads_audit_and_storage"
+    },
+    {
+      "path": "supabase/migrations/20261125033000_pa_commit_review_remediation_baseline.sql",
+      "sha256": "ceb403cc2deb8e2e37d0279b3fcf743f2530580493fbacd49c1b026466721830",
+      "installedVersion": "20261125033000",
+      "installedName": "pa_commit_review_remediation_baseline"
+    },
+    {
+      "path": "supabase/migrations/20261125042800_trivia_forensic_fortress_hardening.sql",
+      "sha256": "621047a038a91bba7d9ae25318341e8857af70e840d3cfc0f1206679726fb886",
+      "installedVersion": "20261125042800",
+      "installedName": "trivia_forensic_fortress_hardening"
+    },
+    {
+      "path": "supabase/migrations/20261125060000_pa_phase2_rpc_and_lifecycle_hardening.sql",
+      "sha256": "bf68362a7da141cd19c53e72a2e7e575e49071a70c78417ed4d120e7dbcfff39",
+      "installedVersion": "20261125060000",
+      "installedName": "pa_phase2_rpc_and_lifecycle_hardening"
+    },
+    {
+      "path": "supabase/migrations/20261125120000_pa_phase4_lease_renewal_and_deletion_hardening.sql",
+      "sha256": "79f3828bd9745a1ef138f1133faa87efc152240b5f7b84058d03078811334970",
+      "installedVersion": "20261125120000",
+      "installedName": "pa_phase4_lease_renewal_and_deletion_hardening"
+    },
+    {
+      "path": "supabase/migrations/20261125210000_pa_phase5_stack_depth_diamonds_and_recovery.sql",
+      "sha256": "38ee499e483a0244f474cc46b7da3724ceb8d88fc4a67701f538479320bd7d78",
+      "installedVersion": "20261125210000",
+      "installedName": "pa_phase5_stack_depth_diamonds_and_recovery"
+    },
+    {
+      "path": "supabase/migrations/20261126010500_trivia_launch_gateboard_and_legacy_observation.sql",
+      "sha256": "b19d677ee50c9dd0f7ff4de6d83f7faaf94ece2d46105dc656a930e4e6131d32",
+      "installedVersion": "20261126010500",
+      "installedName": "trivia_launch_gateboard_and_legacy_observation"
+    },
+    {
+      "path": "supabase/migrations/20261126053500_trivia_launch_gate_signoff_action.sql",
+      "sha256": "55f9a092b91ccdf8724b32f4435b4e25695b1f5ed556a857a87476c4fcd3a205",
+      "installedVersion": "20261126053500",
+      "installedName": "trivia_launch_gate_signoff_action"
+    },
+    {
+      "path": "supabase/migrations/20261126191500_training_game_favorites_hardened.sql",
+      "sha256": "4b9440e33a37ad3384b2143e00c1ba4383d959fd15fbf4b7cd43ea2cfca660b2",
+      "installedVersion": "20261126191500",
+      "installedName": "training_game_favorites_hardened"
+    },
+    {
+      "path": "supabase/migrations/20261127024200_trivia_ops_rpc_perf_and_indexes.sql",
+      "sha256": "ef5a3eea339173d96f3af2088c323454ed2604706cfcd9e681a92de3541e61f3",
+      "installedVersion": "20261127024200",
+      "installedName": "trivia_ops_rpc_perf_and_indexes"
+    },
+    {
+      "path": "supabase/migrations/20261127074620_vip_complimentary_term_does_not_block_card_subscription.sql",
+      "sha256": "b38897f84c12aec328d54720f20e39f4af9c622c5e15dc8b2e420df6a78e40f4",
+      "installedVersion": "20261127074620",
+      "installedName": "vip_complimentary_term_does_not_block_card_subscription"
+    },
+    {
+      "path": "supabase/migrations/20261127081342_vip_first_month_card_and_comeback_ledgers.sql",
+      "sha256": "1a6e3a4fdaeaa9b08c8b7f1051f295d449d2162eb1acd7e8cc905362ca838c06",
+      "installedVersion": "20261127081342",
+      "installedName": "vip_first_month_card_and_comeback_ledgers"
+    },
+    {
+      "path": "supabase/migrations/20261127171926_vip_failed_renewal_revokes_card_vip.sql",
+      "sha256": "a7ffa85f17782bc09580fcc8d32fc651b5b0fc61e0ebe1cd857e6ee12feec949",
+      "installedVersion": "20261127171926",
+      "installedName": "vip_failed_renewal_revokes_card_vip"
+    },
+    {
+      "path": "supabase/migrations/20261127230000_trivia_pvp_30s_horse_and_full_nightly_bracket.sql",
+      "sha256": "3fa2815397c9793a8a5a1429511d6fb6400e40eb867d6bc42a9332c005b99a8e",
+      "installedVersion": "20261127230000",
+      "installedName": "trivia_pvp_30s_horse_and_full_nightly_bracket"
+    },
+    {
+      "path": "supabase/migrations/20261128030000_video_chapters_placeholder_cleared.sql",
+      "sha256": "e143ddc269a176e324794ab2824ac52224044b062f49054442094c3c64524b78",
+      "installedVersion": "20261128030000",
+      "installedName": "video_chapters_placeholder_cleared"
+    },
+    {
+      "path": "supabase/migrations/20261128060000_training_leaderboard_minimum_sample.sql",
+      "sha256": "e39fa3816336a2d38725ec430b8f413559f901385542a67765383e5ff1241f86",
+      "installedVersion": "20261128101717",
+      "installedName": "training_leaderboard_minimum_sample"
+    },
+    {
+      "path": "supabase/migrations/20261128100327_staking_sessions_update_delete_grant.sql",
+      "sha256": "5ac953150320fd00b8a0bff82dd801249615214151275d2258fd02bfaeb9e9cf",
+      "installedVersion": "20261128100327",
+      "installedName": "staking_sessions_update_delete_grant"
+    },
+    {
+      "path": "supabase/migrations/20261128101052_pnm_missouri_listed_rooms.sql",
+      "sha256": "cfc8c042c193cc4600df9a295f57fb4b7293d8428469db90f190914a006716d5",
+      "installedVersion": "20261128101052",
+      "installedName": "pnm_missouri_listed_rooms"
+    },
+    {
+      "path": "supabase/migrations/20261128101635_fn_profile_settings_set_key.sql",
+      "sha256": "7ec393b84a8063b8d6233549444449373d40e035fb3f266d93c272851acb2b69",
+      "installedVersion": "20261128101635",
+      "installedName": "fn_profile_settings_set_key"
+    },
+    {
+      "path": "supabase/migrations/20261128101707_fn_bankroll_totals.sql",
+      "sha256": "0bee2b82cc7cbc3aa103eef396dc1707ba8288aa95ff8b2d7d5c98d41f367cbb",
+      "installedVersion": "20261128101707",
+      "installedName": "fn_bankroll_totals"
+    },
+    {
+      "path": "supabase/migrations/20261128101805_bankroll_ledger_changes.sql",
+      "sha256": "73fdf7781387ce50c00b22c6c2cf433afa00557353db2d3a59dad8ed01cdd491",
+      "installedVersion": "20261128101805",
+      "installedName": "bankroll_ledger_changes"
+    },
+    {
+      "path": "supabase/migrations/20261128101825_bankroll_ledger_entry_currency.sql",
+      "sha256": "dadc98694fc880cdd38d2d2fc277a15e1e50ae881cac816426aa125a9c35aa70",
+      "installedVersion": "20261128101825",
+      "installedName": "bankroll_ledger_entry_currency"
+    },
+    {
+      "path": "supabase/migrations/20261128101849_staking_share_links.sql",
+      "sha256": "ab7a213faf18f398a979834bdceb89702dc7549c4a49df6b2f63572403c869ae",
+      "installedVersion": "20261128101849",
+      "installedName": "staking_share_links"
+    },
+    {
+      "path": "supabase/migrations/20261128101901_bankroll_ledger_external_ref.sql",
+      "sha256": "74013173859c2dd6dc92a5bf190057c7f656449b9069b80bd5b400850323ac73",
+      "installedVersion": "20261128101901",
+      "installedName": "bankroll_ledger_external_ref"
+    },
+    {
+      "path": "supabase/migrations/20261128102249_bankroll_new_tables_explicit_boundary.sql",
+      "sha256": "adf2b12391fc80f43942dcb3eb2dc7874efb8b1f018bd7f6322a234fbb7d16f0",
+      "installedVersion": "20261128102249",
+      "installedName": "bankroll_new_tables_explicit_boundary"
+    },
+    {
+      "path": "supabase/migrations/20261128102637_bankroll_new_tables_service_role_read.sql",
+      "sha256": "7467823ea39b507e0d6618605a9b53267f1474b5d81408cacf80a08d51ec2d8c",
+      "installedVersion": "20261128102637",
+      "installedName": "bankroll_new_tables_service_role_read"
+    },
+    {
+      "path": "supabase/migrations/20261128103322_fn_bankroll_totals_expense_rule.sql",
+      "sha256": "c3b7ebb910e0d9abeff160f961789c936956d45283abaa609c17c5e3319d31b8",
+      "installedVersion": "20261128103322",
+      "installedName": "fn_bankroll_totals_expense_rule"
+    }
+  ]
+}
