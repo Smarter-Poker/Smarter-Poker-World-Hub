@@ -99834,6 +99834,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/backlink-embed-citation-engine.test.mjs",
         "__tests__/training-final-honesty-surfaces.test.mjs",
         "__tests__/training-preflop-chart-authority.test.mjs",
         "__tests__/training-reference-is-public-a.test.mjs"
@@ -124303,8 +124304,6 @@
       "realtime": [],
       "tests": [
         "__tests__/aeo-ai-agent-api.test.mjs",
-        "__tests__/aeo-dynamic-og-cards.test.mjs",
-        "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/aeo-tool-schemas.test.mjs",
         "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
@@ -124315,10 +124314,8 @@
         "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
-        "__tests__/gsc-series5-phase7.test.mjs",
         "__tests__/horse-poker-gto-policy.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
-        "__tests__/markdown-ingestion.test.mjs",
         "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
         "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
@@ -124326,7 +124323,6 @@
         "__tests__/pa-review-workstation.test.mjs",
         "__tests__/page-tutorials.test.mjs",
         "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
-        "__tests__/phase23-calculator-schema.test.mjs",
         "__tests__/seo-backlink-programme-invariants.law.test.mjs",
         "__tests__/smarter-poker-magazine.law.test.mjs",
         "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
@@ -130602,7 +130598,6 @@
           "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges.js",
           "pages/tools/preflop-ranges/[position].js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -130621,6 +130616,7 @@
           "pages/tools/winrate-confidence-calculator.js",
           "pages/verification-methodology.js",
           "src/components/features/FeatureLanderLayout.js",
+          "src/components/seo/PreflopRangeMatrixHub.jsx",
           "src/components/seo/TourPageSummary.js"
         ]
       },
@@ -130706,7 +130702,6 @@
           "pages/tools/poker-trip-planner.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -130725,6 +130720,7 @@
           "pages/tools/winrate-confidence-calculator.js",
           "src/components/features/FeatureLanderLayout.js",
           "src/components/seo/HubPageSummary.js",
+          "src/components/seo/PreflopRangeMatrixHub.jsx",
           "src/components/training/TrainingGameEntry.jsx"
         ]
       },
@@ -133326,7 +133322,6 @@
           "pages/tools/poker-trip-planner.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -133343,6 +133338,7 @@
           "pages/tools/warmup-cooldown-routine.js",
           "pages/tools/who-wins-calculator.js",
           "pages/tools/winrate-confidence-calculator.js",
+          "src/components/seo/PreflopRangeMatrixHub.jsx",
           "src/lib/seo/summarySchema.js"
         ]
       },
@@ -142946,7 +142942,6 @@
           "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges.js",
           "pages/tools/preflop-ranges/[position].js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -142965,6 +142960,7 @@
           "pages/tools/winrate-confidence-calculator.js",
           "pages/verification-methodology.js",
           "src/components/features/FeatureLanderLayout.js",
+          "src/components/seo/PreflopRangeMatrixHub.jsx",
           "src/components/seo/TourPageSummary.js"
         ]
       },
@@ -143050,7 +143046,6 @@
           "pages/tools/poker-trip-planner.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -143069,6 +143064,7 @@
           "pages/tools/winrate-confidence-calculator.js",
           "src/components/features/FeatureLanderLayout.js",
           "src/components/seo/HubPageSummary.js",
+          "src/components/seo/PreflopRangeMatrixHub.jsx",
           "src/components/training/TrainingGameEntry.jsx"
         ]
       },
@@ -145670,7 +145666,6 @@
           "pages/tools/poker-trip-planner.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -145687,6 +145682,7 @@
           "pages/tools/warmup-cooldown-routine.js",
           "pages/tools/who-wins-calculator.js",
           "pages/tools/winrate-confidence-calculator.js",
+          "src/components/seo/PreflopRangeMatrixHub.jsx",
           "src/lib/seo/summarySchema.js"
         ]
       },

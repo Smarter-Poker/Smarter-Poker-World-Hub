@@ -58,6 +58,7 @@ import './aeo-video-library-schema.test.mjs';
 import './llms-corpus-parity.law.test.mjs';
 import './phase31-security-txt.test.mjs';
 import './phases-27-34-aeo.test.mjs';
+import './pages-routes-are-claimed-once.test.mjs';
 import './phases-35-50-aeo.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs

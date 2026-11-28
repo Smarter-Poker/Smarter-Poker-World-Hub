@@ -5,7 +5,7 @@
  * (plus raw Markdown at /tools/preflop-ranges/[position].md).
  */
 
-import PreflopRangeMatrixHub from './index';
+import PreflopRangeMatrixHub from '../../../src/components/seo/PreflopRangeMatrixHub';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import { setPublicSeoHtmlCache } from '../../../src/lib/seo/edgeCacheHeaders.mjs';
 

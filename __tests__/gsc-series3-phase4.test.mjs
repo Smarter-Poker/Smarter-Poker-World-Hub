@@ -3,7 +3,7 @@
  *
  * Verifies:
  *   1. Preflop matrix hub page module exists on disk:
- *      - pages/tools/preflop-ranges/index.js
+ *      - src/components/seo/PreflopRangeMatrixHub.jsx
  *      - pages/tools/preflop-ranges.js
  *   2. 13x13 Grid Matrix completeness:
  *      - Full 169 hands represented (pairs, suited, offsuit)
@@ -33,7 +33,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 test('preflop matrix hub page modules exist on disk', () => {
-  assert.ok(fs.existsSync(path.join(ROOT, 'pages/tools/preflop-ranges/index.js')), 'pages/tools/preflop-ranges/index.js exists');
+  assert.ok(fs.existsSync(path.join(ROOT, 'src/components/seo/PreflopRangeMatrixHub.jsx')), 'src/components/seo/PreflopRangeMatrixHub.jsx exists');
   assert.ok(fs.existsSync(path.join(ROOT, 'pages/tools/preflop-ranges.js')), 'pages/tools/preflop-ranges.js exists');
 });
 
@@ -62,7 +62,7 @@ test('STATIC_PAGES lists /tools/preflop-ranges with priority 0.9 and weekly chan
 });
 
 test('preflop-ranges component sets valid Schema.org structure and no em dashes in copy', () => {
-  const code = read('pages/tools/preflop-ranges/index.js');
+  const code = read('src/components/seo/PreflopRangeMatrixHub.jsx');
   assert.match(code, /hubProductSchema/, 'uses hubProductSchema');
   assert.match(code, /applicationCategory:\s*'GameApplication'/, 'GameApplication declared');
   assert.match(code, /canonical=\{canonicalUrl\}/, 'self-canonical declared');
