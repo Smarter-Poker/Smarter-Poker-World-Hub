@@ -334,7 +334,7 @@ export default function PokerMarketCityGuidePage({ guide }) {
                 boxSizing: 'border-box',
               }}
             >
-              Log Tonight&apos;s Session Free
+              {"Log Tonight's Session Free"}
             </Link>
           </div>
         </section>
