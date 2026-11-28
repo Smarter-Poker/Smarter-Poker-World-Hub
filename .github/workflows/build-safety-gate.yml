@@ -901,10 +901,13 @@ jobs:
       # literal outside a short reasoned exemption list, and no new reference
       # to the retired painted chassis (a per-file ratchet that only goes
       # down). The rendered half is e2e/pnm-smarterdesign-render.spec.ts.
+      # The image test holds the PNM header art and lobby tiles to byte
+      # ceilings and keeps tiles past the first two rows lazy.
       - name: "CHECK 30: Poker Near Me #SmarterDesign CSS cannot regress"
         run: |
           node scripts/ci/check-pnm-smarterdesign-css.mjs --self-test
           node scripts/ci/check-pnm-smarterdesign-css.mjs
+          node --test __tests__/pnm-image-weight-budget.test.mjs
       - name: "CHECK 10: Diamond economy invariants"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
