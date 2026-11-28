@@ -249,8 +249,8 @@ test('a held scan is read by the same route a fresh one is', () => {
     // eventually disagree about what a receipt said. So a held scan is handed
     // back into the ordinary approved-scan path and nothing else.
     const scanner = withoutLineComments(read('src/components/bankroll/ReceiptScanner.jsx'));
-    assert.match(scanner, /setApprovedScan\(\{ blob: resumeScan\.blob/,
-        'a resumed scan becomes an ordinary approved scan');
+    assert.match(scanner, /const approved = \{\s*blob: resumeScan\.blob,[\s\S]*?\};\s*setApprovedScan\(approved\);\s*uploadApprovedScan\(approved\);/,
+        'a resumed scan becomes an ordinary approved scan, and is sent through the ordinary upload');
     const page = withoutLineComments(read('pages/hub/bankroll-manager.js'));
     assert.ok(!/parseReceiptText/.test(page),
         'the page must not parse a receipt itself: that is the paid route\'s job');

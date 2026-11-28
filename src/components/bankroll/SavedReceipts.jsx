@@ -1,26 +1,37 @@
 /**
- * SAVED RECEIPTS COMPONENT
- * Shows all bankroll entries that have receipt images attached
- * Grid layout with thumbnails, dates, and amounts
+ * SAVED RECEIPTS
+ *
+ * Every image attached to a bankroll entry, as a grid of thumbnails with the
+ * entry's date, result and venue. The decisions (labels, which image a delete
+ * removes, what happens to the receipt behind it) live in
+ * src/lib/bankroll/receiptGallery.mjs so they are tested without a browser.
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Image, X, Trash2, Calendar, DollarSign } from 'lucide-react';
+import { Image, X, Trash2, Calendar, DollarSign, FileText, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import toast from '../../stores/toastStore';
+import { parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
+import { receiptCards, mediaWithout, RECEIPT_UNASSIGN } from '../../lib/bankroll/receiptGallery.mjs';
 import { METAL } from './metalStyles';
 
 export default function SavedReceipts({ userId }) {
     const [receipts, setReceipts] = useState([]);
     const [loading, setLoading] = useState(true);
+    // A failed load is said, not shown as "No Saved Receipts": an empty grid
+    // after a dropped connection told the player their receipts were gone.
+    const [loadFailed, setLoadFailed] = useState(false);
+    const [removingKey, setRemovingKey] = useState(null);
     const [lightboxUrl, setLightboxUrl] = useState(null);
 
     const loadReceipts = useCallback(async () => {
-        if (!userId) return;
+        if (!userId) { setLoading(false); return; }
         setLoading(true);
+        setLoadFailed(false);
         try {
             const { data, error } = await supabase
                 .from('bankroll_ledger')
-                // CHECK 13 (2026-08-14): location_name is not a column — the
+                // CHECK 13 (2026-08-14): location_name is not a column - the
                 // select 42703'd and saved receipts NEVER loaded. The venue
                 // name lives on bankroll_locations via the location_id FK.
                 .select('id, category, entry_date, net_result, media_urls, notes, location:bankroll_locations(name)')
@@ -30,28 +41,10 @@ export default function SavedReceipts({ userId }) {
                 .limit(100);
 
             if (error) throw error;
-
-            // Flatten: each image is a separate card linked to its entry
-            const flat = [];
-            (data || []).forEach(entry => {
-                if (entry.media_urls && Array.isArray(entry.media_urls)) {
-                    entry.media_urls.forEach((url, idx) => {
-                        flat.push({
-                            entryId: entry.id,
-                            imageUrl: url,
-                            imageIndex: idx,
-                            category: entry.category,
-                            date: entry.entry_date,
-                            netResult: entry.net_result,
-                            location: entry.location?.name || null,
-                            notes: entry.notes,
-                        });
-                    });
-                }
-            });
-            setReceipts(flat);
+            setReceipts(receiptCards(data));
         } catch (err) {
-            console.warn('Failed to load receipts:', err);
+            console.warn('Failed to load receipts:', err?.message || err);
+            setLoadFailed(true);
         } finally {
             setLoading(false);
         }
@@ -59,35 +52,57 @@ export default function SavedReceipts({ userId }) {
 
     useEffect(() => { loadReceipts(); }, [loadReceipts]);
 
+    useEffect(() => {
+        if (!lightboxUrl || typeof window === 'undefined') return undefined;
+        const onKey = (e) => { if (e.key === 'Escape') setLightboxUrl(null); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [lightboxUrl]);
+
+    /**
+     * Take an image off its entry. The receipt it came from is NOT deleted:
+     * it goes back to Receipts Waiting, so it can be filed again elsewhere.
+     */
     const handleDeleteReceipt = async (receipt) => {
-        if (!confirm('Remove this receipt image?')) return;
+        if (removingKey) return;
+        if (typeof window !== 'undefined'
+            && !window.confirm('Remove This Image From Its Entry? The Receipt Goes Back To Receipts Waiting.')) return;
+        setRemovingKey(receipt.key);
         try {
-            // Fetch current entry
-            const { data: entry } = await supabase
+            const { data: entry, error: readError } = await supabase
                 .from('bankroll_ledger')
                 .select('media_urls')
                 .eq('id', receipt.entryId)
+                .eq('user_id', userId)
                 .maybeSingle();
+            if (readError) throw readError;
+            if (!entry) throw new Error('entry-not-found');
 
-            if (!entry) return;
+            const { error: updateError } = await supabase
+                .from('bankroll_ledger')
+                .update({ media_urls: mediaWithout(entry.media_urls, receipt.imageUrl) })
+                .eq('id', receipt.entryId)
+                .eq('user_id', userId);
+            if (updateError) throw updateError;
 
-            const updated = (entry.media_urls || []).filter((_, i) => i !== receipt.imageIndex);
-            const { error: err_bankroll_ledger_2c2fq } = await supabase
-              .from('bankroll_ledger')
-              .update({ media_urls: updated.length > 0 ? updated : null })
-                .eq('id', receipt.entryId);
-            if (err_bankroll_ledger_2c2fq) console.warn('[Supabase] Silent mutation failed in bankroll_ledger:', err_bankroll_ledger_2c2fq.message);
+            // Back to Receipts Waiting, never orphaned.
+            const { error: receiptError } = await supabase
+                .from('bankroll_receipts')
+                .update(RECEIPT_UNASSIGN)
+                .eq('user_id', userId)
+                .eq('image_url', receipt.imageUrl)
+                .eq('assigned_id', receipt.entryId);
+            if (receiptError) console.warn('[SavedReceipts] receipt not returned to waiting:', receiptError.message);
 
-            loadReceipts();
+            if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bankroll-updated'));
+            toast.success('Image Removed. The Receipt Is Back In Receipts Waiting.');
+            await loadReceipts();
         } catch (err) {
-            console.warn('Delete failed:', err);
+            console.warn('Delete failed:', err?.message || err);
+            toast.error('Could Not Remove That Image. Try Again.');
+        } finally {
+            setRemovingKey(null);
         }
-    };
-
-    const LABELS = {
-        cash: 'Cash Game', tournament: 'Tournament', expense: 'Expense',
-        deposit: 'Deposit', withdrawal: 'Withdrawal', sports_bet: 'Sports Bet',
-        casino: 'Table Game', slots: 'Slots',
     };
 
     if (loading) {
@@ -95,6 +110,18 @@ export default function SavedReceipts({ userId }) {
             <div className="sd-panel" style={styles.loadingState}>
                 <div style={styles.spinner} />
                 <span>Loading Receipts...</span>
+            </div>
+        );
+    }
+
+    if (loadFailed) {
+        return (
+            <div className="sd-panel" style={styles.emptyState} role="alert">
+                <p style={styles.emptyTitle}>Saved Receipts Could Not Load</p>
+                <p style={styles.emptyHint}>Nothing Was Lost. Check Your Connection And Try Again.</p>
+                <button type="button" onClick={loadReceipts} style={styles.retryBtn}>
+                    <RefreshCw size={14} /> Try Again
+                </button>
             </div>
         );
     }
@@ -113,34 +140,42 @@ export default function SavedReceipts({ userId }) {
         <div className="sd-panel">
             <div style={styles.header}>
                 <h3 style={styles.title}>Saved Receipts</h3>
-                <span style={styles.count}>{receipts.length} receipt{receipts.length !== 1 ? 's' : ''}</span>
+                <span style={styles.count}>{receipts.length} Receipt{receipts.length !== 1 ? 's' : ''}</span>
             </div>
 
             <div style={styles.grid}>
-                {receipts.map((r, i) => (
-                    <div key={`${r.entryId}-${r.imageIndex}`} style={styles.card}>
-                        <div
-                            style={styles.thumbnailWrap}
-                            onClick={() => setLightboxUrl(r.imageUrl)}
-                        >
-                            <img src={r.imageUrl} alt="Receipt" style={styles.thumbnail} />
-                        </div>
+                {receipts.map((r) => (
+                    <div key={r.key} style={styles.card}>
+                        {r.isPdf ? (
+                            <a href={r.imageUrl} target="_blank" rel="noopener noreferrer" style={styles.thumbnailWrap} aria-label={`Open ${r.label} Document`}>
+                                <span style={styles.pdfTile}><FileText size={28} /> PDF</span>
+                            </a>
+                        ) : (
+                            <button
+                                type="button"
+                                style={styles.thumbnailWrap}
+                                onClick={() => setLightboxUrl(r.imageUrl)}
+                                aria-label={`View ${r.label} Receipt`}
+                            >
+                                <img src={r.imageUrl} alt="" style={styles.thumbnail} loading="lazy" />
+                            </button>
+                        )}
                         <div style={styles.cardInfo}>
-                            <div style={styles.cardCategory}>{LABELS[r.category] || r.category}</div>
+                            <div style={styles.cardCategory}>{r.label}</div>
                             <div style={styles.cardMeta}>
                                 {r.date && (
                                     <span style={styles.metaItem}>
                                         <Calendar size={10} />
-                                        {new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                        {parseLedgerDay(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                     </span>
                                 )}
-                                {r.netResult != null && (
+                                {r.netResult !== null && (
                                     <span style={{
                                         ...styles.metaItem,
                                         color: r.netResult >= 0 ? '#22c55e' : '#ef4444',
                                     }}>
                                         <DollarSign size={10} />
-                                        {r.netResult >= 0 ? '+' : ''}{r.netResult.toLocaleString()}
+                                        {r.netResult >= 0 ? '+' : '-'}{Math.abs(r.netResult).toLocaleString()}
                                     </span>
                                 )}
                             </div>
@@ -149,11 +184,14 @@ export default function SavedReceipts({ userId }) {
                             )}
                         </div>
                         <button
+                            type="button"
                             onClick={(e) => { e.stopPropagation(); handleDeleteReceipt(r); }}
-                            style={styles.deleteBtn}
-                            title="Remove Receipt"
+                            disabled={removingKey === r.key}
+                            style={{ ...styles.deleteBtn, opacity: removingKey === r.key ? 0.5 : 1 }}
+                            aria-label="Remove This Image From Its Entry"
+                            title="Remove Image"
                         >
-                            <Trash2 size={12} />
+                            <Trash2 size={14} />
                         </button>
                     </div>
                 ))}
@@ -161,8 +199,8 @@ export default function SavedReceipts({ userId }) {
 
             {/* Lightbox */}
             {lightboxUrl && (
-                <div style={styles.lightbox} onClick={() => setLightboxUrl(null)}>
-                    <button style={styles.lightboxClose} onClick={() => setLightboxUrl(null)}>
+                <div style={styles.lightbox} onClick={() => setLightboxUrl(null)} role="dialog" aria-modal="true" aria-label="Receipt Image">
+                    <button type="button" style={styles.lightboxClose} onClick={() => setLightboxUrl(null)} aria-label="Close">
                         <X size={24} />
                     </button>
                     <img src={lightboxUrl} alt="Receipt" style={styles.lightboxImage} />
@@ -195,7 +233,7 @@ const styles = {
     },
     grid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
+        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
         gap: 12,
     },
     card: {
@@ -206,11 +244,43 @@ const styles = {
         overflow: 'hidden',
     },
     thumbnailWrap: {
+        display: 'block',
         width: '100%',
         height: 140,
+        padding: 0,
+        margin: 0,
+        background: 'none',
+        border: 'none',
         overflow: 'hidden',
         cursor: 'pointer',
         borderBottom: `1px solid ${METAL.mid}`,
+        textDecoration: 'none',
+    },
+    pdfTile: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        width: '100%',
+        height: '100%',
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 14,
+        fontWeight: 600,
+    },
+    retryBtn: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 16,
+        padding: '10px 16px',
+        minHeight: 44,
+        background: 'none',
+        border: `1px solid ${METAL.mid}`,
+        borderRadius: 8,
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: 'pointer',
     },
     thumbnail: {
         width: '100%',
@@ -230,8 +300,10 @@ const styles = {
     },
     cardMeta: {
         display: 'flex',
-        gap: 10,
+        flexWrap: 'wrap',
+        gap: '2px 10px',
         alignItems: 'center',
+        minWidth: 0,
     },
     metaItem: {
         display: 'flex',
@@ -250,10 +322,10 @@ const styles = {
     },
     deleteBtn: {
         position: 'absolute',
-        top: 6,
-        right: 6,
-        width: 28,
-        height: 28,
+        top: 4,
+        right: 4,
+        width: 40,
+        height: 40,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -321,8 +393,8 @@ const styles = {
         background: 'rgba(255,255,255,0.1)',
         border: 'none',
         borderRadius: '50%',
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
