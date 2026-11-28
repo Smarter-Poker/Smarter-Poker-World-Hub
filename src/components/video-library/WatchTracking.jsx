@@ -13,11 +13,11 @@ export default function WatchTracking({ tracking, ownerId, returnPath }) {
     // behind the watch page's "?" (Dan, 2026-11-27). Real events still show.
     if (tracking.status === 'ready') return null;
     const labels = {
-        loading: 'Loading Watch Progress', ready: 'Watch Progress Saves While You Watch',
+        loading: 'Loading Watch Progress',
         saving: 'Saving Watch Progress', saved: 'Watch Progress Saved',
         submitted: 'Watch Progress Sent For Saving', error: 'Watch Progress Could Not Be Saved',
     };
-    return <p className="vl-watch-tracking" data-watch-tracking={tracking.status} role="status">
-        {tracking.status === 'error' ? (tracking.error || labels.error) : (labels[tracking.status] || labels.ready)}
-    </p>;
+    const label = tracking.status === 'error' ? (tracking.error || labels.error) : labels[tracking.status];
+    if (!label) return null;
+    return <p className="vl-watch-tracking" data-watch-tracking={tracking.status} role="status">{label}</p>;
 }

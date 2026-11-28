@@ -9,16 +9,12 @@ import { createVideoLibraryOwnerScope } from '../../../src/lib/videoLibraryOwner
 import { VIDEO_OWNER_TOOLS, summarizeVideoOwnerSnapshot } from '../../../src/lib/videoLibraryOwnerPanel.mjs';
 import styles from '../../../src/components/video-library/OwnerPanel.module.css';
 import VideoLibraryWorkspaceHeader from '../../../src/components/video-library/VideoLibraryWorkspaceHeader';
+import { VIDEO_LIBRARY_HELP_STEPS } from '../../../src/lib/videoLibraryHelpSteps.mjs';
 
 const UniversalHeader = dynamic(() => import('../../../src/components/ui/UniversalHeader'), { ssr: false });
 
-// Page explanations live behind the mast's chrome "?" (Dan, 2026-11-27).
-const OWNER_HELP_STEPS = Object.freeze([
-    { id: 'panel', title: 'Control Panel', body: 'Manage Video Sources, Editorial Review, Rights And Delivery.', target: 'owner-metrics' },
-    { id: 'sessions', title: 'Qualified Study Sessions', body: 'Qualified Study Sessions Count Verified Learning Events In The Last 24 Hours. Individual Learner Identities Remain Private.', target: 'owner-metrics' },
-    { id: 'tools', title: 'Owner Tools', body: 'Open Sources, Editorial Review, Rights Moderation, Native Studio Or Pipeline Controls.', target: 'owner-tools' },
-    { id: 'pipeline', title: 'Pipeline Status', body: 'Each Audited Pipeline Switch And Whether It Is Enabled Or Paused.', target: 'owner-pipeline' },
-]);
+// Help steps live in the shared Video Library help standard (src/lib/videoLibraryHelpSteps.mjs).
+const OWNER_HELP_STEPS = VIDEO_LIBRARY_HELP_STEPS.owner;
 
 export default function VideoLibraryOwnerPanel() {
     const { user } = useAvatar();

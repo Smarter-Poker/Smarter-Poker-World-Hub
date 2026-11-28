@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import SEOHead from '../../../../src/components/video-library/VideoLibrarySEOHead';
 import HubPageShell from '../../../../src/components/ui/HubPageShell';
 import VideoLibraryWorkspaceHeader from '../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
+import { VIDEO_LIBRARY_HELP_STEPS } from '../../../../src/lib/videoLibraryHelpSteps.mjs';
 import { getMenuConfig } from '../../../../src/config/hamburgerMenus';
 import { getVideoMetaLine } from '../../../../src/lib/videoLibraryCards';
 import { getVideoLibraryPlayer, matchesVideoPlayer, buildPlayerJsonLd } from '../../../../src/lib/videoLibraryPlayers.mjs';
@@ -32,11 +33,8 @@ export async function getServerSideProps({ params, res }) {
     }
 }
 
-// Page explanations live behind the mast's chrome "?" (Dan, 2026-11-27).
-const PLAYER_HELP_STEPS = Object.freeze([
-    { id: 'player', title: 'Player Videos', body: 'Videos Whose Published Titles Or Tags Name This Player. A Mention Does Not Establish Participation Or Results.', target: 'player-identity' },
-    { id: 'videos', title: 'Load More', body: 'The Newest Matching Verified Videos. Load More Brings In The Next Set.', target: 'player-videos' },
-]);
+// Help steps live in the shared Video Library help standard (src/lib/videoLibraryHelpSteps.mjs).
+const PLAYER_HELP_STEPS = VIDEO_LIBRARY_HELP_STEPS.player;
 
 export default function VideoLibraryPlayerPage({ initial, unavailable }) {
     const player = initial?.player;

@@ -49,7 +49,10 @@ test('canonical compiled viewer persists confirmed owned watch progress without 
     await page.route('**/api/video-library/study-status**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, ownerId: OWNER, data: { currentStreak: 0, diamondsToday: 0, studiedToday: false, basis: 'rewarded_video_watch_days' } }) }));
     await page.route('https://www.youtube-nocookie.com/embed/**', route => route.fulfill({ contentType: 'text/html', body: PROVIDER }));
     await page.goto(`/hub/video-library/watch/${VIDEO_ID}/daniel-negreanu-poker-decision`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('[data-watch-tracking="ready"]')).toBeVisible();
+    // The ready state renders no status line (its explanation lives behind the
+    // watch page's "?"); the Resume control only appears once it is ready.
+    await expect(page.getByRole('button', { name: 'Resume Saved Position', exact: true })).toBeVisible();
+    await expect(page.locator('[data-watch-tracking]')).toHaveCount(0);
     const iframe = page.locator('iframe[src*="youtube-nocookie.com/embed/"]');
     await expect(iframe).toBeVisible();
     await expect(page.locator('.vl-play-facade')).toHaveCount(0);
@@ -80,7 +83,10 @@ test('canonical compiled viewer persists confirmed owned watch progress without 
     expect(await iframe.getAttribute('src')).toBe(source);
     expect(await original?.evaluate(element => element.isConnected && element === document.querySelector('iframe[src*="youtube-nocookie.com/embed/"]'))).toBe(true);
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect(page.locator('[data-watch-tracking="ready"]')).toBeVisible();
+    // The ready state renders no status line (its explanation lives behind the
+    // watch page's "?"); the Resume control only appears once it is ready.
+    await expect(page.getByRole('button', { name: 'Resume Saved Position', exact: true })).toBeVisible();
+    await expect(page.locator('[data-watch-tracking]')).toHaveCount(0);
     await expect(iframe).toBeVisible();
     expect(await iframe.getAttribute('src')).toBe(source);
     const resumedFrame = await (await iframe.elementHandle())!.contentFrame();
