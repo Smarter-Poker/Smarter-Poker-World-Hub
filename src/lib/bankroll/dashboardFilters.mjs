@@ -42,10 +42,13 @@ export function sanitizeChartType(value) {
  * A URL query arrives as a comma-separated string.
  */
 export function sanitizeGameTypes(value) {
-  let list = value;
-  if (typeof list === 'string') list = list.split(',').map((s) => s.trim()).filter(Boolean);
-  if (!Array.isArray(list)) return GAME_TYPES.slice();
-  const wanted = new Set(list);
+  if (typeof value === 'string') {
+    // A link that names no known type means nothing, not "hide everything".
+    const known = sanitizeGameTypes(value.split(',').map((s) => s.trim()));
+    return known.length ? known : GAME_TYPES.slice();
+  }
+  if (!Array.isArray(value)) return GAME_TYPES.slice();
+  const wanted = new Set(value);
   return GAME_TYPES.filter((type) => wanted.has(type));
 }
 

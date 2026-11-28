@@ -681,7 +681,7 @@ export default function BankrollManagerPage() {
     setEditEntry(null);
     clearActionView('log-session');
     setRefreshTrigger(prev => prev + 1);
-    // No loadData() here: LogEntryModal dispatched 'bankroll-updated' before
+    // No reload here: LogEntryModal dispatched 'bankroll-updated' before
     // calling onSubmit, and the listener below already reloads. Calling it
     // again read the whole ledger twice for every save.
 
@@ -713,15 +713,15 @@ export default function BankrollManagerPage() {
 
   // Gate Log+ behind bankroll check
   // Resolves true when the log sheet (or, signed out, its sign-in prompt)
-  // opened, false when a gate stopped it.
+  // opened, and undefined when a gate stopped it.
   const handleLogClick = useCallback(async () => {
     if (!userId) { setShowLogModal(true); return true; } // Will show login prompt
-    if (!requireOnline()) return false;
+    if (!requireOnline()) return;
     // ═══ ACTION GATE: Log entry requires access ═══
-    if (!guardAction()) return false;
+    if (!guardAction()) return;
     if (bankrollInitialized === false) {
       setShowStartingBankroll(true);
-      return false;
+      return;
     }
     // If still loading, do async check
     if (bankrollInitialized === null) {
@@ -731,10 +731,10 @@ export default function BankrollManagerPage() {
       } catch (error) {
         console.warn('Could not check the starting bankroll:', error);
         toast.error('Could Not Open The Log. Check Your Connection.');
-        return false;
+        return;
       }
       setBankrollInitialized(has);
-      if (!has) { setShowStartingBankroll(true); return false; }
+      if (!has) { setShowStartingBankroll(true); return; }
     }
     setShowLogModal(true);
     return true;

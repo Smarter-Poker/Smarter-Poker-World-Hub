@@ -168,6 +168,7 @@ import './pg17-parallel-and-build-parity.law.test.mjs';
 import './api-routes-exist.test.mjs';
 import './bankroll-export-download.test.mjs';
 import './bankroll-analytics-view.test.mjs';
+import './bankroll-shell-wiring.test.mjs';
 import './bankroll-staking-math.test.mjs';
 import './bankroll-toke-report.test.mjs';
 import './bankroll-ledger-math.test.mjs';
