@@ -1009,6 +1009,7 @@ import './trivia-phase4-polish.test.mjs';
 import './a-dropped-connection-is-not-a-stale-build.law.test.mjs';
 import './the-live-stream-sdk-stays-off-pages-that-never-stream.law.test.mjs';
 import './the-open-command-menu-paints-above-the-header.law.test.mjs';
+import './the-citation-box-loads-its-solver-on-demand.law.test.mjs';
 import './otc-tier1-overlay-attribution-onetap-20261127.law.test.mjs';
 import './otc-tier2-leak-finder-and-activation-20261127.law.test.mjs';
 import './otc-tier2-bofu-compare-and-matchups-20261127.law.test.mjs';
