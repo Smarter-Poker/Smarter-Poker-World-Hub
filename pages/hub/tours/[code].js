@@ -1180,7 +1180,7 @@ const styles = `
     --tour-black-raised: #071018;
     --tour-silver: #c6d0db;
     --tour-muted: #8f9aa8;
-    --tour-dim: #65717f;
+    --tour-dim: #9fbacc;
     --tour-blue: #31a8ff;
     --tour-blue-soft: #8fd4ff;
     --tour-gold: #6ab2d6;
@@ -2108,6 +2108,7 @@ const styles = `
     flex: 0 0 204px;
     width: 204px;
     max-width: 100%;
+    min-height: 44px;
   }
 
   .notif-enabled {

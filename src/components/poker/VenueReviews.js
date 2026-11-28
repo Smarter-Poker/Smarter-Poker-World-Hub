@@ -19,7 +19,7 @@ const T = {
     cardBorder: 'rgba(255,255,255,0.06)',
     text: '#E4E6EB',
     textSec: '#8B949E',
-    textMuted: '#5a6270',
+    textMuted: '#9fbacc',
     star: '#86daff',
     starEmpty: 'rgba(255,255,255,0.12)',
     accent: '#00D4FF',

@@ -145,7 +145,7 @@ function GeoLockScreen({ venue, userLocation, distanceMiles, onClose, noCoords =
                 }
             </p>
             {tooFar && (
-                <p style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', margin: '0 0 20px' }}>
+                <p style={{ fontSize: 12, color: '#9fbacc', margin: '0 0 20px' }}>
                     Required: Within {GEO_RADIUS_MILES} Mile · Your Distance: {distanceMiles.toFixed(2)} Mi
                 </p>
             )}
@@ -490,12 +490,12 @@ export default function ReportGameModal({
                             >
                                 <div>
                                     <div style={{ fontWeight: 600, color: '#fff' }}>{v.name}</div>
-                                    <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
+                                    <div style={{ fontSize: 12, color: '#9fbacc', marginTop: 1 }}>
                                         {[v.city, v.state].filter(Boolean).join(', ')}
                                     </div>
                                 </div>
                                 {dist !== null && dist < 9999 && (
-                                    <span style={{ fontSize: 12, color: dist <= GEO_RADIUS_MILES ? '#22c55e' : 'rgba(200,214,229,0.35)', fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
+                                    <span style={{ fontSize: 12, color: dist <= GEO_RADIUS_MILES ? '#22c55e' : '#9fbacc', fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
                                         {dist < 0.1 ? '<0.1 mi' : `${dist.toFixed(1)} mi`}
                                     </span>
                                 )}
@@ -514,7 +514,7 @@ export default function ReportGameModal({
                 }}>
                     <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#6ee7ef' }}>{selectedVenue.name}</div>
-                        <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.45)' }}>
+                        <div style={{ fontSize: 12, color: '#9fbacc' }}>
                             {[selectedVenue.city, selectedVenue.state].filter(Boolean).join(', ')}
                             {distanceMiles < 9999 && ` · ${distanceMiles.toFixed(2)} mi away`}
                         </div>
@@ -537,7 +537,7 @@ export default function ReportGameModal({
         }}>
             <div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#6ee7ef' }}>{activeVenue.name}</div>
-                <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: '#9fbacc', marginTop: 2 }}>
                     {[activeVenue.city, activeVenue.state].filter(Boolean).join(', ')}
                     {userLocation && distanceMiles < 9999 && (
                         <span style={{ marginLeft: 8, color: distanceMiles <= GEO_RADIUS_MILES ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
@@ -828,7 +828,7 @@ export default function ReportGameModal({
                         </form>
                     ) : (
                         /* ── No venue selected yet ── */
-                        <div style={{ textAlign: 'center', padding: '20px 0 8px', color: 'rgba(200,214,229,0.4)', fontSize: 13 }}>
+                        <div style={{ textAlign: 'center', padding: '20px 0 8px', color: '#9fbacc', fontSize: 13 }}>
                             Search And Select A Venue Above To Begin.
                         </div>
                     )}
