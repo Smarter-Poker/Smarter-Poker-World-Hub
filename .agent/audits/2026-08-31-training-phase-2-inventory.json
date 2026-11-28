@@ -18,7 +18,7 @@
     "dialogs": 26,
     "persistenceFiles": 100,
     "realtimeFiles": 7,
-    "tests": 209,
+    "tests": 210,
     "markerCandidates": 408,
     "possibleUnwiredFunctions": 523,
     "routeStateCells": 752,
@@ -89697,6 +89697,7 @@
     "__tests__/training-generated-scenario-provenance.test.mjs",
     "__tests__/training-global-smarterdesign-click-cards.test.mjs",
     "__tests__/training-grading-receipt.test.mjs",
+    "__tests__/training-header-seals-are-emblems.test.mjs",
     "__tests__/training-history-outage-honesty.test.mjs",
     "__tests__/training-hub-media-audit.test.mjs",
     "__tests__/training-hub-outage-honesty.test.mjs",
@@ -120509,7 +120510,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/training-header-seals-are-emblems.test.mjs"
+      ]
     },
     {
       "file": "src/engine/EventBus.js",

@@ -4306,9 +4306,9 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-user-rank small,
 .preflop-daily-signal small { color: #bdd0e2; font: 700 12px/1.2 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; letter-spacing: 0.08em; }
 .preflop-user-rank strong,
-.preflop-daily-signal strong { color: #f1e4b5; font-size: 14px; }
+.preflop-daily-signal strong { color: #e6f1fb; font-size: 14px; }
 .preflop-daily-signal span { color: #9bb0bd; font-size: 12px; }
-.preflop-daily-signal > a { flex: 1 0 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(134, 218, 255, 0.35); background: rgba(121, 83, 12, 0.2); color: #f1d57e; font: 700 12px/1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; text-decoration: none; text-transform: uppercase; }
+.preflop-daily-signal > a { flex: 1 0 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(134, 218, 255, 0.35); background: rgba(37, 99, 235, 0.18); color: #bfe8ff; font: 700 12px/1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; text-decoration: none; text-transform: uppercase; }
 
 .preflop-podium {
     display: grid;
@@ -4418,7 +4418,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-award-progress small { color: #bdd0e2; font: 700 12px/1.2 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; letter-spacing: 0.08em; }
 .preflop-award-progress strong { color: #e8dfc2; }
 .preflop-award-progress [role='progressbar'] { height: 7px; overflow: hidden; background: rgba(255,255,255,0.06); }
-.preflop-award-progress [role='progressbar'] i { display: block; width: var(--award-progress); height: 100%; background: linear-gradient(90deg, #a97b19, var(--ps-gold)); }
+.preflop-award-progress [role='progressbar'] i { display: block; width: var(--award-progress); height: 100%; background: linear-gradient(90deg, #2563eb, var(--ps-gold)); }
 .preflop-award-progress > span { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; border-top: 1px solid rgba(134, 218, 255, 0.11); color: #9b8f6f; font-size: 12px; }
 .preflop-award-progress > span strong { color: #c6b987; }
 

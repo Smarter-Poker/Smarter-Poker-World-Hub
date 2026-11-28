@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import './reels-seo.test.mjs';
+import './training-header-seals-are-emblems.test.mjs';
 import './video-library-breadcrumbs.test.mjs';
 import './video-library-mobile-phase8-delivery.test.mjs';
 import './video-library-mobile-phase8-integration.test.mjs';
