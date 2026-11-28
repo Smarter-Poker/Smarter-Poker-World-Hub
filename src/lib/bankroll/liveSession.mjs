@@ -318,9 +318,18 @@ export function dueTimeAlerts({ rules, session, now }) {
   };
 }
 
-/** Plain-text warning lines for a list of rule violations (USD figures). */
-export function warningText(violation) {
-  if (violation.rule === 'Daily Stop-Loss') return `Daily Stop-Loss ${violation.limit}: Today Would Be ${violation.actual} If This Is Lost (USD).`;
+/**
+ * Plain-text warning line for a rule violation. `formatMoney(cents)` is the
+ * page's display formatter (formatCentsCurrency with Display EUR), used
+ * whenever the violation carries limitCents / actualCents; without them the
+ * USD strings evaluateRuleViolations wrote are shown and labelled USD.
+ */
+export function warningText(violation, formatMoney = null) {
+  const money = (cents, text) => (formatMoney && Number.isFinite(cents) ? formatMoney(cents) : text);
+  const usd = formatMoney && Number.isFinite(violation.limitCents) ? '' : ' (USD)';
+  if (violation.rule === 'Daily Stop-Loss') {
+    return `Daily Stop-Loss ${money(violation.limitCents, violation.limit)}: Today Would Be ${money(violation.actualCents, violation.actual)} If This Is Lost${usd}.`;
+  }
   if (violation.rule === 'Max Buy-In %') return `Max Buy-In ${violation.limit} Of Bankroll: This Would Be ${violation.actual}.`;
   return `${violation.rule}: ${violation.actual} (Limit ${violation.limit}).`;
 }

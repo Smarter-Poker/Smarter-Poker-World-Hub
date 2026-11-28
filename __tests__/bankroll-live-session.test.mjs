@@ -17,6 +17,7 @@ import {
   startWarnings,
   toLogPrefill,
   topUpWarnings,
+  warningText,
   writeLiveSession,
 } from '../src/lib/bankroll/liveSession.mjs';
 
@@ -130,6 +131,15 @@ test('a rebuy that would cross the Daily Stop-Loss warns, counting today\'s save
   assert.equal(w.length, 1);
   assert.equal(w[0].rule, 'Daily Stop-Loss');
   assert.equal(w[0].actual, '-$500.00');
+});
+
+test('warning text follows the display formatter when the violation carries cents', () => {
+  const v = { rule: 'Daily Stop-Loss', limit: '$300.00', actual: '-$500.00', limitCents: 30000, actualCents: -50000 };
+  const eur = (c) => (c < 0 ? '-' : '') + 'EUR ' + (Math.abs(c) / 100).toFixed(2);
+  assert.equal(warningText(v, eur), 'Daily Stop-Loss EUR 300.00: Today Would Be -EUR 500.00 If This Is Lost.');
+  assert.equal(warningText({ rule: 'Daily Stop-Loss', limit: '$300.00', actual: '-$500.00' }, eur),
+    'Daily Stop-Loss $300.00: Today Would Be -$500.00 If This Is Lost (USD).', 'no cents: the USD strings, labelled');
+  assert.equal(warningText({ rule: 'Max Buy-In %', limit: '25%', actual: '30.0%' }, eur), 'Max Buy-In 25% Of Bankroll: This Would Be 30.0%.');
 });
 
 test('Max Buy-In % judges the total in against the roll the player sat down with', () => {

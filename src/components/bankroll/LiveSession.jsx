@@ -113,10 +113,13 @@ function Sheet({ title, onClose, children, labelId }) {
   );
 }
 
-function Warnings({ list }) {
+function Warnings({ list, displayEUR }) {
   if (!list || list.length === 0) return null;
-  return list.map((w) => <p key={w.rule} className={styles.warn} role="alert">{warningText(w)}</p>);
+  return list.map((w) => <p key={w.rule} className={styles.warn} role="alert">{warningText(w, moneyFormatter(displayEUR))}</p>);
 }
+
+// Rule warnings follow Display EUR, like the page's rule alert sheet.
+const moneyFormatter = (displayEUR) => (cents) => formatCentsCurrency(cents, displayEUR);
 
 /** Today's saved rows for the session's day, or null when they could not be read. */
 async function todaysRows(userId, day) {
@@ -128,7 +131,7 @@ async function todaysRows(userId, day) {
   }
 }
 
-function StartSheet({ userId, balance, initialCategory, onClose, onStart }) {
+function StartSheet({ userId, balance, displayEUR, initialCategory, onClose, onStart }) {
   const [category, setCategory] = useState(
     LIVE_SESSION_CATEGORIES.some((c) => c.id === initialCategory) ? initialCategory : 'poker_cash',
   );
@@ -205,8 +208,8 @@ function StartSheet({ userId, balance, initialCategory, onClose, onStart }) {
           <input type="text" inputMode="decimal" autoComplete="off" value={buyIn} placeholder="0.00"
             onChange={(e) => { if (dollarsText(e.target.value)) { setBuyIn(e.target.value); setWarnings(null); } }} />
         </label>
-        <Warnings list={warnings} />
-        <p className={styles.note}>The clock runs on this device. Nothing is saved until you end the session and save the log.</p>
+        <Warnings list={warnings} displayEUR={displayEUR} />
+        <p className={styles.note}>The Clock Runs On This Device. Nothing Is Saved Until You End The Session And Save The Log.</p>
         <div className={styles.sheetActions}>
           <button type="button" className="sd-button" onClick={onClose}>Cancel</button>
           <button type="submit" className="sd-button sd-primary" disabled={!valid || checking}>
@@ -218,7 +221,7 @@ function StartSheet({ userId, balance, initialCategory, onClose, onStart }) {
   );
 }
 
-function TopUpSheet({ userId, session, kind, balance, onClose, onAdd }) {
+function TopUpSheet({ userId, session, kind, balance, displayEUR, onClose, onAdd }) {
   const fixed = session.category === 'poker_mtt' && kind === 'rebuy';
   const [amount, setAmount] = useState('');
   const [warnings, setWarnings] = useState(null);
@@ -251,14 +254,14 @@ function TopUpSheet({ userId, session, kind, balance, onClose, onAdd }) {
     <Sheet title={label} onClose={onClose} labelId="bankroll-live-topup-title">
       <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
         {fixed ? (
-          <p className={styles.note}>A tournament rebuy is one more buy-in: <strong>{formatCentsCurrency(cents, false)}</strong> (USD).</p>
+          <p className={styles.note}>A Tournament Rebuy Is One More Buy-In: <strong>{formatCentsCurrency(cents, false)}</strong> (USD).</p>
         ) : (
           <label className={styles.field}>{label} Amount (USD)
             <input type="text" inputMode="decimal" autoComplete="off" value={amount} placeholder="0.00" autoFocus
               onChange={(e) => { if (dollarsText(e.target.value)) { setAmount(e.target.value); setWarnings(null); } }} />
           </label>
         )}
-        <Warnings list={warnings} />
+        <Warnings list={warnings} displayEUR={displayEUR} />
         <div className={styles.sheetActions}>
           <button type="button" className="sd-button" onClick={onClose}>Cancel</button>
           <button type="submit" className="sd-button sd-primary" disabled={!valid || checking}>
@@ -279,7 +282,7 @@ function EndSheet({ session, displayEUR, discardOnly = false, onClose, onEnd, on
     <Sheet title={confirmDiscard ? 'Discard Session?' : 'End Session'} onClose={confirmDiscard && !discardOnly ? () => setConfirmDiscard(false) : onClose} labelId="bankroll-live-end-title">
       {confirmDiscard ? (
         <>
-          <p className={styles.note}>The clock and its {session.buyIns.length} buy-in{session.buyIns.length === 1 ? '' : 's'} are removed from this device. Nothing is saved to your bankroll.</p>
+          <p className={styles.note}>The Clock And Its {session.buyIns.length} {session.buyIns.length === 1 ? 'Buy-In Are' : 'Buy-Ins Are'} Removed From This Device. Nothing Is Saved To Your Bankroll.</p>
           <div className={styles.sheetActions}>
             <button type="button" className="sd-button" onClick={discardOnly ? onClose : () => setConfirmDiscard(false)}>Keep Session</button>
             <button type="button" className="sd-button sd-primary" onClick={onDiscard}>Discard</button>
@@ -292,7 +295,7 @@ function EndSheet({ session, displayEUR, discardOnly = false, onClose, onEnd, on
             <input type="text" inputMode="decimal" autoComplete="off" value={cashOut} placeholder="0.00" autoFocus
               onChange={(e) => { if (dollarsText(e.target.value)) setCashOut(e.target.value); }} />
           </label>
-          <p className={styles.note}>Next you review it in the Log form and save it there.</p>
+          <p className={styles.note}>Next You Review It In The Log Form And Save It There.</p>
           <div className={styles.sheetActions}>
             <button type="button" className="sd-button" onClick={() => setConfirmDiscard(true)}>Discard</button>
             <button type="submit" className="sd-button sd-primary" disabled={!valid}>End And Log</button>
@@ -406,7 +409,7 @@ export default function LiveSession({ userId, displayEUR = false, balance = null
       return;
     }
     if (warned.length > 0) {
-      const text = warned.map(warningText).join(' ');
+      const text = warned.map((w) => warningText(w, moneyFormatter(displayEUR))).join(' ');
       toast.error(text, 8000);
       setBanner((b) => [...b.filter((x) => x.key !== 'money'), { key: 'money', text }]);
       notifyHidden('Bankroll Rule Warning', text);
@@ -470,9 +473,9 @@ export default function LiveSession({ userId, displayEUR = false, balance = null
           )}
         </section>
       )}
-      {sheet === 'start' && <StartSheet userId={userId} balance={balance} initialCategory={typeof startOpen === 'string' ? startOpen : null} onClose={closeSheet} onStart={start} />}
+      {sheet === 'start' && <StartSheet userId={userId} balance={balance} displayEUR={displayEUR} initialCategory={typeof startOpen === 'string' ? startOpen : null} onClose={closeSheet} onStart={start} />}
       {(sheet === 'rebuy' || sheet === 'add_on') && session && !session.ended && (
-        <TopUpSheet userId={userId} session={session} kind={sheet} balance={balance} onClose={closeSheet} onAdd={addMoney} />
+        <TopUpSheet userId={userId} session={session} kind={sheet} balance={balance} displayEUR={displayEUR} onClose={closeSheet} onAdd={addMoney} />
       )}
       {(sheet === 'end' || sheet === 'discard') && session && (
         <EndSheet key={sheet} session={session} displayEUR={displayEUR} discardOnly={sheet === 'discard'} onClose={closeSheet} onEnd={end} onDiscard={discard} />
