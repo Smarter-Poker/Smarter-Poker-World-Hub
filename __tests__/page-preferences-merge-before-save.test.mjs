@@ -332,6 +332,7 @@ const READ_DEFAULTS = [
       soundEffects: true,
       timerEnabled: true,
       hintsEnabled: false,
+      autoAdvanceOnCorrect: false,
       difficulty: 'medium',
       haptics: true,
       screenShake: true,

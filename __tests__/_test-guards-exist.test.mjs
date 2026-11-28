@@ -989,6 +989,7 @@ import './smarterdesign-standard.test.mjs';
 import './diamond-store-smarterdesign.test.mjs';
 import './trivia-hardening-audit.test.mjs';
 import './jarvis-hand-vision.test.mjs';
+import './trivia-phase4-polish.test.mjs';
 import './a-dropped-connection-is-not-a-stale-build.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {

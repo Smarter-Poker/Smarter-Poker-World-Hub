@@ -445,18 +445,25 @@ export function TournamentQuestionStage({ session, question, secondsLeft, select
     const activeIndex = Math.max(0, (Number(question?.position) || 1) - 1);
     return (
         <section className="tt-play" aria-labelledby="tt-question-title">
-            <TournamentRows label="Round Progress" rows={[
-                { label: 'Question', value: `${exactDiamonds(question?.position)} / ${exactDiamonds(progress.total)}` },
-                { label: 'Recorded', value: `${exactDiamonds(progress.complete)} / ${exactDiamonds(progress.total)}` },
-                { label: 'Server Shot Clock', value: Number.isFinite(secondsLeft) ? `${secondsLeft} Seconds` : 'Awaiting Server', ink: secondsLeft <= 5 ? 'red' : 'blue' },
-            ]} />
-            {progress.total > 0 ? (
-                <TriviaQuestionProgress
-                    total={progress.total}
-                    currentIndex={activeIndex}
-                    label={`Question ${exactDiamonds(question?.position)} Of ${exactDiamonds(progress.total)}`}
-                />
-            ) : null}
+            <div className="trivia-play-topbar">
+                <div className="trivia-play-topbar__row">
+                    <span className="trivia-play-topbar__count">
+                        Question {exactDiamonds(question?.position)} Of {exactDiamonds(progress.total)}
+                    </span>
+                    <div className="trivia-play-topbar__badges">
+                        <span className={`trivia-play-topbar__badge ${secondsLeft <= 5 ? 'tc-ink--red' : 'tc-ink--blue'}`}>
+                            {Number.isFinite(secondsLeft) ? `${secondsLeft}s` : 'Syncing'}
+                        </span>
+                    </div>
+                </div>
+                {progress.total > 0 ? (
+                    <TriviaQuestionProgress
+                        total={progress.total}
+                        currentIndex={activeIndex}
+                        label={`Question ${exactDiamonds(question?.position)} Of ${exactDiamonds(progress.total)}`}
+                    />
+                ) : null}
+            </div>
             {error ? <TournamentStateBanner title="Answer Not Recorded" message={error} tone="red" role="alert" action={{ label: 'Retry From Server', onClick: onRetry }} /> : null}
             <h2 id="tt-question-title" className="tt-question">
                 <TriviaCardText text={question?.question || 'Opening Question'} formatText={toTitleCase} structured />

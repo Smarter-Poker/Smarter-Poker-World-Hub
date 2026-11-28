@@ -66,6 +66,7 @@ function applyGameSettings(preferences) {
             soundEffects: preferences.soundEffects === true,
             timerEnabled: preferences.timerEnabled === true,
             hintsEnabled: preferences.hintsEnabled === true,
+            autoAdvanceOnCorrect: preferences.autoAdvanceOnCorrect === true,
             difficulty: preferences.difficulty,
             haptics: preferences.haptics === true,
             screenShake: preferences.screenShake === true,
@@ -447,6 +448,7 @@ export default function TriviaSettings() {
                                         <SettingsSection id="trivia-settings-gameplay" title="Gameplay">
                                             <SettingRow title="Timer Visibility" description="Show The Countdown During Questions" status={messageKey === 'timerEnabled' ? statusMessage : null}><NativeToggle id="trivia-setting-timer" label="Timer Visibility" checked={preferences.timerEnabled} disabled={locked} onChange={(value) => update('timerEnabled', value)} /></SettingRow>
                                             <SettingRow title="Question Hints" description="Show Hints Where A Question Supports Them" status={messageKey === 'hintsEnabled' ? statusMessage : null}><NativeToggle id="trivia-setting-hints" label="Question Hints" checked={preferences.hintsEnabled} disabled={locked} onChange={(value) => update('hintsEnabled', value)} /></SettingRow>
+                                            <SettingRow title="Auto-Advance On Correct" description="Advance Automatically After A Correct Answer" status={messageKey === 'autoAdvanceOnCorrect' ? statusMessage : null}><NativeToggle id="trivia-setting-auto-advance" label="Auto-Advance On Correct" checked={preferences.autoAdvanceOnCorrect === true} disabled={locked} onChange={(value) => update('autoAdvanceOnCorrect', value)} /></SettingRow>
                                             <SettingRow title="Difficulty" description="Preferred Endless Mode Question Difficulty" status={messageKey === 'difficulty' ? statusMessage : null}><ChoiceRow label="Difficulty" options={DIFFICULTY_OPTIONS} value={preferences.difficulty} disabled={locked} onSelect={(value) => update('difficulty', value)} /></SettingRow>
                                         </SettingsSection>
 

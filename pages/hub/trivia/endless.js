@@ -33,6 +33,7 @@ import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAu
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import TriviaCardText from '../../../src/components/trivia/TriviaCardText';
+import { preloadTriviaDeckAhead } from '../../../src/lib/trivia/preloadTriviaCards';
 import TriviaQuestionProgress from '../../../src/components/trivia/TriviaQuestionProgress';
 import useTriviaKeyboardControls from '../../../src/hooks/useTriviaKeyboardControls';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
@@ -105,6 +106,11 @@ export default function EndlessModePage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     // TRAIN-WIRE-TRIVIA-HOOK-4 — selectedAnswer/showResult managed by shared hook
     const currentQuestion = questions[currentIndex];
+    useEffect(() => {
+        if (gameState === 'playing' && questions.length > 0) {
+            preloadTriviaDeckAhead(questions, currentIndex, 2);
+        }
+    }, [gameState, questions, currentIndex]);
     const trivia = useTriviaQuestion(currentQuestion);
     // TRAIN-WIRE-TRIVIA-TIMER-4 — shared shot-clock hook (autoResumeOnVisible=false: explicit Resume UI)
     const timer = useTriviaTimer({
@@ -1696,16 +1702,18 @@ export default function EndlessModePage() {
                                             </section>
                                         )}
 
-                                        <TriviaQuestionProgress
-                                            total={questions.length}
-                                            currentIndex={currentIndex}
-                                            label={`Question ${currentIndex + 1} Of ${questions.length}`}
-                                        />
-                                        <p className="trivia-challenge-progress-label">
-                                            Question {formatTriviaDisplayNumber(currentIndex + 1)}
-                                            {' | '}
-                                            {toTitleCase(String(currentQuestion.category || 'Mixed').replaceAll('_', ' '))}
-                                        </p>
+                                        <div className="trivia-play-topbar">
+                                            <div className="trivia-play-topbar__row">
+                                                <span className="trivia-play-topbar__count trivia-challenge-progress-label">
+                                                    Question {formatTriviaDisplayNumber(currentIndex + 1)} Of {formatTriviaDisplayNumber(questions.length)}
+                                                </span>
+                                            </div>
+                                            <TriviaQuestionProgress
+                                                total={questions.length}
+                                                currentIndex={currentIndex}
+                                                label={`Question ${currentIndex + 1} Of ${questions.length}`}
+                                            />
+                                        </div>
                                         <h2 id="endless-question-title" className="trivia-challenge-question">
                                             <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} structured />
                                         </h2>
