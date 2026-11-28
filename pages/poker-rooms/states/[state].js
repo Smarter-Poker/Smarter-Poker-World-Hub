@@ -25,14 +25,11 @@ import {
   getStateGuideBySlug,
   stateGuidePath,
 } from '../../../src/content/guides/states';
+// Outage fallback only: the live listed set (src/lib/server/venueStats.mjs)
+// answers whenever the database can be read.
 import venueDirectorySnapshot from '../../../data/poker-venue-directory-snapshot.json';
 import { VENUE_COUNT_LABEL, listedVenueLabel } from '../../../src/lib/venueCount.mjs';
-
-const STATES_WITH_LIVE_VENUES = new Set(
-  (venueDirectorySnapshot?.venues || [])
-    .filter((v) => v && !v.is_suppressed && v.state)
-    .map((v) => String(v.state).trim().toUpperCase())
-);
+import { getStateRooms, VENUE_STATS_REVALIDATE_S } from '../../../src/lib/server/venueStats.mjs';
 
 export async function getStaticPaths() {
   return {
@@ -53,24 +50,15 @@ export async function getStaticProps({ params }) {
     };
   }
 
-  const stateCodeUpper = String(stateGuide.code || '').toUpperCase();
-  const hasLiveStateDirectory = STATES_WITH_LIVE_VENUES.has(stateCodeUpper);
-
-  const topStateVenues = (venueDirectorySnapshot?.venues || [])
-    .filter((v) => v && !v.is_suppressed && String(v.state || '').trim().toUpperCase() === stateCodeUpper && v.id && v.name)
-    .sort((a, b) => {
-      if (Boolean(b.is_featured) !== Boolean(a.is_featured)) return b.is_featured ? 1 : -1;
-      const tablesDiff = (Number(b.poker_tables) || 0) - (Number(a.poker_tables) || 0);
-      if (tablesDiff !== 0) return tablesDiff;
-      return (Number(b.trust_score) || 0) - (Number(a.trust_score) || 0);
-    })
-    .slice(0, 8)
-    .map((v) => ({
-      id: v.id,
-      name: v.name,
-      city: v.city || '',
-      pokerTables: Number(v.poker_tables) || 0,
-    }));
+  // Top rooms and the room count come from ONE read of the live listed set,
+  // the same rows /poker-rooms/states and /hub/poker-near-me/in/<state> show.
+  const { stats, count, topRooms } = await getStateRooms(stateGuide.code, {
+    fallbackVenues: venueDirectorySnapshot?.venues || [],
+    limit: 8,
+  });
+  const hasLiveStateDirectory = count > 0;
+  const topStateVenues = topRooms;
+  const stateRoomLabel = listedVenueLabel(stateGuide.code, { [String(stateGuide.code).toUpperCase()]: count });
 
   const peerStates = US_POKER_STATES.filter((s) => s.slug !== stateGuide.slug)
     .slice(0, 8)
@@ -88,11 +76,23 @@ export async function getStaticProps({ params }) {
       peerStates,
       hasLiveStateDirectory,
       topStateVenues,
+      stateRoomLabel,
+      venueCountLabel: stats.label,
+      venueCountSource: stats.source,
     },
+    revalidate: VENUE_STATS_REVALIDATE_S,
   };
 }
 
-export default function USStatePokerDetailPage({ stateGuide, peerStates = [], hasLiveStateDirectory = false, topStateVenues = [] }) {
+export default function USStatePokerDetailPage({
+  stateGuide,
+  peerStates = [],
+  hasLiveStateDirectory = false,
+  topStateVenues = [],
+  stateRoomLabel,
+  venueCountLabel = VENUE_COUNT_LABEL,
+}) {
+  const roomLabel = stateRoomLabel || listedVenueLabel(stateGuide.code);
   const liveRoomsHref = hasLiveStateDirectory
     ? `/hub/poker-near-me/in/${stateGuide.code.toLowerCase()}`
     : '/hub/poker-near-me/lobby';
@@ -101,8 +101,8 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
 
   const stateAssumptions = '2026 US State Gaming Commission Statutes & IRS/State Form W-2G Tax Code';
-  const discordFactSheet = `[Smarter.Poker US State Poker Law & Tax Fact Sheet: ${stateGuide.name} (${stateGuide.code})] Status: ${stateGuide.legalStatus} | Min Age: ${stateGuide.minAge} | State Tax: ${stateGuide.stateIncomeTaxRate} | Listed Rooms: ${listedVenueLabel(stateGuide.code)} | Rake Model: ${stateGuide.rakeModel} | Assumptions: ${stateAssumptions} | Source: ${canonicalUrl}`;
-  const redditFactSheet = `**${stateGuide.name} (${stateGuide.code}) - Live & Online Poker Legality, Rake & Tax Fact Sheet**\n- **Legal Cardroom Status:** ${stateGuide.legalStatus}\n- **Minimum Gaming Age:** ${stateGuide.minAge}\n- **State Income Tax / W-2G Rate:** ${stateGuide.stateIncomeTaxRate}\n- **Listed Poker Rooms:** ${listedVenueLabel(stateGuide.code)}\n- **Standard Rake Model:** ${stateGuide.rakeModel}\n- **Statutory Assumptions:** ${stateAssumptions}\n- *Source: [Smarter.Poker ${stateGuide.name} Poker Guide](${canonicalUrl})*`;
+  const discordFactSheet = `[Smarter.Poker US State Poker Law & Tax Fact Sheet: ${stateGuide.name} (${stateGuide.code})] Status: ${stateGuide.legalStatus} | Min Age: ${stateGuide.minAge} | State Tax: ${stateGuide.stateIncomeTaxRate} | Listed Rooms: ${roomLabel} | Rake Model: ${stateGuide.rakeModel} | Assumptions: ${stateAssumptions} | Source: ${canonicalUrl}`;
+  const redditFactSheet = `**${stateGuide.name} (${stateGuide.code}) - Live & Online Poker Legality, Rake & Tax Fact Sheet**\n- **Legal Cardroom Status:** ${stateGuide.legalStatus}\n- **Minimum Gaming Age:** ${stateGuide.minAge}\n- **State Income Tax / W-2G Rate:** ${stateGuide.stateIncomeTaxRate}\n- **Listed Poker Rooms:** ${roomLabel}\n- **Standard Rake Model:** ${stateGuide.rakeModel}\n- **Statutory Assumptions:** ${stateAssumptions}\n- *Source: [Smarter.Poker ${stateGuide.name} Poker Guide](${canonicalUrl})*`;
 
   const handleCopyFactSheet = async (type, text) => {
     try {
@@ -217,7 +217,7 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
             </div>
             <div style={styles.metricCard}>
               <div style={styles.metricLabel}>Listed Poker Rooms</div>
-              <div style={styles.metricValueCyan}>{listedVenueLabel(stateGuide.code)}</div>
+              <div style={styles.metricValueCyan}>{roomLabel}</div>
             </div>
             <div style={styles.metricCard}>
               <div style={styles.metricLabel}>Standard Rake Model</div>
@@ -362,7 +362,7 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
             primaryHref={`/auth/signup?redirect=${encodeURIComponent(canonicalPath)}&src=poker-rooms-state`}
             secondaryLabel="Sign In"
             secondaryHref={`/auth/login?redirect=${encodeURIComponent(canonicalPath)}`}
-            highlights={['100% Free Account', `${VENUE_COUNT_LABEL} Poker Rooms`, 'Bankroll & Tax Log']}
+            highlights={['100% Free Account', `${venueCountLabel} Poker Rooms`, 'Bankroll & Tax Log']}
           />
         </div>
 

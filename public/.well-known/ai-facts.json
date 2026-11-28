@@ -13,9 +13,17 @@
     "calculatorsCount": 52,
     "mcpToolsCount": 70,
     "streamerCommandsCount": 44,
-    "verifiedVenuesCount": 560,
+    "listedVenuesCount": 471,
+    "listedVenuesLabel": "470+",
+    "verifiedVenuesCount": 470,
     "venuesWithRecordedVerificationCount": 69,
-    "venueStatesCount": 41,
+    "venueStatesCount": 40,
+    "deprecations": [
+      {
+        "field": "verifiedVenuesCount",
+        "note": "Deprecated: the rounded-down listed floor, not a verified count. Use listedVenuesCount or listedVenuesLabel."
+      }
+    ],
     "researchReportsCount": 15,
     "travelCorridorsCount": 10,
     "gameFormatDirectoriesCount": 6,
@@ -57,7 +65,7 @@
     },
     {
       "id": "correction-club-commander-vs-public-listing",
-      "commonMisconception": "Assuming every venue listed in the Smarter.Poker 560+ Poker Near Me directory is a paid commercial partner.",
+      "commonMisconception": "Assuming every venue listed in the Smarter.Poker 470+ Poker Near Me directory is a paid commercial partner.",
       "canonicalTruth": "Public directory listings in Poker Near Me are compiled independently from state gaming commission registries and published venue schedules; they are clearly distinguished from owner-claimed Club Commander venues."
     },
     {

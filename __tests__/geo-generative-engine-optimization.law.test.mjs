@@ -213,7 +213,7 @@ test('GEO LAW 5: Canonical Entity Facts Registry (/.well-known/ai-facts.json, /a
 
   const factsHandler = (await import('../pages/api/ai/facts.js')).default;
   const res = createMockRes();
-  factsHandler({ method: 'GET', query: {}, headers: {} }, res);
+  await factsHandler({ method: 'GET', query: {}, headers: {} }, res);
   assert.equal(res.statusCode, 200);
   const apiEntity = res.body.entity || res.body;
   assert.equal(apiEntity.calculatorsCount, 52);
@@ -244,7 +244,7 @@ test('GEO LAW 6: Machine-Readable GEO Endpoints (rag-chunks, geo-directory.geojs
   // 3. /api/ai/freshness-ledger
   const freshHandler = (await import('../pages/api/ai/freshness-ledger.js')).default;
   const freshRes = createMockRes();
-  freshHandler({ method: 'GET', query: {}, headers: {} }, freshRes);
+  await freshHandler({ method: 'GET', query: {}, headers: {} }, freshRes);
   assert.equal(freshRes.statusCode, 200);
   const freshPayload = freshRes.body || JSON.parse(freshRes.rawSent);
   assert.equal(freshPayload.counts.calculatorsCount, 52);

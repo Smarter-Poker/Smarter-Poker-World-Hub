@@ -1102,7 +1102,7 @@ export default async function handler(req, res) {
                   }
               }
           } else {
-              // --- Venue listing: Supabase-first (live 500+ venue dataset) ---
+              // --- Venue listing: Supabase-first (the live listed-room dataset) ---
               let usedSupabase = false;
               if (req.query.listing_source !== 'snapshot') {
               try {
