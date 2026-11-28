@@ -672,7 +672,7 @@ const styles = {
   },
   adviceBox: {
     padding: '20px',
-    background: 'linear-gradient(135deg, rgba(0, 224, 255, 0.1), rgba(139, 92, 246, 0.1))',
+    background: 'linear-gradient(135deg, rgba(0, 224, 255, 0.1), rgba(6, 72, 226, 0.12))',
     border: '1px solid rgba(0, 224, 255, 0.3)',
     borderRadius: '12px',
   },

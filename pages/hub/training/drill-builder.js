@@ -254,6 +254,8 @@ const STREETS = [
 function Chip({ label, selected, onClick, color = 'var(--sp-accent-cyan)', ...rest }) {
   return (
     <motion.button
+      type="button"
+      aria-pressed={Boolean(selected)}
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
       {...rest}
@@ -413,6 +415,8 @@ export default function DrillBuilderPage() {
     try {
       const client = getSupabase();
       if (!client) throw new Error('Training Storage Is Unavailable.');
+      const { data: sessionData } = await client.auth.getSession();
+      if (!sessionData?.session?.user) throw new Error('Sign In To Save A Drill.');
       const { data: userData, error: userError } = await client.auth.getUser();
       if (userError) throw userError;
       if (!userData?.user) throw new Error('Sign In To Save A Drill.');

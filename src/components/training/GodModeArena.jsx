@@ -2656,6 +2656,9 @@ function GodModeArenaInner({
             ].map((tab) => (
               <button
                 key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={reviewTab === tab.id}
                 onClick={() => setReviewTab(tab.id)}
                 style={{
                   flex: '0 0 auto',

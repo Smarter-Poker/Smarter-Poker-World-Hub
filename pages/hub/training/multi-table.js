@@ -1047,6 +1047,8 @@ export default function MultiTablePage() {
                   return (
                     <button
                       key={g.id}
+                      type="button"
+                      aria-pressed={isSelected}
                       onClick={() => {
                         setSelectedGames((prev) => {
                           if (prev.includes(g.id)) return prev.filter((x) => x !== g.id);

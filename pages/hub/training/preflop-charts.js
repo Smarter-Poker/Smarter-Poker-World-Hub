@@ -710,9 +710,9 @@ export default function PreflopCharts() {
                       fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       marginBottom: 8,
                       padding: '4px 12px',
-                      background: 'rgba(168,85,247,0.1)',
+                      background: 'rgba(86,216,255,0.1)',
                       borderRadius: 6,
-                      border: '1px solid rgba(168,85,247,0.2)',
+                      border: '1px solid rgba(86,216,255,0.28)',
                     }}
                   >
                     {scenario === 'bb_defense' ? `BB vs ${comparePosition}` : comparePosition} -{' '}
@@ -725,7 +725,7 @@ export default function PreflopCharts() {
                         style={{
                           width: 36,
                           height: 36,
-                          border: '3px solid rgba(168,85,247,0.2)',
+                          border: '3px solid rgba(86,216,255,0.22)',
                           borderTop: '3px solid #56d8ff',
                           borderRadius: '50%',
                           animation: 'spin 1s linear infinite',

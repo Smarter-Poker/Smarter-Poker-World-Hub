@@ -334,10 +334,12 @@ export default function MultiwayPreflopPage() {
             borderBottom: '1px solid rgba(255,255,255,0.06)',
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
+            flexWrap: 'wrap',
+            gap: 10,
           }}
         >
           <button
+            type="button"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.06)',
@@ -348,16 +350,18 @@ export default function MultiwayPreflopPage() {
               cursor: 'pointer',
               fontSize: 12,
               fontWeight: 600,
+              whiteSpace: 'nowrap',
             }}
           >
             ← Training
           </button>
           <button
+            type="button"
             onClick={() => setInfoOpen(true)}
             aria-label="How Multiway Preflop works"
             style={{
-              background: 'rgba(var(--sp-accent-purple-rgb), 0.08)',
-              border: '1px solid rgba(var(--sp-accent-purple-rgb), 0.25)',
+              background: 'rgba(86, 216, 255, 0.1)',
+              border: '1px solid rgba(86, 216, 255, 0.35)',
               color: '#86daff',
               fontSize: 12,
               fontWeight: 700,
@@ -366,6 +370,7 @@ export default function MultiwayPreflopPage() {
               cursor: 'pointer',
               letterSpacing: 0.4,
               textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
             }}
           >
             How It Works
@@ -375,9 +380,7 @@ export default function MultiwayPreflopPage() {
               fontSize: 20,
               fontWeight: 800,
               margin: 0,
-              background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: '#eef8ff',
               fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
             }}
           >
@@ -392,8 +395,8 @@ export default function MultiwayPreflopPage() {
             style={{
               marginBottom: 18,
               padding: '12px 15px',
-              border: '1px solid rgba(251,191,36,0.35)',
-              background: 'rgba(251,191,36,0.07)',
+              border: '1px solid rgba(86,216,255,0.3)',
+              background: 'rgba(86,216,255,0.06)',
               color: 'var(--sp-fg-muted)',
               fontSize: 12,
               lineHeight: 1.6,
@@ -415,6 +418,8 @@ export default function MultiwayPreflopPage() {
             {Object.entries(MULTIWAY_SCENARIOS || {}).map(([key, s]) => (
               <motion.button
                 key={key}
+                type="button"
+                aria-pressed={selectedScenario === key}
                 onClick={() => setSelectedScenario(key)}
                 whileHover={{ scale: 1.02 }}
                 style={{
@@ -423,15 +428,15 @@ export default function MultiwayPreflopPage() {
                   cursor: 'pointer',
                   textAlign: 'left',
                   background:
-                    selectedScenario === key ? 'rgba(168,85,247,0.1)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${selectedScenario === key ? 'rgba(168,85,247,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                    selectedScenario === key ? 'rgba(86,216,255,0.12)' : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${selectedScenario === key ? 'rgba(86,216,255,0.4)' : 'rgba(255,255,255,0.06)'}`,
                 }}
               >
                 <div
                   style={{
                     fontSize: 12,
                     fontWeight: 700,
-                    color: selectedScenario === key ? '#86daff' : 'var(--sp-fg)',
+                    color: selectedScenario === key ? '#eef8ff' : 'var(--sp-fg)',
                     marginBottom: 4,
                   }}
                 >
@@ -448,8 +453,8 @@ export default function MultiwayPreflopPage() {
               padding: '12px 16px',
               borderRadius: 10,
               marginBottom: 20,
-              background: 'rgba(168,85,247,0.05)',
-              border: '1px solid rgba(168,85,247,0.15)',
+              background: 'rgba(86,216,255,0.06)',
+              border: '1px solid rgba(86,216,255,0.22)',
             }}
           >
             <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>

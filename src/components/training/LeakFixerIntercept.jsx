@@ -69,6 +69,18 @@ export default function LeakFixerIntercept({ onDismiss, onAccept }) {
         if (onDismiss) onDismiss();
     };
 
+    useEffect(() => {
+        if (!visible) return undefined;
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                setVisible(false);
+                if (onDismiss) onDismiss();
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [visible, onDismiss]);
+
     if (!visible || !topLeak || !clinic) return null;
 
     const xpMultiplier = getRemediationXPMultiplier(clinic.id);

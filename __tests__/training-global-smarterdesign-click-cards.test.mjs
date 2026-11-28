@@ -109,17 +109,18 @@ test('global #SMARTERDESIGN brushed-chrome hardware enhancement applies across T
 test('anti-regression: Training chrome CSS never clobbers active states, Phase 8 analysis buttons, header "?", raw card pickers, or mid-word button text', () => {
   const worldCss = read('src/styles/worlds/training.css');
 
-  // 1. Mid-word wrapping guard (fixes "Upcomi ng", "Preflo p", "Theor y", "Train ing")
+  // 1. Mid-word wrapping guard (fixes "Upcomi ng", "Preflo p", "Monot one", "Beg inn er", "Confide nt", "20B b")
   const btnLayoutMatch = worldCss.match(
     /body\.world-training \.sp-training-page-stage :where\(button, \[role='button'\], \[role='tab'\], \.sd-button\):not\([^{]+\)\s*\{[^}]*\}/,
   );
   assert.ok(btnLayoutMatch, 'training.css button layout rule must exist');
   assert.doesNotMatch(
     btnLayoutMatch[0],
-    /overflow-wrap:\s*anywhere/,
-    'Training button rule must use overflow-wrap: break-word (never anywhere, which chops English words mid-syllable inside flex rows)',
+    /overflow-wrap:\s*(?:anywhere|break-word)/,
+    'Training button rule must use overflow-wrap: normal (never anywhere or break-word, which chop English words mid-syllable inside flex rows)',
   );
-  assert.match(btnLayoutMatch[0], /overflow-wrap:\s*break-word/);
+  assert.match(btnLayoutMatch[0], /overflow-wrap:\s*normal/);
+  assert.match(btnLayoutMatch[0], /word-break:\s*normal/);
 
   // 2. Unselected dark chrome Rule 1 must exclude active states, header "?", and raw controls
   const rule1Match = worldCss.match(/\/\* 1\. Every Training button[\s\S]*?\/\* 2\. Primary/);
@@ -201,12 +202,22 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
   const shareCard = read('src/components/training/SessionShareCard.jsx');
   assert.match(shareCard, /Escape/, 'SessionShareCard must dismiss on Escape');
 
+  const leakFixer = read('src/components/training/LeakFixerIntercept.jsx');
+  assert.match(leakFixer, /Escape/, 'LeakFixerIntercept must dismiss on Escape');
+
+  const setupModal = read('src/components/training/SessionSetupModal.jsx');
+  assert.match(setupModal, /className="sp-card-lg sp-setup-console"/, 'SessionSetupModal dialog card must retain sp-setup-console (styled by training.css modal rule)');
+  assert.match(worldCss, /body\.world-training :where\(dialog, \.sp-training-modal-surface, \.sp-setup-console, \.sp-trainer-config-modal\)/, 'training.css must apply brushed-chrome modal frame to sp-setup-console and sp-trainer-config-modal');
+
+  const trainerConfig = read('src/components/training/TrainerConfigModal.jsx');
+  assert.match(trainerConfig, /sp-trainer-config-modal/, 'TrainerConfigModal dialog card must retain sp-trainer-config-modal');
+
   // 5. Sub-page active-state ARIA + wrap + zero forbidden purple/amber colors
   const preflop = read('pages/hub/training/preflop-charts.js');
   assert.match(preflop, /aria-pressed=\{scenario === s\.value\}/, 'preflop-charts scenario buttons must expose aria-pressed');
   assert.match(preflop, /aria-pressed=\{position === pos\}/, 'preflop-charts position buttons must expose aria-pressed');
   assert.match(preflop, /aria-pressed=\{compareMode\}/, 'preflop-charts compare toggle must expose aria-pressed');
-  assert.doesNotMatch(preflop, /#7c3aed|#a855f7|rgba\(124,58,237|rgba\(251,191,36/i, 'preflop-charts must not contain banned purple/amber styling');
+  assert.doesNotMatch(preflop, /#7c3aed|#a855f7|rgba\(124,58,237|rgba\(168,85,247|rgba\(251,191,36/i, 'preflop-charts must not contain banned purple/amber styling');
 
   const flashcards = read('pages/hub/training/flashcards.js');
   assert.match(flashcards, /aria-pressed=\{catFilter === c\}/, 'flashcards category filters must expose aria-pressed');
@@ -216,11 +227,64 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
   assert.match(quizBuilder, /aria-selected=\{tab === t\.id\}/, 'quiz-builder tabs must expose aria-selected');
 
   const jarvis = read('pages/hub/training/jarvis.js');
-  assert.doesNotMatch(jarvis, /#fbbf24|rgba\(251,\s*191,\s*36/i, 'jarvis.js priority leak card must not use banned amber/gold styling');
+  assert.doesNotMatch(jarvis, /#fbbf24|rgba\(251,\s*191,\s*36|rgba\(139,\s*92,\s*246/i, 'jarvis.js must not use banned amber/gold/purple styling');
 
   const tournaments = read('pages/hub/training/tournaments.js');
   assert.match(tournaments, /whiteSpace:\s*'nowrap'/, 'tournaments tabs must not split "Upcoming" mid-word');
   assert.doesNotMatch(tournaments, /rgba\(251,\s*191,\s*36/i, 'tournaments.js offline banner must not use banned amber border');
+
+  // 6. Deep Pass-2 hardened pages: active ARIA states, wrapping rows, centered icons, and zero banned purple across ALL 95 Training pages
+  const solutions = read('pages/hub/training/solutions.js');
+  assert.match(solutions, /aria-pressed=\{stackDepth === sd\}/, 'solutions.js stack buttons must expose aria-pressed');
+  assert.match(solutions, /aria-pressed=\{boardTexture === tex\}/, 'solutions.js texture buttons must expose aria-pressed');
+  assert.match(solutions, /whiteSpace:\s*'nowrap'/, 'solutions.js filter pills must not split mid-word');
+
+  const studyGroupFinder = read('pages/hub/training/study-group-finder.js');
+  assert.match(studyGroupFinder, /aria-pressed=\{filterFmt === f\}/, 'study-group-finder format buttons must expose aria-pressed');
+  assert.match(studyGroupFinder, /aria-pressed=\{filterLevel === l\}/, 'study-group-finder level buttons must expose aria-pressed');
+  assert.match(studyGroupFinder, /aria-pressed=\{sortBy === s\.k\}/, 'study-group-finder sort buttons must expose aria-pressed');
+  assert.match(studyGroupFinder, /whiteSpace:\s*'nowrap'/, 'study-group-finder level buttons must not split "Beginner"/"Intermediate"');
+
+  const sessionNotes = read('pages/hub/training/session-notes.js');
+  assert.match(sessionNotes, /aria-pressed=\{mood === m\.id\}/, 'session-notes mood buttons must expose aria-pressed');
+  assert.match(sessionNotes, /aria-pressed=\{isActive\}/, 'session-notes tag buttons must expose aria-pressed');
+  assert.match(sessionNotes, /aria-pressed=\{searchTerm === tag\}/, 'session-notes search tag buttons must expose aria-pressed');
+  assert.match(sessionNotes, /flex:\s*'1 1 92px'/, 'session-notes mood buttons must wrap cleanly instead of slicing "Confident"/"Frustrated"');
+
+  const customSolve = read('pages/hub/training/custom-solve.js');
+  assert.match(customSolve, /aria-pressed=\{heroPos === p\}/, 'custom-solve hero position buttons must expose aria-pressed');
+  assert.match(customSolve, /aria-pressed=\{villainPos === p\}/, 'custom-solve villain position buttons must expose aria-pressed');
+  assert.match(customSolve, /aria-pressed=\{stackDepth === sd\}/, 'custom-solve stack depth buttons must expose aria-pressed');
+
+  const gtoNews = read('pages/hub/training/gto-news.js');
+  assert.match(gtoNews, /alignItems:\s*'center',\s*justifyContent:\s*'center',\s*width:\s*44,\s*height:\s*44/, 'gto-news bookmark star button must center its icon inside the 44px chrome target');
+
+  assert.match(read('pages/hub/training/drill-builder.js'), /aria-pressed=\{Boolean\(selected\)\}/, 'drill-builder Chip button must expose aria-pressed');
+  assert.match(read('pages/hub/training/custom-rake.js'), /aria-pressed=\{preset\.id === r\.id\}/, 'custom-rake preset buttons must expose aria-pressed');
+  assert.match(read('pages/hub/training/focus-timer.js'), /aria-pressed=\{phase\.id === p\.id\}/, 'focus-timer phase buttons must expose aria-pressed');
+  assert.match(read('pages/hub/training/qre-explorer.js'), /aria-pressed=\{activePreset === p\.id\}/, 'qre-explorer preset buttons must expose aria-pressed');
+  assert.match(read('pages/hub/training/qre-explorer.js'), /aria-pressed=\{selectedSpot === key\}/, 'qre-explorer spot buttons must expose aria-pressed');
+  assert.match(read('pages/hub/training/rake-solutions.js'), /aria-pressed=\{activeRake\.id === rk\.id\}/, 'rake-solutions preset buttons must expose aria-pressed');
+  assert.match(read('pages/hub/training/rake-solutions.js'), /aria-pressed=\{selectedPosition === p\}/, 'rake-solutions position buttons must expose aria-pressed');
+  assert.match(read('pages/hub/training/short-deck-trainer.js'), /aria-pressed=\{mode === m\}/, 'short-deck-trainer mode buttons must expose aria-pressed');
+  assert.match(read('pages/hub/training/multiway-preflop.js'), /aria-pressed=\{selectedScenario === key\}/, 'multiway-preflop scenario buttons must expose aria-pressed');
+  assert.match(read('pages/hub/training/multi-table.js'), /aria-pressed=\{isSelected\}/, 'multi-table drill buttons must expose aria-pressed');
+  assert.match(read('src/components/training/GodModeArena.jsx'), /aria-selected=\{reviewTab === tab\.id\}/, 'GodModeArena review tabs must expose aria-selected');
+  assert.doesNotMatch(read('src/components/training/PreflopChartStats.jsx'), /#7c3aed|#a855f7|#fbbf24|rgba\(251,191,36/i, 'PreflopChartStats must not use banned purple/amber colors');
+
+  // Codebase-wide zero-purple guard across ALL 95 Training route files
+  const allTrainingPages = ['pages/hub/training.js', ...walkTrainingSource('pages/hub/training')];
+  const purpleHits = [];
+  const PURPLE_RE = /#(?:7c3aed|8b5cf6|a855f7|c084fc|6d28d9|9333ea|1e1b4b)\b|rgba\(\s*(?:124\s*,\s*58\s*,\s*237|139\s*,\s*92\s*,\s*246|168\s*,\s*85\s*,\s*247)\b/i;
+  for (const rel of allTrainingPages) {
+    const src = read(rel);
+    if (PURPLE_RE.test(src)) purpleHits.push(rel);
+  }
+  assert.deepEqual(
+    purpleHits,
+    [],
+    `Banned purple/violet accents found in Training route pages:\n${purpleHits.join('\n')}`,
+  );
 });
 
 test('anti-regression: all Training GET /api/training/tool-records callers guard signed-out visitors against spurious 401 errors', () => {
@@ -248,8 +312,11 @@ test('anti-regression: all Training GET /api/training/tool-records callers guard
     `Found unguarded GET /api/training/tool-records calls that cause 401 errors for guests:\n${unguarded.join('\n')}`,
   );
 
-  // drill-builder must check getSession() before getUser() so guests never see a false load error banner
+  // drill-builder must check getSession() before EVERY getUser() call so guests never hit AuthSessionMissingError
   const drillBuilder = read('pages/hub/training/drill-builder.js');
+  const getUserCount = (drillBuilder.match(/\.auth\.getUser\(\)/g) || []).length;
+  const getSessionCount = (drillBuilder.match(/\.auth\.getSession\(\)/g) || []).length;
+  assert.ok(getUserCount >= 1 && getSessionCount >= getUserCount, 'drill-builder.js must guard every auth.getUser() call with auth.getSession()');
   assert.match(
     drillBuilder,
     /auth\.getSession\(\)[\s\S]*?if\s*\(!sessionData\?\.session\?\.user\)\s*\{?\s*return;/,

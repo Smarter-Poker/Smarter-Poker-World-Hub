@@ -2695,7 +2695,7 @@ body.world-training .sp-training-page-stage :where(input, textarea)::placeholder
 body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], .sd-button):not(.universal-header *, .approved-global-header__button) {
     min-block-size: 44px;
     max-inline-size: 100%;
-    overflow-wrap: break-word;
+    overflow-wrap: normal;
     word-break: normal;
     touch-action: manipulation;
 }

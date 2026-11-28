@@ -82,7 +82,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                         transition={{ duration: 0.5, ease: 'easeOut' }}
                         style={{
                             height: '100%', borderRadius: 3,
-                            background: 'linear-gradient(90deg, #00d4ff, #7c3aed)',
+                            background: 'linear-gradient(90deg, #00d4ff, #2298ff)',
                         }}
                     />
                 </div>
@@ -154,8 +154,8 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                 </div>
                 <div style={{
                     flex: 1, textAlign: 'center', padding: '8px 6px',
-                    background: 'rgba(251,191,36,0.08)', borderRadius: 8,
-                    border: '1px solid rgba(251,191,36,0.15)',
+                    background: 'rgba(86,216,255,0.08)', borderRadius: 8,
+                    border: '1px solid rgba(86,216,255,0.18)',
                 }}>
                     <div style={{
                         fontSize: 18, fontWeight: 800, color: '#86daff',
@@ -180,7 +180,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                         ACTIONS
                     </div>
                     {actions.map((action, i) => {
-                        const colors = ['#22c55e', '#ef4444', '#3b82f6', '#fbbf24', '#a855f7'];
+                        const colors = ['#22c55e', '#ef4444', '#3b82f6', '#56d8ff', '#94b8d0'];
                         const color = colors[i % colors.length];
                         return (
                             <div key={action} style={{

@@ -522,8 +522,8 @@ export default function GtoNewsPage() {
             aria-pressed={showBookmarksOnly}
             onClick={() => setShowBookmarksOnly(!showBookmarksOnly)}
             style={{
-              background: showBookmarksOnly ? 'rgba(251,191,36,0.1)' : 'transparent',
-              border: `1px solid ${showBookmarksOnly ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.08)'}`,
+              background: showBookmarksOnly ? 'rgba(86,216,255,0.14)' : 'transparent',
+              border: `1px solid ${showBookmarksOnly ? 'rgba(86,216,255,0.38)' : 'rgba(255,255,255,0.08)'}`,
               borderRadius: 6,
               padding: '4px 10px',
               color: showBookmarksOnly ? '#86daff' : 'var(--sp-fg-dim)',
@@ -550,8 +550,8 @@ export default function GtoNewsPage() {
                 padding: '12px 14px',
                 borderRadius: 12,
                 marginBottom: 16,
-                background: 'rgba(251,191,36,0.06)',
-                border: '1px solid rgba(251,191,36,0.25)',
+                background: 'rgba(86,216,255,0.06)',
+                border: '1px solid rgba(86,216,255,0.28)',
               }}
             >
               <div
@@ -581,7 +581,7 @@ export default function GtoNewsPage() {
                 padding: '14px 16px',
                 borderRadius: 12,
                 marginBottom: 16,
-                background: 'linear-gradient(135deg, rgba(0,212,255,0.04), rgba(168,85,247,0.04))',
+                background: 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(6,72,226,0.08))',
                 border: '1px solid rgba(0,212,255,0.12)',
               }}
             >
@@ -742,7 +742,7 @@ export default function GtoNewsPage() {
                       style={{
                         padding: '1px 6px',
                         borderRadius: 3,
-                        background: 'rgba(251,191,36,0.1)',
+                        background: 'rgba(86,216,255,0.12)',
                         color: '#86daff',
                         fontSize: 12,
                         fontWeight: 700,
@@ -778,6 +778,10 @@ export default function GtoNewsPage() {
                       fontSize: 14,
                       padding: 0,
                       display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 44,
+                      height: 44,
                       color: bookmarks.has(a.id) ? '#86daff' : 'var(--sp-fg-faint)',
                     }}
                   >
