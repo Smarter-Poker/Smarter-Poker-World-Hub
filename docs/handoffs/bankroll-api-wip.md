@@ -29,12 +29,9 @@ Worktree: /home/claude/wt-api. Local babel harness for route tests: NODE_PATH=/t
 - bankrollSelectors.ts createRevisionEntry marks the NEW row is_revision=true while every reader excludes
   is_revision rows (keeps the stale original). Dead code (no caller, 0 revision rows live). Report only.
 
-## Left (updated)
-- All code + tests done (__tests__/bankroll-api-routes.test.mjs, 17 tests, pass with NODE_PATH babel).
-- 375px renders done (/tmp/rh/api: TaxReportPanel ok/429/503, DealerReference ok/429/504-html).
-- Remaining: rebase on origin/main, recompute docs/business-hub-guide-review.json hash for
-  pages/hub/bankroll-manager.js, drop this notes file from the ship branch, push fix/bankroll-api-routes,
-  open PR via REST, watch checks, merge, Vercel READY, curl live 401/405.
+## Status
+- SHIPPED as PR #3251 from fix/bankroll-api-routes (head cf8c2714). Remaining: checks, merge, Vercel READY,
+  live curl 401/405 checks.
 
 ## Next command
-cd /home/claude/wt-api && git fetch --depth=50 origin main && git rebase origin/main
+gh api repos/Smarter-Poker/Smarter-Poker-World-Hub/commits/$(gh api repos/Smarter-Poker/Smarter-Poker-World-Hub/pulls/3251 --jq .head.sha)/check-runs?per_page=100 --jq '.check_runs[]|.name+" "+.status+" "+(.conclusion//"")'
