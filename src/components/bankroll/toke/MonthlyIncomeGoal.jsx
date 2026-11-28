@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Pencil, Plus, Target } from 'lucide-react';
 import desk from './DealerAnalytics.module.css';
 import { monthTokes } from '../../../lib/bankroll/tokeReport.mjs';
+import { formatCurrency } from '../../../lib/bankroll/currencyUtils';
 
 const legacyKey = 'toke_monthly_goal';
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-export default function MonthlyIncomeGoal({ userId, completedGigs = [], activeGig = null }) {
+export default function MonthlyIncomeGoal({ userId, completedGigs = [], activeGig = null, displayEUR = false }) {
+    const money = { format: (value) => formatCurrency(value, displayEUR, { cents: true }) };
     const key = legacyKey + ':' + userId;
     const [goal, setGoal] = useState(0);
     const [editing, setEditing] = useState(false);

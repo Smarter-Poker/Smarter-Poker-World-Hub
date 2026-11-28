@@ -52,6 +52,7 @@ import toast from '../../stores/toastStore';
 import { busEmit } from '../../engine/EventBus';
 import { localDay } from '../../lib/bankroll/localDates.mjs';
 import { buildGigReportCsv, downloadCsv, irsMileageRate, safeFileName } from '../../lib/bankroll/tokeReport.mjs';
+import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 
 // ── Down type metadata ──
 const DOWN_TYPES = [
@@ -91,7 +92,7 @@ const EXPENSE_CATEGORIES = [
 // ── Helper: detect harmless AbortError (browser fetch cancellation) ──
 const isAbortError = (err) => err?.name === 'AbortError' || (err?.message || '').includes('aborted');
 
-function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, tokePrefs = {} }) {
+function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, tokePrefs = {}, displayEUR = false }) {
     const [activeGig, setActiveGig] = useState(null);
     const [completedGigs, setCompletedGigs] = useState([]);
     const [locations, setLocations] = useState([]);
@@ -970,9 +971,11 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
-    const formatCurrency = (amount) => {
-        return `$${(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    };
+    // On-screen figures follow Display EUR; copied and downloaded reports are
+    // exports and stay in US dollars (as do the IRS mileage line and every
+    // entry form).
+    const showMoney = (amount) => formatCurrency(amount || 0, displayEUR, { cents: true });
+    const usdText = (amount) => formatCurrency(amount || 0, false, { cents: true });
 
     // ── Export helpers ──
     const handleCopyReport = () => {
@@ -982,21 +985,21 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             `TOKE REPORT - ${gig.venue_name}`,
             `Date: ${new Date(gig.start_date + 'T12:00:00').toLocaleDateString()}${gig.end_date ? ` - ${new Date(gig.end_date + 'T12:00:00').toLocaleDateString()}` : ''}`,
             ``,
-            `Total Tokes:   ${formatCurrency(stats.totalTokes)}`,
-            `Hourly Pay:    ${formatCurrency(stats.hourlyPay)}`,
-            `Expenses:      -${formatCurrency(stats.totalExpenses)}`,
-            `Net Earnings:  ${formatCurrency(stats.totalEarnings)}`,
+            `Total Tokes:   ${usdText(stats.totalTokes)}`,
+            `Hourly Pay:    ${usdText(stats.hourlyPay)}`,
+            `Expenses:      -${usdText(stats.totalExpenses)}`,
+            `Net Earnings:  ${usdText(stats.totalEarnings)}`,
             `Hours Worked:  ${stats.totalHoursWorked.toFixed(1)}h`,
-            `Tokes/Hour:    ${formatCurrency(stats.tokesPerHour)}`,
-            `Avg Toke/Down: ${formatCurrency(stats.avgTokePerDown)}`,
-            `Per Day:       ${formatCurrency(stats.perDay)} (${stats.durationDays} day${stats.durationDays !== 1 ? 's' : ''})`,
+            `Tokes/Hour:    ${usdText(stats.tokesPerHour)}`,
+            `Avg Toke/Down: ${usdText(stats.avgTokePerDown)}`,
+            `Per Day:       ${usdText(stats.perDay)} (${stats.durationDays} day${stats.durationDays !== 1 ? 's' : ''})`,
             `Downs: ${stats.totalDowns}  (Cash: ${stats.cashDownCount} | Tourn: ${stats.tournamentDownCount} | Brush: ${stats.brushDownCount} | Break: ${stats.breakCount})`,
             `Mileage: ${gig.mileage || 0} mi`,
         ];
         if (selectedReport.days?.length > 0) {
             lines.push(``, `Daily Breakdown:`);
             for (const day of selectedReport.days) {
-                lines.push(`  Day ${day.day_number}: ${formatCurrency(day.totalTokes || 0)} tokes | ${day.totalDowns || 0} downs | ${(day.totalHoursWorked || 0).toFixed(1)}h${day.notes ? ` | ${day.notes}` : ''}`);
+                lines.push(`  Day ${day.day_number}: ${usdText(day.totalTokes || 0)} tokes | ${day.totalDowns || 0} downs | ${(day.totalHoursWorked || 0).toFixed(1)}h${day.notes ? ` | ${day.notes}` : ''}`);
             }
         }
         navigator.clipboard.writeText(lines.join('\n'))
@@ -1042,7 +1045,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 8, background: 'rgba(56,189,248,0.08)', border: '2px solid rgba(56,189,248,0.25)', borderRadius: 8, fontSize: 13 }}>
                                 <CarFront size={16} aria-hidden="true" />
                                 <span style={{ color: '#bfcee0' }}>{gig.mileage.toLocaleString()} Miles × ${rate}/Mi</span>
-                                <span style={{ color: '#38bdf8', fontWeight: 700 }}>= ${(gig.mileage * rate).toFixed(2)} Deductible</span>
+                                <span style={{ color: '#38bdf8', fontWeight: 700 }}>= ${(gig.mileage * rate).toFixed(2)} Deductible{displayEUR ? ' (USD)' : ''}</span>
                             </div>
                         );
                     })()}
@@ -1050,19 +1053,19 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     <div className={shift.metrics}>
                         <div className={"sd-metric " + shift.metric}>
                             <span>Total Earnings</span>
-                            <span>{formatCurrency(stats.totalEarnings)}</span>
+                            <span>{showMoney(stats.totalEarnings)}</span>
                         </div>
                         <div className={"sd-metric " + shift.metric}>
                             <span>Total Tokes</span>
-                            <span>{formatCurrency(stats.totalTokes)}</span>
+                            <span>{showMoney(stats.totalTokes)}</span>
                         </div>
                         <div className={"sd-metric " + shift.metric}>
                             <span>Expenses</span>
-                            <span>{formatCurrency(stats.totalExpenses || 0)}</span>
+                            <span>{showMoney(stats.totalExpenses || 0)}</span>
                         </div>
                         <div className={"sd-metric " + shift.metric}>
                             <span>Hourly Pay</span>
-                            <span>{formatCurrency(stats.hourlyPay)}</span>
+                            <span>{showMoney(stats.hourlyPay)}</span>
                         </div>
                         <div className={"sd-metric " + shift.metric}>
                             <span>Hours Worked</span>
@@ -1070,15 +1073,15 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         </div>
                         <div className={"sd-metric " + shift.metric}>
                             <span>Avg Toke/Down</span>
-                            <span>{formatCurrency(stats.avgTokePerDown)}</span>
+                            <span>{showMoney(stats.avgTokePerDown)}</span>
                         </div>
                         <div className={"sd-metric " + shift.metric}>
                             <span>Tokes / Hour</span>
-                            <span>{formatCurrency(stats.tokesPerHour)}</span>
+                            <span>{showMoney(stats.tokesPerHour)}</span>
                         </div>
                         <div className={"sd-metric " + shift.metric}>
                             <span>Per Day</span>
-                            <span>{formatCurrency(stats.perDay)}</span>
+                            <span>{showMoney(stats.perDay)}</span>
                         </div>
                     </div>
 
@@ -1104,10 +1107,10 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                             Day {day.day_number} - {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                         </span>
                                         <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#a6bfd3' }}>
-                                            <span style={{ color: '#38bdf8', fontWeight: 700 }}>{formatCurrency(day.totalTokes || 0)}</span>
+                                            <span style={{ color: '#38bdf8', fontWeight: 700 }}>{showMoney(day.totalTokes || 0)}</span>
                                             <span>{day.totalDowns || 0} Downs</span>
                                             <span>{(day.totalHoursWorked || 0).toFixed(1)}h</span>
-                                            {(day.totalExpenses || 0) > 0 && <span style={{ color: '#d5e5f3' }}>-{formatCurrency(day.totalExpenses)}</span>}
+                                            {(day.totalExpenses || 0) > 0 && <span style={{ color: '#d5e5f3' }}>-{showMoney(day.totalExpenses)}</span>}
                                         </div>
                                     </div>
                                 ))}
@@ -1126,7 +1129,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                             {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
                                             {exp.description && ` - ${exp.description}`}
                                         </span>
-                                        <span style={{ color: '#d5e5f3', fontWeight: 700, fontSize: 13 }}>-{formatCurrency(exp.amount)}</span>
+                                        <span style={{ color: '#d5e5f3', fontWeight: 700, fontSize: 13 }}>-{showMoney(exp.amount)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -1216,10 +1219,10 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             `}</style>
 
             {/* TokeDashboard — Dealer Analytics (hidden in standalone mode) */}
-            {!standalone && <TokeDashboard userId={userId} refreshTrigger={completedGigs.length} />}
+            {!standalone && <TokeDashboard userId={userId} refreshTrigger={completedGigs.length} displayEUR={displayEUR} />}
 
             {/* ── VENUE INTELLIGENCE (hidden in standalone mode) ── */}
-            {!standalone && <VenueIntelligence gigs={completedGigs} />}
+            {!standalone && <VenueIntelligence gigs={completedGigs} displayEUR={displayEUR} />}
 
             {/* Tax Summary moved to Vault & Hamburger Menu */}
 
@@ -1253,7 +1256,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             <p className={shift.sub}>
                                 Started {new Date(activeGig.start_date + 'T12:00:00').toLocaleDateString()}
                                 {' · '}{totalDays} day{totalDays !== 1 ? 's' : ''} Total
-                                {activeGig.hourly_rate > 0 && ` · $${activeGig.hourly_rate}/hr`}
+                                {activeGig.hourly_rate > 0 && ` · ${formatCurrency(activeGig.hourly_rate, displayEUR, { cents: 'auto' })}/hr`}
                             </p>
                         </>
                     ) : (
@@ -1314,7 +1317,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             <div className={"sd-metric " + shift.metric}>
                                 <span>Total Tokes</span>
                                 <span>
-                                    {formatCurrency(activeGig.totalTokes || 0)}
+                                    {showMoney(activeGig.totalTokes || 0)}
                                 </span>
                             </div>
                             <div className={"sd-metric " + shift.metric}>
@@ -1330,7 +1333,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             <div className={"sd-metric " + shift.metric}>
                                 <span>Expenses</span>
                                 <span>
-                                    {formatCurrency(activeGig.totalExpenses || 0)}
+                                    {showMoney(activeGig.totalExpenses || 0)}
                                 </span>
                             </div>
                         </div>
@@ -1345,7 +1348,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             >
                                 <span style={styles.closedDayLabel}>Day {day.day_number} - {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                                 <span style={styles.closedDayStats}>
-                                    <span style={{ color: '#38bdf8' }}>{formatCurrency(day.totalTokes || 0)}</span>
+                                    <span style={{ color: '#38bdf8' }}>{showMoney(day.totalTokes || 0)}</span>
                                     <span style={{ color: '#94a3b8' }}>·</span>
                                     <span>{day.totalDowns || 0} Downs</span>
                                     <span style={{ color: '#94a3b8' }}>·</span>
@@ -1371,7 +1374,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                     <span style={styles.downTime}>{formatDuration(duration)}</span>
                                                 </div>
                                                 <div style={styles.downRight}>
-                                                    {(down.toke_amount || 0) > 0 && <span style={{ color: '#38bdf8', fontWeight: 700, fontSize: 12 }}>{formatCurrency(down.toke_amount)}</span>}
+                                                    {(down.toke_amount || 0) > 0 && <span style={{ color: '#38bdf8', fontWeight: 700, fontSize: 12 }}>{showMoney(down.toke_amount)}</span>}
                                                 </div>
                                             </div>
                                         );
@@ -1390,7 +1393,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                 {exp.description && <span style={styles.downDetail}>{exp.description}</span>}
                                             </div>
                                             <div style={styles.downRight}>
-                                                <span style={{ color: '#d5e5f3', fontWeight: 700, fontSize: 12 }}>-{formatCurrency(exp.amount)}</span>
+                                                <span style={{ color: '#d5e5f3', fontWeight: 700, fontSize: 12 }}>-{showMoney(exp.amount)}</span>
                                             </div>
                                         </div>
                                     ))}
@@ -1436,7 +1439,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                         {down.tournament_name && <span style={styles.downDetail}>{down.tournament_name}</span>}
                                                         {down.tournament_buyin && parseFloat(down.tournament_buyin) > 0 && (
                                                             <span style={{ ...styles.downDetail, color: '#bdd4ea', fontWeight: 600 }}>
-                                                                ${parseFloat(down.tournament_buyin).toLocaleString()} Buy-In
+                                                                {formatCurrency(parseFloat(down.tournament_buyin), displayEUR)} Buy-In
                                                             </span>
                                                         )}
                                                         {down.game_type && <span style={styles.downDetail}>{down.game_type}</span>}
@@ -1457,7 +1460,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                         </div>
                                                     ) : (
                                                         <button onClick={() => { setEditingTokeId(down.id); setTokeEditValue(down.toke_amount || ''); }} className={"sd-button " + shift.inlineAction} title="Edit Toke">
-                                                            {(down.toke_amount || 0) > 0 ? formatCurrency(down.toke_amount) : '+ Toke'}
+                                                            {(down.toke_amount || 0) > 0 ? showMoney(down.toke_amount) : '+ Toke'}
                                                         </button>
                                                     )
                                                 )}
@@ -1513,7 +1516,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                             {exp.description && <span style={styles.downDetail}>{exp.description}</span>}
                                         </div>
                                         <div style={styles.downRight}>
-                                            <span style={{ color: '#d5e5f3', fontWeight: 700, fontSize: 13 }}>-{formatCurrency(exp.amount)}</span>
+                                            <span style={{ color: '#d5e5f3', fontWeight: 700, fontSize: 13 }}>-{showMoney(exp.amount)}</span>
                                             <button onClick={() => handleDeleteExpense(exp.id)} className={"sd-button " + shift.inlineAction} aria-label="Delete Expense">✕</button>
                                         </div>
                                     </div>
@@ -1720,6 +1723,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
             {/* ── COMPLETED EVENTS ── */}
             <CompletedEventsList
+                displayEUR={displayEUR}
                 completedGigs={completedGigs}
                 isLoading={isLoading}
                 loadError={loadError}
@@ -1736,7 +1740,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 onDeleteGig={handleDeleteCompletedGig}
             />
 
-            <MonthlyIncomeGoal key={userId || 'guest'} userId={userId} completedGigs={completedGigs} activeGig={activeGig} />
+            <MonthlyIncomeGoal key={userId || 'guest'} userId={userId} completedGigs={completedGigs} activeGig={activeGig} displayEUR={displayEUR} />
 
             <DealerReference key={'reference-' + (userId || 'guest')} />
 

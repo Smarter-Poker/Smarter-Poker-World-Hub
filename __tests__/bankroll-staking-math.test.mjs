@@ -147,8 +147,9 @@ test('the staking profile covers poker only and says so', () => {
 
 test('staking amounts are shown to the cent so the shares visibly add up', () => {
   const tracker = readFileSync(new URL('../src/components/bankroll/StakingTracker.jsx', import.meta.url), 'utf8');
-  assert.doesNotMatch(tracker, /from '..\/..\/lib\/bankroll\/currencyUtils'/);
-  assert.match(tracker, /maximumFractionDigits: 2/);
+  // Through currencyUtils' 'auto' cents variant, which also follows Display EUR.
+  assert.match(tracker, /formatCurrency\(Number\(amount\) \|\| 0, displayEUR, \{ cents: 'auto' \}\)/);
+  assert.doesNotMatch(tracker, /formatStake\([^,()]*\)/, 'every staking amount passes the flag');
 });
 
 test('only poker cash games and tournaments can be linked to a staking deal', () => {

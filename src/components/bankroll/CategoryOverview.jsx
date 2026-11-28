@@ -14,7 +14,8 @@ import BankrollHeaderAdd from './BankrollHeaderAdd';
 import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useEffect, useCallback } from 'react';
 import { fetchReportLedger, deleteLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
-import { entryCents, formatSignedCents } from '../../lib/bankroll/ledgerMath.mjs';
+import { entryCents } from '../../lib/bankroll/ledgerMath.mjs';
+import { formatCentsCurrency } from '../../lib/bankroll/currencyUtils';
 import LedgerTimeline from './LedgerTimeline';
 import toast from '../../stores/toastStore';
 
@@ -27,7 +28,7 @@ const CATEGORY_META = {
     expense: { label: 'Expenses', single: 'Expense', color: '#6b7280' },
 };
 
-export default function CategoryOverview({ userId, categoryFilter, onAddEntry, onEditEntry }) {
+export default function CategoryOverview({ userId, categoryFilter, onAddEntry, onEditEntry, displayEUR = false }) {
     const [entries, setEntries] = useState([]);
     // Signed out there is nothing to load; it must not sit on "Loading" forever.
     const [isLoading, setIsLoading] = useState(Boolean(userId));
@@ -111,7 +112,7 @@ export default function CategoryOverview({ userId, categoryFilter, onAddEntry, o
                 <div style={styles.statCard}>
                     <span style={styles.statLabel}>Total P&L</span>
                     <span style={{ ...styles.statValue, color: totalCents >= 0 ? '#22c55e' : '#ef4444' }}>
-                        {!userId || loadFailed || isLoading ? '-' : formatSignedCents(totalCents)}
+                        {!userId || loadFailed || isLoading ? '-' : formatCentsCurrency(totalCents, displayEUR, { signed: true })}
                     </span>
                 </div>
                 <div style={styles.statCard}>
@@ -121,7 +122,7 @@ export default function CategoryOverview({ userId, categoryFilter, onAddEntry, o
                 <div style={styles.statCard}>
                     <span style={styles.statLabel}>Avg Result</span>
                     <span style={{ ...styles.statValue, color: avgCents >= 0 ? '#22c55e' : '#ef4444' }}>
-                        {!userId || loadFailed || isLoading ? '-' : formatSignedCents(avgCents)}
+                        {!userId || loadFailed || isLoading ? '-' : formatCentsCurrency(avgCents, displayEUR, { signed: true })}
                     </span>
                 </div>
                 {categoryFilter !== 'expense' && (
@@ -163,6 +164,7 @@ export default function CategoryOverview({ userId, categoryFilter, onAddEntry, o
                     </div>
                 ) : (
                     <LedgerTimeline
+                        displayEUR={displayEUR}
                         entries={entries}
                         isLoading={isLoading}
                         onEdit={handleEditEntry}
