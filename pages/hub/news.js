@@ -156,7 +156,10 @@ const VALID_SOURCES = ['PokerNews', 'MSPT', 'Card Player', 'WSOP', 'Poker.org', 
 // Sections reachable via ?tab= (hamburger menu deep links). 'bookmarks' and 'later'
 // are reached via ?filter= instead and are handled separately.
 const SECTION_TABS = ['news', 'reels', 'videos', 'events'];
-const NAV_SECTION_TABS = [...SECTION_TABS, 'later'];
+// The rail ends with Magazine (owner, 2026-11-27: the magazine lives behind its
+// own tab, not at the top of the page). Read Later is still a section, reached
+// from the menu as ?filter=later and the clock on each story.
+const NAV_SECTION_TABS = [...SECTION_TABS, 'magazine'];
 
 // Uniform electric blue source names and selected source chips
 const SOURCE_COLORS = {
@@ -345,7 +348,7 @@ function NewsHub() {
     });
 
     const activeTab = filters.activeTab;
-    const activeSection = [...NAV_SECTION_TABS, 'bookmarks'].includes(filters.activeSection)
+    const activeSection = [...NAV_SECTION_TABS, 'bookmarks', 'later'].includes(filters.activeSection)
         ? filters.activeSection
         : 'news';
     // Bookmarks is a filtered News view, not a sixth rail destination.
@@ -777,7 +780,7 @@ function NewsHub() {
         if (router.query.tab !== tabDeepLinkConsumed.current) {
             tabDeepLinkConsumed.current = router.query.tab;
             const tab = String(router.query.tab || '');
-            if (SECTION_TABS.includes(tab)) setFilter('activeSection', tab);
+            if (NAV_SECTION_TABS.includes(tab)) setFilter('activeSection', tab);
         }
         if (router.query.filter !== filterDeepLinkConsumed.current) {
             filterDeepLinkConsumed.current = router.query.filter;
@@ -1626,9 +1629,9 @@ function NewsHub() {
                                 helpContent={(
                                     <>
                                         <p>Headlines Are Gathered Every Hour From Seven Poker Outlets, Each Shown As A Source Chip Below. Open A Story To Read It Here.</p>
-                                        <p>Use The Tabs For News, Reels, Videos, Events And Read Later. Tap A Source To Show Only Its Stories, Or Several Sources At Once. Clear Removes Every Source Filter.</p>
+                                        <p>Use The Tabs For News, Reels, Videos, Events And The Smarter.Poker Magazine. Tap A Source To Show Only Its Stories, Or Several Sources At Once. Clear Removes Every Source Filter.</p>
                                         <p>Story Signal Counts The Stories Shown. Latest Puts The Newest First; Most Read Ranks Stories By Reader Views.</p>
-                                        <p>The Bookmark And Clock On Each Story Save It To Bookmarks Or Read Later. Saved Stories Sync When You Are Signed In.</p>
+                                        <p>The Bookmark And Clock On Each Story Save It To Bookmarks Or Read Later; Open Either From The Menu. Saved Stories Sync When You Are Signed In.</p>
                                         <p>Events Lists Upcoming Tournaments; Allow Location To Sort Them By Distance. Location Is Used Once And Never Stored.</p>
                                         <p>The Page Loads The Latest Stories When You Open It, Then Checks Again Every 15 Minutes While It Stays Open.</p>
                                     </>
@@ -1683,19 +1686,15 @@ function NewsHub() {
                                 </button>
                                 <button
                                     role="tab"
-                                    ref={(node) => { sectionTabRefs.current.later = node; }}
-                                    aria-selected={navActiveSection === 'later'}
-                                    tabIndex={navActiveSection === 'later' ? 0 : -1}
-                                    className={`section-tab ${navActiveSection === 'later' ? 'active' : ''}`}
-                                    onClick={() => selectSection('later')}
-                                    onKeyDown={(event) => handleSectionKeyDown(event, 'later')}
+                                    ref={(node) => { sectionTabRefs.current.magazine = node; }}
+                                    aria-selected={navActiveSection === 'magazine'}
+                                    tabIndex={navActiveSection === 'magazine' ? 0 : -1}
+                                    className={`section-tab ${navActiveSection === 'magazine' ? 'active' : ''}`}
+                                    onClick={() => selectSection('magazine')}
+                                    onKeyDown={(event) => handleSectionKeyDown(event, 'magazine')}
                                 >
-                                    <Clock size={14} /> Read Later
+                                    <Newspaper size={14} /> Magazine
                                 </button>
-                            </div>
-
-                            <div style={{ marginBottom: '14px' }}>
-                                <MagazineNewsstandBanner variant="news" />
                             </div>
 
                             {/* Breaking News Ticker */}
@@ -1731,6 +1730,9 @@ function NewsHub() {
                                 <div className="bookmark-notice" role="status">{bookmarkNotice}</div>
                             )}
 
+                            {/* Story filters only apply to stories; the Magazine tab has none. */}
+                            {activeSection !== 'magazine' && (
+                            <>
                             {/* Source Filter Chips */}
                             <div className="source-filters">
                                 {VALID_SOURCES.map(src => (
@@ -1881,6 +1883,9 @@ function NewsHub() {
                                     </div>
                                     <button type="button" onClick={() => refreshNewsFeed()}>Try Again</button>
                                 </div>
+                            )}
+
+                            </>
                             )}
 
                             {/* Phase 5: Reading Stats Bar */}
@@ -2174,6 +2179,12 @@ function NewsHub() {
                                 </>
                             )}
                             
+                            {activeSection === 'magazine' && (
+                                <section className="news-magazine-section" aria-label="Smarter.Poker Magazine">
+                                    <MagazineNewsstandBanner variant="news" />
+                                </section>
+                            )}
+
                             {activeSection === 'reels' && (
                                 /* CLUB ARENA NEWS REELS FULL START */
                                 <VideoLibraryConsole
