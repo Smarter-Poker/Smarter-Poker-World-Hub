@@ -316,9 +316,9 @@ export default function StudyGroupFinderPage() {
                       />
                     </label>
                     <label className={st.field}>
-                      <span className={st.label}>Timezone (e.g., EST)</span>
+                      <span className={st.label}>Timezone (For Example EST)</span>
                       <input
-                        placeholder="Timezone (e.g., EST)"
+                        placeholder="Timezone (For Example EST)"
                         value={form.timezone}
                         onChange={(event) => setForm((current) => ({ ...current, timezone: event.target.value }))}
                         className={st.input}

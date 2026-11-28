@@ -403,7 +403,7 @@ function CoachingCard({ session }) {
         style={{ justifyContent: 'space-between' }}
       >
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          Coach&apos;s Notes
+          Coach's Notes
           {coaching?.overallGrade && (
             <span className={`${sc.tag} ${gradeTone}`}>Grade {coaching.overallGrade}</span>
           )}
@@ -422,7 +422,7 @@ function CoachingCard({ session }) {
             style={{ overflow: 'hidden' }}
           >
             {loadingCoach ? (
-              <p className={sc.copy}>Loading Coach&apos;s Analysis...</p>
+              <p className={sc.copy}>Loading Coach's Analysis...</p>
             ) : coaching ? (
               <div style={{ display: 'grid', gap: 10 }}>
                 {coaching.headline && <h3 className={sc.subTitle}>{coaching.headline}</h3>}
