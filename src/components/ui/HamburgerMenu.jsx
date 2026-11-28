@@ -1278,6 +1278,7 @@ function HamburgerMenuContent({
         data-world-menu-scheme={activeWorld?.menuPalette?.scheme || 'global'}
         data-world-menu-texture={activeWorld?.menuPalette?.texture || 'none'}
         data-direction={direction}
+        data-open={isOpen ? 'true' : 'false'}
         data-responsive-composition={isFacebookMenu ? 'preserved' : 'adaptive'}
         data-menu-symbol="hamburger"
         onTouchStart={handleTouchStart}

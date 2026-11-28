@@ -496,7 +496,10 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   box-sizing: border-box !important;
   width: calc(100% - 2 * var(--pnm-menu-inset)) !important;
   height: auto !important;
-  min-height: 0 !important;
+  /* The painted face's aspect-ratio used to give this button its ~52px height.
+     The chrome rim (#3209) dropped that ratio, which left a 34px tap target,
+     so it keeps the 48px floor the menu rows and deck tiles carry. */
+  min-height: 48px !important;
   margin: 0 var(--pnm-menu-inset) !important;
   padding: 0 var(--pnm-face-inline) var(--pnm-face-lift) !important;
   color: #dfe8ef !important;
