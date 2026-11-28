@@ -34,6 +34,16 @@ His standing rules, all binding:
 | D. Poker Near Me: Phase 3 mobile menu contract + PNM JS budget | `agent/claude/pnm-budget-menu` | #3248 | Pushed by a swarm agent at ~11:25 PM CST (head `4fa5af6c`). Needs: confirm it's held, then read footer job step 31 and the PNM case in step 32. Merge only when both pass. |
 | E. Training: LCP + text under 12px + premium World menu snapshot | `agent/claude/training-budget-menu` | none at snapshot | Swarm agent was running. Check GitHub. |
 
+**WARNING: #3248 and #3249 overlap.** Both PR titles say they stop the app shell fetching `livekit-client` and Jarvis on every page:
+- #3248: "fix(poker-near-me): Report A Bug 48px floor; shell stops fetching LiveKit and Jarvis on ev…"
+- #3249: "perf(shell): stop fetching livekit-client and Jarvis on every page (mobile budget)"
+
+Two agents found the same root cause, shell-wide weight in `pages/_app.js`. Before merging either:
+1. Diff both against each other.
+2. Keep ONE shell change, preferably #3249, which is dedicated to the shell.
+3. Rebase the other onto it so it carries only its own page-specific fix: the PNM menu contract and the Report A Bug 48px floor.
+4. Prove the combined result in one footer job: steps 31 and 32, with every other step still success.
+
 **First commands for the next agent:**
 ```bash
 R=repos/Smarter-Poker/Smarter-Poker-World-Hub
