@@ -266,6 +266,31 @@ function resolveCategoryBank(category) {
   return 'Preflop';
 }
 
+export function buildAttributedDrillShareUrl(input = {}) {
+  const opts = typeof input === 'string' ? { redirectPath: input } : (input && typeof input === 'object' ? input : {});
+  const base = String(opts.siteUrl || 'https://smarter.poker').trim().replace(/\/+$/, '') || 'https://smarter.poker';
+  const rawTarget = String(opts.redirectPath || opts.pageUrl || opts.path || '/hub/training').trim();
+  let urlObj;
+  try {
+    if (/^https?:\/\//i.test(rawTarget)) {
+      urlObj = new URL(rawTarget);
+    } else {
+      const normalizedPath = rawTarget.startsWith('/') ? rawTarget : `/${rawTarget}`;
+      urlObj = new URL(normalizedPath, base);
+    }
+  } catch (_) {
+    urlObj = new URL('/hub/training', base);
+  }
+  urlObj.searchParams.set('utm_source', 'player_share');
+  urlObj.searchParams.set('utm_medium', 'referral');
+  urlObj.searchParams.set('utm_campaign', 'gto_drill');
+  const cleanSpotId = String(opts.spotId || '').trim().replace(/[^a-zA-Z0-9_-]+/g, '').slice(0, 64);
+  if (cleanSpotId) {
+    urlObj.searchParams.set('spot', cleanSpotId);
+  }
+  return urlObj.toString();
+}
+
 function renderCardTile(card, key) {
   return (
     <span
@@ -382,10 +407,18 @@ export default function SmarterMiniGtoDrill({
   };
 
   const handleShareResult = async () => {
+    const currentPagePath =
+      typeof window !== 'undefined' && window.location?.pathname && window.location.pathname !== '/'
+        ? window.location.pathname
+        : redirectPath || '/hub/training';
+    const attributedPageUrl = buildAttributedDrillShareUrl({
+      redirectPath: currentPagePath,
+      spotId: spot.id,
+    });
     const shareTitle = `${bankKey} GTO Drill: ${spot.heroPosition} ${heroHandLabel}`;
     const shareSubtitle = `Best Play: ${spot.optimalAction} (${spot.frequencies[spot.optimalAction]}%) | EV ${spot.evDelta}`;
-    const ogLink = `https://smarter.poker/api/og/tool-card?tool=ranges&title=${encodeURIComponent(shareTitle)}&subtitle=${encodeURIComponent(shareSubtitle)}`;
-    const summaryText = `Smarter.Poker ${spot.depth} GTO Spot (${spot.heroPosition} holding ${heroHandLabel}, ${spot.villainAction}): I Picked ${selectedAction || spot.optimalAction} | Solver: ${spot.optimalAction} ${spot.frequencies[spot.optimalAction]}% (${spot.evDelta}) | Card: ${ogLink}`;
+    const ogLink = `https://smarter.poker/api/og/tool-card?tool=ranges&title=${encodeURIComponent(shareTitle)}&subtitle=${encodeURIComponent(shareSubtitle)}&utm_source=player_share&utm_medium=referral&utm_campaign=gto_drill`;
+    const summaryText = `Smarter.Poker ${spot.depth} GTO Spot (${spot.heroPosition} holding ${heroHandLabel}, ${spot.villainAction}): I Picked ${selectedAction || spot.optimalAction} | Solver: ${spot.optimalAction} ${spot.frequencies[spot.optimalAction]}% (${spot.evDelta}) | Play Spot: ${attributedPageUrl} | Card: ${ogLink}`;
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(summaryText);
