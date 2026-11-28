@@ -4,7 +4,7 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Users, Shield, ShieldAlert, BadgeInfo, MessageSquare, Megaphone, Loader2, UserX } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 import { toast } from 'react-hot-toast';
-import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../../src/components/commander/CommanderPageShell';
 import CasinoActionDialog from '../../../../../src/components/poker-near-me/CasinoActionDialog';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -380,3 +380,5 @@ export default function HomeGameRosterPage() {
 export async function getServerSideProps() {
   return { props: {} };
 }
+
+HomeGameRosterPage.getLayout = commanderPageLayout;

@@ -169,6 +169,7 @@ const INTERACTIVE_CONVERSION_PREFIXES = [
     '/hub/venues/',
     '/hub/poker-near-me/',
     '/hub/tours/',
+    '/hub/tournaments/',
     '/hub/video-library/watch/',
     '/compare/',
     '/glossary/',

@@ -5,10 +5,11 @@
  * "weekend poker tournaments near me", "poker tournaments today and this weekend".
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import {
+  Bell as BellLuc,
   Calendar as CalendarLuc,
   ChevronRight as ChevRight,
   Clock as ClockLuc,
@@ -29,6 +30,8 @@ import { getWeekendDates } from '../../../src/lib/poker-near-me/weekendSchedule.
 import { datasetSchema, faqSchema, breadcrumbSchema } from '../../../src/lib/seo/hubPageSchema';
 import FaqSection from '../../../src/components/seo/FaqSection';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import { openQuickSignup } from '../../../src/components/seo/SmarterQuickSignupSheet';
+import { trackSeoFunnelEvent } from '../../../src/lib/seo/seoFunnelTelemetry';
 import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 
 const WEEKEND_TOURNAMENTS_FAQS = [
@@ -98,57 +101,374 @@ function formatMoney(amount) {
   return `$${amount.toLocaleString()}`;
 }
 
+const SITE_ORIGIN = 'https://smarter.poker';
+const WEEKEND_CANONICAL_PATH = '/hub/tournaments/this-weekend';
+const MAX_WEEKEND_EVENT_SCHEMA_NODES = 25;
+const PLACEHOLDER_DATE_RE = /^(1970-01-01|0000-00-00|1900-01-01|2000-01-01|tbd|n\/?a|placeholder|unknown|null|undefined)$/i;
+const PLACEHOLDER_VENUE_RE = /^(live poker room|tbd|n\/?a|unknown|placeholder|test venue|null|undefined)$/i;
+
+function isValidNonPlaceholderDate(rawDate) {
+  const clean = String(rawDate || '').trim().slice(0, 10);
+  if (!clean || PLACEHOLDER_DATE_RE.test(clean)) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(clean)) return false;
+  const [y, m, d] = clean.split('-').map((n) => parseInt(n, 10));
+  if (y < 2024 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return false;
+  const check = new Date(Date.UTC(y, m - 1, d));
+  return (
+    check.getUTCFullYear() === y &&
+    check.getUTCMonth() + 1 === m &&
+    check.getUTCDate() === d
+  );
+}
+
+function buildIsoEventStartDate(tournament) {
+  const rawDate = tournament?.event_date || tournament?.weekendDate || tournament?.start_date || '';
+  if (!isValidNonPlaceholderDate(rawDate)) return null;
+  const dateStr = String(rawDate).trim().slice(0, 10);
+  const timeRaw = String(tournament?.start_time || '').trim();
+  const hmMatch = /^(\d{1,2}):([0-5]\d)(?::[0-5]\d)?\s*([AP]M)?$/i.exec(timeRaw);
+  if (hmMatch) {
+    let hour = parseInt(hmMatch[1], 10);
+    const minute = hmMatch[2];
+    const period = (hmMatch[3] || '').toUpperCase();
+    if (period === 'PM' && hour !== 12) hour += 12;
+    if (period === 'AM' && hour === 12) hour = 0;
+    if (hour >= 0 && hour <= 23) {
+      return `${dateStr}T${String(hour).padStart(2, '0')}:${minute}:00`;
+    }
+  }
+  const bareMatch = /^(\d{1,2})\s*([AP]M)$/i.exec(timeRaw);
+  if (bareMatch) {
+    let hour = parseInt(bareMatch[1], 10);
+    const period = bareMatch[2].toUpperCase();
+    if (period === 'PM' && hour !== 12) hour += 12;
+    if (period === 'AM' && hour === 12) hour = 0;
+    if (hour >= 0 && hour <= 23) {
+      return `${dateStr}T${String(hour).padStart(2, '0')}:00:00`;
+    }
+  }
+  return `${dateStr}T12:00:00`;
+}
+
+function resolveAbsoluteEventUrl(tournament, canonical = `${SITE_ORIGIN}${WEEKEND_CANONICAL_PATH}`) {
+  const isHomeGame = Boolean(tournament?.is_home_game);
+  if (isHomeGame) {
+    const rel = homeGameUrl(tournament);
+    if (rel && rel.startsWith('/')) return `${SITE_ORIGIN}${rel}`;
+  }
+  const numericVenueId = Number(tournament?.venue_id);
+  if (Number.isFinite(numericVenueId) && numericVenueId > 0) {
+    return `${SITE_ORIGIN}/hub/venues/${encodeURIComponent(String(numericVenueId))}`;
+  }
+  return canonical;
+}
+
+/**
+ * Pure Schema.org Event node builder for upcoming tournaments.
+ * Caps output at 25 events and skips rows with missing or placeholder dates/venues.
+ */
+export function buildWeekendEventSchemaNodes(
+  tournaments = [],
+  { maxItems = MAX_WEEKEND_EVENT_SCHEMA_NODES, canonical = `${SITE_ORIGIN}${WEEKEND_CANONICAL_PATH}` } = {}
+) {
+  if (!Array.isArray(tournaments) || tournaments.length === 0) return [];
+  const cap = Math.min(MAX_WEEKEND_EVENT_SCHEMA_NODES, Math.max(1, Number(maxItems) || MAX_WEEKEND_EVENT_SCHEMA_NODES));
+  const nodes = [];
+
+  for (const t of tournaments) {
+    if (nodes.length >= cap) break;
+    if (!t || typeof t !== 'object') continue;
+    const startDate = buildIsoEventStartDate(t);
+    if (!startDate) continue;
+    const venueName = String(t.venue_name || '').trim();
+    if (!venueName || PLACEHOLDER_VENUE_RE.test(venueName)) continue;
+
+    const eventName = String(t.tournament_name || '').trim() || `${venueName} Poker Tournament`;
+    const eventUrl = resolveAbsoluteEventUrl(t, canonical);
+    const city = String(t.city || '').trim();
+    const state = String(t.state || '').trim();
+    const numericBuyIn = Number(t.buy_in);
+    const offerPrice = Number.isFinite(numericBuyIn) && numericBuyIn >= 0 ? numericBuyIn : 0;
+
+    nodes.push({
+      '@type': 'Event',
+      '@id': `${canonical}#event-${nodes.length + 1}`,
+      name: eventName,
+      startDate,
+      eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+      eventStatus: 'https://schema.org/EventScheduled',
+      url: eventUrl,
+      location: {
+        '@type': 'Place',
+        name: venueName,
+        ...(city || state
+          ? {
+              address: {
+                '@type': 'PostalAddress',
+                ...(city ? { addressLocality: city } : {}),
+                ...(state ? { addressRegion: state } : {}),
+                addressCountry: 'US',
+              },
+            }
+          : {}),
+      },
+      offers: {
+        '@type': 'Offer',
+        price: offerPrice,
+        priceCurrency: 'USD',
+        availability: 'https://schema.org/InStock',
+        url: eventUrl,
+      },
+    });
+  }
+
+  return nodes;
+}
+
+/**
+ * Pure quick-filter for Tonight / This Weekend / All Upcoming modes.
+ */
+export function filterTonightWeekendTournaments(
+  tournaments = [],
+  { mode = 'weekend', todayIso = '', todayDayName = '', weekendDates = [] } = {}
+) {
+  if (!Array.isArray(tournaments) || tournaments.length === 0) return [];
+  const normMode = String(mode || 'weekend').toLowerCase();
+  const normTodayIso = String(todayIso || '').trim().slice(0, 10);
+  const normTodayDay = String(todayDayName || '').trim().toLowerCase();
+  const weekendDateSet = new Set(
+    Array.isArray(weekendDates) ? weekendDates.map((d) => String(d || '').trim().slice(0, 10)).filter(Boolean) : []
+  );
+  const weekendDaySet = new Set(['friday', 'saturday', 'sunday']);
+
+  if (normMode === 'all') {
+    return tournaments;
+  }
+
+  if (normMode === 'tonight') {
+    return tournaments.filter((t) => {
+      if (!t || typeof t !== 'object') return false;
+      const rowDate = String(t.event_date || t.weekendDate || '').trim().slice(0, 10);
+      const rowDay = String(t.weekendDay || t.day_of_week || '').trim().toLowerCase();
+      if (normTodayIso && rowDate) {
+        return rowDate === normTodayIso;
+      }
+      if (normTodayDay && rowDay) {
+        return rowDay === normTodayDay;
+      }
+      return false;
+    });
+  }
+
+  // Default: 'weekend'
+  return tournaments.filter((t) => {
+    if (!t || typeof t !== 'object') return false;
+    const rowDate = String(t.event_date || t.weekendDate || '').trim().slice(0, 10);
+    const rowDay = String(t.weekendDay || t.day_of_week || '').trim().toLowerCase();
+    if (weekendDateSet.size > 0 && rowDate && weekendDateSet.has(rowDate)) return true;
+    if (rowDay && weekendDaySet.has(rowDay)) return true;
+    return false;
+  });
+}
+
+/**
+ * Pure Phase-D-compatible reminder spot builder for sp_saved_spots_v1.
+ */
+export function buildWeekendReminderSpot(tournament, { savedAt = '' } = {}) {
+  const t = tournament && typeof tournament === 'object' ? tournament : {};
+  const label = String(t.tournament_name || 'Weekend Poker Tournament').trim().slice(0, 140) || 'Weekend Poker Tournament';
+  const venue = String(t.venue_name || '').trim().slice(0, 140);
+  const seriesName = String(
+    t.series_name || (venue ? `${venue} Weekend Schedule` : 'Weekend Poker Tournaments')
+  )
+    .trim()
+    .slice(0, 140);
+  const isoStart = buildIsoEventStartDate(t) || '';
+  const slugify = (val, fallback) =>
+    String(val || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 28) || fallback;
+  const venueSlug = slugify(t.venue_id || venue, 'venue');
+  const eventSlug = slugify(t.id || label, 'event');
+  const dateSlug = slugify(isoStart.slice(0, 10) || t.weekendDay, 'date');
+  const buyInLabel =
+    typeof t.buy_in === 'number' && t.buy_in > 0
+      ? formatMoney(t.buy_in)
+      : t.buy_in === 0
+        ? 'Free'
+        : 'TBD';
+  const timeLabel = formatTime(t.start_time) || t.weekendDay || 'Upcoming';
+
+  return {
+    id: `weekend-reminder-${venueSlug}-${eventSlug}-${dateSlug}`.slice(0, 80),
+    kind: 'series-reminder',
+    label,
+    eventDate: isoStart.slice(0, 40),
+    startDate: isoStart.slice(0, 40),
+    seriesName,
+    venue,
+    path: WEEKEND_CANONICAL_PATH,
+    toolSlug: 'weekend-event-reminder',
+    toolName: 'Weekend Tournament Reminder',
+    summaryText: `${label} (${buyInLabel} - ${timeLabel})${venue ? ` At ${venue}` : ''}`.slice(0, 320),
+    url: WEEKEND_CANONICAL_PATH,
+    savedAt: String(savedAt || '').slice(0, 40),
+  };
+}
+
+function getEasternTodayIso(referenceTime = new Date()) {
+  const dateObj = referenceTime instanceof Date ? referenceTime : new Date(referenceTime);
+  const localStr = dateObj.toLocaleString('en-US', { timeZone: 'America/New_York' });
+  const d = new Date(localStr);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export async function getServerSideProps() {
+  const now = new Date();
   return {
     props: {
-      initialWeekendInfo: getWeekendDates(new Date()),
+      initialWeekendInfo: getWeekendDates(now),
+      initialTodayIso: getEasternTodayIso(now),
     },
   };
 }
 
-export default function TournamentsThisWeekendPage({ initialTournaments = [], initialWeekendInfo = null }) {
+export default function TournamentsThisWeekendPage({
+  initialTournaments = [],
+  initialWeekendInfo = null,
+  initialTodayIso = '',
+}) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuConfig = useMemo(() => getMenuConfig('hub'), []);
 
   // Filter state
+  const [quickFilter, setQuickFilter] = useState('weekend'); // 'tonight' | 'weekend' | 'all'
   const [selectedDayTab, setSelectedDayTab] = useState('ALL'); // 'ALL' | 'Friday' | 'Saturday' | 'Sunday'
   const [selectedState, setSelectedState] = useState('');
   const [selectedBuyin, setSelectedBuyin] = useState(BUYIN_RANGES[0]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [remindedIds, setRemindedIds] = useState({});
 
   const weekendInfo = useMemo(() => initialWeekendInfo || getWeekendDates(), [initialWeekendInfo]);
+  const todayDayName = weekendInfo?.referenceDay || 'Friday';
+  const todayIso = useMemo(() => {
+    if (initialTodayIso) return initialTodayIso;
+    if (todayDayName === 'Friday') return weekendInfo.friday;
+    if (todayDayName === 'Saturday') return weekendInfo.saturday;
+    if (todayDayName === 'Sunday') return weekendInfo.sunday;
+    return weekendInfo.friday;
+  }, [initialTodayIso, todayDayName, weekendInfo]);
 
-  // Multi-day SWR fetch for Friday, Saturday, Sunday
+  useEffect(() => {
+    const qFilter = String(router?.query?.filter || '').toLowerCase();
+    if (qFilter === 'tonight' || qFilter === 'weekend' || qFilter === 'all') {
+      setQuickFilter(qFilter);
+    }
+  }, [router?.query?.filter]);
+
+  // Multi-day SWR fetch for Friday, Saturday, Sunday (+ today when weekday)
   const fetcher = (url) => fetch(url).then((r) => r.json());
+  const needsSeparateTodayFetch = !['Friday', 'Saturday', 'Sunday'].includes(todayDayName);
+  const { data: todayData, isLoading: todayLoading } = useSWR(
+    needsSeparateTodayFetch ? `/api/poker/daily-tournaments?day=${encodeURIComponent(todayDayName)}` : null,
+    fetcher
+  );
   const { data: friData, isLoading: friLoading } = useSWR('/api/poker/daily-tournaments?day=Friday', fetcher);
   const { data: satData, isLoading: satLoading } = useSWR('/api/poker/daily-tournaments?day=Saturday', fetcher);
   const { data: sunData, isLoading: sunLoading } = useSWR('/api/poker/daily-tournaments?day=Sunday', fetcher);
 
-  const isLoading = (friLoading || satLoading || sunLoading) && initialTournaments.length === 0;
+  const isLoading =
+    (friLoading || satLoading || sunLoading || (needsSeparateTodayFetch && todayLoading)) &&
+    initialTournaments.length === 0;
 
-  // Aggregate tournaments across the full weekend
+  // Aggregate tournaments across today + the full weekend
   const allWeekendTournaments = useMemo(() => {
     const list = [];
+    if (needsSeparateTodayFetch && todayData?.tournaments) {
+      todayData.tournaments.forEach((t) =>
+        list.push({
+          ...t,
+          weekendDay: todayDayName,
+          weekendDate: todayIso,
+          event_date: t.event_date || todayIso,
+        })
+      );
+    }
     if (friData?.tournaments) {
-      friData.tournaments.forEach(t => list.push({ ...t, weekendDay: 'Friday', weekendDate: weekendInfo.friday }));
+      friData.tournaments.forEach((t) =>
+        list.push({
+          ...t,
+          weekendDay: 'Friday',
+          weekendDate: weekendInfo.friday,
+          event_date: t.event_date || weekendInfo.friday,
+        })
+      );
     }
     if (satData?.tournaments) {
-      satData.tournaments.forEach(t => list.push({ ...t, weekendDay: 'Saturday', weekendDate: weekendInfo.saturday }));
+      satData.tournaments.forEach((t) =>
+        list.push({
+          ...t,
+          weekendDay: 'Saturday',
+          weekendDate: weekendInfo.saturday,
+          event_date: t.event_date || weekendInfo.saturday,
+        })
+      );
     }
     if (sunData?.tournaments) {
-      sunData.tournaments.forEach(t => list.push({ ...t, weekendDay: 'Sunday', weekendDate: weekendInfo.sunday }));
+      sunData.tournaments.forEach((t) =>
+        list.push({
+          ...t,
+          weekendDay: 'Sunday',
+          weekendDate: weekendInfo.sunday,
+          event_date: t.event_date || weekendInfo.sunday,
+        })
+      );
     }
     if (list.length === 0 && initialTournaments && initialTournaments.length > 0) {
       return initialTournaments;
     }
     return list;
-  }, [friData, satData, sunData, weekendInfo, initialTournaments]);
+  }, [needsSeparateTodayFetch, todayData, todayDayName, todayIso, friData, satData, sunData, weekendInfo, initialTournaments]);
+
+  const tonightCount = useMemo(
+    () =>
+      filterTonightWeekendTournaments(allWeekendTournaments, {
+        mode: 'tonight',
+        todayIso,
+        todayDayName,
+        weekendDates: weekendInfo.dates,
+      }).length,
+    [allWeekendTournaments, todayIso, todayDayName, weekendInfo]
+  );
+
+  const weekendOnlyCount = useMemo(
+    () =>
+      filterTonightWeekendTournaments(allWeekendTournaments, {
+        mode: 'weekend',
+        todayIso,
+        todayDayName,
+        weekendDates: weekendInfo.dates,
+      }).length,
+    [allWeekendTournaments, todayIso, todayDayName, weekendInfo]
+  );
 
   // Filtered view
   const filteredTournaments = useMemo(() => {
-    return allWeekendTournaments.filter((t) => {
-      if (selectedDayTab !== 'ALL' && t.weekendDay !== selectedDayTab) return false;
+    const quickMatched = filterTonightWeekendTournaments(allWeekendTournaments, {
+      mode: quickFilter,
+      todayIso,
+      todayDayName,
+      weekendDates: weekendInfo.dates,
+    });
+    return quickMatched.filter((t) => {
+      if (quickFilter !== 'tonight' && selectedDayTab !== 'ALL' && t.weekendDay !== selectedDayTab) return false;
       if (selectedState && t.state !== selectedState) return false;
       if (selectedBuyin.min !== null && (t.buy_in || 0) < selectedBuyin.min) return false;
       if (selectedBuyin.max !== null && (t.buy_in || 0) > selectedBuyin.max) return false;
@@ -161,7 +481,49 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
       }
       return true;
     });
-  }, [allWeekendTournaments, selectedDayTab, selectedState, selectedBuyin, searchQuery]);
+  }, [allWeekendTournaments, quickFilter, todayIso, todayDayName, weekendInfo, selectedDayTab, selectedState, selectedBuyin, searchQuery]);
+
+  const handleRemindMe = (tournament) => {
+    if (typeof window === 'undefined') return;
+    const savedAt = new Date(Date.now()).toISOString();
+    const spot = buildWeekendReminderSpot(tournament, { savedAt });
+    try {
+      const rawSaved = window.localStorage?.getItem('sp_saved_spots_v1');
+      const parsed = rawSaved ? JSON.parse(rawSaved) : [];
+      const existing = Array.isArray(parsed) ? parsed : [];
+      const nextSaved = [spot, ...existing.filter((item) => item && item.id !== spot.id)].slice(0, 25);
+      window.localStorage?.setItem('sp_saved_spots_v1', JSON.stringify(nextSaved));
+    } catch (_) {
+      /* ignore storage restrictions */
+    }
+    setRemindedIds((prev) => ({ ...prev, [spot.id]: true }));
+    try {
+      window.dispatchEvent(
+        new CustomEvent('sp:seo-tool-engaged', {
+          detail: { tool: 'weekend-tournaments', action: 'remind-me', eventName: spot.label },
+        })
+      );
+      window.dispatchEvent(
+        new CustomEvent('sp:peak-utility-pwa', {
+          detail: { unlockKey: 'series-alerts-event-reminder' },
+        })
+      );
+    } catch (_) {
+      /* non-blocking */
+    }
+    trackSeoFunnelEvent('seo_local_action_bar_click', {
+      action: 'weekend-remind-me',
+      venue: spot.venue,
+    });
+    openQuickSignup({
+      unlockKey: 'series-alerts-event-reminder',
+      source: 'weekend-tournaments-remind-me',
+      eyebrow: 'Free Tournament Reminder',
+      title: `Remind Me: ${spot.label}`,
+      subtitle: `Get Free Start-Time & Late-Reg Reminders For ${spot.label}${spot.venue ? ` At ${spot.venue}` : ''}.`,
+      redirectPath: WEEKEND_CANONICAL_PATH,
+    });
+  };
 
   // Aggregate stats
   const stats = useMemo(() => {
@@ -177,7 +539,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
     };
   }, [allWeekendTournaments, friData, satData, sunData]);
 
-  // Structured Data (Schema.org CollectionPage + ItemList of SportsEvents)
+  // Structured Data (Schema.org CollectionPage + ItemList of SportsEvents + Event nodes)
   const structuredData = useMemo(() => {
     return buildDailyTournamentSchema(
       filteredTournaments.slice(0, 50),
@@ -189,6 +551,15 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
       }
     );
   }, [filteredTournaments, weekendInfo]);
+
+  const upcomingEventSchemaNodes = useMemo(
+    () =>
+      buildWeekendEventSchemaNodes(filteredTournaments, {
+        maxItems: MAX_WEEKEND_EVENT_SCHEMA_NODES,
+        canonical: 'https://smarter.poker/hub/tournaments/this-weekend',
+      }),
+    [filteredTournaments]
+  );
 
   return (
     <>
@@ -245,6 +616,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
                   ['Poker Near Me', '/hub/poker-near-me/lobby'],
                   ['Weekend Tournaments', '/hub/tournaments/this-weekend'],
                 ]),
+                ...upcomingEventSchemaNodes,
               ].filter(Boolean)),
             }),
           }}
@@ -306,6 +678,50 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
 
           {/* Interactive Filters Bar */}
           <div className="weekend-controls">
+            {/* Tonight / This Weekend / All Upcoming Quick-Filter Pill Bar */}
+            <div
+              className="tonight-quick-bar"
+              data-testid="tonight-weekend-filter"
+              role="group"
+              aria-label="Quick Schedule Filter"
+            >
+              <button
+                type="button"
+                data-filter="tonight"
+                aria-pressed={quickFilter === 'tonight'}
+                className={`tonight-pill ${quickFilter === 'tonight' ? 'active' : ''}`}
+                onClick={() => {
+                  setQuickFilter('tonight');
+                  setSelectedDayTab('ALL');
+                }}
+              >
+                {`Tonight (${tonightCount})`}
+              </button>
+              <button
+                type="button"
+                data-filter="weekend"
+                aria-pressed={quickFilter === 'weekend'}
+                className={`tonight-pill ${quickFilter === 'weekend' ? 'active' : ''}`}
+                onClick={() => {
+                  setQuickFilter('weekend');
+                }}
+              >
+                {`This Weekend (${weekendOnlyCount})`}
+              </button>
+              <button
+                type="button"
+                data-filter="all"
+                aria-pressed={quickFilter === 'all'}
+                className={`tonight-pill ${quickFilter === 'all' ? 'active' : ''}`}
+                onClick={() => {
+                  setQuickFilter('all');
+                  setSelectedDayTab('ALL');
+                }}
+              >
+                {`All Upcoming (${allWeekendTournaments.length})`}
+              </button>
+            </div>
+
             {/* Day Selector Tabs */}
             <div className="day-tabs-group" role="tablist" aria-label="Select Weekend Day">
               <button
@@ -397,6 +813,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
                 <button
                   className="reset-btn"
                   onClick={() => {
+                    setQuickFilter('weekend');
                     setSelectedDayTab('ALL');
                     setSelectedState('');
                     setSelectedBuyin(BUYIN_RANGES[0]);
@@ -408,9 +825,17 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
               </div>
             ) : (
               <div className="tournament-grid">
-                {filteredTournaments.slice(0, 100).map((t, i) => (
-                  <WeekendTournamentCard key={`${t.id || t.venue_id}-${i}`} tournament={t} />
-                ))}
+                {filteredTournaments.slice(0, 100).map((t, i) => {
+                  const spotId = buildWeekendReminderSpot(t).id;
+                  return (
+                    <WeekendTournamentCard
+                      key={`${t.id || t.venue_id}-${i}`}
+                      tournament={t}
+                      isReminded={Boolean(remindedIds[spotId])}
+                      onRemindMe={handleRemindMe}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
@@ -544,6 +969,35 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
             flex-direction: column;
             gap: 16px;
           }
+          .tonight-quick-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #1e3a5f;
+          }
+          .tonight-pill {
+            min-height: 44px;
+            padding: 8px 16px;
+            border-radius: 0;
+            border: 1px solid #1e3a5f;
+            background: #0b1120;
+            color: #cbd5e1;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+          }
+          .tonight-pill:hover {
+            border-color: #38bdf8;
+            color: #ffffff;
+          }
+          .tonight-pill.active {
+            background: #2563eb;
+            border-color: #38bdf8;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.28);
+          }
           .day-tabs-group {
             display: flex;
             gap: 8px;
@@ -667,7 +1121,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
   );
 }
 
-function WeekendTournamentCard({ tournament }) {
+function WeekendTournamentCard({ tournament, isReminded = false, onRemindMe }) {
   const t = tournament;
   const isHomeGame = Boolean(t.is_home_game);
   const isRealVenue = Number.isFinite(Number(t.venue_id)) && Number(t.venue_id) > 0;
@@ -699,16 +1153,25 @@ function WeekendTournamentCard({ tournament }) {
         </div>
       </div>
 
-      {detailUrl && (
-        <div className="card-footer">
+      <div className="card-footer">
+        <button
+          type="button"
+          className={`remind-me-btn ${isReminded ? 'saved' : ''}`}
+          data-testid="weekend-remind-me-btn"
+          onClick={() => onRemindMe && onRemindMe(t)}
+        >
+          <BellLuc size={14} aria-hidden />
+          <span>{isReminded ? 'Reminder Saved' : 'Remind Me'}</span>
+        </button>
+        {detailUrl && (
           <Link href={detailUrl} legacyBehavior>
             <a className="card-link">
               <span>View Venue Schedule</span>
               <ChevRight size={14} aria-hidden />
             </a>
           </Link>
-        </div>
-      )}
+        )}
+      </div>
 
       <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
         .card-item {
@@ -799,8 +1262,37 @@ function WeekendTournamentCard({ tournament }) {
         }
         .card-footer {
           margin-top: auto;
-          padding-top: 8px;
+          padding-top: 10px;
           border-top: 1px solid rgba(255, 255, 255, 0.06);
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .remind-me-btn {
+          width: 100%;
+          min-height: 44px;
+          padding: 8px 12px;
+          border-radius: 0;
+          border: 1px solid #38bdf8;
+          background: #0b1120;
+          color: #86daff;
+          font-size: 13px;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          cursor: pointer;
+          transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+        .remind-me-btn:hover {
+          background: #2563eb;
+          color: #ffffff;
+        }
+        .remind-me-btn.saved {
+          background: #059669;
+          border-color: #10b981;
+          color: #ffffff;
         }
         .card-link {
           display: flex;

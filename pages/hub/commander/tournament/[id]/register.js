@@ -10,7 +10,7 @@ import { Trophy, Calendar, Users, DollarSign, Clock, CheckCircle, Loader2, Alert
 import { supabase } from '../../../../../src/lib/supabase';
 // 2026-07-25 audit fix: added getAuthUser for the entries-list fallback check.
 import { getAccessToken, getAuthUser, getFreshAccessToken } from '../../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../../src/components/commander/CommanderPageShell';
 
 const parseBlinds = (raw) => {
   if (Array.isArray(raw)) return raw;
@@ -457,3 +457,5 @@ function DetailRow({ icon: Icon, label, value }) {
     </div>
   );
 }
+
+TournamentRegisterPage.getLayout = commanderPageLayout;

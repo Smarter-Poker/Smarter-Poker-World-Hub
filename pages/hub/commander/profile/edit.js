@@ -12,7 +12,7 @@ import { ArrowLeft, Save, User, Camera } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 export default function ProfileEditPage() {
   const router = useRouter();
@@ -185,3 +185,5 @@ export default function ProfileEditPage() {
     </CommanderPageShell>
   );
 }
+
+ProfileEditPage.getLayout = commanderPageLayout;

@@ -17,7 +17,7 @@ import useTournamentRealtime from '../../../../../src/hooks/useTournamentRealtim
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../../src/components/commander/CommanderPageShell';
 
 const parseBlinds = (raw) => {
   if (Array.isArray(raw)) return raw;
@@ -604,3 +604,5 @@ export default function MyTournamentStatus() {
         </CommanderPageShell>
     );
 }
+
+MyTournamentStatus.getLayout = commanderPageLayout;

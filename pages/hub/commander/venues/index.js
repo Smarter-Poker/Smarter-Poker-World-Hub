@@ -12,7 +12,7 @@ import { fetchVenueList } from '../../../../src/lib/commander/venueSeo';
 import Link from 'next/link';
 import LocationEnableModal from '../../../../src/components/ui/LocationEnableModal';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import {
   MapPin,
   Search,
@@ -318,3 +318,5 @@ export default function VenueDiscoveryPage({ initialVenues = [] }) {
     </CommanderPageShell>
   );
 }
+
+VenueDiscoveryPage.getLayout = commanderPageLayout;
