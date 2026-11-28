@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { openQuickSignup } from './SmarterQuickSignupSheet';
-import SmarterGoogleOneTap from './SmarterGoogleOneTap';
 import { VENUE_COUNT_LABEL } from '../../lib/venueCount.mjs';
 import { getAiWelcomeContext } from '../../lib/seo/seoExperiment';
+
+const SmarterGoogleOneTap = dynamic(() => import('./SmarterGoogleOneTap'), {
+  ssr: false,
+});
 
 export const GUEST_BAR_DISMISSED_KEY = 'sp_guest_conversion_bar_dismissed_v1';
 

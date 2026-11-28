@@ -326,7 +326,8 @@ test('OTC TIER 1 LAW 4: SmarterGoogleOneTap silently no-ops without client ID, l
   assert.match(oneTapSrc, /cancel_on_tap_outside:\s*true/);
   assert.match(oneTapSrc, /signInWithIdToken/);
   assert.match(oneTapSrc, /seo_google_one_tap_success/);
-  assert.match(guestBarSrc, /import SmarterGoogleOneTap from '\.\/SmarterGoogleOneTap'/);
+  assert.match(guestBarSrc, /dynamic\(\(\) => import\('\.\/SmarterGoogleOneTap'\)/);
+  assert.doesNotMatch(guestBarSrc, /import SmarterGoogleOneTap from '\.\/SmarterGoogleOneTap'/);
   assert.match(guestBarSrc, /<SmarterGoogleOneTap\b/);
 
   const savedClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
