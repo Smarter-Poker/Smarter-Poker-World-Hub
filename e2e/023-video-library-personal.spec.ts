@@ -54,9 +54,13 @@ test.describe('Phase 6 Personal Video Study', () => {
         await page.goto('/hub/video-library', { waitUntil: 'commit' });
         const study = page.getByRole('region', { name: 'Diamond Study Streak', exact: true });
         await expect(study.getByRole('alert')).toHaveText('Study Status Is Temporarily Unavailable');
-        await expect(study.getByText(/Diamonds Earned/)).toHaveCount(0);
+        await expect(study.locator('.vl-study-readout')).toHaveCount(0);
         outcome = 'ready'; await study.getByRole('button', { name: 'Reload Study Status' }).click();
-        await expect(study.getByText('7 Diamonds Earned From Videos Today', { exact: true })).toBeVisible();
-        await expect(study.getByText(/No Extra Streak Bonus/)).toBeVisible(); expect(reads).toBe(2); await geometry(page);
+        // Three centred readouts (Dan, 2026-11-27); the counting rules live behind the page's "?".
+        const readout = (label: string) => study.locator('.vl-study-readout').filter({ has: page.getByText(label, { exact: true }) }).locator('.vl-study-streak-value');
+        await expect(readout('Streak')).toHaveText('2 Days');
+        await expect(readout('Diamonds Today')).toHaveText('7');
+        await expect(readout('Today')).toHaveText('Counted');
+        expect(reads).toBe(2); await geometry(page);
     });
 });
