@@ -101,6 +101,12 @@ test('the real resolveBuildCpus gives 4 on an 8-core builder and 1 on a 2-core b
 // 4096 MB -> main 5399 MB, tree 5761 MB, same compile time (63 s vs 67 s);
 // ceiling 3072 MB still builds (80 s), so 4096 keeps a 1 GB margin above a
 // ceiling that works. Raise it only with the machine.
+//
+// 2026-11-28: the app outgrew that margin. Four production builds in a row
+// (#3299 to #3329) were SIGKILLed during the webpack compile with the heap at
+// 4096. The ceiling moved to 3584 (still above the 3072 that was measured to
+// build) and next.config.js turned on experimental.webpackMemoryOptimizations,
+// the documented Next.js switch for a lower peak.
 
 test('build:vercel caps the heap for an 8 GB build machine', () => {
   const pkg = JSON.parse(read('package.json'));
@@ -114,6 +120,7 @@ test('build:vercel caps the heap for an 8 GB build machine', () => {
   );
   assert.ok(caps[0] >= 3072, 'below 3072 MB the build was never measured to complete');
   assert.match(script, /NODE_OPTIONS='--max-old-space-size=\d+' next build --webpack/);
+  assert.match(read('next.config.js'), /webpackMemoryOptimizations: true,/, 'the webpack compile keeps its lower peak');
 });
 
 // -- 2. A preview deployment is opt-in ---------------------------------------

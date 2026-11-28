@@ -645,6 +645,15 @@ const nextConfig = {
     // Derivation, and the two incidents behind it, are at resolveBuildCpus().
     // BUILD_CPUS=<n> still overrides, and BUILD_CPUS=1 remains the escape hatch.
     cpus: resolveBuildCpus(),
+    // 2026-11-28: every production build from #3299 to #3329 (four in a row)
+    // was SIGKILLed on the 4 core / 8 GB Standard Build Machine (exit 137,
+    // Vercel "Out of Memory" report) during the webpack compile, right after
+    // the PWA worker build. The heap cap alone (build:vercel) no longer leaves
+    // enough room as the app grows. This is the documented Next.js switch for
+    // exactly this (node_modules/next/dist/docs/01-app/02-guides/memory-usage.md:
+    // "reduces max memory usage", "considered to be low-risk"); it trades a
+    // little compile time for a lower peak.
+    webpackMemoryOptimizations: true,
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
     // "Unrecognized key" build warning). No replacement needed.
