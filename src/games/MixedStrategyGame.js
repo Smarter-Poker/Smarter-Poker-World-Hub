@@ -1,4 +1,6 @@
 import React from 'react';
+import { ArrowLeft, ArrowRight, Dices } from 'lucide-react';
+import { GameFrame } from '../components/memory-games/PreflopGameKit';
 
 const VERIFIED_MIXED_STRATEGY_ROUTE =
   '/hub/training/mixed-strategy-lab?source=preflop-charts';
@@ -16,51 +18,27 @@ export default function MixedStrategyGame({ onExit }) {
   };
 
   return (
-    <section
-      aria-labelledby="verified-mixed-strategy-title"
-      style={{
-        maxWidth: 620,
-        margin: '32px auto',
-        padding: 24,
-        color: '#eefaff',
-        background: 'linear-gradient(155deg, rgba(20, 34, 50, 0.98), rgba(3, 10, 18, 0.99))',
-        border: '1px solid rgba(112, 224, 255, 0.48)',
-        borderRadius: 12,
-        boxShadow: '0 18px 48px rgba(0, 0, 0, 0.5), inset 0 1px rgba(255, 255, 255, 0.08)',
-      }}
-    >
-      <div style={{ color: '#79ddff', fontSize: 11, letterSpacing: '0.18em' }}>
-        Verified Training Transfer
-      </div>
-      <h1 id="verified-mixed-strategy-title" style={{ margin: '8px 0 10px', fontSize: 28 }}>
-        Mixed Strategy Lab
-      </h1>
-      <p style={{ margin: '0 0 20px', color: 'rgba(238, 250, 255, 0.76)', lineHeight: 1.6 }}>
-        Exact-Frequency Decisions Require A Sealed Solver Source. Continue In The Verified Training Arena For Server-Delivered Questions, Grading, Feedback, And Progress.
-      </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
-        <button
-          type="button"
-          onClick={openVerifiedTrainer}
-          style={{
-            padding: '13px 16px', border: '1px solid #9beaff', borderRadius: 8,
-            background: 'linear-gradient(180deg, #55d6ff, #087fa9)', color: '#031018',
-            fontWeight: 800, cursor: 'pointer',
-          }}
-        >
-          Open Verified Mixed Strategy Training
-        </button>
-        <button
-          type="button"
-          onClick={onExit}
-          style={{
-            padding: '11px 16px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8,
-            background: 'rgba(255,255,255,0.05)', color: '#d8eff8', cursor: 'pointer',
-          }}
-        >
-          Return To Preflop Charts
-        </button>
-      </div>
-    </section>
+    <GameFrame>
+      <section className="preflop-sd-surface" aria-labelledby="verified-mixed-strategy-title">
+        <div className="preflop-sd-emblem" aria-hidden="true">
+          <Dices size={40} strokeWidth={1.8} />
+        </div>
+        <div className="preflop-sd-kicker">Verified Training Transfer</div>
+        <h1 id="verified-mixed-strategy-title" className="preflop-sd-title">
+          Mixed Strategy Lab
+        </h1>
+        <p className="preflop-sd-copy">
+          Exact-Frequency Decisions Require A Sealed Solver Source. Continue In The Verified Training Arena For Server-Delivered Questions, Grading, Feedback, And Progress.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+          <button type="button" className="preflop-sd-primary" onClick={openVerifiedTrainer}>
+            Open Verified Mixed Strategy Training <ArrowRight size={18} aria-hidden />
+          </button>
+          <button type="button" className="preflop-sd-button" onClick={onExit}>
+            <ArrowLeft size={17} aria-hidden /> Return To Preflop Charts
+          </button>
+        </div>
+      </section>
+    </GameFrame>
   );
 }

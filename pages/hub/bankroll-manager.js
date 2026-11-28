@@ -87,7 +87,7 @@ import { fetchReportLedger, fetchTrips, fetchBankrollRules, getDateRangeFilter, 
 import {
   receiptActions, tripFromReceipt, w2gRowFromReceipt, receiptRowFromScan, ledgerCategoryFor,
   matchLocationByName, findOpenSessionFor, rankEntriesForReceipt,
-  ledgerEntryFromReceipt, partitionForBulkFiling,
+  ledgerEntryFromReceipt, partitionForBulkFiling, entryHoldingImage, receiptNeedingTrip,
   RECEIPT_ACTIONS, RECEIPT_TARGETS,
 } from '../../src/lib/bankroll/receiptInbox.mjs';
 import { warmOcr } from '../../src/lib/docscan/ocr.mjs';
@@ -960,6 +960,9 @@ export default function BankrollManagerPage() {
     if (scannerStep !== 'scan' && scannerReceiptId) {
       toast.success('Receipt Kept In Receipts Waiting. Assign It From The Dashboard.');
     }
+    // A held scan the player opened and closed stays in the hold; letting go
+    // of it here is what lets Send and the automatic sender run again.
+    setResumingHeld(null);
     setScannerHasUnsaved(false);
     clearActionView('scan-receipt');
     setShowScanner(false);
@@ -1181,11 +1184,31 @@ export default function BankrollManagerPage() {
     const { willFile } = partitionForBulkFiling(pendingReceipts);
     if (willFile.length === 0) return;
     setBulkFiling(true);
-    const activeTrip = trips.find(t => t.status === 'active' && t.trip_type !== 'series') || null;
+    let activeTrip = trips.find(t => t.status === 'active' && t.trip_type !== 'series') || null;
+    // Rule 2 holds in bulk too: a buy-in is never filed onto no trip.
+    const tripSeed = receiptNeedingTrip(willFile, activeTrip);
+    if (tripSeed) {
+      try {
+        const seedVenue = tripSeed.route.prefill.location_name || tripSeed.route.prefill.vendor;
+        const seedMatch = matchLocationByName(locations, seedVenue);
+        activeTrip = await createTrip(userId, { ...tripFromReceipt(tripSeed.route), location_id: seedMatch ? seedMatch.id : null });
+        toast.success(`Trip Started: ${activeTrip.name}`);
+      } catch (err) {
+        console.warn('[bankroll] bulk auto trip failed:', err?.message || err);
+        toast.error('Could Not Start A Trip. The Sessions Will Be Filed Without One.');
+      }
+    }
     let filed = 0;
     let failed = 0;
     for (const receipt of willFile) {
       try {
+        // Already on an entry (the last mark failed): mark it, never file twice.
+        const holder = entryHoldingImage(entries, receipt.image_url);
+        if (holder) {
+          await markReceiptAssigned(receipt.id, RECEIPT_TARGETS.LEDGER_ENTRY, holder.id);
+          filed++;
+          continue;
+        }
         const venue = receipt.route && receipt.route.prefill
           && (receipt.route.prefill.location_name || receipt.route.prefill.vendor);
         const match = matchLocationByName(locations, venue);
@@ -1213,7 +1236,7 @@ export default function BankrollManagerPage() {
     if (failed > 0) toast.error(`Filed ${filed}. ${failed} Could Not Be Filed And Are Still Waiting.`);
     else toast.success(`Filed ${filed} Receipt${filed === 1 ? '' : 's'}.`);
     loadPendingReceipts();
-  }, [bulkFiling, requireOnline, pendingReceipts, trips, locations, userId, markReceiptAssigned, loadData, loadPendingReceipts]);
+  }, [bulkFiling, requireOnline, pendingReceipts, trips, entries, locations, userId, markReceiptAssigned, loadData, loadPendingReceipts]);
 
   /**
    * What the Receipt Saved sheet does for each choice (Dan, 2026-09-08):
@@ -1629,6 +1652,7 @@ export default function BankrollManagerPage() {
                           }
                         }}
                         onHeld={() => { finishAutoFlush(autoFlushing, false); }}
+                        onUploadFailed={() => { finishAutoFlush(autoFlushing, false); }}
                       />
                     </div>
                   )}

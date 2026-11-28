@@ -18,8 +18,8 @@
     "dialogs": 22,
     "persistenceFiles": 100,
     "realtimeFiles": 7,
-    "tests": 205,
-    "markerCandidates": 406,
+    "tests": 206,
+    "markerCandidates": 408,
     "possibleUnwiredFunctions": 514,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
@@ -4701,6 +4701,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4733,6 +4734,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4772,6 +4774,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4798,6 +4801,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4831,6 +4835,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4866,6 +4871,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4885,6 +4891,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4908,6 +4915,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -4920,6 +4928,7 @@
       },
       "existingTests": [
         "__tests__/aeo-traffic-expansion-master.test.mjs",
+        "__tests__/preflop-charts-smarterdesign.law.test.mjs",
         "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
         "__tests__/training-final-honesty-surfaces.test.mjs",
         "__tests__/training-learning-journey-phase-9.test.mjs",
@@ -14786,6 +14795,7 @@
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -14825,6 +14835,7 @@
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -14869,6 +14880,7 @@
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -14899,6 +14911,7 @@
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -14937,6 +14950,7 @@
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -14982,6 +14996,7 @@
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15006,6 +15021,7 @@
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15034,6 +15050,7 @@
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/preflop-charts-smarterdesign.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-community-leaderboard-authority.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15049,6 +15066,7 @@
       "existingTests": [
         "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
         "__tests__/aeo-traffic-expansion-master.test.mjs",
+        "__tests__/preflop-charts-smarterdesign.law.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-community-leaderboard-authority.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
@@ -83231,7 +83249,7 @@
         },
         {
           "name": "getNextGameSuggestion",
-          "line": 273,
+          "line": 275,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -83253,6 +83271,22 @@
           "review": "accepted",
           "certifiedPhase": 4,
           "rationale": "Training-data provenance and deterministic solver fallback certified across all 5 variants (NLH, PLO4, PLO5, PLO6, PLO8) and 3 betting structures."
+        },
+        {
+          "kind": "SIMULATED",
+          "line": 262,
+          "excerpt": "high: { mode: 'tournament', title: 'Local VS Practice', reason: 'Test Your Ranges Against A Simulated Coach' },",
+          "disposition": "domain-simulation",
+          "review": "accepted",
+          "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+        },
+        {
+          "kind": "SIMULATED",
+          "line": 266,
+          "excerpt": "high: { mode: 'tournament', title: 'Local VS Practice', reason: 'Put It All Together Against A Simulated Coach' },",
+          "disposition": "domain-simulation",
+          "review": "accepted",
+          "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
         }
       ]
     },
@@ -88689,6 +88723,7 @@
     "__tests__/phase23-calculator-schema.test.mjs",
     "__tests__/phases-35-50-aeo.test.mjs",
     "__tests__/poker-near-me-phase-6.test.mjs",
+    "__tests__/preflop-charts-smarterdesign.law.test.mjs",
     "__tests__/robots-crawler-policy.law.test.mjs",
     "__tests__/scroll-lock.test.mjs",
     "__tests__/seo-backlink-programme-invariants.law.test.mjs",
@@ -97489,6 +97524,7 @@
       "realtime": [],
       "tests": [
         "__tests__/aeo-traffic-expansion-master.test.mjs",
+        "__tests__/preflop-charts-smarterdesign.law.test.mjs",
         "__tests__/training-final-honesty-surfaces.test.mjs",
         "__tests__/training-learning-journey-phase-9.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -99548,6 +99584,7 @@
       "tests": [
         "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
         "__tests__/aeo-traffic-expansion-master.test.mjs",
+        "__tests__/preflop-charts-smarterdesign.law.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-community-leaderboard-authority.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
@@ -101687,6 +101724,7 @@
       ],
       "tests": [
         "__tests__/aeo-traffic-expansion-master.test.mjs",
+        "__tests__/preflop-charts-smarterdesign.law.test.mjs",
         "__tests__/training-final-honesty-surfaces.test.mjs",
         "__tests__/training-learning-journey-phase-9.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -108007,6 +108045,7 @@
       "tests": [
         "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
         "__tests__/aeo-traffic-expansion-master.test.mjs",
+        "__tests__/preflop-charts-smarterdesign.law.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-community-leaderboard-authority.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
@@ -128373,6 +128412,24 @@
         "rationale": "Training-data provenance and deterministic solver fallback certified across all 5 variants (NLH, PLO4, PLO5, PLO6, PLO8) and 3 betting structures."
       },
       {
+        "file": "src/utils/shareCard.js",
+        "kind": "SIMULATED",
+        "line": 262,
+        "excerpt": "high: { mode: 'tournament', title: 'Local VS Practice', reason: 'Test Your Ranges Against A Simulated Coach' },",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/utils/shareCard.js",
+        "kind": "SIMULATED",
+        "line": 266,
+        "excerpt": "high: { mode: 'tournament', title: 'Local VS Practice', reason: 'Put It All Together Against A Simulated Coach' },",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
         "file": "src/utils/trainingApiUtils.js",
         "kind": "FALLBACK",
         "line": 119,
@@ -136739,7 +136796,7 @@
       {
         "file": "src/utils/shareCard.js",
         "name": "getNextGameSuggestion",
-        "line": 273,
+        "line": 275,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -140696,6 +140753,24 @@
         "rationale": "Training-data provenance and deterministic solver fallback certified across all 5 variants (NLH, PLO4, PLO5, PLO6, PLO8) and 3 betting structures."
       },
       {
+        "file": "src/utils/shareCard.js",
+        "kind": "SIMULATED",
+        "line": 262,
+        "excerpt": "high: { mode: 'tournament', title: 'Local VS Practice', reason: 'Test Your Ranges Against A Simulated Coach' },",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/utils/shareCard.js",
+        "kind": "SIMULATED",
+        "line": 266,
+        "excerpt": "high: { mode: 'tournament', title: 'Local VS Practice', reason: 'Put It All Together Against A Simulated Coach' },",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
         "file": "src/utils/trainingApiUtils.js",
         "kind": "FALLBACK",
         "line": 119,
@@ -149062,7 +149137,7 @@
       {
         "file": "src/utils/shareCard.js",
         "name": "getNextGameSuggestion",
-        "line": 273,
+        "line": 275,
         "references": 1,
         "exported": true,
         "defaultExport": false,

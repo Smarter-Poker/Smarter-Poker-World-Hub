@@ -1,5 +1,5 @@
 /**
- * 💎 POWER-UP SYSTEM
+ * POWER-UP SYSTEM
  * ═══════════════════════════════════════════════════════════════════════════
  * Diamond-purchasable power-ups for training games.
  * Each power-up has a cost, effect, and single-use-per-game constraint.
@@ -16,7 +16,7 @@ export const POWER_UPS = {
     STREAK_FREEZE: {
         id: 'STREAK_FREEZE',
         name: 'Streak Freeze',
-        icon: '🛡️',
+        icon: 'shield',
         description: 'Saves one life or undoes your next mistake',
         cost: 25,
         color: '#00D4FF',
@@ -25,28 +25,28 @@ export const POWER_UPS = {
     TIME_BOOST: {
         id: 'TIME_BOOST',
         name: 'Time Boost',
-        icon: '⏱️',
+        icon: 'timer',
         description: 'Adds +10 seconds to the clock',
         cost: 15,
-        color: '#ff6b00',
+        color: '#ff8a3d',
         maxPerGame: 2,
     },
     HINT_REVEAL: {
         id: 'HINT_REVEAL',
         name: 'Hint',
-        icon: '💡',
+        icon: 'hint',
         description: 'Eliminates one wrong answer',
         cost: 20,
-        color: '#FFD700',
+        color: '#86daff',
         maxPerGame: 1,
     },
     DOUBLE_POINTS: {
         id: 'DOUBLE_POINTS',
         name: 'Double Points',
-        icon: '✨',
+        icon: 'double',
         description: 'Next correct answer is worth 2x points',
         cost: 30,
-        color: '#A78BFA',
+        color: '#5aa9ff',
         maxPerGame: 1,
     },
 };
