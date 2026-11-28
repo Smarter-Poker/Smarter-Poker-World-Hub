@@ -178,6 +178,7 @@ import './bankroll-trip-math.test.mjs';
 import './bankroll-tournament-schedule.test.mjs';
 import './bankroll-reports-audit.test.mjs';
 import './bankroll-local-dates.test.mjs';
+import './bankroll-api-routes.test.mjs';
 import './bankroll-deleted-entry-frees-receipts.test.mjs';
 import './bankroll-jarvis-session-insights.test.mjs';
 import './toke-dealer-reference.test.mjs';

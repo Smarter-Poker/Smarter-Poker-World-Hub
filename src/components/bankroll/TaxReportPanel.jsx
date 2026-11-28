@@ -12,7 +12,8 @@ import { uploadBankrollFile, removeBankrollObject } from '../../lib/bankroll/rec
 import { METAL, ANIMATIONS, GRADIENTS } from './metalStyles';
 import DocumentCropper from './DocumentCropper';
 import { getFreshAccessToken } from '../../lib/authUtils';
-import { parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
+import { localDay, parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
+import { requestErrorMessage } from '../../lib/bankroll/apiGuard.mjs';
 import { formatUsd } from '../../lib/bankroll/ledgerReport.mjs';
 import LiveCameraScanner from './LiveCameraScanner';
 
@@ -227,11 +228,7 @@ export default function TaxReportPanel({ userId }) {
         }
     };
 
-    const reportError = (res, fallback) => {
-        if (res.status === 401) return 'Please Sign In To Generate Your Tax Report';
-        if (res.status === 403) return 'Bankroll Pro Or VIP Access Is Required';
-        return fallback;
-    };
+    const reportError = (res, fallback) => requestErrorMessage(res.status, fallback, { signIn: 'Please Sign In To Generate Your Tax Report' });
 
     const fetchPreview = async () => {
         const request = ++previewRequest.current;
@@ -244,7 +241,7 @@ export default function TaxReportPanel({ userId }) {
             const token = await getFreshAccessToken();
             if (!token) throw new Error('Please Sign In To Generate Your Tax Report');
 
-            const res = await fetch(`/api/bankroll/tax-report?year=${year}&format=json`, {
+            const res = await fetch(`/api/bankroll/tax-report?year=${year}&format=json&today=${localDay()}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -268,7 +265,7 @@ export default function TaxReportPanel({ userId }) {
             const token = await getFreshAccessToken();
             if (!token) throw new Error('Please Sign In To Download Your Tax Report');
 
-            const res = await fetch(`/api/bankroll/tax-report?year=${selectedYear}&format=pdf`, {
+            const res = await fetch(`/api/bankroll/tax-report?year=${selectedYear}&format=pdf&today=${localDay()}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
