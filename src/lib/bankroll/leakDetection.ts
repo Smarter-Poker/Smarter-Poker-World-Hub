@@ -1,9 +1,20 @@
 /**
  * LEAK DETECTION ENGINE
- * Identifies financial leaks and patterns that harm bankroll EV
+ * Identifies financial leaks and patterns that harm bankroll EV.
+ *
+ * Every read goes through allRowsOf (leakMath.mjs): a page at a time past
+ * PostgREST's 1,000-row cap, and a failed page throws through rowsOf. Totals
+ * are summed in cents by the leakMath helpers.
  */
 
-import { rowsOf } from './leakMath.mjs';
+import {
+  allRowsOf,
+  netDollars,
+  stakeTotals,
+  timeBlockTotals,
+  tripTotals,
+} from './leakMath.mjs';
+import { idBatches } from '../inBatches.mjs';
 import { supabase } from '../supabase';
 import { localDay } from './localDates.mjs';
 
@@ -45,43 +56,30 @@ export async function getCategoryLeakPercentage(
   category: string,
   locationId?: string
 ): Promise<number> {
-  let categoryQuery = supabase
-    .from('bankroll_ledger')
-    .select('net_result')
-    .eq('user_id', userId)
-    .eq('category', category)
-    .eq('is_revision', false)
-    .lt('net_result', 0);
+  const losingRows = (onlyCategory?: string) => () => {
+    let query = supabase
+      .from('bankroll_ledger')
+      .select('id, gross_in, gross_out')
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .lt('net_result', 0);
+    query = onlyCategory
+      ? query.eq('category', onlyCategory)
+      // in-list: bounded by the five built-in gaming categories
+      : query.in('category', GAMING_CATEGORIES);
+    if (locationId) query = query.eq('location_id', locationId);
+    return query.order('id', { ascending: true });
+  };
 
-  let totalQuery = supabase
-    .from('bankroll_ledger')
-    .select('net_result')
-    .eq('user_id', userId)
-    .eq('is_revision', false)
-    // in-list: bounded by the five built-in gaming categories
-    .in('category', GAMING_CATEGORIES)
-    .lt('net_result', 0);
-
-  if (locationId) {
-    categoryQuery = categoryQuery.eq('location_id', locationId);
-    totalQuery = totalQuery.eq('location_id', locationId);
-  }
-
-  const [categoryResult, totalResult] = await Promise.all([
-    categoryQuery,
-    totalQuery,
+  const [categoryData, totalData] = await Promise.all([
+    allRowsOf(losingRows(category)),
+    allRowsOf(losingRows()),
   ]);
-  const categoryData = rowsOf(categoryResult);
-  const totalData = rowsOf(totalResult);
 
-  if (!categoryData || !totalData || totalData.length === 0) return 0;
+  if (totalData.length === 0) return 0;
 
-  const categoryLoss = Math.abs(
-    categoryData.reduce((sum, e) => sum + (e.net_result || 0), 0)
-  );
-  const totalLoss = Math.abs(
-    totalData.reduce((sum, e) => sum + (e.net_result || 0), 0)
-  );
+  const categoryLoss = Math.abs(netDollars(categoryData));
+  const totalLoss = Math.abs(netDollars(totalData));
 
   return totalLoss > 0 ? Math.round((categoryLoss / totalLoss) * 100) : 0;
 }
@@ -94,34 +92,20 @@ export async function detectStakeLeaks(
   minHours: number = 20,
   locationId?: string
 ): Promise<LeakAlert[]> {
-  let query = supabase
-    .from('bankroll_ledger')
-    .select('stakes, net_result, start_time, end_time, location_id')
-    .eq('user_id', userId)
-    .eq('category', 'poker_cash')
-    .eq('is_revision', false)
-    .not('stakes', 'is', null);
-  if (locationId) query = query.eq('location_id', locationId);
-
-  const data = rowsOf(await query);
-
-  // Group by stakes
-  const stakeStats: Record<string, { net: number; hours: number; sessions: number }> = {};
-
-  data.forEach((entry) => {
-    if (!entry.stakes) return;
-    if (!stakeStats[entry.stakes]) {
-      stakeStats[entry.stakes] = { net: 0, hours: 0, sessions: 0 };
-    }
-    stakeStats[entry.stakes].net += entry.net_result || 0;
-    stakeStats[entry.stakes].sessions += 1;
-    if (entry.start_time && entry.end_time) {
-      const hours =
-        (new Date(entry.end_time).getTime() - new Date(entry.start_time).getTime()) /
-        (1000 * 60 * 60);
-      stakeStats[entry.stakes].hours += hours;
-    }
+  const data = await allRowsOf(() => {
+    let query = supabase
+      .from('bankroll_ledger')
+      .select('id, stakes, gross_in, gross_out, start_time, end_time')
+      .eq('user_id', userId)
+      .eq('category', 'poker_cash')
+      .eq('is_revision', false)
+      .not('stakes', 'is', null);
+    if (locationId) query = query.eq('location_id', locationId);
+    return query.order('id', { ascending: true });
   });
+
+  // By stakes, in cents; a session past midnight counts its real hours.
+  const stakeStats: Record<string, { net: number; hours: number; sessions: number }> = stakeTotals(data);
 
   const alerts: LeakAlert[] = [];
 
@@ -148,37 +132,21 @@ export async function detectStakeLeaks(
  * Detect time-of-day leaks
  */
 export async function detectTimeLeaks(userId: string, locationId?: string): Promise<LeakAlert[]> {
-  let query = supabase
-    .from('bankroll_ledger')
-    .select('net_result, start_time')
-    .eq('user_id', userId)
-    .eq('is_revision', false)
-    .in('category', ['poker_cash', 'poker_mtt', 'casino_table', 'slots'])
-    .not('start_time', 'is', null);
-  if (locationId) query = query.eq('location_id', locationId);
-
-  const data = rowsOf(await query);
-
-  // Group by time blocks
-  const timeBlocks: Record<string, { net: number; count: number }> = {
-    'late_night': { net: 0, count: 0 }, // 12am-6am
-    'morning': { net: 0, count: 0 },    // 6am-12pm
-    'afternoon': { net: 0, count: 0 },  // 12pm-6pm
-    'evening': { net: 0, count: 0 },    // 6pm-12am
-  };
-
-  data.forEach((entry) => {
-    if (!entry.start_time) return;
-    const hour = new Date(entry.start_time).getHours();
-    let block: string;
-    if (hour >= 0 && hour < 6) block = 'late_night';
-    else if (hour >= 6 && hour < 12) block = 'morning';
-    else if (hour >= 12 && hour < 18) block = 'afternoon';
-    else block = 'evening';
-
-    timeBlocks[block].net += entry.net_result || 0;
-    timeBlocks[block].count += 1;
+  const data = await allRowsOf(() => {
+    let query = supabase
+      .from('bankroll_ledger')
+      .select('id, gross_in, gross_out, start_time')
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .in('category', ['poker_cash', 'poker_mtt', 'casino_table', 'slots'])
+      .not('start_time', 'is', null);
+    if (locationId) query = query.eq('location_id', locationId);
+    return query.order('id', { ascending: true });
   });
+
+  // By the clock hour the player typed (12am-6am, 6am-12pm, 12pm-6pm,
+  // 6pm-12am), never the viewer's time zone; summed in cents.
+  const timeBlocks: Record<string, { net: number; count: number }> = timeBlockTotals(data);
 
   const alerts: LeakAlert[] = [];
 
@@ -218,19 +186,19 @@ export async function detectNonPokerLeaks(
   const alerts: LeakAlert[] = [];
 
   for (const category of categories) {
-    let query = supabase
-      .from('bankroll_ledger')
-      .select('net_result')
-      .eq('user_id', userId)
-      .eq('category', category)
-      .eq('is_revision', false);
-
-    if (locationId) query = query.eq('location_id', locationId);
-
-    const data = rowsOf(await query);
+    const data = await allRowsOf(() => {
+      let query = supabase
+        .from('bankroll_ledger')
+        .select('id, gross_in, gross_out')
+        .eq('user_id', userId)
+        .eq('category', category)
+        .eq('is_revision', false);
+      if (locationId) query = query.eq('location_id', locationId);
+      return query.order('id', { ascending: true });
+    });
     if (data.length === 0) continue;
 
-    const totalNet = data.reduce((sum, e) => sum + (e.net_result || 0), 0);
+    const totalNet = netDollars(data);
     const leakPct = await getCategoryLeakPercentage(userId, category, locationId);
 
     if (totalNet < -100) {
@@ -261,36 +229,37 @@ export async function detectNonPokerLeaks(
  * Detect expense leaks (trips that cost more than they made)
  */
 export async function detectExpenseLeaks(userId: string, locationId?: string): Promise<LeakAlert[]> {
-  let tripQuery = supabase
-    .from('bankroll_trips')
-    .select('id, name')
-    .eq('user_id', userId);
-  if (locationId) tripQuery = tripQuery.eq('location_id', locationId);
+  const trips = await allRowsOf(() => {
+    let tripQuery = supabase
+      .from('bankroll_trips')
+      .select('id, name')
+      .eq('user_id', userId);
+    if (locationId) tripQuery = tripQuery.eq('location_id', locationId);
+    return tripQuery.order('id', { ascending: true });
+  }, 'trips');
 
-  const trips = rowsOf(await tripQuery, 'trips');
+  // The rows of 100 trips per request (was one request per trip).
+  const rowsByTrip = new Map<string, any[]>();
+  for (const batch of idBatches(trips.map((t) => t.id))) {
+    const rows = await allRowsOf(() => supabase
+      .from('bankroll_ledger')
+      .select('id, trip_id, category, gross_in, gross_out')
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .in('trip_id', batch)
+      .order('id', { ascending: true }));
+    for (const row of rows) {
+      if (!rowsByTrip.has(row.trip_id)) rowsByTrip.set(row.trip_id, []);
+      rowsByTrip.get(row.trip_id)!.push(row);
+    }
+  }
 
   const alerts: LeakAlert[] = [];
 
   for (const trip of trips) {
-    const entries = rowsOf(await supabase
-      .from('bankroll_ledger')
-      .select('net_result, category')
-      .eq('user_id', userId)
-      .eq('trip_id', trip.id)
-      .eq('is_revision', false));
-
-    let gambling = 0;
-    let expenses = 0;
-
-    entries.forEach((e) => {
-      if (e.category === 'expense') {
-        expenses += Math.abs(e.net_result || 0);
-      } else {
-        gambling += e.net_result || 0;
-      }
-    });
-
-    const net = gambling - expenses;
+    // Sessions against expenses; a deposit or withdrawal logged on the trip
+    // moves the bankroll and is neither.
+    const { gambling, expenses, net } = tripTotals(rowsByTrip.get(trip.id) || []);
     if (net < 0 && expenses > 0) {
       alerts.push({
         id: `expense-leak-${trip.id}`,
