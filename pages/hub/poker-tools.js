@@ -636,8 +636,13 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                     <div className="odds-toolbar">
                         <GameSelector game={game} onChange={changeGame} />
                         {!isEmbedMode && <nav className="odds-shortcuts" aria-label="Calculator Shortcuts">
-                            <Link href="/hub/training/equity-calculator"><ChartPie size={18} aria-hidden />Equity Calculator</Link>
-                            <Link href="/hub/training/icm-calculator"><Calculator size={18} aria-hidden />ICM Calculator</Link>
+                            {/* No viewport prefetch (2026-11-28): these two sit on screen at
+                                first paint, and next/link fetched both calculator pages with
+                                their chunks, the Equity Calculator's poker-engine brain alone
+                                121 KB, before anyone chose them. That put this page over its
+                                900 KB mobile budget. Touchstart and hover still prefetch. */}
+                            <Link href="/hub/training/equity-calculator" prefetch={false}><ChartPie size={18} aria-hidden />Equity Calculator</Link>
+                            <Link href="/hub/training/icm-calculator" prefetch={false}><Calculator size={18} aria-hidden />ICM Calculator</Link>
                         </nav>}
                     </div>
 

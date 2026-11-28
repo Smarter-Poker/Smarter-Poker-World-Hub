@@ -96,6 +96,9 @@ for (const route of ROUTES) {
             const url = (e as PerformanceEntry & { url?: string }).url || '';
             (w as unknown as { __mobileBudgetLcpWho?: string }).__mobileBudgetLcpWho =
               `${el ? `<${el.tagName.toLowerCase()} class="${String(el.getAttribute('class') || '').slice(0, 80)}">` : '(detached)'}${url ? ` ${url.slice(-90)}` : ''}`;
+            const le = e as unknown as { element?: Element; url?: string; size?: number; renderTime?: number; loadTime?: number };
+            const el2 = le.element;
+            ((w as unknown as { __lcpDiag: unknown[] }).__lcpDiag ||= []).push({ t: Math.round(e.startTime), render: Math.round(le.renderTime || 0), load: Math.round(le.loadTime || 0), size: le.size, url: le.url, tag: el2 ? el2.tagName + '.' + String((el2 as HTMLElement).className || '').slice(0, 80) + '#' + (el2.id || '') : null, text: el2 ? (el2.textContent || '').trim().slice(0, 60) : null });
           }
         }).observe({ type: 'largest-contentful-paint', buffered: true });
         w.__mobileBudgetLcpSupported = true;
@@ -168,6 +171,9 @@ for (const route of ROUTES) {
 
     // WIP measurement only: per-script breakdown.
     console.log(`BUDGETDUMP ${route} total=${jsKb}KB ` + JSON.stringify(scripts.map((s) => [s.url.replace(/^https?:\/\/[^/]+/, ''), Math.round(s.bytes / 1024)]).sort((a, b) => (b[1] as number) - (a[1] as number))));
+    const lcpDiag = await page.evaluate(() => (window as unknown as { __lcpDiag?: unknown[] }).__lcpDiag || []);
+    const navT = await page.evaluate(() => { const n = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined; const fcp = performance.getEntriesByName('first-contentful-paint')[0]; return n ? { ttfb: Math.round(n.responseStart), dcl: Math.round(n.domContentLoadedEventEnd), load: Math.round(n.loadEventEnd), fcp: fcp ? Math.round(fcp.startTime) : null } : null; });
+    console.log(`LCPDIAG ${route} lcp=${Math.round(metrics.lcp)} nav=${JSON.stringify(navT)} ${JSON.stringify(lcpDiag)}`);
     if (route === '/hub/poker-tools' || route === '/hub/toke-tracker') {
       try {
         const cm = JSON.parse(fs.readFileSync(path.join(process.cwd(), '.next', 'wip-chunk-modules.json'), 'utf8'));
