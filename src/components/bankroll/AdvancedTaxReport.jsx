@@ -8,6 +8,7 @@
 
 import React, { useState, useMemo } from 'react';
 import styles from './BankrollForms.module.css';
+import { parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // US STATE TAX DATA
@@ -88,7 +89,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
         ];
         for (const e of entries) {
             if (!e.entry_date) continue;
-            const d = new Date(e.entry_date);
+            const d = parseLedgerDay(e.entry_date);
             if (d.getFullYear() !== year) continue;
             const net = (e.gross_out || 0) - (e.gross_in || 0);
             const qIdx = Math.floor(d.getMonth() / 3);

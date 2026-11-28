@@ -24,6 +24,7 @@ import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 import toast from '../../stores/toastStore';
 import TripReport from './TripReport';
 import VenueSelector from './VenueSelector';
+import { localDay } from '../../lib/bankroll/localDates.mjs';
 
 const CATEGORY_LABELS = {
     poker_cash: 'Cash Games',
@@ -56,7 +57,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
         poker_venue_id: null,
         latitude: null,
         longitude: null,
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: localDay(),
         purpose: '',
         notes: '',
     });
@@ -123,7 +124,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
             await createTrip(userId, { ...newTrip, location_id: locationId });
             toast.success('Trip started!');
             setShowCreateForm(false);
-            setNewTrip({ name: '', location_id: null, location_name: '', venue_type: 'casino', poker_venue_id: null, latitude: null, longitude: null, start_date: new Date().toISOString().split('T')[0], purpose: '', notes: '' });
+            setNewTrip({ name: '', location_id: null, location_name: '', venue_type: 'casino', poker_venue_id: null, latitude: null, longitude: null, start_date: localDay(), purpose: '', notes: '' });
             await loadData();
         } catch (err) {
             toast.error(err.message || 'Failed to create trip');
