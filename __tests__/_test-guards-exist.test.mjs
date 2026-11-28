@@ -22,6 +22,7 @@ import './video-library-phase5-delivery.test.mjs';
 import './video-library-recent-searches.test.mjs';
 import './video-library-live.test.mjs';
 import './video-library-playback.test.mjs';
+import './video-library-creator-chapters.test.mjs';
 import './video-library-browse.test.mjs';
 import './auth-network-deadline.test.mjs';
 import './notification-feed-recovery.test.mjs';
