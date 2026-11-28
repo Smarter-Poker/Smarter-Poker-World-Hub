@@ -5,6 +5,7 @@ import { createVideoLibraryOwnerScope } from '../src/lib/videoLibraryOwnerScope.
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import * as ownerPanel from '../src/lib/videoLibraryOwnerPanel.mjs';
+import * as helpSteps from '../src/lib/videoLibraryHelpSteps.mjs';
 const require = createRequire(import.meta.url);
 const React = require('react');
 const { act, create } = require('react-test-renderer');
@@ -30,6 +31,7 @@ function harness(ownerId = 'admin') {
         // The shared chrome mast (Dan, 2026-11-27); its "?" help is not under test here.
         if (name.includes('VideoLibraryWorkspaceHeader')) return identity(props => React.createElement('h1', null, props.title));
         if (name.includes('OwnerPanel.mjs')) return ownerPanel;
+        if (name.includes('videoLibraryHelpSteps')) return helpSteps;
         throw new Error(`Unexpected Owner Panel Dependency: ${name}`);
     }, module, module.exports);
     act(() => { tree = create(React.createElement(module.exports.default)); });

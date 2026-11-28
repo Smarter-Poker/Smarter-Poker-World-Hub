@@ -180,6 +180,16 @@ jobs:
           VIDEO_LIBRARY_BROWSER_WORK_ROOT: ${{ runner.temp }}
           VIDEO_LIBRARY_BROWSER_EVIDENCE: ${{ github.workspace }}/test-results/video-library-personal
 
+      # #SmarterDesign: one chrome frame per section, never a framed card inside
+      # a framed section, on all eight Video Library pages at 375px and 1280px.
+      - name: Verify Video Library one frame per section
+        if: ${{ !cancelled() && steps.production_build.outcome == 'success' }}
+        run: node scripts/qualification/videoLibraryOneFrameBrowser.mjs
+        env:
+          CI: true
+          VIDEO_LIBRARY_BROWSER_WORK_ROOT: ${{ runner.temp }}
+          VIDEO_LIBRARY_BROWSER_EVIDENCE: ${{ github.workspace }}/test-results/video-library-one-frame
+
       # PER-RUNNER PORT (2026-09-04). `next start -p 3000` collided the hour the
       # World Hub got six runners per box: two pull requests reaching this step
       # together, and the second died with EADDRINUSE. Same fix as Club Arena's

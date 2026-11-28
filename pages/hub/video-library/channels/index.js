@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import SEOHead from '../../../../src/components/video-library/VideoLibrarySEOHead';
 import HubPageShell from '../../../../src/components/ui/HubPageShell';
 import VideoLibraryWorkspaceHeader from '../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
+import { VIDEO_LIBRARY_HELP_STEPS } from '../../../../src/lib/videoLibraryHelpSteps.mjs';
 import SmarterAccountUnlockGate from '../../../../src/components/seo/SmarterAccountUnlockGate';
 import { getMenuConfig } from '../../../../src/config/hamburgerMenus';
 import { buildVideoLibraryBreadcrumbs } from '../../../../src/lib/videoLibraryBreadcrumbs.mjs';
@@ -32,10 +33,8 @@ export async function getServerSideProps({ res }) {
     }
 }
 
-// The directory's explanation lives behind the mast's chrome "?" (Dan, 2026-11-27).
-const CHANNELS_HELP_STEPS = Object.freeze([
-    { id: 'channels', title: 'Poker Video Channels', body: 'Explore Verified Poker Channels And Broadcast Archives In The Smarter.Poker Video Library.', target: 'channel-directory' },
-]);
+// Help steps live in the shared Video Library help standard (src/lib/videoLibraryHelpSteps.mjs).
+const CHANNELS_HELP_STEPS = VIDEO_LIBRARY_HELP_STEPS.channels;
 
 export default function VideoLibraryChannelsDirectory({ channels = [] }) {
     const [menuOpen, setMenuOpen] = useState(false);

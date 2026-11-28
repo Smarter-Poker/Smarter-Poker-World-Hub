@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import SEOHead from '../../../../src/components/video-library/VideoLibrarySEOHead';
 import HubPageShell from '../../../../src/components/ui/HubPageShell';
 import VideoLibraryWorkspaceHeader from '../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
+import { VIDEO_LIBRARY_HELP_STEPS } from '../../../../src/lib/videoLibraryHelpSteps.mjs';
 import SmarterAccountUnlockGate from '../../../../src/components/seo/SmarterAccountUnlockGate';
 import { getMenuConfig } from '../../../../src/config/hamburgerMenus';
 import { buildVideoLibraryBreadcrumbs } from '../../../../src/lib/videoLibraryBreadcrumbs.mjs';
@@ -12,10 +13,8 @@ import { VIDEO_LIBRARY_PLAYERS } from '../../../../src/lib/videoLibraryPlayers.m
 const UniversalHeader = dynamic(() => import('../../../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../../../src/components/ui/HamburgerMenu'), { ssr: false });
 
-// The explanation lives behind the mast's chrome "?" (Dan, 2026-11-27).
-const PLAYERS_HELP_STEPS = Object.freeze([
-    { id: 'players', title: 'Poker Players', body: 'Explore Videos Naming These Players In Their Published Titles Or Tags.', target: 'player-directory' },
-]);
+// Help steps live in the shared Video Library help standard (src/lib/videoLibraryHelpSteps.mjs).
+const PLAYERS_HELP_STEPS = VIDEO_LIBRARY_HELP_STEPS.players;
 
 export default function VideoLibraryPlayersDirectory() {
     const [menuOpen, setMenuOpen] = useState(false);
