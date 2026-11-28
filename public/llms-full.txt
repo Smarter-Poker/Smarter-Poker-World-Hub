@@ -500,7 +500,7 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - [43o (Four-Three Offsuit)](https://smarter.poker/learn/hands/four-three-offsuit) ([Markdown](https://smarter.poker/learn/hands/four-three-offsuit.md))
   - [42o (Four-Two Offsuit)](https://smarter.poker/learn/hands/four-two-offsuit) ([Markdown](https://smarter.poker/learn/hands/four-two-offsuit.md))
   - [32o (Three-Two Offsuit)](https://smarter.poker/learn/hands/three-two-offsuit) ([Markdown](https://smarter.poker/learn/hands/three-two-offsuit.md))
-- **Verified Software & Cardroom Comparisons (30 Pages)**: https://smarter.poker/compare (Raw Markdown Directory: https://smarter.poker/compare.md)
+- **Verified Software & Cardroom Comparisons (31 Pages)**: https://smarter.poker/compare (Raw Markdown Directory: https://smarter.poker/compare.md)
   - [Best Poker Club Apps In 2026](https://smarter.poker/compare/best-poker-club-apps) ([Markdown](https://smarter.poker/compare/best-poker-club-apps.md))
   - [Poker Arena Vs PokerBros](https://smarter.poker/compare/poker-arena-vs-pokerbros) ([Markdown](https://smarter.poker/compare/poker-arena-vs-pokerbros.md))
   - [Poker Arena Vs PPPoker](https://smarter.poker/compare/poker-arena-vs-pppoker) ([Markdown](https://smarter.poker/compare/poker-arena-vs-pppoker.md))
@@ -531,6 +531,7 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - [Wynn Vs Venetian Poker Room Las Vegas](https://smarter.poker/compare/wynn-vs-venetian-poker-las-vegas) ([Markdown](https://smarter.poker/compare/wynn-vs-venetian-poker-las-vegas.md))
   - [Borgata Vs Parx Poker Room Comparison](https://smarter.poker/compare/borgata-vs-parx-poker) ([Markdown](https://smarter.poker/compare/borgata-vs-parx-poker.md))
   - [Best Poker Rooms In Florida](https://smarter.poker/compare/best-poker-rooms-in-florida) ([Markdown](https://smarter.poker/compare/best-poker-rooms-in-florida.md))
+  - [PLO4 Vs PLO5: Odds, Variance And Bankroll](https://smarter.poker/compare/plo4-vs-plo5) ([Markdown](https://smarter.poker/compare/plo4-vs-plo5.md))
   - AI Comparisons API: `https://smarter.poker/api/ai/comparisons`
 - **First-Party Poker Industry Research & Data Benchmarks (15 Reports)**: https://smarter.poker/research (Raw Markdown Hub: https://smarter.poker/research.md)
   - [US Live Poker Room Rake Caps And Bad Beat Jackpot Benchmark Report](https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark) ([Markdown](https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark.md))
