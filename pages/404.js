@@ -84,7 +84,7 @@ const RECOVERY_ROUTES = [
     },
     {
         title: 'Poker Industry Research Hub',
-        subtitle: '15 Empirical Benchmarks On Rake, ICM, PKO & Tokes',
+        subtitle: '15 Research Pages On Rake, ICM, PKO & Tokes',
         href: '/research',
         badge: '15 Studies',
     },

@@ -13,7 +13,7 @@
 export const LEAKS_AS_OF = '2026-11-24';
 export const LEAKS_BASE_PATH = '/learn/leaks';
 export const LEAKS_URL = 'https://smarter.poker/learn/leaks';
-export const LEAKS_DOI = '10.5281/zenodo.15129481';
+export const LEAKS_DOI = '10.5281/zenodo.24115647';
 
 export function leakPath(slug) {
   return `/learn/leaks/${slug}`;

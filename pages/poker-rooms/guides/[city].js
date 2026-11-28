@@ -84,7 +84,7 @@ export default function PokerMarketCityGuidePage({ guide }) {
   const otherGuides = POKER_MARKET_GUIDES.filter((g) => g.slug !== guide.slug);
   const badgeSvgUrl = `${SITE_URL}/api/seo/badge?type=directory-listing&label=${encodeURIComponent(`Listed In ${guide.regionName} Directory`)}&value=${encodeURIComponent('Smarter.Poker Public Guide')}`;
   const venueBadgeHtml = `<a href="${canonicalUrl}" target="_blank" rel="noopener" title="${guide.h1}"><img src="${badgeSvgUrl}" alt="Publicly Listed In ${guide.regionName} Poker Room Directory On Smarter.Poker" height="28" style="border:0;height:28px;" /></a>`;
-  const marketTableHtml = `<div style="padding:14px;background:#060d1a;border:1px solid rgba(148,184,224,0.28);border-radius:0;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;"><div style="font-size:14px;font-weight:700;color:#38bdf8;margin-bottom:8px;">${guide.regionName} Live Poker Room Benchmark (${guide.activeRoomsEstimate})</div><p style="margin:0 0 10px 0;font-size:12.5px;color:#cbd5e1;">Standard Rake Model: ${guide.typicalRakeModel} | Stakes: ${guide.signatureStakes}</p><a href="${canonicalUrl}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:#38bdf8;text-decoration:none;">View Full ${guide.regionName} Live Poker Directory &amp; Rake Guide At Smarter.Poker</a></div>`;
+  const marketTableHtml = `<div style="padding:14px;background:#060d1a;border:1px solid rgba(148,184,224,0.28);border-radius:0;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;"><div style="font-size:14px;font-weight:700;color:#38bdf8;margin-bottom:8px;">${guide.regionName} Live Poker Room Guide (${guide.activeRoomsEstimate})</div><p style="margin:0 0 10px 0;font-size:12.5px;color:#cbd5e1;">Standard Rake Model: ${guide.typicalRakeModel} | Stakes: ${guide.signatureStakes}</p><a href="${canonicalUrl}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:#38bdf8;text-decoration:none;">View Full ${guide.regionName} Live Poker Directory &amp; Rake Guide At Smarter.Poker</a></div>`;
 
   const handleCopyMarketSnippet = async (key, text) => {
     try {
@@ -184,7 +184,7 @@ export default function PokerMarketCityGuidePage({ guide }) {
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16, marginBottom: 32 }}>
           <div style={{ background: '#0d1f33', padding: 18, borderRadius: 0, border: '1px solid #2b4663' }}>
             <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase' }}>
-              Active Room &amp; Table Footprint
+              Listed Rooms In The Directory
             </div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#38bdf8', marginTop: 6 }}>
               {guide.activeRoomsEstimate}
@@ -362,7 +362,7 @@ export default function PokerMarketCityGuidePage({ guide }) {
                 <tr key={venue.name} style={{ borderBottom: '1px solid rgba(148,184,224,0.18)' }}>
                   <td style={{ padding: '10px 14px', fontWeight: 700, color: '#ffffff' }}>{venue.name}</td>
                   <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{venue.city}</td>
-                  <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{venue.tables}</td>
+                  <td style={{ padding: '10px 14px', color: '#38bdf8', fontWeight: 700 }}>{venue.tables || 'Not On File'}</td>
                   <td style={{ padding: '10px 14px', color: '#cbd5e1' }}>{venue.knownFor}</td>
                 </tr>
               ))}

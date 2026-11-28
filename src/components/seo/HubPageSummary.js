@@ -1446,7 +1446,7 @@ export const HUB_PAGE_SUMMARIES = {
       'The 12-Month Live Poker Seasonal Planning Calendar Maps The Annual Global Tournament And Cash-Game Migration Cycle From January Through December, Highlighting When Liquidity Peaks In South Florida, Los Angeles, Texas, Las Vegas (Summer WSOP And December WPT/WSOP Paradise), Atlantic City, Cherokee, And European EPT Stops. Free Circuit Planner.',
     metrics: [
       { label: 'Annual Planning Horizon', value: '12 Months (January - December)' },
-      { label: 'Tracked Weekly Tournaments', value: '4,500+ Recurring & Festival Events' },
+      { label: 'Tracked Weekly Tournaments', value: '800+ Recurring & Festival Events' },
       { label: 'Major Tour Coverage', value: 'WSOP, WPT, MSPT, RGPS, PGT & EPT' },
     ],
     links: [
@@ -1458,14 +1458,14 @@ export const HUB_PAGE_SUMMARIES = {
   'research-annual-state-of-poker-2026': {
     heading: 'About The 2026 Annual State Of Live And Online Poker Industry Whitepaper',
     lead:
-      `The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across ${VENUE_COUNT_LABEL} US Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simulated GTO Solver Hand Histories Under CC-BY 4.0 Attribution (Zenodo DOI 10.5281/zenodo.15129481). Free Industry Report.`,
+      `The 2026 Annual State Of Poker Whitepaper Collects The Smarter.Poker Research Figures That Have A Real Basis: Exact Poker Math, US Tax Statute, And Dated Reads Of The Directory Of ${VENUE_COUNT_LABEL} Listed US Cardrooms. Each Figure Names Its Basis, And Figures From Surveys Or Simulations That Were Never Run Have Been Removed. Free Report.`,
     metrics: [
       { label: 'Listed Live Venue Sample', value: `${VENUE_COUNT_LABEL} US Poker Rooms` },
       { label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },
-      { label: 'Archival Citation DOI', value: '10.5281/zenodo.15129481 (CC-BY 4.0)' },
+      { label: 'Archival Citation DOI', value: '10.5281/zenodo.24115647 (CC-BY 4.0)' },
     ],
     links: [
-      { name: '15 Empirical Research Studies', href: '/research', text: 'Browse All First-Party Rake, ICM And Solver Benchmark Studies.' },
+      { name: '15 Research Pages', href: '/research', text: 'Browse Every Research Page And The Basis Of Its Figures.' },
       { name: '2026 Master Benchmark Tables', href: '/research/benchmarks', text: 'Inspect Consolidated Rake, Variance, RFI And ICM Data Tables.' },
       { name: 'Canonical Fact Ledger', href: '/facts', text: 'Verify Platform Entity Counts And Machine-Readable JSON Facts.' },
     ],
@@ -1477,18 +1477,18 @@ export const HUB_PAGE_SUMMARIES = {
     metrics: [
       { label: 'Consolidated Data Tables', value: '6 Master Quantitative Matrices' },
       { label: 'License & Reuse Policy', value: 'CC-BY 4.0 Open Attribution' },
-      { label: 'Archival Citation DOI', value: '10.5281/zenodo.15129481' },
+      { label: 'Archival Citation DOI', value: '10.5281/zenodo.24115647' },
     ],
     links: [
       { name: '2026 State Of Poker Whitepaper', href: '/research/annual-state-of-poker-2026', text: 'Read The Flagship Annual Industry Report And Methodology.' },
-      { name: '15 Empirical Research Reports', href: '/research', text: 'Explore Individual Deep-Dive Studies On Rake, Waitlists And GTO.' },
+      { name: '15 Research Pages', href: '/research', text: 'Explore Poker Math, Tax Rules And Guides To Rake, Waitlists And GTO.' },
       { name: 'Canonical Fact Ledger', href: '/facts', text: 'Verify Platform Entity Counts And Machine-Readable JSON Facts.' },
     ],
   },
   'facts-ledger': {
     heading: 'About The Smarter Poker Canonical Fact Ledger, Provenance And AI Verification Hub',
     lead:
-      'The Smarter Poker Canonical Fact Ledger Publishes Authoritative, Machine-Verifiable Platform Counts, Organizational Provenance, Free-To-Play Compliance Disclosures, Explicit Anti-Hallucination Disambiguation Rules, Archival Dataset DOIs (10.5281/zenodo.15129481), And Direct Discovery Endpoints For Generative Search Engines And Large Language Model Agents, Synchronized With /.well-known/ai-facts.json And /api/ai/facts In Real Time. Free Verification Hub.',
+      'The Smarter Poker Canonical Fact Ledger Publishes Authoritative, Machine-Verifiable Platform Counts, Organizational Provenance, Free-To-Play Compliance Disclosures, Explicit Anti-Hallucination Disambiguation Rules, Archival Dataset DOIs (10.5281/zenodo.24115647), And Direct Discovery Endpoints For Generative Search Engines And Large Language Model Agents, Synchronized With /.well-known/ai-facts.json And /api/ai/facts In Real Time. Free Verification Hub.',
     metrics: [
       { label: 'Interactive Calculators', value: '52 Deterministic Browser Solvers' },
       { label: 'Zero-Auth MCP Server', value: '70 Tools / 14 Prompts / 24 Templates' },

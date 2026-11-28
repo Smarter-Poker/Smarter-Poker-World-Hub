@@ -148,7 +148,7 @@ export function buildFormulaCardSvg({
   <text x="455" y="61" text-anchor="middle" fill="#38bdf8" font-family="JetBrains Mono, monospace, sans-serif" font-size="13" font-weight="800" letter-spacing="1">${escapeXml(effectiveBadge)}</text>
 
   <rect x="860" y="40" width="284" height="32" rx="16" fill="#06281e" stroke="#10b981" stroke-width="1.5"/>
-  <text x="1002" y="61" text-anchor="middle" fill="#34d399" font-family="JetBrains Mono, monospace, sans-serif" font-size="12.5" font-weight="700">DOI: 10.5281/zenodo.15129481</text>
+  <text x="1002" y="61" text-anchor="middle" fill="#34d399" font-family="JetBrains Mono, monospace, sans-serif" font-size="12.5" font-weight="700">DOI: 10.5281/zenodo.24115647</text>
 
   <!-- Formula Title -->
   <text x="56" y="136" fill="#f8fafc" font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="36" font-weight="900">${escapeXml(effectiveTitle)}</text>

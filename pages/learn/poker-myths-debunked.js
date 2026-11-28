@@ -218,7 +218,7 @@ export function renderPokerMythsMarkdown() {
   return [
     '# 15 Poker Myths Debunked By GTO Solvers & Combinatorial Math | Smarter.Poker',
     '',
-    'Last Verified: 2026-11-24 | Zenodo DOI: 10.5281/zenodo.15129481',
+    'Last Verified: 2026-11-24 | Zenodo DOI: 10.5281/zenodo.24115647',
     'Canonical URL: https://smarter.poker/learn/poker-myths-debunked',
     '',
     '## Master ClaimReview Fact-Check Table Of 15 Poker Myths',
@@ -304,7 +304,7 @@ export default function PokerMythsDebunkedPage() {
       claim: claimText,
       quoteText,
       quoteAuthor: 'Smarter.Poker Quantitative Solver Desk',
-      doi: '10.5281/zenodo.15129481',
+      doi: '10.5281/zenodo.24115647',
       canonicalPath,
     }),
     {
@@ -381,7 +381,7 @@ export default function PokerMythsDebunkedPage() {
           ifThenBecause="If Evaluating Traditional Poker Folklore At The Table -> Then Demand A Combinatorial Or Range-Vs-Range EV Proof Before Adopting The Heuristic -> Because Intuition Confuses Rare Memorable Coolers With Long-Term Expectation."
           quoteText={quoteText}
           quoteAuthor="Smarter.Poker Quantitative Solver Desk"
-          doi="10.5281/zenodo.15129481"
+          doi="10.5281/zenodo.24115647"
           canonicalPath={canonicalPath}
         />
 
@@ -480,7 +480,7 @@ export default function PokerMythsDebunkedPage() {
           summary="Fact-checking 15 widespread poker myths with exact hypergeometric combinatorics, CFR solver baselines, and ClaimReview structured data."
           publishedYear="2026"
           slug="poker-myths-debunked-by-gto-solvers"
-          doi="10.5281/zenodo.15129481"
+          doi="10.5281/zenodo.24115647"
         />
 
         <AiPromptLauncher
