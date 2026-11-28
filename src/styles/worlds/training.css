@@ -5371,8 +5371,11 @@ body.world-training {
     --sd-training-panel: linear-gradient(165deg, #0c2031 0%, #06131f 48%, #020a12 100%);
 }
 
+/* The painted image-header "?" (.sd-header-help) is never a chrome control
+   slab: these rules would wrap it in a 2px chrome square that touches the
+   header frame. See docs/SMARTERDESIGN.md, "The image-header question mark". */
 /* 1. Every Training button, tab, and action link across all sub-pages & popups */
-body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], a.sd-button, .sd-button, .sp-cta, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-mtt-cta-secondary):not(.universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *):not([data-allow-small], [data-allow-small] *, [data-hand-cell], .matrix-cell, .sp-analysis-primary-action, .sp-coach-module-card, .sp-casino-game-card, [data-setup-art-launch], [data-level-art-launch], .sp-coach-option) {
+body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], a.sd-button, .sd-button, .sp-cta, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-mtt-cta-secondary):not(.universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *):not([data-allow-small], .sd-header-help, [data-allow-small] *, [data-hand-cell], .matrix-cell, .sp-analysis-primary-action, .sp-coach-module-card, .sp-casino-game-card, [data-setup-art-launch], [data-level-art-launch], .sp-coach-option) {
     min-height: 44px;
     border: 2px solid transparent !important;
     border-radius: 10px !important;
@@ -5383,11 +5386,11 @@ body.world-training .sp-training-page-stage :where(button, [role='button'], [rol
     transition: box-shadow 140ms ease, filter 140ms ease;
 }
 
-body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], a.sd-button, .sd-button, .sp-cta, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-mtt-cta-secondary):hover:not(:disabled, [aria-disabled='true'], .universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *):not([data-allow-small], [data-allow-small] *, [data-hand-cell], .matrix-cell, .sp-analysis-primary-action, .sp-coach-module-card, .sp-casino-game-card, [data-setup-art-launch], [data-level-art-launch], .sp-coach-option) {
+body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], a.sd-button, .sd-button, .sp-cta, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-mtt-cta-secondary):hover:not(:disabled, [aria-disabled='true'], .universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *):not([data-allow-small], .sd-header-help, [data-allow-small] *, [data-hand-cell], .matrix-cell, .sp-analysis-primary-action, .sp-coach-module-card, .sp-casino-game-card, [data-setup-art-launch], [data-level-art-launch], .sp-coach-option) {
     box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), inset 0 -1px 2px rgba(101, 211, 255, 0.65), 0 0 14px rgba(0, 138, 211, 0.25) !important;
 }
 
-body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], a.sd-button, .sd-button, .sp-cta, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-mtt-cta-secondary):active:not(:disabled, [aria-disabled='true'], .universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *):not([data-allow-small], [data-allow-small] *, [data-hand-cell], .matrix-cell, .sp-coach-module-card, .sp-casino-game-card) {
+body.world-training .sp-training-page-stage :where(button, [role='button'], [role='tab'], a.sd-button, .sd-button, .sp-cta, .sp-mtt-primary-cta, .sp-mtt-cta-primary, .sp-mtt-cta-secondary):active:not(:disabled, [aria-disabled='true'], .universal-header *, .approved-global-header__button, .sp-arena-lobby-shell *):not([data-allow-small], .sd-header-help, [data-allow-small] *, [data-hand-cell], .matrix-cell, .sp-coach-module-card, .sp-casino-game-card) {
     filter: brightness(0.9);
 }
 
@@ -5406,6 +5409,14 @@ body.world-training .sp-training-page-stage :where(.sd-panel, .sd-masthead, .sp-
     border-radius: 14px !important;
     background: var(--sd-training-panel) padding-box, var(--sd-training-chrome) border-box !important;
     box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.16), 0 12px 32px rgba(0, 0, 0, 0.52) !important;
+}
+
+/* 3a. That 2px chrome border is the image header's whole frame on Training, so
+   the painted "?" keeps its 3px clearance from it (docs/SMARTERDESIGN.md,
+   "The image-header question mark"): 2px border, all of it painted. */
+body.world-training .sp-training-page-stage :where(.sd-panel, .sd-masthead):not(.universal-header *, .sp-arena-lobby-shell *, .sp-analysis-data-panel, .sp-training-analysis-dropzone) .sd-header-help {
+    --sd-help-border: 2px;
+    --sd-help-rim: 2px;
 }
 
 /* 4. Every Training input, textarea, and select well */
