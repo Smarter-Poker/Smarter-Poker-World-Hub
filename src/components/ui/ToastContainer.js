@@ -13,8 +13,16 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useToastStore } from '../../stores/toastStore';
+import { ToastPlainList } from './ToastCard';
 
-const ToastStack = dynamic(() => import('./ToastStack'), { ssr: false, loading: () => null });
+// While the animated stack downloads, nothing extra paints (it is quick
+// online). If it cannot download - the browser is offline, which is when the
+// "You Are Offline" toast fires, or the chunk failed - the same cards render
+// without motion instead of not at all.
+const ToastStack = dynamic(() => import('./ToastStack'), {
+    ssr: false,
+    loading: ({ error }) => (error || (typeof navigator !== 'undefined' && navigator.onLine === false) ? <ToastPlainList /> : null),
+});
 
 export default function ToastContainer() {
     const hasToasts = useToastStore((s) => s.toasts.length > 0);

@@ -155,6 +155,18 @@ test('Toke destinations retain readable navigation and an accessible tax sheet',
   await expect(tax).toBeHidden();
 });
 
+// #3256: a category view's Add + now goes through the page's own gates
+// (Bankroll Pro, starting bankroll), the same as the dashboard's Add +. A
+// test that expects the log form to open has to be a Pro member whose
+// bankroll is already initialised, or it correctly meets the gate instead.
+async function installInitialisedProBankroll(page: Page, userId: string) {
+  await page.route('**/api/vip/check-status?*', route => route.fulfill({ json: { isVip: true } }));
+  const segment = { user_id: userId, segment_type: 'poker', initial_deposit: 1000, current_balance: 1000 };
+  await page.route('**/rest/v1/bankroll_segments*', route => route.fulfill({
+    json: route.request().headers().accept?.includes('vnd.pgrst.object') ? segment : [segment],
+  }));
+}
+
 async function installBankrollSession(page: Page) {
   const user = { id: '1ad77cca-ddcb-4000-9777-b1fdce8e7381', email: 'layout@example.invalid', role: 'authenticated', user_metadata: {} };
   await page.addInitScript(({ user }) => {
@@ -275,6 +287,7 @@ test('Tournament entry names its controls and keeps optional fields linked to th
 
 test('Tournament entry records the entered buy-in and applies each bounty once across edits', async ({ page }) => {
   const user = await installBankrollSession(page);
+  await installInitialisedProBankroll(page, user.id);
   await page.addInitScript(() => localStorage.setItem('bankroll_tutorial_seen_v1:prompt', '1'));
   const id = '84159925-e03a-4bf0-bbac-5041cb551b10';
   let saved: Record<string, unknown> | undefined;
@@ -332,8 +345,8 @@ test('Tournament entry records the entered buy-in and applies each bounty once a
 });
 
 test('Bankroll entry screens open their own real form from the masthead', async ({ page }) => {
-  await installBankrollSession(page);
-  await page.route('**/api/vip/check-status?*', route => route.fulfill({ json: { isVip: true } }));
+  const user = await installBankrollSession(page);
+  await installInitialisedProBankroll(page, user.id);
   const cases = [
     ['view=trips', 'Trip Tracker', 'Start A New Trip', 'New Trip'],
     ['view=series', 'Series Tracker', 'Start A New Series', 'New Series'],
