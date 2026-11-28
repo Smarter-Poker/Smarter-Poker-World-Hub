@@ -48,7 +48,11 @@ jobs:
     # twelve when WebKit legitimately uses one retry, so 15 minutes canceled a
     # healthy run before the final gates executed. Keep a bounded ceiling with
     # enough room for the workflow's configured retry policy.
-    timeout-minutes: 30
+    # 2026-11-28: the gates have grown (Video Library, Bankroll, Trivia and
+    # Marketplace steps). A healthy run with every step passing reached the
+    # Phase 3 mobile menu step at minute 28 and was canceled at 30 before
+    # the last two gates ran, so the ceiling is now 45.
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v4

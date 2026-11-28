@@ -11,7 +11,9 @@
  * House style: Title Case, zero em dashes.
  */
 
-import { listedVenueLabel } from '../../lib/venueCount.mjs';
+// Per-state counts are getters reading the current read (src/lib/venueClaims.mjs),
+// so a server render states the live figure and a browser render the snapshot.
+import { currentStateRoomLabel } from '../../lib/venueClaims.mjs';
 import { tablesLabel } from '../../lib/research/venueTablesOnFile.mjs';
 
 export const STATES_AS_OF = '2026-11-26';
@@ -112,8 +114,9 @@ export const US_POKER_STATES = [
     topCities: ['Las Vegas', 'Henderson', 'Reno', 'Stateline (Lake Tahoe)'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap (Zero Promo Drop At Premier Strip Rooms)',
     onlineRealMoneyStatus: 'Legal & Regulated (WSOP.com Multi-State Shared Liquidity Pool)',
-    summary:
-      `Nevada Is The Global Capital Of Regulated Poker, Offering Brick-And-Mortar Casino Poker Rooms (${listedVenueLabel('NV')} In The Smarter.Poker Directory), Multi-State Regulated Online Poker, Low 10% Up To $5-$6 Cap Rake On The Las Vegas Strip, And A 0% State Income Tax Rate.`,
+    get summary() {
+      return `Nevada Is The Global Capital Of Regulated Poker, Offering Brick-And-Mortar Casino Poker Rooms (${currentStateRoomLabel('NV')} In The Smarter.Poker Directory), Multi-State Regulated Online Poker, Low 10% Up To $5-$6 Cap Rake On The Las Vegas Strip, And A 0% State Income Tax Rate.`;
+    },
     regulatoryOverview:
       'Regulated By The Nevada Gaming Control Board (NGCB) And Nevada Gaming Commission. Commercial Casino Cardrooms Operate 24/7 Across Clark County And Washoe County, And Nevada Participates In The Multi-State Internet Gaming Agreement (MSIGA) Alongside New Jersey, Michigan, And Pennsylvania.',
     taxWithholdingNotes:
@@ -576,8 +579,9 @@ export const US_POKER_STATES = [
     topCities: ['Seattle Metro (Tukwila, Shoreline)', 'Tacoma', 'Spokane', 'Ridgefield'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Jackpot Drop (Spread-Limit Caps Up To $300-$500)',
     onlineRealMoneyStatus: 'Strictly Prohibited Under RCW 9.46.240 (Free Social Play Only)',
-    summary:
-      `Washington Offers Live Poker Rooms (${listedVenueLabel('WA')} In The Smarter.Poker Directory) Including Fortune Poker, Muckleshoot, Tulalip, And Ilani With 0% State Income Tax, While Enforcing Strict Spread-Limit Betting Caps And Prohibiting Real-Money Online Poker.`,
+    get summary() {
+      return `Washington Offers Live Poker Rooms (${currentStateRoomLabel('WA')} In The Smarter.Poker Directory) Including Fortune Poker, Muckleshoot, Tulalip, And Ilani With 0% State Income Tax, While Enforcing Strict Spread-Limit Betting Caps And Prohibiting Real-Money Online Poker.`;
+    },
     regulatoryOverview:
       'Regulated By The Washington State Gambling Commission (WSGC) Under RCW 9.46. Commercial House-Banked Cardrooms And Tribal Casinos Operate Spread-Limit Cash Games (Typically $300-$500 Max Bet Per Street) And No-Limit Tournaments.',
     taxWithholdingNotes:
@@ -924,8 +928,9 @@ export const US_POKER_STATES = [
     topCities: ['Nashua', 'Manchester', 'Seabrook', 'Hampton Falls', 'Keene'],
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap (No-Limit Cash & Tournaments Under State Charitable Rules)',
     onlineRealMoneyStatus: 'Social & Club Play Only',
-    summary:
-      `New Hampshire Is A Premier Northeast Poker Destination Offering 0% State Income Tax, 18+ Entry, And Charitable Cardrooms (${listedVenueLabel('NH')} In The Smarter.Poker Directory) Including Boston Billiard Club & Casino (Nashua) And The Brook (Seabrook).`,
+    get summary() {
+      return `New Hampshire Is A Premier Northeast Poker Destination Offering 0% State Income Tax, 18+ Entry, And Charitable Cardrooms (${currentStateRoomLabel('NH')} In The Smarter.Poker Directory) Including Boston Billiard Club & Casino (Nashua) And The Brook (Seabrook).`;
+    },
     regulatoryOverview:
       'Charitable Gaming Poker Rooms Are Licensed By The New Hampshire Lottery Commission Under RSA 287-D, Directing A Portion Of Gaming Revenue To Registered New Hampshire Nonprofits.',
     taxWithholdingNotes:

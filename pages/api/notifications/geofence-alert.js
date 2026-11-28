@@ -42,14 +42,16 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      const { userId, venueId, venueName, venueType } = req.body;
+      const { userId, venueId, venueName, venueType } = req.body && typeof req.body === 'object' ? req.body : {};
 
       if (!userId || !venueId || !venueName) {
           return res.status(400).json({ success: false, error: 'Missing required fields: userId, venueId, venueName' });
       }
 
       // BUG-30 FIX: Use local HMAC JWT validation instead of GoTrue network roundtrip
-      const { user } = await getServerUserWithFallback(req, getSupabase());
+      const { user, status: authStatus } = await getServerUserWithFallback(req, getSupabase());
+      // A session-service outage is not a bad token (serverAuth status 503).
+      if (!user && authStatus === 503) return res.status(503).json({ success: false, error: 'Account verification is unavailable. Try again.' });
       if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
       if (user.id !== userId) {
           return res.status(403).json({ success: false, error: 'Cannot send geofence alerts for other users' });
@@ -67,18 +69,18 @@ export default async function handler(req, res) {
       }
 
       try {
-          // Emoji based on venue type
-          const venueEmoji = {
-              casino: '🎲',
-              card_room: '♠️',
-              poker_club: '🃏',
-              charity: '🎗️',
-          }[venueType] || '📍';
+          // Plain words, no emoji (CLAUDE.md rule 7): the venue type names the place.
+          const venueKind = {
+              casino: 'Casino',
+              card_room: 'Card Room',
+              poker_club: 'Poker Club',
+              charity: 'Charity Game',
+          }[venueType] || 'Poker Venue';
 
           const pushResult = await sendPushNotification({
               externalIds: [userId],
               notifyType: 'venue_alert',
-              heading: `${venueEmoji} Poker Venue Nearby`,
+              heading: `${venueKind} Nearby`,
               content: `You're near ${venueName}! Tap to log a session.`,
               url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/bankroll-manager?venue=${venueId}`,
               collapseId: `geofence-${venueId}`,
@@ -118,11 +120,13 @@ export default async function handler(req, res) {
               return res.status(200).json({ success: true, messageId: pushResult.result.id });
           }
 
+          // The push provider's own error stays in the log. It used to be
+          // sent to the browser, as did any thrown error's message.
           console.warn('[GeofenceAlert] push error:', pushResult.error);
-          return res.status(500).json({ success: false, error: pushResult.error || 'Push failed' });
+          return res.status(500).json({ success: false, error: 'Push failed' });
       } catch (err) {
           console.warn('[GeofenceAlert] Server error:', err);
-          return res.status(500).json({ success: false, error: err.message });
+          return res.status(500).json({ success: false, error: 'Push failed' });
       }
 
   } catch (err) {

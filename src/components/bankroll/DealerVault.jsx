@@ -385,8 +385,11 @@ function DealerVault({ userId, completedGigs = [] }) {
             if (dbError) {
                 // The file is already stored. Without a record nothing lists
                 // it and nothing can delete it, so it is taken back out.
-                await removeBankrollObject(supabase, fileUrl);
-                throw new Error('The Document Could Not Be Saved. Nothing Was Stored, Please Try Again.');
+                // "Nothing Was Stored" is said only when that removal worked.
+                const removed = await removeBankrollObject(supabase, fileUrl);
+                throw new Error(removed
+                    ? 'The Document Could Not Be Saved. Nothing Was Stored, Please Try Again.'
+                    : 'The Document Could Not Be Saved. Please Try Again.');
             }
 
             // Show the tab and year the document was filed under: a 2024 W-2
