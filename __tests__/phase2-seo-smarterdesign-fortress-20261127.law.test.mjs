@@ -139,14 +139,13 @@ test('PHASE2 LAW 3: Mobile horizontal overflow root causes are permanently elimi
     assert.doesNotMatch(src, /<code>\{'swh:1:snp:/, `${rel} must not render unstyled overflowing SWHID <code> tags`);
   }
 
-  // 4. SmarterSeoKit.module.css unlock preview table must collapse columns 4+ on mobile <= 560px
+  // 4. The unlock gate's blurred preview table was removed on 2026-11-27: its
+  //    rows were invented solver figures shown as if they were real analysis.
+  //    The honest teaser is a wrapping feature list that cannot overflow at 375px.
+  //    (tests/unlock-gate-shows-no-fabricated-data.law.test.mjs guards the content.)
   const kitCss = read('src/components/seo/SmarterSeoKit.module.css');
-  assert.match(kitCss, /table-layout:\s*fixed/, 'SmarterSeoKit .unlockPreviewTable must use table-layout: fixed');
-  assert.match(
-    kitCss,
-    /@media\s*\(max-width:\s*560px\)[\s\S]*?\.unlockPreviewTable\s+th:nth-child\(n\+4\)/,
-    'SmarterSeoKit.module.css must hide columns 4+ on <= 560px mobile to prevent clipping and horizontal overflow',
-  );
+  assert.doesNotMatch(kitCss, /\.unlockPreviewTable/, 'SmarterSeoKit must not bring back the fabricated unlock preview table');
+  assert.match(kitCss, /\.unlockLockedList\s*\{[^}]*flex-wrap:\s*wrap/, 'SmarterSeoKit .unlockLockedList must wrap on narrow phones');
   assert.match(kitCss, /scroll-margin-bottom:\s*180px/, '.unlockBay must reserve scroll-margin-bottom clearance above the floating wire bar');
 });
 
