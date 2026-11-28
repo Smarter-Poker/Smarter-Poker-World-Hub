@@ -7,7 +7,11 @@ session that wrote them was not allowed to change the production database.
 
 Installing one means: copy it to `supabase/migrations/<UTC stamp>_<slug>.sql`
 (the "Install as" line in each header), apply it once through the normal
-migration path, and commit the copy in the same PR. Follow
+migration path, and commit the copy in the same PR.
+For 2 and 3, the same PR must also delete the function's entry from
+`phantom_rpcs` in `scripts/ci/supabase-invariants.allowlist.json` (added by
+PR #3296 so CI accepts the call before the function exists; the phantom-rpc
+check fails on a stale entry once it is installed). Follow
 `.agent/workflows/migration-safety.md` (advisor scan before and after,
 overload check, readback).
 
