@@ -879,6 +879,8 @@ import './messenger-one-row-per-issuer.law.test.mjs';
 import './messenger-calls-device-safety.test.mjs';
 import './messenger-typed-text-is-white.law.test.mjs';
 import './digest-figures-carry-separators.test.mjs';
+// 2026-11-28: the Poker News header has no seal and sets its title first.
+import './news-header-title-first.test.mjs';
 // 2026-11-28: News video cards wear one frame, the thin chrome rim.
 import './news-video-cards-wear-one-frame.test.mjs';
 // GSC Series 4 And Series 5 Technical SEO Test Guards

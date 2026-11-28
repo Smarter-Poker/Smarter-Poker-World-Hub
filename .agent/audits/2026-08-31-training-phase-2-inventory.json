@@ -47024,7 +47024,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 47,
+          "line": 58,
           "handler": null,
           "destination": "back.href",
           "type": null,
@@ -93829,11 +93829,11 @@
       "effectRef": "src/components/bankroll/BankrollHelp.jsx"
     },
     {
-      "id": "src/components/bankroll/BankrollImageHeader.jsx:47:1",
+      "id": "src/components/bankroll/BankrollImageHeader.jsx:58:1",
       "file": "src/components/bankroll/BankrollImageHeader.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 47,
+      "line": 58,
       "handler": null,
       "destination": "back.href",
       "type": null,
