@@ -24,6 +24,7 @@ import { createClient } from '@supabase/supabase-js';
 import consoleStyles from '../../src/components/admin/OperatorAdminSurface.module.css';
 import GrowthScorecard from '../../src/components/admin/GrowthScorecard';
 import { loadGrowthScorecard } from '../../src/lib/acquisition/growthScorecard.mjs';
+import { loadRecentSignupAttribution } from '../../src/lib/acquisition/attributionSummary.mjs';
 
 /**
  * [2026-07-25] REACHABILITY FIX — same as /admin/auth-health: browsers never
@@ -49,11 +50,12 @@ export async function getServerSideProps({ req, res }) {
     }
     const adm = createClient(url, srKey, { auth: { persistSession: false } });
 
-    const [healthRes, heartbeatsRes, errorsRes, growth] = await Promise.all([
+    const [healthRes, heartbeatsRes, errorsRes, growth, attribution] = await Promise.all([
         adm.from('signup_health_view').select('*').maybeSingle(),
         adm.from('probe_heartbeats').select('id, probe_name, status, duration_ms, occurred_at').order('occurred_at', { ascending: false }).limit(20),
         adm.from('signup_errors').select('id, email, trigger_name, error_code, error_msg, occurred_at').order('occurred_at', { ascending: false }).limit(50),
         loadGrowthScorecard(adm),
+        loadRecentSignupAttribution(adm),
     ]);
 
     return {
@@ -64,6 +66,7 @@ export async function getServerSideProps({ req, res }) {
             error: healthRes.error?.message || null,
             generatedAt: new Date().toISOString(),
             growth,
+            attribution,
         },
     };
 }
@@ -113,6 +116,7 @@ export default function SignupHealthDashboard(props) {
         error: props.error || null,
         generatedAt: props.generatedAt || null,
         growth: props.growth || null,
+        attribution: props.attribution || props.data?.attribution || null,
     });
 
     useEffect(() => {
@@ -125,9 +129,14 @@ export default function SignupHealthDashboard(props) {
                 return;
             }
             try {
-                const res = await fetch('/api/admin/auth-health-data?view=signup', {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                const [res, healthProbe] = await Promise.all([
+                    fetch('/api/admin/auth-health-data?view=signup', {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                    fetch('/api/health/signup')
+                        .then((probeRes) => probeRes.json().catch(() => null))
+                        .catch(() => null),
+                ]);
                 if (res.status === 401) {
                     window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/signup-health'));
                     return;
@@ -146,6 +155,7 @@ export default function SignupHealthDashboard(props) {
                         error: json.error || null,
                         generatedAt: json.generatedAt,
                         growth: json.growth,
+                        attribution: json.attribution || healthProbe?.attribution || null,
                     });
                 }
             } catch (e) {
@@ -196,6 +206,8 @@ export default function SignupHealthDashboard(props) {
             </header>
 
             <GrowthScorecard report={state.growth} />
+
+            <AttributionScorecard attribution={state.attribution} />
 
             {health && (
                 <section className={consoleStyles.panel} style={S.section}>
@@ -286,6 +298,167 @@ export default function SignupHealthDashboard(props) {
     );
 }
 
+function pctOf(count, total) {
+    if (!total || total <= 0) return '0%';
+    return `${Math.round((Number(count || 0) / total) * 100)}%`;
+}
+
+function AttributionScorecard({ attribution }) {
+    const channels = attribution?.channels || null;
+    const providers = attribution?.providers || null;
+    const totalSignups = Number(attribution?.totalSignups || 0);
+    const last24h = attribution?.last_24h || null;
+    const last24hChannels = last24h?.channels || {};
+    const landingPages = Array.isArray(attribution?.landingPages) ? attribution.landingPages : [];
+    const unlockKeys = Array.isArray(attribution?.unlockKeys) ? attribution.unlockKeys : [];
+    const isAvailable = Boolean(attribution && attribution.available !== false && channels);
+
+    const channelCards = [
+        { key: 'organic_google', label: 'Google Organic', accent: '#38bdf8' },
+        { key: 'organic_bing', label: 'Bing Organic', accent: '#86daff' },
+        { key: 'organic_ai', label: 'AI Search (ChatGPT/Perplexity/Claude/Gemini)', accent: '#65e8aa' },
+        { key: 'referral', label: 'Referral', accent: '#00D4FF' },
+        { key: 'paid_or_utm', label: 'UTM / Campaign', accent: '#bdd0e2' },
+        { key: 'direct', label: 'Direct', accent: '#aabcc4' },
+    ];
+
+    const providerCards = [
+        { key: 'google', label: 'Google OAuth', value: Number(providers?.google || 0) },
+        { key: 'facebook', label: 'Facebook OAuth', value: Number(providers?.facebook || 0) },
+        { key: 'oauth_total', label: 'Total OAuth', value: Number(providers?.oauth_total || 0) },
+        { key: 'email', label: 'Email', value: Number(providers?.email || 0) },
+    ];
+
+    return (
+        <section
+            id="organic-attribution-scorecard"
+            aria-labelledby="organic-attribution-title"
+            className={consoleStyles.panel}
+            style={{ ...S.section, borderRadius: 0, border: '1px solid #2b4663', background: '#0a1a2b' }}
+        >
+            <div style={S.attrHeader}>
+                <div>
+                    <h2 id="organic-attribution-title" style={{ ...S.h2, marginBottom: 6, color: '#f2f7ff' }}>
+                        Organic SEO &amp; Conversion Funnel Attribution
+                    </h2>
+                    <p style={{ ...S.p, color: '#bdd0e2' }}>
+                        Rolling 7-Day Aggregate Attribution With Zero PII. Total Signups: {totalSignups}
+                        {last24h ? ` | Last 24h: ${Number(last24h.totalSignups || 0)}` : ''}
+                    </p>
+                </div>
+                <span style={S.attrBadge}>
+                    {isAvailable ? 'Live Attribution Feed' : 'Attribution Unavailable'}
+                </span>
+            </div>
+
+            {!isAvailable ? (
+                <p style={{ ...S.p, color: '#bdd0e2', marginTop: 12 }} role="status">
+                    Organic Attribution Data Is Unavailable. Reload To Retry.
+                </p>
+            ) : (
+                <>
+                    <h3 style={S.attrSubhead}>Acquisition Channels</h3>
+                    <div style={S.attrChannelGrid}>
+                        {channelCards.map((item) => {
+                            const count = Number(channels[item.key] || 0);
+                            const count24h = Number(last24hChannels[item.key] || 0);
+                            return (
+                                <div
+                                    key={item.key}
+                                    className={consoleStyles.metric}
+                                    style={{
+                                        ...S.attrCard,
+                                        borderLeft: `3px solid ${item.accent}`,
+                                    }}
+                                >
+                                    <div style={S.attrLabel}>{item.label}</div>
+                                    <div style={S.attrValue}>{count}</div>
+                                    <div style={S.attrMeta}>
+                                        {pctOf(count, totalSignups)} Share | 24h: {count24h}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <h3 style={S.attrSubhead}>OAuth Vs Email Split</h3>
+                    <div style={S.attrProviderGrid}>
+                        {providerCards.map((item) => (
+                            <div
+                                key={item.key}
+                                className={consoleStyles.metric}
+                                style={S.attrCard}
+                            >
+                                <div style={S.attrLabel}>{item.label}</div>
+                                <div style={S.attrValue}>{item.value}</div>
+                                <div style={S.attrMeta}>{pctOf(item.value, totalSignups)} Share</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className={consoleStyles.responsiveGrid} style={S.attrTablesGrid}>
+                        <div>
+                            <h3 style={S.attrSubhead}>Top Converting Landing Pages</h3>
+                            {landingPages.length === 0 ? (
+                                <p style={{ ...S.p, color: '#aabcc4' }}>No Attributed Landing Pages Recorded Yet.</p>
+                            ) : (
+                                <div className={consoleStyles.tableWell} tabIndex={0} role="region" aria-label="Top Converting Landing Pages">
+                                    <table style={S.table}>
+                                        <thead>
+                                            <tr>
+                                                <th style={S.th}>Landing Page</th>
+                                                <th style={S.th}>Signups</th>
+                                                <th style={S.th}>Share</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {landingPages.map((row) => (
+                                                <tr key={row.path}>
+                                                    <td style={S.td}><code>{row.path}</code></td>
+                                                    <td style={S.td}>{row.count}</td>
+                                                    <td style={S.td}>{pctOf(row.count, totalSignups)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+
+                        <div>
+                            <h3 style={S.attrSubhead}>Top Unlock Gates</h3>
+                            {unlockKeys.length === 0 ? (
+                                <p style={{ ...S.p, color: '#aabcc4' }}>No Unlock Gate Conversions Recorded Yet.</p>
+                            ) : (
+                                <div className={consoleStyles.tableWell} tabIndex={0} role="region" aria-label="Top Unlock Gates">
+                                    <table style={S.table}>
+                                        <thead>
+                                            <tr>
+                                                <th style={S.th}>Unlock Gate</th>
+                                                <th style={S.th}>Signups</th>
+                                                <th style={S.th}>Share</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {unlockKeys.map((row) => (
+                                                <tr key={row.key}>
+                                                    <td style={S.td}><code>{row.key}</code></td>
+                                                    <td style={S.td}>{row.count}</td>
+                                                    <td style={S.td}>{pctOf(row.count, totalSignups)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
+        </section>
+    );
+}
+
 function Stat({ label, value, alert, hint }) {
     return (
         <div className={consoleStyles.metric} style={{
@@ -314,4 +487,14 @@ const S = {
     td: { padding: '8px 12px', borderBottom: '1px solid #1e293b' },
     link: { color: '#00D4FF', textDecoration: 'none' },
     errBox: { padding: 16, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.5)', borderRadius: 8, color: '#fca5a5' },
+    attrHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
+    attrBadge: { display: 'inline-block', padding: '4px 10px', borderRadius: 0, border: '1px solid #2b4663', background: '#071321', color: '#86daff', fontSize: 12, fontWeight: 600, letterSpacing: 0.4, textTransform: 'uppercase' },
+    attrSubhead: { fontSize: 14, fontWeight: 600, color: '#86daff', margin: '18px 0 10px', letterSpacing: 0.3, textTransform: 'uppercase' },
+    attrChannelGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 },
+    attrProviderGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 12 },
+    attrTablesGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginTop: 8 },
+    attrCard: { background: '#0d1f33', border: '1px solid #2b4663', borderRadius: 0, padding: 14 },
+    attrLabel: { fontSize: 12, color: '#bdd0e2', fontWeight: 600, letterSpacing: 0.3 },
+    attrValue: { fontSize: 26, fontWeight: 700, color: '#f2f7ff', marginTop: 6 },
+    attrMeta: { fontSize: 12, color: '#aabcc4', marginTop: 4 },
 };
