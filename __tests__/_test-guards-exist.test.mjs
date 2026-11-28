@@ -169,6 +169,7 @@ import './pg17-parallel-and-build-parity.law.test.mjs';
 import './api-routes-exist.test.mjs';
 import './bankroll-export-download.test.mjs';
 import './bankroll-analytics-view.test.mjs';
+import './bankroll-trend-axis.test.mjs';
 import './toke-tracker-pages.test.mjs';
 import './bankroll-live-suite.test.mjs';
 import './bankroll-phone-speed.test.mjs';

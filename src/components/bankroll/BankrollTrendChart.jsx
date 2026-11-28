@@ -1,9 +1,18 @@
 import ResponsiveTable from '../ui/ResponsiveTable';
-import { memo, useMemo, useState } from 'react';
+import { memo, useId, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Activity, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getDateRangeFilter } from '../../lib/bankroll/bankrollSelectors';
 import { buildTrend, histogram } from '../../lib/bankroll/analyticsView.mjs';
+import {
+  LINE_AXES,
+  LINE_AXIS_LABELS,
+  idleTail,
+  resolveLineAxis,
+  sanitizeLineAxis,
+  trendSummary,
+} from '../../lib/bankroll/trendAxis.mjs';
+import { formatCentsCurrency } from '../../lib/bankroll/currencyUtils';
 import { Measure, money, periodDate, tone } from './analyticsDisplay';
 import styles from './BankrollAnalytics.module.css';
 
@@ -161,8 +170,14 @@ function BankrollTrendChart({
   chartType = 'line',
   timeFilter = 'Last 30 Days',
   displayEUR = false,
+  lineAxis,
+  onLineAxisChange,
 }) {
   const { startDate, endDate } = getDateRangeFilter(timeFilter);
+  // The page persists the choice; without a handler the chart keeps it locally.
+  const [localAxis, setLocalAxis] = useState('auto');
+  const axisChoice = sanitizeLineAxis(onLineAxisChange ? lineAxis : localAxis);
+  const chooseAxis = onLineAxisChange || setLocalAxis;
   const model = useMemo(() => buildTrend(entries, startDate, endDate), [entries, startDate, endDate]);
   const bins = useMemo(
     () => (chartType === 'histogram' ? histogram(model.sessions) : []),
@@ -171,8 +186,24 @@ function BankrollTrendChart({
   const mode = Object.hasOwn(modeTitle, chartType) ? chartType : 'line';
   const noWedges = mode === 'donut' && model.categories.every((cat) => !cat.magnitude);
   const noHistogram = mode === 'histogram' && !bins.length;
+  const axis = resolveLineAxis(axisChoice, model.line);
+  const tail = idleTail(model.line);
+  const summaryId = 'bankroll-trend-summary-' + useId().replace(/:/g, '');
+  const summary =
+    mode === 'line' && model.line.length
+      ? trendSummary(
+          model.line,
+          (cents) => formatCentsCurrency(cents, displayEUR, { signed: true, cents: 'auto' }),
+          (date) => periodDate(date, false, true)
+        )
+      : null;
   return (
-    <section className={styles.trend} aria-label="Bankroll Trend" aria-busy={isLoading}>
+    <section
+      className={styles.trend}
+      aria-label="Bankroll Trend"
+      aria-busy={isLoading}
+      aria-describedby={summary && !isLoading ? summaryId : undefined}
+    >
       <div className={styles.trendHead}>
         <div>
           <h3>
@@ -200,7 +231,38 @@ function BankrollTrendChart({
           ) : mode === 'heatmap' ? (
             <Heatmap model={model} displayEUR={displayEUR} />
           ) : (
-            <Plot mode={mode} model={model} bins={bins} displayEUR={displayEUR} />
+            <>
+              {mode === 'line' && (
+                <div className={styles.axisToggle} role="group" aria-label="Line Chart Spacing">
+                  {LINE_AXES.map((value) => (
+                    <button
+                      type="button"
+                      key={value}
+                      aria-pressed={axis === value}
+                      onClick={() => chooseAxis(value)}
+                    >
+                      {LINE_AXIS_LABELS[value]}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <Plot mode={mode} model={model} bins={bins} displayEUR={displayEUR} lineAxis={axis} />
+              {mode === 'line' && (
+                <p className={styles.foot}>
+                  {axis === 'session'
+                    ? 'Each recorded day is evenly spaced, not to time scale.' +
+                      (tail ? ' Last session ' + periodDate(tail.since, false, true) + '.' : '')
+                    : tail
+                      ? 'No sessions since ' + periodDate(tail.since, false, true) + '. The dashed line only carries the balance to today.'
+                      : 'Spaced by calendar date.'}
+                </p>
+              )}
+              {summary && (
+                <p id={summaryId} className={styles.srOnly}>
+                  {summary}
+                </p>
+              )}
+            </>
           )}
           {(mode === 'donut' || mode === 'stacked') && (
             <ul aria-label="Game Breakdown" className={styles.legend}>

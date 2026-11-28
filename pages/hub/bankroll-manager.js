@@ -84,7 +84,7 @@ import { evaluateRuleViolations, monthBounds } from '../../src/lib/bankroll/rule
 import { parseLedgerDay } from '../../src/lib/bankroll/localDates.mjs';
 import {
   TIME_FILTERS, CHART_TYPES, CHART_TYPE_LABELS, GAME_TYPES,
-  sanitizeTimeFilter, sanitizeChartType, sanitizeGameTypes, toggleGameType as toggleGameTypeIn,
+  sanitizeTimeFilter, sanitizeChartType, sanitizeGameTypes, sanitizeLineAxis, toggleGameType as toggleGameTypeIn,
 } from '../../src/lib/bankroll/dashboardFilters.mjs';
 import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
 import { fetchReportLedger, fetchTrips, fetchSeries, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
@@ -367,6 +367,7 @@ export default function BankrollManagerPage() {
     timeFilter: 'All Time',
     chartType: 'line',
     gameTypes: GAME_TYPES,
+    lineAxis: 'auto',
   });
 
   const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
@@ -389,6 +390,7 @@ export default function BankrollManagerPage() {
 
   const setTimeFilter = (val) => setFilter('timeFilter', val);
   const setChartType = (val) => setFilter('chartType', val);
+  const setLineAxis = (val) => setFilter('lineAxis', sanitizeLineAxis(val));
 
   const [editEntry, setEditEntry] = useState(null);
 
@@ -1940,7 +1942,7 @@ export default function BankrollManagerPage() {
 
                     {/* Bankroll Trend Chart, filtered by gameTypeFilter, always include expenses */}
                     <div data-tutorial="chart">
-                    <BankrollTrendChart displayEUR={preferences.currencyEUR} entries={chartEntries} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
+                    <BankrollTrendChart displayEUR={preferences.currencyEUR} entries={chartEntries} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} lineAxis={sanitizeLineAxis(filters.lineAxis)} onLineAxisChange={setLineAxis} />
 
                     {/* Filters Row. Two columns at phone width (bankroll.css),
                         so the right column's menus open leftward to stay on

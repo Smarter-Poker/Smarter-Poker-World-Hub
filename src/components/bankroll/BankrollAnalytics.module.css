@@ -522,3 +522,39 @@
   padding: 8px 12px;
   background: #0e2236;
 }
+.axisToggle {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 10px 12px 0;
+}
+.axisToggle button {
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid #3c5870;
+  border-radius: 999px;
+  background: #0d2034;
+  color: #b8cde1;
+  font: 600 0.78rem/1.2 var(--sd-type, sans-serif);
+  cursor: pointer;
+}
+.axisToggle button[aria-pressed='true'] {
+  background: #17466f;
+  border-color: #68d6ff;
+  color: #f1f7ff;
+}
+.axisToggle button:focus-visible {
+  outline: 2px solid #8edcff;
+  outline-offset: 2px;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
