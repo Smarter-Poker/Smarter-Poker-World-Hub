@@ -24,6 +24,7 @@ import { supabase } from '../lib/supabase';
 import * as READS from './liveStreamReads';
 import { getAccessToken, getFreshAccessToken } from '../lib/authUtils';
 import { busEmit } from '../engine/EventBus';
+import { registerLiveStreamService } from './activeLiveStream';
 
 const logError = (ctx, err) => console.warn(`[LiveStream:${ctx}]`, err?.message || err);
 
@@ -1670,4 +1671,5 @@ class LiveStreamService {
 
 // Singleton
 export const liveStreamService = new LiveStreamService();
+registerLiveStreamService(liveStreamService);
 export default LiveStreamService;

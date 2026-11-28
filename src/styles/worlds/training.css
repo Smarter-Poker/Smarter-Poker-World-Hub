@@ -2600,6 +2600,16 @@ body.world-training .sp-training-route-shell {
     background: #040d18;
 }
 
+/* The isolated shell keeps page decorations (z-index: -1) inside it, but it
+   also traps the World command menu, which UniversalHeader renders in place
+   while it portals the header itself to <body> at z 10050. Closed, the shell
+   stays at the page layer. Open, the whole shell rises above the header
+   (10050), the guest bar (850) and the footer (900), so the modal drawer and
+   its backdrop cover them exactly as on every other World. */
+body.world-training .sp-training-route-shell:has(.sp-drawer[data-open='true']) {
+    z-index: 10100;
+}
+
 body.world-training .sp-training-page-stage {
     position: relative;
     min-height: calc(100dvh - 59px);

@@ -27,6 +27,37 @@ async function openMenu(page: Page, world: WorldMenuVisualCase) {
   await expect(drawer).toHaveAttribute('data-world-menu-scheme', world.scheme);
   await expect(drawer).toHaveAttribute('data-world-menu-texture', world.texture);
   await expect(drawer.locator(`[data-world-primary-commands="${world.id}"] .sp-grid-tile`)).toHaveCount(6);
+  // The open drawer is a modal: it must paint above the portaled global
+  // header, the guest bar and the footer. A page wrapper that creates a
+  // stacking context (the Training route shell is isolated) caps every
+  // descendant at the wrapper's own level, so compare root-level layers.
+  // A pixel snapshot alone missed this: the header and guest bar covered the
+  // Training drawer's title and close controls for days while the ratio
+  // stayed under its tolerance at 1440px.
+  const layers = await drawer.evaluate((element) => {
+    const rootLevel = (node: Element) => {
+      let level = 0;
+      for (let current: Element | null = node; current && current !== document.body && current !== document.documentElement; current = current.parentElement) {
+        const style = getComputedStyle(current);
+        const positioned = style.position !== 'static';
+        const creates = (positioned && style.zIndex !== 'auto')
+          || style.position === 'fixed' || style.position === 'sticky'
+          || style.isolation === 'isolate' || style.transform !== 'none'
+          || style.filter !== 'none' || Number(style.opacity) < 1;
+        if (creates) level = style.zIndex === 'auto' ? 0 : Number(style.zIndex);
+      }
+      return level;
+    };
+    const header = document.querySelector('.approved-global-header');
+    const guestBar = document.querySelector('[data-testid="guest-conversion-bar"]');
+    return {
+      drawer: rootLevel(element),
+      header: header ? rootLevel(header) : null,
+      guestBar: guestBar ? rootLevel(guestBar) : null,
+    };
+  });
+  if (layers.header !== null) expect(layers.drawer, `${world.label} drawer paints under the global header`).toBeGreaterThan(layers.header);
+  if (layers.guestBar !== null) expect(layers.drawer, `${world.label} drawer paints under the guest bar`).toBeGreaterThan(layers.guestBar);
   await page.addStyleTag({
     content: '*,*::before,*::after{animation:none!important;caret-color:transparent!important;font-family:Arial,sans-serif!important;}',
   });
