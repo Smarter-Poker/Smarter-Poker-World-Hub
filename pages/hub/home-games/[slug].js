@@ -24,6 +24,7 @@ import FaqSection from '../../../src/components/seo/FaqSection';
 import { homeGameDescription } from '../../../src/lib/home-games/homeGameSeo.mjs';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PnmImageHeader from '../../../src/components/poker-near-me/PnmImageHeader';
 import DeepRouteSignalDeck from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
 import PokerNearMeRecentRail from '../../../src/components/poker-near-me/PokerNearMeRecentRail';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
@@ -671,7 +672,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
   // Compute Host Reputation label + color from quality + vitality
   function getReputationBadge(quality, vitality) {
     const score = (quality || 0) * 0.6 + (vitality || 0) * 8; // weighted blend
-    if (score >= 80) return { label: 'Elite Host', color: '#fbbf24', bg: 'rgba(251,191,36,.12)', border: 'rgba(251,191,36,.3)' };
+    if (score >= 80) return { label: 'Elite Host', color: '#bfe6ff', bg: 'rgba(191,230,255,.12)', border: 'rgba(191,230,255,.3)' };
     if (score >= 55) return { label: 'Trusted Host', color: '#34d399', bg: 'rgba(52,211,153,.12)', border: 'rgba(52,211,153,.3)' };
     if (score >= 30) return { label: 'Active Host', color: '#22d3ee', bg: 'rgba(34,211,238,.12)', border: 'rgba(34,211,238,.3)' };
     if (score >= 10) return { label: 'New Host', color: '#94a3b8', bg: 'rgba(148,163,184,.08)', border: 'rgba(148,163,184,.2)' };
@@ -1206,6 +1207,9 @@ export default function PublicHomeGamePage({ data, serverError }) {
       <div className="hgs-page">
         <UniversalHeader onMenuClick={() => setMenuOpen(true)} pageDepth={2} onBackClick={() => router.back()} />
         <PokerNearMeFamilyNav />
+        <div className="smarterdesign pnm-sd-top">
+          <PnmImageHeader route="home-games" title="Home Game" heading="p" />
+        </div>
 
         <main data-pnm-secondary-foundation="interaction-v1">
 
@@ -1915,7 +1919,7 @@ const pageStyles = `
 .hgs-seat-title{font-size:20px;font-weight:700;margin:0 0 6px !important;color:#fff;line-height:1.3}
 .hgs-seat-sub{font-size:13px;color:rgba(255,255,255,.6);margin:0 0 14px !important}
 .hgs-seat-body{font-size:14px;color:rgba(255,255,255,.8);margin:0 0 16px !important;line-height:1.5}
-.hgs-seat-hint{font-size:13px;color:rgba(255,255,255,.55);margin:0 0 16px !important;line-height:1.5;padding:10px 12px;background:rgba(139,92,246,.08);border-left:3px solid rgba(139,92,246,.5);border-radius:4px}
+.hgs-seat-hint{font-size:13px;color:rgba(255,255,255,.55);margin:0 0 16px !important;line-height:1.5;padding:10px 12px;background:rgba(79,156,255,.08);border-left:3px solid rgba(79,156,255,.5);border-radius:4px}
 .hgs-seat-label{display:block;margin-bottom:14px;font-size:13px;color:rgba(255,255,255,.7);font-weight:600}
 .hgs-seat-label > span{display:block;margin-bottom:6px}
 .hgs-seat-label small{display:block;text-align:right;margin-top:4px;font-size:12px;color:rgba(255,255,255,.4)}
@@ -1927,7 +1931,7 @@ const pageStyles = `
 .hgs-seat-request-input{width:100%;box-sizing:border-box;padding:10px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(148,163,184,.18);border-radius:8px;color:#fff;font-family:inherit;font-size:14px;line-height:1.5;resize:vertical}
 .hgs-seat-request select.hgs-seat-request-input{min-height:44px;color-scheme:dark}
 .hgs-seat-request input.hgs-seat-request-input{min-height:44px}
-.hgs-seat-textarea:focus{outline:none;border-color:rgba(139,92,246,.6);background:rgba(0,0,0,.4)}
+.hgs-seat-textarea:focus{outline:none;border-color:rgba(79,156,255,.6);background:rgba(0,0,0,.4)}
 .hgs-seat-error{background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px}
 .hgs-seat-summary{margin:0 0 20px;padding:12px 14px;background:rgba(0,0,0,.25);border-radius:8px}
 .hgs-seat-summary div{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}

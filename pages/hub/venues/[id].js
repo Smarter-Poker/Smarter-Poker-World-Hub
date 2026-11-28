@@ -16,6 +16,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import PnmImageHeader from '../../../src/components/poker-near-me/PnmImageHeader';
 import { resolveVenueTimeZone } from '../../../src/components/poker-near-me/pnm-utils';
 import DeepRouteSignalDeck, { DeepRouteNotice } from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
 import PokerNearMeRecentRail from '../../../src/components/poker-near-me/PokerNearMeRecentRail';
@@ -2063,6 +2064,9 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
             }}
           />
           <PokerNearMeFamilyNav />
+          <div className="smarterdesign pnm-sd-top">
+            <PnmImageHeader route="venues" title="Poker Room" heading="p" />
+          </div>
         </>
       )}
 
@@ -3180,7 +3184,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
 
                 <div className="waitlist-board">
                   {waitlistData.map(function (wl, colIdx) {
-                    var tabColors = ['#ffffff', '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
+                    var tabColors = ['#ffffff', '#4CAF50', '#2196F3', '#13a4ec', '#2782b0', '#F44336', '#00BCD4'];
                     var tabColor = tabColors[colIdx % tabColors.length];
                     var gameLabel = (wl.stakes || '') + ' ' + formatGameType(wl.game_type);
 
@@ -3556,7 +3560,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {venueLeaderboard.map(function (leader, idx) {
-                    var medal = idx === 0 ? '#ffffff' : idx === 1 ? '#C0C0C0' : idx === 2 ? '#CD7F32' : 'rgba(255,255,255,0.2)';
+                    var medal = idx === 0 ? '#ffffff' : idx === 1 ? '#C0C0C0' : idx === 2 ? '#3299cd' : 'rgba(255,255,255,0.2)';
                     return (
                       <div key={leader.user_id} style={{
                         display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
@@ -4384,7 +4388,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           display: flex;
           align-items: center;
           gap: 13px;
-          border: 1px solid rgba(214, 168, 75, 0.42);
+          border: 1px solid rgba(75, 168, 214, 0.42);
           border-radius: 3px;
           background: linear-gradient(90deg, rgba(28, 21, 9, 0.96), rgba(7, 10, 14, 0.96));
           box-shadow: inset 0 1px rgba(255, 255, 255, 0.04), 0 14px 28px rgba(0, 0, 0, 0.28);
@@ -4394,13 +4398,13 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           height: 11px;
           flex: 0 0 11px;
           transform: rotate(45deg);
-          border: 1px solid #d6a84b;
+          border: 1px solid #4ba8d6;
           background: #2b210e;
-          box-shadow: 0 0 12px rgba(214, 168, 75, 0.45);
+          box-shadow: 0 0 12px rgba(75, 168, 214, 0.45);
         }
         .venue-location-integrity strong {
           display: block;
-          color: #ead29b;
+          color: #9bd0ea;
           font-size:12px;
           letter-spacing: 0.12em;
           text-transform: uppercase;
@@ -4473,7 +4477,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           transition: color 0.2s;
         }
         .info-link:hover {
-          color: #e8c374;
+          color: #74c1e8;
           text-decoration: underline;
         }
 

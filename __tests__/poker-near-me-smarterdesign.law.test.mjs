@@ -44,6 +44,11 @@ test('every Poker Near Me destination opens on its own #SMARTERDESIGN image head
     'pages/hub/home-games.js': /<PnmImageHeader route="home-games"/,
     'pages/hub/daily-tournaments.js': /<PnmImageHeader route="daily-tournaments"/,
     'src/components/poker-near-me/PokerNearMeLocationPage.jsx': /<PnmImageHeader route="locations"/,
+    'pages/hub/poker-series.js': /<PnmImageHeader route="series" \/>/,
+    'pages/hub/venues/[id].js': /<PnmImageHeader route="venues" title="Poker Room" heading="p" \/>/,
+    'pages/hub/series/[id].js': /<PnmImageHeader route="series" title="Poker Series" heading="p" \/>/,
+    'pages/hub/tours/[code].js': /<PnmImageHeader route="tours" title="Poker Tour" heading="p" \/>/,
+    'pages/hub/home-games/[slug].js': /<PnmImageHeader route="home-games" title="Home Game" heading="p" \/>/,
   };
   for (const [file, pin] of Object.entries(pages)) assert.match(read(file), pin, file);
 });
@@ -97,6 +102,7 @@ test('no gold, amber, yellow, purple or pink colour survives in Poker Near Me so
     'pages/hub/events-calendar.js',
     'pages/hub/poker-tours.js',
     'pages/hub/daily-tournaments.js',
+    'pages/hub/poker-series.js',
   ];
   const offenders = [];
   const hls = (r, g, b) => {
