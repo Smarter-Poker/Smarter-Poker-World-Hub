@@ -56,3 +56,10 @@ test('the geofence push route keeps internal errors in the log', () => {
   assert.ok(route.indexOf("req.method !== 'POST'") < route.indexOf('= req.body'));
   assert.match(route, /req\.body && typeof req\.body === 'object' \? req\.body : \{\}/);
 });
+
+test('the venue push heading is plain words, with no emoji', () => {
+  const route = read('pages/api/notifications/geofence-alert.js');
+  assert.equal(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}]/u.test(route), false, 'no emoji in the route');
+  assert.match(route, /heading: `\$\{venueKind\} Nearby`/);
+  assert.match(route, /\|\| 'Poker Venue'/);
+});
