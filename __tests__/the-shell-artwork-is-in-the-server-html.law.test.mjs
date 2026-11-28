@@ -17,7 +17,11 @@
  * finish and paint it until hydration released the main thread (painted
  * 1.2-3.5 s). The footer therefore preloads its own <source> from the head,
  * with the exact srcset, sizes and type the <picture> selects, so the preload
- * and the <img> are one request.
+ * and the <img> are one request. With the art in hand early, the remaining
+ * delay was decoding="async": WebKit painted the stage empty, decoded off the
+ * main thread and showed the art one frame later, and behind the page's
+ * post-hydration work that frame came 0.8-1.6 s later. The footer art now
+ * decodes in the frame that paints it, as the header art already did.
  *
  * This law keeps the three facts that make that work:
  *  1. the footer <picture>/<img> and the header <picture>/<img> are rendered
@@ -67,6 +71,9 @@ test('the World footer art is rendered on the server render path, not after moun
   assert.match(img, /srcSet=\{source\.srcSet\}/);
   assert.match(img, /sizes=\{source\.sizes\}/);
   assert.doesNotMatch(img, /loading=/, 'the footer art must not be lazy');
+  // decoding="async" let WebKit paint the stage empty and show the art a
+  // frame later, behind the post-hydration work (0.8-1.6 s on the budget).
+  assert.match(img, /decoding="sync"/, 'the footer art decodes in the frame that paints it');
 });
 
 test('the World footer art is announced from the head with the exact <source> it renders', () => {

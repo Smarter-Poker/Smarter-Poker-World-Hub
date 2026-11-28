@@ -760,7 +760,12 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
             alt=""
             aria-hidden="true"
             draggable="false"
-            decoding="async"
+            // Decoded in the frame that first paints it, like the header art.
+            // With "async" WebKit painted the stage empty, decoded off-thread
+            // and showed the art only at the NEXT frame - which, behind the
+            // page's post-hydration work, came 0.8-1.6 s later on the mobile
+            // budget. Same pixels either way; only the frame it lands in moves.
+            decoding="sync"
             className="bn-artwork-image"
             data-exact-approved-artwork="true"
             width={artwork.width}
