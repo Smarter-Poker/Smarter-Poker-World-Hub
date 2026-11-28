@@ -96,6 +96,17 @@
 .copy > button:last-child {
   margin-top: 8px;
 }
+/* Opt-in: no seal. The copy takes the whole width. */
+.header.header.noSeal {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* Opt-in: title first, larger, with the parent line under it. */
+.header.titleFirst .title {
+  font-size: clamp(2.2rem, 5.4vw, 4rem);
+}
+.header.titleFirst .parent {
+  margin: 6px 0 0;
+}
 @media (max-width: 600px) {
   .header.header {
     --seal-size: clamp(49px, 14vw, 75px);
@@ -111,5 +122,10 @@
   }
   .copy {
     padding-right: 49px;
+  }
+}
+@media (max-width: 600px) {
+  .header.titleFirst .title {
+    font-size: clamp(2.05rem, 9.5vw, 2.9rem);
   }
 }

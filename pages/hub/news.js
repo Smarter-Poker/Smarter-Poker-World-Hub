@@ -1618,6 +1618,8 @@ function NewsHub() {
                                 title="Poker News"
                                 titleId="news-page-title"
                                 className="news-image-header"
+                                seal={false}
+                                parentBelow
                                 parent={(
                                     <span className="news-desk-kicker">
                                         <span>Live Intelligence Wire</span>
