@@ -134,7 +134,9 @@ test('the tax report API reads expenses from the ledger and real trips', () => {
   const src = read('pages/api/bankroll/tax-report.js');
   assert.match(src, /from\('bankroll_trips'\)/);
   assert.doesNotMatch(src, /trip\.expenses/);
-  assert.match(src, /w2gThresholds\(year\)/);
+  // The report itself is built by taxYearReport in taxMath.mjs (summed in cents).
+  assert.match(src, /taxYearReport\(/);
+  assert.match(read('src/lib/bankroll/taxMath.mjs'), /w2gThresholds\(year\)/);
 });
 
 test('projection inputs are validated and only gaming sessions are sampled', () => {

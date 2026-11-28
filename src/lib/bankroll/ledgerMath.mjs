@@ -39,21 +39,39 @@ export const isResultRow = (entry) => RESULT_CATEGORIES.includes(entry?.category
 export const isMovementRow = (entry) => MOVEMENT_CATEGORIES.includes(entry?.category);
 
 /**
+ * A superseded revision is kept for history only and is never money. Every
+ * reader filters `is_revision = false` in the query, and every totaller skips
+ * one too, so the same rows give the same figure whichever path adds them up.
+ */
+export const isCurrentRow = (entry) => !!entry && !entry.is_revision;
+
+/**
+ * What an expense row costs, in positive cents, whatever sign it carries.
+ * Every writer stores an expense as gross_in = amount, gross_out = 0; older
+ * rows were typed with a negative amount or with the amount as gross_out.
+ * The Trip Tracker, the trend chart, the reports and the tax report each used
+ * their own rule for those rows, and two of them turned such an expense into
+ * a gain. This is the one rule: the size of the row's net.
+ */
+export function expenseCostCents(entry) {
+  if (!entry) return 0;
+  return Math.abs(toCents(entry.gross_out) - toCents(entry.gross_in));
+}
+
+/**
  * What one row does to the bankroll, in cents. An expense is always money
  * out, whatever sign its amount was typed with.
  */
 export function entryCents(entry) {
   if (!entry) return 0;
-  const grossIn = toCents(entry.gross_in);
-  const grossOut = toCents(entry.gross_out);
-  if (entry.category === 'expense') return grossOut - Math.abs(grossIn);
-  return grossOut - grossIn;
+  if (entry.category === 'expense') return -expenseCostCents(entry);
+  return toCents(entry.gross_out) - toCents(entry.gross_in);
 }
 
 /** Winnings and losses (sessions and expenses), never deposits or withdrawals. */
 export function resultsCents(entries) {
   let total = 0;
-  for (const entry of entries || []) if (isResultRow(entry)) total += entryCents(entry);
+  for (const entry of entries || []) if (isCurrentRow(entry) && isResultRow(entry)) total += entryCents(entry);
   return total;
 }
 
@@ -67,7 +85,7 @@ export function bankrollBalanceCents(entries, segments) {
     if (segment && segment.segment_type !== 'life') total += toCents(segment.initial_deposit);
   }
   for (const entry of entries || []) {
-    if (isResultRow(entry) || isMovementRow(entry)) total += entryCents(entry);
+    if (isCurrentRow(entry) && (isResultRow(entry) || isMovementRow(entry))) total += entryCents(entry);
   }
   return total;
 }
