@@ -24,6 +24,17 @@ export const CHART_TYPE_LABELS = {
 };
 export const DEFAULT_CHART_TYPE = 'line';
 
+// The Line Chart x-axis. 'auto' means the player has not chosen and the chart
+// decides from the data (trendAxis.mjs resolveLineAxis); an explicit choice is
+// remembered with the other filters.
+export const LINE_AXES = ['date', 'session'];
+export const LINE_AXIS_LABELS = { date: 'By Date', session: 'By Session' };
+export const DEFAULT_LINE_AXIS = 'auto';
+
+export function sanitizeLineAxis(value) {
+  return LINE_AXES.includes(value) ? value : DEFAULT_LINE_AXIS;
+}
+
 // The gaming categories the dashboard can filter by, in display order.
 export const GAME_TYPES = ['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports'];
 
