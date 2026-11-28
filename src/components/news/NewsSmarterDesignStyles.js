@@ -41,7 +41,18 @@ export default function NewsSmarterDesignStyles() {
                 color: #f2f7ff;
             }
 
-            /* ---------- Image header ---------- */
+            /* ---------- Image header: directly under the global header ----------
+               Dan, 2026-11-27: "THE HEADER IMAGE NEEDS TO BE MOVED UP TO THE TOP OF
+               THE PAGE, (JUST BELOW THE GLOBAL HEADER)". The global header's own
+               clearance block already reserves its height; the page's old 60px
+               "room for the fixed header" padding and the layout's top padding
+               stacked a second gap on top of it. */
+            .news-hub.live-wire.smarterdesign {
+                padding-top: env(safe-area-inset-top, 0px) !important;
+            }
+            .news-hub.live-wire.smarterdesign .layout {
+                padding-top: 8px !important;
+            }
             .news-hub.smarterdesign .news-image-header {
                 margin: 0 0 12px;
             }
@@ -56,38 +67,6 @@ export default function NewsSmarterDesignStyles() {
                 text-transform: none;
                 font-variant-numeric: tabular-nums;
             }
-            .news-hub.smarterdesign .news-desk-kicker .live-pulse {
-                flex: none;
-                width: 8px;
-                height: 8px;
-                margin: 0;
-                border-radius: 50%;
-                background: #ff4d5b;
-                box-shadow: 0 0 8px rgba(255, 77, 91, 0.7);
-            }
-            .news-hub.smarterdesign .news-desk-freshness {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 10px;
-                margin: 8px 0 0;
-                color: #bdd0e2;
-                font: 600 0.82rem/1.2 var(--font-inter, Inter), sans-serif;
-            }
-            .news-hub.smarterdesign .news-desk-freshness button.sd-button {
-                min-height: 44px;
-                padding: 5px 16px;
-                border: 3px solid transparent;
-                border-image: var(--nsd-row);
-                border-radius: 0;
-                background: var(--nsd-control);
-                color: #f2f7ff;
-                font: 700 0.95rem/1.1 var(--nsd-type);
-                letter-spacing: 0.02em;
-                text-transform: none;
-                box-shadow: none;
-            }
-
             /* ---------- Shared chrome controls ---------- */
             .news-hub.smarterdesign :is(
                 .section-tab,

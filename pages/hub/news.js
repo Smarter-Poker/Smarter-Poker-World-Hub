@@ -41,7 +41,6 @@ import { getYouTubeVideoId } from '../../src/lib/socialHelpers';
 import useSWR, { SWRConfig } from 'swr';
 import { originFrom } from '../../src/lib/poker-near-me/seriesSeo.mjs';
 import { swrFallback, catalogueCacheHeaders } from '../../src/lib/seo/swrFallback.mjs';
-import { supabase } from '../../src/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 // confetti loaded lazily on first use
 let _confetti = null;
@@ -238,9 +237,24 @@ export async function getServerSideProps({ req, res }) {
   return { props: { fallback: { ...firstPage, ...sourceBoxes } } };
 }
 
+// REFRESH POLICY (Dan, 2026-11-27): "THIS PAGE SHOULD NOT AUTO REFRESH, IT
+// SHOULD ONLY REFRESH WHEN SOMEONE NAVIGATES TO IT, OR EVERY 15 MINUTES WHEN
+// LEFT 'OPEN'". Every feed on the page loads on arrival and then once every
+// 15 minutes while the tab is visible; returning focus or a reconnect does not
+// reload it, and the old live INSERT subscription (which reloaded the feed on
+// every new article) is gone. The story list itself is refreshed from page 0
+// on the same 15-minute clock (see NEWS_REFRESH_MS in NewsHub).
+const NEWS_REFRESH_MS = 15 * 60 * 1000;
+const NEWS_REFRESH_POLICY = {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    refreshInterval: NEWS_REFRESH_MS,
+    refreshWhenHidden: false,
+};
+
 export default function NewsHubPage({ fallback }) {
   return (
-    <SWRConfig value={{ fallback: fallback || {} }}>
+    <SWRConfig value={{ fallback: fallback || {}, ...NEWS_REFRESH_POLICY }}>
       <NewsHub />
     </SWRConfig>
   );
@@ -869,29 +883,18 @@ function NewsHub() {
     }, [reelViewerOpen]);
 
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // TIER 3 REALTIME: News Updates — revalidate SWR directly on INSERT
-    // ═══════════════════════════════════════════════════════════════════════════
+    // 15-MINUTE REFRESH (Dan, 2026-11-27; replaces the live INSERT subscription).
     // refreshNewsFeed (not the raw SWR mutate): with offset pagination a plain
-    // revalidate would only refresh whichever page is currently in the SWR key, so
-    // an INSERT would never surface while the reader is deep in the feed.
+    // revalidate would only refresh whichever page is currently in the SWR key.
+    // A hidden tab waits; the next tick after it is visible again refreshes it.
     const refreshNewsRef = useRef(null);
     refreshNewsRef.current = refreshNewsFeed;
     useEffect(() => {
-        const newsChannel = supabase
-            .channel(`news-live-${Date.now()}`)
-            .on('postgres_changes', {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'poker_news'
-            }, () => {
-                refreshNewsRef.current?.();
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(newsChannel);
-        };
+        const timer = setInterval(() => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+            refreshNewsRef.current?.();
+        }, NEWS_REFRESH_MS);
+        return () => clearInterval(timer);
     }, []);
 
     // Load preferences and bookmarks from Supabase on mount
@@ -1561,9 +1564,9 @@ function NewsHub() {
                                 className="news-image-header"
                                 parent={(
                                     <span className="news-desk-kicker">
-                                        <span className="live-pulse" aria-hidden="true" />
-                                        Live Intelligence Wire · {filteredNews.length} Stories Moving
+                                        Live Intelligence Wire · {filteredNews.length} Stories
                                         {newArticleCount > 0 ? ` · ${newArticleCount} New` : ''}
+                                        {lastRefreshed && hasMounted ? ` · Updated ${timeAgo(lastRefreshed)}` : ''}
                                     </span>
                                 )}
                                 helpContent={(
@@ -1573,16 +1576,10 @@ function NewsHub() {
                                         <p>Story Signal Counts The Stories Shown. Latest Puts The Newest First; Most Read Ranks Stories By Reader Views.</p>
                                         <p>The Bookmark And Clock On Each Story Save It To Bookmarks Or Read Later. Saved Stories Sync When You Are Signed In.</p>
                                         <p>Events Lists Upcoming Tournaments; Allow Location To Sort Them By Distance. Location Is Used Once And Never Stored.</p>
+                                        <p>The Page Loads The Latest Stories When You Open It, Then Checks Again Every 15 Minutes While It Stays Open.</p>
                                     </>
                                 )}
-                            >
-                                {lastRefreshed && (
-                                    <div className="news-desk-freshness">
-                                        <span>Updated {hasMounted ? timeAgo(lastRefreshed) : ''}</span>
-                                        <button type="button" className="sd-button" onClick={() => refreshNewsFeed()}>Refresh</button>
-                                    </div>
-                                )}
-                            </BankrollImageHeader>
+                            />
 
                             {/* Existing sections, surfaced in the approved Live Wire tab rail. */}
                             <div className="section-tabs" role="tablist" aria-label="News sections">
