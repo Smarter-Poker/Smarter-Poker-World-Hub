@@ -146,3 +146,24 @@ test('Local VS shows the authentic Club Arena 4-color deck, and the range-key di
   assert.doesNotMatch(dialogCss, /Orbitron/);
 });
 
+test('signed-in pass: no leftover gold or violet tokens, chrome SEO block, FAQ in the SmarterDesign faces', () => {
+  // The hue scan of the signed-in views (2026-11-27) found these on My Stats,
+  // Awards, Daily and the level list; each was replaced with ice, cobalt,
+  // orange or the steel control. None may come back.
+  assert.doesNotMatch(
+    MEMORY_CSS,
+    /#(?:f1e4b5|dfb85a|d48a6b|d29658|a97b19|c6b987|b89d57|c9ab5a|f0d98d|f0da99|c4a6ff|ffdc72|d69d21|78500b)\b/i,
+    'memory-games.css carries a retired gold or violet token',
+  );
+  const reference = read('src/components/seo/PreflopReference.js');
+  assert.doesNotMatch(reference, /orbitron/i, 'the charts-in-words headings use the condensed SmarterDesign face');
+  assert.match(reference, /chrome-row\.webp/, 'each reference block sits in the chrome row rim');
+  // The shared FaqSection sets no font family, so on this page it fell back to
+  // the browser serif. The fix is scoped to Preflop Charts in the layer.
+  assert.match(LAYER, /body\.world-preflop-charts\.world-preflop-charts \.faq-section/);
+  assert.match(LAYER, /\.preflop-session-time\s*\{[^}]*text-transform:\s*none/);
+  const stats = read('pages/hub/memory-games/stats.js');
+  assert.doesNotMatch(stats, /LEGACY LOCAL ARCHIVE|LAST 12 LOCAL ARCHIVE RUNS|Recent trend/, 'My Stats copy is Title Case');
+  assert.match(stats, /className="preflop-session-time"/);
+});
+

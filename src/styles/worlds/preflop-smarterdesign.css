@@ -1382,3 +1382,66 @@ body.world-preflop-charts.world-preflop-charts .preflop-lab-actions button.is-se
     color: #fff;
     box-shadow: inset 3px 0 0 var(--action-color);
 }
+
+/* Signed-in pass (2026-11-27): FAQ copy inherited the browser serif because
+   the shared FaqSection sets no family on its question and answer. */
+body.world-preflop-charts.world-preflop-charts .faq-section :is(.faq-question, .faq-answer) {
+    font-family: var(--pcsd-body);
+}
+
+body.world-preflop-charts.world-preflop-charts .faq-section .faq-question {
+    font-family: var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+    font-size: 17px;
+    letter-spacing: 0.01em;
+}
+
+/* Stats archive notice: chrome surface and a chrome button, no gold. */
+body.world-preflop-charts.world-preflop-charts .preflop-daily-signal {
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+    background: var(--pcsd-navy);
+    box-shadow: none;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-daily-signal > svg,
+body.world-preflop-charts.world-preflop-charts .preflop-daily-signal small {
+    color: var(--pcsd-ice);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-daily-signal strong {
+    color: var(--pcsd-text);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-daily-signal span {
+    color: var(--pcsd-silver);
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-daily-signal > a {
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    color: var(--pcsd-text);
+    text-transform: none;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-daily-signal > a:active {
+    filter: brightness(0.88);
+}
+
+/* Focus Stations rows: the level code no longer touches the left rim. */
+body.world-preflop-charts.world-preflop-charts .preflop-weak-signal article {
+    padding: 10px 14px 12px;
+    margin-bottom: 8px;
+}
+
+body.world-preflop-charts.world-preflop-charts .preflop-weak-signal article i {
+    left: 3px;
+    bottom: 3px;
+    max-width: calc(100% - 6px);
+}
+
+/* "40s" must not become "40S" under an inherited capitalize. */
+body.world-preflop-charts.world-preflop-charts .preflop-session-time {
+    text-transform: none;
+}
