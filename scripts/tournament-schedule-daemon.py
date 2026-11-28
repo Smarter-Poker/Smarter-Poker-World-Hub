@@ -1145,8 +1145,9 @@ def sb_patch_exact_row(table: str, row_id: object, patch: dict) -> bool:
 def deactivate_stale_rows(vid, batch_id: str, stale_days: int = 14) -> bool:
     """Mark rows for a venue that this run did NOT re-confirm as inactive.
 
-    Only called for venues that actually returned records, so a fetch failure
-    can never wipe good data. Without this, cancelled tournaments (and rows
+    Only called for venues that actually returned records or whose source
+    explicitly confirmed an empty schedule (persist_confirmed_empty_schedules),
+    so a fetch failure can never wipe good data. Without this, cancelled tournaments (and rows
     minted from a Cloudflare error page) stayed is_active=true forever.
 
     Fetch IDs first and patch small exact-ID groups.  A broad filtered PATCH
@@ -2803,10 +2804,16 @@ def flush_chunk(chunk_results: list, batch_id: str) -> dict:
         if venue_id:
             expected_keys_by_venue.setdefault(venue_id, set()).add(upsert_key(row))
 
+    # Source-confirmed empty schedules are persisted before (and independently
+    # of) the row upsert. See persist_confirmed_empty_schedules.
+    confirmed_empty = persist_confirmed_empty_schedules(chunk_results, batch_id)
+
     if not all_recs:
-        log(f"  [FLUSH] Chunk: 0 records — nothing to upsert")
+        log(f"  [FLUSH] Chunk: 0 records — nothing to upsert"
+            f" ({confirmed_empty} confirmed-empty venues stamped)")
         return {"attempted": 0, "persisted": 0, "rejected": 0,
-                "freshened_venues": 0, "failed_batches": 0}
+                "freshened_venues": 0, "failed_batches": 0,
+                "confirmed_empty_venues": confirmed_empty}
 
     total = 0
     failed_batches = 0
@@ -2859,7 +2866,62 @@ def flush_chunk(chunk_results: list, batch_id: str) -> dict:
         "rejected": max(0, len(all_recs) - total),
         "freshened_venues": len(complete_venue_ids),
         "failed_batches": failed_batches,
+        "confirmed_empty_venues": confirmed_empty,
     }
+
+
+def persist_confirmed_empty_schedules(chunk_results: list, batch_id: str) -> int:
+    """Record that an identity-checked source explicitly lists no tournaments.
+
+    Until 2026-11-28 a ``valid_empty`` venue result was counted for the cycle
+    metric and then dropped: flush_chunk only stamped venues that produced
+    rows. PokerAtlas tells us every day that rooms such as Lodge Austin (venue
+    1828) "do not currently run any poker tournaments", yet the venue kept the
+    timestamp of the last day it had rows (2026-09-06) and the public page kept
+    saying its schedule was "being collected". 222 of 446 venues in the
+    2026-11-27 cycle were in that state.
+
+    A confirmed empty read IS a successful, current read, so it stamps the same
+    freshness columns a populated read does, with ``scrape_status`` set to the
+    existing ``no_tournaments`` value so the page can tell "verified empty"
+    from "never read". ``has_tournaments`` is deliberately left alone: it
+    selects the daily cohort, and a room that lists nothing today must keep
+    being read daily so a new schedule appears the day the source publishes it.
+
+    Only a venue whose every source produced no rows and at least one source
+    owned the empty marker qualifies (scrape_venue resets valid_empty when any
+    source found rows). A fetch failure never sets valid_empty, so a failure
+    still cannot stamp freshness or retire rows.
+    """
+    stamped = 0
+    for vr in chunk_results or []:
+        vid = vr.get("vid")
+        if not vid or vr.get("found") or vr.get("records"):
+            continue
+        if not vr.get("valid_empty"):
+            continue
+        primary_url = vr.get("primary_url") or ""
+        ts = datetime.now(timezone.utc).isoformat()
+        patch = {
+            "schedule_last_scraped_at": ts,
+            "last_scraped_at": ts,
+            "scrape_source": vr.get("source", "") or "",
+            "scrape_status": "no_tournaments",
+        }
+        if primary_url:
+            patch["scrape_url"] = primary_url
+            patch["schedule_scrape_url"] = primary_url
+        if sb_patch_venue(vid, patch):
+            stamped += 1
+            # The source says there is nothing to list, so rows this run did
+            # not re-confirm retire under the same 14-day grace as a populated
+            # venue. Rows from a source that still lists them were re-confirmed
+            # in this batch only if that source found rows, in which case this
+            # branch is not reached.
+            deactivate_stale_rows(vid, batch_id)
+    if stamped:
+        log(f"  [FLUSH] {stamped} venues stamped as source-confirmed empty")
+    return stamped
 
 # ── Load venues ───────────────────────────────────────────────────────────────
 def load_venues(batch_num: int = 0) -> list | None:
