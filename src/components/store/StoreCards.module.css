@@ -41,44 +41,9 @@
   text-shadow: 0 1px 2px #000;
 }
 
-.packageAction {
-  min-height: 48px;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-primary.png')
-    center / 100% 100% no-repeat !important;
-  color: #eefcff !important;
-  font:
-    800 13px var(--font-roboto-condensed),
-    'Roboto Condensed',
-    'Arial Narrow',
-    Arial,
-    sans-serif !important;
-  letter-spacing: 0.025em;
-  text-shadow: 0 1px 2px #000;
-}
-
 .merchCardMedia {
   border-bottom: 1px solid #567386;
   background: #020508 !important;
-}
-
-.productFallback {
-  display: inline-grid;
-  min-width: 150px;
-  min-height: 48px;
-  place-items: center;
-  padding: 9px 20px;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat;
-  color: #b8edf8;
-  font:
-    800 12px var(--font-roboto-condensed),
-    'Roboto Condensed',
-    'Arial Narrow',
-    Arial,
-    sans-serif;
-  letter-spacing: 0.03em;
 }
 
 .vipCard {

@@ -4,6 +4,7 @@ import SmarterConversionCta from '../../../../../src/components/seo/SmarterConve
 import { aggregateVenueCities, fetchPokerVenueLocation, resolveStateSlug, venueLocationCanonical } from '../../../../../src/lib/poker-near-me/locationPages';
 
 import { firstThatFits } from '../../../../../src/lib/seo/titleFit';
+import { VENUE_COUNT_LABEL } from '../../../../../src/lib/venueCount.mjs';
 // AEO phase 3 (2026-09-18): one template with nothing measuring it. The
 // longest live combination, "Poker Rooms in Multiple Locations, North
 // Carolina", rendered at 65 characters once SEOHead appends the brand, so
@@ -82,7 +83,7 @@ export default function PokerStatePage({ state, ...props }) {
             primaryHref={`/auth/signup?redirect=${encodeURIComponent(statePath)}&src=pnm-state`}
             secondaryLabel="Sign In"
             secondaryHref={`/auth/login?redirect=${encodeURIComponent(statePath)}`}
-            highlights={['100% Free Account', '715+ Live Rooms', 'Bankroll Tracker']}
+            highlights={['100% Free Account', `${VENUE_COUNT_LABEL} Poker Rooms`, 'Bankroll Tracker']}
           />
         </div>
       )}

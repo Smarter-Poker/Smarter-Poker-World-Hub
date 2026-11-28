@@ -266,10 +266,12 @@ export default function ScenarioDemoPage() {
             borderBottom: '1px solid rgba(255,255,255,0.06)',
             display: 'flex',
             alignItems: 'center',
+            flexWrap: 'wrap',
             gap: 12,
           }}
         >
           <button
+            type="button"
             onClick={() => router.push('/hub/training')}
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -283,11 +285,13 @@ export default function ScenarioDemoPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
             ←
           </button>
           <button
+            type="button"
             onClick={() => setInfoOpen(true)}
             aria-label="How Strategy Concept Tutorial works"
             style={{
@@ -301,6 +305,8 @@ export default function ScenarioDemoPage() {
               cursor: 'pointer',
               letterSpacing: 0.4,
               textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             How It Works

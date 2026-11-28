@@ -615,7 +615,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                     fontWeight: 700,
                     cursor: 'pointer',
                     border: 'none',
-                    background: 'rgba(168,85,247,0.1)',
+                    background: 'rgba(86,216,255,0.1)',
                     color: '#86daff',
                     transition: 'all 0.15s',
                   }}
@@ -904,7 +904,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                 borderRadius: 10,
                 border: 'none',
                 background: loading
-                  ? 'rgba(168,85,247,0.3)'
+                  ? 'rgba(86,216,255,0.28)'
                   : 'linear-gradient(135deg, #17447a, #1469bb)',
                 color: '#fff',
                 fontSize: 13,

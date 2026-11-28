@@ -910,7 +910,7 @@ export default function TriviaGame({
 
                 {/* Question Text */}
                 <h2 className="question-text">
-                    <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} />
+                    <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} structured />
                 </h2>
 
                 {/* Answer Options: the shared console answer control, so every

@@ -1,6 +1,6 @@
 /**
  * DAILY TOURNAMENTS - Find poker tournaments happening today
- * Live data from venue_daily_tournaments — 324+ venues, 4,500+ records
+ * Live data from venue_daily_tournaments — VENUE_COUNT_LABEL venues, 4,500+ records
  */
 
 import SEOHead, { normalizeJsonLdGraph } from '../../src/components/seo/SEOHead';
@@ -26,11 +26,12 @@ import { buildDailyTournamentSchema, serializePokerJsonLd } from '../../src/lib/
 import { datasetSchema, faqSchema, breadcrumbSchema } from '../../src/lib/seo/hubPageSchema';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const DAILY_TOURNAMENTS_FAQS = [
     {
         question: 'How Many Daily Poker Tournaments Are Tracked On Smarter.Poker?',
-        answer: 'Smarter.Poker Tracks Over 4,500 Recurring Weekly Live Poker Tournaments Across 324+ Verified Casino Poker Rooms And Licensed Cardrooms In North America.',
+        answer: `Smarter.Poker Tracks Over 4,500 Recurring Weekly Live Poker Tournaments Across ${VENUE_COUNT_LABEL} Verified Casino Poker Rooms And Licensed Cardrooms In North America.`,
     },
     {
         question: 'Can I Filter Daily Poker Tournaments By Day Of Week And Buy-In?',
@@ -426,7 +427,7 @@ export default function DailyTournaments() {
                         datasetSchema({
                             path: '/hub/daily-tournaments',
                             name: 'Smarter.Poker Daily Live Poker Tournaments Directory Dataset',
-                            description: 'Recurring Weekly Live Poker Tournament Schedules Across 324+ North American Cardrooms Including Buy-Ins, Starting Stacks, Blind Levels, And Guarantees.',
+                            description: `Recurring Weekly Live Poker Tournament Schedules Across ${VENUE_COUNT_LABEL} North American Cardrooms Including Buy-Ins, Starting Stacks, Blind Levels, And Guarantees.`,
                             keywords: ['Daily Poker Tournaments', 'Live Poker Schedules', 'Casino Poker Tournaments', 'Guaranteed Poker Prize Pools'],
                             variableMeasured: ['Tournament Buy-In', 'Guaranteed Prize Pool', 'Starting Chip Stack', 'Blind Level Duration'],
                         }),

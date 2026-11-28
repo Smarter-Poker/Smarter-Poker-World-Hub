@@ -107,9 +107,9 @@ const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalH
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import { VIPCard } from '../../src/components/store/StoreCards';
-import { VipMasthead, VipPricePlate, vipIntroPlateProps, VipPhoneOfferGate } from '../../src/components/vip/VipKit';
+import { VipMasthead, VipPricePlate, vipIntroPlateProps, VipPhoneOfferGate, VipSeal } from '../../src/components/vip/VipKit';
 import { VIP_INTRO_VERIFY_REASON } from '../../src/lib/store/vipIntroPrompt.mjs';
-import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
+import SmarterStoreShowcase, { SECTION_HEADERS } from '../../src/components/diamond-store/SmarterStoreShowcase';
 import CheckoutStatusPanel from '../../src/components/diamond-store/CheckoutStatusPanel';
 import MarketplaceCommerceNav from '../../src/components/store/MarketplaceCommerceNav';
 import {
@@ -159,6 +159,53 @@ import {
 } from '../../src/data/diamondStoreData';
 import styles from '../../src/components/diamond-store/diamondStoreStyles';
 import { readOwnProfile } from '../../src/lib/ownProfile';
+
+// #SMARTERDESIGN materials for inline style objects. Gradients go on
+// backgroundImage (longhand) so they override the shared painted plates in
+// place, and `border` always precedes `borderImage` (the shorthand resets it).
+const SD_NAVY = 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)';
+const SD_CARD_NAVY = 'linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%)';
+const SD_TEXT = '#f2f7ff';
+const SD_SILVER = '#bdd0e2';
+const SD_ICE = '#86daff';
+const SD_CYAN = '#67e8f9';
+const SD_PANEL = {
+  border: '5px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+  borderRadius: 0,
+  backgroundColor: '#0b1c2c',
+  backgroundImage: SD_NAVY,
+  boxShadow: 'none',
+  clipPath: 'none',
+};
+const SD_CARD = { ...SD_PANEL, backgroundImage: SD_CARD_NAVY };
+const SD_STAT = {
+  border: '3px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch",
+  borderRadius: 0,
+  backgroundColor: '#0b1c2c',
+  backgroundImage: SD_NAVY,
+  boxShadow: 'none',
+  clipPath: 'none',
+};
+const SD_CONTROL = {
+  border: '3px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
+  borderRadius: 0,
+  backgroundColor: '#112338',
+  backgroundImage: 'linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c)',
+  boxShadow: 'none',
+  clipPath: 'none',
+  color: SD_TEXT,
+  minHeight: 44,
+};
+const SD_ACTIVE = {
+  ...SD_CONTROL,
+  borderImage: "url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch",
+  backgroundColor: '#0c55c0',
+  backgroundImage: 'linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba)',
+  color: '#fff',
+};
 
 // VIPCard is shared with the store card library.
 // A cold serverless Club Shop request can exceed five seconds even though the
@@ -667,10 +714,10 @@ function SignedOutClubShopPreview() {
   return (
     <section className={shellStyles.clubShopSurface} aria-labelledby="club-shop-preview-title">
       <div style={{ textAlign: 'center', marginBottom: 22 }}>
-        <h3 id="club-shop-preview-title" style={{ color: '#EEF6FB', fontSize: 20, margin: 0 }}>
+        <h3 id="club-shop-preview-title" style={{ color: SD_TEXT, fontSize: 20, margin: 0 }}>
           Preview Club Equipment
         </h3>
-        <p style={{ color: 'rgba(233, 243, 250, 0.72)', fontSize: 13, lineHeight: 1.55 }}>
+        <p style={{ color: SD_SILVER, fontSize: 13, lineHeight: 1.55 }}>
           Sign In To Load The Live Club Catalog, Member Pricing, Ownership, And Purchase Controls.
         </p>
       </div>
@@ -699,8 +746,8 @@ function SignedOutClubShopPreview() {
                 <span className={shellStyles.clubItemCategory}>{item.category}</span>
               </div>
               <div className={shellStyles.clubItemBody} style={{ padding: 14 }}>
-                <h4 style={{ color: '#EEF6FB', fontSize: 15, margin: '0 0 6px' }}>{item.name}</h4>
-                <p style={{ color: 'rgba(233, 243, 250, 0.78)', fontSize: 13, lineHeight: 1.45 }}>
+                <h4 style={{ color: SD_TEXT, fontSize: 15, margin: '0 0 6px' }}>{item.name}</h4>
+                <p style={{ color: SD_SILVER, fontSize: 13, lineHeight: 1.45 }}>
                   {item.description}
                 </p>
                 <div className={shellStyles.cardEquivalent}>Club Pricing Appears After Sign In</div>
@@ -714,11 +761,12 @@ function SignedOutClubShopPreview() {
           href="/auth/login?redirect=%2Fhub%2Fclub-shop"
           className={shellStyles.dialogPrimaryAction}
           style={{
+            ...SD_ACTIVE,
             display: 'inline-flex',
             minHeight: 44,
             alignItems: 'center',
             padding: '10px 22px',
-            color: '#061018',
+            color: '#fff',
             fontSize: 13,
             fontWeight: 800,
             textDecoration: 'none',
@@ -3519,6 +3567,7 @@ export default function DiamondStorePage({
 
   const lifetimeSelected = selectedVIPPlan?.interval === 'lifetime';
   const selectedVipIntro = selectedVIPPlan?.interval === 'month' && vipIntro.display;
+  const rewardsVipIntroState = vipIntro.display ? 'intro' : vipIntro.reason === VIP_INTRO_VERIFY_REASON ? 'verify' : 'regular';
   const selectedVipHasExactRecovery =
     vipDiamondRecovery.status === 'recoverable' &&
     vipDiamondRecovery.planKey === vipDiamondPlanKey(selectedVIPPlan);
@@ -3622,11 +3671,7 @@ export default function DiamondStorePage({
         <link
           rel="preload"
           as="image"
-          href={
-            activeTab === 'diamonds'
-              ? '/images/store-v3/diamond-vault-hero.webp'
-              : TAB_SOCIAL_IMAGE[activeTab]
-          }
+          href={`/images/smarterdesign/headers/${SECTION_HEADERS[activeTab].art}-scene.webp`}
           type="image/webp"
           fetchPriority="high"
         />
@@ -3670,7 +3715,7 @@ export default function DiamondStorePage({
           <UniversalHeader pageDepth={1} />
 
           <main
-            className={`store-redesign-content ${shellStyles.root} ${activeTab === 'vip' ? vipStyles.page : ''}`}
+            className={`store-redesign-content ${shellStyles.root} smarterdesign ${activeTab === 'vip' ? vipStyles.page : ''}`}
             data-marketplace-route={TAB_ROUTES[activeTab]}
             data-title-case-strategy="css"
           >
@@ -3841,7 +3886,7 @@ export default function DiamondStorePage({
                       style={{
                         position: 'fixed',
                         inset: 0,
-                        background: 'rgba(0,0,0,0.72)',
+                        background: 'rgba(4, 13, 24, 0.82)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -3859,9 +3904,7 @@ export default function DiamondStorePage({
                         onClick={(e) => e.stopPropagation()}
                         className={`${shellStyles.dialogPanel} ${vipStyles.spendDialog}`}
                         style={{
-                          background: '#16181C',
-                          border: '1px solid #456778',
-                          borderRadius: 16,
+                          ...SD_PANEL,
                           padding: '22px 20px',
                           maxWidth: 420,
                           width: '100%',
@@ -3869,7 +3912,7 @@ export default function DiamondStorePage({
                       >
                         <h4
                           id="vip-spend-dialog-title"
-                          style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#eef8ff' }}
+                          style={{ margin: 0, fontSize: 17, fontWeight: 700, color: SD_TEXT }}
                         >
                           {marketplaceCopy(pendingSpend.title)}
                         </h4>
@@ -3879,7 +3922,7 @@ export default function DiamondStorePage({
                             margin: '10px 0 0',
                             fontSize: 14,
                             lineHeight: 1.6,
-                            color: '#B0B3B8',
+                            color: SD_SILVER,
                           }}
                         >
                           {marketplaceCopy(pendingSpend.detail)}
@@ -3892,7 +3935,8 @@ export default function DiamondStorePage({
                             gap: 8,
                             fontSize: 20,
                             fontWeight: 700,
-                            color: '#00D4FF',
+                            color: SD_CYAN,
+                            fontVariantNumeric: 'tabular-nums',
                           }}
                         >
                           {Number(pendingSpend.cost).toLocaleString()} Diamonds
@@ -3905,6 +3949,7 @@ export default function DiamondStorePage({
                             onClick={() => setPendingSpend(null)}
                             style={{
                               ...styles.paintedSecondaryAction,
+                              ...SD_CONTROL,
                               flex: 1,
                               padding: '11px 0',
                               fontSize: 15,
@@ -3934,6 +3979,7 @@ export default function DiamondStorePage({
                             }}
                             style={{
                               ...styles.paintedPrimaryAction,
+                              ...SD_ACTIVE,
                               flex: 1,
                               padding: '11px 0',
                               fontSize: 15,
@@ -4023,6 +4069,7 @@ export default function DiamondStorePage({
                     className={shellStyles.rewardsBoostLayout}
                     style={{
                       ...styles.rewardStatusFrame,
+                      ...SD_PANEL,
                       margin: '12px 0 0',
                       padding: '14px 16px',
                     }}
@@ -4048,7 +4095,7 @@ export default function DiamondStorePage({
                             style={{
                               fontSize: 14,
                               fontWeight: 700,
-                              color: diamondMultiplier > 1.0 ? '#f59e0b' : '#83c9e2',
+                              color: diamondMultiplier > 1.0 ? SD_CYAN : SD_ICE,
                             }}
                           >
                             {diamondMultiplier > 1.0
@@ -4056,7 +4103,7 @@ export default function DiamondStorePage({
                               : 'Activate Your Diamond Boost'}
                           </div>
                           <div
-                            style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}
+                            style={{ fontSize: 12, color: SD_SILVER, marginTop: 2 }}
                           >
                             {diamondMultiplier > 1.0
                               ? `Every diamond you earn is multiplied ${diamondMultiplier.toFixed(2)}× by your share streak`
@@ -4069,19 +4116,18 @@ export default function DiamondStorePage({
                         style={{ textAlign: 'right', flexShrink: 0 }}
                       >
                         {[
-                          { label: 'Streak 3d', mult: '1.2×', color: '#60a5fa' },
-                          { label: 'Expert 7d', mult: '1.5×', color: '#00d4ff' },
-                          { label: 'Master 14d', mult: '1.75×', color: '#83c9e2' },
-                          { label: 'Legend 30d', mult: '2.0×', color: '#f59e0b' },
+                          { label: 'Streak 3d', mult: '1.2×', color: SD_SILVER },
+                          { label: 'Expert 7d', mult: '1.5×', color: SD_ICE },
+                          { label: 'Master 14d', mult: '1.75×', color: SD_CYAN },
+                          { label: 'Legend 30d', mult: '2.0×', color: SD_TEXT },
                         ].map((tier) => (
                           <span
                             key={tier.label}
                             style={{
                               ...styles.rewardMultiplierPlate,
-                              ...(tier.label === 'Legend 30d'
-                                ? styles.rewardMultiplierPlateGold
-                                : {}),
+                              ...SD_STAT,
                               color: tier.color,
+                              fontVariantNumeric: 'tabular-nums',
                             }}
                           >
                             {tier.label} {tier.mult}
@@ -4109,6 +4155,7 @@ export default function DiamondStorePage({
                       style={{
                         ...styles.rewardsSubTab,
                         ...(rewardsSubTab === 'overview' ? styles.rewardsSubTabActive : {}),
+                        ...(rewardsSubTab === 'overview' ? SD_ACTIVE : SD_CONTROL),
                       }}
                     >
                       Overview
@@ -4125,6 +4172,7 @@ export default function DiamondStorePage({
                       style={{
                         ...styles.rewardsSubTab,
                         ...(rewardsSubTab === 'diamonds' ? styles.rewardsSubTabActive : {}),
+                        ...(rewardsSubTab === 'diamonds' ? SD_ACTIVE : SD_CONTROL),
                       }}
                     >
                       Diamond Rewards
@@ -4142,6 +4190,7 @@ export default function DiamondStorePage({
                       style={{
                         ...styles.rewardsSubTab,
                         ...(rewardsSubTab === 'eggs' ? styles.rewardsSubTabActive : {}),
+                        ...(rewardsSubTab === 'eggs' ? SD_ACTIVE : SD_CONTROL),
                       }}
                     >
                       Easter Eggs
@@ -4158,7 +4207,6 @@ export default function DiamondStorePage({
                       className={shellStyles.subPanel}
                       style={styles.rewardsOverview}
                     >
-                      <h2 style={styles.earnTitle}>Smarter Rewards</h2>
                       <p style={styles.introText}>
                         Welcome To The Smarter Rewards System! Earn Diamonds By Playing, Training,
                         And Engaging With The Community.
@@ -4170,7 +4218,7 @@ export default function DiamondStorePage({
                           <p style={styles.overviewCardText}>
                             Earn Diamonds Through Daily Logins, Training, Social Engagement, And
                             Referrals.
-                            <strong style={{ color: '#00d4ff' }}>
+                            <strong style={{ color: SD_CYAN }}>
                               {' '}
                               Daily Cap: {DAILY_CAP.free} Diamonds ({DAILY_CAP.vip} VIP)
                             </strong>{' '}
@@ -4182,77 +4230,47 @@ export default function DiamondStorePage({
 
                         <div className={shellStyles.casinoDataCard} style={styles.overviewCard}>
                           <h3 style={styles.overviewCardTitle}>VIP Membership</h3>
-                          <div style={{ marginTop: 12, marginBottom: 12 }}>
-                            <img
-                              src="/images/vip-card.webp"
-                              width={1024}
-                              height={1024}
-                              alt="VIP Membership Card"
-                              style={{
-                                width: '100%',
-                                maxWidth: 320,
-                                borderRadius: 12,
-                                boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-                              }}
-                              draggable={false}
-                              loading="lazy"
-                            />
+                          {/* The VIP kit seal in its circular chrome frame, and the
+                              prices this account would pay, read from the same intro
+                              eligibility and plan data the VIP Membership page uses. */}
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'center',
+                              margin: '12px 0',
+                              '--vk-seal': 'clamp(88px, 24vw, 128px)',
+                            }}
+                          >
+                            <VipSeal />
                           </div>
-                          <div style={styles.vipPriceDeck}>
-                            <div
-                              style={{
-                                ...styles.vipPricePlate,
-                                ...styles.vipPricePlateGold,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  fontSize: 20,
-                                  fontWeight: 800,
-                                  color: '#FFD700',
-                                  fontFamily:
-                                    "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
-                                }}
-                              >
-                                $20
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: 12,
-                                  color: 'rgba(255,255,255,0.6)',
-                                  marginTop: 2,
-                                }}
-                              >
-                                Per Month
-                              </div>
-                            </div>
-                            <div style={styles.vipPricePlate}>
-                              <div
-                                style={{
-                                  fontSize: 20,
-                                  fontWeight: 800,
-                                  color: '#00D4FF',
-                                  fontFamily:
-                                    "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
-                                }}
-                              >
-                                $200
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: 12,
-                                  color: 'rgba(255,255,255,0.6)',
-                                  marginTop: 2,
-                                }}
-                              >
-                                Per Year (Save $40!)
-                              </div>
-                            </div>
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                              gap: 10,
+                              marginTop: 10,
+                            }}
+                          >
+                            <VipPricePlate
+                              compact
+                              {...vipIntroPlateProps(rewardsVipIntroState)}
+                              state={rewardsVipIntroState}
+                            />
+                            <VipPricePlate
+                              compact
+                              amount={`$${formatStoreUsd(VIP_MEMBERSHIP.yearly.price)}`}
+                              unit="/Year"
+                              note={
+                                VIP_MEMBERSHIP.yearly.savings > 0
+                                  ? `Save $${formatStoreUsd(VIP_MEMBERSHIP.yearly.savings)} A Year Compared With Monthly.`
+                                  : 'Renews Every Year. Cancel Anytime.'
+                              }
+                            />
                           </div>
                           <a
                             href={TAB_ROUTES.vip}
                             aria-label="View VIP Plans"
-                            style={styles.vipPlanAction}
+                            style={{ ...styles.vipPlanAction, ...SD_ACTIVE, marginTop: 12 }}
                           >
                             View VIP Plans
                           </a>
@@ -4331,7 +4349,7 @@ export default function DiamondStorePage({
                             <span style={styles.multiplierLabel}>Share Streak 7d</span>
                           </div>
                           <div style={styles.multiplierItem}>
-                            <span style={styles.multiplierValueGold}>2.0x</span>
+                            <span style={styles.multiplierValue}>2.0x</span>
                             <span style={styles.multiplierLabel}>Share Streak 30d</span>
                           </div>
                         </div>
@@ -4419,6 +4437,8 @@ export default function DiamondStorePage({
                                   ...styles[
                                     `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
                                   ],
+                                  ...SD_STAT,
+                                  ...(egg.rarity === 'legendary' ? { color: SD_TEXT } : {}),
                                 }}
                               >
                                 {marketplaceCopy(egg.rarity)}
@@ -4454,6 +4474,8 @@ export default function DiamondStorePage({
                                   ...styles[
                                     `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
                                   ],
+                                  ...SD_STAT,
+                                  ...(egg.rarity === 'legendary' ? { color: SD_TEXT } : {}),
                                 }}
                               >
                                 {marketplaceCopy(egg.rarity)}
@@ -4489,6 +4511,8 @@ export default function DiamondStorePage({
                                   ...styles[
                                     `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
                                   ],
+                                  ...SD_STAT,
+                                  ...(egg.rarity === 'legendary' ? { color: SD_TEXT } : {}),
                                 }}
                               >
                                 {marketplaceCopy(egg.rarity)}
@@ -4524,6 +4548,8 @@ export default function DiamondStorePage({
                                   ...styles[
                                     `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
                                   ],
+                                  ...SD_STAT,
+                                  ...(egg.rarity === 'legendary' ? { color: SD_TEXT } : {}),
                                 }}
                               >
                                 {marketplaceCopy(egg.rarity)}
@@ -4559,6 +4585,8 @@ export default function DiamondStorePage({
                                   ...styles[
                                     `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
                                   ],
+                                  ...SD_STAT,
+                                  ...(egg.rarity === 'legendary' ? { color: SD_TEXT } : {}),
                                 }}
                               >
                                 {marketplaceCopy(egg.rarity)}
@@ -4594,6 +4622,8 @@ export default function DiamondStorePage({
                                   ...styles[
                                     `rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`
                                   ],
+                                  ...SD_STAT,
+                                  ...(egg.rarity === 'legendary' ? { color: SD_TEXT } : {}),
                                 }}
                               >
                                 {marketplaceCopy(egg.rarity)}
@@ -4632,7 +4662,7 @@ export default function DiamondStorePage({
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        background: 'rgba(0,0,0,0.7)',
+                        background: 'rgba(4, 13, 24, 0.82)',
                         backdropFilter: 'blur(6px)',
                         display: 'flex',
                         alignItems: 'center',
@@ -4650,18 +4680,15 @@ export default function DiamondStorePage({
                         onClick={(e) => e.stopPropagation()}
                         className={shellStyles.dialogPanel}
                         style={{
-                          background: '#1a1a2e',
-                          border: '1px solid rgba(255,255,255,0.15)',
-                          borderRadius: 16,
+                          ...SD_PANEL,
                           padding: 28,
                           maxWidth: 420,
                           width: '90%',
-                          boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
                         }}
                       >
                         <h3
                           id="club-shop-dialog-title"
-                          style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 16 }}
+                          style={{ fontSize: 20, fontWeight: 700, color: SD_TEXT, marginBottom: 16 }}
                         >
                           {clubShopBuyTarget.purchaseWasResumed
                             ? 'Verify Purchase'
@@ -4689,12 +4716,12 @@ export default function DiamondStorePage({
                             )}
                           </div>
                           <div>
-                            <div style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB' }}>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: SD_TEXT }}>
                               {marketplaceCopy(clubShopBuyTarget.name)}
                             </div>
                             <div
                               id="club-shop-dialog-description"
-                              style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}
+                              style={{ fontSize: 13, color: SD_SILVER }}
                             >
                               {marketplaceCopy(clubShopBuyTarget.description || '')}
                             </div>
@@ -4704,6 +4731,7 @@ export default function DiamondStorePage({
                           <div
                             className={shellStyles.dialogMetric}
                             style={{
+                              ...SD_STAT,
                               flex: 1,
                               padding: '12px 16px',
                               textAlign: 'center',
@@ -4713,7 +4741,7 @@ export default function DiamondStorePage({
                               style={{
                                 fontSize: 12,
                                 fontWeight: 600,
-                                color: 'rgba(255,255,255,0.4)',
+                                color: SD_SILVER,
                                 textTransform: 'capitalize',
                                 letterSpacing: 1,
                               }}
@@ -4724,8 +4752,9 @@ export default function DiamondStorePage({
                               style={{
                                 fontSize: 20,
                                 fontWeight: 700,
-                                color: '#ff6b6b',
+                                color: SD_TEXT,
                                 marginTop: 4,
+                                fontVariantNumeric: 'tabular-nums',
                               }}
                             >
                               {clubShopBuyTarget.price.toLocaleString()}
@@ -4734,6 +4763,7 @@ export default function DiamondStorePage({
                           <div
                             className={shellStyles.dialogMetric}
                             style={{
+                              ...SD_STAT,
                               flex: 1,
                               padding: '12px 16px',
                               textAlign: 'center',
@@ -4743,7 +4773,7 @@ export default function DiamondStorePage({
                               style={{
                                 fontSize: 12,
                                 fontWeight: 600,
-                                color: 'rgba(255,255,255,0.4)',
+                                color: SD_SILVER,
                                 textTransform: 'capitalize',
                                 letterSpacing: 1,
                               }}
@@ -4754,8 +4784,9 @@ export default function DiamondStorePage({
                               style={{
                                 fontSize: 20,
                                 fontWeight: 700,
-                                color: '#00d4ff',
+                                color: SD_CYAN,
                                 marginTop: 4,
+                                fontVariantNumeric: 'tabular-nums',
                               }}
                             >
                               {visibleClubDiamondBalance === null
@@ -4768,7 +4799,7 @@ export default function DiamondStorePage({
                           <div
                             role="status"
                             style={{
-                              color: '#8CDFFF',
+                              color: SD_ICE,
                               fontSize: 13,
                               fontWeight: 600,
                               marginBottom: 12,
@@ -4804,6 +4835,7 @@ export default function DiamondStorePage({
                             onClick={() => setClubShopBuyTarget(null)}
                             disabled={clubShopProcessing}
                             style={{
+                              ...SD_CONTROL,
                               flex: 1,
                               padding: '12px',
                               fontSize: 14,
@@ -4823,6 +4855,7 @@ export default function DiamondStorePage({
                                 visibleClubDiamondBalance < clubShopBuyTarget.price)
                             }
                             style={{
+                              ...SD_ACTIVE,
                               flex: 1,
                               padding: '12px',
                               fontSize: 14,
@@ -4844,15 +4877,9 @@ export default function DiamondStorePage({
                   )}
 
                   <div style={styles.intro}>
-                    <h2
-                      style={{
-                        ...styles.merchTitle,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                      }}
-                    >
-                      Club Shop
+                    {/* The Club Shop title lives in the image header above; this
+                        row keeps only the live balance readout. */}
+                    <p style={{ margin: '0 0 8px', display: 'flex', justifyContent: 'center' }}>
                       <span style={styles.clubBalanceStatus}>
                         {visibleClubDiamondBalance !== null
                           ? `${visibleClubDiamondBalance.toLocaleString()} Diamonds`
@@ -4862,7 +4889,7 @@ export default function DiamondStorePage({
                               ? 'Balance Unavailable'
                               : 'Sign In To View Balance'}
                       </span>
-                    </h2>
+                    </p>
                     <p style={styles.introText}>
                       Purchase Verified In-Game Access For Your Club With Diamonds: Time Banks And
                       The Platform All Throwables Pack.
@@ -4873,7 +4900,7 @@ export default function DiamondStorePage({
                     <div
                       role="status"
                       aria-live="polite"
-                      style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
+                      style={{ ...SD_PANEL, textAlign: 'center', padding: 40, color: SD_SILVER }}
                     >
                       <ClubShopLoadingText />
                     </div>
@@ -4883,17 +4910,18 @@ export default function DiamondStorePage({
                     <div
                       role="alert"
                       style={{
+                        ...SD_PANEL,
                         display: 'grid',
                         justifyItems: 'center',
                         gap: 14,
                         padding: 40,
-                        color: '#FF5B6E',
+                        color: '#ff6b6b',
                         textAlign: 'center',
                       }}
                     >
                       <div>{marketplaceCopy(clubShopError)}</div>
                       {clubShopAccessRefused ? (
-                        <Link href="/hub/club-shop" style={styles.paintedSecondaryAction}>
+                        <Link href="/hub/club-shop" style={{ ...styles.paintedSecondaryAction, ...SD_CONTROL }}>
                           Open My Club Shop
                         </Link>
                       ) : (
@@ -4903,6 +4931,7 @@ export default function DiamondStorePage({
                           disabled={clubShopLoading}
                           style={{
                             ...styles.paintedSecondaryAction,
+                            ...SD_CONTROL,
                             minHeight: 44,
                             padding: '10px 22px',
                             fontWeight: 700,
@@ -4917,19 +4946,19 @@ export default function DiamondStorePage({
                     <div
                       role="status"
                       aria-live="polite"
-                      style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
+                      style={{ ...SD_PANEL, textAlign: 'center', padding: 40, color: SD_SILVER }}
                     >
                       <ClubShopLoadingText />
                     </div>
                   ) : !clubShopClubId ? (
                     clubShopLoaded ? (
-                      <div style={{ textAlign: 'center', padding: 40 }}>
+                      <div style={{ ...SD_PANEL, textAlign: 'center', padding: 40 }}>
                         <div
-                          style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}
+                          style={{ fontSize: 16, color: SD_TEXT, fontWeight: 600 }}
                         >
                           No Club Found
                         </div>
-                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>
+                        <p style={{ fontSize: 13, color: SD_SILVER, marginTop: 8 }}>
                           Join A Club To Access The Club Shop.
                         </p>
                       </div>
@@ -4937,7 +4966,7 @@ export default function DiamondStorePage({
                       <div
                         role="status"
                         aria-live="polite"
-                        style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
+                        style={{ textAlign: 'center', padding: 40, color: SD_SILVER }}
                       >
                         <ClubShopLoadingText />
                       </div>
@@ -4946,7 +4975,7 @@ export default function DiamondStorePage({
                     <div
                       role="status"
                       aria-live="polite"
-                      style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
+                      style={{ textAlign: 'center', padding: 40, color: SD_SILVER }}
                     >
                       <ClubShopLoadingText />
                     </div>
@@ -4978,18 +5007,8 @@ export default function DiamondStorePage({
                               if (st.key === 'manage' && !clubShopAdminLoaded) loadClubShopAdmin();
                             }}
                             style={{
+                              ...(clubShopSubTab === st.key ? SD_ACTIVE : SD_CONTROL),
                               padding: '8px 20px',
-                              background:
-                                clubShopSubTab === st.key
-                                  ? 'rgba(0,180,255,0.15)'
-                                  : 'rgba(255,255,255,0.05)',
-                              border:
-                                clubShopSubTab === st.key
-                                  ? '1px solid rgba(0,180,255,0.4)'
-                                  : '1px solid rgba(255,255,255,0.1)',
-                              borderRadius: 10,
-                              color:
-                                clubShopSubTab === st.key ? '#00D4FF' : 'rgba(255,255,255,0.5)',
                               fontSize: 13,
                               fontWeight: 600,
                               cursor: 'pointer',
@@ -5047,22 +5066,11 @@ export default function DiamondStorePage({
                                 aria-pressed={clubShopCategory === cat}
                                 onClick={() => setClubShopCategory(cat)}
                                 style={{
+                                  ...(clubShopCategory === cat ? SD_ACTIVE : SD_CONTROL),
                                   padding: '6px 14px',
-                                  borderRadius: 20,
                                   fontSize: 12,
                                   fontWeight: 600,
                                   cursor: 'pointer',
-                                  background:
-                                    clubShopCategory === cat
-                                      ? 'rgba(0,180,255,0.2)'
-                                      : 'rgba(255,255,255,0.05)',
-                                  border:
-                                    clubShopCategory === cat
-                                      ? '1px solid #00B4FF'
-                                      : '1px solid rgba(255,255,255,0.1)',
-                                  color:
-                                    clubShopCategory === cat ? '#00D4FF' : 'rgba(255,255,255,0.5)',
-                                  transition: 'all 0.2s ease',
                                 }}
                               >
                                 {cat}
@@ -5086,12 +5094,8 @@ export default function DiamondStorePage({
                               style={{
                                 flex: 1,
                                 padding: '10px 16px',
-                                borderRadius: 10,
-                                background: 'rgba(255,255,255,0.05)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                color: '#E4E6EB',
+                                ...SD_CONTROL,
                                 fontSize: 14,
-                                outline: 'none',
                                 boxSizing: 'border-box',
                               }}
                             />
@@ -5101,12 +5105,8 @@ export default function DiamondStorePage({
                               onChange={(e) => setClubShopSortMode(e.target.value)}
                               style={{
                                 padding: '10px 14px',
-                                borderRadius: 10,
-                                background: 'rgba(255,255,255,0.05)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                color: '#E4E6EB',
+                                ...SD_CONTROL,
                                 fontSize: 13,
-                                outline: 'none',
                                 cursor: 'pointer',
                               }}
                             >
@@ -5158,7 +5158,7 @@ export default function DiamondStorePage({
                                   <div
                                     style={{
                                       fontSize: 14,
-                                      color: 'rgba(255,255,255,0.5)',
+                                      color: SD_SILVER,
                                       fontWeight: 600,
                                     }}
                                   >
@@ -5264,7 +5264,7 @@ export default function DiamondStorePage({
                                           style={{
                                             fontSize: 15,
                                             fontWeight: 700,
-                                            color: '#EEF6FB',
+                                            color: SD_TEXT,
                                             marginBottom: 4,
                                           }}
                                         >
@@ -5273,7 +5273,7 @@ export default function DiamondStorePage({
                                         <div
                                           style={{
                                             fontSize: 13,
-                                            color: 'rgba(233, 243, 250, 0.78)',
+                                            color: SD_SILVER,
                                             marginBottom: 10,
                                             lineHeight: 1.45,
                                           }}
@@ -5286,7 +5286,7 @@ export default function DiamondStorePage({
                                             display: 'inline-flex',
                                             minHeight: 44,
                                             alignItems: 'center',
-                                            color: '#70DFFF',
+                                            color: SD_ICE,
                                             fontSize: 12,
                                             fontWeight: 700,
                                             textDecoration: 'none',
@@ -5307,7 +5307,8 @@ export default function DiamondStorePage({
                                               style={{
                                                 fontSize: 16,
                                                 fontWeight: 700,
-                                                color: '#FFD700',
+                                                color: SD_CYAN,
+                                                fontVariantNumeric: 'tabular-nums',
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
                                                 gap: 4,
@@ -5319,7 +5320,7 @@ export default function DiamondStorePage({
                                               <span
                                                 style={{
                                                   display: 'block',
-                                                  color: '#AABAC2',
+                                                  color: SD_SILVER,
                                                   fontSize: 12,
                                                   textDecoration: 'line-through',
                                                 }}
@@ -5342,7 +5343,7 @@ export default function DiamondStorePage({
                                               <div
                                                 style={{
                                                   fontSize: 12,
-                                                  color: 'rgba(233, 243, 250, 0.6)',
+                                                  color: SD_SILVER,
                                                   marginTop: 2,
                                                 }}
                                               >
@@ -5361,7 +5362,7 @@ export default function DiamondStorePage({
                                                 style={{
                                                   fontSize: 12,
                                                   fontWeight: 700,
-                                                  color: '#58BFE9',
+                                                  color: SD_ICE,
                                                   marginTop: 2,
                                                 }}
                                               >
@@ -5415,8 +5416,8 @@ export default function DiamondStorePage({
                                             style={{
                                               marginTop: 10,
                                               color: hasExactDiamondRecovery
-                                                ? '#8CDFFF'
-                                                : '#FFD18C',
+                                                ? SD_ICE
+                                                : '#ff6b6b',
                                               fontSize: 12,
                                               lineHeight: 1.45,
                                             }}
@@ -5442,7 +5443,7 @@ export default function DiamondStorePage({
                               <div
                                 style={{
                                   fontSize: 14,
-                                  color: 'rgba(255,255,255,0.5)',
+                                  color: SD_SILVER,
                                   fontWeight: 600,
                                 }}
                               >
@@ -5452,6 +5453,7 @@ export default function DiamondStorePage({
                                 onClick={() => selectClubShopSubTab('store')}
                                 style={{
                                   ...styles.paintedPrimaryAction,
+                                  ...SD_ACTIVE,
                                   marginTop: 12,
                                   padding: '10px 24px',
                                   fontSize: 14,
@@ -5471,14 +5473,14 @@ export default function DiamondStorePage({
                             >
                               <table style={styles.clubLedgerTable}>
                                 <thead>
-                                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                  <tr style={{ borderBottom: '1px solid #445e77' }}>
                                     <th
                                       style={{
                                         padding: '12px 16px',
                                         textAlign: 'left',
                                         fontSize: 12,
                                         fontWeight: 600,
-                                        color: 'rgba(255,255,255,0.65)',
+                                        color: SD_SILVER,
                                         textTransform: 'capitalize',
                                       }}
                                     >
@@ -5490,7 +5492,7 @@ export default function DiamondStorePage({
                                         textAlign: 'left',
                                         fontSize: 12,
                                         fontWeight: 600,
-                                        color: 'rgba(255,255,255,0.65)',
+                                        color: SD_SILVER,
                                         textTransform: 'capitalize',
                                       }}
                                     >
@@ -5502,7 +5504,7 @@ export default function DiamondStorePage({
                                         textAlign: 'left',
                                         fontSize: 12,
                                         fontWeight: 600,
-                                        color: 'rgba(255,255,255,0.65)',
+                                        color: SD_SILVER,
                                         textTransform: 'capitalize',
                                       }}
                                     >
@@ -5514,7 +5516,7 @@ export default function DiamondStorePage({
                                         textAlign: 'left',
                                         fontSize: 12,
                                         fontWeight: 600,
-                                        color: 'rgba(255,255,255,0.65)',
+                                        color: SD_SILVER,
                                         textTransform: 'capitalize',
                                       }}
                                     >
@@ -5536,14 +5538,14 @@ export default function DiamondStorePage({
                                     return (
                                       <tr
                                         key={p.id}
-                                        style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                                        style={{ borderBottom: '1px solid #445e77' }}
                                       >
                                         <td
                                           style={{
                                             padding: '12px 16px',
                                             fontSize: 14,
                                             fontWeight: 700,
-                                            color: '#E4E6EB',
+                                            color: SD_TEXT,
                                           }}
                                         >
                                           {marketplaceCopy(name)}
@@ -5558,7 +5560,8 @@ export default function DiamondStorePage({
                                             padding: '12px 16px',
                                             fontSize: 14,
                                             fontWeight: 800,
-                                            color: '#FFD700',
+                                            color: SD_CYAN,
+                                            fontVariantNumeric: 'tabular-nums',
                                           }}
                                         >
                                           {(p.price_paid || 0).toLocaleString()}{' '}
@@ -5568,7 +5571,7 @@ export default function DiamondStorePage({
                                               style={{
                                                 display: 'block',
                                                 marginTop: 2,
-                                                color: '#FF5B6E',
+                                                color: '#ff6b6b',
                                                 fontSize: 12,
                                                 fontWeight: 700,
                                               }}
@@ -5581,7 +5584,7 @@ export default function DiamondStorePage({
                                           style={{
                                             padding: '12px 16px',
                                             fontSize: 12,
-                                            color: 'rgba(255,255,255,0.35)',
+                                            color: SD_SILVER,
                                           }}
                                         >
                                           {dateStr}
@@ -5609,9 +5612,8 @@ export default function DiamondStorePage({
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 marginBottom: 16,
-                                border: '1px solid rgba(0,212,255,0.22)',
-                                background: 'rgba(0,118,168,0.12)',
-                                color: '#9DE8FF',
+                                ...SD_STAT,
+                                color: SD_ICE,
                                 fontSize: 13,
                                 fontWeight: 700,
                               }}
@@ -5630,9 +5632,8 @@ export default function DiamondStorePage({
                                 gap: 12,
                                 marginBottom: 16,
                                 padding: '12px 14px',
-                                border: '1px solid rgba(240,40,73,0.55)',
-                                background: 'rgba(240,40,73,0.10)',
-                                color: '#FF5B6E',
+                                ...SD_STAT,
+                                color: '#ff6b6b',
                               }}
                             >
                               <span>{marketplaceCopy(clubShopAdminError)}</span>
@@ -5642,6 +5643,7 @@ export default function DiamondStorePage({
                                 disabled={clubShopAdminLoading}
                                 style={{
                                   ...styles.paintedSecondaryAction,
+                                  ...SD_CONTROL,
                                   minHeight: 44,
                                   padding: '8px 16px',
                                   fontWeight: 800,
@@ -5659,9 +5661,8 @@ export default function DiamondStorePage({
                               style={{
                                 marginBottom: 16,
                                 padding: '12px 14px',
-                                border: '1px solid rgba(255,196,64,0.42)',
-                                background: 'rgba(83,56,0,0.34)',
-                                color: '#FFE6A6',
+                                ...SD_STAT,
+                                color: SD_TEXT,
                                 fontSize: 12,
                                 fontWeight: 700,
                               }}
@@ -5709,9 +5710,7 @@ export default function DiamondStorePage({
                                         key={stat.label}
                                         className={shellStyles.clubAdminStat}
                                         style={{
-                                          background: 'rgba(255,255,255,0.05)',
-                                          border: '1px solid rgba(255,255,255,0.08)',
-                                          borderRadius: 12,
+                                          ...SD_STAT,
                                           padding: '16px 14px',
                                           textAlign: 'center',
                                         }}
@@ -5720,7 +5719,8 @@ export default function DiamondStorePage({
                                           style={{
                                             fontSize: 22,
                                             fontWeight: 800,
-                                            color: '#00D4FF',
+                                            color: SD_CYAN,
+                                            fontVariantNumeric: 'tabular-nums',
                                           }}
                                         >
                                           {stat.val}
@@ -5728,7 +5728,7 @@ export default function DiamondStorePage({
                                         <div
                                           style={{
                                             fontSize: 12,
-                                            color: 'rgba(255,255,255,0.4)',
+                                            color: SD_SILVER,
                                             fontWeight: 600,
                                             marginTop: 4,
                                           }}
@@ -5743,8 +5743,7 @@ export default function DiamondStorePage({
                                     style={{
                                       marginBottom: 24,
                                       padding: '10px 12px',
-                                      background: 'rgba(0,118,168,0.09)',
-                                      color: 'rgba(255,255,255,0.68)',
+                                      color: SD_SILVER,
                                       fontSize: 12,
                                       lineHeight: 1.6,
                                     }}
@@ -5752,7 +5751,7 @@ export default function DiamondStorePage({
                                     Club Shop Sales Are 100% Platform-Owned Diamond Burns. No Club,
                                     Owner, Agent, Affiliate, Or Commission Ledger Is Credited.
                                     {Number(legacyChipTotals.sales || 0) > 0 && (
-                                      <span style={{ display: 'block', color: '#FFE6A6' }}>
+                                      <span style={{ display: 'block', color: SD_TEXT }}>
                                         Legacy History: {fmt(legacyChipTotals.netSales)} Net Chip
                                         Sales / {fmt(legacyChipTotals.net)} Chips. These Are Kept
                                         Separate From Diamond Totals.
@@ -5791,9 +5790,7 @@ export default function DiamondStorePage({
                           <div
                             className={shellStyles.clubAdminCreatePanel}
                             style={{
-                              background: 'rgba(255,255,255,0.03)',
-                              border: '1px solid rgba(255,255,255,0.08)',
-                              borderRadius: 14,
+                              ...SD_PANEL,
                               padding: 20,
                               marginBottom: 24,
                             }}
@@ -5802,7 +5799,7 @@ export default function DiamondStorePage({
                               style={{
                                 fontSize: 15,
                                 fontWeight: 700,
-                                color: '#E4E6EB',
+                                color: SD_TEXT,
                                 marginBottom: 14,
                               }}
                             >
@@ -5823,12 +5820,8 @@ export default function DiamondStorePage({
                                 style={{
                                   flex: 2,
                                   padding: '10px 14px',
-                                  borderRadius: 10,
-                                  background: 'rgba(255,255,255,0.05)',
-                                  border: '1px solid rgba(255,255,255,0.1)',
-                                  color: '#E4E6EB',
+                                  ...SD_CONTROL,
                                   fontSize: 14,
-                                  outline: 'none',
                                 }}
                               />
                               <input
@@ -5843,12 +5836,8 @@ export default function DiamondStorePage({
                                 style={{
                                   flex: 1,
                                   padding: '10px 14px',
-                                  borderRadius: 10,
-                                  background: 'rgba(255,255,255,0.05)',
-                                  border: '1px solid rgba(255,255,255,0.1)',
-                                  color: '#E4E6EB',
+                                  ...SD_CONTROL,
                                   fontSize: 14,
-                                  outline: 'none',
                                 }}
                               />
                             </div>
@@ -5856,8 +5845,8 @@ export default function DiamondStorePage({
                               role="status"
                               style={{
                                 color: clubShopMaximumCardFundedPrice
-                                  ? 'rgba(255,255,255,0.62)'
-                                  : '#FF5B6E',
+                                  ? SD_SILVER
+                                  : '#ff6b6b',
                                 fontSize: 12,
                                 margin: '-2px 0 10px',
                               }}
@@ -5877,12 +5866,8 @@ export default function DiamondStorePage({
                               style={{
                                 width: '100%',
                                 padding: '10px 14px',
-                                borderRadius: 10,
-                                background: 'rgba(255,255,255,0.05)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                color: '#E4E6EB',
+                                ...SD_CONTROL,
                                 fontSize: 14,
-                                outline: 'none',
                                 marginBottom: 10,
                                 boxSizing: 'border-box',
                               }}
@@ -5898,12 +5883,8 @@ export default function DiamondStorePage({
                                 style={{
                                   flex: 1,
                                   padding: '10px 14px',
-                                  borderRadius: 10,
-                                  background: 'rgba(255,255,255,0.05)',
-                                  border: '1px solid rgba(255,255,255,0.1)',
-                                  color: '#E4E6EB',
+                                  ...SD_CONTROL,
                                   fontSize: 13,
-                                  outline: 'none',
                                   cursor: 'pointer',
                                 }}
                               >
@@ -5925,12 +5906,8 @@ export default function DiamondStorePage({
                                 style={{
                                   flex: 1,
                                   padding: '10px 14px',
-                                  borderRadius: 10,
-                                  background: 'rgba(255,255,255,0.05)',
-                                  border: '1px solid rgba(255,255,255,0.1)',
-                                  color: '#E4E6EB',
+                                  ...SD_CONTROL,
                                   fontSize: 14,
-                                  outline: 'none',
                                 }}
                               />
                               <input
@@ -5943,12 +5920,8 @@ export default function DiamondStorePage({
                                 style={{
                                   flex: 1,
                                   padding: '10px 14px',
-                                  borderRadius: 10,
-                                  background: 'rgba(255,255,255,0.05)',
-                                  border: '1px solid rgba(255,255,255,0.1)',
-                                  color: '#E4E6EB',
+                                  ...SD_CONTROL,
                                   fontSize: 14,
-                                  outline: 'none',
                                 }}
                               />
                             </div>
@@ -6097,7 +6070,7 @@ export default function DiamondStorePage({
                                 <div
                                   style={{
                                     fontSize: 14,
-                                    color: 'rgba(255,255,255,0.5)',
+                                    color: SD_SILVER,
                                     fontWeight: 600,
                                   }}
                                 >
@@ -6117,9 +6090,7 @@ export default function DiamondStorePage({
                                       display: 'flex',
                                       justifyContent: 'space-between',
                                       alignItems: 'center',
-                                      background: 'rgba(255,255,255,0.04)',
-                                      border: '1px solid rgba(255,255,255,0.06)',
-                                      borderRadius: 10,
+                                      ...SD_CARD,
                                       padding: '12px 16px',
                                     }}
                                   >
@@ -6127,21 +6098,21 @@ export default function DiamondStorePage({
                                       <div
                                         style={{
                                           fontWeight: 700,
-                                          color: item.is_active ? '#E4E6EB' : '#6B7280',
+                                          color: item.is_active ? SD_TEXT : SD_SILVER,
                                           fontSize: 14,
                                         }}
                                       >
                                         {marketplaceCopy(item.name)}
                                       </div>
-                                      <div style={{ fontSize: 12, color: '#8b8d91', marginTop: 2 }}>
+                                      <div style={{ fontSize: 12, color: SD_SILVER, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
                                         {item.price.toLocaleString()} Diamonds,{' '}
                                         <span
                                           style={{
+                                            ...SD_STAT,
+                                            display: 'inline-block',
                                             padding: '2px 6px',
-                                            borderRadius: 4,
                                             fontSize: 12,
-                                            background: 'rgba(255,255,255,0.06)',
-                                            color: 'rgba(255,255,255,0.4)',
+                                            color: SD_SILVER,
                                           }}
                                         >
                                           {marketplaceCopy(item.category || 'Time Banks')}
@@ -6273,7 +6244,7 @@ export default function DiamondStorePage({
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 padding: 20,
-                                background: 'rgba(0,0,0,0.78)',
+                                background: 'rgba(4, 13, 24, 0.82)',
                               }}
                             >
                               <div
@@ -6289,20 +6260,18 @@ export default function DiamondStorePage({
                                   width: '100%',
                                   maxWidth: 460,
                                   padding: '24px 22px',
-                                  border: '1px solid rgba(255,107,107,0.58)',
-                                  background: '#090d12',
-                                  boxShadow: '0 24px 70px #000',
+                                  ...SD_PANEL,
                                 }}
                               >
                                 <h4
                                   id="club-shop-delete-title"
-                                  style={{ margin: 0, color: '#FF5B6E', fontSize: 19 }}
+                                  style={{ margin: 0, color: SD_TEXT, fontSize: 19 }}
                                 >
                                   Remove Club Shop Item?
                                 </h4>
                                 <p
                                   id="club-shop-delete-description"
-                                  style={{ margin: '12px 0 0', color: '#C8D5DD', lineHeight: 1.65 }}
+                                  style={{ margin: '12px 0 0', color: SD_SILVER, lineHeight: 1.65 }}
                                 >
                                   Remove “{marketplaceCopy(clubShopDeleteTarget.name)}” From This
                                   Club’s Inventory? Items With Purchase History Cannot Be Deleted;
@@ -6323,6 +6292,7 @@ export default function DiamondStorePage({
                                     disabled={!!clubShopAdminActionId}
                                     style={{
                                       ...styles.paintedSecondaryAction,
+                                      ...SD_CONTROL,
                                       minHeight: 44,
                                       fontWeight: 800,
                                     }}
@@ -6339,6 +6309,7 @@ export default function DiamondStorePage({
                                     aria-busy={clubShopAdminActionId === clubShopDeleteTarget.id}
                                     style={{
                                       ...styles.paintedPrimaryAction,
+                                      ...SD_ACTIVE,
                                       minHeight: 44,
                                       fontWeight: 900,
                                     }}

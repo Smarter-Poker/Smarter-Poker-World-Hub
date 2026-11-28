@@ -9,6 +9,7 @@ import Link from 'next/link';
 import SEOHead, { schemas } from '../src/components/seo/SEOHead';
 import LandingProductSummary from '../src/components/landing/LandingProductSummary';
 import { signupHrefFor } from '../src/lib/pendingSignupCodes.mjs';
+import { VENUE_COUNT_LABEL } from '../src/lib/venueCount.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HAPTIC FEEDBACK
@@ -400,7 +401,7 @@ export default function LandingPage() {
         {!overlay && (
           <aside className="landing-mobile-cro-bar" aria-label="Create Free Account">
             <span className="landing-mobile-cro-bar__copy">
-              715+ Live Rooms &amp; 107 Free GTO Games
+              {VENUE_COUNT_LABEL} Poker Rooms &amp; 107 Free GTO Games
             </span>
             <Link href={signupHref} className="landing-mobile-cro-bar__cta">
               Join Free

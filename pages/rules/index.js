@@ -29,6 +29,7 @@ import {
   RULES_URL,
   rulePath,
 } from '../../src/content/rules/rules';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const INDEX_FAQS = [
   {
@@ -400,7 +401,7 @@ export default function PokerRulesIndexPage() {
         <SmarterConversionCta
           eyebrow="Free Live Poker & Club Tools"
           title="Master Official Rules, Live Rooms & GTO Strategy Free"
-          description="Discover 715+ Live Poker Rooms, Run Free Side-Pot And ICM Calculators, And Train Across 107 GTO Games With One Free Account."
+          description={`Discover ${VENUE_COUNT_LABEL} Live Poker Rooms, Run Free Side-Pot And ICM Calculators, And Train Across 107 GTO Games With One Free Account.`}
           primaryLabel="Create Free Account"
           primaryHref="/auth/signup?redirect=/hub/poker-near-me/lobby&src=rules-index"
           secondaryLabel="Find Live Poker Rooms"

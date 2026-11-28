@@ -248,6 +248,16 @@ export default function MarketplaceReceiptPage({ routeOrderId = null }) {
       price={record?.currency === 'usd' ? record.amount / 100 : null}
       status={record?.status || state.message}
       presentation="record"
+      header={{
+        art: 'store-order-detail',
+        title: 'Order Details',
+        help: {
+          steps: [
+            'This Private Receipt Is Read From Your Verified Marketplace Ledger And Shows Its Lines, Total And Timeline.',
+            'Use Back To Orders To Return To Your Order History Or Track Package For Carrier Updates.',
+          ],
+        },
+      }}
       actions={
         <>
           <Link
@@ -433,24 +443,26 @@ const receiptStyles = {
     gridTemplateColumns: 'minmax(0, 1fr) auto',
     gap: 16,
     padding: '12px 0',
-    borderBottom: '1px solid rgba(132,177,198,0.22)',
+    borderBottom: '1px solid #2a425a',
   },
-  option: { display: 'block', marginTop: 5, color: '#91a8b4', overflowWrap: 'anywhere' },
+  option: { display: 'block', marginTop: 5, color: '#bdd0e2', overflowWrap: 'anywhere' },
   total: {
     display: 'flex',
     justifyContent: 'space-between',
     gap: 16,
     marginTop: 20,
     paddingTop: 16,
-    borderTop: '1px solid #8ed9eb',
-    color: '#8befff',
+    borderTop: '1px solid #445e77',
+    color: '#f2f7ff',
+    fontVariantNumeric: 'tabular-nums',
   },
   adjustment: {
     display: 'flex',
     justifyContent: 'space-between',
     gap: 16,
     marginTop: 10,
-    color: '#fbbf24',
+    color: '#86daff',
+    fontVariantNumeric: 'tabular-nums',
   },
   timeline: { display: 'grid', gap: 12, margin: 0, padding: 0, listStyle: 'none' },
   timelineItem: {

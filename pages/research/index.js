@@ -22,6 +22,7 @@ import {
   researchPath,
   renderResearchIndexMarkdown,
 } from '../../src/content/research/reports.js';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 export async function getServerSideProps({ req, res, query }) {
   const acceptHeader = String(req?.headers?.accept || '');
@@ -78,7 +79,7 @@ function researchIndexJsonLd() {
       '@id': `${url}#datacatalog`,
       name: 'Smarter.Poker Open Quantitative Poker & Live Cardroom Data Catalog',
       description:
-        'Public CC-BY 4.0 Catalog Of 15 Quantitative Poker Research Datasets, 169 Starting Hand Preflop Frequency Matrices, And 324+ US Live Cardroom Benchmarks.',
+        `Public CC-BY 4.0 Catalog Of 15 Quantitative Poker Research Datasets, 169 Starting Hand Preflop Frequency Matrices, And ${VENUE_COUNT_LABEL} US Live Cardroom Benchmarks.`,
       url,
       inLanguage: 'en-US',
       license: 'https://creativecommons.org/licenses/by/4.0/',
@@ -187,7 +188,7 @@ export default function ResearchIndexPage() {
         </div>
 
         <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
-          First-Party Empirical Studies And Structured Datasets Compiled From Smarter.Poker&apos;S National Directory Of 324+ Verified US Poker Rooms, 4,500+ Weekly Tournament Schedules, And 100+ GTO Solver Training Baselines.
+          First-Party Empirical Studies And Structured Datasets Compiled From Smarter.Poker&apos;S National Directory Of {VENUE_COUNT_LABEL} Verified US Poker Rooms, 4,500+ Weekly Tournament Schedules, And 100+ GTO Solver Training Baselines.
         </p>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>

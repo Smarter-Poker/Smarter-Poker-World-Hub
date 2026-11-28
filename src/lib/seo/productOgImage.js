@@ -3,6 +3,10 @@
  * Pure, so the discoverability law test can import it without a router;
  * src/components/seo/SEOHead.js applies it to the current route.
  */
+import { VENUE_COUNT_LABEL } from '../venueCount.mjs';
+
+const VENUE_COUNT_URL = encodeURIComponent(VENUE_COUNT_LABEL);
+
 export const PRODUCT_OG_IMAGES = Object.freeze([
   { prefix: '/hub/commander', image: 'https://smarter.poker/images/og-club-commander.jpg' },
   {
@@ -23,7 +27,7 @@ export const PRODUCT_OG_IMAGES = Object.freeze([
   },
   {
     prefix: '/hub/poker-near-me',
-    image: 'https://smarter.poker/api/og/tool-card?tool=pnm&badge=LIVE+POKER+DIRECTORY&title=Live+Poker+Near+Me+And+Cardroom+Directory&subtitle=324%2B+Verified+Poker+Rooms%2C+Daily+Tournaments+And+Waitlists&statLabel=VERIFIED+ROOMS&statValue=324%2B+VENUES',
+    image: `https://smarter.poker/api/og/tool-card?tool=pnm&badge=LIVE+POKER+DIRECTORY&title=Live+Poker+Near+Me+And+Cardroom+Directory&subtitle=${VENUE_COUNT_URL}+Verified+Poker+Rooms%2C+Daily+Tournaments+And+Waitlists&statLabel=LISTED+ROOMS&statValue=${VENUE_COUNT_URL}+VENUES`,
   },
   {
     prefix: '/hub/home-games',

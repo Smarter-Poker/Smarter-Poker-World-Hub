@@ -46,6 +46,14 @@ import {
   normalizeVerifiedMerchDiamondPurchase,
 } from '../../../src/lib/store/verifiedCommerceResponse.mjs';
 
+/** Whole-dollar amounts show without cents; any fractional amount stays exact. */
+function formatCartUsd(value) {
+  const amount = Number(value) || 0;
+  return Number.isInteger(amount)
+    ? amount.toLocaleString('en-US')
+    : amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function AccountPanel({ title, primaryAction = null, children }) {
   return (
     <section className={accountControls.panel}>
@@ -1317,6 +1325,7 @@ export default function ShoppingCart() {
 
         <MarketplaceSubpageShell
           active="cart"
+          art="store-cart"
           eyebrow="Marketplace Checkout"
           title="Your Cart"
           description="Review Your Stack, Confirm The Delivery Details, And Settle Every Eligible Merchandise Order With Card Or Diamonds."
@@ -1419,7 +1428,7 @@ export default function ShoppingCart() {
                     <span>
                       Subtotal ({itemCount} {itemCount === 1 ? 'Item' : 'Items'})
                     </span>
-                    <span>${getSubtotal().toFixed(2)}</span>
+                    <span>${formatCartUsd(getSubtotal())}</span>
                   </div>
 
                   <div style={styles.summaryRow}>
@@ -1431,7 +1440,7 @@ export default function ShoppingCart() {
 
                   <div style={styles.totalRow}>
                     <span>Total</span>
-                    <span>${getSubtotal().toFixed(2)}</span>
+                    <span>${formatCartUsd(getSubtotal())}</span>
                   </div>
 
                   {/* Mixed cart: one purchase type per checkout session */}
@@ -1443,8 +1452,8 @@ export default function ShoppingCart() {
                   {!usingDiamonds && cardGroup && deferredUnits > 0 && (
                     <div style={styles.noticeBox}>
                       {cardGroup === 'diamonds'
-                        ? `All Diamond Packages Check Out Together For $${(cardChargeCents / 100).toFixed(2)}. The Other ${deferredUnits} ${deferredUnits === 1 ? 'Item Stays' : 'Items Stay'} In Your Cart For A Separate Checkout.`
-                        : `This Checkout Covers Your Merchandise ($${(cardChargeCents / 100).toFixed(2)}). The Other ${deferredUnits} ${deferredUnits === 1 ? 'Item Stays' : 'Items Stay'} In Your Cart.`}
+                        ? `All Diamond Packages Check Out Together For $${formatCartUsd(cardChargeCents / 100)}. The Other ${deferredUnits} ${deferredUnits === 1 ? 'Item Stays' : 'Items Stay'} In Your Cart For A Separate Checkout.`
+                        : `This Checkout Covers Your Merchandise ($${formatCartUsd(cardChargeCents / 100)}). The Other ${deferredUnits} ${deferredUnits === 1 ? 'Item Stays' : 'Items Stay'} In Your Cart.`}
                     </div>
                   )}
                   {usingDiamonds && vipItems.length > 0 && (
@@ -1521,7 +1530,7 @@ export default function ShoppingCart() {
                       </div>
                       <div className={cartStyles.paymentTotal}>
                         <span className={cartStyles.paymentPrice}>
-                          ${(cardChargeCents / 100).toFixed(2)}
+                          ${formatCartUsd(cardChargeCents / 100)}
                         </span>
                         <span className={cartStyles.selectionSeam} aria-hidden="true" />
                       </div>
@@ -1550,7 +1559,7 @@ export default function ShoppingCart() {
                     <p
                       style={{
                         fontSize: '12px',
-                        color: '#9ca3af',
+                        color: '#bdd0e2',
                         textAlign: 'center',
                         marginBottom: '12px',
                       }}
@@ -1654,7 +1663,7 @@ function CartItem({
         <div style={styles.itemDetails}>
           <h4 style={styles.itemName}>{copyName}</h4>
           <p style={styles.itemType}>{marketplaceCopy(type)}</p>
-          <p style={styles.itemPrice}>${(Number(price) || 0).toFixed(2)}</p>
+          <p style={styles.itemPrice}>${formatCartUsd(Number(price) || 0)}</p>
         </div>
 
         <div style={{ ...styles.itemActions, ...(isMobile ? styles.itemActionsMobile : {}) }}>
@@ -1701,8 +1710,8 @@ const styles = {
     maxWidth: '100vw',
     overflowX: 'hidden',
     boxSizing: 'border-box',
-    background: '#000000',
-    color: '#FFFFFF',
+    background: '#040d18',
+    color: '#f2f7ff',
   },
   content: {
     maxWidth: '1200px',
@@ -1743,13 +1752,14 @@ const styles = {
   },
   itemType: {
     fontSize: '14px',
-    color: '#9ca3af',
+    color: '#bdd0e2',
     marginBottom: '8px',
   },
   itemPrice: {
     fontSize: '16px',
     fontWeight: 600,
-    color: '#00E0FF',
+    color: '#86daff',
+    fontVariantNumeric: 'tabular-nums',
   },
   itemActions: {
     display: 'flex',
@@ -1773,22 +1783,24 @@ const styles = {
     justifyContent: 'space-between',
     marginBottom: '12px',
     fontSize: '14px',
-    color: '#9ca3af',
+    color: '#bdd0e2',
+    fontVariantNumeric: 'tabular-nums',
   },
   divider: {
     height: '1px',
-    background: 'rgba(255, 255, 255, 0.1)',
+    background: '#344a62',
     margin: '16px 0',
   },
   noticeBox: {
     padding: '10px 12px',
     marginBottom: '16px',
-    background: 'rgba(0, 224, 255, 0.08)',
-    border: '1px solid rgba(0, 224, 255, 0.25)',
+    background: 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)',
+    border: '3px solid transparent',
+    borderImage: "url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch",
     borderRadius: 0,
     fontSize: '12px',
     lineHeight: 1.5,
-    color: '#9ca3af',
+    color: '#bdd0e2',
   },
   totalRow: {
     display: 'flex',
@@ -1796,6 +1808,7 @@ const styles = {
     fontSize: '20px',
     fontWeight: 700,
     marginBottom: '24px',
+    fontVariantNumeric: 'tabular-nums',
   },
   loadingContainer: {
     minHeight: '100vh',
@@ -1803,7 +1816,7 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#000000',
-    color: '#FFFFFF',
+    background: '#040d18',
+    color: '#f2f7ff',
   },
 };

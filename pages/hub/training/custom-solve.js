@@ -696,6 +696,8 @@ export default function CustomSolvePage() {
                 {(isPreflopRfi ? PREFLOP_RFI_POSITIONS : POSITIONS).map((p) => (
                   <motion.button
                     key={p}
+                    type="button"
+                    aria-pressed={heroPos === p}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => selectHeroPosition(p)}
                     style={{
@@ -754,6 +756,8 @@ export default function CustomSolvePage() {
                   {POSITIONS.filter((p) => p !== heroPos).map((p) => (
                     <motion.button
                       key={p}
+                      type="button"
+                      aria-pressed={villainPos === p}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setVillainPos(p)}
                       style={{
@@ -793,10 +797,12 @@ export default function CustomSolvePage() {
             >
               Effective Stack Depth
             </div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
               {[20, 40, 60, 100, 150, 200].map((sd) => (
                 <motion.button
                   key={sd}
+                  type="button"
+                  aria-pressed={stackDepth === sd}
                   whileTap={isPreflopRfi && sd !== 100 ? undefined : { scale: 0.95 }}
                   onClick={() => {
                     if (!isPreflopRfi || sd === 100) setStackDepth(sd);
@@ -804,7 +810,7 @@ export default function CustomSolvePage() {
                   disabled={isPreflopRfi && sd !== 100}
                   aria-label={`${sd} big blinds${isPreflopRfi && sd !== 100 ? ' unavailable for the first-in reference' : ''}`}
                   style={{
-                    padding: '6px 10px',
+                    padding: '6px 12px',
                     borderRadius: 6,
                     border: `1px solid ${stackDepth === sd ? 'rgba(0,212,255,0.3)' : 'transparent'}`,
                     background: stackDepth === sd ? 'rgba(0,212,255,0.06)' : 'rgba(0,0,0,0.2)',
@@ -812,6 +818,7 @@ export default function CustomSolvePage() {
                     opacity: isPreflopRfi && sd !== 100 ? 0.35 : 1,
                     fontSize: 12,
                     fontWeight: 700,
+                    whiteSpace: 'nowrap',
                     cursor: isPreflopRfi && sd !== 100 ? 'not-allowed' : 'pointer',
                   }}
                 >
@@ -826,6 +833,7 @@ export default function CustomSolvePage() {
 
           {/* Solve Button */}
           <motion.button
+            type="button"
             whileTap={{ scale: 0.98 }}
             onClick={handleSolve}
             disabled={loading}
@@ -836,7 +844,7 @@ export default function CustomSolvePage() {
               border: '1px solid rgba(0,212,255,0.3)',
               background: loading
                 ? 'rgba(0,212,255,0.03)'
-                : 'linear-gradient(135deg, rgba(0,212,255,0.12) 0%, rgba(139,92,246,0.08) 100%)',
+                : 'linear-gradient(135deg, rgba(0,212,255,0.14) 0%, rgba(6,72,226,0.14) 100%)',
               color: 'var(--sp-accent-cyan)',
               fontSize: 14,
               fontWeight: 800,

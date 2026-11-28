@@ -1,7 +1,7 @@
 /**
  * Daily Tournaments API
  *
- * Source: venue_daily_tournaments table (324+ venues, 4,500+ records)
+ * Source: venue_daily_tournaments table (several hundred venues, 4,500+ records)
  * Live-scraped data by tournament-schedule-daemon (72h cycle)
  *
  * Endpoints:
@@ -487,7 +487,7 @@ async function handler(req, res) {
               // Enrich with venue data.
               //
               // data/tournament-venues.json only carries ~206 venues while
-              // venue_daily_tournaments spans 324+, so every tournament whose
+              // venue_daily_tournaments spans far more venues, so every tournament whose
               // venue_name was not an exact lowercase match in that file got
               // state:null — and the ?state= filter further down then deleted it.
               // State-filtered queries silently omitted venues that exist in the

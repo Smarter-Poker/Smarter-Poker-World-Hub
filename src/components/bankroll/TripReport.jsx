@@ -8,6 +8,7 @@
 import { GRADIENTS, METAL } from './metalStyles';
 import React from 'react';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
+import { parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
 
 const CATEGORY_LABELS = {
     poker_cash: 'Cash Games',
@@ -31,8 +32,8 @@ function TripReport({ report, onBack }) {
                 <h2 style={styles.tripName}>{trip.name}</h2>
                 <p style={styles.tripMeta}>
                     {trip.location_name && `${trip.location_name} · `}
-                    {new Date(trip.start_date).toLocaleDateString()}
-                    {trip.end_date && ` - ${new Date(trip.end_date).toLocaleDateString()}`}
+                    {parseLedgerDay(trip.start_date).toLocaleDateString()}
+                    {trip.end_date && ` - ${parseLedgerDay(trip.end_date).toLocaleDateString()}`}
                     {trip.purpose && ` · ${trip.purpose}`}
                 </p>
             </div>
@@ -104,7 +105,7 @@ function TripReport({ report, onBack }) {
                         {entries.map(entry => (
                             <div key={entry.id} style={styles.entryRow}>
                                 <div style={styles.entryLeft}>
-                                    <span style={styles.entryDate}>{new Date(entry.entry_date).toLocaleDateString()}</span>
+                                    <span style={styles.entryDate}>{parseLedgerDay(entry.entry_date).toLocaleDateString()}</span>
                                     <span style={styles.entryCat}>{CATEGORY_LABELS[entry.category] || entry.category}</span>
                                     {entry.notes && <span style={styles.entryNotes}>{entry.notes}</span>}
                                 </div>

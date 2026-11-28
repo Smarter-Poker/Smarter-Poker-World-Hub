@@ -11,6 +11,7 @@ import {
   BANKROLL_RULE_UPSERT,
   BANKROLL_SEGMENT_CREATE_ONLY,
 } from './naturalKeys.mjs';
+import { localDay, localDayOffset } from './localDates.mjs';
 
 export interface LedgerEntry {
   id: string;
@@ -1238,28 +1239,24 @@ export async function adjustBankroll(
  * Get date range filter helpers
  */
 export function getDateRangeFilter(range: string): { startDate: string; endDate: string } {
-  const now = new Date();
-  const endDate = now.toISOString().split('T')[0];
+  // Calendar days in the player's own time zone, inclusive of today: entry_date
+  // is recorded locally, and the UTC date is already tomorrow every evening in
+  // the Americas. "Last 7 Days" is today plus the six days before it.
+  const endDate = localDay();
   let startDate: string;
 
   switch (range) {
     case 'Last 7 Days':
-      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0];
+      startDate = localDayOffset(6);
       break;
     case 'Last 30 Days':
-      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0];
+      startDate = localDayOffset(29);
       break;
     case 'Last 90 Days':
-      startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0];
+      startDate = localDayOffset(89);
       break;
     case 'This Year':
-      startDate = `${now.getFullYear()}-01-01`;
+      startDate = endDate.slice(0, 4) + '-01-01';
       break;
     case 'All Time':
     default:

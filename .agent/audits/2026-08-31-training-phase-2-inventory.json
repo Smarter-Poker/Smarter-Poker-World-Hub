@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 55,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 422,
+    "dependencyFiles": 423,
     "componentFiles": 70,
     "hookFiles": 16,
     "ctas": 562,
@@ -4671,6 +4671,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -5128,7 +5129,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/handHistoryReviewAuthority.mjs",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "redirectDestination": "/hub/training/hand-history-upload",
       "states": {
@@ -5899,6 +5901,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/services/avatar-service.js",
         "src/stores/toastStore.js",
@@ -6487,6 +6490,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/SolverPolicyService.js",
         "src/services/avatar-service.js",
@@ -6949,6 +6953,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -7295,6 +7300,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -7609,6 +7615,7 @@
         "src/lib/training/guestTrainingFavorites.mjs",
         "src/lib/training/trainingLobbyFilter.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -7945,6 +7952,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -8290,6 +8298,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -8483,7 +8492,8 @@
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
-        "src/lib/training/trainingPresets.mjs"
+        "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -8658,7 +8668,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -8791,7 +8802,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -8801,6 +8813,7 @@
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ],
@@ -8815,6 +8828,7 @@
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -8827,6 +8841,7 @@
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -8838,6 +8853,7 @@
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -8849,6 +8865,7 @@
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -8863,6 +8880,7 @@
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -8875,6 +8893,7 @@
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -8888,6 +8907,7 @@
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-surface-inventory.test.mjs"
           ]
@@ -8895,6 +8915,7 @@
       },
       "existingTests": [
         "__tests__/training-authored-model-honesty.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "__tests__/training-surface-inventory.test.mjs"
       ],
@@ -8956,6 +8977,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -9190,7 +9212,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
-        "src/lib/training/solverPolicyContract.js"
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -9534,7 +9557,8 @@
         "src/lib/supabase.js",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
-        "src/lib/training/trainingPresets.mjs"
+        "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -9723,6 +9747,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -10128,6 +10153,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -10385,7 +10411,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -10610,6 +10637,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -10926,6 +10954,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -11114,7 +11143,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -11123,6 +11153,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11134,6 +11165,7 @@
             "src/lib/seo/hubPageSchema.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11146,6 +11178,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11157,6 +11190,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11167,6 +11201,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11182,6 +11217,7 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11192,6 +11228,7 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11205,11 +11242,13 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         }
       },
       "existingTests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs"
       ],
       "uncoveredStates": []
@@ -11329,6 +11368,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -11581,7 +11621,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -11749,7 +11790,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -11759,6 +11801,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11772,6 +11815,7 @@
             "src/lib/seo/hubPageSchema.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11785,6 +11829,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11797,6 +11842,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11808,6 +11854,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11823,6 +11870,7 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11833,6 +11881,7 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -11846,11 +11895,13 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         }
       },
       "existingTests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs"
       ],
       "uncoveredStates": []
@@ -11890,6 +11941,7 @@
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/offlineQuestionCache.js",
         "src/lib/training/questionContract.mjs",
+        "src/lib/venueCount.mjs",
         "src/utils/actionGrouper.js"
       ],
       "states": {
@@ -12410,6 +12462,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -12667,7 +12720,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -12775,7 +12829,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/handHistoryReviewAuthority.mjs",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -13035,6 +13090,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -13340,7 +13396,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/solvedSpotEngine.js",
-        "src/lib/seo/wikidataRegistry.mjs"
+        "src/lib/seo/wikidataRegistry.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -13649,6 +13706,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -13954,6 +14012,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -14204,6 +14263,7 @@
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
         "src/lib/training/weaknessAnalysis.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -14522,6 +14582,7 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/publicLeaderboardSeed.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -15423,6 +15484,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -15770,6 +15832,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -15798,6 +15861,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
@@ -15858,6 +15922,7 @@
             "src/utils/v2Matrix.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
@@ -15905,6 +15970,7 @@
             "src/utils/trainingSounds.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
@@ -15928,6 +15994,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
@@ -15954,6 +16021,7 @@
             "src/lib/training/solverMatrixTrust.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
@@ -15990,6 +16058,7 @@
             "src/utils/v2Matrix.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
@@ -16007,6 +16076,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
@@ -16028,6 +16098,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
@@ -16036,6 +16107,7 @@
         }
       },
       "existingTests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-session-config-contract.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs",
@@ -16158,6 +16230,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -16415,7 +16488,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -16425,6 +16499,7 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ],
           "rationale": "The Preflop Examples Are Read-Only Authored References"
@@ -16438,6 +16513,7 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -16449,6 +16525,7 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -16459,6 +16536,7 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -16469,6 +16547,7 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -16482,6 +16561,7 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -16493,6 +16573,7 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         },
@@ -16505,12 +16586,14 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         }
       },
       "existingTests": [
         "__tests__/training-authored-surface-authority.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs"
       ],
       "uncoveredStates": []
@@ -16741,6 +16824,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -17525,6 +17609,7 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -17984,6 +18069,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -18263,7 +18349,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -18501,6 +18588,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -18847,6 +18935,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -19134,6 +19223,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/services/avatar-service.js",
         "src/utils/pokerHandEvaluator.js"
       ],
@@ -19375,6 +19465,7 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/sessionEvidence.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -20004,7 +20095,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -20015,7 +20107,8 @@
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ],
           "rationale": "The Reference Curve Updates From Local Controls"
         },
@@ -20029,7 +20122,8 @@
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "error": {
@@ -20041,7 +20135,8 @@
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "retry": {
@@ -20052,7 +20147,8 @@
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "success": {
@@ -20063,7 +20159,8 @@
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "stale": {
@@ -20078,7 +20175,8 @@
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "offline": {
@@ -20090,7 +20188,8 @@
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "authExpiry": {
@@ -20104,14 +20203,16 @@
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         }
       },
       "existingTests": [
         "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
         "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
-        "__tests__/training-authored-model-honesty.test.mjs"
+        "__tests__/training-authored-model-honesty.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -20231,6 +20332,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -20547,6 +20649,7 @@
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -21148,7 +21251,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -21157,7 +21261,8 @@
             "pages/hub/training/rake-solutions.js"
           ],
           "tests": [
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ],
           "rationale": "The Explicitly Authored Rake Curve Is Calculated Locally"
         },
@@ -21169,7 +21274,8 @@
             "src/lib/seo/hubPageSchema.js"
           ],
           "tests": [
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "error": {
@@ -21179,7 +21285,8 @@
             "src/lib/supabase.js"
           ],
           "tests": [
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "retry": {
@@ -21188,7 +21295,8 @@
             "src/lib/acquisition/firstTouch.mjs"
           ],
           "tests": [
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "success": {
@@ -21197,7 +21305,8 @@
             "pages/hub/training/rake-solutions.js"
           ],
           "tests": [
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "stale": {
@@ -21209,7 +21318,8 @@
             "src/lib/seo/seoFunnelTelemetry.js"
           ],
           "tests": [
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "offline": {
@@ -21219,7 +21329,8 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": [
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "authExpiry": {
@@ -21230,12 +21341,14 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": [
-            "__tests__/training-authored-model-honesty.test.mjs"
+            "__tests__/training-authored-model-honesty.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         }
       },
       "existingTests": [
-        "__tests__/training-authored-model-honesty.test.mjs"
+        "__tests__/training-authored-model-honesty.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -21354,6 +21467,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -21616,7 +21730,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -21805,6 +21920,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/services/avatar-service.js",
         "src/utils/pokerHandEvaluator.js"
       ],
@@ -22330,7 +22446,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -22467,7 +22584,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -22752,6 +22870,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -22762,6 +22881,7 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -22775,6 +22895,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -22787,6 +22908,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -22798,6 +22920,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -22809,6 +22932,7 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -22818,6 +22942,7 @@
             "src/components/training/ConnectionToast.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
@@ -22828,11 +22953,13 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs"
           ]
         }
       },
       "existingTests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs"
       ],
       "uncoveredStates": []
@@ -22865,7 +22992,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -22999,7 +23127,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -23009,7 +23138,8 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
-            "__tests__/training-final-honesty-surfaces.test.mjs"
+            "__tests__/training-final-honesty-surfaces.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "empty": {
@@ -23020,7 +23150,8 @@
             "src/lib/seo/hubPageSchema.js"
           ],
           "tests": [
-            "__tests__/training-final-honesty-surfaces.test.mjs"
+            "__tests__/training-final-honesty-surfaces.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "error": {
@@ -23033,7 +23164,8 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
-            "__tests__/training-final-honesty-surfaces.test.mjs"
+            "__tests__/training-final-honesty-surfaces.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "retry": {
@@ -23044,7 +23176,8 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
-            "__tests__/training-final-honesty-surfaces.test.mjs"
+            "__tests__/training-final-honesty-surfaces.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "success": {
@@ -23056,7 +23189,8 @@
             "src/lib/training/practiceSession.js"
           ],
           "tests": [
-            "__tests__/training-final-honesty-surfaces.test.mjs"
+            "__tests__/training-final-honesty-surfaces.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "stale": {
@@ -23071,7 +23205,8 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
-            "__tests__/training-final-honesty-surfaces.test.mjs"
+            "__tests__/training-final-honesty-surfaces.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "offline": {
@@ -23081,7 +23216,8 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx"
           ],
           "tests": [
-            "__tests__/training-final-honesty-surfaces.test.mjs"
+            "__tests__/training-final-honesty-surfaces.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         },
         "authExpiry": {
@@ -23094,12 +23230,14 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
-            "__tests__/training-final-honesty-surfaces.test.mjs"
+            "__tests__/training-final-honesty-surfaces.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs"
           ]
         }
       },
       "existingTests": [
-        "__tests__/training-final-honesty-surfaces.test.mjs"
+        "__tests__/training-final-honesty-surfaces.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -23136,7 +23274,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -23320,6 +23459,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/utils/pokerHandEvaluator.js"
       ],
       "states": {
@@ -23337,6 +23477,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
@@ -23361,6 +23502,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
@@ -23387,6 +23529,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
@@ -23409,6 +23552,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
@@ -23428,6 +23572,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
@@ -23452,6 +23597,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
@@ -23472,6 +23618,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
@@ -23495,6 +23642,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-authored-model-honesty.test.mjs",
             "__tests__/training-bookmark-authority.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
@@ -23509,6 +23657,7 @@
         "__tests__/training-arena-review-gateway-authority.test.mjs",
         "__tests__/training-authored-model-honesty.test.mjs",
         "__tests__/training-bookmark-authority.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "__tests__/training-reference-is-public-b.test.mjs",
         "__tests__/training-request-deadline.test.mjs",
@@ -23548,7 +23697,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
-        "src/lib/training/solverPolicyContract.js"
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -23842,6 +23992,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -24153,6 +24304,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -24471,6 +24623,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-polling-lifecycle-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
@@ -24500,6 +24653,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-polling-lifecycle-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
@@ -24536,6 +24690,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-polling-lifecycle-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
@@ -24559,6 +24714,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-polling-lifecycle-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
@@ -24589,6 +24745,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-polling-lifecycle-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
@@ -24621,6 +24778,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-polling-lifecycle-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
@@ -24637,6 +24795,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-polling-lifecycle-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
@@ -24656,6 +24815,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-polling-lifecycle-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs",
@@ -24665,6 +24825,7 @@
       },
       "existingTests": [
         "__tests__/training-community-phase-11.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-polling-lifecycle-authority.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs",
@@ -24703,7 +24864,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -24715,6 +24877,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
         },
@@ -24729,6 +24892,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
         },
@@ -24744,6 +24908,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
         },
@@ -24758,6 +24923,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
         },
@@ -24770,6 +24936,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
         },
@@ -24785,6 +24952,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
         },
@@ -24797,6 +24965,7 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
         },
@@ -24813,12 +24982,14 @@
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
+            "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
           ]
         }
       },
       "existingTests": [
         "__tests__/training-community-phase-11.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs"
       ],
       "uncoveredStates": []
@@ -25040,6 +25211,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -25319,6 +25491,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -25582,7 +25755,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -25758,6 +25932,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -26040,6 +26215,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -26393,6 +26569,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -26873,7 +27050,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/sessionEvidence.mjs"
+        "src/lib/training/sessionEvidence.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -27125,6 +27303,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -27393,7 +27572,8 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
-        "src/lib/training/weaknessAnalysis.mjs"
+        "src/lib/training/weaknessAnalysis.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -34687,7 +34867,7 @@
           "line": 217,
           "handler": "() => setPreset(r)",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         }
@@ -34787,7 +34967,7 @@
         {
           "element": "button",
           "name": "Lock Spot & Drill 10 Hands On Club Arena Felt →",
-          "line": 932,
+          "line": 940,
           "handler": "() => router.push(arenaLaunchHref)",
           "destination": null,
           "type": "button",
@@ -35328,7 +35508,7 @@
         {
           "element": "button",
           "name": "←",
-          "line": 486,
+          "line": 490,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -35384,7 +35564,7 @@
         },
         {
           "name": "DrillBuilderPage",
-          "line": 281,
+          "line": 283,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -35392,7 +35572,7 @@
         },
         {
           "name": "copySharedDrillPackLink",
-          "line": 310,
+          "line": 312,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35400,7 +35580,7 @@
         },
         {
           "name": "loadDrills",
-          "line": 339,
+          "line": 341,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -35408,7 +35588,7 @@
         },
         {
           "name": "togglePosition",
-          "line": 385,
+          "line": 387,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35416,7 +35596,7 @@
         },
         {
           "name": "toggleStreet",
-          "line": 389,
+          "line": 391,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35424,7 +35604,7 @@
         },
         {
           "name": "selectFormat",
-          "line": 393,
+          "line": 395,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35432,7 +35612,7 @@
         },
         {
           "name": "applyPreset",
-          "line": 400,
+          "line": 402,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35440,7 +35620,7 @@
         },
         {
           "name": "saveDrill",
-          "line": 409,
+          "line": 411,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35448,7 +35628,7 @@
         },
         {
           "name": "startDrill",
-          "line": 456,
+          "line": 460,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -35461,7 +35641,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 590,
+          "line": 594,
           "excerpt": "placeholder=\"Example: SB Vs BB 3-Bet Defense\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -36188,7 +36368,7 @@
         {
           "element": "button",
           "name": "notify ? 'Disable notifications' : 'Enable notifications'",
-          "line": 464,
+          "line": 468,
           "handler": "() => setNotify(!notify)",
           "destination": null,
           "type": "button",
@@ -36535,7 +36715,7 @@
         {
           "element": "button",
           "name": "`${a.title}${a.isSample ? ' (Sample Content)' : ''}${readArticles.has(a.id) ? ' (Read)' : ''}`",
-          "line": 789,
+          "line": 793,
           "handler": "() => handleExpand(a.id)",
           "destination": null,
           "type": "button",
@@ -36545,7 +36725,7 @@
         {
           "element": "a",
           "name": "Read Full Article",
-          "line": 836,
+          "line": 840,
           "handler": "(e) => e.stopPropagation()",
           "destination": "`/hub/article?id=${encodeURIComponent(a.id)}`",
           "type": null,
@@ -39386,14 +39566,14 @@
           "line": 1048,
           "handler": "() => {\n                        setSelectedGames((prev) => {\n                          if (prev.includes(g.id)) return prev.filter((x) => x !== g.id);\n                          if (prev.length >= tableCount) return [...prev.slice(1), g.id];\n                          return [...prev, g.id];\n                        });\n                      }",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "← Back To Training",
-          "line": 1116,
+          "line": 1118,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -39403,7 +39583,7 @@
         {
           "element": "button",
           "name": "← Exit",
-          "line": 1148,
+          "line": 1150,
           "handler": "() => {\n                  setIsStarted(false);\n                  reportedTablesRef.current = new Set();\n                  liveTableTallyRef.current = {};\n                  tableStatesRef.current = {};\n                  setTableStates({});\n                  setCompletedTables(new Set());\n                  setCombinedStats({\n                    totalHands: 0,\n                    totalCorrect: 0,\n                    totalEVLoss: 0,\n                    measuredEVDecisions: 0,\n                    tablesCompleted: 0,\n                  });\n                }",
           "destination": null,
           "type": null,
@@ -39413,7 +39593,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1200,
+          "line": 1202,
           "handler": "() => {\n                        if (selectedVariant === v.id) return;\n                        setSelectedVariant(v.id);\n                        setRunId(`mt-${Date.now()}`);\n                        reportedTablesRef.current = new Set();\n                        liveTableTallyRef.current = {};\n                        tableStatesRef.current = {};\n                        setTableStates({});\n                        setCompletedTables(new Set());\n                        setCombinedStats({\n                          totalHands: 0,\n                          totalCorrect: 0,\n                          totalEVLoss: 0,\n                          measuredEVDecisions: 0,\n                          tablesCompleted: 0,\n                        });\n                        hasSavedRef.current = false;\n                      }",
           "destination": null,
           "type": "button",
@@ -39423,7 +39603,7 @@
         {
           "element": "button",
           "name": "T · ( H · %) - BB",
-          "line": 1314,
+          "line": 1316,
           "handler": "() => setFocusedGameId(gameId)",
           "destination": null,
           "type": "button",
@@ -39433,7 +39613,7 @@
         {
           "element": "button",
           "name": "Jump To Next Pending Table →",
-          "line": 1352,
+          "line": 1354,
           "handler": "() => {\n                  if (visibleGames.length === 0) return;\n                  const curIdx = Math.max(0, visibleGames.indexOf(activeGameId));\n                  for (let offset = 1; offset <= visibleGames.length; offset += 1) {\n                    const candidateId = visibleGames[(curIdx + offset) % visibleGames.length];\n                    if (completedTables.has(candidateId)) continue;\n                    const candidateState = tableStates[candidateId];\n                    if (!candidateState?.gameComplete && !candidateState?.showFeedback) {\n                      setFocusedGameId(candidateId);\n                      return;\n                    }\n                  }\n                  const nextId = visibleGames[(curIdx + 1) % visibleGames.length];\n                  if (nextId) setFocusedGameId(nextId);\n                }",
           "destination": null,
           "type": "button",
@@ -39443,7 +39623,7 @@
         {
           "element": "button",
           "name": "Table",
-          "line": 1408,
+          "line": 1410,
           "handler": "() => setFocusedGameId(gameId)",
           "destination": null,
           "type": "button",
@@ -39618,20 +39798,20 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 340,
+          "line": 341,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "How Multiway Preflop works",
-          "line": 355,
+          "line": 358,
           "handler": "() => setInfoOpen(true)",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         }
@@ -41020,7 +41200,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 325,
+          "line": 327,
           "handler": "() => setSelectedSpot(key)",
           "destination": null,
           "type": "button",
@@ -41452,10 +41632,10 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 319,
+          "line": 321,
           "handler": "() => setSelectedPosition(p)",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         }
@@ -42268,27 +42448,27 @@
         {
           "element": "button",
           "name": "←",
-          "line": 272,
+          "line": 273,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "How Strategy Concept Tutorial works",
-          "line": 290,
+          "line": 293,
           "handler": "() => setInfoOpen(true)",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "← Back",
-          "line": 502,
+          "line": 508,
           "handler": "prevStep",
           "destination": null,
           "type": null,
@@ -42298,7 +42478,7 @@
         {
           "element": "button",
           "name": "Restart",
-          "line": 576,
+          "line": 582,
           "handler": "() => {\n                    setCurrentStep(0);\n                    setQuizIdx(0);\n                    setQuizAnswer(null);\n                    setQuizScore({ total: 0, correct: 0 });\n                    setCompleted(false);\n                    savedRef.current = false;\n                  }",
           "destination": null,
           "type": null,
@@ -42571,27 +42751,27 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 523,
+          "line": 526,
           "handler": "() =>\n                          setSelectedTags(\n                            isActive\n                              ? selectedTags.filter((t) => t !== tag)\n                              : [...selectedTags, tag]\n                          )",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "#",
-          "line": 648,
+          "line": 653,
           "handler": "() => setSearchTerm(searchTerm === tag ? '' : tag)",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "Pin Note",
-          "line": 752,
+          "line": 759,
           "handler": "() => togglePin(note.id)",
           "destination": null,
           "type": null,
@@ -42724,7 +42904,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 423,
+          "line": 426,
           "excerpt": "placeholder=\"Good reads, correct folds, improved spots...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -42732,7 +42912,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 456,
+          "line": 459,
           "excerpt": "placeholder=\"Missed spots, tilt triggers, leaks found...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -42740,7 +42920,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 489,
+          "line": 492,
           "excerpt": "placeholder=\"Formatting: **bold**, *italic*, `code`, - bullets...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -42748,7 +42928,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 672,
+          "line": 679,
           "excerpt": "placeholder=\"Search notes...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -42985,37 +43165,37 @@
         {
           "element": "button",
           "name": "←",
-          "line": 280,
+          "line": 282,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "How Short Deck Trainer Works",
-          "line": 295,
+          "line": 299,
           "handler": "() => setInfoOpen(true)",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 323,
+          "line": 330,
           "handler": "() => (m === 'quiz' ? startQuiz() : setMode('calc'))",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "Random Hand",
-          "line": 410,
+          "line": 420,
           "handler": "randomHero",
           "destination": null,
           "type": null,
@@ -43282,7 +43462,7 @@
           "line": 889,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
@@ -43292,54 +43472,54 @@
           "line": 936,
           "handler": "() => setGameType(gt.value)",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "BB",
-          "line": 984,
+          "line": 986,
           "handler": "() => {\n                    setStackDepth(sd);\n                    setPage(1);\n                  }",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "Filter by All positions",
-          "line": 1023,
+          "line": 1028,
           "handler": "() => {\n                  setPosition('');\n                  setPage(1);\n                }",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "`Filter by position ${p}`",
-          "line": 1044,
+          "line": 1051,
           "handler": "() => {\n                    setPosition(p);\n                    setPage(1);\n                  }",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1074,
+          "line": 1083,
           "handler": "() => {\n                    setFilter('rxTexture', tex);\n                    setPage(1);\n                  }",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "Show all spots",
-          "line": 1163,
+          "line": 1175,
           "handler": "() => setShowBookmarksOnly(false)",
           "destination": null,
           "type": null,
@@ -43349,7 +43529,7 @@
         {
           "element": "button",
           "name": "Show bookmarked spots only",
-          "line": 1185,
+          "line": 1197,
           "handler": "() => {\n                      if (!viewerSignedIn) {\n                        router.push({ ...BOOKMARK_SIGN_IN });\n                        return;\n                      }\n                      setShowBookmarksOnly(true);\n                    }",
           "destination": null,
           "type": null,
@@ -43359,7 +43539,7 @@
         {
           "element": "button",
           "name": "← Prev",
-          "line": 1247,
+          "line": 1259,
           "handler": "() => setPage((p) => Math.max(1, p - 1))",
           "destination": null,
           "type": null,
@@ -43369,7 +43549,7 @@
         {
           "element": "button",
           "name": "Next →",
-          "line": 1273,
+          "line": 1285,
           "handler": "() => setPage((currentPage) => currentPage + 1)",
           "destination": null,
           "type": null,
@@ -43379,7 +43559,7 @@
         {
           "element": "button",
           "name": "Retry Audited Lookup",
-          "line": 1317,
+          "line": 1329,
           "handler": "() => loadSpotDetail(selectedSpot)",
           "destination": null,
           "type": null,
@@ -43389,7 +43569,7 @@
         {
           "element": "button",
           "name": "`View ${tab.label}`",
-          "line": 1479,
+          "line": 1491,
           "handler": "() => setActiveTab(tab.key)",
           "destination": null,
           "type": null,
@@ -43399,7 +43579,7 @@
         {
           "element": "button",
           "name": "`Color by ${mode.label}`",
-          "line": 1520,
+          "line": 1532,
           "handler": "() => setColorMode(mode.key)",
           "destination": null,
           "type": null,
@@ -44278,7 +44458,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 513,
+          "line": 515,
           "handler": "() => setFilterLevel(l)",
           "destination": null,
           "type": "button",
@@ -44288,7 +44468,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 537,
+          "line": 541,
           "handler": "() => setSortBy(s.k)",
           "destination": null,
           "type": "button",
@@ -47489,7 +47669,8 @@
       "file": "src/components/seo/HubPageSummary.js",
       "imports": [
         "src/components/seo/SmarterConversionCta.jsx",
-        "src/lib/seo/summarySchema.js"
+        "src/lib/seo/summarySchema.js",
+        "src/lib/venueCount.mjs"
       ],
       "links": [
         "/hub/training",
@@ -47538,7 +47719,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 1649,
+          "line": 1650,
           "handler": null,
           "destination": "link.href",
           "type": null,
@@ -47548,7 +47729,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 1660,
+          "line": 1661,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -47558,7 +47739,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 1663,
+          "line": 1664,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -47598,7 +47779,7 @@
       "functions": [
         {
           "name": "usesConsoleDress",
-          "line": 1558,
+          "line": 1559,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -47606,7 +47787,7 @@
         },
         {
           "name": "lookupHubSummaryEntry",
-          "line": 1563,
+          "line": 1564,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -47614,7 +47795,7 @@
         },
         {
           "name": "HubPageSummarySchema",
-          "line": 1589,
+          "line": 1590,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -47622,7 +47803,7 @@
         },
         {
           "name": "HubPageSummary",
-          "line": 1606,
+          "line": 1607,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -47636,7 +47817,7 @@
       "markers": [
         {
           "kind": "SIMULATE",
-          "line": 117,
+          "line": 118,
           "excerpt": "{ name: 'Risk Of Ruin Analyzer', href: '/hub/training/risk-analyzer', text: 'Simulate Monte Carlo Bankroll Trajectories And Downswings.' },",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -47644,7 +47825,7 @@
         },
         {
           "kind": "SIMULATE",
-          "line": 1258,
+          "line": 1259,
           "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -47652,15 +47833,15 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 1460,
-          "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
+          "line": 1461,
+          "excerpt": "`The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across ${VENUE_COUNT_LABEL} Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And ",
           "disposition": "domain-simulation",
           "review": "accepted",
           "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
         },
         {
           "kind": "SIMULATED",
-          "line": 1463,
+          "line": 1464,
           "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -47880,7 +48061,8 @@
     {
       "file": "src/components/seo/SmarterConversionCta.jsx",
       "imports": [
-        "src/components/seo/SmarterQuickSignupSheet.jsx"
+        "src/components/seo/SmarterQuickSignupSheet.jsx",
+        "src/lib/venueCount.mjs"
       ],
       "links": [],
       "apiReferences": [],
@@ -47889,7 +48071,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 122,
+          "line": 123,
           "handler": "handlePrimaryClick",
           "destination": "resolvedPrimaryHref",
           "type": null,
@@ -47899,7 +48081,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 131,
+          "line": 132,
           "handler": null,
           "destination": "resolvedSecondaryHref",
           "type": null,
@@ -47939,7 +48121,7 @@
       "functions": [
         {
           "name": "hasStoredAuthSession",
-          "line": 7,
+          "line": 8,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -47947,7 +48129,7 @@
         },
         {
           "name": "SmarterConversionCta",
-          "line": 34,
+          "line": 35,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -47955,7 +48137,7 @@
         },
         {
           "name": "syncAuth",
-          "line": 52,
+          "line": 53,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -47963,7 +48145,7 @@
         },
         {
           "name": "handlePrimaryClick",
-          "line": 82,
+          "line": 83,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -49734,14 +49916,14 @@
           "line": 2657,
           "handler": "() => setReviewTab(tab.id)",
           "destination": null,
-          "type": null,
+          "type": "button",
           "disabled": null,
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 4562,
+          "line": 4565,
           "handler": "retryAnswerPersistence",
           "destination": null,
           "type": "button",
@@ -49751,7 +49933,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 4625,
+          "line": 4628,
           "handler": "retryTransition",
           "destination": null,
           "type": "button",
@@ -49761,7 +49943,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 4935,
+          "line": 4938,
           "handler": "() => setDifficulty(d.key)",
           "destination": null,
           "type": null,
@@ -49771,7 +49953,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 4982,
+          "line": 4985,
           "handler": "() => setTimerMode(t.key)",
           "destination": null,
           "type": null,
@@ -49781,7 +49963,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 5141,
+          "line": 5144,
           "handler": "() => window.location.reload()",
           "destination": null,
           "type": null,
@@ -49791,7 +49973,7 @@
         {
           "element": "button",
           "name": "← Exit",
-          "line": 5234,
+          "line": 5237,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -49801,7 +49983,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 5247,
+          "line": 5250,
           "handler": "() => window.location.reload()",
           "destination": null,
           "type": null,
@@ -49923,7 +50105,7 @@
         },
         {
           "name": "GodModeArena",
-          "line": 5690,
+          "line": 5693,
           "references": 10,
           "exported": false,
           "defaultExport": false,
@@ -49987,7 +50169,7 @@
         },
         {
           "name": "grade",
-          "line": 4397,
+          "line": 4400,
           "references": 17,
           "exported": false,
           "defaultExport": false,
@@ -70569,7 +70751,9 @@
     },
     {
       "file": "src/lib/seo/productOgImage.js",
-      "imports": [],
+      "imports": [
+        "src/lib/venueCount.mjs"
+      ],
       "links": [
         "/hub/training"
       ],
@@ -70608,7 +70792,7 @@
       "functions": [
         {
           "name": "productOgImage",
-          "line": 39,
+          "line": 43,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -80899,6 +81083,46 @@
       "markers": []
     },
     {
+      "file": "src/lib/venueCount.mjs",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [],
+      "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
       "file": "src/lib/world-menu/navigationState.mjs",
       "imports": [],
       "links": [],
@@ -86295,6 +86519,10 @@
       "to": "src/lib/seo/summarySchema.js"
     },
     {
+      "from": "src/components/seo/HubPageSummary.js",
+      "to": "src/lib/venueCount.mjs"
+    },
+    {
       "from": "src/components/seo/SEOHead.js",
       "to": "src/lib/seo/productOgImage.js"
     },
@@ -86309,6 +86537,10 @@
     {
       "from": "src/components/seo/SmarterConversionCta.jsx",
       "to": "src/components/seo/SmarterQuickSignupSheet.jsx"
+    },
+    {
+      "from": "src/components/seo/SmarterConversionCta.jsx",
+      "to": "src/lib/venueCount.mjs"
     },
     {
       "from": "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -87409,6 +87641,10 @@
     {
       "from": "src/lib/seo/hubPageSchema.js",
       "to": "src/lib/seo/wikidataRegistry.mjs"
+    },
+    {
+      "from": "src/lib/seo/productOgImage.js",
+      "to": "src/lib/venueCount.mjs"
     },
     {
       "from": "src/lib/seo/quizStructuredData.mjs",
@@ -89770,7 +90006,7 @@
       "line": 217,
       "handler": "() => setPreset(r)",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/custom-rake.js"
@@ -89802,11 +90038,11 @@
       "effectRef": "pages/hub/training/custom-solve.js"
     },
     {
-      "id": "pages/hub/training/custom-solve.js:932:3",
+      "id": "pages/hub/training/custom-solve.js:940:3",
       "file": "pages/hub/training/custom-solve.js",
       "element": "button",
       "name": "Lock Spot & Drill 10 Hands On Club Arena Felt →",
-      "line": 932,
+      "line": 940,
       "handler": "() => router.push(arenaLaunchHref)",
       "destination": null,
       "type": "button",
@@ -90010,11 +90246,11 @@
       "effectRef": "pages/hub/training/daily-goals.js"
     },
     {
-      "id": "pages/hub/training/drill-builder.js:486:1",
+      "id": "pages/hub/training/drill-builder.js:490:1",
       "file": "pages/hub/training/drill-builder.js",
       "element": "button",
       "name": "←",
-      "line": 486,
+      "line": 490,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -90257,11 +90493,11 @@
       "effectRef": "pages/hub/training/focus-timer.js"
     },
     {
-      "id": "pages/hub/training/focus-timer.js:464:2",
+      "id": "pages/hub/training/focus-timer.js:468:2",
       "file": "pages/hub/training/focus-timer.js",
       "element": "button",
       "name": "notify ? 'Disable notifications' : 'Enable notifications'",
-      "line": 464,
+      "line": 468,
       "handler": "() => setNotify(!notify)",
       "destination": null,
       "type": "button",
@@ -90322,11 +90558,11 @@
       "effectRef": "pages/hub/training/gto-news.js"
     },
     {
-      "id": "pages/hub/training/gto-news.js:789:3",
+      "id": "pages/hub/training/gto-news.js:793:3",
       "file": "pages/hub/training/gto-news.js",
       "element": "button",
       "name": "`${a.title}${a.isSample ? ' (Sample Content)' : ''}${readArticles.has(a.id) ? ' (Read)' : ''}`",
-      "line": 789,
+      "line": 793,
       "handler": "() => handleExpand(a.id)",
       "destination": null,
       "type": "button",
@@ -90335,11 +90571,11 @@
       "effectRef": "pages/hub/training/gto-news.js"
     },
     {
-      "id": "pages/hub/training/gto-news.js:836:4",
+      "id": "pages/hub/training/gto-news.js:840:4",
       "file": "pages/hub/training/gto-news.js",
       "element": "a",
       "name": "Read Full Article",
-      "line": 836,
+      "line": 840,
       "handler": "(e) => e.stopPropagation()",
       "destination": "`/hub/article?id=${encodeURIComponent(a.id)}`",
       "type": null,
@@ -91096,17 +91332,17 @@
       "line": 1048,
       "handler": "() => {\n                        setSelectedGames((prev) => {\n                          if (prev.includes(g.id)) return prev.filter((x) => x !== g.id);\n                          if (prev.length >= tableCount) return [...prev.slice(1), g.id];\n                          return [...prev, g.id];\n                        });\n                      }",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1116:3",
+      "id": "pages/hub/training/multi-table.js:1118:3",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "← Back To Training",
-      "line": 1116,
+      "line": 1118,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -91115,11 +91351,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1148:4",
+      "id": "pages/hub/training/multi-table.js:1150:4",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "← Exit",
-      "line": 1148,
+      "line": 1150,
       "handler": "() => {\n                  setIsStarted(false);\n                  reportedTablesRef.current = new Set();\n                  liveTableTallyRef.current = {};\n                  tableStatesRef.current = {};\n                  setTableStates({});\n                  setCompletedTables(new Set());\n                  setCombinedStats({\n                    totalHands: 0,\n                    totalCorrect: 0,\n                    totalEVLoss: 0,\n                    measuredEVDecisions: 0,\n                    tablesCompleted: 0,\n                  });\n                }",
       "destination": null,
       "type": null,
@@ -91128,11 +91364,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1200:5",
+      "id": "pages/hub/training/multi-table.js:1202:5",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1200,
+      "line": 1202,
       "handler": "() => {\n                        if (selectedVariant === v.id) return;\n                        setSelectedVariant(v.id);\n                        setRunId(`mt-${Date.now()}`);\n                        reportedTablesRef.current = new Set();\n                        liveTableTallyRef.current = {};\n                        tableStatesRef.current = {};\n                        setTableStates({});\n                        setCompletedTables(new Set());\n                        setCombinedStats({\n                          totalHands: 0,\n                          totalCorrect: 0,\n                          totalEVLoss: 0,\n                          measuredEVDecisions: 0,\n                          tablesCompleted: 0,\n                        });\n                        hasSavedRef.current = false;\n                      }",
       "destination": null,
       "type": "button",
@@ -91141,11 +91377,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1314:6",
+      "id": "pages/hub/training/multi-table.js:1316:6",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "T · ( H · %) - BB",
-      "line": 1314,
+      "line": 1316,
       "handler": "() => setFocusedGameId(gameId)",
       "destination": null,
       "type": "button",
@@ -91154,11 +91390,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1352:7",
+      "id": "pages/hub/training/multi-table.js:1354:7",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "Jump To Next Pending Table →",
-      "line": 1352,
+      "line": 1354,
       "handler": "() => {\n                  if (visibleGames.length === 0) return;\n                  const curIdx = Math.max(0, visibleGames.indexOf(activeGameId));\n                  for (let offset = 1; offset <= visibleGames.length; offset += 1) {\n                    const candidateId = visibleGames[(curIdx + offset) % visibleGames.length];\n                    if (completedTables.has(candidateId)) continue;\n                    const candidateState = tableStates[candidateId];\n                    if (!candidateState?.gameComplete && !candidateState?.showFeedback) {\n                      setFocusedGameId(candidateId);\n                      return;\n                    }\n                  }\n                  const nextId = visibleGames[(curIdx + 1) % visibleGames.length];\n                  if (nextId) setFocusedGameId(nextId);\n                }",
       "destination": null,
       "type": "button",
@@ -91167,11 +91403,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1408:8",
+      "id": "pages/hub/training/multi-table.js:1410:8",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "Table",
-      "line": 1408,
+      "line": 1410,
       "handler": "() => setFocusedGameId(gameId)",
       "destination": null,
       "type": "button",
@@ -91180,27 +91416,27 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multiway-preflop.js:340:1",
+      "id": "pages/hub/training/multiway-preflop.js:341:1",
       "file": "pages/hub/training/multiway-preflop.js",
       "element": "button",
       "name": "← Training",
-      "line": 340,
+      "line": 341,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/multiway-preflop.js"
     },
     {
-      "id": "pages/hub/training/multiway-preflop.js:355:2",
+      "id": "pages/hub/training/multiway-preflop.js:358:2",
       "file": "pages/hub/training/multiway-preflop.js",
       "element": "button",
       "name": "How Multiway Preflop works",
-      "line": 355,
+      "line": 358,
       "handler": "() => setInfoOpen(true)",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/multiway-preflop.js"
@@ -91583,11 +91819,11 @@
       "effectRef": "pages/hub/training/qre-explorer.js"
     },
     {
-      "id": "pages/hub/training/qre-explorer.js:325:2",
+      "id": "pages/hub/training/qre-explorer.js:327:2",
       "file": "pages/hub/training/qre-explorer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 325,
+      "line": 327,
       "handler": "() => setSelectedSpot(key)",
       "destination": null,
       "type": "button",
@@ -91635,14 +91871,14 @@
       "effectRef": "pages/hub/training/rake-solutions.js"
     },
     {
-      "id": "pages/hub/training/rake-solutions.js:319:2",
+      "id": "pages/hub/training/rake-solutions.js:321:2",
       "file": "pages/hub/training/rake-solutions.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 319,
+      "line": 321,
       "handler": "() => setSelectedPosition(p)",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/rake-solutions.js"
@@ -91804,37 +92040,37 @@
       "effectRef": "pages/hub/training/risk-analyzer.js"
     },
     {
-      "id": "pages/hub/training/scenario-demo.js:272:1",
+      "id": "pages/hub/training/scenario-demo.js:273:1",
       "file": "pages/hub/training/scenario-demo.js",
       "element": "button",
       "name": "←",
-      "line": 272,
+      "line": 273,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/scenario-demo.js"
     },
     {
-      "id": "pages/hub/training/scenario-demo.js:290:2",
+      "id": "pages/hub/training/scenario-demo.js:293:2",
       "file": "pages/hub/training/scenario-demo.js",
       "element": "button",
       "name": "How Strategy Concept Tutorial works",
-      "line": 290,
+      "line": 293,
       "handler": "() => setInfoOpen(true)",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/scenario-demo.js"
     },
     {
-      "id": "pages/hub/training/scenario-demo.js:502:3",
+      "id": "pages/hub/training/scenario-demo.js:508:3",
       "file": "pages/hub/training/scenario-demo.js",
       "element": "button",
       "name": "← Back",
-      "line": 502,
+      "line": 508,
       "handler": "prevStep",
       "destination": null,
       "type": null,
@@ -91843,11 +92079,11 @@
       "effectRef": "pages/hub/training/scenario-demo.js"
     },
     {
-      "id": "pages/hub/training/scenario-demo.js:576:4",
+      "id": "pages/hub/training/scenario-demo.js:582:4",
       "file": "pages/hub/training/scenario-demo.js",
       "element": "button",
       "name": "Restart",
-      "line": 576,
+      "line": 582,
       "handler": "() => {\n                    setCurrentStep(0);\n                    setQuizIdx(0);\n                    setQuizAnswer(null);\n                    setQuizScore({ total: 0, correct: 0 });\n                    setCompleted(false);\n                    savedRef.current = false;\n                  }",
       "destination": null,
       "type": null,
@@ -91908,37 +92144,37 @@
       "effectRef": "pages/hub/training/session-notes.js"
     },
     {
-      "id": "pages/hub/training/session-notes.js:523:2",
+      "id": "pages/hub/training/session-notes.js:526:2",
       "file": "pages/hub/training/session-notes.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 523,
+      "line": 526,
       "handler": "() =>\n                          setSelectedTags(\n                            isActive\n                              ? selectedTags.filter((t) => t !== tag)\n                              : [...selectedTags, tag]\n                          )",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/session-notes.js"
     },
     {
-      "id": "pages/hub/training/session-notes.js:648:3",
+      "id": "pages/hub/training/session-notes.js:653:3",
       "file": "pages/hub/training/session-notes.js",
       "element": "button",
       "name": "#",
-      "line": 648,
+      "line": 653,
       "handler": "() => setSearchTerm(searchTerm === tag ? '' : tag)",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/session-notes.js"
     },
     {
-      "id": "pages/hub/training/session-notes.js:752:4",
+      "id": "pages/hub/training/session-notes.js:759:4",
       "file": "pages/hub/training/session-notes.js",
       "element": "button",
       "name": "Pin Note",
-      "line": 752,
+      "line": 759,
       "handler": "() => togglePin(note.id)",
       "destination": null,
       "type": null,
@@ -91973,50 +92209,50 @@
       "effectRef": "pages/hub/training/session-warmup.js"
     },
     {
-      "id": "pages/hub/training/short-deck-trainer.js:280:1",
+      "id": "pages/hub/training/short-deck-trainer.js:282:1",
       "file": "pages/hub/training/short-deck-trainer.js",
       "element": "button",
       "name": "←",
-      "line": 280,
+      "line": 282,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/short-deck-trainer.js"
     },
     {
-      "id": "pages/hub/training/short-deck-trainer.js:295:2",
+      "id": "pages/hub/training/short-deck-trainer.js:299:2",
       "file": "pages/hub/training/short-deck-trainer.js",
       "element": "button",
       "name": "How Short Deck Trainer Works",
-      "line": 295,
+      "line": 299,
       "handler": "() => setInfoOpen(true)",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/short-deck-trainer.js"
     },
     {
-      "id": "pages/hub/training/short-deck-trainer.js:323:3",
+      "id": "pages/hub/training/short-deck-trainer.js:330:3",
       "file": "pages/hub/training/short-deck-trainer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 323,
+      "line": 330,
       "handler": "() => (m === 'quiz' ? startQuiz() : setMode('calc'))",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/short-deck-trainer.js"
     },
     {
-      "id": "pages/hub/training/short-deck-trainer.js:410:4",
+      "id": "pages/hub/training/short-deck-trainer.js:420:4",
       "file": "pages/hub/training/short-deck-trainer.js",
       "element": "button",
       "name": "Random Hand",
-      "line": 410,
+      "line": 420,
       "handler": "randomHero",
       "destination": null,
       "type": null,
@@ -92071,7 +92307,7 @@
       "line": 889,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/solutions.js"
@@ -92084,69 +92320,69 @@
       "line": 936,
       "handler": "() => setGameType(gt.value)",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:984:5",
+      "id": "pages/hub/training/solutions.js:986:5",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "BB",
-      "line": 984,
+      "line": 986,
       "handler": "() => {\n                    setStackDepth(sd);\n                    setPage(1);\n                  }",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1023:6",
+      "id": "pages/hub/training/solutions.js:1028:6",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Filter by All positions",
-      "line": 1023,
+      "line": 1028,
       "handler": "() => {\n                  setPosition('');\n                  setPage(1);\n                }",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1044:7",
+      "id": "pages/hub/training/solutions.js:1051:7",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "`Filter by position ${p}`",
-      "line": 1044,
+      "line": 1051,
       "handler": "() => {\n                    setPosition(p);\n                    setPage(1);\n                  }",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1074:8",
+      "id": "pages/hub/training/solutions.js:1083:8",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1074,
+      "line": 1083,
       "handler": "() => {\n                    setFilter('rxTexture', tex);\n                    setPage(1);\n                  }",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1163:9",
+      "id": "pages/hub/training/solutions.js:1175:9",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Show all spots",
-      "line": 1163,
+      "line": 1175,
       "handler": "() => setShowBookmarksOnly(false)",
       "destination": null,
       "type": null,
@@ -92155,11 +92391,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1185:10",
+      "id": "pages/hub/training/solutions.js:1197:10",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Show bookmarked spots only",
-      "line": 1185,
+      "line": 1197,
       "handler": "() => {\n                      if (!viewerSignedIn) {\n                        router.push({ ...BOOKMARK_SIGN_IN });\n                        return;\n                      }\n                      setShowBookmarksOnly(true);\n                    }",
       "destination": null,
       "type": null,
@@ -92168,11 +92404,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1247:11",
+      "id": "pages/hub/training/solutions.js:1259:11",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "← Prev",
-      "line": 1247,
+      "line": 1259,
       "handler": "() => setPage((p) => Math.max(1, p - 1))",
       "destination": null,
       "type": null,
@@ -92181,11 +92417,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1273:12",
+      "id": "pages/hub/training/solutions.js:1285:12",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Next →",
-      "line": 1273,
+      "line": 1285,
       "handler": "() => setPage((currentPage) => currentPage + 1)",
       "destination": null,
       "type": null,
@@ -92194,11 +92430,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1317:13",
+      "id": "pages/hub/training/solutions.js:1329:13",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Retry Audited Lookup",
-      "line": 1317,
+      "line": 1329,
       "handler": "() => loadSpotDetail(selectedSpot)",
       "destination": null,
       "type": null,
@@ -92207,11 +92443,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1479:14",
+      "id": "pages/hub/training/solutions.js:1491:14",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "`View ${tab.label}`",
-      "line": 1479,
+      "line": 1491,
       "handler": "() => setActiveTab(tab.key)",
       "destination": null,
       "type": null,
@@ -92220,11 +92456,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1520:15",
+      "id": "pages/hub/training/solutions.js:1532:15",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "`Color by ${mode.label}`",
-      "line": 1520,
+      "line": 1532,
       "handler": "() => setColorMode(mode.key)",
       "destination": null,
       "type": null,
@@ -92597,11 +92833,11 @@
       "effectRef": "pages/hub/training/study-group-finder.js"
     },
     {
-      "id": "pages/hub/training/study-group-finder.js:513:4",
+      "id": "pages/hub/training/study-group-finder.js:515:4",
       "file": "pages/hub/training/study-group-finder.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 513,
+      "line": 515,
       "handler": "() => setFilterLevel(l)",
       "destination": null,
       "type": "button",
@@ -92610,11 +92846,11 @@
       "effectRef": "pages/hub/training/study-group-finder.js"
     },
     {
-      "id": "pages/hub/training/study-group-finder.js:537:5",
+      "id": "pages/hub/training/study-group-finder.js:541:5",
       "file": "pages/hub/training/study-group-finder.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 537,
+      "line": 541,
       "handler": "() => setSortBy(s.k)",
       "destination": null,
       "type": "button",
@@ -93234,11 +93470,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1649:1",
+      "id": "src/components/seo/HubPageSummary.js:1650:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "<dynamic>",
-      "line": 1649,
+      "line": 1650,
       "handler": null,
       "destination": "link.href",
       "type": null,
@@ -93247,11 +93483,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1660:2",
+      "id": "src/components/seo/HubPageSummary.js:1661:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 1660,
+      "line": 1661,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -93260,11 +93496,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1663:3",
+      "id": "src/components/seo/HubPageSummary.js:1664:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 1663,
+      "line": 1664,
       "handler": null,
       "destination": "/privacy",
       "type": null,
@@ -93312,11 +93548,11 @@
       "effectRef": "src/components/seo/SmarterAccountUnlockGate.jsx"
     },
     {
-      "id": "src/components/seo/SmarterConversionCta.jsx:122:1",
+      "id": "src/components/seo/SmarterConversionCta.jsx:123:1",
       "file": "src/components/seo/SmarterConversionCta.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 122,
+      "line": 123,
       "handler": "handlePrimaryClick",
       "destination": "resolvedPrimaryHref",
       "type": null,
@@ -93325,11 +93561,11 @@
       "effectRef": "src/components/seo/SmarterConversionCta.jsx"
     },
     {
-      "id": "src/components/seo/SmarterConversionCta.jsx:131:2",
+      "id": "src/components/seo/SmarterConversionCta.jsx:132:2",
       "file": "src/components/seo/SmarterConversionCta.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 131,
+      "line": 132,
       "handler": null,
       "destination": "resolvedSecondaryHref",
       "type": null,
@@ -93969,17 +94205,17 @@
       "line": 2657,
       "handler": "() => setReviewTab(tab.id)",
       "destination": null,
-      "type": null,
+      "type": "button",
       "disabled": null,
       "wiring": "handler",
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4562:16",
+      "id": "src/components/training/GodModeArena.jsx:4565:16",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 4562,
+      "line": 4565,
       "handler": "retryAnswerPersistence",
       "destination": null,
       "type": "button",
@@ -93988,11 +94224,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4625:17",
+      "id": "src/components/training/GodModeArena.jsx:4628:17",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 4625,
+      "line": 4628,
       "handler": "retryTransition",
       "destination": null,
       "type": "button",
@@ -94001,11 +94237,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4935:18",
+      "id": "src/components/training/GodModeArena.jsx:4938:18",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 4935,
+      "line": 4938,
       "handler": "() => setDifficulty(d.key)",
       "destination": null,
       "type": null,
@@ -94014,11 +94250,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:4982:19",
+      "id": "src/components/training/GodModeArena.jsx:4985:19",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 4982,
+      "line": 4985,
       "handler": "() => setTimerMode(t.key)",
       "destination": null,
       "type": null,
@@ -94027,11 +94263,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:5141:20",
+      "id": "src/components/training/GodModeArena.jsx:5144:20",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 5141,
+      "line": 5144,
       "handler": "() => window.location.reload()",
       "destination": null,
       "type": null,
@@ -94040,11 +94276,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:5234:21",
+      "id": "src/components/training/GodModeArena.jsx:5237:21",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "← Exit",
-      "line": 5234,
+      "line": 5237,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -94053,11 +94289,11 @@
       "effectRef": "src/components/training/GodModeArena.jsx"
     },
     {
-      "id": "src/components/training/GodModeArena.jsx:5247:22",
+      "id": "src/components/training/GodModeArena.jsx:5250:22",
       "file": "src/components/training/GodModeArena.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 5247,
+      "line": 5250,
       "handler": "() => window.location.reload()",
       "destination": null,
       "type": null,
@@ -100639,6 +100875,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -101454,6 +101691,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/services/avatar-service.js",
         "src/stores/toastStore.js",
@@ -101895,6 +102133,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -102228,7 +102467,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -102286,7 +102526,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -102398,6 +102639,7 @@
         "src/lib/training/guestTrainingFavorites.mjs",
         "src/lib/training/trainingLobbyFilter.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -102811,6 +103053,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -103185,6 +103428,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -103489,7 +103733,8 @@
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
-        "src/lib/training/trainingPresets.mjs"
+        "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -103585,7 +103830,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -103673,7 +103919,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -103714,6 +103961,7 @@
       "realtime": [],
       "tests": [
         "__tests__/training-authored-model-honesty.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs"
       ]
     },
@@ -103767,6 +104015,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -103977,7 +104226,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
-        "src/lib/training/solverPolicyContract.js"
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/seo/referral-stats",
@@ -104145,7 +104395,8 @@
         "src/lib/supabase.js",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
-        "src/lib/training/trainingPresets.mjs"
+        "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -104285,6 +104536,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -104451,7 +104703,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -104512,7 +104765,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -104573,7 +104827,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -104668,6 +104923,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -104872,7 +105128,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -104949,6 +105206,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs"
       ]
     },
@@ -104969,7 +105227,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -105025,7 +105284,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -105098,7 +105358,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/news/articles",
@@ -105176,6 +105437,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs"
       ]
     },
@@ -105208,6 +105470,7 @@
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/offlineQuestionCache.js",
         "src/lib/training/questionContract.mjs",
+        "src/lib/venueCount.mjs",
         "src/utils/actionGrouper.js"
       ],
       "apiReferences": [
@@ -105384,7 +105647,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -105445,7 +105709,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -105513,7 +105778,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/handHistoryReviewAuthority.mjs",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/audit-hand-history",
@@ -105673,6 +105939,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -106028,7 +106295,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/solvedSpotEngine.js",
-        "src/lib/seo/wikidataRegistry.mjs"
+        "src/lib/seo/wikidataRegistry.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/og/tool-card",
@@ -106067,7 +106335,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -106160,6 +106429,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -106401,6 +106671,7 @@
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
         "src/lib/training/weaknessAnalysis.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -106792,6 +107063,7 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/publicLeaderboardSeed.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -107586,7 +107858,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -107737,6 +108010,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -108030,6 +108304,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-session-config-contract.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs",
@@ -108053,7 +108328,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -108114,7 +108390,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -108155,6 +108432,7 @@
       "realtime": [],
       "tests": [
         "__tests__/training-authored-surface-authority.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs"
       ]
     },
@@ -108232,7 +108510,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -108366,6 +108645,7 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -108707,7 +108987,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -108772,7 +109053,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -108859,7 +109141,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -108917,7 +109200,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -109008,6 +109292,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/services/avatar-service.js",
         "src/utils/pokerHandEvaluator.js"
       ],
@@ -109229,6 +109514,7 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/sessionEvidence.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -109878,7 +110164,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -109920,7 +110207,8 @@
       "tests": [
         "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
         "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
-        "__tests__/training-authored-model-honesty.test.mjs"
+        "__tests__/training-authored-model-honesty.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs"
       ]
     },
     {
@@ -110033,6 +110321,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -110372,6 +110661,7 @@
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -110603,7 +110893,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -110643,7 +110934,8 @@
       ],
       "realtime": [],
       "tests": [
-        "__tests__/training-authored-model-honesty.test.mjs"
+        "__tests__/training-authored-model-honesty.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs"
       ]
     },
     {
@@ -110663,7 +110955,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -110729,7 +111022,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -110967,7 +111261,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -111038,7 +111333,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -111239,6 +111535,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs"
       ]
     },
@@ -111264,7 +111561,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -111372,7 +111670,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -111450,7 +111749,8 @@
       ],
       "realtime": [],
       "tests": [
-        "__tests__/training-final-honesty-surfaces.test.mjs"
+        "__tests__/training-final-honesty-surfaces.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs"
       ]
     },
     {
@@ -111480,7 +111780,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -111586,6 +111887,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/utils/pokerHandEvaluator.js"
       ],
       "apiReferences": [
@@ -111678,6 +111980,7 @@
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-authored-model-honesty.test.mjs",
         "__tests__/training-bookmark-authority.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
         "__tests__/training-reference-is-public-b.test.mjs",
         "__tests__/training-request-deadline.test.mjs",
@@ -111709,7 +112012,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
-        "src/lib/training/solverPolicyContract.js"
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -111800,7 +112104,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -111897,6 +112202,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -112209,7 +112515,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -112277,6 +112584,7 @@
       "realtime": [],
       "tests": [
         "__tests__/training-community-phase-11.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs"
       ]
     },
@@ -112726,6 +113034,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -113024,7 +113333,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -113091,7 +113401,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -113224,6 +113535,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -113596,6 +113908,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -113958,6 +114271,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -114373,7 +114687,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/sessionEvidence.mjs"
+        "src/lib/training/sessionEvidence.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -114462,7 +114777,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -114534,7 +114850,8 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
-        "src/lib/training/weaknessAnalysis.mjs"
+        "src/lib/training/weaknessAnalysis.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -114894,7 +115211,8 @@
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -114945,7 +115263,8 @@
       "reachableFiles": [
         "src/components/seo/SEOHead.js",
         "src/lib/seo/productOgImage.js",
-        "src/lib/seo/shareImageMetadata.mjs"
+        "src/lib/seo/shareImageMetadata.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -115024,7 +115343,8 @@
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/seoFunnelTelemetry.js",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -116014,6 +116334,7 @@
         "__tests__/training-authored-model-honesty.test.mjs",
         "__tests__/training-auxiliary-launch-wiring.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-hub-progressive-grid.test.mjs",
         "__tests__/training-immersive-gameplay.test.mjs",
         "__tests__/training-phase-2-adversarial.test.mjs",
@@ -116295,7 +116616,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/training-global-smarterdesign-click-cards.test.mjs"
+      ]
     },
     {
       "file": "src/components/training/RangeGrid.jsx",
@@ -116491,7 +116814,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -121316,7 +121640,8 @@
     {
       "file": "src/lib/seo/productOgImage.js",
       "reachableFiles": [
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -123122,6 +123447,18 @@
       "tests": []
     },
     {
+      "file": "src/lib/venueCount.mjs",
+      "reachableFiles": [
+        "src/lib/venueCount.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/phases-35-50-aeo.test.mjs"
+      ]
+    },
+    {
       "file": "src/lib/world-menu/navigationState.mjs",
       "reachableFiles": [
         "src/lib/world-menu/navigationState.mjs"
@@ -123775,7 +124112,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 590,
+        "line": 594,
         "excerpt": "placeholder=\"Example: SB Vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -124139,7 +124476,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 423,
+        "line": 426,
         "excerpt": "placeholder=\"Good reads, correct folds, improved spots...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -124148,7 +124485,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 456,
+        "line": 459,
         "excerpt": "placeholder=\"Missed spots, tilt triggers, leaks found...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -124157,7 +124494,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 489,
+        "line": 492,
         "excerpt": "placeholder=\"Formatting: **bold**, *italic*, `code`, - bullets...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -124166,7 +124503,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 672,
+        "line": 679,
         "excerpt": "placeholder=\"Search notes...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -124378,7 +124715,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 117,
+        "line": 118,
         "excerpt": "{ name: 'Risk Of Ruin Analyzer', href: '/hub/training/risk-analyzer', text: 'Simulate Monte Carlo Bankroll Trajectories And Downswings.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -124387,7 +124724,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 1258,
+        "line": 1259,
         "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -124396,8 +124733,8 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1460,
-        "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
+        "line": 1461,
+        "excerpt": "`The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across ${VENUE_COUNT_LABEL} Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And ",
         "disposition": "domain-simulation",
         "review": "accepted",
         "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
@@ -124405,7 +124742,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1463,
+        "line": 1464,
         "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -128224,7 +128561,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "name": "DrillBuilderPage",
-        "line": 281,
+        "line": 283,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -129265,7 +129602,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummarySchema",
-        "line": 1589,
+        "line": 1590,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -129287,7 +129624,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 1606,
+        "line": 1607,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -129598,7 +129935,7 @@
       {
         "file": "src/components/seo/SmarterConversionCta.jsx",
         "name": "SmarterConversionCta",
-        "line": 34,
+        "line": 35,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -132362,7 +132699,7 @@
       {
         "file": "src/lib/seo/productOgImage.js",
         "name": "productOgImage",
-        "line": 39,
+        "line": 43,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -136045,7 +136382,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 590,
+        "line": 594,
         "excerpt": "placeholder=\"Example: SB Vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -136409,7 +136746,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 423,
+        "line": 426,
         "excerpt": "placeholder=\"Good reads, correct folds, improved spots...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -136418,7 +136755,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 456,
+        "line": 459,
         "excerpt": "placeholder=\"Missed spots, tilt triggers, leaks found...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -136427,7 +136764,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 489,
+        "line": 492,
         "excerpt": "placeholder=\"Formatting: **bold**, *italic*, `code`, - bullets...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -136436,7 +136773,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 672,
+        "line": 679,
         "excerpt": "placeholder=\"Search notes...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -136648,7 +136985,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 117,
+        "line": 118,
         "excerpt": "{ name: 'Risk Of Ruin Analyzer', href: '/hub/training/risk-analyzer', text: 'Simulate Monte Carlo Bankroll Trajectories And Downswings.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -136657,7 +136994,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 1258,
+        "line": 1259,
         "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -136666,8 +137003,8 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1460,
-        "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
+        "line": 1461,
+        "excerpt": "`The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across ${VENUE_COUNT_LABEL} Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And ",
         "disposition": "domain-simulation",
         "review": "accepted",
         "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
@@ -136675,7 +137012,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1463,
+        "line": 1464,
         "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -140494,7 +140831,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "name": "DrillBuilderPage",
-        "line": 281,
+        "line": 283,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -141535,7 +141872,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummarySchema",
-        "line": 1589,
+        "line": 1590,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -141557,7 +141894,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 1606,
+        "line": 1607,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -141868,7 +142205,7 @@
       {
         "file": "src/components/seo/SmarterConversionCta.jsx",
         "name": "SmarterConversionCta",
-        "line": 34,
+        "line": 35,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -144632,7 +144969,7 @@
       {
         "file": "src/lib/seo/productOgImage.js",
         "name": "productOgImage",
-        "line": 39,
+        "line": 43,
         "references": 1,
         "exported": true,
         "defaultExport": false,

@@ -24,6 +24,7 @@ import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderWhoWinsCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const RANK_VALS = {
   A: 14,
@@ -745,7 +746,7 @@ export default function WhoWinsCalculatorPage() {
               compact
               eyebrow="Free Smarter.Poker Account"
               title="Master Showdown Rules & Unlock 107 Free GTO Games"
-              description="Create A Free Smarter.Poker Account To Drill Hand Strength, Track Sessions, And Find 715+ Live Poker Rooms."
+              description={`Create A Free Smarter.Poker Account To Drill Hand Strength, Track Sessions, And Find ${VENUE_COUNT_LABEL} Live Poker Rooms.`}
               primaryLabel="Create Free Account"
               primaryHref="/auth/signup?redirect=/tools/who-wins-calculator&src=who-wins"
               secondaryLabel="Sign In"

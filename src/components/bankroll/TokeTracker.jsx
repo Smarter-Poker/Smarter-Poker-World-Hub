@@ -50,6 +50,7 @@ import { supabase } from '../../lib/supabase';
 import VenueSelector from './VenueSelector';
 import toast from '../../stores/toastStore';
 import { busEmit } from '../../engine/EventBus';
+import { localDay } from '../../lib/bankroll/localDates.mjs';
 
 // ── Down type metadata ──
 const DOWN_TYPES = [
@@ -202,7 +203,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         poker_venue_id: null,
         latitude: null,
         longitude: null,
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: localDay(),
         hourly_rate: '',
         notes: '',
     });
@@ -543,7 +544,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             toast.success('Event started!');
             busEmit.sessionStart('Toke Tracker');
             setShowCreateForm(false);
-            setNewGig({ venue_name: '', venue_address: '', location_id: null, venue_type: 'casino', poker_venue_id: null, latitude: null, longitude: null, start_date: new Date().toISOString().split('T')[0], hourly_rate: '', notes: '' });
+            setNewGig({ venue_name: '', venue_address: '', location_id: null, venue_type: 'casino', poker_venue_id: null, latitude: null, longitude: null, start_date: localDay(), hourly_rate: '', notes: '' });
             await requestNotificationPermission();
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));

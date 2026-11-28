@@ -256,6 +256,8 @@ export default function RakeSolutionsPage() {
             {RAKE_PRESETS.map((rk) => (
               <motion.button
                 key={rk.id}
+                type="button"
+                aria-pressed={activeRake.id === rk.id}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => {
                   setActiveRake(rk);
@@ -314,10 +316,12 @@ export default function RakeSolutionsPage() {
           </div>
 
           {/* Position Selector */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 24, overflowX: 'auto' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 24 }}>
             {POSITIONS.map((p) => (
               <button
                 key={p}
+                type="button"
+                aria-pressed={selectedPosition === p}
                 onClick={() => setSelectedPosition(p)}
                 style={{
                   padding: '8px 14px',
@@ -325,6 +329,7 @@ export default function RakeSolutionsPage() {
                   border: 'none',
                   fontSize: 12,
                   fontWeight: 700,
+                  whiteSpace: 'nowrap',
                   cursor: 'pointer',
                   background: selectedPosition === p ? activeRake.color : 'rgba(255,255,255,0.04)',
                   color: selectedPosition === p ? '#fff' : 'var(--sp-fg-muted)',

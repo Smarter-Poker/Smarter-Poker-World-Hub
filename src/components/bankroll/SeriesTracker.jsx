@@ -24,6 +24,7 @@ import { getUserLocations } from '../../lib/bankroll/locationMemory';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 import toast from '../../stores/toastStore';
 import TripReport from './TripReport';
+import { localDay } from '../../lib/bankroll/localDates.mjs';
 
 const CATEGORY_LABELS = {
     poker_cash: 'Cash Games',
@@ -50,7 +51,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
     const [newSeries, setNewSeries] = useState({
         name: '',
         location_id: null,
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: localDay(),
         end_date: null,
         purpose: '',
         notes: '',
@@ -151,7 +152,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
             await createSeries(userId, seriesData);
             toast.success('Series started!');
             setShowCreateForm(false);
-            setNewSeries({ name: '', location_id: null, start_date: new Date().toISOString().split('T')[0], end_date: null, purpose: '', notes: '' });
+            setNewSeries({ name: '', location_id: null, start_date: localDay(), end_date: null, purpose: '', notes: '' });
             await loadData();
         } catch (err) {
             toast.error(err.message || 'Failed to create series');

@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { CarouselEngine } from './carousel/CarouselEngine';
 import { recordCardVisit, triggerHaptic, setLastCarouselIndex, getHiddenCardIds, hydrateHiddenCardIds } from '../state/userPreferences';
 import { getAuthUser } from '../lib/authUtils';
+import { openClubCommander } from '../lib/commander/openClubCommander';
 import { getOwnerOnlyHiddenCardIds } from '../config/ownerOnlyHubCards';
 import { useWorldStore } from '../state/worldStore';
 import { COMMANDER_ORB, POKER_IQ_ORBS, TOKE_TRACKER_ORB, PINNED_ORB_IDS, POKER_ARENA_ORB } from '../orbs/manifest/registry';
@@ -489,33 +490,17 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
         const targetRoute = `/hub/${orbId}`;
 
-        // Commander card → Club Commander management software (standalone app)
-                if (orbId === 'club-commander') {
-            const authStr = localStorage.getItem('smarter-poker-auth');
-            if (authStr) {
-                try {
-                    const auth = JSON.parse(authStr);
-                    if (auth?.session?.access_token) {
-                        fetch('/api/auth/commander-sso', {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${auth.session.access_token}` }
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.url) {
-                                window.location.href = data.url;
-                            } else {
-                                window.location.href = 'https://commander.smarter.poker/commander/login';
-                            }
-                        })
-                        .catch(() => {
-                            window.location.href = 'https://commander.smarter.poker/commander/login';
-                        });
-                        return;
-                    }
-                } catch (err) {}
-            }
-            window.location.href = 'https://commander.smarter.poker/commander/login';
+        // Commander card -> Club Commander (standalone app on its own origin).
+        // 2026-11-27 root-cause fix: this handler read
+        // localStorage['smarter-poker-auth'].session.access_token, but
+        // supabase-js v2 stores the session FLAT (access_token at the top
+        // level), so the token was always undefined, the SSO hop never ran,
+        // and every click landed on the Commander password form. It now asks
+        // the SDK for the live session (refreshed if the access token is
+        // stale) and hands it to the one-time SSO endpoint. Pinned by
+        // __tests__/commander-orb-sso.test.mjs.
+        if (orbId === 'club-commander') {
+            openClubCommander();
             return;
         }
 

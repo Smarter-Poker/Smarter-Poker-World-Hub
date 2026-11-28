@@ -885,8 +885,9 @@ function SolutionsBrowserInner() {
             borderBottom: '1px solid rgba(255,255,255,0.06)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
             <button
+              type="button"
               onClick={() => router.push('/hub/training')}
               style={{
                 background: 'rgba(255,255,255,0.06)',
@@ -897,6 +898,7 @@ function SolutionsBrowserInner() {
                 cursor: 'pointer',
                 fontSize: 12,
                 fontWeight: 600,
+                whiteSpace: 'nowrap',
               }}
             >
               ← Training
@@ -906,9 +908,7 @@ function SolutionsBrowserInner() {
                 fontSize: 22,
                 fontWeight: 800,
                 margin: 0,
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                color: '#eef8ff',
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
@@ -935,6 +935,7 @@ function SolutionsBrowserInner() {
             {GAME_TYPES.map((gt) => (
               <button
                 key={gt.value}
+                type="button"
                 aria-label={`Filter by ${gt.label}`}
                 aria-pressed={gameType === gt.value}
                 onClick={() => setGameType(gt.value)}
@@ -946,9 +947,10 @@ function SolutionsBrowserInner() {
                   cursor: 'pointer',
                   border: 'none',
                   transition: 'all 0.2s',
+                  whiteSpace: 'nowrap',
                   background:
                     gameType === gt.value
-                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)'
+                      ? 'linear-gradient(135deg, #2298ff, #0648e2)'
                       : 'rgba(255,255,255,0.06)',
                   color: gameType === gt.value ? '#fff' : 'var(--sp-fg-muted)',
                 }}
@@ -968,7 +970,7 @@ function SolutionsBrowserInner() {
               flexWrap: 'wrap',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
               <span
                 style={{
                   fontSize: 12,
@@ -983,6 +985,8 @@ function SolutionsBrowserInner() {
               {availableStacks.map((sd) => (
                 <button
                   key={sd}
+                  type="button"
+                  aria-pressed={stackDepth === sd}
                   onClick={() => {
                     setStackDepth(sd);
                     setPage(1);
@@ -994,6 +998,7 @@ function SolutionsBrowserInner() {
                     fontWeight: 700,
                     cursor: 'pointer',
                     border: 'none',
+                    whiteSpace: 'nowrap',
                     transition: 'all 0.15s',
                     background:
                       stackDepth === sd ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
@@ -1008,7 +1013,7 @@ function SolutionsBrowserInner() {
 
             <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.08)' }} />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
               <span
                 style={{
                   fontSize: 12,
@@ -1021,6 +1026,7 @@ function SolutionsBrowserInner() {
                 Position:
               </span>
               <button
+                type="button"
                 aria-label="Filter by All positions"
                 aria-pressed={!position}
                 onClick={() => {
@@ -1034,6 +1040,7 @@ function SolutionsBrowserInner() {
                   fontWeight: 600,
                   cursor: 'pointer',
                   border: 'none',
+                  whiteSpace: 'nowrap',
                   background: !position ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
                   color: !position ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                 }}
@@ -1043,6 +1050,7 @@ function SolutionsBrowserInner() {
               {POSITIONS.map((p) => (
                 <button
                   key={p}
+                  type="button"
                   aria-label={`Filter by position ${p}`}
                   aria-pressed={position === p}
                   onClick={() => {
@@ -1056,6 +1064,7 @@ function SolutionsBrowserInner() {
                     fontWeight: 700,
                     cursor: 'pointer',
                     border: 'none',
+                    whiteSpace: 'nowrap',
                     background: position === p ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
                     color: position === p ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                     fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
@@ -1068,22 +1077,25 @@ function SolutionsBrowserInner() {
 
             {/* Phase 17: Board Texture Filter */}
             <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.08)' }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
               <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>This Page Texture:</span>
               {BOARD_TEXTURES.map((tex) => (
                 <button
                   key={tex}
+                  type="button"
+                  aria-pressed={boardTexture === tex}
                   onClick={() => {
                     setFilter('rxTexture', tex);
                     setPage(1);
                   }}
                   style={{
-                    padding: '4px 8px',
+                    padding: '4px 10px',
                     borderRadius: 6,
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer',
                     border: 'none',
+                    whiteSpace: 'nowrap',
                     background: boardTexture === tex
                       ? `${TEXTURE_FILTER_COLORS[tex]}20`
                       : 'rgba(255,255,255,0.04)',
@@ -1202,7 +1214,7 @@ function SolutionsBrowserInner() {
                       cursor: 'pointer',
                       border: 'none',
                       background: showBookmarksOnly
-                        ? 'rgba(251,191,36,0.15)'
+                        ? 'rgba(86,216,255,0.16)'
                         : 'rgba(255,255,255,0.04)',
                       color: showBookmarksOnly ? '#86daff' : 'var(--sp-fg-dim)',
                       transition: 'all 0.15s',
@@ -1405,7 +1417,7 @@ function SolutionsBrowserInner() {
                     marginBottom: 12,
                     padding: '16px 20px',
                     background:
-                      'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(124,58,237,0.05))',
+                      'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(6,72,226,0.08))',
                     borderRadius: 12,
                     border: '1px solid rgba(0,212,255,0.15)',
                     flexWrap: 'wrap',
@@ -1491,7 +1503,7 @@ function SolutionsBrowserInner() {
                           transition: 'all 0.15s',
                           background:
                             activeTab === tab.key
-                              ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)'
+                              ? 'linear-gradient(135deg, #2298ff, #0648e2)'
                               : 'rgba(255,255,255,0.06)',
                           color: activeTab === tab.key ? '#fff' : 'var(--sp-fg-muted)',
                         }}

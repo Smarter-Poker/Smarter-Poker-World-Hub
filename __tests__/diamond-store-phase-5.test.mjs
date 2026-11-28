@@ -138,12 +138,23 @@ test('all store routes own canonical and social metadata', () => {
 });
 
 test('route heroes are isolated under the image budget and preloaded by route', () => {
+  // The store-v3 route heroes survive only as the social share images.
   for (const asset of ['vip-hero', 'merch-hero', 'rewards-hero', 'club-shop-hero']) {
     assert.ok(statSync(join(ROOT, `public/images/store-v3/${asset}.webp`)).size < 100 * 1024);
-    assert.match(SHOWCASE_CSS, new RegExp(`${asset}\\.webp`));
     assert.match(STORE, new RegExp(`${asset}\\.webp`));
+    assert.doesNotMatch(SHOWCASE_CSS, new RegExp(`${asset}\\.webp`));
   }
   assert.doesNotMatch(SHOWCASE_CSS, /store-section-heroes\.(png|webp)/);
+  // On screen each route opens on its own #SMARTERDESIGN image header scene,
+  // and only that route's scene is preloaded.
+  assert.match(
+    STORE,
+    /rel="preload"\s+as="image"\s+href=\{`\/images\/smarterdesign\/headers\/\$\{SECTION_HEADERS\[activeTab\]\.art\}-scene\.webp`\}/
+  );
+  for (const art of ['store-diamonds', 'store-merch', 'store-rewards', 'store-club-shop']) {
+    const bytes = statSync(join(ROOT, `public/images/smarterdesign/headers/${art}-scene.webp`)).size;
+    assert.ok(bytes < 100 * 1024, `${art}-scene must stay below 100 KiB`);
+  }
 });
 
 test('starter packs, store analytics, legible legal copy, and pressed metal states are wired', () => {
@@ -153,7 +164,11 @@ test('starter packs, store analytics, legible legal copy, and pressed metal stat
   assert.match(SHOWCASE, /Starter Diamond Packs/);
   assert.match(STORE, /captureStoreEvent\('viewed'/);
   assert.match(MERCH, /captureStoreEvent\('catalog_viewed'/);
-  assert.match(SHOWCASE_CSS, /\.packageCard button:active:not\(:disabled\)/);
+  // Pressed metal: the buy buttons are the global #SMARTERDESIGN primary
+  // control, whose :active state lives in styles/smarterdesign.css.
+  assert.ok((SHOWCASE.match(/className="sd-button sd-primary"/g) || []).length >= 2);
+  assert.match(read('styles/smarterdesign.css'), /\.sd-button:active[^{]*\{[^}]*filter:\s*brightness/);
+  assert.doesNotMatch(SHOWCASE_CSS, /:hover/);
   assert.doesNotMatch(LEGACY_STYLES, /legalNote:[\s\S]{0,120}rgba\(255, 255, 255, 0\.4\)/);
   assert.match(SHOWCASE_CSS, /\.legal\s*\{[\s\S]*?font-size:\s*12px/);
 });

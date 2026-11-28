@@ -601,8 +601,8 @@ export default function AutopilotPage() {
                   borderRadius: 18,
                   marginBottom: 24,
                   background:
-                    'linear-gradient(135deg, rgba(168,85,247,0.08) 0%, rgba(139,92,246,0.04) 100%)',
-                  border: '1px solid rgba(168,85,247,0.15)',
+                    'linear-gradient(135deg, rgba(86,216,255,0.1) 0%, rgba(6,72,226,0.08) 100%)',
+                  border: '1px solid rgba(86,216,255,0.26)',
                   textAlign: 'center',
                 }}
               >
@@ -639,6 +639,8 @@ export default function AutopilotPage() {
                   Preset Queue: {weakSpots.map((s) => s.name).join(' → ')} · Standard Timer · 100 BB
                 </div>
                 <motion.button
+                  type="button"
+                  className="sd-button sd-primary"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={startAutopilot}
@@ -646,12 +648,12 @@ export default function AutopilotPage() {
                     padding: '14px 40px',
                     borderRadius: 12,
                     border: 'none',
-                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 1), #7c3aed)',
+                    background: 'linear-gradient(180deg, #51c9ff 0%, #0873ff 14%, #0648e2 52%, #042fa4 100%)',
                     color: '#fff',
                     fontSize: 15,
                     fontWeight: 800,
                     cursor: 'pointer',
-                    boxShadow: '0 4px 20px rgba(168,85,247,0.3)',
+                    boxShadow: '0 4px 20px rgba(8,115,255,0.32)',
                     letterSpacing: 0.5,
                   }}
                 >

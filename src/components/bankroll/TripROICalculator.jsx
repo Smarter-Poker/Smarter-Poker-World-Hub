@@ -6,6 +6,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
+import { parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
 
 export default function TripROICalculator({ trip, userId, displayEUR = false }) {
     const [expenses, setExpenses] = useState({
@@ -77,7 +78,7 @@ export default function TripROICalculator({ trip, userId, displayEUR = false }) 
 
         // Days
         const tripDays = trip.end_date && trip.start_date
-            ? Math.ceil((new Date(trip.end_date) - new Date(trip.start_date)) / (1000 * 60 * 60 * 24)) + 1
+            ? Math.ceil((parseLedgerDay(trip.end_date) - parseLedgerDay(trip.start_date)) / (1000 * 60 * 60 * 24)) + 1
             : 1;
 
         return {

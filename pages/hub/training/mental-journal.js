@@ -509,7 +509,7 @@ export default function MentalJournalPage() {
                   padding: '16px',
                   borderRadius: 12,
                   border: 'none',
-                  background: isSaving ? 'var(--sp-fg-faint)' : 'linear-gradient(135deg, rgba(var(--sp-accent-blue-rgb), 1), #8b5cf6)',
+                  background: isSaving ? 'var(--sp-fg-faint)' : 'linear-gradient(135deg, #2298ff, #0648e2)',
                   color: '#fff',
                   fontSize: 16,
                   fontWeight: 800,

@@ -1322,7 +1322,7 @@ export default function HandHistoryUploadPage() {
                   transition: 'all 0.15s',
                   background:
                     activeView === tab.key
-                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), #7c3aed)'
+                      ? 'linear-gradient(135deg, #2298ff, #0648e2)'
                       : 'rgba(255,255,255,0.06)',
                   color: activeView === tab.key ? '#fff' : 'var(--sp-fg-muted)',
                 }}

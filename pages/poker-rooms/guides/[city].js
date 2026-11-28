@@ -23,6 +23,7 @@ import {
   marketGuidePath,
   getMarketGuideBySlug,
 } from '../../../src/content/guides/markets.js';
+import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 
 export async function getStaticPaths() {
   return {
@@ -220,7 +221,7 @@ export default function PokerMarketCityGuidePage({ guide }) {
             primaryHref={`/auth/signup?redirect=${encodeURIComponent(canonicalPath)}&src=poker-rooms-city-guide`}
             secondaryLabel="Sign In"
             secondaryHref={`/auth/login?redirect=${encodeURIComponent(canonicalPath)}`}
-            highlights={['100% Free Account', '715+ Live Rooms', 'Bankroll Tracker']}
+            highlights={['100% Free Account', `${VENUE_COUNT_LABEL} Poker Rooms`, 'Bankroll Tracker']}
           />
         </div>
 

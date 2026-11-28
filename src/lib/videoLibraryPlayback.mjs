@@ -28,3 +28,13 @@ export function addHandMarker(markers, position, duration) {
     if (markers.includes(second)) return markers;
     return [...markers, second].sort((a, b) => a - b);
 }
+
+/** The chapter playing at a position, or null. */
+export function chapterAt(chapters, position) {
+    if (!Array.isArray(chapters) || !Number.isFinite(position)) return null;
+    let current = null;
+    for (const chapter of chapters) {
+        if (chapter.startSeconds <= position) current = chapter; else break;
+    }
+    return current;
+}

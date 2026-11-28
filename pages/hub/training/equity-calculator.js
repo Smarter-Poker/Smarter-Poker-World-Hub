@@ -985,9 +985,9 @@ export default function EquityCalculatorPage() {
             style={{
               marginTop: 20,
               padding: '16px 20px',
-              background: 'linear-gradient(135deg, rgba(var(--sp-accent-purple-rgb), 0.12), rgba(255,255,255,0.02))',
+              background: 'linear-gradient(135deg, rgba(86, 216, 255, 0.1), rgba(255,255,255,0.02))',
               borderRadius: 12,
-              border: '1px solid rgba(168,85,247,0.3)',
+              border: '1px solid rgba(86,216,255,0.3)',
             }}
           >
             <div
@@ -1371,7 +1371,7 @@ export default function EquityCalculatorPage() {
                 style={{
                   background:
                     'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-                  border: '1px solid rgba(168,85,247,0.2)',
+                  border: '1px solid rgba(86,216,255,0.22)',
                   borderRadius: 14,
                   padding: 20,
                   marginBottom: 20,

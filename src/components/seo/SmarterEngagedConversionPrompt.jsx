@@ -4,6 +4,7 @@ import { trackSeoFunnelEvent } from '../../lib/seo/seoFunnelTelemetry';
 import { isGuestBarHiddenRoute } from './GuestConversionBar';
 import { openQuickSignup, QUICK_SIGNUP_STATE_EVENT } from './SmarterQuickSignupSheet';
 import styles from './SmarterSeoKit.module.css';
+import { VENUE_COUNT_LABEL } from '../../lib/venueCount.mjs';
 
 function trackFunnelEvent(event, props) {
   trackSeoFunnelEvent(event, props);
@@ -70,14 +71,14 @@ function promptCopyForPath(path) {
     return {
       eyebrow: 'Free Live Poker Intel',
       title: 'Unlock Live Waitlists, Peak Hours & Seat Alerts',
-      body: 'Track 715+ Verified Poker Rooms, Save Favorite Venues & Sync Live Series Schedules To Your Free Account.',
+      body: `Track ${VENUE_COUNT_LABEL} Verified Poker Rooms, Save Favorite Venues & Sync Live Series Schedules To Your Free Account.`,
       cta: 'Unlock Live Intel Free',
       unlockKey: 'engaged-venues',
     };
   }
   return {
     eyebrow: 'Free Smarter.Poker Account',
-    title: 'Unlock Full Tools, Live Rooms & Bankroll Tracking',
+    title: 'Unlock Full Tools, Poker Rooms & Bankroll Tracking',
     body: '100% Free Forever - Zero Credit Card Needed. 1-Tap Google, Facebook, Or Email Sign Up.',
     cta: 'Create Free Account',
     unlockKey: 'engaged-seo',

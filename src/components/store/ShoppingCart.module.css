@@ -1,26 +1,32 @@
+/* #SMARTERDESIGN cart drawer controls. The component sets inline styles, so
+   the chrome rims and fills here carry !important (and border before
+   border-image) to replace them. */
 .cartTrigger:focus-visible,
 .closeButton:focus-visible,
 .quantityButton:focus-visible,
 .primaryAction:focus-visible,
 .secondaryAction:focus-visible,
 .removeLabel:focus-visible {
-  outline: 2px solid #8defff !important;
-  outline-offset: 3px !important;
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }
 
 .drawerTitle {
+  color: #f2f7ff !important;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   letter-spacing: 0.02em;
   text-transform: capitalize;
 }
 
 .closeButton {
+  box-sizing: border-box;
   min-width: 122px !important;
-  min-height: 40px !important;
-  border: 1px solid #718b9e !important;
+  min-height: 44px !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
   border-radius: 0 !important;
-  background: #0a151d !important;
-  color: #e7f7ff !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) !important;
+  color: #f2f7ff !important;
   font:
     800 11px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -46,6 +52,7 @@
 .quantityButton,
 .primaryAction,
 .secondaryAction {
+  box-sizing: border-box;
   border-radius: 0 !important;
   font-family:
     var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
@@ -53,17 +60,36 @@
   text-transform: capitalize;
 }
 
-.primaryAction,
+.quantityButton,
 .secondaryAction {
-  border: 1px solid #8defff !important;
-  background: #063446 !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 8px 18px rgba(0, 0, 0, 0.3);
+  min-height: 44px;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) !important;
+  box-shadow: none !important;
+  color: #f2f7ff !important;
 }
 
-.secondaryAction {
-  border-color: #c8a65b !important;
-  background: #171304 !important;
-  color: #fff7dd !important;
+.primaryAction {
+  min-height: 48px;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) !important;
+  box-shadow: none !important;
+  color: #fff !important;
+}
+
+.closeButton:active,
+.quantityButton:active:not(:disabled),
+.primaryAction:active:not(:disabled),
+.secondaryAction:active:not(:disabled) {
+  filter: brightness(0.89);
+}
+
+.quantityButton:disabled,
+.primaryAction:disabled,
+.secondaryAction:disabled {
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: #13202c !important;
+  color: #a7b7c8 !important;
 }

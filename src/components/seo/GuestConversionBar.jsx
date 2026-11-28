@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { openQuickSignup } from './SmarterQuickSignupSheet';
+import { VENUE_COUNT_LABEL } from '../../lib/venueCount.mjs';
 
 export const GUEST_BAR_DISMISSED_KEY = 'sp_guest_conversion_bar_dismissed_v1';
 
@@ -18,7 +19,7 @@ function guestBarCopyForPath(path) {
     path.startsWith('/hub/poker-near-me') ||
     path.startsWith('/poker-rooms')
   ) {
-    return 'Unlock Live Waitlists, Peak-Hour Heatmaps & Seat Alerts Across 715+ Rooms';
+    return `Save Favorite Rooms, Track Series Schedules & Follow ${VENUE_COUNT_LABEL} Poker Rooms`;
   }
   if (path.startsWith('/hub/video-library')) {
     return 'Bookmark Key Hands, Follow Pro Channels & Drill Video Spots Free';
@@ -26,7 +27,7 @@ function guestBarCopyForPath(path) {
   if (path.startsWith('/hub/training')) {
     return 'Track Your GTO Accuracy, Leak Score & Daily Streaks With A Free Account';
   }
-  return 'Unlock Full GTO Tools, 715+ Live Poker Rooms & Free Bankroll Tracking';
+  return `Unlock Full GTO Tools, ${VENUE_COUNT_LABEL} Poker Rooms & Free Bankroll Tracking`;
 }
 
 function normalizePath(rawPath) {

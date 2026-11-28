@@ -280,6 +280,8 @@ export default function QREExplorerPage() {
             {MODEL_PRESETS.map((p) => (
               <motion.button
                 key={p.id}
+                type="button"
+                aria-pressed={activePreset === p.id}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => handlePreset(p)}
                 style={{
@@ -325,6 +327,7 @@ export default function QREExplorerPage() {
               <button
                 key={key}
                 type="button"
+                aria-pressed={selectedSpot === key}
                 onClick={() => setSelectedSpot(key)}
                 style={{
                   padding: '10px 14px',

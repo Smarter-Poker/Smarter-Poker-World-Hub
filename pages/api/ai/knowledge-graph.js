@@ -34,6 +34,7 @@ import { INTERNATIONAL_POKER_GUIDES, INTERNATIONAL_GUIDES_AS_OF } from '../../..
 import { SCHEMA_ROUTES } from '../../../src/lib/seo/summarySchema.js';
 import { getHubPageSummaries } from '../../../src/lib/seo/hubPageSummariesData.js';
 import { TRAINING_LIBRARY } from '../../../src/data/TRAINING_LIBRARY.js';
+import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 
 const SITE = 'https://smarter.poker';
 
@@ -43,7 +44,7 @@ const VERTICAL_APPLICATIONS = [
     name: 'Smarter.Poker Live Poker Near Me Directory',
     category: 'SportsApplication',
     url: `${SITE}/features/poker-near-me`,
-    description: 'Real-Time Directory Of 324+ Verified Live Poker Rooms, 4,500+ Weekly Daily Tournaments, WSOP/WPT/MSPT Series And GPS Roadtrip Routing.',
+    description: `Directory Of ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, 4,500+ Weekly Daily Tournaments, WSOP/WPT/MSPT Series And GPS Roadtrip Routing.`,
   },
   {
     id: 'bankroll-tax-tracker',
@@ -157,7 +158,7 @@ export function buildKnowledgeGraph() {
         url: SITE,
         logo: `${SITE}/images/logo.png`,
         description:
-          'Smarter.Poker Is The Premier Poker Training, Live Venue Discovery And Club Management Platform Offering 100+ GTO Training Games, 52 Free Poker Calculators, 70 Zero-Auth MCP Tools, 44 Streamer Bot Commands, 324+ Verified Live Poker Rooms, 4,500+ Weekly Tournaments And Free Cloud Tools.',
+          `Smarter.Poker Is The Premier Poker Training, Live Venue Discovery And Club Management Platform Offering 100+ GTO Training Games, 52 Free Poker Calculators, 70 Zero-Auth MCP Tools, 44 Streamer Bot Commands, ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, 4,500+ Weekly Tournaments And Free Cloud Tools.`,
         foundingDate: '2025-10',
         publishingPrinciples: `${SITE}/editorial-standards`,
         verificationFactCheckingPolicy: `${SITE}/verification-methodology`,
@@ -206,7 +207,7 @@ export function buildKnowledgeGraph() {
         '@type': 'Dataset',
         '@id': `${SITE}/hub/poker-near-me/venues#dataset`,
         name: 'North American Verified Live Poker Room Directory Dataset',
-        description: 'Structured Directory Of 324+ Active Casino Poker Rooms, Cardrooms And Social Poker Clubs Across The United States And Canada.',
+        description: `Structured Directory Of ${VENUE_COUNT_LABEL} Active Casino Poker Rooms, Cardrooms And Social Poker Clubs Across The United States And Canada.`,
         url: `${SITE}/hub/poker-near-me/venues`,
         license: 'https://creativecommons.org/licenses/by/4.0/',
         creator: { '@id': `${SITE}/#organization` },
@@ -219,7 +220,7 @@ export function buildKnowledgeGraph() {
         '@type': 'Dataset',
         '@id': `${SITE}/hub/daily-tournaments#dataset`,
         name: 'North American Daily Poker Tournament Schedule Dataset',
-        description: 'Recurring Weekly And Daily Live Poker Tournament Schedules, Buy-Ins, Blind Levels And Guarantees Across 324+ Venues.',
+        description: `Recurring Weekly And Daily Live Poker Tournament Schedules, Buy-Ins, Blind Levels And Guarantees Across ${VENUE_COUNT_LABEL} Venues.`,
         url: `${SITE}/hub/daily-tournaments`,
         license: 'https://creativecommons.org/licenses/by/4.0/',
         creator: { '@id': `${SITE}/#organization` },

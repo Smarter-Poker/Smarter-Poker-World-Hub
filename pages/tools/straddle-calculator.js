@@ -24,6 +24,7 @@ import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderStraddleCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const BASE_BLINDS = [
   { id: '1/3', label: '$1/$3 Base Blinds ($6 Straddle)', sb: 1, bb: 3, straddle: 6 },
@@ -661,7 +662,7 @@ export default function StraddleCalculatorPage({
               compact
               eyebrow="Free Smarter.Poker Account"
               title="Save Straddle & Bomb Pot EV Math & Track Live Games Free"
-              description="Bookmark Mississippi Straddle Adjustments, Find 715+ Live Rooms, And Unlock 107 Free GTO Games."
+              description={`Bookmark Mississippi Straddle Adjustments, Find ${VENUE_COUNT_LABEL} Poker Rooms, And Unlock 107 Free GTO Games.`}
               primaryLabel="Create Free Account"
               primaryHref="/auth/signup?redirect=/tools/straddle-calculator&src=straddle-calc"
               secondaryLabel="Sign In"
