@@ -14,7 +14,7 @@
 export const HUD_STATS_AS_OF = '2026-11-24';
 export const HUD_STATS_BASE_PATH = '/learn/hud-stats';
 export const HUD_STATS_URL = 'https://smarter.poker/learn/hud-stats';
-export const HUD_STATS_DOI = '10.5281/zenodo.15129481';
+export const HUD_STATS_DOI = '10.5281/zenodo.24115647';
 
 export function hudStatPath(stat) {
   return `/learn/hud-stats/${stat}`;

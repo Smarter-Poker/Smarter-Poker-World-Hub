@@ -151,7 +151,8 @@ import { hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
 import GeofenceService from '../../src/lib/geofence';
 import { requestPermission, showVenueAlert } from '../../src/lib/pushAlerts';
 import { sendGeofenceNotification } from '../../src/lib/geofencePush';
-import { getAccessToken } from '../../src/lib/authUtils';
+import { getAccessToken, getFreshAccessToken } from '../../src/lib/authUtils';
+import { loadGeofenceVenues } from '../../src/lib/bankroll/geofenceVenues.mjs';
 import { listHeld, releaseHeld, noteAttempt } from '../../src/lib/bankroll/receiptHold.mjs';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import FaqSection from '../../src/components/seo/FaqSection';
@@ -643,14 +644,15 @@ export default function BankrollManagerPage() {
   useEffect(() => {
     if (!userId) return;
     const gf = new GeofenceService();
+    let cancelled = false;
 
     (async () => {
       try {
-        const res = await fetch(`/api/bankroll/linked-venues?userId=${userId}`);
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const data = await res.json();
-        if (data.success && data.venues?.length > 0) {
-          gf.start(data.venues, async (venue) => {
+        // Token-authenticated, no userId in the URL, and only where location
+        // is already granted (src/lib/bankroll/geofenceVenues.mjs).
+        const { venues } = await loadGeofenceVenues({ getToken: getFreshAccessToken });
+        if (!cancelled && venues.length > 0) {
+          gf.start(venues, async (venue) => {
             // Request permission on first trigger
             await requestPermission();
             // Show browser notification (foreground, current tab)
@@ -664,7 +666,7 @@ export default function BankrollManagerPage() {
       } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     })();
 
-    return () => gf.stop();
+    return () => { cancelled = true; gf.stop(); };
   }, [userId]);
 
   const handleLogSubmit = async (saved) => {

@@ -20,6 +20,8 @@ import { readPdf, isPdf, PdfUnreadableError } from '../../lib/docscan/pdfText.mj
 import { downscaleForOcr } from '../../lib/docscan/imageSource';
 import { reportReaderFailure, READER_SECTIONS } from '../../lib/bankroll/reportReaderFailure';
 import { getFreshAccessToken } from '../../lib/authUtils';
+import { licenseExpiry, venue1099Alerts, vaultCanPreview, vaultFileType, VAULT_MAX_BYTES } from '../../lib/bankroll/dealerTax.mjs';
+import { requestErrorMessage } from '../../lib/bankroll/apiGuard.mjs';
 import toast from '../../stores/toastStore';
 import LiveCameraScanner from './LiveCameraScanner';
 import DocumentCropper from './DocumentCropper';
@@ -70,14 +72,15 @@ const METAL = {
 };
 
 // ── License expiry badge ─────────────────────────────────────────
+const EXPIRY_COLORS = {
+    none: { color: METAL.textSecondary },
+    expired: { color: METAL.danger },
+    soon: { color: METAL.warn },
+    active: { color: METAL.success },
+};
 function expiryBadge(expiry_date) {
-    if (!expiry_date) return { label: 'No Expiry', color: METAL.textSecondary, dot: '#a6bdd2' };
-    const now = new Date();
-    const exp = new Date(expiry_date + 'T12:00:00');
-    const diffDays = Math.floor((exp - now) / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return { label: 'Expired', color: METAL.danger, dot: METAL.danger };
-    if (diffDays <= 30) return { label: `Expires in ${diffDays}d`, color: METAL.warn, dot: METAL.warn };
-    return { label: 'Active', color: METAL.success, dot: METAL.success };
+    const expiry = licenseExpiry(expiry_date);
+    return { label: expiry.label, ...EXPIRY_COLORS[expiry.state] };
 }
 
 // ── Main Component ───────────────────────────────────────────────
@@ -89,6 +92,7 @@ function DealerVault({ userId, completedGigs = [] }) {
     const [readError, setReadError] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [deletingId, setDeletingId] = useState(null);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [expanded, setExpanded] = useState(true);
     const fileInputRef = useRef(null);
@@ -163,41 +167,36 @@ function DealerVault({ userId, completedGigs = [] }) {
         : filteredDocs;
 
     // ── 1099 Threshold Checker ──────────────────────────────────
-    const thresholdAlerts = (() => {
-        const currentYear = new Date().getFullYear();
-        const venueMap = {};
-        for (const gig of completedGigs) {
-            if (!gig.start_date) continue;
-            const year = parseInt(gig.start_date.slice(0, 4), 10);
-            if (year !== currentYear) continue;
-            const venue = gig.venue_name || 'Unknown Venue';
-            // Use pre-computed totalTokes (attached by fetchGigs) — fallback to days traversal for safety
-            const total = gig.totalTokes !== undefined
-                ? gig.totalTokes
-                : (gig.days || []).reduce((sum, day) =>
-                    sum + (day.downs || []).reduce((s, d) => s + (d.toke_amount || 0), 0), 0);
-            venueMap[venue] = (venueMap[venue] || 0) + total;
-        }
-        return Object.entries(venueMap || {})
-            .filter(([, total]) => total >= 600)
-            .map(([venue, total]) => ({ venue, total }));
-    })();
+    // The threshold is the one for this calendar year ($2,000 from 2026).
+    const thresholdAlerts = venue1099Alerts(completedGigs, new Date().getFullYear());
 
     // ── File handling ────────────────────────────────────────────
     const handleFileSelect = useCallback((file) => {
         if (!file) return;
-        const allowed = ['image/jpeg', 'image/png', 'image/heic', 'image/webp', 'application/pdf'];
-        if (!allowed.includes(file.type)) {
+        const type = vaultFileType(file);
+        if (!type) {
             toast.error('Only JPG, PNG, HEIC, WEBP, or PDF allowed');
             return;
         }
-        if (file.size > 20 * 1024 * 1024) {
+        if (file.size > VAULT_MAX_BYTES) {
             toast.error('File too large - max 20MB');
             return;
         }
+        // A picker that left `type` empty gets the type its name says, so the
+        // upload is stored and served as what it is.
+        if (file.type !== type) file = new File([file], file.name, { type });
 
         setExpanded(true);
         if (file.type.startsWith('image/')) {
+            if (!vaultCanPreview(file.type)) {
+                // HEIC: most browsers cannot draw it, so it cannot be cropped
+                // or read on the device. It is stored as it is and its details
+                // are typed in, instead of stranding the dealer on a blank
+                // crop screen with nothing saved.
+                setPendingFile(file);
+                setShowUploadForm(true);
+                return;
+            }
             const reader = new FileReader();
             reader.onload = (ev) => {
                 setRawImage(ev.target.result);
@@ -303,7 +302,13 @@ function DealerVault({ userId, completedGigs = [] }) {
                 body: JSON.stringify({ text: read.text, ocrConfidence: read.confidence })
             });
 
-            if (!res.ok) throw new Error('OCR failed');
+            // A refusal is not an unreadable document: say which it was. The
+            // document still saves either way; only the auto-fill is skipped.
+            if (!res.ok) {
+                const refusal = new Error('OCR failed');
+                refusal.status = res.status;
+                throw refusal;
+            }
 
             const { data } = await res.json();
 
@@ -334,7 +339,10 @@ function DealerVault({ userId, completedGigs = [] }) {
             if (err instanceof OcrUnavailableError || err instanceof PdfUnreadableError) {
                 reportReaderFailure(err, READER_SECTIONS.DEALER_VAULT, userId);
             }
-            toast.error('Could not auto-extract data. Please enter manually.');
+            const refused = err && [401, 403, 429, 503].includes(err.status);
+            toast.error(refused
+                ? requestErrorMessage(err.status, '').replace(/\.?$/, '.') + ' Enter the details manually for now.'
+                : 'Could not auto-extract data. Please enter manually.');
         } finally {
             setOcrProgress(null);
             setIsAnalyzing(false);
@@ -374,8 +382,17 @@ function DealerVault({ userId, completedGigs = [] }) {
             };
 
             const { error: dbError } = await supabase.from('dealer_documents').insert(insertPayload);
-            if (dbError) throw dbError;
+            if (dbError) {
+                // The file is already stored. Without a record nothing lists
+                // it and nothing can delete it, so it is taken back out.
+                await removeBankrollObject(supabase, fileUrl);
+                throw new Error('The Document Could Not Be Saved. Nothing Was Stored, Please Try Again.');
+            }
 
+            // Show the tab and year the document was filed under: a 2024 W-2
+            // uploaded while 2026 was selected used to vanish after
+            // "Document uploaded!".
+            if (insertPayload.tax_year) setSelectedYear(insertPayload.tax_year);
             toast.success('Document uploaded!');
             setPendingFile(null);
             setShowUploadForm(false);
@@ -395,7 +412,9 @@ function DealerVault({ userId, completedGigs = [] }) {
     };
 
     const handleDelete = async (doc) => {
+        if (deletingId) return;
         if (!confirm(`Delete "${doc.label || doc.file_name}"?`)) return;
+        setDeletingId(doc.id);
         try {
             const { data, error } = await supabase.from('dealer_documents')
                 .delete().eq('id', doc.id).eq('user_id', userId).select('id').maybeSingle();
@@ -407,6 +426,8 @@ function DealerVault({ userId, completedGigs = [] }) {
             window.dispatchEvent(new CustomEvent('bankroll-updated'));
         } catch (err) {
             toast.error('Failed to delete document');
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -438,9 +459,9 @@ function DealerVault({ userId, completedGigs = [] }) {
                     {/* 1099 Threshold Alerts */}
                     {thresholdAlerts.length > 0 && (
                         <div style={s.alertBox}>
-                            {thresholdAlerts.map(({ venue, total }) => (
+                            {thresholdAlerts.map(({ venue, total, threshold }) => (
                                 <div key={venue} style={s.alertRow}>
-                                    You've Earned <strong style={{ color: METAL.warn }}>${total.toFixed(0)}</strong> At <strong>{venue}</strong> This Year - You May Receive A 1099-NEC
+                                    You've Earned <strong style={{ color: METAL.warn }}>${total.toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong> At <strong>{venue}</strong> This Year - At ${threshold.toLocaleString('en-US')} Or More You May Receive A 1099-NEC
                                 </div>
                             ))}
                         </div>
@@ -667,7 +688,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                         <ul className={vault.documents} aria-label="Stored Documents">
                             {sortedDocs.map(doc => {
                                 const badge = activeTab === 'gaming_license' ? expiryBadge(doc.expiry_date) : null;
-                                const isImage = doc.file_url && !doc.file_url.toLowerCase().endsWith('.pdf');
+                                const isImage = doc.file_url && /\.(jpe?g|png|webp)(\?|$)/i.test(doc.file_url);
                                 return (
                                     <li key={doc.id} className={vault.document}>
                                         {/* Thumbnail or PDF icon */}
@@ -701,14 +722,14 @@ function DealerVault({ userId, completedGigs = [] }) {
                                                 <div style={s.docMeta}>
                                                     {doc.sub_type && <span style={s.badge}>{TAX_SUB_TYPES.find(t => t.value === doc.sub_type)?.label || doc.sub_type}</span>}
                                                     {doc.tax_year && <span style={{ ...s.badge, color: METAL.textSecondary }}>{doc.tax_year}</span>}
-                                                    {doc.amount && <span style={{ ...s.badge, color: METAL.success }}>${parseFloat(doc.amount).toLocaleString()}</span>}
+                                                    {doc.amount != null && doc.amount !== '' && <span style={{ ...s.badge, color: METAL.success }}>${parseFloat(doc.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
                                                 </div>
                                             )}
 
                                             {activeTab === 'paystub' && (
                                                 <div style={s.docMeta}>
                                                     {doc.tax_year && <span style={s.badge}>{doc.tax_year}</span>}
-                                                    {doc.amount && <span style={{ ...s.badge, color: METAL.success }}>${parseFloat(doc.amount).toLocaleString()}</span>}
+                                                    {doc.amount != null && doc.amount !== '' && <span style={{ ...s.badge, color: METAL.success }}>${parseFloat(doc.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
                                                 </div>
                                             )}
 
@@ -730,6 +751,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                             >View</button>
                                             <button
                                                 className={'sd-button ' + vault.deleteButton} aria-label={'Delete ' + (doc.label || doc.file_name)}
+                                                disabled={deletingId === doc.id} aria-busy={deletingId === doc.id || undefined}
                                                 onClick={() => handleDelete(doc)}
                                             ><Trash2 size={17} aria-hidden="true" /></button>
                                         </div>

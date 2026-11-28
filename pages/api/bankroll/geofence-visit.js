@@ -1,66 +1,56 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
- * 📍 GEOFENCE VISIT TRACKER API
- * ═══════════════════════════════════════════════════════════════════════
- * Records when a user enters a poker venue geo-fence
- * ═══════════════════════════════════════════════════════════════════════
+ * GEOFENCE VISIT TRACKER API
+ *
+ * Records when a player enters a venue geofence, at most once per venue in six
+ * hours.
+ *
+ * Hardened 2026-11-27: the method is checked before the token, the identity
+ * comes from the JWT only, venueId must be a uuid (geofence_visits.venue_id is
+ * a uuid column, so anything else was a database error answered as a 500), the
+ * venue name is bounded, a failed duplicate check is no longer read as "no
+ * recent visit", and an insert that returns no row no longer crashes on
+ * `newVisit.id`.
+ *
+ * Known limit, reported rather than patched: directory venues
+ * (poker_venues.id) are integers, so a directory venue id cannot be stored in
+ * geofence_visits.venue_id until that column is migrated. No client calls this
+ * route today; the geofence uses linked-venues and the push alert route.
  */
 
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { geofenceVisitRequest, guardBankrollRequest } from '../../../src/lib/bankroll/apiGuard.mjs';
 
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
+const VISIT_WINDOW_MS = 6 * 60 * 60 * 1000;
 
 export default async function handler(req, res) {
   try {
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
 
-    // BUG #249 FIX: Require JWT auth — prevent IDOR on bankroll data
-    const _token = req.headers.authorization?.replace('Bearer ', '');
-    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-    const _authUser = authData?.user;
-    if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+      const user = await guardBankrollRequest(req, res, {
+          methods: ['POST'],
+          verify: (request) => getServerUserWithFallback(request, getSupabase()),
+      });
+      if (!user) return;
 
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
-
-      const { venueId, venueName, latitude, longitude } = req.body;
-      // BUG #240 FIX: Use JWT identity, not client-submitted userId
-      const userId = _authUser.id;
-
-      if (!venueId) {
-          return res.status(400).json({ success: false, error: 'venueId required' });
-      }
+      const input = geofenceVisitRequest(req.body);
+      if (input.error) return res.status(400).json({ success: false, error: input.error });
+      const userId = user.id;
 
       try {
-          // Check if user already has a recent (within 6 hours) visit to this venue
-          const sixHoursAgo = new Date();
-          sixHoursAgo.setHours(sixHoursAgo.getHours() - 6);
-
-          const { data: recentVisit } = await getSupabase()
+          const since = new Date(Date.now() - VISIT_WINDOW_MS).toISOString();
+          const { data: recentVisit, error: recentError } = await getSupabase()
               .from('geofence_visits')
               .select('id')
               .eq('user_id', userId)
-              .eq('venue_id', venueId)
-              .gte('entered_at', sixHoursAgo.toISOString())
+              .eq('venue_id', input.venueId)
+              .gte('entered_at', since)
               .limit(1);
+          if (recentError) throw recentError;
 
           if (recentVisit && recentVisit.length > 0) {
-              // Already logged a recent visit to this venue
               return res.status(200).json({
                   success: true,
                   message: 'Recent visit already logged',
@@ -68,25 +58,20 @@ export default async function handler(req, res) {
               });
           }
 
-          // Record the new geo-fence entry
           const { data: newVisit, error } = await getSupabase()
               .from('geofence_visits')
               .insert({
                   user_id: userId,
-                  venue_id: venueId,
-                  venue_name: venueName || 'Poker Venue',
+                  venue_id: input.venueId,
+                  venue_name: input.venueName,
                   entered_at: new Date().toISOString(),
                   notified: false,
                   session_logged: false
               })
-              .select()
+              .select('id')
               .maybeSingle();
-
-          if (error) {
-              console.warn('[Geofence] Insert error:', error);
-              return res.status(500).json({ success: false, error: 'Internal server error' });
-          }
-
+          if (error) throw error;
+          if (!newVisit?.id) throw new Error('Visit insert returned no row');
 
           return res.status(200).json({
               success: true,
@@ -94,7 +79,6 @@ export default async function handler(req, res) {
               visitId: newVisit.id,
               reminderScheduledFor: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
           });
-
       } catch (error) {
           console.warn('[Geofence] Server error:', error);
           return res.status(500).json({ success: false, error: 'Failed to record visit' });

@@ -8,6 +8,7 @@ import {
   deleteCalendarEvent,
 } from '../../lib/bankroll/calendarSelectors';
 import { acquireScrollLock } from '../../lib/scrollLock';
+import { localDay } from '../../lib/bankroll/localDates.mjs';
 import toast from '../../stores/toastStore';
 import { supabase } from '../../lib/supabase';
 import styles from './toke/VenueConsole.module.css';
@@ -120,6 +121,7 @@ function TokeCalendar({ userId, headerAction = false }) {
     alert_enabled: true,
   });
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [formError, setFormError] = useState('');
   const isMountedRef = useRef(true);
@@ -198,11 +200,7 @@ function TokeCalendar({ userId, headerAction = false }) {
   });
 
   const today = new Date();
-  const todayStr = [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, '0'),
-    String(today.getDate()).padStart(2, '0'),
-  ].join('-');
+  const todayStr = localDay(today);
   const upcoming = events.filter(
     (ev) => ev.event_date.startsWith(String(currentYear) + '-') && ev.event_date >= todayStr
   );
@@ -216,7 +214,8 @@ function TokeCalendar({ userId, headerAction = false }) {
   const handleDateClick = (year, month, day) => {
     const dateStr = dateKey(year, month, day);
 
-    // If events exist, show first event detail; otherwise open add modal
+    // A day with events opens its first event; the dialog lists the others on
+    // that day and offers another event, which a booked day could not get.
     if (eventMap[dateStr]?.length > 0) {
       setShowEventDetail(eventMap[dateStr][0]);
     } else {
@@ -278,7 +277,8 @@ function TokeCalendar({ userId, headerAction = false }) {
   };
 
   const handleDeleteEvent = async (eventId) => {
-    if (!confirm('Delete this calendar event?')) return;
+    if (deleting || !confirm('Delete this calendar event?')) return;
+    setDeleting(true);
     try {
       await deleteCalendarEvent(eventId);
       toast.success('Event deleted');
@@ -287,6 +287,8 @@ function TokeCalendar({ userId, headerAction = false }) {
       window.dispatchEvent(new CustomEvent('toke-calendar-updated'));
     } catch (err) {
       toast.error(err.message || 'Failed to delete event');
+    } finally {
+      if (isMountedRef.current) setDeleting(false);
     }
   };
 
@@ -412,7 +414,10 @@ function TokeCalendar({ userId, headerAction = false }) {
                       <button
                         key={key}
                         type="button"
-                        aria-label={key}
+                        aria-label={
+                          displayDate(key) +
+                          (list.length ? ', ' + list.length + (list.length === 1 ? ' Event' : ' Events') : '')
+                        }
                         aria-current={todayStr === key ? 'date' : undefined}
                         disabled={key < todayStr && !list.length}
                         data-event={list.length > 0 || undefined}
@@ -558,6 +563,7 @@ function TokeCalendar({ userId, headerAction = false }) {
         <CalendarDialog
           id="toke-calendar-detail-title"
           title={showEventDetail.title}
+          busy={deleting}
           onClose={() => setShowEventDetail(null)}
         >
           <div className={styles.formBody}>
@@ -584,14 +590,46 @@ function TokeCalendar({ userId, headerAction = false }) {
               </div>
             </dl>
           </div>
+          {(eventMap[showEventDetail.event_date] || []).length > 1 && (
+            <ul className={styles.agenda} aria-label="Also On This Day">
+              {eventMap[showEventDetail.event_date]
+                .filter((event) => event.id !== showEventDetail.id)
+                .map((event) => (
+                  <li key={event.id}>
+                    <button type="button" onClick={() => setShowEventDetail(event)} aria-label={event.title}>
+                      <span>
+                        <strong>{event.title}</strong>
+                        {event.venue_name && <small>{event.venue_name}</small>}
+                      </span>
+                      <ChevronRight size={17} aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          )}
           <div className={styles.actions}>
             <button
               type="button"
               className="sd-button"
+              disabled={deleting}
               onClick={() => handleDeleteEvent(showEventDetail.id)}
             >
-              Delete
+              {deleting ? 'Deleting…' : 'Delete'}
             </button>
+            {showEventDetail.event_date >= todayStr && (
+              <button
+                type="button"
+                className="sd-button"
+                disabled={deleting}
+                onClick={() => {
+                  const date = showEventDetail.event_date;
+                  setShowEventDetail(null);
+                  openNewEvent(date);
+                }}
+              >
+                Add Event
+              </button>
+            )}
             <button
               type="button"
               className="sd-button sd-primary"

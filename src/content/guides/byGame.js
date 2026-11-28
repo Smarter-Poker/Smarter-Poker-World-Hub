@@ -43,7 +43,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Las Vegas, Nevada',
         stakes: '$1/$2, $2/$5, $5/$5 Rock, $10/$25 & $25/$50+ PLO',
         rakeOrTimeCharge: '10% Up To $6 Cap At $1/$2; $7-$8 Per 30-Min Time Down At $5/$5+',
-        typicalTables: '6 To 12 Active PLO Tables Daily',
         regionLink: '/poker-rooms/guides/las-vegas-nevada',
       },
       {
@@ -51,7 +50,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Houston, Texas',
         stakes: '$1/$2/$5, $5/$5, $5/$10/$25 PLO4 & PLO5 (Match-The-Stack)',
         rakeOrTimeCharge: '$0.00 Pot Rake | $13 Per Hour Seat Access Fee',
-        typicalTables: '8 To 15 Active PLO4/PLO5 Tables',
         regionLink: '/poker-rooms/guides/houston-texas',
       },
       {
@@ -59,7 +57,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Dallas & Austin, Texas',
         stakes: '$1/$2/$5, $5/$5, $5/$10 PLO4 & 5-Card PLO',
         rakeOrTimeCharge: '$0.00 Pot Rake | $12-$14 Per Hour Seat Rental',
-        typicalTables: '6 To 12 Active PLO Tables',
         regionLink: '/poker-rooms/guides/dallas-fort-worth-texas',
       },
       {
@@ -67,7 +64,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Hollywood, Florida',
         stakes: '$1/$2, $2/$2 ($5 Rock), $5/$5 ($10 Rock) & $10/$25 PLO',
         rakeOrTimeCharge: '10% Up To $6 Cap + $2 Promo ($8/30-Min Time At $5/$5+)',
-        typicalTables: '5 To 10 Active PLO Tables',
         regionLink: '/poker-rooms/guides/south-florida-miami-hollywood',
       },
       {
@@ -75,7 +71,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Tampa, Florida',
         stakes: '$1/$2, $2/$2, $5/$5 Rock & $5/$10 PLO',
         rakeOrTimeCharge: '10% Up To $6 Cap + $2 Promo ($8/30-Min Time At $5/$5+)',
-        typicalTables: '5 To 9 Active PLO Tables',
         regionLink: '/poker-rooms/guides/tampa-central-florida',
       },
       {
@@ -83,7 +78,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Bensalem, Pennsylvania',
         stakes: '$2/$2, $2/$5, $5/$5 & $10/$10/$25 PLO',
         rakeOrTimeCharge: '10% Up To $6 Cap ($8-$9 Time Charge At $5/$5+)',
-        typicalTables: '4 To 8 Active PLO Tables',
         regionLink: '/poker-rooms/guides/philadelphia-pennsylvania',
       },
       {
@@ -91,7 +85,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Kahnawake / Montreal, Canada',
         stakes: '$1/$2, $2/$5, $5/$5 & $5/$10+ PLO4 & PLO5 (CAD)',
         rakeOrTimeCharge: '5% To 10% Capped Rake / Timed High-Stakes Collection',
-        typicalTables: '5 To 9 Active PLO Tables',
         regionLink: '/poker-rooms/international/montreal-canada',
       },
       {
@@ -99,7 +92,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Rozvadov, Czech Republic',
         stakes: '€2/€2, €5/€5, €10/€10 & €25/€25+ PLO4 & PLO5',
         rakeOrTimeCharge: '5% Pot Rake Capped At €10-€20',
-        typicalTables: '6 To 14 Active PLO Tables During Series',
         regionLink: '/poker-rooms/international/rozvadov-czech-republic',
       },
     ],
@@ -133,7 +125,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Austin / Round Rock, Texas',
         stakes: '$1/$2 & $2/$5 NLH With $5-$15 Double-Board PLO Bomb Pots Every Dealer Push',
         rakeOrTimeCharge: '$0.00 Pot Rake | $12-$13 Per Hour Seat Time',
-        typicalTables: '35+ Active Tables Running Dealer-Change Bomb Pots',
         regionLink: '/poker-rooms/guides/austin-san-antonio-texas',
       },
       {
@@ -141,7 +132,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Dallas, Houston & Austin, Texas',
         stakes: '$1/$2, $2/$5 & Dedicated Every-Hand Double-Board PLO Bomb Pot Tables',
         rakeOrTimeCharge: '$0.00 Pot Rake | $12-$14 Per Hour Seat Time',
-        typicalTables: '25+ Tables Per Venue With Mandatory Or Optional Bomb Pots',
         regionLink: '/poker-rooms/guides/dallas-fort-worth-texas',
       },
       {
@@ -149,7 +139,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Houston, Texas',
         stakes: '$1/$3 & $2/$5 NLH/PLO With $10-$25 Double-Board PLO Bomb Pots',
         rakeOrTimeCharge: '$0.00 Pot Rake | $13 Per Hour Seat Access',
-        typicalTables: '25+ Active Tables',
         regionLink: '/poker-rooms/guides/houston-texas',
       },
       {
@@ -157,7 +146,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Scottsdale / Phoenix, Arizona',
         stakes: '$1/$3, $2/$3 & $3/$5 NLH/PLO With Dealer-Change Bomb Pots',
         rakeOrTimeCharge: '10% Pot Rake Capped At $5-$6 + Jackpot Drop',
-        typicalTables: '30+ Tables Participating In Action Orbits',
         regionLink: '/poker-rooms/guides/phoenix-scottsdale-arizona',
       },
       {
@@ -165,7 +153,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Gardena & Hawaiian Gardens, California',
         stakes: '$5/$5 & $5/$10 NLH/PLO With Double-Board Bomb Pot Orbits',
         rakeOrTimeCharge: 'Flat $6-$7 Per-Flop Collection Drop',
-        typicalTables: '30+ Mid-To-High Stakes Tables',
         regionLink: '/poker-rooms/guides/los-angeles-california',
       },
       {
@@ -173,7 +160,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Las Vegas Strip, Nevada',
         stakes: '$2/$5 & $5/$10 NLH/PLO Table-Voted Dealer-Change Bomb Pots',
         rakeOrTimeCharge: '10% Up To $5-$6 Cap / Time Collection At $5/$10+',
-        typicalTables: '15+ Mid-Stakes Tables',
         regionLink: '/poker-rooms/guides/las-vegas-nevada',
       },
       {
@@ -181,7 +167,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Portland, Oregon',
         stakes: '$1/$2 & $2/$5 NLH/PLO With Dealer-Push Double-Board Bomb Pots',
         rakeOrTimeCharge: '$0.00 Pot Rake | $20 Daily Door Membership Fee',
-        typicalTables: '12+ Active Tables',
         regionLink: '/poker-rooms/corridors/seattle-to-portland-northwest',
       },
       {
@@ -189,7 +174,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Jacksonville, Florida',
         stakes: '$2/$5 & $5/$5 NLH/PLO Action Games',
         rakeOrTimeCharge: '10% Up To $6 Cap + $2 Promo Drop',
-        typicalTables: '10+ Action Tables',
         regionLink: '/poker-rooms/corridors/atlanta-to-cherokee-and-florida',
       },
     ],
@@ -223,7 +207,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Las Vegas Strip, Nevada',
         stakes: '$160 To $400 Daily DeepStack NLH & Bounty Events',
         rakeOrTimeCharge: '15% To 18% Total Entry Fee Withholding (30-Min Levels)',
-        typicalTables: '50 Tables Hosting 3 To 4 Daily Events Year-Round',
         regionLink: '/poker-rooms/guides/las-vegas-nevada',
       },
       {
@@ -231,7 +214,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Las Vegas Off-Strip, Nevada',
         stakes: '$60 To $150 3x-4x Daily NLH & Friday/Saturday Nightly Majors',
         rakeOrTimeCharge: '17% To 21% Entry Fee Withholding + High Guarantees',
-        typicalTables: '65 Combined Tables With 200+ Daily Entries',
         regionLink: '/poker-rooms/guides/las-vegas-nevada',
       },
       {
@@ -239,7 +221,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Las Vegas Strip, Nevada',
         stakes: '$200 Weekday Daily NLH & $300-$400 Weekend Guarantees',
         rakeOrTimeCharge: '14.5% To 16.5% Total Fee Ratio (Premier Structure)',
-        typicalTables: '28+ Tables With Deep Starting Stacks',
         regionLink: '/poker-rooms/guides/las-vegas-nevada',
       },
       {
@@ -247,7 +228,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Hollywood & Tampa, Florida',
         stakes: '$130 To $300 Daily Morning, Afternoon & Evening Guarantees',
         rakeOrTimeCharge: '16% To 19% Total Fee Allocation (0% FL State Tax)',
-        typicalTables: '90+ Combined Permanent Tables Across Both Properties',
         regionLink: '/poker-rooms/guides/south-florida-miami-hollywood',
       },
       {
@@ -255,7 +235,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Austin & Houston, Texas',
         stakes: '$80 To $300 Daily Freerolls, Bounties & $10K-$50K Weekend Guarantees',
         rakeOrTimeCharge: 'Low Club Admin / Dealer Fee Access Structure (0% TX State Tax)',
-        typicalTables: '90+ Combined Tables Across Both Texas Flagships',
         regionLink: '/poker-rooms/guides/austin-san-antonio-texas',
       },
       {
@@ -263,7 +242,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Portland, Oregon',
         stakes: '$60 To $220 Zero-Rake Daily Deepstack & Weekend Guarantees',
         rakeOrTimeCharge: '0.0% Tournament House Rake ($15-$20 Daily Door Membership Fee Only)',
-        typicalTables: '35+ Combined Tables (100% Of Buy-Ins Go To Prize Pool)',
         regionLink: '/poker-rooms/corridors/seattle-to-portland-northwest',
       },
       {
@@ -271,7 +249,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Salem & Nashua, New Hampshire',
         stakes: '$100 To $250 Daily New England Deepstack Tournaments',
         rakeOrTimeCharge: '16% To 19% Entry Fee Ratio (0% NH State Income Tax)',
-        typicalTables: '50+ Combined Tables Just North Of Boston',
         regionLink: '/poker-rooms/guides/new-england-boston-foxwoods',
       },
       {
@@ -279,14 +256,13 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Atlantic City, NJ & Bensalem, PA',
         stakes: '$125 To $350 Daily & Weekly Signature NLH Tournaments',
         rakeOrTimeCharge: '15% To 18% Entry Fee Ratio',
-        typicalTables: '100+ Combined Tables Across Mid-Atlantic Corridor',
         regionLink: '/poker-rooms/guides/atlantic-city-new-jersey',
       },
     ],
     faqs: [
       {
         q: 'What Is A Good Rake Percentage For A Daily Live Poker Tournament?',
-        a: 'According To Smarter.Poker\'s Audit Of 4,500+ Weekly Live Tournaments, Any Daily Event Taking 17% Or Less In Combined House And Dealer Fees With 25-Minute Or 30-Minute Blind Levels Ranks In The Top Quartile For Structural Player Value.',
+        a: 'Compare The Share Of Each Buy-In That Goes To House And Staff Fees And The Length Of The Blind Levels On The Structure Sheet: A Lower Fee Share And Longer Levels Give More Play For The Money.',
       },
       {
         q: 'Why Do Portland, Oregon Daily Tournaments Pay Out 100% Of The Buy-In Pool?',
@@ -313,7 +289,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Kahnawake / Montreal, Canada',
         stakes: '$1/$2, $2/$5 & $5/$5+ NLH And Separate PLO Bad Beat Jackpot Pools',
         rakeOrTimeCharge: 'Standard Capped Rake + Dedicated Progressive BBJ Drop',
-        typicalTables: '40+ Active Tables (Historic $2.2M+ & $2.6M+ CAD BBJ Hits)',
         regionLink: '/poker-rooms/international/montreal-canada',
       },
       {
@@ -321,7 +296,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Pittsburgh & Philadelphia, Pennsylvania',
         stakes: '$1/$3 & $2/$5 NLH And PLO Qualifying Cash Games',
         rakeOrTimeCharge: '10% Up To $6 Cap + $2 Bad Beat Jackpot Drop',
-        typicalTables: '55+ Combined Tables (Historic $1.2M+ USD Record US BBJ Hit)',
         regionLink: '/poker-rooms/guides/philadelphia-pennsylvania',
       },
       {
@@ -329,7 +303,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Detroit, Michigan',
         stakes: '$1/$2, $1/$3 & $2/$5 NLH And PLO Cash Games',
         rakeOrTimeCharge: '10% Up To $6-$7 Cap + $2 Bad Beat Jackpot Drop',
-        typicalTables: '35+ Combined Tables (Regular $500K To $1M+ Progressive Pools)',
         regionLink: '/poker-rooms/states/michigan',
       },
       {
@@ -337,7 +310,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Bensalem & Bethlehem, Pennsylvania',
         stakes: '$1/$2, $1/$3 & $2/$5 NLH Qualifying Tables',
         rakeOrTimeCharge: '10% Up To $6 Cap + $2 Promotional / BBJ Drop',
-        typicalTables: '70+ Combined Tables With Six-Figure Jackpot Pools',
         regionLink: '/poker-rooms/guides/philadelphia-pennsylvania',
       },
       {
@@ -345,7 +317,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Hollywood, Tampa & Pompano Beach, Florida',
         stakes: '$1/$2, $2/$5 NLH & PLO (Non-Stop 15-30 Min High-Hand Drops)',
         rakeOrTimeCharge: '10% Up To $6 Cap + $2 High-Hand / Promo Drop',
-        typicalTables: '130+ Combined Tables Returning $500-$1,000 Every 30 Minutes',
         regionLink: '/poker-rooms/guides/south-florida-miami-hollywood',
       },
       {
@@ -353,7 +324,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Los Angeles Basin, California',
         stakes: '$2/$3, $5/$5 & $5/$10 NLH Progressive Jackpot & Royal Flush Pools',
         rakeOrTimeCharge: 'Flat Flop Drop + $1 Mandatory Jackpot Collection',
-        typicalTables: '370+ Combined Active Tables Rapidly Building Daily Jackpot Pools',
         regionLink: '/poker-rooms/guides/los-angeles-california',
       },
       {
@@ -361,7 +331,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Scottsdale, Arizona',
         stakes: '$1/$3, $2/$3, $3/$5 NLH & Limit Hold\'em',
         rakeOrTimeCharge: '10% Up To $5-$6 Cap + $2 Jackpot / High-Hand Drop',
-        typicalTables: '47 Tables With Frequent Six-Figure Bad Beat Jackpots',
         regionLink: '/poker-rooms/guides/phoenix-scottsdale-arizona',
       },
       {
@@ -369,7 +338,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Renton / Kirkland, Washington',
         stakes: '$1/$3 & $3/$5 Hold\'em With Monte Carlo & Progressive BBJ',
         rakeOrTimeCharge: '10% Up To $5-$6 Cap + $2 Jackpot Drop',
-        typicalTables: '30+ Combined Regional Tables With Tiered Monte Carlo Boards',
         regionLink: '/poker-rooms/states/washington',
       },
     ],
@@ -403,7 +371,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Round Rock / Austin, Texas',
         stakes: '$1/$2 ($300-$500 Cap), $1/$3, $2/$5 ($1,500 Cap), $5/$10+ NLH & PLO',
         rakeOrTimeCharge: '$0.00 Pot Rake | $12-$13 Per Hour Seat Access + Membership',
-        typicalTables: '65+ Permanent Tables (85+ During Major Series)',
         regionLink: '/poker-rooms/guides/austin-san-antonio-texas',
       },
       {
@@ -411,7 +378,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Dallas / Irving, Texas',
         stakes: '$1/$2, $2/$5, $5/$5 & $5/$10 NLH, PLO4, PLO5 & Bomb Pots',
         rakeOrTimeCharge: '$0.00 Pot Rake | $13-$14 Per Hour Seat Rental',
-        typicalTables: '40+ Tables With Livestream Studio',
         regionLink: '/poker-rooms/guides/dallas-fort-worth-texas',
       },
       {
@@ -419,7 +385,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Houston, Texas',
         stakes: '$1/$3, $2/$5, $5/$5 & $10/$25+ NLH, PLO4/PLO5 & Mixed Games',
         rakeOrTimeCharge: '$0.00 Pot Rake | $13 Per Hour Seat Access',
-        typicalTables: '45+ Luxury Tables In Westheimer Corridor',
         regionLink: '/poker-rooms/guides/houston-texas',
       },
       {
@@ -427,7 +392,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Houston, Texas',
         stakes: '$1/$3, $2/$5, $5/$5+ NLH & PLO + Major Guaranteed Series',
         rakeOrTimeCharge: '$0.00 Pot Rake | $12-$13 Per Hour Seat Time',
-        typicalTables: '40+ Tables With On-Site Hotel Rooms',
         regionLink: '/poker-rooms/guides/houston-texas',
       },
       {
@@ -435,7 +399,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Houston & Austin, Texas',
         stakes: '$1/$2, $1/$3, $2/$5 NLH & Deep Match-The-Stack PLO',
         rakeOrTimeCharge: '$0.00 Pot Rake | $12-$13 Per Hour Seat Time',
-        typicalTables: '55+ Combined Tables Across Both Locations',
         regionLink: '/poker-rooms/guides/houston-texas',
       },
       {
@@ -443,7 +406,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Dallas, Texas',
         stakes: '$1/$2, $2/$5 NLH & Action Double-Board PLO Bomb Pots',
         rakeOrTimeCharge: '$0.00 Pot Rake | $12-$13 Per Hour Seat Access',
-        typicalTables: '45+ Combined DFW Tables',
         regionLink: '/poker-rooms/guides/dallas-fort-worth-texas',
       },
       {
@@ -451,7 +413,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'San Antonio, Texas',
         stakes: '$1/$2 ($500 Cap) & $2/$5 NLH And PLO',
         rakeOrTimeCharge: '$0.00 Pot Rake | $11-$13 Per Hour Seat Time',
-        typicalTables: '30+ Tables In San Antonio Metro',
         regionLink: '/poker-rooms/guides/austin-san-antonio-texas',
       },
       {
@@ -459,7 +420,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Portland, Oregon',
         stakes: '$1/$2 & $2/$5 NLH/PLO And Daily Deepstack Tournaments',
         rakeOrTimeCharge: '$0.00 Pot Rake & $0.00 Hourly Time Fee | $15-$25 Flat Daily Door Fee',
-        typicalTables: '35+ Combined Portland Tables',
         regionLink: '/poker-rooms/corridors/seattle-to-portland-northwest',
       },
     ],
@@ -493,7 +453,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Las Vegas Strip, Nevada',
         stakes: '$5/$10 ($1,500 Cap), $10/$20+ NLH, $20/$40 To $400/$800+ Mixed Games',
         rakeOrTimeCharge: '$7-$8 Per 30-Minute Time Collection Down ($0 Promo Drop)',
-        typicalTables: '6 To 14 Daily $5/$10+ And High-Limit Mixed Tables',
         regionLink: '/poker-rooms/guides/las-vegas-nevada',
       },
       {
@@ -501,7 +460,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Las Vegas Strip, Nevada',
         stakes: '$5/$10, $10/$25, $25/$50+ NLH, High-Stakes PLO & Mixed Games',
         rakeOrTimeCharge: '$7-$8 Per 30-Minute Time Collection Down ($0 Promo Drop)',
-        typicalTables: '6 To 12 Daily $5/$10+ NLH & PLO Tables',
         regionLink: '/poker-rooms/guides/las-vegas-nevada',
       },
       {
@@ -509,7 +467,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Las Vegas Strip, Nevada',
         stakes: '$2/$5 ($1,500 Cap), $5/$10 ($3,000 Cap), $10/$20/$40 Uncapped NLH & PLO',
         rakeOrTimeCharge: '10% Up To $5 Cap At $2/$5; $7-$8 Time Collection At $5/$10+',
-        typicalTables: '6 To 10 Daily Deep-Stack $5/$10+ Tables',
         regionLink: '/poker-rooms/guides/las-vegas-nevada',
       },
       {
@@ -517,7 +474,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Commerce & Gardena, California',
         stakes: '$5/$10 ($1,500 Cap), $10/$20, $25/$50+ NLH, PLO & $40/$80-$200/$400 Limit',
         rakeOrTimeCharge: 'Flat Per-Hand Collection / High-Limit Time Charge',
-        typicalTables: '15 To 25 Combined Daily $5/$10+ Tables',
         regionLink: '/poker-rooms/guides/los-angeles-california',
       },
       {
@@ -525,7 +481,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Hollywood, Florida',
         stakes: '$5/$10, $10/$25, $25/$50 NLH & Uncapped $5/$5-$25/$25 Rock PLO',
         rakeOrTimeCharge: '$8-$9 Per 30-Minute Time Collection Down (0% FL State Tax)',
-        typicalTables: '5 To 12 Daily $5/$10+ Tables (20+ During WPT)',
         regionLink: '/poker-rooms/guides/south-florida-miami-hollywood',
       },
       {
@@ -533,7 +488,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Bensalem, PA & Atlantic City, NJ',
         stakes: '$5/$10, $10/$10, $10/$25 NLH, $5/$5-$25/$25 PLO & $20/$40+ Stud/Mixed',
         rakeOrTimeCharge: '$8-$9 Per 30-Minute Time Collection Down',
-        typicalTables: '8 To 16 Combined East Coast $5/$10+ Tables',
         regionLink: '/poker-rooms/guides/philadelphia-pennsylvania',
       },
       {
@@ -541,7 +495,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'Houston & Austin, Texas',
         stakes: '$5/$5/$10, $5/$10/$25 & $10/$25/$50 Match-The-Stack NLH & PLO',
         rakeOrTimeCharge: '$0.00 Pot Rake | $13-$14 Per Hour Seat Rental (0% TX State Tax)',
-        typicalTables: '6 To 12 Combined Texas High-Stakes Tables',
         regionLink: '/poker-rooms/guides/houston-texas',
       },
       {
@@ -549,7 +502,6 @@ export const POKER_ROOMS_BY_GAME = [
         location: 'San Jose, California',
         stakes: '$5/$5/$10 Mandatory Three-Blind NLH ($2,000+ Cap) & $20/$40-$80/$160 Limit',
         rakeOrTimeCharge: 'Flat $7 Per-Hand Collection Drop',
-        typicalTables: '8 To 14 Combined Daily High-Stakes Tables',
         regionLink: '/poker-rooms/corridors/bay-area-san-jose-to-sacramento',
       },
     ],
@@ -619,11 +571,11 @@ export function renderByGameDetailMarkdown(game) {
     g.ifThenBecause,
     '',
     '## Top North American Venues For This Format',
-    '| Venue Name | Location | Stakes & Games | Rake / Time Charge | Typical Tables |',
-    '| :--- | :--- | :--- | :--- | :--- |',
+    '| Venue Name | Location | Stakes & Games | Rake / Time Charge |',
+    '| :--- | :--- | :--- | :--- |',
     ...g.topVenues.map(
       (v) =>
-        `| **${v.venueName}** | ${v.location} | ${v.stakes} | ${v.rakeOrTimeCharge} | ${v.typicalTables} |`
+        `| **${v.venueName}** | ${v.location} | ${v.stakes} | ${v.rakeOrTimeCharge} |`
     ),
     '',
     '## Frequently Asked Questions',

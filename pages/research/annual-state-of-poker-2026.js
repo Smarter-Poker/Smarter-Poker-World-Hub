@@ -3,10 +3,8 @@
  *  FLAGSHIP 2026 QUANTITATIVE STATE OF POKER WHITEPAPER
  *  (/research/annual-state-of-poker-2026)
  * ═══════════════════════════════════════════════════════════════════════════════
- * Synthesizes all 15 Zenodo-archived studies (DOI: 10.5281/zenodo.15129481 &
- * 10.5281/zenodo.24115647), VENUE_COUNT_LABEL verified live poker venue economics, rake/tax
- * impact tables, 52 solver calculators, 70 MCP tools, and 25 key empirical
- * statistics in one citeable ScholarlyArticle + Dataset whitepaper.
+ * Collects the research-page figures that have a real basis (computed math,
+ * statute, dated directory reads), each labelled with that basis.
  *
  * House style: Title Case, zero em dashes.
  */
@@ -21,183 +19,126 @@ import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
 import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
-import { RESEARCH_REPORTS, researchPath } from '../../src/content/research/reports';
+import { RESEARCH_REPORTS, researchPath, RESEARCH_ARCHIVE_NOTE } from '../../src/content/research/reports';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
-import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
+import { VENUE_COUNT_LABEL, VENUE_STATE_COUNT } from '../../src/lib/venueCount.mjs';
+import {
+  TOURNAMENT_WEEK_EVENTS,
+  TOURNAMENT_WEEK_MEDIAN_BUY_IN,
+  TOURNAMENT_WEEK_VENUES,
+  TOURNAMENT_SNAPSHOT_WEEK_START,
+  TOURNAMENT_SNAPSHOT_WEEK_END,
+} from '../../src/lib/research/tournamentDirectoryFacts.mjs';
+import { AA_VS_KK, JJ_VS_AKS } from '../../src/lib/research/holdemFacts.mjs';
+import { pct } from '../../src/lib/research/shortDeckFacts.mjs';
 
-export const TWENTY_FIVE_EMPIRICAL_STATISTICS = [
+/**
+ * The figures this whitepaper states, each with its basis.
+ *
+ * It used to list twenty-five "empirical statistics". On 2026-11-28 each was
+ * checked: sixteen came from surveys, audits or simulations that never ran
+ * (rake shares, fee ratios, population frequencies, toke offsets, bad beat
+ * breakevens and the rest) and were removed, and "AA Vs KK 85.20%" was
+ * wrong (the exact enumeration gives 81.3%). What remains is arithmetic,
+ * statute, or a directory read. __tests__/the-research-figures-are-real.law.test.mjs
+ * pins this list.
+ */
+export const WHITEPAPER_DESCRIPTION =
+  'The Smarter.Poker 2026 Whitepaper: Exact Poker Math, US Poker Tax Rules, And Dated Directory Data From The Research Pages, Each Figure Labelled With Its Basis.';
+
+export const WHITEPAPER_FIGURES = [
   {
-    id: 'stat-01',
-    domain: 'Live Cash Rake Economics',
-    metric: '84.0% Of US Commercial & Tribal Rooms',
-    claim: 'Charge A 10% Pot Rake Capped At $5 To $7 Plus A $1 To $2 Promotional Drop At $1/$2 And $1/$3 NLH.',
+    id: 'fig-01',
+    domain: 'River Bet-Sizing Math',
+    basis: 'Computed',
+    metric: '35.7% Bluffs At A 125% Pot Bet',
+    claim: 'A Balanced River Bet Of 125% Pot Contains Bet / (Pot + 2 x Bet) = 35.7% Bluffs, Which Is Also The Equity A Bluff-Catcher Needs To Call.',
   },
   {
-    id: 'stat-02',
-    domain: 'Live Cash Rake Economics',
-    metric: '8.5 To 12.0 BB/100 Hands',
-    claim: 'Effective Win-Rate Drag Paid In House Pot Rake At Low-Stakes $1/$2 And $1/$3 Percentage-Drop Rooms.',
-  },
-  {
-    id: 'stat-03',
-    domain: 'Time-Collection Club Economics',
-    metric: '4.0 To 6.5 BB/100 Hands ($12-$14/Hr)',
-    claim: 'Effective Rake Cost At Texas Zero-Pot-Rake Membership Card Clubs, Saving Active Players $10-$16 Per Hour.',
-  },
-  {
-    id: 'stat-04',
-    domain: 'High-Stakes Cash Economics',
-    metric: '2.5 To 4.5 BB/100 Hands ($7-$9 / 30 Mins)',
-    claim: 'Effective Time-Charge Drag At $5/$10+ Live Cash Tables Using Half-Hour Dealer Down Collections.',
-  },
-  {
-    id: 'stat-05',
-    domain: 'Daily Tournament Structure',
-    metric: '$140 Median Entry Buy-In (21.4% Median Fee)',
-    claim: 'Across 4,500+ Weekly Recurring North American Daily Live Poker Tournaments Audited In 2026.',
-  },
-  {
-    id: 'stat-06',
-    domain: 'Daily Tournament Structure',
-    metric: '24.5% vs. 11.5% Fee Allocation',
-    claim: 'Sub-$100 Daily Turbo Events Deduct 24.5% In Combined House/Staff Fees Versus 11.5% In $600+ Circuit Events.',
-  },
-  {
-    id: 'stat-07',
-    domain: 'GTO Positional Winrates',
-    metric: '+38.5 BB/100 (BTN) vs. -31.0 BB/100 (BB)',
-    claim: '100BB 6-Max Solver Equilibrium Expected Win-Rate Delta Between The Button (44.5% RFI) And Big Blind.',
-  },
-  {
-    id: 'stat-08',
-    domain: 'Population Preflop Leaks',
-    metric: '14% To 19% MP/CO Cold-Call Frequency',
-    claim: 'Low-Stakes Live And Online Players Cold-Call 2-Bets 3x More Frequently Than Rake-Adjusted 3-Bet-Or-Fold Baselines.',
-  },
-  {
-    id: 'stat-09',
-    domain: 'Postflop Continuation Betting',
-    metric: '< 38.0% Turn Barrel Follow-Through',
-    claim: 'Recreational Players Abandon Turn Barrels After Flop C-Betting On Overcard Runouts, Enabling High-EV IP Floats.',
-  },
-  {
-    id: 'stat-10',
-    domain: 'River Overbet Equilibrium',
-    metric: '35.7% Polarized Bluff Threshold (125% Pot)',
-    claim: 'Population River Overbets Above 125% Pot Contain Fewer Than 18% Bluffs Against The 35.7% GTO Requirement.',
-  },
-  {
-    id: 'stat-11',
+    id: 'fig-02',
     domain: 'Independent Chip Model (ICM)',
-    metric: '1.42 To 2.35 Medium-Stack Bubble Factor',
-    claim: 'On Direct Final-Table And Money Bubbles, Medium Stacks Require 58.7% To 70.1% Equity To Call An Even-Chip Shove.',
+    basis: 'Computed',
+    metric: 'Bubble Factor 2.0 Needs 66.7% Equity',
+    claim: 'With Bubble Factor B, Calling An Even-Stack All-In Needs B / (B + 1) Equity, Against 50% In Chip-EV.',
   },
   {
-    id: 'stat-12',
-    domain: 'Satellite Bubble Mechanics',
-    metric: '9.50+ Bubble Factor (>90.5% Required Equity)',
-    claim: 'In Flat-Payout Satellites When Two Micro-Stacks Exist, A Safe Stack Must Fold 100% Of Hands Including Pocket Aces.',
+    id: 'fig-03',
+    domain: 'PKO Bounty Rules',
+    basis: 'Computed',
+    metric: '25% Of The Buy-In In Cash',
+    claim: 'In A PKO Where Half The Buy-In Funds Bounties, Half Of A Collected Starting Bounty Is Paid In Cash: A Quarter Of The Buy-In.',
   },
   {
-    id: 'stat-13',
-    domain: 'PKO & Mystery Bounty Math',
-    metric: '33.3% Starting Stack Per Starting Bounty',
-    claim: 'In Standard 50%-Bounty PKO Events, Each Starting Knockout Bounty Equals One-Third Of A Starting Chip Stack.',
-  },
-  {
-    id: 'stat-14',
-    domain: 'Pot-Limit Omaha Variance',
-    metric: '135 BB/100 (PLO4) To 195 BB/100 (PLO6)',
-    claim: 'Standard Deviation In Pot-Limit Omaha Is 1.6x To 2.3x Higher Than No-Limit Hold\'em (75-95 BB/100).',
-  },
-  {
-    id: 'stat-15',
+    id: 'fig-04',
     domain: 'Combinatorial Preflop Equity',
-    metric: '85.20% (AA vs KK) & 53.95% (JJ vs AKs)',
-    claim: 'Exact 1,712,304-Board Enumeration Confirms Overpair-Vs-Underpair And Coin-Flip Preflop Equity Ceilings.',
+    basis: 'Computed',
+    metric: `${pct(AA_VS_KK)} (AA Vs KK) & ${pct(JJ_VS_AKS)} (JJ Vs AKs)`,
+    claim: 'Exact Enumeration Of All 1,712,304 Boards (Aces And Jacks In Spades And Hearts; Kings, And Ace-King Suited, In The Other Suits).',
   },
   {
-    id: 'stat-16',
+    id: 'fig-05',
     domain: 'Winrate Statistical Proof',
-    metric: '111,023 Hands For 95% Winrate Confidence',
-    claim: 'At A True 5.0 BB/100 Winrate And 85.0 BB/100 Standard Deviation, Proving Positive EV Requires 111,023 Hands.',
+    basis: 'Computed',
+    metric: '111,023 Hands For 95% Confidence',
+    claim: 'At A True 5.0 BB/100 Winrate And 85.0 BB/100 Standard Deviation, The 95% Interval Excludes Zero After (1.96 x 85 / 5)^2 x 100 = 111,023 Hands.',
   },
   {
-    id: 'stat-17',
-    domain: 'Live Table Pace Of Play',
-    metric: '27 To 30 Hands/Hr Live vs. 85+ Online',
-    claim: 'Automatic Shufflers Increase Live Casino Deal Speed By 22% Compared To Hand-Shuffled Tables.',
-  },
-  {
-    id: 'stat-18',
-    domain: 'Dealer Tipping & Comps',
-    metric: '$1.00-$2.50/Hr Comps vs. $3.75/Hr Tips',
-    claim: 'Casino Player Rewards Comps Offset Approximately 42% To 55% Of Standard $1.25/Pot Dealer Toke Outflows.',
-  },
-  {
-    id: 'stat-19',
-    domain: 'US State Tax Withholding',
-    metric: '0.0% State Tax In NV, TX, FL, WA & NH',
-    claim: 'Five Major US Poker Jurisdictions Impose Zero State Income Tax On Cash Game Or W-2G Tournament Winnings.',
-  },
-  {
-    id: 'stat-20',
-    domain: 'Federal W-2G & FinCEN CTR',
-    metric: '$5,000 Net W-2G vs. $10,000 Cash CTR',
-    claim: 'IRS Form W-2G Triggers At $5,000+ Net Tournament Profit, While FinCEN CTRs Trigger At $10,000+ Daily Cash Movement.',
-  },
-  {
-    id: 'stat-21',
-    domain: 'International Visitor Tax Rules',
-    metric: '0% Cage Withholding In UK, Czechia & Bahamas',
-    claim: 'London, Rozvadov, Prague, Monte Carlo, Melbourne, Montreal, And Nassau Impose 0% Casino Cage Tax On Poker.',
-  },
-  {
-    id: 'stat-22',
-    domain: 'Bad Beat Jackpot Breakeven',
-    metric: '$250,000+ To $380,000+ Progressive Pool',
-    claim: 'Threshold Where Expected Table-Share + Hand-Share BBJ Return Exceeds The $2 Per-Hand Promotional Drop.',
-  },
-  {
-    id: 'stat-23',
-    domain: 'Late-Registration ICM Boost',
-    metric: '+4.5% To +11.8% Immediate ICM Appreciation',
-    claim: 'Registering At The Close Of Late Registration In Freezeout/Re-Entry MTTs Increases Starting Stack $-Value.',
-  },
-  {
-    id: 'stat-24',
+    id: 'fig-06',
     domain: 'Multi-Street Geometric Sizing',
+    basis: 'Computed',
     metric: 'g = 0.5 * ((1 + 2 * SPR)^(1/n) - 1)',
-    claim: 'Constant Pot-Fraction Sizing Across n Streets Maximizes Polarized River Indifference At 100BB-200BB Depth.',
+    claim: 'Betting The Same Fraction g Of The Pot On Each Of n Streets Gets Stacks All In By The River.',
   },
   {
-    id: 'stat-25',
+    id: 'fig-07',
+    domain: 'US State Income Tax',
+    basis: 'Statute',
+    metric: 'No State Income Tax In NV, TX, FL, WA & NH',
+    claim: 'These Five States Levy No Personal Income Tax On Gambling Winnings.',
+  },
+  {
+    id: 'fig-08',
+    domain: 'Federal W-2G & FinCEN CTR',
+    basis: 'Statute',
+    metric: 'W-2G Over 5,000 Net; CTR Over 10,000 Cash',
+    claim: 'Form W-2G Reports Poker Tournament Winnings Over 5,000 Dollars Net Of The Buy-In; A FinCEN CTR Covers Cash Over 10,000 Dollars In One Gaming Day. From Tax Year 2026 Only 90% Of Gambling Losses Are Deductible.',
+  },
+  {
+    id: 'fig-09',
+    domain: 'Tournament Directory',
+    basis: 'Directory Data',
+    metric: `${TOURNAMENT_WEEK_EVENTS} Events, Median Buy-In ${TOURNAMENT_WEEK_MEDIAN_BUY_IN}`,
+    claim: `Live Tournaments The Smarter.Poker Directory Listed At ${TOURNAMENT_WEEK_VENUES} Venues For ${TOURNAMENT_SNAPSHOT_WEEK_START} To ${TOURNAMENT_SNAPSHOT_WEEK_END}.`,
+  },
+  {
+    id: 'fig-10',
     domain: 'Listed Directory Footprint',
-    metric: `${VENUE_COUNT_LABEL} Venues, 52 Calculators & 70 MCP Tools`,
-    claim: `Smarter.Poker's Zero-Paywall Open Corpus Spans ${VENUE_COUNT_LABEL} Venues, 52 Calculators, 70 MCP Tools, And 15 Studies.`,
+    basis: 'Directory Data',
+    metric: `${VENUE_COUNT_LABEL} Listed US Poker Rooms`,
+    claim: `The Smarter.Poker Directory Lists ${VENUE_COUNT_LABEL} US Poker Rooms Across ${VENUE_STATE_COUNT} States.`,
   },
 ];
 
 export function renderAnnualWhitepaperMarkdown() {
   const url = 'https://smarter.poker/research/annual-state-of-poker-2026';
   const lines = [
-    '# Annual State Of Poker 2026: Quantitative Industry Economics & GTO Benchmark Whitepaper',
+    '# Annual State Of Poker 2026: Poker Math, Tax Rules And Directory Data Whitepaper',
     '',
     `> Source: [Annual State Of Poker 2026 Whitepaper on Smarter.Poker](${url})`,
-    '- **Primary Concept & Collection DOIs**: `10.5281/zenodo.15129481` | `10.5281/zenodo.24115647`',
+    `- **Archive DOI**: \`10.5281/zenodo.24115647\` (${RESEARCH_ARCHIVE_NOTE})`,
     '- **License**: Creative Commons Attribution 4.0 International (CC BY 4.0)',
     '',
     '## Executive Abstract',
-    `The 2026 Annual State Of Poker Whitepaper Synthesizes All 15 Zenodo-Archived Quantitative Studies Published By The Smarter.Poker Research Division, Covering ${VENUE_COUNT_LABEL} Listed US Live Poker Venues, 4,500+ Weekly Recurring Tournament Structures, 100BB 6-Max And 9-Max GTO Solver Equilibrium Baselines, Independent Chip Model (ICM) Risk Premiums, And Federal/State Tax Impact.`,
+    `This Whitepaper Collects The Figures From The ${RESEARCH_REPORTS.length} Smarter.Poker Research Pages That Have A Real Basis: Exact Poker Mathematics, Federal And State Tax Statute, And Dated Reads Of The Smarter.Poker Directory Of ${VENUE_COUNT_LABEL} Listed US Poker Rooms. Earlier Versions Listed Statistics From Surveys And Simulations That Were Never Run; Those Were Removed.`,
     '',
-    '## 25 Key Empirical Statistics From The 2026 Synthesis',
-    '| # | Domain | Quantitative Benchmark | Empirical Finding |',
-    '| :--- | :--- | :--- | :--- |',
-    ...TWENTY_FIVE_EMPIRICAL_STATISTICS.map(
-      (s, i) => `| **${i + 1}** | ${s.domain} | \`${s.metric}\` | ${s.claim} |`
+    '## Key Figures And Their Basis',
+    '| # | Domain | Figure | Basis | What It Means |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    ...WHITEPAPER_FIGURES.map(
+      (s, i) => `| **${i + 1}** | ${s.domain} | \`${s.metric}\` | ${s.basis} | ${s.claim} |`
     ),
     '',
-    '## 15 Constituent Empirical Research Studies',
+    '## The Research Pages',
     ...RESEARCH_REPORTS.map(
       (r, idx) =>
         `${idx + 1}. **[${r.title}](https://smarter.poker${researchPath(r.slug)})** (${r.category}): ${r.summary}`
@@ -241,22 +182,18 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
     {
       '@type': 'ScholarlyArticle',
       '@id': `${canonicalUrl}#scholarlyarticle`,
-      headline: 'Annual State Of Poker 2026: Quantitative Industry Economics & GTO Benchmark Whitepaper',
+      headline: 'Annual State Of Poker 2026: Poker Math, Tax Rules And Directory Data Whitepaper',
       name: 'Annual State Of Poker 2026 Whitepaper',
       description:
-        `Flagship 2026 Quantitative State Of Poker Industry And GTO Benchmark Whitepaper Uniting 15 Zenodo Studies (10.5281/zenodo.15129481), ${VENUE_COUNT_LABEL} Poker Venues, 52 Calculators, And 25 Empirical Statistics.`,
+        WHITEPAPER_DESCRIPTION,
       url: canonicalUrl,
       inLanguage: 'en-US',
       datePublished: '2026-11-24',
       dateModified: '2026-11-24',
       isAccessibleForFree: true,
       license: 'https://creativecommons.org/licenses/by/4.0/',
-      sameAs: [
-        'https://doi.org/10.5281/zenodo.15129481',
-        'https://doi.org/10.5281/zenodo.24115647',
-      ],
+      sameAs: ['https://doi.org/10.5281/zenodo.24115647'],
       identifier: [
-        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.15129481', url: 'https://doi.org/10.5281/zenodo.15129481' },
         { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24115647', url: 'https://doi.org/10.5281/zenodo.24115647' },
       ],
       author: {
@@ -274,9 +211,9 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
     {
       '@type': 'Dataset',
       '@id': `${canonicalUrl}#dataset`,
-      name: 'Annual State Of Poker 2026 Master Quantitative Synthesis Dataset (25 Core Industry Benchmarks)',
+      name: 'Annual State Of Poker 2026 Figures And Their Basis',
       description:
-        `Master 2026 Quantitative Poker Benchmark Dataset Uniting ${VENUE_COUNT_LABEL} Live Poker Venues, 15 Zenodo Research Studies, Rake/Tax Impact Matrices, And 100BB GTO Solver Baselines.`,
+        WHITEPAPER_DESCRIPTION,
       url: canonicalUrl,
       inLanguage: 'en-US',
       datePublished: '2026-11-24',
@@ -286,7 +223,6 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
       creator: { '@id': 'https://smarter.poker/#organization' },
       publisher: { '@id': 'https://smarter.poker/#organization' },
       identifier: [
-        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.15129481' },
         { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24115647' },
       ],
       distribution: [
@@ -311,16 +247,16 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
     <div style={styles.page}>
       <SEOHead
         title="Annual State Of Poker 2026 Whitepaper"
-        description={`Flagship 2026 Quantitative State Of Poker Industry And GTO Benchmark Whitepaper Uniting 15 Zenodo Studies (10.5281/zenodo.15129481), ${VENUE_COUNT_LABEL} Poker Venues, 52 Calculators, And 25 Empirical Statistics.`}
+        description={WHITEPAPER_DESCRIPTION}
         canonical={canonicalPath}
         jsonLd={jsonLd}
       >
-        <meta key="citation-title" name="citation_title" content="Annual State Of Poker 2026: Quantitative Industry Economics & GTO Benchmark Whitepaper" />
+        <meta key="citation-title" name="citation_title" content="Annual State Of Poker 2026: Poker Math, Tax Rules And Directory Data Whitepaper" />
         <meta key="citation-author" name="citation_author" content="Smarter.Poker Research Division" />
         <meta key="citation-institution" name="citation_technical_report_institution" content="Smarter Software Inc." />
         <meta key="citation-pub-date" name="citation_publication_date" content="2026-11-24" />
         <meta key="citation-public-url" name="citation_public_url" content={canonicalUrl} />
-        <meta key="citation-doi" name="citation_doi" content="10.5281/zenodo.15129481" />
+        <meta key="citation-doi" name="citation_doi" content="10.5281/zenodo.24115647" />
       </SEOHead>
 
       <UniversalHeader pageDepth={2} />
@@ -340,21 +276,21 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
 
         <header style={styles.heroPlate}>
           <div style={styles.badgeRow}>
-            <span style={styles.cyanBadge}>ZENODO DOI: 10.5281/ZENODO.15129481</span>
-            <span style={styles.emeraldBadge}>15 STUDIES • {VENUE_COUNT_LABEL} VENUES • 52 SOLVER TOOLS • 25 BENCHMARKS</span>
+            <span style={styles.cyanBadge}>ZENODO DOI: 10.5281/ZENODO.24115647</span>
+            <span style={styles.emeraldBadge}>EVERY FIGURE LABELLED WITH ITS BASIS</span>
           </div>
 
           <h1 style={styles.h1}>
-            Annual State Of Poker 2026: Quantitative Industry Economics &amp; GTO Benchmark Whitepaper
+            Annual State Of Poker 2026: Poker Math, Tax Rules And Directory Data Whitepaper
           </h1>
 
           <p style={styles.lead}>
-            <strong>Executive Abstract:</strong> This Flagship 2026 Quantitative Synthesis Unites All <strong>{'15 Zenodo-Archived Smarter.Poker Research Studies (DOI: 10.5281/zenodo.15129481 & 10.5281/zenodo.24115647)'}</strong> Across <strong>{VENUE_COUNT_LABEL} Live Poker Venues</strong>, <strong>4,500+ Weekly Recurring Tournament Schedules</strong>, <strong>52 Deterministic Poker Math &amp; Solver Calculators</strong>, And <strong>70 Zero-Auth Model Context Protocol (MCP) Tools</strong> Into 25 Canonical Empirical Industry Benchmarks.
+            <strong>Executive Abstract:</strong> This Whitepaper Collects The Figures From The Smarter.Poker Research Pages That Have A Real Basis: <strong>Exact Poker Mathematics</strong>, <strong>Federal And State Tax Statute</strong>, And <strong>Dated Reads Of The Smarter.Poker Directory Of {VENUE_COUNT_LABEL} Listed US Poker Rooms</strong>. Every Figure Below Names Its Basis. No Figure Comes From A Survey, Because None Was Run.
           </p>
 
           <div style={styles.quickCrossLinks}>
             <Link href="/research/benchmarks" style={styles.crossBtnCyan}>
-              View North American Market Scorecards
+              View US Market Comparison
             </Link>
             <Link href="/facts" style={styles.crossBtnEmerald}>
               Canonical Entity Facts &amp; Anti-Hallucination Sheet
@@ -366,15 +302,15 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
               Download Academic RIS (.RIS)
             </a>
             <Link href="/research" style={styles.crossBtnOutline}>
-              All 15 Research Reports
+              All Research Pages
             </Link>
           </div>
         </header>
 
-        {/* 25 Key Empirical Statistics Table */}
-        <section aria-label="Twenty Five Empirical Poker Industry Statistics" style={styles.sectionPlate}>
+        {/* Key Figures Table */}
+        <section aria-label="Key Figures And Their Basis" style={styles.sectionPlate}>
           <h2 style={styles.h2}>
-            25 Canonical Empirical Statistics From The 2026 Quantitative Poker Synthesis
+            Key Figures And Their Basis
           </h2>
           <div style={{ overflowX: 'auto' }}>
             <table style={styles.table}>
@@ -382,16 +318,18 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
                 <tr style={styles.trHead}>
                   <th style={styles.th}>#</th>
                   <th style={styles.th}>Research Domain</th>
-                  <th style={styles.th}>Quantitative Metric</th>
-                  <th style={styles.th}>Empirical Finding &amp; Solver / Census Proof</th>
+                  <th style={styles.th}>Figure</th>
+                  <th style={styles.th}>Basis</th>
+                  <th style={styles.th}>What It Means</th>
                 </tr>
               </thead>
               <tbody>
-                {TWENTY_FIVE_EMPIRICAL_STATISTICS.map((stat, idx) => (
+                {WHITEPAPER_FIGURES.map((stat, idx) => (
                   <tr key={stat.id} style={styles.trBody}>
                     <td style={styles.tdTitle}>{idx + 1}</td>
                     <td style={styles.tdCyan}>{stat.domain}</td>
                     <td style={styles.tdEmerald}>{stat.metric}</td>
+                    <td style={styles.td}>{stat.basis}</td>
                     <td style={styles.td}>{stat.claim}</td>
                   </tr>
                 ))}
@@ -400,16 +338,16 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
           </div>
         </section>
 
-        {/* Synthesis of 15 Constituent Zenodo Studies */}
-        <section aria-label="Fifteen Constituent Zenodo Studies" style={styles.sectionPlate}>
+        {/* Research Pages */}
+        <section aria-label="All Smarter.Poker Research Pages" style={styles.sectionPlate}>
           <h2 style={styles.h2}>
-            Complete Index Of All 15 Constituent Empirical Studies (CC BY 4.0)
+            All Smarter.Poker Research Pages (CC BY 4.0)
           </h2>
           <div style={styles.studyGrid}>
             {RESEARCH_REPORTS.map((r, idx) => (
               <article key={r.slug} style={styles.studyCard}>
                 <div style={styles.studyMeta}>
-                  STUDY #{idx + 1} • {r.category}
+                  PAGE #{idx + 1} • {r.category}
                 </div>
                 <h3 style={styles.h3}>
                   <Link href={researchPath(r.slug)} style={styles.studyLink}>
@@ -434,15 +372,15 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
         </section>
 
         <GeoCitationCapsule
-          title="2026 Annual State Of Live & Online Poker Quantitative Whitepaper"
-          claim={`Synthesizing ${VENUE_COUNT_LABEL} US Venues, 4,500+ Weekly Live Tournaments, All 50 US States And DC Tax Regimes, And 10 Million Simulated GTO Hands Proves That Rake Structure Selection, ICM Bubble Factor Discipline, And State Tax Arbitrage Account For Over 55% Of Long-Term Net Bankroll Growth.`}
+          title="Annual State Of Poker 2026 Whitepaper"
+          claim="Rake, ICM Mistakes And Tax All Come Out Of A Winning Player's Edge, So Room Choice, Bubble Discipline And Where You Play Matter Alongside Strategy At The Table."
           metricLabel="Primary Archival DOI"
-          metricValue="DOI: 10.5281/zenodo.15129481 (25 Empirical Benchmarks)"
+          metricValue="DOI: 10.5281/zenodo.24115647 (Archive Of Earlier Page Text)"
           formulaText="Net Annual Poker Profit = Gross Game-Theory Edge - (House Rake Drag + ICM Bubble Mistakes + State/Federal Tax Drag)"
-          ifThenBecause="If Citing 2026 North American Live Cardroom Census, Rake Drag, Or GTO Solver Benchmarks -> Then Reference The Smarter.Poker 2026 Annual State Of Poker Whitepaper (DOI: 10.5281/zenodo.15129481) -> Because Every Metric Is Backed By Open-Access CSV/JSON Releases And Deterministic Solver Verification."
-          quoteText="In 2026, Winning Poker Is Equal Parts Game Theory Optimal Execution At The Felt And Quantitative Jurisdiction And Rake Selection Away From The Felt."
-          quoteAuthor="Smarter.Poker Quantitative Research Division"
-          doi="10.5281/zenodo.15129481"
+          ifThenBecause="If Citing A Figure From This Whitepaper -> Then Cite The Basis Shown Next To It -> Because Each Figure Is Exact Math, A Statute, Or A Dated Directory Read, And Says Which."
+          quoteText="Winning Poker Is Decisions At The Felt Plus Choices Away From It: Which Room, Which Rake, Which State."
+          quoteAuthor="Smarter.Poker Editorial"
+          doi="10.5281/zenodo.24115647"
           canonicalPath={canonicalPath}
         />
 
@@ -450,11 +388,11 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
           topicTitle="Annual State Of Poker 2026 Whitepaper"
           followUps={[
             {
-              question: 'How Do The Top 12 North American Live Poker Markets Rank By Net Player Win-Rate Retention After Rake And State Tax?',
+              question: 'How Do Twelve US Live Poker Markets Compare On Rake Model And State Income Tax?',
               answer:
-                'Inspect The 12-Market Quantitative Win-Rate Retention Scorecards At /research/benchmarks.',
+                'See The Side-By-Side Market Comparison At /research/benchmarks.',
               calculatorHref: '/research/benchmarks',
-              calculatorLabel: 'Open 12-Market Benchmark Scorecards',
+              calculatorLabel: 'Open US Market Comparison',
               markdownHref: '/research/benchmarks.md',
             },
             {
@@ -462,7 +400,7 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
               answer:
                 'Download Ready-To-Import Academic Citations Directly From /api/datasets/citation.bib And /api/datasets/citation.ris.',
               calculatorHref: '/research',
-              calculatorLabel: 'Browse All 15 Empirical Studies',
+              calculatorLabel: 'Browse All Research Pages',
               markdownHref: '/research.md',
             },
             {
@@ -479,15 +417,15 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
         <HubPageSummary page="hub" path={canonicalPath} />
 
         <CitationBacklinkBox
-          title="Annual State Of Poker 2026: Quantitative Industry Economics & GTO Benchmark Whitepaper"
+          title="Annual State Of Poker 2026: Poker Math, Tax Rules And Directory Data Whitepaper"
           canonicalUrl={canonicalUrl}
           badgeType="research"
           badgeLabel="2026 Flagship Whitepaper"
-          badgeValue="DOI: 10.5281/zenodo.15129481"
-          summary={`Flagship 2026 Quantitative State Of Poker Industry And GTO Benchmark Whitepaper Uniting 15 Zenodo Studies (10.5281/zenodo.15129481), ${VENUE_COUNT_LABEL} Poker Venues, 52 Calculators, And 25 Empirical Statistics.`}
+          badgeValue="DOI: 10.5281/zenodo.24115647"
+          summary={WHITEPAPER_DESCRIPTION}
           publishedYear="2026"
           slug="annual-state-of-poker-2026"
-          doi="10.5281/zenodo.15129481"
+          doi="10.5281/zenodo.24115647"
         />
 
         <div style={{ margin: '28px 0' }}>

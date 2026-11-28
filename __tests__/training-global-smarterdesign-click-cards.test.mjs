@@ -289,9 +289,9 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
   assert.match(read('src/components/training/GodModeArena.jsx'), /aria-selected=\{reviewTab === tab\.id\}/, 'GodModeArena review tabs must expose aria-selected');
   assert.doesNotMatch(read('src/components/training/PreflopChartStats.jsx'), /#7c3aed|#a855f7|#fbbf24|rgba\(251,191,36/i, 'PreflopChartStats must not use banned purple/amber colors');
 
-  // Codebase-wide zero-purple AND zero-gold/amber guard across ALL 95 Training route files + 9 mounted Training components
+  // Codebase-wide zero-purple, zero-pink AND zero-gold/amber guard across ALL 95 Training route files + ALL mounted Training components
   const allTrainingPages = ['pages/hub/training.js', ...walkTrainingSource('pages/hub/training')];
-  const BANNED_UI_COLOR_RE = /#(?:7c3aed|8b5cf6|a855f7|c084fc|6d28d9|9333ea|1e1b4b|fbbf24|f59e0b|d97706|ffd700|f2b84b|d4a020|8b6914)\b|rgba\(\s*(?:124\s*,\s*58\s*,\s*237|139\s*,\s*92\s*,\s*246|168\s*,\s*85\s*,\s*247|251\s*,\s*191\s*,\s*36|245\s*,\s*158\s*,\s*11|255\s*,\s*215\s*,\s*0)\b/i;
+  const BANNED_UI_COLOR_RE = /#(?:7c3aed|8b5cf6|a855f7|a78bfa|c084fc|6d28d9|5b21b6|9333ea|1e1b4b|ec4899|f472b6|fbbf24|f59e0b|eab308|d97706|ca8a04|facc15|fde68a|ffd700|f2b84b|d4a020|8b6914)\b|rgba\(\s*(?:124\s*,\s*58\s*,\s*237|139\s*,\s*92\s*,\s*246|168\s*,\s*85\s*,\s*247|192\s*,\s*132\s*,\s*252|236\s*,\s*72\s*,\s*153|244\s*,\s*114\s*,\s*182|251\s*,\s*191\s*,\s*36|245\s*,\s*158\s*,\s*11|234\s*,\s*179\s*,\s*8|250\s*,\s*204\s*,\s*21|202\s*,\s*138\s*,\s*4|255\s*,\s*215\s*,\s*0)\b/i;
   const bannedColorHits = [];
   for (const rel of allTrainingPages) {
     const lines = read(rel).split('\n');
@@ -302,6 +302,7 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
     }
   }
   const mountedTrainingUiComponents = [
+    'src/components/training/BlockerScorePanel.jsx',
     'src/components/training/GTOQuestionCard.jsx',
     'src/components/training/LeaderboardPanel.jsx',
     'src/components/training/PerformanceTrends.jsx',
@@ -311,6 +312,12 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
     'src/components/training/PreflopChartStats.jsx',
     'src/components/training/GodModeArena.jsx',
     'src/components/training/games/UniversalDynamicTable.jsx',
+    'src/components/training/TrainingGameEntry.jsx',
+    'src/components/training/TrainingImageHeader.jsx',
+    'src/components/training/TrainingPageHead.jsx',
+    'src/components/training/lobby/TrainingGameCard.jsx',
+    'src/components/training/lobby/TrainingFiltersSheet.jsx',
+    'src/components/training/lobby/TrainingGamePreviewSheet.jsx',
   ];
   for (const rel of mountedTrainingUiComponents) {
     const lines = read(rel).split('\n');
@@ -318,14 +325,14 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
       const trimmed = lines[i].trim();
       if (trimmed.startsWith('//') || trimmed.startsWith('*')) continue;
       // Physical casino chip denominations on the poker felt are authentic chip colors, not UI chrome
-      if (rel.endsWith('UniversalDynamicTable.jsx') && /--chip-(?:face|rim)/.test(lines[i])) continue;
+      if (rel.endsWith('UniversalDynamicTable.jsx') && /--chip-(?:face|rim|edge-1)/.test(lines[i])) continue;
       if (BANNED_UI_COLOR_RE.test(lines[i])) bannedColorHits.push(`${rel}:${i + 1}`);
     }
   }
   assert.deepEqual(
     bannedColorHits,
     [],
-    `Banned purple/violet/gold/amber UI accents found in Training pages or mounted components:\n${bannedColorHits.join('\n')}`,
+    `Banned purple/violet/pink/gold/amber UI accents found in Training pages or mounted components:\n${bannedColorHits.join('\n')}`,
   );
 
   // 7. Gameplay table wiring, instant 52-card picker prefetch, editorial gto-news headlines, and Playwright layout spec
@@ -351,6 +358,39 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
   const layoutSpec = read('e2e/030-training-smarterdesign-layout.spec.ts');
   assert.match(layoutSpec, /getClientRects\(\)/, 'Playwright layout spec must enforce per-word Range.getClientRects() anti-slicing check');
   assert.match(layoutSpec, /Select Hole Card 1/, 'Playwright layout spec must verify Hand Lab 52-card picker and Escape dismiss');
+
+  // 8. Phase 3 hardening: Escape-key dialog dismissal, Hand Comparison 52-card Club Arena deck,
+  //    PostgreSQL 22P02 -> 404 API resilience, study-groups try/catch, and lazy sheet code-splitting
+  assert.match(read('pages/hub/training/equity-calculator.js'), /event\.key === 'Escape'[\s\S]{0,60}onClose\(\)/, 'equity-calculator CardGrid must dismiss on Escape');
+  const handComp = read('pages/hub/training/hand-comparison.js');
+  assert.match(handComp, /preloadArenaDeckCards\(\)/, 'hand-comparison must preload 52-card arena deck assets');
+  assert.match(handComp, /<PlayingCard arena priority card=\{card\}/, 'hand-comparison picker cards must render authentic Club Arena cards with priority');
+  assert.match(handComp, /data-training-raw-control="true"/, 'hand-comparison 52-card picker buttons must stay unframed');
+  assert.match(handComp, /event\.key === 'Escape'[\s\S]{0,60}onClose\(\)/, 'hand-comparison CardPicker must dismiss on Escape');
+  const tiltGuard = read('pages/hub/training/tilt-guard.js');
+  assert.match(tiltGuard, /event\.key === 'Escape'[\s\S]{0,60}onClose\(\)/, 'tilt-guard BreathingExercise must dismiss on Escape');
+  assert.match(tiltGuard, /role="dialog"[\s\S]{0,60}aria-labelledby="breathing-title"/, 'tilt-guard BreathingExercise must expose dialog semantics');
+
+  assert.match(read('pages/api/training/tournaments.js'), /code === '22P02'[\s\S]{0,160}status\(404\)/, 'tournaments API must convert PostgreSQL 22P02 invalid UUID syntax to 404 instead of 503');
+  assert.match(read('pages/api/training/get-sessions.js'), /detailErr\?\.code === '22P02'[\s\S]{0,100}status\(404\)/, 'get-sessions API must convert PostgreSQL 22P02 invalid UUID syntax to 404 instead of 503');
+  const tournamentDetail = read('pages/hub/training/tournament/[id].js');
+  assert.match(tournamentDetail, /isValidTournamentId = typeof id === 'string' && UUID_RE\.test\(id\)/, 'tournament detail page must validate UUID before fetching /api/training/tournaments');
+  assert.match(tournamentDetail, /latestData\?\.success === false \? 0 : 15000/, 'tournament detail page must stop SWR polling when tournament lookup fails');
+  for (const apiPath of [
+    'pages/api/training/study-groups.js',
+    'pages/api/training/study-groups/[groupId].js',
+    'pages/api/training/study-groups/[groupId]/messages.js',
+  ]) {
+    const apiSrc = read(apiPath);
+    assert.match(apiSrc, /export default async function handler\(req, res\) \{\s*try \{/, `${apiPath} must wrap handler in top-level try/catch`);
+    assert.match(apiSrc, /catch \(err\)[\s\S]{0,160}status\(500\)/, `${apiPath} must return structured JSON 500 on unexpected errors`);
+  }
+
+  assert.match(read('pages/hub/training.js'), /dynamic\(\s*\(\) => import\('\.\.\/\.\.\/src\/components\/training\/lobby\/TrainingFiltersSheet'\)/, 'training lobby must dynamically import TrainingFiltersSheet');
+  assert.match(read('pages/hub/training.js'), /dynamic\(\s*\(\) => import\('\.\.\/\.\.\/src\/components\/training\/lobby\/TrainingGamePreviewSheet'\)/, 'training lobby must dynamically import TrainingGamePreviewSheet');
+  assert.match(read('pages/hub/training/category/[categoryId].js'), /dynamic\(\s*\(\) => import\('\.\.\/\.\.\/\.\.\/\.\.\/src\/components\/training\/lobby\/TrainingFiltersSheet'\)/, 'category page must dynamically import TrainingFiltersSheet');
+  assert.match(read('pages/hub/training/multiway-preflop.js'), /dynamic\(\(\) => import\('\.\.\/\.\.\/\.\.\/src\/components\/ui\/BottomSheet'\)/, 'multiway-preflop must dynamically import BottomSheet');
+  assert.match(read('pages/hub/training/short-deck-trainer.js'), /dynamic\(\(\) => import\('\.\.\/\.\.\/\.\.\/src\/components\/ui\/BottomSheet'\)/, 'short-deck-trainer must dynamically import BottomSheet');
 });
 
 test('anti-regression: all Training GET /api/training/tool-records callers guard signed-out visitors against spurious 401 errors', () => {

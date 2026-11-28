@@ -1082,45 +1082,68 @@ export const COMPARE_PAGES = [
     title: 'Smarter.Poker Vs PokerCoaching',
     h1: 'Smarter.Poker Vs PokerCoaching',
     description:
-      'Smarter.Poker GTO Training And PokerCoaching Compared Side By Side On Pricing, Free Access, Interactive Drills, Preflop Charts And Hand History Review.',
+      'Smarter.Poker And PokerCoaching Compared On 107 Free GTO Games, Preflop Range Matrix, Live Poker Hub, Video Courses, Quizzes And Paid Memberships.',
     summary: p(
-      'PokerCoaching Is Jonathan Little\'s Coaching Site Offering Interactive Hand Quizzes, Video Courses, Live Webinars And Downloadable GTO Preflop Charts Across Monthly And Annual Membership Tiers. Smarter.Poker GTO Training Is Free To Play On The Web With 107 Interactive Training Games, A Browsable Solver Baseline Library, Free Hand History Upload And Jarvis Coaching Insights.',
-      ['pokercoachingSite', 'spTraining', 'spSolutions', 'spHandHistory', 'spHome']
+      'PokerCoaching Is Jonathan Little\'s Paid Coaching Membership Platform Offering Interactive Hand Quizzes, Structured Video Courses, Live Webinars And GTO Charts Across Monthly And Annual Tiers. Smarter.Poker Is Free Forever In Any Browser, Pairing 107 Interactive GTO Training Games And A Free Preflop Range Matrix With Listed Poker Rooms, Series Schedules And Cloud Bankroll Tracking.',
+      ['pokercoachingSite', 'spTraining', 'spPreflopRanges', 'spSolutions', 'spHandHistory', 'spPokerNearMe', 'spPokerSeries', 'spBankroll', 'spHome']
     ),
     intro: p(
-      'This Page Compares Smarter.Poker GTO Training And PokerCoaching Using Facts Published On PokerCoaching.com And The Live Smarter.Poker Training Pages.',
+      'Players Weighing A Paid Video-And-Quiz Coaching Membership Against An All-In-One Free Browser Platform Frequently Compare PokerCoaching And Smarter.Poker. Every Fact Below Is Read Directly From PokerCoaching.com And Live Smarter.Poker Pages.',
       ['pokercoachingSite', 'spTraining']
     ),
     table: {
-      caption: 'Smarter.Poker GTO Training And PokerCoaching, ' + CHECKED_LABEL,
+      caption: 'Smarter.Poker And PokerCoaching, ' + CHECKED_LABEL,
       products: ['smarterTraining', 'pokercoaching'],
-      columns: TRAINER_COLUMNS,
+      columns: SWITCHER_GTO_COLUMNS,
     },
     sections: [
       {
         heading: 'Where PokerCoaching Stands Out',
         bullets: [
-          p('PokerCoaching Features Structured Video Courses, Live Group Webinars And Homework Assignments Led By Jonathan Little And Touring Coaches.', ['pokercoachingSite']),
-          p('PokerCoaching Offers Dedicated Mobile Apps Alongside Its Web Browser Portal.', ['pokercoachingSite']),
+          p('PokerCoaching Features Structured Video Courses, Live Group Webinars And Coaching Homework Led By Jonathan Little And Touring Professionals.', ['pokercoachingSite']),
+          p('PokerCoaching Includes Interactive Hand Quizzes Paired With Preflop And Postflop GTO Range Viewers For Members.', ['pokercoachingSite']),
+          p('PokerCoaching Provides Dedicated Mobile Apps Alongside Its Web Portal For Paying Subscribers.', ['pokercoachingSite']),
         ],
       },
       {
         heading: 'Where Smarter.Poker Stands Out',
         bullets: [
-          p('Smarter.Poker GTO Training Is Free To Play With 107 Scenario Drills Across Cash Games, Tournaments And Spins.', ['spTraining', 'spHome']),
-          p('Smarter.Poker Includes Free TXT Hand History Upload For PokerStars, GGPoker, 888 And ACR Alongside A Free Preflop Solutions Library.', ['spHandHistory', 'spSolutions']),
+          p('Smarter.Poker Is Free Forever With Zero Monthly Membership Fees, Delivering 107 Interactive GTO Training Games Coached By Jarvis Across Cash Games, Tournaments And Spins.', ['spHome', 'spTraining']),
+          p('Smarter.Poker Includes A Free Interactive 13x13 GTO Preflop Range Matrix, A Browsable Solutions Library, Free TXT Hand History Upload And Multi-Variant Odds And ICM Calculators.', ['spPreflopRanges', 'spSolutions', 'spHandHistory', 'spOddsCalculator', 'spIcmCalculator']),
+          p('Smarter.Poker Connects Daily GTO Study To Real-World Play With Listed Poker Rooms, Live Series Schedules And A Free Cloud Bankroll And Tax Manager.', ['spPokerNearMe', 'spPokerSeries', 'spBankroll']),
+        ],
+      },
+      {
+        heading: 'Paid Coaching Membership Vs Free Interactive Hub',
+        paragraphs: [
+          p(
+            'PokerCoaching Suits Players Seeking Guided Video Curricula, Scheduled Webinars And Structured Homework Under Monthly Or Annual Membership Plans. Players Who Want Active GTO Decision Repetition, Free Preflop Range Matrices, Live Poker Room Discovery And Cloud Bankroll Tracking Without Recurring Subscriptions Can Run Everything Free Inside Smarter.Poker.',
+            ['pokercoachingSite', 'spTraining', 'spPreflopRanges', 'spPokerNearMe', 'spBankroll', 'spHome']
+          ),
         ],
       },
     ],
     faq: [
       {
-        q: 'How Do Smarter.Poker And PokerCoaching Differ In Pricing?',
-        a: p('PokerCoaching Offers A Free Trial With Paid Monthly And Annual Premium Tiers, While Smarter.Poker GTO Training And Its Solutions Library Are Free To Play.', ['pokercoachingSite', 'spHome', 'spSolutions']),
+        q: 'How Do Smarter.Poker And PokerCoaching Differ On Pricing?',
+        a: p('PokerCoaching Offers A Free Trial With Sample Quizzes Followed By Monthly And Annual Paid Membership Tiers, Whereas Smarter.Poker GTO Training, Preflop Range Matrices, Hand History Upload And Live Poker Tools Are Free Forever.', ['pokercoachingSite', 'spHome', 'spTraining', 'spPreflopRanges', 'spHandHistory']),
+      },
+      {
+        q: 'Does Smarter.Poker Include Free Preflop Charts Like PokerCoaching?',
+        a: p('Yes. Smarter.Poker Provides A Free Interactive 13x13 GTO Preflop Range Matrix And Browsable Solver Baselines In Any Browser With Zero Paywalls, While PokerCoaching Bundles Full Charts Inside Its Paid Tiers.', ['spPreflopRanges', 'spSolutions', 'pokercoachingSite']),
+      },
+      {
+        q: 'Can I Practice Interactive GTO Spots Without Paying For PokerCoaching?',
+        a: p('Yes. Smarter.Poker Includes 107 Interactive GTO Training Games Across Cash Games, Tournaments, Spins And Mental Game Coached By Jarvis Free In Any Browser.', ['spTraining', 'spHome', 'pokercoachingSite']),
+      },
+      {
+        q: 'Does PokerCoaching Include Live Poker Room Discovery Or Bankroll Tracking?',
+        a: p('The PokerCoaching Site We Read Focuses On Video Courses, Quizzes And Webinars Rather Than Live Venue Directories Or Bankroll Tracking. Smarter.Poker Combines GTO Training With Listed Poker Rooms, Series Schedules And A Free Cloud Bankroll Manager.', ['pokercoachingSite', 'spPokerNearMe', 'spPokerSeries', 'spBankroll']),
       },
     ],
-    related: ['best-gto-poker-trainers', 'smarter-poker-vs-icmizer', 'smarter-poker-vs-equilab'],
-    productLinks: ['smarterTraining'],
-    glossary: ['GTO', 'Range', 'EV (Expected Value)'],
+    related: ['smarter-poker-vs-gto-wizard', 'smarter-poker-vs-run-it-once', 'smarter-poker-vs-upswing-poker', 'best-gto-poker-trainers'],
+    productLinks: ['smarterTraining', 'smarterLiveHub', 'bankrollManager'],
+    glossary: ['GTO', 'Range', 'EV (Expected Value)', '3-Bet'],
   },
 
   // 18 ────────────────────────────────────────────────────────────────────
@@ -1226,45 +1249,68 @@ export const COMPARE_PAGES = [
     title: 'Smarter.Poker Vs Run It Once',
     h1: 'Smarter.Poker Vs Run It Once',
     description:
-      'Smarter.Poker And Run It Once Compared On Poker Coaching Videos, Interactive GTO Drills, Preflop Ranges, Pricing And Supported Platforms.',
+      'Smarter.Poker And Run It Once Compared On 107 Free Forever GTO Games, Live Poker Hub, Bankroll Tracking, 8,000+ Coaching Videos And Paid Subscriptions.',
     summary: p(
-      'Run It Once Is Phil Galfond\'s Poker Training Site Featuring Over 8,000 Strategy Videos, Standalone Courses And The Vision GTO Trainer Under Monthly Subscription Plans. Smarter.Poker Offers A Free Browser-Based GTO Training Suite With 107 Interactive Drills, A Preflop Solver Library, Interactive Video Coaching And Free Hand History Upload.',
-      ['runItOnceSite', 'spTraining', 'spSolutions', 'spHandHistory', 'spHome']
+      'Run It Once Is Phil Galfond\'s Paid Video Training Library Offering Over 8,000 Strategy Videos, Standalone Courses And The Vision GTO Trainer Under Essential And Elite Subscriptions. Smarter.Poker Is Free Forever In Any Browser, Combining 107 Interactive GTO Training Games And Solver Baselines With Listed Poker Rooms, Series Schedules And A Cloud Bankroll Manager.',
+      ['runItOnceSite', 'spTraining', 'spSolutions', 'spPreflopRanges', 'spHandHistory', 'spPokerNearMe', 'spPokerSeries', 'spBankroll', 'spHome']
     ),
     intro: p(
-      'Players Comparing Video-First Subscription Sites With Interactive Browser Trainers Frequently Evaluate Run It Once And Smarter.Poker. Every Fact Below Is Read Directly From Each Platform.',
+      'Players Comparing A Paid Video Library Like Run It Once Against An Interactive Free GTO And Live Poker Hub Often Evaluate Study Format, Cost And Connected Tools. Every Fact Below Is Read Directly From Each Platform.',
       ['runItOnceSite', 'spTraining']
     ),
     table: {
       caption: 'Smarter.Poker And Run It Once, ' + CHECKED_LABEL,
       products: ['smarterTraining', 'runItOnce'],
-      columns: TRAINER_COLUMNS,
+      columns: SWITCHER_GTO_COLUMNS,
     },
     sections: [
       {
         heading: 'Where Run It Once Stands Out',
         bullets: [
           p('Run It Once Publishes An Archive Of Over 8,000 Coaching Videos Across No-Limit Hold\'em, Pot-Limit Omaha And Mixed Games Taught By High-Stakes Professionals.', ['runItOnceSite']),
-          p('Run It Once Offers The Vision GTO Trainer Add-On Specifically Known For Pot-Limit Omaha Study.', ['runItOnceSite']),
+          p('Run It Once Offers Standalone Deep-Dive Courses And The Vision GTO Trainer Add-On Widely Used For Pot-Limit Omaha Study.', ['runItOnceSite']),
+          p('Run It Once Hosts Member Hand Discussion Forums And Coach Hand History Breakdowns Inside Its Subscription Portal.', ['runItOnceSite']),
         ],
       },
       {
         heading: 'Where Smarter.Poker Stands Out',
         bullets: [
-          p('Smarter.Poker GTO Training Is Free To Play With 107 Scenario Drills, Interactive Video Quizzes And A Browsable Preflop Solutions Library.', ['spTraining', 'spSolutions', 'spHome']),
-          p('Smarter.Poker Includes Free Hand History Upload And Jarvis Coaching Insights Alongside Live Tournament Discovery And Bankroll Tracking.', ['spHandHistory', 'spBankroll', 'spPokerNearMe']),
+          p('Smarter.Poker Is Free Forever With Zero Monthly Subscription Paywalls, Providing 107 Interactive GTO Training Games Coached By Jarvis And A Free Preflop Range Matrix.', ['spHome', 'spTraining', 'spPreflopRanges', 'spSolutions']),
+          p('Smarter.Poker Offers Free TXT Hand History Upload For PokerStars, GGPoker, 888 And ACR Alongside Multi-Variant Hold\'em, PLO4, PLO5 And PLO6 Odds And ICM Calculators.', ['spHandHistory', 'spOddsCalculator', 'spIcmCalculator']),
+          p('Smarter.Poker Unifies Study And Live Play With Listed Poker Rooms, Tournament Series Schedules And A Free Cloud Bankroll And Tax Ledger.', ['spPokerNearMe', 'spPokerSeries', 'spBankroll']),
+        ],
+      },
+      {
+        heading: 'Paid Video Library Vs Interactive GTO And Live Hub',
+        paragraphs: [
+          p(
+            'Run It Once Excels For High-Stakes And Omaha Specialists Willing To Pay Monthly Essential Or Elite Subscriptions For Long-Form Coaching Videos And Vision GTO. Players Looking For Free Daily Interactive GTO Reps, Preflop Range Charts, Multi-Variant Equity Calculators, Live Poker Room Discovery And Bankroll Tracking Can Run Their Entire Workflow Free On Smarter.Poker.',
+            ['runItOnceSite', 'spTraining', 'spPreflopRanges', 'spOddsCalculator', 'spPokerNearMe', 'spBankroll', 'spHome']
+          ),
         ],
       },
     ],
     faq: [
       {
         q: 'How Does Smarter.Poker Compare With Run It Once On Price?',
-        a: p('Run It Once Uses Essential And Elite Monthly Subscriptions Plus Standalone Course Purchases, Whereas Smarter.Poker GTO Training, Preflop Charts And Hand History Review Are Free To Play.', ['runItOnceSite', 'spTraining', 'spSolutions', 'spHome']),
+        a: p('Run It Once Sells Essential And Elite Monthly Or Annual Subscriptions Plus Standalone Courses And Vision GTO, Whereas Smarter.Poker GTO Training, Preflop Charts, Hand History Review And Live Poker Tools Are Free Forever.', ['runItOnceSite', 'spTraining', 'spPreflopRanges', 'spSolutions', 'spHome']),
+      },
+      {
+        q: 'Which Platform Is Better For Active GTO Drilling Vs Watching Videos?',
+        a: p('Run It Once Focuses Primarily On Its 8,000+ Video Archive And Paid Vision GTO Add-On, While Smarter.Poker Centers On Active Decision Repetition Across 107 Free Interactive GTO Training Games In Any Browser.', ['runItOnceSite', 'spTraining', 'spHome']),
+      },
+      {
+        q: 'Does Smarter.Poker Support Pot-Limit Omaha Tools Like Run It Once?',
+        a: p('Yes. Smarter.Poker Offers A Free Browser-Native Multi-Variant Odds Calculator Supporting PLO4, PLO5 And PLO6 Alongside Dedicated PLO Equity And Variance Research.', ['spOddsCalculator', 'spPloStudy', 'runItOnceSite']),
+      },
+      {
+        q: 'What Live Poker Features Does Smarter.Poker Include That Run It Once Does Not?',
+        a: p('The Run It Once Site We Read Focuses On Strategy Videos And Training Tools Rather Than Live Directories Or Bankroll Tracking. Smarter.Poker Includes Listed Poker Rooms, Series Schedules And A Free Cloud Bankroll Manager.', ['runItOnceSite', 'spPokerNearMe', 'spPokerSeries', 'spBankroll']),
       },
     ],
-    related: ['best-gto-poker-trainers', 'smarter-poker-vs-upswing-poker', 'smarter-poker-vs-pokercoaching'],
-    productLinks: ['smarterTraining'],
-    glossary: ['GTO', 'Range', 'EV (Expected Value)'],
+    related: ['smarter-poker-vs-gto-wizard', 'smarter-poker-vs-upswing-poker', 'smarter-poker-vs-pokercoaching', 'best-gto-poker-trainers'],
+    productLinks: ['smarterTraining', 'smarterLiveHub', 'bankrollManager'],
+    glossary: ['GTO', 'Range', 'EV (Expected Value)', 'Variance'],
   },
 
   // 21 ────────────────────────────────────────────────────────────────────
@@ -2174,6 +2220,77 @@ export const COMPARE_PAGES = [
     related: ['best-poker-bankroll-trackers', 'smarter-poker-vs-pokeratlas', 'smarter-poker-vs-gto-wizard', 'smarter-poker-vs-bravo-poker-live'],
     productLinks: ['bankrollManager', 'smarterTraining', 'smarterLiveHub'],
     glossary: ['Variance', 'VPIP', 'ICM', 'EV (Expected Value)'],
+  },
+
+  // 36 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-hendon-mob',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs The Hendon Mob',
+    h1: 'Smarter.Poker Vs The Hendon Mob',
+    description:
+      'Smarter.Poker And The Hendon Mob Compared On Live Poker Rooms, Series Schedules, Tournament Alerts, Cloud Bankroll Tracking, 107 GTO Games And Results.',
+    summary: p(
+      'The Hendon Mob Is The Industry Historical Live Poker Tournament Results Database, Tracking Player Career Cashes, Global Poker Index (GPI) Rankings, All-Time Money Lists And FlagHunter Leaderboards. Smarter.Poker Complements Results Lookups With Actionable Live Poker Room Discovery, Upcoming Series Schedules, Tournament Alerts, Free Cloud Bankroll Tracking And 107 Interactive GTO Training Games.',
+      ['hendonMobSite', 'spPokerNearMe', 'spPokerSeries', 'spEventsCalendar', 'spBankroll', 'spTraining', 'spHome']
+    ),
+    intro: p(
+      'Tournament Players Often Look Up Past Cashes On The Hendon Mob While Planning Upcoming Live Trips, Tracking Real Net Profit And Sharpening Strategy. Every Fact Below Is Read Directly From The Hendon Mob And Live Smarter.Poker Pages.',
+      ['hendonMobSite', 'spPokerNearMe', 'spPokerSeries']
+    ),
+    table: {
+      caption: 'Smarter.Poker And The Hendon Mob, ' + CHECKED_LABEL,
+      products: ['smarterLiveHub', 'hendonMob'],
+      columns: LIVE_DIRECTORY_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where The Hendon Mob Stands Out',
+        bullets: [
+          p('The Hendon Mob Maintains A Massive Historical Archive Of Live Poker Tournament Results, Player Career Cashes And Global Festival Histories.', ['hendonMobSite']),
+          p('The Hendon Mob Connects Directly With Global Poker Index (GPI) World Rankings, Player Of The Year Races, All-Time Money Lists And FlagHunter Country Leaderboards.', ['hendonMobSite']),
+          p('The Hendon Mob Allows Players And Fans To Search Historical Event Finishes Across Major Tours And Regional Casino Stops Worldwide.', ['hendonMobSite']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Helps Players Act Before The Next Event With Listed Poker Rooms, Upcoming Major Series Schedules, Daily Tournament Listings And Saved Schedule Alerts.', ['spPokerNearMe', 'spPokerSeries', 'spEventsCalendar']),
+          p('Smarter.Poker Includes A Free Cloud Bankroll Manager Tracking Net Profit, Buy-Ins, Re-Entries, Cash Sessions, Trips, Receipt Scans And Tax Reports Rather Than Gross Cashes Alone.', ['spBankroll', 'spHome']),
+          p('Smarter.Poker Pairs Live Travel Planning With 107 Free Interactive GTO Training Games, A 13x13 Preflop Range Matrix And Free Multi-Variant Odds And ICM Calculators.', ['spTraining', 'spPreflopRanges', 'spOddsCalculator', 'spIcmCalculator']),
+        ],
+      },
+      {
+        heading: 'Historical Results Archive Vs Active Live Poker Workspace',
+        paragraphs: [
+          p(
+            'The Hendon Mob Records Gross Historical Tournament Cashes And Career Leaderboards After Events Finish, Without Subtracting Buy-Ins, Re-Entries Or Travel Costs. Smarter.Poker Gives Live Grinders Everything Needed Before, During And After Every Trip: Listed Poker Rooms, Upcoming Series Schedules, Net Bankroll Accounting And 107 Free GTO Training Games In One Browser Account.',
+            ['hendonMobSite', 'spPokerNearMe', 'spPokerSeries', 'spBankroll', 'spTraining', 'spHome']
+          ),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'How Is Smarter.Poker Different From The Hendon Mob?',
+        a: p('The Hendon Mob Is A Historical Live Tournament Results And Global Poker Index (GPI) Leaderboard Database. Smarter.Poker Is An Active All-In-One Platform Combining Listed Poker Rooms, Upcoming Series Schedules, Cloud Net Bankroll Tracking, 107 Free GTO Games And Free Odds And ICM Calculators.', ['hendonMobSite', 'spPokerNearMe', 'spPokerSeries', 'spBankroll', 'spTraining', 'spOddsCalculator', 'spIcmCalculator']),
+      },
+      {
+        q: 'Does The Hendon Mob Track Net Profit Or Cash Game Sessions?',
+        a: p('No. The Hendon Mob Publishes Gross Live Tournament Cashes And Career Earnings Lists Rather Than Private Buy-In Deductions, Cash Game Sessions Or Tax Logs. Smarter.Poker Bankroll Manager Tracks Net Cash And Tournament Results, Expenses And CSV Tax Exports Free.', ['hendonMobSite', 'spBankroll', 'spHome']),
+      },
+      {
+        q: 'Can I Plan Upcoming Live Tournament Series And Room Trips On Smarter.Poker?',
+        a: p('Yes. Smarter.Poker Provides Listed Poker Rooms Across The United States, Major Tour And Series Schedules, Daily Tournament Calendars And Club Commander Waitlist Tools Directly In Any Web Browser.', ['spPokerNearMe', 'spPokerSeries', 'spEventsCalendar', 'spCommander']),
+      },
+      {
+        q: 'Does Smarter.Poker Include Tournament ICM And GTO Study Tools?',
+        a: p('Yes. Smarter.Poker Includes A Free Malmuth-Harville Tournament ICM Calculator, Multi-Variant Poker Odds Calculator, 13x13 Preflop Range Matrix And 107 Interactive GTO Training Games At Zero Cost.', ['spIcmCalculator', 'spOddsCalculator', 'spPreflopRanges', 'spTraining', 'spHome']),
+      },
+    ],
+    related: ['smarter-poker-vs-pokeratlas', 'smarter-poker-vs-bravo-poker-live', 'smarter-poker-vs-poker-bankroll-tracker', 'best-poker-bankroll-trackers'],
+    productLinks: ['smarterLiveHub', 'bankrollManager', 'smarterTraining'],
+    glossary: ['ICM', 'Variance', 'Rake', 'Waitlist'],
   },
 ];
 

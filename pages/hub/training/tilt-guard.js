@@ -228,6 +228,14 @@ function BreathingExercise({ onClose }) {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
   const phaseLabel = { inhale: 'Breathe In', hold1: 'Hold', exhale: 'Breathe Out', hold2: 'Hold' };
 
   if (cycle > 4) {
@@ -236,6 +244,7 @@ function BreathingExercise({ onClose }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className={`sd-panel ${st.panel} ${st.state}`}
+        role="dialog"
         aria-labelledby="breathing-done-title"
       >
         {/* TRAIN-TILTGUARD-A11Y-1: SVG check-square replaces ✓ */}
@@ -252,7 +261,7 @@ function BreathingExercise({ onClose }) {
   }
 
   return (
-    <motion.section className={`sd-panel ${st.panel} ${st.breathPanel}`} aria-labelledby="breathing-title">
+    <motion.section className={`sd-panel ${st.panel} ${st.breathPanel}`} role="dialog" aria-labelledby="breathing-title">
       <div className={st.panelHead}>
         <h2 id="breathing-title" className={st.title}>Box Breathing</h2>
         <span className={st.tag}>Cycle {cycle} Of 4</span>

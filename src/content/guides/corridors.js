@@ -10,6 +10,8 @@
  * House style: Title Case, zero em dashes.
  */
 
+import { listedVenueLabel } from '../../lib/venueCount.mjs';
+
 export const CORRIDORS_AS_OF = '2026-11-24';
 export const CORRIDORS_BASE_PATH = '/poker-rooms/corridors';
 export const CORRIDORS_URL = 'https://smarter.poker/poker-rooms/corridors';
@@ -38,7 +40,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 185,
         rakeModel: '10% Pot Rake Up To $6 Cap + $2 Promotional / Bad Beat Drop',
         taxWithholding: '4.25% NC State Tax + 24% Federal W-2G On Net Tournament Wins > $5,000',
-        typicalGames: '$1/$2 & $2/$5 NLH, $2/$5 PLO, Four Annual WSOP Circuit Stops (20+ Live Tables)',
+        typicalGames: '$1/$2 & $2/$5 NLH, $2/$5 PLO, Four Annual WSOP Circuit Stops',
       },
       {
         venueName: 'Harrah\'s Cherokee Valley River',
@@ -51,12 +53,12 @@ export const POKER_TRAVEL_CORRIDORS = [
       },
       {
         venueName: 'bestbet Jacksonville & bestbet Orange Park',
-        jurisdiction: 'Jacksonville, Florida (18+ Pari-Mutuel Cardroom)',
+        jurisdiction: 'Jacksonville, Florida (Pari-Mutuel Cardroom, 18+ Entry)',
         distanceMiles: 346,
         driveMinutes: 310,
         rakeModel: '10% Pot Rake Up To $6 Cap + $2 High-Hand / Jackpot Drop',
         taxWithholding: '0.0% Florida State Income Tax (24% Federal W-2G Only Above $5,000)',
-        typicalGames: '70+ Combined Tables: $1/$2, $2/$5, $5/$10 NLH, $2/$5 & $5/$5 PLO, WPT Tour Stops',
+        typicalGames: '$1/$2, $2/$5, $5/$10 NLH, $2/$5 & $5/$5 PLO, WPT Tour Stops',
       },
       {
         venueName: 'Seminole Hard Rock Hotel & Casino Tampa',
@@ -65,7 +67,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 405,
         rakeModel: '10% Pot Rake Up To $6 Cap + $2 High-Hand Promotional Drop',
         taxWithholding: '0.0% Florida State Income Tax On Cash And Tournament Winnings',
-        typicalGames: '46 Tables: 24/7 $1/$2 To $10/$25 NLH, Deep $2/$2 & $5/$5 PLO, WPT Tampa Series',
+        typicalGames: '24/7 $1/$2 To $10/$25 NLH, Deep $2/$2 & $5/$5 PLO, WPT Tampa Series',
       },
     ],
     faqs: [
@@ -87,7 +89,7 @@ export const POKER_TRAVEL_CORRIDORS = [
     originAirportCode: 'JFK',
     originCoords: { lat: 40.7128, lng: -74.006 },
     bestForPersona: 'Manhattan, Brooklyn, Queens, And North Jersey Players Choosing Between Bensalem PA, Bethlehem PA, And Atlantic City NJ For Daily Cash Or Weekend Deepstacks.',
-    ifThenBecause: 'If You Want The Highest Tuesday-Through-Friday Mid-Stakes Cash Game Density ($2/$5 To $10/$10 NLH And PLO) Within 90 Minutes Of Midtown Manhattan, Drive To Parx Casino In Bensalem PA Because It Concentrates 48 Active Tables On A Single Non-Smoking Floor; If You Prefer Full Resort Comps, Hotel Suites, And Regulated NJ Online Poker Simultaneously, Drive 125 Miles South To Borgata In Atlantic City.',
+    ifThenBecause: 'If You Want The Highest Tuesday-Through-Friday Mid-Stakes Cash Game Density ($2/$5 To $10/$10 NLH And PLO) Within 90 Minutes Of Midtown Manhattan, Drive To Parx Casino In Bensalem PA Because It Concentrates Its Mid-Stakes Games On A Single Non-Smoking Floor; If You Prefer Full Resort Comps, Hotel Suites, And Regulated NJ Online Poker Simultaneously, Drive 125 Miles South To Borgata In Atlantic City.',
     summary:
       'While Downstate New York Casino Licenses Expand Toward Full Poker Floors, New York City\'s Primary Live Poker Corridor Runs Southwest Across New Jersey Into Bensalem And Bethlehem, Pennsylvania And South To Borgata In Atlantic City.',
     driveOptions: [
@@ -98,7 +100,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 90,
         rakeModel: '10% Pot Rake Up To $6 Cap + $2 Bad Beat / High-Hand Drop ($8-$9 Timed Collection At $5/$10+)',
         taxWithholding: '3.07% Flat Pennsylvania State Tax + 24% Federal W-2G On Net Tournament Wins > $5,000',
-        typicalGames: '48 Tables: Premier $1/$3, $2/$5, $5/$10, $10/$10 NLH, $2/$2 To $10/$25 PLO, Big Stax Series',
+        typicalGames: 'Premier $1/$3, $2/$5, $5/$10, $10/$10 NLH, $2/$2 To $10/$25 PLO, Big Stax Series',
       },
       {
         venueName: 'Wind Creek Bethlehem Poker Room',
@@ -107,7 +109,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 95,
         rakeModel: '10% Pot Rake Up To $6 Cap + $2 Bad Beat Jackpot Drop',
         taxWithholding: '3.07% Pennsylvania State Tax On Qualifying W-2G Tournament Payouts',
-        typicalGames: '26 Tables: Fast I-78 Corridor Access, $1/$2 & $2/$5 NLH, $2/$2 PLO',
+        typicalGames: 'Fast I-78 Corridor Access, $1/$2 & $2/$5 NLH, $2/$2 PLO',
       },
       {
         venueName: 'Borgata Hotel Casino & Spa Poker Room',
@@ -116,7 +118,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 135,
         rakeModel: '10% Pot Rake Up To $5-$6 Cap + $2 Promotional Drop ($7-$8 Time Charge At $5/$10+)',
         taxWithholding: '3.0% To 8.0% NJ Withholding On Resident/Non-Resident W-2G Wins > $5,000',
-        typicalGames: '52+ Tables: East Coast Flagship Resort Room, $1/$3 To $10/$25 NLH, PLO, Stud, MGM Rewards',
+        typicalGames: 'East Coast Flagship Resort Room, $1/$3 To $10/$25 NLH, PLO, Stud, MGM Rewards',
       },
       {
         venueName: 'Rivers Casino Philadelphia',
@@ -125,7 +127,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 105,
         rakeModel: '10% Pot Rake Up To $6 Cap + $2 High-Hand / Bad Beat Drop',
         taxWithholding: '3.07% Pennsylvania Flat State Tax On Qualifying W-2G Events',
-        typicalGames: '28 Tables: High-Action $1/$2 & $2/$5 NLH, Deep $2/$2 PLO, Free Self-Parking',
+        typicalGames: 'High-Action $1/$2 & $2/$5 NLH, Deep $2/$2 PLO, Free Self-Parking',
       },
     ],
     faqs: [
@@ -158,7 +160,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 18,
         rakeModel: '$0.00 Pot Rake | $12 To $14 Per Hour Seat Rental + Daily/Monthly Membership',
         taxWithholding: '0.0% Texas State Income Tax (Federal W-2G On Net Tournament Wins > $5,000)',
-        typicalGames: '30 To 45 Tables Per Club: Deep $1/$2 ($500 Cap), $2/$5 ($1,500 Cap), $5/$5 Double-Board PLO Bomb Pots',
+        typicalGames: 'Deep $1/$2 ($500 Cap), $2/$5 ($1,500 Cap), $5/$5 Double-Board PLO Bomb Pots',
       },
       {
         venueName: 'WinStar World Casino & Resort Poker Room',
@@ -167,7 +169,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 75,
         rakeModel: '10% Pot Rake Up To $6 Cap + $1-$2 Promotional Jackpot Drop',
         taxWithholding: '4.75% Top Oklahoma Non-Resident State Tax Reference On Major W-2G Payouts',
-        typicalGames: '55 Tables: Just Across Red River On I-35 Exit 1, 24/7 $1/$2 & $2/$5 NLH, Omaha, Resort Comps',
+        typicalGames: 'Just Across Red River On I-35 Exit 1, 24/7 $1/$2 & $2/$5 NLH, Omaha, Resort Comps',
       },
       {
         venueName: 'Choctaw Casino & Resort Durant Poker Room (WSOP Circuit Host)',
@@ -176,7 +178,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 85,
         rakeModel: '10% Pot Rake Up To $6 Cap + $2 Jackpot Drop',
         taxWithholding: 'Oklahoma Non-Resident Gaming Tax Reference + 24% Federal W-2G Above $5,000',
-        typicalGames: '30 Permanent Tables (80+ During WSOP Circuit): $1/$2, $2/$5, $5/$10 NLH, $2/$5 PLO',
+        typicalGames: '$1/$2, $2/$5, $5/$10 NLH, $2/$5 PLO',
       },
     ],
     faqs: [
@@ -209,7 +211,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 25,
         rakeModel: '10% Pot Rake Up To $6 Cap + $2 Bad Beat / High-Hand Drop',
         taxWithholding: '4.95% Flat Illinois State Tax + 24% Federal W-2G On Net Tournament Wins > $5,000',
-        typicalGames: '22 Tables: Peak Chicagoland Cash Volume, $1/$3, $2/$5, $5/$10 NLH, $2/$2 & $5/$5 PLO',
+        typicalGames: 'Peak Chicagoland Cash Volume, $1/$3, $2/$5, $5/$10 NLH, $2/$2 & $5/$5 PLO',
       },
       {
         venueName: 'Horseshoe Hammond Casino Poker Room (Caesars Rewards)',
@@ -218,7 +220,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 26,
         rakeModel: '10% Pot Rake Up To $6 Cap + $2 Promotional Jackpot Drop',
         taxWithholding: '3.05% Flat Indiana State Tax + 24% Federal W-2G Above $5,000',
-        typicalGames: '20+ Permanent Tables: $1/$2 & $2/$5 NLH, Deep PLO, Historic WSOP Circuit Midwest Stop',
+        typicalGames: '$1/$2 & $2/$5 NLH, Deep PLO, Historic WSOP Circuit Midwest Stop',
       },
       {
         venueName: 'Grand Victoria Casino Elgin Poker Room',
@@ -227,7 +229,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 45,
         rakeModel: '10% Pot Rake Up To $6 Cap + $2 Jackpot Drop',
         taxWithholding: '4.95% Flat Illinois State Income Tax On Qualifying W-2G Events',
-        typicalGames: '16+ Tables: MSPT & WSOP Circuit Host, Daily Tournaments, $1/$2 & $2/$5 Cash',
+        typicalGames: 'MSPT & WSOP Circuit Host, Daily Tournaments, $1/$2 & $2/$5 Cash',
       },
     ],
     faqs: [
@@ -269,7 +271,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 38,
         rakeModel: '10% Pot Rake Up To $6-$7 Cap + $1-$2 Bad Beat / High-Hand Drop',
         taxWithholding: '0.0% New Hampshire State Tax On Earned/Gambling Winnings (24% Federal W-2G Only)',
-        typicalGames: '30+ Tables: Daily Deepstack Tournaments, $1/$2 & $2/$5 NLH, $1/$2 & $2/$5 PLO',
+        typicalGames: 'Daily Deepstack Tournaments, $1/$2 & $2/$5 NLH, $1/$2 & $2/$5 PLO',
       },
       {
         venueName: 'Gate City Casino (Formerly Boston Billiard Club & Casino)',
@@ -278,7 +280,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 46,
         rakeModel: '10% Pot Rake Up To $6-$7 Cap + Promotional Drop',
         taxWithholding: '0.0% New Hampshire State Income Tax On Gambling Winnings',
-        typicalGames: '20+ Tables: $1/$2 & $2/$5 NLH, Omaha, Weekend Series Events',
+        typicalGames: '$1/$2 & $2/$5 NLH, Omaha, Weekend Series Events',
       },
       {
         venueName: 'Foxwoods Resort Casino & Mohegan Sun',
@@ -287,7 +289,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 105,
         rakeModel: '10% Pot Rake Up To $6 Cap + $2 Bad Beat / High-Hand Drop',
         taxWithholding: '6.99% Top Connecticut State Tax Reference On Major W-2G Tournament Prizes',
-        typicalGames: '70+ Combined Tables Across Both Resorts: Daily Tournaments, $1/$2 To $5/$10 NLH, Stud & PLO',
+        typicalGames: 'Daily Tournaments, $1/$2 To $5/$10 NLH, Stud & PLO',
       },
     ],
     faqs: [
@@ -311,7 +313,7 @@ export const POKER_TRAVEL_CORRIDORS = [
     bestForPersona: 'Pacific Northwest Players Comparing Washington\'s State-Mandated $300-$400 Single-Bet Cap Cardrooms Against Oregon\'s Zero-Pot-Rake Social Door-Fee Poker Clubs And Pendleton Tribal Stops.',
     ifThenBecause: 'If You Are In The Seattle-Tacoma Metro Area And Want Immediate Cash Action With Massive Bad Beat Jackpots, Play At Fortune Poker In Renton Or Caribbean Cardroom In Kirkland ( noting Washington\'s Statutory $300-$400 Single-Wager Limit); If You Want Uncapped True No-Limit Tournament Series And Zero-Pot-Rake Cash Games, Take I-5 South 170 Miles To Portland Meadows / Final Table Poker Club In Portland Oregon.',
     summary:
-      'The I-5 Pacific Northwest Poker Corridor Connects Two Unusual Regulatory Regimes: Washington State (0% State Income Tax, 25+ Commercial Cardrooms, Statutory Single-Wager Limits) And Portland, Oregon (Zero-Rake Social Door-Fee Clubs With True Uncapped No-Limit Play).',
+      `The I-5 Pacific Northwest Poker Corridor Connects Two Unusual Regulatory Regimes: Washington State (0% State Income Tax, ${listedVenueLabel('WA')} In The Smarter.Poker Directory, Statutory Single-Wager Limits) And Portland, Oregon (Zero-Rake Social Door-Fee Clubs With True Uncapped No-Limit Play).`,
     driveOptions: [
       {
         venueName: 'Fortune Poker (Renton) & Caribbean Cardroom (Kirkland)',
@@ -338,7 +340,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 175,
         rakeModel: '$0.00 Pot Rake & $0.00 Tournament House Fee | $15-$25 Daily Door Membership Fee Only',
         taxWithholding: '8.0% To 9.9% Oregon State Tax On Qualifying W-2G Wins > $5,000',
-        typicalGames: '35+ Combined Tables: True Uncapped $1/$2 & $2/$5 NLH/PLO, Zero-Rake Daily Deepstack Tournaments',
+        typicalGames: 'True Uncapped $1/$2 & $2/$5 NLH/PLO, Zero-Rake Daily Deepstack Tournaments',
       },
     ],
     faqs: [
@@ -362,7 +364,7 @@ export const POKER_TRAVEL_CORRIDORS = [
     bestForPersona: 'Visiting And Local Las Vegas Players Optimizing Between Zero-Promo-Drop Center-Strip High-Cap Rooms (Wynn, Aria, Bellagio) And High-Promo Off-Strip Locals Rooms With Free Parking (South Point, Orleans, Red Rock).',
     ifThenBecause: 'If You Play $2/$5 Or $5/$10+ And Want Maximum Stack Depth (300BB Cap) With Zero Promotional Drop Taken From Any Pot, Ride 12 Minutes From LAS Airport To Wynn, Aria, Or Bellagio; If You Play $1/$2 Or $1/$3, Want Free Self-Parking, Affordable $60-$150 Daily Deepstack Tournaments, And 24/7 Omaha Hi-Lo Or Bad Beat Jackpots, Drive 12-18 Minutes Off-Strip To South Point, The Orleans, Or Red Rock Resort.',
     summary:
-      'Harry Reid International Airport (LAS) Sits Less Than 15 Minutes From Over 250 Active Poker Tables Divided Into Two Distinct Corridors: The Center-North Las Vegas Strip Luxury Corridor And The Off-Strip Locals & Free-Parking Corridor.',
+      'Harry Reid International Airport (LAS) Sits Less Than 15 Minutes From Dozens Of Casino Poker Rooms Divided Into Two Distinct Corridors: The Center-North Las Vegas Strip Luxury Corridor And The Off-Strip Locals & Free-Parking Corridor.',
     driveOptions: [
       {
         venueName: 'Wynn / Encore Las Vegas Poker Room',
@@ -371,7 +373,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 14,
         rakeModel: '10% Pot Rake Up To $5-$6 Cap | $0.00 Promotional Drop',
         taxWithholding: '0.0% Nevada State Tax (24% Federal W-2G On Net Tournament Wins > $5,000)',
-        typicalGames: '28 Tables: $1/$3 ($500 Cap), $2/$5 ($1,500 Cap), $5/$10+ NLH & PLO, Wynn Millions & Summer Classic',
+        typicalGames: '$1/$3 ($500 Cap), $2/$5 ($1,500 Cap), $5/$10+ NLH & PLO, Wynn Millions & Summer Classic',
       },
       {
         venueName: 'Aria Resort & Bellagio Poker Rooms (Connected Via Tram)',
@@ -380,7 +382,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 12,
         rakeModel: '10% Pot Rake Up To $5-$6 Cap | $0.00 Promotional Drop ($7-$8 Time At High Stakes)',
         taxWithholding: '0.0% Nevada State Income Tax',
-        typicalGames: '61 Combined Tables: Non-Stop $1/$3, $2/$5, $5/$10 NLH, Las Vegas Capital For $1/$2 To $25/$50 PLO',
+        typicalGames: 'Non-Stop $1/$3, $2/$5, $5/$10 NLH, Las Vegas Capital For $1/$2 To $25/$50 PLO',
       },
       {
         venueName: 'Venetian Resort Poker Room (DeepStack Championship Host)',
@@ -389,7 +391,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 13,
         rakeModel: '10% Pot Rake Up To $5-$6 Cap + $2 High-Hand / Promo Drop',
         taxWithholding: '0.0% Nevada State Income Tax',
-        typicalGames: '50 Tables (New Palazzo Floor): Year-Round DeepStack Extravaganza, $1/$3 To $5/$10 Cash & High-Hand Promos',
+        typicalGames: 'Year-Round DeepStack Extravaganza, $1/$3 To $5/$10 Cash & High-Hand Promos',
       },
       {
         venueName: 'South Point, The Orleans & Red Rock Resort (Off-Strip Locals Corridor)',
@@ -398,13 +400,13 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 14,
         rakeModel: '10% Pot Rake Up To $5 Cap + $1-$2 Bad Beat / High-Hand Drop',
         taxWithholding: '0.0% Nevada State Income Tax',
-        typicalGames: '75+ Combined Tables: Free Parking, 4x Daily NLH Tournaments, $1/$2 & $1/$3 NLH, $4/$8 & $8/$16 Omaha Hi-Lo',
+        typicalGames: 'Free Parking, 4x Daily NLH Tournaments, $1/$2 & $1/$3 NLH, $4/$8 & $8/$16 Omaha Hi-Lo',
       },
     ],
     faqs: [
       {
         q: 'Which Las Vegas Poker Rooms Are Connected By Free Monorail Or Tram?',
-        a: 'Bellagio, Aria, And Park MGM Are Directly Linked By The Free Aria Express Tram On The West Side Of The Strip, Allowing Players To Check Waitlists On Bravo And Walk Or Tram Between Bellagio\'s 37 Tables And Aria\'s 24 Tables In Under 7 Minutes.',
+        a: 'Bellagio, Aria, And Park MGM Are Directly Linked By The Free Aria Express Tram On The West Side Of The Strip, Allowing Players To Check Waitlists On Bravo And Walk Or Tram Between The Bellagio And Aria Poker Rooms In Under 7 Minutes.',
       },
       {
         q: 'Why Do High-Volume $2/$5 Grinders Prefer Wynn, Bellagio, And Aria Over Off-Strip Rooms?',
@@ -420,9 +422,9 @@ export const POKER_TRAVEL_CORRIDORS = [
     originAirportCode: 'LAX',
     originCoords: { lat: 33.9416, lng: -118.4085 },
     bestForPersona: 'Travelers And SoCal Grinders Navigating Between Westside Airport Cardrooms (Hollywood Park, Hustler) And The I-5 / I-710 Southeast Mega-Rooms (Commerce, The Bike, Gardens).',
-    ifThenBecause: 'If You Just Landed At LAX And Want To Sit Down Within 15 Minutes Without Battling I-5 Traffic, Head 4 Miles East To Hollywood Park Casino Or 11 Miles Southeast To Hustler Casino In Gardena; If You Play $5/$5, $5/$10, Or Major WPT/LAPC Tournaments And Want 120+ Active Tables Under One Roof, Drive 22-26 Miles East Along I-105 To I-710/I-5 To Commerce Casino, The Bicycle Casino, Or The Gardens Casino.',
+    ifThenBecause: 'If You Just Landed At LAX And Want To Sit Down Within 15 Minutes Without Battling I-5 Traffic, Head 4 Miles East To Hollywood Park Casino Or 11 Miles Southeast To Hustler Casino In Gardena; If You Play $5/$5, $5/$10, Or Major WPT/LAPC Tournaments And Want The Largest Rooms In The Region, Drive 22-26 Miles East Along I-105 To I-710/I-5 To Commerce Casino, The Bicycle Casino, Or The Gardens Casino.',
     summary:
-      'Los Angeles Hosts The Highest Concentration Of Live Poker Tables On Earth (550+ Active Tables Across 6 Mega-Cardrooms Within 28 Miles Of LAX), All Operating Under California\'s Flat Per-Flop Collection Drop Structure.',
+      'Los Angeles Hosts The Highest Concentration Of Live Poker Tables On Earth, All Operating Under California\'s Flat Per-Flop Collection Drop Structure.',
     driveOptions: [
       {
         venueName: 'Hollywood Park Casino & Larry Flynt\'s Lucky Lady / Hustler Casino',
@@ -431,7 +433,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 18,
         rakeModel: 'Flat $6-$7 Per-Flop Collection Drop + $1 Jackpot Drop ($0 Pre-Flop If No Flop)',
         taxWithholding: 'Up To 13.3% California Resident State Income Tax Reference (24% Federal W-2G > $5,000)',
-        typicalGames: '110+ Combined Tables: 10-18 Mins From LAX, $2/$3, $5/$5, $5/$10 NLH, Hustler Casino Live Stream Venue',
+        typicalGames: '10-18 Mins From LAX, $2/$3, $5/$5, $5/$10 NLH, Hustler Casino Live Stream Venue',
       },
       {
         venueName: 'Commerce Casino (World\'s Largest Cardroom)',
@@ -440,7 +442,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 35,
         rakeModel: 'Flat $6-$7 Per-Flop Collection Drop + $1 Jackpot Drop',
         taxWithholding: 'California State Tax Reference + 24% Federal W-2G On Qualifying Tournament Payouts',
-        typicalGames: '150+ Active Tables: 24/7 $5/$5, $5/$10, $10/$20 NLH, Limit Hold\'em, Stud, Omaha, LAPC Host',
+        typicalGames: '24/7 $5/$5, $5/$10, $10/$20 NLH, Limit Hold\'em, Stud, Omaha, LAPC Host',
       },
       {
         venueName: 'Parkwest Bicycle Casino (The Bike) & The Gardens Casino',
@@ -449,7 +451,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 36,
         rakeModel: 'Flat $6-$7 Per-Flop Collection Drop + $1 Jackpot Drop',
         taxWithholding: 'California State Tax Reference + Federal W-2G Above $5,000',
-        typicalGames: '220+ Combined Tables: Legends Of Poker, Daily Deepstacks, Action $5/$5 & $5/$10 NLH And PLO',
+        typicalGames: 'Legends Of Poker, Daily Deepstacks, Action $5/$5 & $5/$10 NLH And PLO',
       },
     ],
     faqs: [
@@ -473,7 +475,7 @@ export const POKER_TRAVEL_CORRIDORS = [
     bestForPersona: 'South Florida Cash And WPT Tournament Players Navigating The 40-Mile I-95 Corridor Between Miami-Dade Pari-Mutuel Rooms, The Guitar Hotel In Hollywood, And Pompano Beach.',
     ifThenBecause: 'If You Are Flying Into Fort Lauderdale (FLL) For Major WPT Series Or 24/7 High-Stakes $2/$5 To $10/$25 NLH And PLO, Take I-595 West 12 Minutes To Seminole Hard Rock Hollywood; If You Want Aggressive $500-$1,000 Every-30-Minute High-Hand Promotions Or Are Age 18-20, Play At Dania Pointe, Magic City Miami, Hialeah Park, Or Harrah\'s Pompano Along The I-95 Corridor.',
     summary:
-      'Anchored By Fort Lauderdale-Hollywood International Airport (FLL) And Miami International Airport (MIA), The South Florida Tri-County Corridor Offers Over 240 Active Tables With 0% Florida State Income Tax And Non-Stop High-Hand And PLO Action.',
+      'Anchored By Fort Lauderdale-Hollywood International Airport (FLL) And Miami International Airport (MIA), The South Florida Tri-County Corridor Offers Casino And Pari-Mutuel Poker Rooms With 0% Florida State Income Tax And Non-Stop High-Hand And PLO Action.',
     driveOptions: [
       {
         venueName: 'Seminole Hard Rock Hotel & Casino Hollywood (The Guitar Hotel)',
@@ -482,34 +484,34 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 13,
         rakeModel: '10% Pot Rake Up To $6 Cap + $2 High-Hand / Promotional Drop',
         taxWithholding: '0.0% Florida State Income Tax (24% Federal W-2G On Net Tournament Wins > $5,000)',
-        typicalGames: '45 Permanent Tables (100+ For WPT): 4 Major Annual WPT Festivals, $1/$2 To $25/$50 NLH & PLO',
+        typicalGames: '4 Major Annual WPT Festivals, $1/$2 To $25/$50 NLH & PLO',
       },
       {
         venueName: 'Casino @ Dania Beach & Big Easy Casino',
-        jurisdiction: 'Dania Beach / Hallandale, Florida (18+ Pari-Mutuel Cardrooms)',
+        jurisdiction: 'Dania Beach / Hallandale, Florida (Pari-Mutuel Cardroom, 18+ Entry)',
         distanceMiles: 5.5,
         driveMinutes: 12,
         rakeModel: '10% Pot Rake Up To $5-$6 Cap + $2 Promotional Drop',
         taxWithholding: '0.0% Florida State Income Tax',
-        typicalGames: '45+ Combined Tables: 18+ Entry, Frequent High-Hand Promotions, $1/$2 & $2/$5 NLH And PLO',
+        typicalGames: '18+ Entry, Frequent High-Hand Promotions, $1/$2 & $2/$5 NLH And PLO',
       },
       {
         venueName: 'Magic City Casino & Hialeah Park Casino (Miami-Dade)',
-        jurisdiction: 'Miami / Hialeah, Florida (18+ Pari-Mutuel Cardrooms)',
+        jurisdiction: 'Miami / Hialeah, Florida (Pari-Mutuel Cardroom, 18+ Entry)',
         distanceMiles: 24,
         driveMinutes: 32,
         rakeModel: '10% Pot Rake Up To $5-$6 Cap + $2 High-Hand / Jackpot Drop',
         taxWithholding: '0.0% Florida State Income Tax',
-        typicalGames: '50+ Combined Tables: 10 Mins From MIA Airport, Splashy $1/$2 & $2/$5 NLH, Deep PLO, Daily Guarantees',
+        typicalGames: '10 Mins From MIA Airport, Splashy $1/$2 & $2/$5 NLH, Deep PLO, Daily Guarantees',
       },
       {
         venueName: 'Harrah\'s Pompano Beach (Caesars Rewards)',
-        jurisdiction: 'Pompano Beach, Florida (18+ Pari-Mutuel Cardroom)',
+        jurisdiction: 'Pompano Beach, Florida (Pari-Mutuel Cardroom, 18+ Entry)',
         distanceMiles: 16,
         driveMinutes: 22,
         rakeModel: '10% Pot Rake Up To $6 Cap + $2 Promotional Drop',
         taxWithholding: '0.0% Florida State Income Tax',
-        typicalGames: '42 Tables: WSOP Circuit Host, Caesars Rewards Tier Credits, $1/$2 To $5/$10 NLH & PLO',
+        typicalGames: 'WSOP Circuit Host, Caesars Rewards Tier Credits, $1/$2 To $5/$10 NLH & PLO',
       },
     ],
     faqs: [
@@ -542,7 +544,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 5,
         rakeModel: 'Flat $6-$7 Per-Flop Collection Drop + $1 Jackpot Drop',
         taxWithholding: 'California State Tax Reference + 24% Federal W-2G On Net Tournament Wins > $5,000',
-        typicalGames: '98 Combined Tables (49 Each): Three-Blind $2/$3/$5 ($1,000 Cap) & $5/$5/$10 NLH, $20/$40-$80/$160 Limit, WPT Bay 101 Shooting Star',
+        typicalGames: 'Three-Blind $2/$3/$5 ($1,000 Cap) & $5/$5/$10 NLH, $20/$40-$80/$160 Limit, WPT Bay 101 Shooting Star',
       },
       {
         venueName: 'Lucky Chances Casino (San Francisco Peninsula) & Oaks Card Club (East Bay)',
@@ -551,7 +553,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 46,
         rakeModel: 'Flat $6-$7 Per-Flop Collection Drop + $1 Jackpot Drop',
         taxWithholding: 'California State Tax Reference',
-        typicalGames: '75+ Combined Tables: 10 Mins From SFO Airport (Lucky Chances), 24/7 $1/$2/$3 & $2/$3/$5 NLH, Limit Hold\'em',
+        typicalGames: '10 Mins From SFO Airport (Lucky Chances), 24/7 $1/$2/$3 & $2/$3/$5 NLH, Limit Hold\'em',
       },
       {
         venueName: 'Graton Resort & Casino Poker Room',
@@ -560,7 +562,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 95,
         rakeModel: 'Flat Per-Flop Drop / Percentage Cap + Bad Beat Jackpot Drop',
         taxWithholding: 'California / Federal W-2G Rules On Qualifying Tournament Payouts',
-        typicalGames: '20 Tables: Sonoma Wine Country Hub, $1/$3 & $2/$5 NLH, Daily Tournaments',
+        typicalGames: 'Sonoma Wine Country Hub, $1/$3 & $2/$5 NLH, Daily Tournaments',
       },
       {
         venueName: 'Thunder Valley Casino Resort Poker Room (WPT & WSOP Host)',
@@ -569,7 +571,7 @@ export const POKER_TRAVEL_CORRIDORS = [
         driveMinutes: 130,
         rakeModel: '10% Pot Rake / $6-$7 Cap + $1-$2 Jackpot Drop',
         taxWithholding: 'California / Federal W-2G Rules On Net Tournament Wins > $5,000',
-        typicalGames: '30 Permanent Tables (80+ Event Space): WPT Rolling Thunder, WSOP Circuit, $1/$3, $2/$5, $5/$10 NLH & Deep PLO',
+        typicalGames: 'WPT Rolling Thunder, WSOP Circuit, $1/$3, $2/$5, $5/$10 NLH & Deep PLO',
       },
     ],
     faqs: [
