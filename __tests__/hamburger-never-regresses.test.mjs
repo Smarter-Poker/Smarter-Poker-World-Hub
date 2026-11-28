@@ -66,9 +66,12 @@ test('the approved header artwork is byte-for-byte the approved artwork', () => 
 });
 
 test('Commander subpages open the menu with the approved hamburger, not a gear or grid', () => {
+  // Since 2026-11-28 the shell mounts the approved global header itself, so
+  // a Commander subpage's menu trigger IS the approved header hamburger pinned
+  // above (HEADER), not a look-alike drawn by the shell.
   const shell = maskComments(read(COMMANDER));
-  assert.match(shell, /import \{ Menu \} from 'lucide-react'/);
-  assert.match(shell, /<Menu size=\{20\}/);
+  assert.match(shell, /import UniversalHeader from '\.\.\/ui\/UniversalHeader'/);
+  assert.match(shell, /<UniversalHeader \/>/);
   assert.doesNotMatch(shell, GEAR);
   assert.doesNotMatch(
     shell,
