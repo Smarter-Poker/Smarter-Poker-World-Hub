@@ -199,7 +199,7 @@ const LevelCard: React.FC<{
 
     return (
         <motion.div
-            className={`sp-level-card ${isCompleted ? 'is-complete' : isUnlocked ? 'is-open' : 'is-locked'}`}
+            className={`sp-level-card sd-panel ${isCompleted ? 'is-complete' : isUnlocked ? 'is-open' : 'is-locked'}`}
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.08, duration: 0.4 }}
@@ -593,14 +593,14 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
     if (!loading && launchError && !gameData) {
         return (
             <main
-                className="sp-level-selector"
+                className="sp-level-selector smarterdesign"
                 data-level-selector-forwarded-variant={String(router.query?.variant || 'nlh')}
                 style={{ ...styles.container, ...styles.errorShell }}
             >
-                <div role="alert" style={styles.errorPanel}>
+                <div role="alert" className="sd-panel" style={styles.errorPanel}>
                     <h1 style={styles.errorTitle}>Training Launch Unavailable</h1>
                     <p style={styles.errorCopy}>{launchError}</p>
-                    <button type="button" onClick={handleBack} style={styles.backButton}>
+                    <button type="button" className="sd-button sd-primary" onClick={handleBack} style={styles.backButton}>
                         Return To Training
                     </button>
                 </div>
@@ -610,7 +610,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
     return (
         <div
-            className="sp-level-selector"
+            className="sp-level-selector smarterdesign"
             data-level-selector-forwarded-variant={String(router.query?.variant || 'nlh')}
             style={styles.container}
         >
@@ -625,10 +625,10 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                 </div>
             )}
             {/* Game-specific command deck shared by all catalog games. */}
-            <header className="sp-level-header" style={styles.header}>
+            <header className="sp-level-header sd-panel" style={styles.header}>
                 <div className="sp-level-command-copy" style={{ width: '100%' }}>
                     <div className="sp-level-command-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-                        <button className="sp-level-back" onClick={handleBack} style={styles.backButton}>
+                        <button className="sp-level-back sd-button" onClick={handleBack} style={styles.backButton}>
                             ← Back To Training
                         </button>
                         <div className="sp-level-category" style={styles.categoryBadge}>
@@ -892,65 +892,62 @@ const styles: { [key: string]: React.CSSProperties } = {
     container: {
         minHeight: 'calc(100dvh - 59px)',
         background: 'linear-gradient(180deg, #040d18 0%, #030b14 100%)',
-        color: '#eefbff',
-        fontFamily: "var(--font-rajdhani, 'Rajdhani'), sans-serif",
+        color: '#f2f7ff',
+        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        fontVariantNumeric: 'tabular-nums',
         padding: '16px 12px',
     },
     header: {
         display: 'flex', flexDirection: 'column' as const, alignItems: 'stretch', justifyContent: 'space-between', gap: 14,
-        maxWidth: 600, margin: '0 auto 18px',
+        maxWidth: 1180, margin: '0 auto 18px',
         padding: '18px 20px',
-        background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)',
-        border: '1px solid #688299', borderTopColor: '#aec0d0', borderRadius: 7,
-        boxShadow: '0 14px 32px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.25)',
     },
     backButton: {
-        padding: '8px 16px', background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
-        border: '1px solid #688299', borderTopColor: '#aec0d0', borderRadius: 7, color: '#eefbff',
+        padding: '8px 16px',
         fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
     },
     gameInfo: { textAlign: 'center' as const, flex: 1, minWidth: 0 },
     gameTitle: {
-        margin: 0, fontSize: 22, fontWeight: 800, color: '#f5fdff', letterSpacing: 0.8,
-        fontFamily: "var(--font-orbitron, 'Orbitron'), sans-serif",
+        margin: 0, fontSize: 24, fontWeight: 750, color: '#f2f7ff', letterSpacing: 0.4,
+        fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
     },
     progressSummary: { marginTop: 8, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 6 },
-    progressText: { fontSize: 12, color: '#9eb8c6', letterSpacing: 0.8 },
+    progressText: { fontSize: 12, color: '#bdd0e2', letterSpacing: 0.4 },
     progressTrack: {
         width: 220, maxWidth: '100%', height: 6, background: 'rgba(0,0,0,.72)',
-        border: '1px solid #688299', borderRadius: 7, overflow: 'hidden',
+        border: '1px solid #445e77', overflow: 'hidden',
     },
     progressFill: {
-        height: '100%', background: 'linear-gradient(90deg, #087cfa, #56d8ff, #d9f8ff)',
-        borderRadius: 7, boxShadow: '0 0 12px rgba(8,124,250,.5)',
+        height: '100%', background: 'linear-gradient(90deg, #0c55c0, #56d8ff, #d9f8ff)',
+        boxShadow: '0 0 12px rgba(8,124,250,.5)',
     },
     categoryBadge: {
-        padding: '7px 12px', background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
-        border: '1px solid #688299', borderTopColor: '#aec0d0', borderRadius: 7, fontSize: 12, fontWeight: 700,
-        color: '#cceef8', letterSpacing: 1.2, whiteSpace: 'nowrap',
+        padding: '7px 12px', background: 'rgba(10, 24, 41, 0.85)',
+        border: '1px solid #445e77', fontSize: 12, fontWeight: 700,
+        color: '#86daff', letterSpacing: 0.6, whiteSpace: 'nowrap',
     },
-    levelMap: { padding: '8px 0 28px', maxWidth: 600, margin: '0 auto' },
+    levelMap: { padding: '8px 0 28px', maxWidth: 1180, margin: '0 auto' },
     loading: { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', height: 400, gap: 16 },
-    spinner: { fontSize: 48, color: '#7be9ff', textShadow: '0 0 24px rgba(35,215,255,.7)' },
+    spinner: { fontSize: 48, color: '#86daff', textShadow: '0 0 24px rgba(35,215,255,.55)' },
     levelList: { display: 'flex', flexDirection: 'column' as const, gap: 0 },
     levelCard: {
         position: 'relative' as const, display: 'flex', alignItems: 'center', padding: '16px 18px',
-        borderRadius: 7, marginBottom: 12, transition: 'transform .2s ease, border-color .2s ease, box-shadow .2s ease',
+        marginBottom: 12, transition: 'transform .2s ease, border-color .2s ease, box-shadow .2s ease',
     },
     levelBadge: {
-        width: 46, height: 46, borderRadius: 7, border: '1px solid #688299', borderTopColor: '#aec0d0',
+        width: 46, height: 46, border: '1px solid #688299', borderTopColor: '#aec0d0',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,.45), 0 0 14px rgba(35,215,255,.22)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800,
-        flexShrink: 0, fontFamily: "var(--font-orbitron, 'Orbitron'), sans-serif",
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800,
+        flexShrink: 0, fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
     },
     levelInfo: { flex: 1, marginLeft: 16, minWidth: 0 },
-    levelTitle: { margin: 0, fontSize: 16, fontWeight: 700, letterSpacing: 0.3 },
+    levelTitle: { margin: 0, fontSize: 16, fontWeight: 700, letterSpacing: 0.2 },
     levelDesc: { margin: '4px 0 0 0', fontSize: 13, lineHeight: 1.45 },
     requirement: { marginTop: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' as const, rowGap: 4 },
     scoreSection: { display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 8, minWidth: 112 },
     highScore: { display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end' },
-    highScoreLabel: { fontSize: 12, color: '#829cab', letterSpacing: 1 },
-    highScoreValue: { fontSize: 22, fontWeight: 800, fontFamily: "var(--font-orbitron, 'Orbitron'), sans-serif" },
+    highScoreLabel: { fontSize: 12, color: '#829cab', letterSpacing: 0.6 },
+    highScoreValue: { fontSize: 22, fontWeight: 800, fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" },
     notAttempted: { fontSize: 12, color: '#829cab' },
     playButton: {
         padding: '9px 18px', border: '1px solid #56d8ff', borderTopColor: '#b3eaff', borderRadius: 7,
