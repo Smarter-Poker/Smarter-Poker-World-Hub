@@ -208,7 +208,18 @@ export default class MyDocument extends Document {
                          If Vercel deployed a new build, old PWA service workers
                          will try to request obsolete Next.js chunk files, getting 404s
                          and causing a blank white screen. This interceptor catches
-                         script load failures, nukes the Service Worker, and hard-reloads.
+                         script load failures, clears caches, and hard-reloads.
+
+                         ONLY A MISSING CHUNK IS STALE (2026-11-27). A chunk also fails
+                         when the connection drops - a route prefetch, a lazy panel -
+                         and this used to treat that as a stale build: it deleted every
+                         cache (the offline copy the PWA needs most right then) and
+                         reloaded into the browser's offline page. Found by the Bankroll
+                         Export offline spec: going offline on /hub/bankroll-manager/export
+                         prefetched the dashboard chunk, it failed, and the page was
+                         replaced by ERR_INTERNET_DISCONNECTED. Now: offline does
+                         nothing, and online the chunk URL is asked directly; only a
+                         404 or 410 (the build really is gone) busts the cache.
                     ═══════════════════════════════════════════════════════════════ */}
                     <script dangerouslySetInnerHTML={{
                         __html: `
@@ -216,12 +227,16 @@ export default class MyDocument extends Document {
                                 if (e.target && e.target.tagName === 'SCRIPT') {
                                     var src = e.target.src || '';
                                     if (src.includes('_next/static/chunks')) {
+                                        if (navigator.onLine === false) return;
+                                        var bust = function() {
+                                        try {
+                                            if (sessionStorage.getItem('reloaded_stale_chunk')) {
+                                                console.warn('Already attempted reload. Halting to prevent infinite loop.');
+                                                return;
+                                            }
+                                            sessionStorage.setItem('reloaded_stale_chunk', '1');
+                                        } catch (err) { return; }
                                         console.warn('Stale chunk failed. Clearing caches and reloading...');
-                                        if (sessionStorage.getItem('reloaded_stale_chunk')) {
-                                            console.warn('Already attempted reload. Halting to prevent infinite loop.');
-                                            return;
-                                        }
-                                        sessionStorage.setItem('reloaded_stale_chunk', '1');
 
                                         // PUSH FIX (2026-08-19): this used to unregister EVERY service
                                         // worker, which destroys the PushSubscription the PWA worker owns.
@@ -252,6 +267,14 @@ export default class MyDocument extends Document {
                                             }));
                                         }
                                         Promise.all(work).then(done, done);
+                                        };
+                                        // A network failure is not a stale build: only the
+                                        // server saying the chunk is gone is.
+                                        try {
+                                            fetch(src, { method: 'HEAD', cache: 'no-store' }).then(function(res) {
+                                                if (res.status === 404 || res.status === 410) bust();
+                                            }, function() { /* no connection: keep the page and its caches */ });
+                                        } catch (err) { /* fetch unavailable: keep the page */ }
                                     }
                                 }
                             }, true);
