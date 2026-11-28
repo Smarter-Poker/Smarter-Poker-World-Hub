@@ -20,18 +20,18 @@ import {
 } from '../../../src/content/research/reports.js';
 import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 
-const PRIMARY_DOI = '10.5281/zenodo.15129481';
+const PRIMARY_DOI = '10.5281/zenodo.24115647';
 const COLLECTION_DOI = '10.5281/zenodo.24115647';
 
 const ANNUAL_WHITEPAPER_STUDY = {
   slug: 'annual-state-of-poker-2026',
-  title: 'Annual State Of Poker 2026: Quantitative Industry Economics & GTO Benchmark Whitepaper',
+  title: 'Annual State Of Poker 2026: Poker Math, Tax Rules And Directory Data Whitepaper',
   shortTitle: 'Annual State Of Poker 2026 Whitepaper',
   publishedDate: '2026-11-24',
   modifiedDate: '2026-11-24',
   category: 'Flagship Industry Synthesis Whitepaper',
   summary:
-    `Flagship 2026 Quantitative State Of Poker Industry And GTO Benchmark Whitepaper Uniting 15 Zenodo-Archived Studies (DOI: 10.5281/zenodo.15129481), ${VENUE_COUNT_LABEL} Live Poker Venues, 52 Solver Calculators, 70 MCP Tools, And 25 Empirical Statistics.`,
+    `Smarter.Poker 2026 Whitepaper: Exact Poker Math, US Poker Tax Rules, And Dated Directory Data, Including The Directory Of ${VENUE_COUNT_LABEL} Listed US Poker Rooms. Every Figure Is Labelled With Its Basis.`,
   doi: PRIMARY_DOI,
 };
 

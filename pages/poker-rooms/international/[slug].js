@@ -218,7 +218,6 @@ export default function InternationalPokerGuideDetailPage({ guide, allGuides = [
               <article key={room.name} style={styles.venueCard}>
                 <div style={styles.venueHeader}>
                   <span style={styles.tagCyan}>{room.neighborhood}</span>
-                  <span style={styles.tagEmerald}>{room.tables}</span>
                 </div>
                 <h3 style={styles.h3}>{room.name}</h3>
                 <p style={styles.bodyText}>{room.highlights}</p>

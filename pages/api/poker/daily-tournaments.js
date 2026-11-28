@@ -1,7 +1,7 @@
 /**
  * Daily Tournaments API
  *
- * Source: venue_daily_tournaments table (several hundred venues, 4,500+ records)
+ * Source: venue_daily_tournaments table (several hundred venues, several thousand served rows)
  * Live-scraped data by tournament-schedule-daemon (72h cycle)
  *
  * Endpoints:
