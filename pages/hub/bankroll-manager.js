@@ -81,7 +81,10 @@ import { getBankrollStats, calculateTotalBankroll } from '../../src/lib/bankroll
 import { centsToDollars, resultsCents, toCents } from '../../src/lib/bankroll/ledgerMath.mjs';
 import { evaluateRuleViolations, monthBounds } from '../../src/lib/bankroll/ruleViolations.mjs';
 import { parseLedgerDay } from '../../src/lib/bankroll/localDates.mjs';
-import { runLeakAnalysis } from '../../src/lib/bankroll/leakDetection';
+import {
+  TIME_FILTERS, CHART_TYPES, CHART_TYPE_LABELS, GAME_TYPES,
+  sanitizeTimeFilter, sanitizeChartType, sanitizeGameTypes, toggleGameType as toggleGameTypeIn,
+} from '../../src/lib/bankroll/dashboardFilters.mjs';
 import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
 import { fetchReportLedger, fetchTrips, fetchSeries, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
 import { buildRecentActivity, tripDayLabel, withoutActiveTripRows } from '../../src/lib/bankroll/tripMath.mjs';
@@ -106,7 +109,7 @@ const RECEIPT_TONE_COLORS = {
   ATTACH: '#60a5fa',
   LATER: '#a5b7cc',
 };
-import { formatCurrency, convertCurrency } from '../../src/lib/bankroll/currencyUtils';
+import { formatCurrency, formatCurrencyWithSign, convertCurrency } from '../../src/lib/bankroll/currencyUtils';
 
 // Bankroll components. Eager: the dashboard's first paint (trend chart,
 // Jarvis insights, rules card, stat cards). Everything below the fold or
@@ -119,6 +122,7 @@ import BankrollTrendChart from '../../src/components/bankroll/BankrollTrendChart
 import JarvisLeakInsights from '../../src/components/bankroll/JarvisLeakInsights';
 import BankrollGoals from '../../src/components/bankroll/BankrollGoals';
 import BankrollProGate from '../../src/components/bankroll/BankrollProGate';
+import BankrollFilterMenu from '../../src/components/bankroll/BankrollFilterMenu';
 import ManageVenuesModal from '../../src/components/bankroll/ManageVenuesModal';
 import { requestPageTutorial, TUTORIAL_WILL_OPEN_EVENT } from '../../src/tutorials';
 
@@ -146,6 +150,7 @@ const AdvancedTaxReport = lazySection(() => import('../../src/components/bankrol
 const BankrollBadges = lazySection(() => import('../../src/components/bankroll/BankrollBadges'));
 const SocialStakingProfile = lazySection(() => import('../../src/components/bankroll/SocialStakingProfile'));
 const TournamentCalendar = lazySection(() => import('../../src/components/bankroll/TournamentCalendar'));
+const LeakAnalysisView = lazySection(() => import('../../src/components/bankroll/LeakAnalysisView'));
 import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollModal';
 import { hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
 import GeofenceService from '../../src/lib/geofence';
@@ -169,6 +174,11 @@ const SIDEBAR_SECTIONS = [
   { id: 'trips', label: 'Trip Tracker', icon: '' },
   { id: 'series', label: 'Series Tracker', icon: '' },
   { id: 'players', label: 'Player Notes', icon: '' },
+  // Both views existed with no address that reached them: ?view=leaks fell
+  // back to the dashboard, and Session Hand Review was mounted only inside
+  // an equally unreachable 'pro' block.
+  { id: 'leaks', label: 'Leak Analysis', icon: '' },
+  { id: 'hand-review', label: 'Hand Review', icon: '' },
   { id: 'scan-receipt', label: 'Scan Receipt', icon: '' },
   // Reachable from the hamburger (?view=receipts) since it shipped, and from
   // nowhere a thumb could find. The section itself already existed.
@@ -221,7 +231,9 @@ const CATEGORY_LABELS = {
 };
 
 const EMPTY_LEDGER = [];
-const TIME_FILTERS = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year', 'All Time'];
+
+// Header artwork for views that have none of their own.
+const HEADER_ART = { dashboard: 'bankroll', badges: 'goals', leaks: 'jarvis', 'hand-review': 'reports' };
 
 function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick, tutorialId }) {
   const getRiskColor = (risk) => {
@@ -347,7 +359,8 @@ export default function BankrollManagerPage() {
   // UI State - use persisted filters
   const { filters, setFilter } = usePersistedFilters('bankroll-manager', {
     timeFilter: 'All Time',
-    chartType: 'line'
+    chartType: 'line',
+    gameTypes: GAME_TYPES,
   });
 
   const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
@@ -358,13 +371,14 @@ export default function BankrollManagerPage() {
   const activeSection = categoryFilter !== 'all' ? 'dashboard' : resolveBankrollView(requestedView);
   const headerSection = categoryFilter !== 'all' ? categoryFilter : activeSection === 'toke-tracker' ? 'toke-home' : activeSection;
   const isDashboard = activeSection === 'dashboard' && categoryFilter === 'all';
-  const timeFilter = filters.timeFilter;
-  const chartType = filters.chartType;
+  // Stored and linked values are read through the allowed options, so a
+  // stale label never reaches the dropdown or the date range.
+  const timeFilter = sanitizeTimeFilter(filters.timeFilter);
+  const chartType = sanitizeChartType(filters.chartType);
   const sectionTitle = activeSection === 'dashboard'
     ? CATEGORY_LABELS[categoryFilter] || 'Bankroll Manager'
     : SIDEBAR_SECTIONS.find(section => section.id === activeSection)?.label
       || MENU_SECTION_TITLES[activeSection]
-      || ({ leaks: 'Leak Analysis', pro: 'Pro Tools' })[activeSection]
       || 'Bankroll Manager';
 
   const setTimeFilter = (val) => setFilter('timeFilter', val);
@@ -441,42 +455,27 @@ export default function BankrollManagerPage() {
     clearActionView('log-session');
   }, [clearActionView]);
 
-  // Hamburger menu preferences
+  // Bankroll preferences (profiles.bankroll_preferences). `notifications`
+  // gates the venue arrival alerts below; `currencyEUR` switches every
+  // displayed amount. (An Auto-Save toggle sat here for months and nothing
+  // read it, so it is gone from Settings and the menu.)
   const [preferences, setPreferences] = useState({
-    autoSave: true,
     notifications: true,
     currencyEUR: false
   });
+  const notificationsRef = useRef(true);
+  notificationsRef.current = preferences.notifications !== false;
 
-  // Filters
+  // Filters. The location lives for the visit (a stored id can outlive the
+  // venue); the game types persist with the time range and chart type.
   const [locationFilter, setLocationFilter] = useState(null);
-  const [gameTypeFilter, setGameTypeFilter] = useState(['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports']);
+  const gameTypeFilter = useMemo(() => sanitizeGameTypes(filters.gameTypes), [filters.gameTypes]);
+  const toggleGameType = (type) => setFilter('gameTypes', toggleGameTypeIn(gameTypeFilter, type));
 
-  // Dropdowns
-  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
-  const [showTimeDropdown, setShowTimeDropdown] = useState(false);
-  const [showGameTypeDropdown, setShowGameTypeDropdown] = useState(false);
-  const [showChartTypeDropdown, setShowChartTypeDropdown] = useState(false);
-  const CHART_TYPE_LABELS = { line: 'Line Chart', bar: 'Bar Chart', donut: 'Donut Chart', stacked: 'Stacked Bar', histogram: 'Histogram', heatmap: 'Heatmap' };
-  const CHART_TYPES = ['line', 'bar', 'donut', 'stacked', 'histogram', 'heatmap'];
-  const handleChartTypeChange = (type) => {
-    setChartType(type);
-    setShowChartTypeDropdown(false);
-    try { localStorage.setItem('bankroll_chart_type', type); } catch (_) { console.warn("[bankroll-manager.js]", _); }
-  };
-
-  const toggleGameType = (type) => {
-    setGameTypeFilter(prev => {
-      var idx = prev.indexOf(type);
-      if (idx !== -1) {
-        var next = prev.slice();
-        next.splice(idx, 1);
-        return next;
-      } else {
-        return prev.concat([type]);
-      }
-    });
-  };
+  // One filter menu open at a time (null = none). BankrollFilterMenu closes
+  // itself on an outside tap, Escape and tabbing away.
+  const [openFilter, setOpenFilter] = useState(null);
+  const filterMenuToggle = (id) => (open) => setOpenFilter(open ? id : null);
 
   // Data
   const [stats, setStats] = useState(null);
@@ -490,7 +489,6 @@ export default function BankrollManagerPage() {
   const [trips, setTrips] = useState([]);
   const [activeSeries, setActiveSeries] = useState(null);
   const [locations, setLocations] = useState([]);
-  const [leakAnalysis, setLeakAnalysis] = useState(null);
   const [showVenueModal, setShowVenueModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [scannerStep, setScannerStep] = useState('scan'); // 'scan' | 'post-capture' | 'pick-entry'
@@ -579,7 +577,11 @@ export default function BankrollManagerPage() {
     try {
       const dateRange = getDateRangeFilter(timeFilter);
 
-      const [statsData, entriesData, tripsData, locationsData, leakData] = await Promise.all([
+      // The venue list only feeds the Location filter and the log form's
+      // picker: if it cannot be read, the last list stays and the ledger still
+      // loads. (Leak analysis used to run here on every load for a view no
+      // address reached; LeakAnalysisView now reads it while it is open.)
+      const [statsData, entriesData, tripsData, locationsData] = await Promise.all([
         getBankrollStats(userId, dateRange.startDate, dateRange.endDate, locationFilter),
         fetchReportLedger(userId, {
           locationId: locationFilter,
@@ -588,15 +590,16 @@ export default function BankrollManagerPage() {
           includeExpenses: true,
         }),
         fetchTrips(userId),
-        getUserLocations(userId),
-        runLeakAnalysis(userId, locationFilter),
+        getUserLocations(userId).catch((error) => {
+          console.warn('Could not load venues:', error);
+          return null;
+        }),
       ]);
 
       if (request !== latestLoad.current || !isMountedRef.current) return;
       setStats(statsData);
       setTrips(tripsData);
-      setLocations(locationsData);
-      setLeakAnalysis(leakData);
+      if (locationsData) setLocations(locationsData);
 
       // Series feed the dashboard banner and Recent Activity. If they cannot
       // be read, their rows are still grouped (never shown loose), because
@@ -653,6 +656,8 @@ export default function BankrollManagerPage() {
         const { venues } = await loadGeofenceVenues({ getToken: getFreshAccessToken });
         if (!cancelled && venues.length > 0) {
           gf.start(venues, async (venue) => {
+            // Venue Alerts off in Settings: arriving at a venue says nothing.
+            if (!notificationsRef.current) return;
             // Request permission on first trigger
             await requestPermission();
             // Show browser notification (foreground, current tab)
@@ -678,7 +683,9 @@ export default function BankrollManagerPage() {
     setEditEntry(null);
     clearActionView('log-session');
     setRefreshTrigger(prev => prev + 1);
-    await loadData();
+    // No reload here: LogEntryModal dispatched 'bankroll-updated' before
+    // calling onSubmit, and the listener below already reloads. Calling it
+    // again read the whole ledger twice for every save.
 
     // Bankroll Rules are judged against the row just saved and its own day and
     // month (src/lib/bankroll/ruleViolations.mjs), never against whatever row
@@ -707,10 +714,10 @@ export default function BankrollManagerPage() {
   };
 
   // Gate Log+ behind bankroll check
+  // Resolves true when the log sheet (or, signed out, its sign-in prompt)
+  // opened, and undefined when a gate stopped it.
   const handleLogClick = useCallback(async () => {
-    const controller = new AbortController();
-    const { signal } = controller;
-    if (!userId) { setShowLogModal(true); return; } // Will show login prompt
+    if (!userId) { setShowLogModal(true); return true; } // Will show login prompt
     if (!requireOnline()) return;
     // ═══ ACTION GATE: Log entry requires access ═══
     if (!guardAction()) return;
@@ -720,11 +727,19 @@ export default function BankrollManagerPage() {
     }
     // If still loading, do async check
     if (bankrollInitialized === null) {
-      const has = await hasStartingBankroll(userId);
+      let has;
+      try {
+        has = await hasStartingBankroll(userId);
+      } catch (error) {
+        console.warn('Could not check the starting bankroll:', error);
+        toast.error('Could Not Open The Log. Check Your Connection.');
+        return;
+      }
       setBankrollInitialized(has);
       if (!has) { setShowStartingBankroll(true); return; }
     }
     setShowLogModal(true);
+    return true;
   }, [userId, bankrollInitialized, guardAction, requireOnline]);
 
   // A deep link must use the exact same authorization and initialization gates
@@ -733,7 +748,12 @@ export default function BankrollManagerPage() {
     if (!router.isReady) return;
     const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
     if (requestedView === 'log-session') {
-      void handleLogClick();
+      void handleLogClick().then((opened) => {
+        // A gate (offline, the upgrade popup, the starting-bankroll step) kept
+        // the sheet shut. Leave the address, or the footer's Log button points
+        // at the URL already showing and does nothing the second time.
+        if (!opened) clearActionView('log-session');
+      });
       return;
     }
     setShowLogModal(false);
@@ -742,7 +762,9 @@ export default function BankrollManagerPage() {
   // Check starting bankroll on mount
   useEffect(() => {
     if (!userId) return;
-    hasStartingBankroll(userId).then(has => setBankrollInitialized(has));
+    hasStartingBankroll(userId)
+      .then(has => setBankrollInitialized(has))
+      .catch(error => console.warn('Could not check the starting bankroll:', error));
   }, [userId]);
 
   // A trip summary row is not a ledger row: open its trip's report instead.
@@ -1356,7 +1378,7 @@ export default function BankrollManagerPage() {
     }
     if (openedPopupLink.current === requestedView) return;
     openedPopupLink.current = requestedView;
-    // A query change remounts the shell. Keep this action address until the user closes the overlay.
+    // Keep this action address until the user closes the overlay.
     if (requestedView === 'adjust-bankroll') openAdjustModal();
     else handleSidebarClick(requestedView);
   }, [router.isReady, requestedView, featureAccessLoading]);
@@ -1407,37 +1429,38 @@ export default function BankrollManagerPage() {
   }, [userId]);
 
   // Hamburger menu handlers - save to Supabase
+  // The switch moves at once; if the save fails it moves back and says so,
+  // instead of showing a setting the next visit will not have.
   const updatePreference = useCallback(async (key, value) => {
     if (!requireOnline()) return;
-    const newPrefs = { ...preferences, [key]: value };
-    setPreferences(newPrefs);
+    let previous;
+    setPreferences(prev => { previous = prev[key]; return { ...prev, [key]: value }; });
 
     if (userId) {
       try {
         await updateBankrollPreferences(userId, { [key]: value });
       } catch (error) {
         console.warn('Failed to save preference:', error);
+        if (isMountedRef.current) setPreferences(prev => ({ ...prev, [key]: previous }));
+        toast.error('Could Not Save That Setting. Try Again.');
       }
     }
-  }, [userId, preferences, requireOnline]);
+  }, [userId, requireOnline]);
 
   const menuConfig = getMenuConfig('bankroll-manager', user, preferences, {
-    setAutoSave: (val) => updatePreference('autoSave', val),
     setNotifications: (val) => updatePreference('notifications', val),
     setCurrencyEUR: (val) => updatePreference('currencyEUR', val),
     onAdjustBankroll: () => { setMenuOpen(false); openAdjustModal(); }
   });
 
-  // Close dropdowns when clicking outside
+  // Leaving the dashboard closes its overlays and filter menus. The page is
+  // no longer remounted on every ?view= change (pages/_app.js keeps one
+  // instance for /hub/bankroll-manager so the filters survive), so they would
+  // otherwise reopen on the way back.
   useEffect(() => {
-    const handleClick = () => {
-      setShowLocationDropdown(false);
-      setShowTimeDropdown(false);
-      setShowGameTypeDropdown(false);
-    };
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, []);
+    setShowAllEntries(false);
+    setOpenFilter(null);
+  }, [activeSection, categoryFilter]);
   // Realtime subscription - live updates with debounce
   useEffect(() => {
     if (!userId) return;
@@ -1500,7 +1523,7 @@ export default function BankrollManagerPage() {
           />
 
           <BankrollImageHeader className={layout.mast} title={sectionTitle}
-            art={headerSection === 'dashboard' ? 'bankroll' : headerSection === 'badges' ? 'goals' : headerSection} section={headerSection}
+            art={HEADER_ART[headerSection] || headerSection} section={headerSection}
             parent={sectionTitle !== 'Bankroll Manager' ? 'Bankroll Manager' : undefined}
             onTutorial={requestPageTutorial}
             back={isDashboard ? undefined : { href: '/hub/bankroll-manager', shallow: true }}
@@ -1555,6 +1578,10 @@ export default function BankrollManagerPage() {
             <BankrollActionTarget.Provider value={isDashboard ? undefined : actionTarget}>
             {/* Main Content - Switches based on activeSection */}
             <section className={`bankroll-main-content ${layout.content}`} aria-label={sectionTitle}>
+              {/* One boundary per view: a crash in one section shows its own
+                  fallback and is cleared by moving to another view (the page
+                  itself no longer remounts on a ?view= change). */}
+              <HubErrorBoundary key={`${activeSection}:${categoryFilter}`} name={`Bankroll ${sectionTitle}`}>
 
               {/* Category Overview View (Cash Games, Tournaments, etc.) */}
               {activeSection === 'dashboard' && categoryFilter !== 'all' && (
@@ -1562,6 +1589,8 @@ export default function BankrollManagerPage() {
                   <CategoryOverview
                     userId={userId}
                     categoryFilter={categoryFilter}
+                    onAddEntry={handleLogClick}
+                    onEditEntry={handleEditEntry}
                   />
                 </HubErrorBoundary>
               )}
@@ -1757,7 +1786,7 @@ export default function BankrollManagerPage() {
                             fontWeight: 700,
                             color: (activeTrip.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
                           }}>
-                            {(activeTrip.totalNet || 0) >= 0 ? '+' : ''}${Math.abs(activeTrip.totalNet || 0).toLocaleString()}
+                            {formatCurrencyWithSign(activeTrip.totalNet || 0, preferences.currencyEUR)}
                           </div>
                         </div>
                         <button
@@ -1829,7 +1858,7 @@ export default function BankrollManagerPage() {
                             fontWeight: 700,
                             color: (activeSeries.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
                           }}>
-                            {(activeSeries.totalNet || 0) >= 0 ? '+' : ''}${Math.abs(activeSeries.totalNet || 0).toLocaleString()}
+                            {formatCurrencyWithSign(activeSeries.totalNet || 0, preferences.currencyEUR)}
                           </div>
                         </div>
                         <button
@@ -1872,6 +1901,16 @@ export default function BankrollManagerPage() {
                     </div>
                   )}
 
+                  {/* A failed read is not an empty bankroll: the tiles would
+                      show '-' and the chart nothing, as if no session had
+                      ever been logged. */}
+                  {failedScope === reportScope && (
+                    <div role="alert" className={`sd-panel ${layout.panel}`} data-testid="bankroll-load-failed" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <span style={{ color: '#fca5a5', fontSize: 14, fontWeight: 600 }}>Could Not Load Your Bankroll. Check Your Connection.</span>
+                      <button type="button" className="sd-button" onClick={loadData}>Retry</button>
+                    </div>
+                  )}
+
                   {/* === Unified Dashboard Frame === */}
                   {!(isLoading && !hasLoadedOnce) && (
                   <div className={`sd-panel ${layout.dashboard}`}>
@@ -1903,149 +1942,47 @@ export default function BankrollManagerPage() {
                     <div data-tutorial="chart">
                     <BankrollTrendChart displayEUR={preferences.currencyEUR} entries={chartEntries} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
 
-                    {/* Filters Row */}
+                    {/* Filters Row. Two columns at phone width (bankroll.css),
+                        so the right column's menus open leftward to stay on
+                        a 375px screen. */}
                     <div className="bankroll-filters-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
-                      {/* Location Dropdown */}
-                      <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-                        <button
-                          style={styles.dropdownButton}
-                          onClick={() => {
-                            setShowLocationDropdown(!showLocationDropdown);
-                            setShowTimeDropdown(false);
-                            setShowGameTypeDropdown(false);
-                            setShowChartTypeDropdown(false);
-                          }}
-                        >
-                          {selectedLocationName} <span style={styles.dropdownArrow}>▼</span>
-                        </button>
-                        {showLocationDropdown && (
-                          <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
-                            <button
-                              style={styles.dropdownItem}
-                              onClick={() => { setLocationFilter(null); setShowLocationDropdown(false); }}
-                            >
-                              All Locations
-                            </button>
-                            {locations.map((loc) => (
-                              <button
-                                key={loc.id}
-                                style={styles.dropdownItem}
-                                onClick={() => { setLocationFilter(loc.id); setShowLocationDropdown(false); }}
-                              >
-                                {loc.name}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Time Filter Dropdown */}
-                      <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-                        <button
-                          style={styles.dropdownButton}
-                          onClick={() => {
-                            setShowTimeDropdown(!showTimeDropdown);
-                            setShowLocationDropdown(false);
-                            setShowGameTypeDropdown(false);
-                            setShowChartTypeDropdown(false);
-                          }}
-                        >
-                          {timeFilter} <span style={styles.dropdownArrow}>▼</span>
-                        </button>
-                        {showTimeDropdown && (
-                          <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
-                            {TIME_FILTERS.map((tf) => (
-                              <button
-                                key={tf}
-                                style={styles.dropdownItem}
-                                onClick={() => { setTimeFilter(tf); setShowTimeDropdown(false); }}
-                              >
-                                {tf}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Game Type Multi-Select Dropdown */}
-                      <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-                        <button
-                          style={styles.dropdownButton}
-                          onClick={() => {
-                            setShowGameTypeDropdown(!showGameTypeDropdown);
-                            setShowLocationDropdown(false);
-                            setShowTimeDropdown(false);
-                            setShowChartTypeDropdown(false);
-                          }}
-                        >
-                          Game Type ({gameTypeFilter.length}) <span style={styles.dropdownArrow}>▼</span>
-                        </button>
-                        {showGameTypeDropdown && (
-                          <div className="bankroll-dropdown-menu" style={{ ...styles.dropdownMenu, minWidth: 200 }}>
-                            {['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports'].map((cat) => (
-                              <button
-                                key={cat}
-                                style={{
-                                  ...styles.dropdownItem,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 8,
-                                  background: gameTypeFilter.includes(cat) ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
-                                }}
-                                onClick={() => toggleGameType(cat)}
-                              >
-                                <span style={{
-                                  width: 16,
-                                  height: 16,
-                                  borderRadius: 3,
-                                  border: gameTypeFilter.includes(cat) ? '2px solid #2374e1' : '2px solid rgba(255,255,255,0.3)',
-                                  background: gameTypeFilter.includes(cat) ? '#2374e1' : 'transparent',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: 14,
-                                  color: '#fff',
-                                  flexShrink: 0,
-                                }}>
-                                  {gameTypeFilter.includes(cat) ? '✓' : ''}
-                                </span>
-                                {CATEGORY_LABELS[cat]}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Chart Type Dropdown */}
-                      <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-                        <button
-                          style={styles.dropdownButton}
-                          onClick={() => {
-                            setShowChartTypeDropdown(!showChartTypeDropdown);
-                            setShowLocationDropdown(false);
-                            setShowTimeDropdown(false);
-                            setShowGameTypeDropdown(false);
-                          }}
-                        >
-                          {CHART_TYPE_LABELS[chartType] || 'Line Chart'} <span style={styles.dropdownArrow}>▼</span>
-                        </button>
-                        {showChartTypeDropdown && (
-                          <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
-                            {CHART_TYPES.map((ct) => (
-                              <button
-                                key={ct}
-                                style={{
-                                  ...styles.dropdownItem,
-                                  background: chartType === ct ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
-                                }}
-                                onClick={() => handleChartTypeChange(ct)}
-                              >
-                                {CHART_TYPE_LABELS[ct]}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <BankrollFilterMenu
+                        label="Location"
+                        buttonText={selectedLocationName}
+                        open={openFilter === 'location'}
+                        onOpenChange={filterMenuToggle('location')}
+                        onSelect={(value) => setLocationFilter(value === 'all' ? null : value)}
+                        options={[{ value: 'all', label: 'All Locations', selected: !locationFilter }]
+                          .concat(locations.map((loc) => ({ value: loc.id, label: loc.name, selected: locationFilter === loc.id })))}
+                      />
+                      <BankrollFilterMenu
+                        label="Time Range"
+                        buttonText={timeFilter}
+                        align="right"
+                        open={openFilter === 'time'}
+                        onOpenChange={filterMenuToggle('time')}
+                        onSelect={setTimeFilter}
+                        options={TIME_FILTERS.map((tf) => ({ value: tf, label: tf, selected: timeFilter === tf }))}
+                      />
+                      <BankrollFilterMenu
+                        label="Game Types"
+                        buttonText={`Game Type (${gameTypeFilter.length})`}
+                        multiple
+                        minWidth={200}
+                        open={openFilter === 'game'}
+                        onOpenChange={filterMenuToggle('game')}
+                        onSelect={toggleGameType}
+                        options={GAME_TYPES.map((cat) => ({ value: cat, label: CATEGORY_LABELS[cat], selected: gameTypeFilter.includes(cat) }))}
+                      />
+                      <BankrollFilterMenu
+                        label="Chart Type"
+                        buttonText={CHART_TYPE_LABELS[chartType]}
+                        align="right"
+                        open={openFilter === 'chart'}
+                        onOpenChange={filterMenuToggle('chart')}
+                        onSelect={setChartType}
+                        options={CHART_TYPES.map((ct) => ({ value: ct, label: CHART_TYPE_LABELS[ct], selected: chartType === ct }))}
+                      />
                     </div>
                     </div>
 
@@ -2256,37 +2193,21 @@ export default function BankrollManagerPage() {
                 </HubErrorBoundary>
               )}
 
-              {/* Leaks View */}
+              {/* Leaks View (sidebar Leak Analysis, ?view=leaks) */}
               {activeSection === 'leaks' && (
-                <div className={`sd-panel ${layout.panel}`}>
-                  <h2 className="sd-section-title">Leak Analysis</h2>
-                  {!leakAnalysis || leakAnalysis.topLeaks?.length === 0 ? (
-                    <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-                      <div style={{ marginBottom: 16, opacity: 0.5, fontSize: 18, color: '#22c55e', fontWeight: 600 }}>All Clear</div>
-                      <p style={{ fontSize: 16, fontWeight: 600, color: '#22c55e', margin: '0 0 8px' }}>No Leaks Detected</p>
-                      <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>Keep Logging Sessions To Build Your Analysis History</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: 16, background: leakAnalysis.leakRisk === 'HIGH' ? 'rgba(239, 68, 68, 0.1)' : leakAnalysis.leakRisk === 'MEDIUM' ? 'rgba(97, 208, 232, 0.1)' : 'rgba(34, 197, 94, 0.1)', borderRadius: 10, border: '2px solid rgba(255,255,255,0.08)' }}>
-                        <span style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#61d0e8' : '#22c55e' }}>{leakAnalysis.leakRisk === 'HIGH' ? 'Alert' : leakAnalysis.leakRisk === 'MEDIUM' ? 'Warning' : 'OK'}</span>
-                        <div>
-                          <div style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#61d0e8' : '#22c55e' }}>{leakAnalysis.leakRisk} RISK</div>
-                          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>Total Leak Amount: ${leakAnalysis.totalLeakAmount?.toLocaleString() || 0}</div>
-                        </div>
-                      </div>
-                      {leakAnalysis.topLeaks?.map((leak, i) => (
-                        <div key={i} style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.1)', borderRadius: 10, marginBottom: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                            <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{leak.title}</span>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: leak.severity >= 4 ? '#ef4444' : leak.severity >= 3 ? '#61d0e8' : '#3b82f6' }}>{leak.value}</span>
-                          </div>
-                          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>{leak.message}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <LeakAnalysisView
+                  userId={userId}
+                  locationId={locationFilter}
+                  locationName={locationFilter ? selectedLocationName : null}
+                  displayEUR={preferences.currencyEUR}
+                />
+              )}
+
+              {/* Session Hand Review (sidebar Hand Review, ?view=hand-review) */}
+              {activeSection === 'hand-review' && (
+                <BankrollProGate userId={userId}>
+                  <SessionHandReview userId={userId} />
+                </BankrollProGate>
               )}
 
               {/* Goals View (from hamburger menu) */}
@@ -2327,13 +2248,19 @@ export default function BankrollManagerPage() {
                   <h2 className="sd-section-title">Bankroll Settings</h2>
                   <div style={{ padding: 16, background: 'rgba(255,255,255,0.1)', borderRadius: 10, border: '2px solid rgba(255,255,255,0.15)', marginBottom: 16 }}>
                     <h3 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: '0 0 16px' }}>Preferences</h3>
-                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
-                      <span style={{ fontSize: 14, color: '#fff' }}>Auto-Save Sessions</span>
-                      <input type="checkbox" checked={preferences.autoSave} onChange={(e) => updatePreference('autoSave', e.target.checked)} style={{ accentColor: '#2374e1' }} />
+                    <label style={styles.settingRow}>
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: 14, color: '#fff' }}>Display EUR</span>
+                        <span style={styles.settingHint}>Show Every Amount In Euros. Your Ledger Stays In Dollars.</span>
+                      </span>
+                      <input type="checkbox" checked={Boolean(preferences.currencyEUR)} onChange={(e) => updatePreference('currencyEUR', e.target.checked)} style={styles.settingCheck} />
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
-                      <span style={{ fontSize: 14, color: '#fff' }}>Notifications</span>
-                      <input type="checkbox" checked={preferences.notifications} onChange={(e) => updatePreference('notifications', e.target.checked)} style={{ accentColor: '#2374e1' }} />
+                    <label style={{ ...styles.settingRow, borderBottom: 'none' }}>
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: 14, color: '#fff' }}>Venue Alerts</span>
+                        <span style={styles.settingHint}>Remind Me To Log A Session When I Arrive At A Saved Venue.</span>
+                      </span>
+                      <input type="checkbox" checked={preferences.notifications !== false} onChange={(e) => updatePreference('notifications', e.target.checked)} style={styles.settingCheck} />
                     </label>
                   </div>
                   <button
@@ -2456,27 +2383,7 @@ export default function BankrollManagerPage() {
                 </div>
               )}
 
-              {/* Pro Tools View - Gated for non-VIP */}
-              {activeSection === 'pro' && (
-                <div style={styles.proToolsContainer}>
-                  {/* Pro Tools Header */}
-                  <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
-                    <h2 style={{ fontSize: 16, fontWeight: 700, color: '#edf6ff', margin: 0 }}>
-                      Pro Tools
-                    </h2>
-                    <p style={{ fontSize: 14, color: '#b6c9dd', margin: '4px 0 0' }}>Premium Bankroll Features For Serious Players</p>
-                  </div>
-
-                  <BankrollProGate userId={userId}>
-                    {/* Pro Features Grid - Only visible after unlock or for VIP */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, padding: 16 }}>
-                      <StakingTracker userId={userId} refreshTrigger={refreshTrigger} />
-                      <SeriesTracker userId={userId} />
-                      <SessionHandReview userId={userId} />
-                    </div>
-                  </BankrollProGate>
-                </div>
-              )}
+              </HubErrorBoundary>
             </section>
             </BankrollActionTarget.Provider>
           </div>
@@ -2747,7 +2654,7 @@ export default function BankrollManagerPage() {
               locations={locations}
               trips={trips}
               editEntry={editEntry}
-              defaultCategory={defaultReceiptCategory}
+              defaultCategory={defaultReceiptCategory || (!editEntry && categoryFilter !== 'all' ? categoryFilter : null)}
               defaultMediaUrls={defaultReceiptMedia}
               defaultPrefillData={defaultReceiptData}
               onClose={closeLogModal}
@@ -2991,6 +2898,18 @@ export default function BankrollManagerPage() {
 }
 
 const styles = {
+  settingRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    padding: '12px 0',
+    minHeight: 44,
+    borderBottom: '1px solid rgba(255,255,255,0.15)',
+    cursor: 'pointer',
+  },
+  settingHint: { display: 'block', fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 2 },
+  settingCheck: { accentColor: '#2374e1', width: 22, height: 22, flexShrink: 0 },
   container: {
     // The shell (HubPageShell) owns 100dvh, the 100vw clamp, overflow and
     // the header. This is the themed column inside its feed column;

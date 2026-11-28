@@ -1,8 +1,14 @@
 import BankrollHeaderAdd from './BankrollHeaderAdd';
 /**
- * CATEGORY OVERVIEW
- * Filtered view of ledger entries by category (Cash Games, Tournaments, etc.)
- * with Add, Edit, and Delete functionality
+ * CATEGORY OVERVIEW (?type=cash|tournament|casino|slots|sports|expense)
+ * Filtered view of ledger entries by category with Add, Edit and Delete.
+ *
+ * Add and Edit go through the page (onAddEntry / onEditEntry), so a category
+ * entry passes the same gates as the dashboard's Add + (sign-in, online,
+ * Bankroll Pro, starting bankroll) and is judged against the Bankroll Rules
+ * once saved. This view used to open its own LogEntryModal, which skipped
+ * all of them. It reloads on 'bankroll-updated', which every save, delete
+ * and adjustment dispatches.
  */
 
 import { GRADIENTS, METAL } from './metalStyles';
@@ -10,8 +16,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchReportLedger, deleteLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
 import { entryCents, formatSignedCents } from '../../lib/bankroll/ledgerMath.mjs';
 import LedgerTimeline from './LedgerTimeline';
-import LogEntryModal from './LogEntryModal';
-import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
 
 const CATEGORY_META = {
@@ -23,19 +27,20 @@ const CATEGORY_META = {
     expense: { label: 'Expenses', single: 'Expense', color: '#6b7280' },
 };
 
-export default function CategoryOverview({ userId, categoryFilter }) {
+export default function CategoryOverview({ userId, categoryFilter, onAddEntry, onEditEntry }) {
     const [entries, setEntries] = useState([]);
-    const [locations, setLocations] = useState([]);
-    const [trips, setTrips] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    // Signed out there is nothing to load; it must not sit on "Loading" forever.
+    const [isLoading, setIsLoading] = useState(Boolean(userId));
     const [loadFailed, setLoadFailed] = useState(false);
-    const [showLogModal, setShowLogModal] = useState(false);
-    const [editEntry, setEditEntry] = useState(null);
 
     const meta = CATEGORY_META[categoryFilter] || { label: categoryFilter, single: 'Entry', color: '#94a3b8' };
 
     const loadData = useCallback(async () => {
-        if (!userId || !categoryFilter) return;
+        if (!userId || !categoryFilter) {
+            setEntries([]);
+            setIsLoading(false);
+            return;
+        }
         setIsLoading(true);
         try {
             // Every row in the category, not the newest 200: Total P&L, Sessions
@@ -47,14 +52,6 @@ export default function CategoryOverview({ userId, categoryFilter }) {
             });
             setEntries(data || []);
             setLoadFailed(false);
-
-            // Locations and trips only feed the modal's pickers.
-            const [{ data: locs }, { data: trps }] = await Promise.all([
-                supabase.from('bankroll_locations').select('*').eq('user_id', userId),
-                supabase.from('bankroll_trips').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-            ]);
-            setLocations(locs || []);
-            setTrips(trps || []);
         } catch (err) {
             // A failed read is not "No Entries Yet".
             console.warn('Error loading category data:', err);
@@ -66,21 +63,19 @@ export default function CategoryOverview({ userId, categoryFilter }) {
 
     useEffect(() => {
         loadData();
+        window.addEventListener('bankroll-updated', loadData);
+        return () => window.removeEventListener('bankroll-updated', loadData);
     }, [loadData]);
 
-    const handleEditEntry = (entry) => {
-        setEditEntry(entry);
-        setShowLogModal(true);
-    };
+    const handleEditEntry = (entry) => { onEditEntry?.(entry); };
 
     const handleDeleteEntry = async (entryId) => {
         setEntries(prev => prev.filter(e => e.id !== entryId));
         try {
             await deleteLedgerEntry(userId, entryId);
             toast.success('Entry Deleted');
-            // The dashboard tiles and chart listen for this.
+            // The dashboard tiles, the chart and this list listen for this.
             window.dispatchEvent(new CustomEvent('bankroll-updated'));
-            await loadData();
         } catch (err) {
             console.warn('Delete failed:', err);
             toast.error('Failed To Delete Entry');
@@ -88,17 +83,7 @@ export default function CategoryOverview({ userId, categoryFilter }) {
         }
     };
 
-    const handleLogSubmit = async () => {
-        setShowLogModal(false);
-        setEditEntry(null);
-        await loadData();
-    };
-
-    // Summary stats
-    const openAddEntry = () => {
-        setEditEntry(null);
-        setShowLogModal(true);
-    };
+    const openAddEntry = () => { onAddEntry?.(); };
 
     const totalSessions = entries.length;
     const totalCents = entries.reduce((sum, e) => sum + entryCents(e), 0);
@@ -112,6 +97,7 @@ export default function CategoryOverview({ userId, categoryFilter }) {
             <div style={styles.header}>
                 <BankrollHeaderAdd label="Log Category Entry" onClick={openAddEntry}>
                     <button
+                        type="button"
                         style={styles.addButton}
                         onClick={openAddEntry}
                     >
@@ -125,23 +111,23 @@ export default function CategoryOverview({ userId, categoryFilter }) {
                 <div style={styles.statCard}>
                     <span style={styles.statLabel}>Total P&L</span>
                     <span style={{ ...styles.statValue, color: totalCents >= 0 ? '#22c55e' : '#ef4444' }}>
-                        {loadFailed || isLoading ? '-' : formatSignedCents(totalCents)}
+                        {!userId || loadFailed || isLoading ? '-' : formatSignedCents(totalCents)}
                     </span>
                 </div>
                 <div style={styles.statCard}>
                     <span style={styles.statLabel}>Sessions</span>
-                    <span style={styles.statValue}>{loadFailed || isLoading ? '-' : totalSessions}</span>
+                    <span style={styles.statValue}>{!userId || loadFailed || isLoading ? '-' : totalSessions}</span>
                 </div>
                 <div style={styles.statCard}>
                     <span style={styles.statLabel}>Avg Result</span>
                     <span style={{ ...styles.statValue, color: avgCents >= 0 ? '#22c55e' : '#ef4444' }}>
-                        {loadFailed || isLoading ? '-' : formatSignedCents(avgCents)}
+                        {!userId || loadFailed || isLoading ? '-' : formatSignedCents(avgCents)}
                     </span>
                 </div>
                 {categoryFilter !== 'expense' && (
                     <div style={styles.statCard}>
                         <span style={styles.statLabel}>Win Rate</span>
-                        <span style={styles.statValue}>{loadFailed || isLoading ? '-' : winRate + '%'}</span>
+                        <span style={styles.statValue}>{!userId || loadFailed || isLoading ? '-' : winRate + '%'}</span>
                     </div>
                 )}
             </div>
@@ -149,7 +135,7 @@ export default function CategoryOverview({ userId, categoryFilter }) {
             {/* Entry List */}
             <div style={styles.entriesSection}>
                 <h2 style={styles.sectionTitle}>
-                    All {meta.label}{loadFailed || isLoading ? '' : ` (${totalSessions})`}
+                    All {meta.label}{!userId || loadFailed || isLoading ? '' : ` (${totalSessions})`}
                 </h2>
 
                 {isLoading ? (
@@ -159,16 +145,18 @@ export default function CategoryOverview({ userId, categoryFilter }) {
                         <p style={styles.emptyText}>Could Not Load {meta.label}. Check Your Connection.</p>
                         <button type="button" style={styles.addButton} onClick={loadData}>Try Again</button>
                     </div>
+                ) : !userId ? (
+                    <div style={styles.emptyState} role="status">
+                        <p style={styles.emptyText}>Sign In To See Your {meta.label}</p>
+                        <button type="button" style={styles.addButton} onClick={openAddEntry}>Sign In</button>
+                    </div>
                 ) : entries.length === 0 ? (
                     <div style={styles.emptyState}>
                         <p style={styles.emptyText}>No {meta.label} Logged Yet</p>
                         <button
                             type="button"
                             style={styles.addButton}
-                            onClick={() => {
-                                setEditEntry(null);
-                                setShowLogModal(true);
-                            }}
+                            onClick={openAddEntry}
                         >
                             + Log Your First {meta.single}
                         </button>
@@ -183,18 +171,6 @@ export default function CategoryOverview({ userId, categoryFilter }) {
                 )}
             </div>
 
-            {/* Log Modal pre-set to this category */}
-            {showLogModal && (
-                <LogEntryModal
-                    userId={userId}
-                    locations={locations}
-                    trips={trips}
-                    editEntry={editEntry}
-                    defaultCategory={categoryFilter}
-                    onClose={() => { setShowLogModal(false); setEditEntry(null); }}
-                    onSubmit={handleLogSubmit}
-                />
-            )}
         </div>
     );
 }

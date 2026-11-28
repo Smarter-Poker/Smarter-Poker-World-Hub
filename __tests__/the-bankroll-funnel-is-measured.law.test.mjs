@@ -53,8 +53,12 @@ test('every bankroll event is actually fired, and the first entry is the FIRST o
     // It reads the ledger as it was BEFORE the save, or every entry is a first.
     const submit = src.slice(src.indexOf('const handleLogSubmit'), src.indexOf('const handleLogSubmit') + 700);
     assert.match(submit, /if \(entries\.length === 0\) capture\(FunnelEvents\.BANKROLL_FIRST_ENTRY/);
+    // The handler no longer reloads itself (LogEntryModal's 'bankroll-updated'
+    // event already does, and a second read was a duplicate), but if a reload
+    // ever returns here it must still come after the measurement.
+    const reload = submit.indexOf('await loadData()');
     assert.ok(
-        submit.indexOf('capture(FunnelEvents.BANKROLL_FIRST_ENTRY') < submit.indexOf('await loadData()'),
+        reload === -1 || submit.indexOf('capture(FunnelEvents.BANKROLL_FIRST_ENTRY') < reload,
         'measured before the reload that would make entries non-empty',
     );
 });
