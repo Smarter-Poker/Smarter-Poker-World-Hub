@@ -176,12 +176,14 @@ export default function TrainingPlayPage() {
                 description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
-            <div className="training-play-page smarterdesign" style={{ background: '#040d18', minHeight: '100dvh' }}>
+            <div className="training-play-page" style={{ background: '#040d18', minHeight: '100dvh' }}>
                 <UniversalHeader pageDepth={2} />
-                <LevelSelector
-                    userId={userId}
-                    gameId={gameId}
-                />
+                <div className="smarterdesign">
+                    <LevelSelector
+                        userId={userId}
+                        gameId={gameId}
+                    />
+                </div>
             </div>
         </>
     );
