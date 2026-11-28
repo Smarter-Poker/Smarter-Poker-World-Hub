@@ -79,7 +79,9 @@ async function chooseAndContinue(page: Page, frame: Frame, stateInfoOnly = false
     const reason = quiz.getByRole('textbox', { name: 'Why This Decision?' });
     await reason.fill('Compare the price with the range.');
     await expect(reason).toHaveValue('Compare the price with the range.');
-    await expect(quiz.getByText(/Your Decision, Not A Solver Answer/i)).toBeVisible();
+    // The decision itself states that no solver answer is assigned; the standing intro moved
+    // behind the watch page's "?" (Dan, 2026-11-27).
+    await expect(quiz.getByText('No Correct Answer Is Assigned To This Hand. Continue Watching To Compare With The Video.', { exact: true })).toBeVisible();
     const buttons = quiz.getByRole('button');
     for (const button of await buttons.all()) {
         if (!(await button.isVisible())) continue;
@@ -167,7 +169,8 @@ test.describe('Phase 7 Poker Learning', () => {
         await expect(page.getByRole('heading', { name: 'Daniel Negreanu', exact: true })).toBeVisible();
         await expect(page.getByRole('heading', { name: 'Videos Naming Daniel Negreanu', exact: true })).toBeVisible();
         await expect(page.getByText('Unrelated River Decision', { exact: true })).toHaveCount(0);
-        await expect(page.getByText('Videos Whose Published Titles Or Tags Name This Player.', { exact: true })).toBeVisible();
+        // That explanation lives behind the player page's "?" now (Dan, 2026-11-27), not in the body.
+        await expect(page.getByText('Videos Whose Published Titles Or Tags Name This Player.', { exact: true })).toHaveCount(0);
         const link = page.getByRole('link', { name: `Watch ${TITLE}`, exact: true });
         await expect(link).toHaveAttribute('href', `/hub/video-library/watch/${VIDEO_ID}/daniel-negreanu-poker-decision`);
         expect((await link.boundingBox())?.height).toBeGreaterThanOrEqual(44);
