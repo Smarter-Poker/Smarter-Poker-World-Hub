@@ -269,6 +269,13 @@ test('console components keep master slices separate and live values in DOM zone
   assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   assert.doesNotMatch(css, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.doesNotMatch(css, /:hover/i);
+  // 2026-11-28: the chassis declares its own steel rim; its head, rail, foot
+  // and plate strip are no longer painted raster slices.
+  assert.doesNotMatch(css, /painted-chassis-v1\//, 'the chassis paints no raster slice');
+  assert.doesNotMatch(css, /aspect-ratio:\s*1000 \/ (?:348|72|277)/, 'no slice keeps the painted master geometry');
+  assert.match(css, /\.pnc\[data-pnm-console='painted-chassis-v1'\] \{[^}]*chrome-readout\.webp/);
+  // Artwork stays: every pictogram is still a painted icon holder.
+  assert.match(css, /\.pnc-icon--search \{ background-image: url\('\/images\/pnm-console\/painted-controls-v1\/icon-search\.png'\); \}/);
 });
 
 test('final Poker Near Me console layers load after legacy visual compatibility layers', () => {
@@ -326,11 +333,14 @@ test('lobby, daily listings, discovery tools and location indexes use painted co
   assert.match(daily, /PokerNearMePanelShell/);
   assert.match(more, /PokerNearMePanelShell/);
   assert.match(locations, /PokerNearMePanelShell/);
-  // The painted wells and plates these surfaces still declare are each
-  // re-skinned by the #SMARTERDESIGN layer (poker-near-me-smarterdesign.css).
+  // The #SMARTERDESIGN layer keeps its steel rims, and the chassis plates
+  // declare their own chrome-row / cobalt chrome-active-v2 rims at source
+  // (poker-near-me-console.css, 2026-11-28).
   const sd = read('src/styles/worlds/poker-near-me-smarterdesign.css');
   assert.match(sd, /chrome-row\.webp/);
-  assert.match(sd, /chrome-active-v2\.webp/);
+  const chassis = read('src/styles/worlds/poker-near-me-console.css');
+  assert.match(chassis, /chrome-row\.webp/);
+  assert.match(chassis, /chrome-active-v2\.webp/);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /@media \(orientation: landscape\)[\s\S]*?\[data-global-bottom-nav='true'\][\s\S]*?position:\s*relative !important/);
   assert.doesNotMatch(css, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
