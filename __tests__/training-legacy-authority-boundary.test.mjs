@@ -95,6 +95,10 @@ async function loadRoute(path, { client, user = { id: USER_ID } } = {}) {
       getTrainingLeaderboardCategory: () => 'cash',
       normalizeTrainingLeaderboardCategory: (value) => value,
     },
+    '../../../src/lib/training/leaderboardQualification.mjs': {
+      minQuestionsForPeriod: () => 100,
+      qualificationFor: () => ({ minQuestions: 100, qualified: true, questionsToQualify: 0 }),
+    },
     '../../../src/lib/trivia/getTodayCST': { getTodayCST: () => '2026-09-06' },
     '../../../src/lib/training/questionContract.mjs': {
       enforceTrainingQuestionContract: (value) => value,
@@ -150,7 +154,7 @@ test('read routes retain GET handlers while their source contains no database mu
     assert.doesNotMatch(source, /\.(?:insert|update|upsert|delete)\s*\(/, `${path} must be read-only`);
     const rpcNames = [...source.matchAll(/\.rpc\(\s*['"]([^'"]+)['"]/g)].map((match) => match[1]);
     assert.ok(
-      rpcNames.every((name) => name === 'fn_training_verified_leaderboard_rank_v2'),
+      rpcNames.every((name) => name === 'fn_training_verified_leaderboard_rank_v2' || name === 'fn_training_verified_leaderboard_rank_v3'),
       `${path} may call only the service-owned read-only rank RPC`,
     );
     assert.doesNotMatch(source, /safeAward|add_diamonds_to_balance/, `${path} must not retain an award path`);
