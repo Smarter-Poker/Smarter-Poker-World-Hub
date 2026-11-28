@@ -141,6 +141,7 @@ Production at handoff: `/api/health` commitSha `6f0b657d1197716ef4532a14f44322c8
 - Left open: the Zenodo deposit itself still contains the old fabricated figures (it is labelled superseded on the site; publishing a new Zenodo version would fix it, and needs Dan's Zenodo account). Not reviewed: room house rules (rake/buy-in caps), tax rates and legal ages elsewhere, learn-content stats in non-research datasets (e.g. "OMC 8% To 13% VPIP"), platform feature counts (52 calculators, 70 MCP tools, 107 games; 107 is verified).
 
 ### 5.3 Site-wide load performance: IN PROGRESS, NOT COMMITTED (saved as a patch)
+- **UPDATE 23:30 Central:** the sub-agent pushed `agent/claude/r3-perf2` (head f527182f) as **PR #3252** (open merged=null head=f527182f6 labels=). Prefer the PR over the patch: check its state and CI; if merged, verify live and re-measure; if open or red, finish it on that branch. The patch below is only a fallback if that branch is lost.
 - Worktree was `/home/claude/wt-perf2`, branch `agent/claude/r3-perf2` (NOT pushed), base sha in `patches/r3-perf2-BASE-SHA.txt`.
 - Saved state: `patches/r3-perf2-uncommitted-tracked.patch` (tracked-file diff, binary-safe) + `patches/r3-perf2-untracked-files.tgz` (new files).
 - Files touched: `next.config.js`, `pages/_app.js`, all 8 Video Library pages, `public/default-avatar.png`, `src/audio/SoundEngine.ts`, `src/components/ui/ToastContainer.js`, `src/components/ui/UniversalHeader.js`, `src/world/components/CinematicIntro.tsx`, `__tests__/_test-guards-exist.test.mjs`, `__tests__/video-library-owner-panel.test.mjs`, the training inventory. New: `__tests__/site-wide-payload-budget.test.mjs`, `public/images/global-header/global-header-desktop-{824,1200,1648}.*.avif`, `public/images/global-header/header-default-avatar-192.*.png`, `src/components/ui/ToastStack.js`, `src/lib/build/`.
@@ -234,7 +235,7 @@ On the bookmark branch, `docs/handoff/2026-11-28-swarm/images/` (live production
 ---
 
 ## 11. MERGED PR LEDGER (this session, all on main and live unless noted)
-#3170 307eb2a5 (autopilot-merged VL redesign) · #3173 (evidence screenshots, autopilot) · #3181 ce886da0 · #3182 209ea636 · #3188 387ba16e · #3193 70e1a57e · #3194 cc3fd612 · #3197 9da5c3f8 · #3198 0ac8edad · #3206 c3b648d2 · #3210 ed41e283 · #3211 ec132380 · #3212 1e995803 · #3224 43f8faf3 · #3243 6f0b657d · #3246 e01ac60f · NOT PUSHED: r3-perf2, r3-e2e · PARKED: wip/claude/r3-data.
+#3170 307eb2a5 (autopilot-merged VL redesign) · #3173 (evidence screenshots, autopilot) · #3181 ce886da0 · #3182 209ea636 · #3188 387ba16e · #3193 70e1a57e · #3194 cc3fd612 · #3197 9da5c3f8 · #3198 0ac8edad · #3206 c3b648d2 · #3210 ed41e283 · #3211 ec132380 · #3212 1e995803 · #3224 43f8faf3 · #3243 6f0b657d · #3246 e01ac60f · PR #3252 (r3-perf2, state at handoff above) · NOT PUSHED: r3-e2e · PARKED: wip/claude/r3-data.
 
 ---
 
