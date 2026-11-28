@@ -1,0 +1,16 @@
+{
+  "reviewedAt": "2026-11-27",
+  "guideVersion": "2026-11-11.1",
+  "inputs": {
+    "pages/terms.js": "8fe0d3b12df3616c3bdc66211efeb2e6140076f2fb4d66dbb49b04c57b65a1cf",
+    "pages/legal/official-rules.js": "4173d038cf68fb2a9ac806c15011ad1dcfe65122c9bf0ee57865b600484b9c5f",
+    "src/components/landing/LandingProductSummary.js": "b432c29dbdb9110cca640bb922f8fe657e105e7512053620a7012b7f7c1c0e4b",
+    "src/lib/businessHubGuide.mjs": "af62def60de12b17475ebcf0e1d8f5c2cb28888e10f047876c69accc1ba2a7ef",
+    "pages/about.js": "7a87664e06783360a7443f5451165467c8f8e67c80a71de7f4eb113f0eaf6690",
+    "src/lib/businessHubJourney.mjs": "8adb19909591e0fdeee08d744e61287f28ff6cd42d0d104010f36da5a9b6b174",
+    "pages/hub/commander/index.js": "e8e654bb665182c1052bb6000f70b98fdc244511612486c6ef8f7725e496cb38",
+    "pages/hub/bankroll-manager.js": "3aac12cbbd22a143e35a8a68e341f09e7fdc6bd31c05156ace1e82ed15ea7dec",
+    "pages/hub/training.js": "ad96b3947f06cef8e93c8ec0f5aa7485dcdbef20693a621eb768d3f8b3b14112",
+    "pages/hub/poker-near-me/lobby.js": "a167f2f7c2841acf35475507d8461a6edf0e42434ee5bed55b02b9847dd51e1a"
+  }
+}
