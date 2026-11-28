@@ -176,6 +176,7 @@ import './bankroll-leak-view-honesty.test.mjs';
 import './bankroll-staking-math.test.mjs';
 import './bankroll-toke-report.test.mjs';
 import './bankroll-ledger-math.test.mjs';
+import './bankroll-club-arena-sessions.test.mjs';
 import './bankroll-lib-w3.test.mjs';
 import './bankroll-receipts-are-read-kept-and-sent.test.mjs';
 import './bankroll-trip-math.test.mjs';

@@ -130,6 +130,7 @@ const SectionSkeleton = () => <div className="bankroll-skel" style={{ height: 30
 const lazySection = (loader) => dynamic(loader, { ssr: false, loading: SectionSkeleton });
 
 const LogEntryModal = dynamic(() => import('../../src/components/bankroll/LogEntryModal'), { ssr: false });
+const ClubArenaSessionsPrompt = dynamic(() => import('../../src/components/bankroll/ClubArenaSessions').then((m) => m.ClubArenaSessionsPrompt), { ssr: false });
 const BankrollExportFormats = lazySection(() => import('../../src/components/bankroll/BankrollExportFormats'));
 const LedgerTimeline = lazySection(() => import('../../src/components/bankroll/LedgerTimeline'));
 const LocationAnalytics = lazySection(() => import('../../src/components/bankroll/LocationAnalytics'));
@@ -1908,6 +1909,9 @@ export default function BankrollManagerPage() {
                       <button type="button" className="sd-button" onClick={loadData}>Retry</button>
                     </div>
                   )}
+
+                  {/* Finished Club Arena sessions not yet in the ledger. */}
+                  {userId && <ClubArenaSessionsPrompt userId={userId} />}
 
                   {/* === Unified Dashboard Frame === */}
                   {!(isLoading && !hasLoadedOnce) && (
