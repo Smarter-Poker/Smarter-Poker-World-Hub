@@ -14,7 +14,7 @@ import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken, getFreshAccessToken } from '../../../../src/lib/authUtils';
 import { toast } from 'react-hot-toast';
 import { safeCopyToClipboard } from '../../../../src/lib/clipboard';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import useAccessibleDialog from '../../../../src/hooks/useAccessibleDialog';
 import { homeGameJoinOutcome, createHomeGameJoinOperation } from '../../../../src/lib/home-games/joinOutcome.mjs';
 import CasinoActionDialog from '../../../../src/components/poker-near-me/CasinoActionDialog';
@@ -1238,3 +1238,5 @@ export default function HomeGameDetailPage() {
     </CommanderPageShell>
   );
 }
+
+HomeGameDetailPage.getLayout = commanderPageLayout;

@@ -24,7 +24,7 @@ import {
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import ResponsibleGamingInfo, { HELPLINE } from '../../../../src/components/commander/ResponsibleGamingInfo';
 
 function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
@@ -533,3 +533,5 @@ export default function ResponsibleGamingPage() {
     </CommanderPageShell>
   );
 }
+
+ResponsibleGamingPage.getLayout = commanderPageLayout;

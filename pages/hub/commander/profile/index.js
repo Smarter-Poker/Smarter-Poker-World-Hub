@@ -12,7 +12,7 @@ import { User, Clock, DollarSign, MapPin, Calendar, TrendingUp, Award, Star, Che
 import { supabase } from '../../../../src/lib/supabase';
 import { getAuthUser, getAccessToken, useRequireAuth } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import { openPageOverlay } from '../../../../src/stores/pageOverlayStore';
 
 function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
@@ -393,3 +393,5 @@ export default function PlayerProfilePage() {
     </CommanderPageShell>
   );
 }
+
+PlayerProfilePage.getLayout = commanderPageLayout;

@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../src/components/commander/CommanderPageShell';
 // 2026-07-25 audit fix: use the standard auth helper ('smarter-poker-auth' key)
 // instead of the nonexistent 'sb-access-token' localStorage key.
 import { getAccessToken, getFreshAccessToken } from '../../../src/lib/authUtils';
@@ -177,3 +177,5 @@ export default function RateTable() {
     </CommanderPageShell>
   );
 }
+
+RateTable.getLayout = commanderPageLayout;

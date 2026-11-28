@@ -28,7 +28,7 @@ import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../../src/engine/EventBus';
 import { toast } from 'react-hot-toast';
 import { safeCopyToClipboard } from '../../../../../src/lib/clipboard';
-import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../../src/components/commander/CommanderPageShell';
 import CasinoActionDialog from '../../../../../src/components/poker-near-me/CasinoActionDialog';
 import useAccessibleDialog from '../../../../../src/hooks/useAccessibleDialog';
 
@@ -1859,3 +1859,5 @@ export default function ManageHomeGamePage() {
 export async function getServerSideProps() {
   return { props: {} };
 }
+
+ManageHomeGamePage.getLayout = commanderPageLayout;

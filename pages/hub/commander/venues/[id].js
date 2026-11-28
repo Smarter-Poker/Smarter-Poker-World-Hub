@@ -10,7 +10,7 @@ import { fetchVenue, venueTitle, venueDescription, venueEntityPath, isPublicVenu
 import { commanderBreadcrumbs } from '../../../../src/lib/seo/commanderBreadcrumbs';
 import { ArrowLeft, MapPin, Clock, Users, Phone, Star, Gift, Loader2, MessageSquare, Zap, ExternalLink } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 function GameRow({ game, onJoinWaitlist }) {
   const isFull = (game.player_count || 0) >= (game.max_players || 9);
@@ -522,3 +522,5 @@ export default function VenueDetailPage({ seoVenue = null }) {
     </CommanderPageShell>
   );
 }
+
+VenueDetailPage.getLayout = commanderPageLayout;

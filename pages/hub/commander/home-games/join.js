@@ -25,7 +25,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { Loader2 } from 'lucide-react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import { homeGameJoinOutcome, createHomeGameJoinOperation } from '../../../../src/lib/home-games/joinOutcome.mjs';
 
@@ -190,3 +190,5 @@ export default function JoinHomeGame() {
     </CommanderPageShell>
   );
 }
+
+JoinHomeGame.getLayout = commanderPageLayout;
