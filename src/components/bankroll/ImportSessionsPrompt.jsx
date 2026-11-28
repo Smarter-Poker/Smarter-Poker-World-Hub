@@ -37,7 +37,7 @@ export default function ImportSessionsPrompt({ userId }) {
       {empty && (
         <section className={css.card} data-testid="import-sessions-prompt" aria-labelledby="import-prompt-title">
           <h3 id="import-prompt-title" className={css.cardTitle}>Already Track Your Sessions Somewhere?</h3>
-          <span className={css.hint}>Import them from a spreadsheet or Poker Bankroll Tracker CSV. Amounts in US dollars (USD).</span>
+          <span className={css.hint}>Import Them From A Spreadsheet Or Poker Bankroll Tracker CSV. Amounts In US Dollars (USD).</span>
           <button type="button" className="sd-button sd-primary" style={{ minHeight: 44, width: '100%' }} onClick={() => setOpen(true)}>Import Sessions</button>
         </section>
       )}

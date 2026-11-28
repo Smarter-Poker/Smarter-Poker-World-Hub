@@ -47,7 +47,7 @@ export default function TaxPacketDownload() {
     <section className={css.card} aria-labelledby="tax-packet-title" data-testid="tax-packet">
       <h3 id="tax-packet-title" className={css.cardTitle}>Tax Packet</h3>
       <span className={css.hint}>
-        One PDF for your preparer: summary, W-2Gs from your Vault with image links, expenses by type, mileage at the IRS rate for each date, and every session. All US dollars. Not tax advice.
+        One PDF For Your Preparer: Summary, W-2Gs From Your Vault With Image Links, Expenses By Type, Mileage At The IRS Rate For Each Date, And Every Session. All US Dollars. Not Tax Advice.
       </span>
       <div className={css.row}>
         <label htmlFor="tax-packet-year" className={css.hint} style={{ margin: 0 }}>Tax Year</label>

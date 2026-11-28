@@ -177,8 +177,8 @@ export default function SessionImportSheet({ userId, onClose, onImported }) {
         {step === 'pick' && (
           <>
             <p className={css.hint}>
-              Bring in sessions from a spreadsheet or another tracker. Amounts must be in US dollars (USD).
-              Each row is checked by the same rules as Log Session, and you see every row before anything is saved.
+              Bring In Sessions From A Spreadsheet Or Another Tracker. Amounts Must Be In US Dollars (USD).
+              Each Row Is Checked By The Same Rules As Log Session, And You See Every Row Before Anything Is Saved.
             </p>
             <label className={css.label} htmlFor="import-preset">Format</label>
             <select id="import-preset" className={css.select} value={presetChoice} onChange={(e) => setPresetChoice(e.target.value)}>
@@ -186,8 +186,8 @@ export default function SessionImportSheet({ userId, onClose, onImported }) {
               {PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
             </select>
             <span className={css.hint} style={{ marginTop: 6 }}>
-              Generic Spreadsheet reads any table with a header row, including this app&apos;s own CSV export.
-              Poker Bankroll Tracker reads its CSV export as documented by its maker.
+              Generic Spreadsheet Reads Any Table With A Header Row, Including The CSV Export From This App.
+              Poker Bankroll Tracker Reads Its CSV Export As Documented By Its Maker.
             </span>
             <label className={css.label} htmlFor="import-file">Choose A CSV File</label>
             <input id="import-file" className={css.input} type="file" accept=".csv,.tsv,.txt,text/csv,text/plain,text/tab-separated-values" onChange={onFile} />
@@ -205,7 +205,7 @@ export default function SessionImportSheet({ userId, onClose, onImported }) {
           <>
             <p className={css.hint}>
               {PRESETS.find((p) => p.id === table.preset)?.label}. {table.records.length.toLocaleString('en-US')} Rows Found.
-              Match each field to a column. Amounts are US dollars (USD).
+              Match Each Field To A Column. Amounts Are US Dollars (USD).
             </p>
             <div className={css.mapGrid}>
               {IMPORT_FIELDS.map((field) => (
@@ -310,7 +310,7 @@ export default function SessionImportSheet({ userId, onClose, onImported }) {
             </p>
             {result.duplicates > 0 && <p className={css.hint}>{result.duplicates.toLocaleString('en-US')} Duplicate Rows Were Skipped.</p>}
             {result.saved > 0 && (
-              <p className={css.hint}>Each Imported Row&apos;s Notes Begin With [Import {result.importId}]. Settings, Undo Last Import Removes Exactly These Rows.</p>
+              <p className={css.hint}>The Notes Of Every Imported Row Begin With [Import {result.importId}]. Settings, Undo Last Import Removes Exactly These Rows.</p>
             )}
             {result.rejected.length > 0 && <ProblemList title="Rows Not Imported" rows={result.rejected} />}
             <div className={css.footer}>

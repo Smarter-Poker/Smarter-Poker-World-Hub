@@ -130,7 +130,7 @@ export default function BankrollDataTools({ userId }) {
   return (
     <section className={css.card} aria-labelledby="bankroll-data-title" data-testid="bankroll-data-tools">
       <h3 id="bankroll-data-title" className={css.cardTitle}>Your Bankroll Data</h3>
-      <span className={css.hint}>Import sessions from a spreadsheet, download everything you keep here, or delete it. Amounts are US dollars (USD).</span>
+      <span className={css.hint}>Import Sessions From A Spreadsheet, Download Everything You Keep Here, Or Delete It. Amounts Are US Dollars (USD).</span>
       <div className={css.actions}>
         <button type="button" className={`sd-button ${css.actionButton}`} disabled={!!busy} onClick={() => setShowImport(true)}>
           Import Sessions <span aria-hidden="true">›</span>
@@ -142,7 +142,7 @@ export default function BankrollDataTools({ userId }) {
         {confirmUndo && (
           <div role="alertdialog" aria-label="Undo Last Import" className={css.card} style={{ marginBottom: 0 }}>
             <p style={{ margin: '0 0 8px', fontSize: 14 }}>
-              Delete the {confirmUndo.rows.length.toLocaleString('en-US')} {confirmUndo.rows.length === 1 ? 'row' : 'rows'} imported on {importDay(confirmUndo.id)}? Rows you typed yourself are not touched.
+              Delete The {confirmUndo.rows.length.toLocaleString('en-US')} {confirmUndo.rows.length === 1 ? 'Row' : 'Rows'} Imported On {importDay(confirmUndo.id)}? Rows You Typed Yourself Are Not Touched.
             </p>
             <div className={css.footer} style={{ marginTop: 0 }}>
               <button type="button" className="sd-button" onClick={() => setConfirmUndo(null)}>Keep Them</button>
@@ -240,11 +240,11 @@ export function DeleteBankrollDataSheet({ userId, onClose }) {
 
         {(phase === 'confirm' || phase === 'downloading') && (
           <>
-            <p className={css.hint}>This permanently deletes everything you keep in the Bankroll Manager. It cannot be undone.</p>
+            <p className={css.hint}>This Permanently Deletes Everything You Keep In The Bankroll Manager. It Cannot Be Undone.</p>
             <h3 className={css.label}>What Is Deleted</h3>
             <ul className={css.list}>
               {DATA_SOURCES.map((s) => <li key={s.key}>{s.label}</li>)}
-              <li>Receipt, W-2G, document and player photos stored for them</li>
+              <li>Receipt, W-2G, Document And Player Photos Stored For Them</li>
             </ul>
             <h3 className={css.label}>What Stays</h3>
             <ul className={css.list}>{KEEPS.map((k) => <li key={k}>{k}</li>)}</ul>
