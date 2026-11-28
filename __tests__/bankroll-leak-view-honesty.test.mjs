@@ -42,7 +42,7 @@ test('leak amounts are formatted in the display currency with the sign in front'
 
 test('every leak detector reads through rowsOf and honours the venue', () => {
   const src = read('src/lib/bankroll/leakDetection.ts');
-  const analysis = src.slice(src.indexOf('export async function runLeakAnalysis'), src.indexOf('export async function checkRuleViolations'));
+  const analysis = src.slice(src.indexOf('export async function runLeakAnalysis'));
   assert.match(analysis, /detectStakeLeaks\(userId, \d+, locationId\)/);
   assert.match(analysis, /detectTimeLeaks\(userId, locationId\)/);
   assert.match(analysis, /detectNonPokerLeaks\(userId, locationId\)/);

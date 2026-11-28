@@ -63,6 +63,30 @@ test('every bankroll event is actually fired, and the first entry is the FIRST o
     );
 });
 
+test('the steps around the first entry are named and fired where each one happens', () => {
+    assert.equal(FunnelEvents.BANKROLL_OPENED, 'bankroll_opened');
+    assert.equal(FunnelEvents.BANKROLL_STARTING_SET, 'bankroll_starting_bankroll_set');
+    assert.equal(FunnelEvents.BANKROLL_SECOND_SESSION, 'bankroll_second_session');
+    assert.equal(FunnelEvents.BANKROLL_FIRST_TRIP, 'bankroll_first_trip');
+    assert.equal(FunnelEvents.BANKROLL_FIRST_RECEIPT_FILED, 'bankroll_first_receipt_filed');
+    const steps = code('src/lib/bankroll/funnelSteps.mjs');
+    assert.match(steps, /import \{ capture as defaultCapture, FunnelEvents \} from '\.\.\/analytics\.js'/, 'the same capture helper and registry');
+    for (const key of ['BANKROLL_OPENED', 'BANKROLL_STARTING_SET', 'BANKROLL_SECOND_SESSION', 'BANKROLL_FIRST_TRIP', 'BANKROLL_FIRST_RECEIPT_FILED']) {
+        assert.match(steps, new RegExp(`FunnelEvents\\.${key}`), `${key} is fired`);
+    }
+    const page = code(PAGE);
+    assert.match(page, /useEffect\(\(\) => \{ if \(userId\) noteBankrollOpened\(\{ signedIn: true \}\); \}, \[userId\]\);/, 'opened, once the player is known');
+    const assign = page.slice(page.indexOf('const markReceiptAssigned'), page.indexOf('const resumeReceipt'));
+    assert.ok(assign.indexOf('noteReceiptFiled(supabase, userId') > assign.indexOf('if (error) throw error;'), 'counted only after the receipt really was marked filed');
+    const sel = code('src/lib/bankroll/bankrollSelectors.ts');
+    const create = sel.slice(sel.indexOf('export async function createLedgerEntry'), sel.indexOf('export async function updateLedgerEntry'));
+    assert.match(create, /if \(data\) void noteSessionLogged\(supabase, userId, data\);/, 'every new ledger row, from any screen');
+    const trip = sel.slice(sel.indexOf('export async function createTrip'), sel.indexOf('export async function updateTrip'));
+    assert.ok(trip.indexOf('noteTripStarted(supabase, userId)') > trip.indexOf("throw error || new Error('Failed to create trip')"), 'after the trip exists');
+    const start = sel.slice(sel.indexOf('export async function setStartingBankroll'), sel.indexOf('export async function adjustBankroll'));
+    assert.ok(start.indexOf('noteStartingBankrollSet()') > start.indexOf('if (!data || data.length === 0) throw'), 'after the save is confirmed');
+});
+
 test('filing is measured on every path a receipt can be filed by', () => {
     const src = code(PAGE);
     assert.match(src, /capture\(FunnelEvents\.BANKROLL_RECEIPT_FILED, \{ destination: 'tax', bulk: false \}\)/, 'the vault');

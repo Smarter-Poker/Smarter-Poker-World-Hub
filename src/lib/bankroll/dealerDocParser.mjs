@@ -278,6 +278,3 @@ export function parseDealerDocumentText(rawText) {
         }),
     };
 }
-
-/** Exported for the tests; the parser reads amounts through receiptParser. */
-export const __internals = { moneyOn, dateOn };

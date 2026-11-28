@@ -1041,6 +1041,7 @@ import './otc-tier7-habit-digest-vip-graduation-and-push-20261128.law.test.mjs';
 import './otc-tier7-og-scorecards-and-150-matchups-20261128.law.test.mjs';
 import './site-wide-payload-budget.test.mjs';
 import './an-internal-link-reaches-a-page.law.test.mjs';
+import './bankroll-w4-cleanup.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

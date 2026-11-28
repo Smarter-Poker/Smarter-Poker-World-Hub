@@ -28,7 +28,7 @@ export const BANKROLL_TUTORIAL = {
     {
       id: 'log',
       title: 'Log A Session',
-      body: 'The Add Button Logs Anything. A Cash Game, Tournament Or Bet Is A Session And Counts Toward Your Stats. A Deposit, Withdrawal Or Expense Is An Accounting Entry And Never Counts As A Session.',
+      body: 'The Add Button Logs A Session Or An Expense. A Cash Game, Tournament Or Bet Is A Session And Counts Toward Your Stats. An Expense, Or A Deposit Or Withdrawal Made From The Balance Card, Is An Accounting Entry And Never Counts As A Session.',
       target: 'add-button',
     },
     {
@@ -46,13 +46,13 @@ export const BANKROLL_TUTORIAL = {
     {
       id: 'sections',
       title: 'The Section Grid',
-      body: 'Every Tool Is One Tap Away: Trips, Series, Player Notes, Staking, Tokes, Tax Reports, The Tournament Calendar And Reports. Nothing Is Hidden Behind A Swipe.',
+      body: 'Every Tool Is One Tap Away And Opens At Its Own Address: Trips, Series, Player Notes, Leak Analysis, Hand Review, Receipts, Projections, Staking, Tokes, Tax Reports, The Tournament Calendar And Reports. Nothing Is Hidden Behind A Swipe.',
       target: 'nav',
     },
     {
       id: 'help',
       title: 'Where To Get Help',
-      body: 'Jarvis Insights Reads Your Ledger For Leaks And Explains Them In Plain Language. Reports Exports Everything To CSV, JSON Or PDF. Replay This Tour Any Time From Page Tutorial In The Hamburger Menu.',
+      body: 'Jarvis Insights Reviews Your Recorded Sessions: Results, Hourly Earnings, Drawdowns And What To Review. Reports Exports Everything To CSV, JSON Or PDF. Replay This Tour Any Time From Page Tutorial In The Hamburger Menu.',
       target: 'insights',
     },
   ],

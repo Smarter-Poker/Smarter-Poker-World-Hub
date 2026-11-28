@@ -84,7 +84,6 @@ test('staking shares still add up to the gross in euros', () => {
 
 // Every component that displays bankroll money, and the page prop that feeds it.
 const DISPLAY = {
-  'src/components/bankroll/BankrollHeatMap.jsx': null,
   'src/components/bankroll/BankrollRulesCard.jsx': /<BankrollRulesCard userId=\{userId\} displayEUR=\{preferences\.currencyEUR\} \/>/,
   'src/components/bankroll/SeriesTracker.jsx': /<SeriesTracker\s+displayEUR=\{preferences\.currencyEUR\}/,
   'src/components/bankroll/TripTracker.jsx': /<TripTracker\s+displayEUR=\{preferences\.currencyEUR\}/,
@@ -102,6 +101,7 @@ const DISPLAY = {
   'src/components/bankroll/BankrollGoals.jsx': /<BankrollGoals userId=\{userId\} displayEUR=\{preferences\.currencyEUR\} \/>/,
   'src/components/bankroll/BankrollProjection.jsx': /currentBankroll=\{stats\?\.totalBankroll \|\| 0\}\s+displayEUR=\{preferences\.currencyEUR\}/,
   'src/components/bankroll/SavedReceipts.jsx': /<SavedReceipts userId=\{userId\} displayEUR=\{preferences\.currencyEUR\} \/>/,
+  'src/components/bankroll/JarvisLeakInsights.jsx': /<JarvisLeakInsights userId=\{userId\} displayEUR=\{preferences\.currencyEUR\}/,
 };
 
 test('every display component accepts the flag and formats through currencyUtils', () => {

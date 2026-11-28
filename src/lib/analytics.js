@@ -212,6 +212,14 @@ export const FunnelEvents = Object.freeze({
     BANKROLL_FIRST_ENTRY: 'bankroll_first_entry',
     BANKROLL_RECEIPT_SCANNED: 'bankroll_receipt_scanned',
     BANKROLL_RECEIPT_FILED: 'bankroll_receipt_filed',
+    // The steps around the first entry (2026-11-28), so the funnel shows
+    // where players stop: opened, starting bankroll, second session, first
+    // trip, first filed receipt. Fired from src/lib/bankroll/funnelSteps.mjs.
+    BANKROLL_OPENED: 'bankroll_opened',
+    BANKROLL_STARTING_SET: 'bankroll_starting_bankroll_set',
+    BANKROLL_SECOND_SESSION: 'bankroll_second_session',
+    BANKROLL_FIRST_TRIP: 'bankroll_first_trip',
+    BANKROLL_FIRST_RECEIPT_FILED: 'bankroll_first_receipt_filed',
     // Phone verification after login (2026-10-08). The welcome package
     // (30-day VIP card + 500 diamonds) is earned on /hub/verify-phone, so
     // the question is how many new players reach it, verify, or skip.

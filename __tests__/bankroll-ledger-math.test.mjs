@@ -10,7 +10,6 @@ import {
   centsToDollars,
   entryCents,
   formatCents,
-  formatSignedCents,
   resultsCents,
   sessionEndStamp,
   sessionHours,
@@ -67,9 +66,6 @@ test('a session that runs past midnight has positive hours', () => {
 test('money is shown with cents and one sign', () => {
   assert.equal(formatCents(123450), '$1,234.50');
   assert.equal(formatCents(-5), '-$0.05');
-  assert.equal(formatSignedCents(1000), '+$10.00');
-  assert.equal(formatSignedCents(-1000), '-$10.00');
-  assert.equal(formatSignedCents(0), '$0.00');
 });
 
 const rules = (pairs) => pairs.map(([rule_type, value]) => ({ rule_type, value, is_active: true }));
