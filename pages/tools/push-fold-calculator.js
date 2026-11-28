@@ -16,6 +16,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -330,6 +331,16 @@ export default function PushFoldCalculatorPage({
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="push-fold-calculator"
+            toolName="Push/Fold Short-Stack Calculator"
+            eyebrow="Free Push/Fold Cloud Sync"
+            title="Save This Short-Stack Push/Fold Spot Free"
+            description="Sync 2BB To 25BB Nash Shove Ranges, Calling Thresholds & M-Ratios Across Phone & Desktop."
+            ctaLabel="Save Push/Fold Spot Free"
+            summaryText={`${metrics.safeBb} BB At ${metrics.posKey} (${metrics.safeAnte}% Ante): Nash Shove ${metrics.shovePct}% (${metrics.combosShoved} Combos), BB Call ${metrics.callPct}%`}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-push-fold-calculator"

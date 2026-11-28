@@ -17,6 +17,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -396,6 +397,16 @@ export default function SprCalculatorPage({
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="spr-calculator"
+            toolName="SPR & Geometric Sizing Calculator"
+            eyebrow="Free SPR Cloud Sync"
+            title="Save This SPR & Geometric Sizing Plan Free"
+            description="Store Stack-To-Pot Ratios, Commitment Zones & Multi-Street Geometric Trees In Your Free Account."
+            ctaLabel="Save SPR Spot Free"
+            summaryText={`Pot ${metrics.safePot}, Stack ${metrics.safeStack} (${metrics.spr} SPR): 3-Street Geo ${metrics.geo3Pct}% Pot, 2-Street Geo ${metrics.geo2Pct}% Pot`}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-spr-calculator"
