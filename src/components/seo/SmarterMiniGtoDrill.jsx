@@ -266,6 +266,19 @@ function resolveCategoryBank(category) {
   return 'Preflop';
 }
 
+export const DEFAULT_DRILL_UTM_QUERY = 'utm_source=player_share&utm_medium=referral&utm_campaign=gto_drill';
+
+export function formatSpotHandCode(heroCards = []) {
+  if (!Array.isArray(heroCards) || heroCards.length < 2) return 'AQs';
+  const [c1, c2] = heroCards;
+  const r1 = String(c1?.rank || '').trim();
+  const r2 = String(c2?.rank || '').trim();
+  if (!r1 || !r2) return 'AQs';
+  if (r1 === r2) return `${r1}${r2}`;
+  const suited = c1?.suit && c2?.suit && c1.suit === c2.suit ? 's' : 'o';
+  return `${r1}${r2}${suited}`;
+}
+
 export function buildAttributedDrillShareUrl(input = {}) {
   const opts = typeof input === 'string' ? { redirectPath: input } : (input && typeof input === 'object' ? input : {});
   const base = String(opts.siteUrl || 'https://smarter.poker').trim().replace(/\/+$/, '') || 'https://smarter.poker';
@@ -281,14 +294,54 @@ export function buildAttributedDrillShareUrl(input = {}) {
   } catch (_) {
     urlObj = new URL('/hub/training', base);
   }
-  urlObj.searchParams.set('utm_source', 'player_share');
-  urlObj.searchParams.set('utm_medium', 'referral');
-  urlObj.searchParams.set('utm_campaign', 'gto_drill');
+  const utmSource = String(opts.utmSource || 'player_share').trim().replace(/[^a-zA-Z0-9_-]+/g, '') || 'player_share';
+  const utmMedium = String(opts.utmMedium || 'referral').trim().replace(/[^a-zA-Z0-9_-]+/g, '') || 'referral';
+  const utmCampaign = String(opts.utmCampaign || 'gto_drill').trim().replace(/[^a-zA-Z0-9_-]+/g, '') || 'gto_drill';
+  urlObj.searchParams.set('utm_source', utmSource);
+  urlObj.searchParams.set('utm_medium', utmMedium);
+  urlObj.searchParams.set('utm_campaign', utmCampaign);
   const cleanSpotId = String(opts.spotId || '').trim().replace(/[^a-zA-Z0-9_-]+/g, '').slice(0, 64);
   if (cleanSpotId) {
     urlObj.searchParams.set('spot', cleanSpotId);
   }
+  const cleanHand = String(opts.hand || '').trim().replace(/[^A-Za-z0-9+]+/g, '').slice(0, 12);
+  if (cleanHand) {
+    urlObj.searchParams.set('hand', cleanHand);
+  }
+  const cleanPos = String(opts.pos || '').trim().toUpperCase().replace(/[^A-Z0-9+]+/g, '').slice(0, 8);
+  if (cleanPos) {
+    urlObj.searchParams.set('pos', cleanPos);
+  }
   return urlObj.toString();
+}
+
+export function buildDrillOgCardUrl({
+  hand = 'AQs',
+  pos = 'BTN',
+  action = '3-Bet',
+  grade = 'Optimal',
+  siteUrl = 'https://smarter.poker',
+} = {}) {
+  const base = String(siteUrl || 'https://smarter.poker').trim().replace(/\/+$/, '') || 'https://smarter.poker';
+  const params = new URLSearchParams();
+  params.set('tool', 'gto-drill');
+  params.set('hand', String(hand || 'AQs').trim().replace(/[^A-Za-z0-9+]+/g, '').slice(0, 12) || 'AQs');
+  params.set('pos', String(pos || 'BTN').trim().toUpperCase().replace(/[^A-Z0-9+]+/g, '').slice(0, 8) || 'BTN');
+  params.set('action', String(action || '3-Bet').trim().slice(0, 24) || '3-Bet');
+  params.set('grade', String(grade || 'Optimal').trim().slice(0, 24) || 'Optimal');
+  params.set('utm_source', 'drill_share');
+  params.set('utm_medium', 'social');
+  params.set('utm_campaign', 'gto_drill');
+  return `${base}/api/og/tool-card?${params.toString()}`;
+}
+
+export function buildDrillSocialShareUrl(input = {}) {
+  return buildAttributedDrillShareUrl({
+    ...(input && typeof input === 'object' ? input : { redirectPath: input }),
+    utmSource: 'drill_share',
+    utmMedium: 'social',
+    utmCampaign: 'gto_drill',
+  });
 }
 
 function renderCardTile(card, key) {
@@ -411,14 +464,21 @@ export default function SmarterMiniGtoDrill({
       typeof window !== 'undefined' && window.location?.pathname && window.location.pathname !== '/'
         ? window.location.pathname
         : redirectPath || '/hub/training';
+    const handCode = formatSpotHandCode(spot.heroCards);
+    const shortGrade = isOptimal ? 'Optimal' : isMixedApproved ? 'Mixed' : 'Review';
     const attributedPageUrl = buildAttributedDrillShareUrl({
       redirectPath: currentPagePath,
       spotId: spot.id,
+      hand: handCode,
+      pos: spot.heroPosition,
     });
-    const shareTitle = `${bankKey} GTO Drill: ${spot.heroPosition} ${heroHandLabel}`;
-    const shareSubtitle = `Best Play: ${spot.optimalAction} (${spot.frequencies[spot.optimalAction]}%) | EV ${spot.evDelta}`;
-    const ogLink = `https://smarter.poker/api/og/tool-card?tool=ranges&title=${encodeURIComponent(shareTitle)}&subtitle=${encodeURIComponent(shareSubtitle)}&utm_source=player_share&utm_medium=referral&utm_campaign=gto_drill`;
-    const summaryText = `Smarter.Poker ${spot.depth} GTO Spot (${spot.heroPosition} holding ${heroHandLabel}, ${spot.villainAction}): I Picked ${selectedAction || spot.optimalAction} | Solver: ${spot.optimalAction} ${spot.frequencies[spot.optimalAction]}% (${spot.evDelta}) | Play Spot: ${attributedPageUrl} | Card: ${ogLink}`;
+    const ogLink = buildDrillOgCardUrl({
+      hand: handCode,
+      pos: spot.heroPosition,
+      action: spot.optimalAction,
+      grade: shortGrade,
+    });
+    const summaryText = `Smarter.Poker ${spot.depth} GTO Spot (${spot.heroPosition} holding ${heroHandLabel}, ${spot.villainAction}): I Picked ${selectedAction || spot.optimalAction} | Solver: ${spot.optimalAction} ${spot.frequencies[spot.optimalAction]}% (${spot.evDelta}) | Card: ${ogLink} | Play Spot: ${attributedPageUrl}`;
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(summaryText);
@@ -428,6 +488,8 @@ export default function SmarterMiniGtoDrill({
       trackSeoFunnelEvent('seo_mini_gto_drill_share', {
         category: bankKey,
         spot_id: spot.id,
+        hand: handCode,
+        pos: spot.heroPosition,
       });
     } catch (_) {
       /* ignore clipboard refusal */

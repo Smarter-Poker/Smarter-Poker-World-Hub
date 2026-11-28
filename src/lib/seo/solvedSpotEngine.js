@@ -331,6 +331,22 @@ export const TOOL_OG_PRESETS = Object.freeze({
     statLabel: 'SOLVER DIAGNOSTIC',
     statValue: '5-HAND LEAK SCORE',
   },
+  'leak-finder': {
+    tool: 'leak-finder',
+    badge: '60-SECOND GTO LEAK SCORECARD',
+    title: 'Smarter.Poker 60-Second GTO Leak Scorecard',
+    subtitle: '5-Hand 100BB Cash & ICM Solver Diagnostic · Beat My Score Free',
+    statLabel: 'GTO LEAK SCORE',
+    statValue: 'BEAT MY SCORE FREE',
+  },
+  'gto-drill': {
+    tool: 'gto-drill',
+    badge: 'GTO SOLVER DRILL',
+    title: 'Smarter.Poker Solver Drill Result Card',
+    subtitle: '100BB 6-Max Solver Frequencies & Optimal Play Grading',
+    statLabel: 'SOLVER VERDICT',
+    statValue: 'OPTIMAL PLAY',
+  },
   'side-pot-calculator': {
     tool: 'side-pot-calculator',
     badge: 'MULTI-WAY SIDE POTS',
