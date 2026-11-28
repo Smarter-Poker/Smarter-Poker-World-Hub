@@ -1011,7 +1011,6 @@ import './trivia-phase3-enhancements.test.mjs';
 import './smarterdesign-standard.test.mjs';
 import './diamond-store-smarterdesign.test.mjs';
 import './trivia-hardening-audit.test.mjs';
-import './jarvis-hand-vision.test.mjs';
 import './trivia-phase4-polish.test.mjs';
 import './a-dropped-connection-is-not-a-stale-build.law.test.mjs';
 import './the-live-stream-sdk-stays-off-pages-that-never-stream.law.test.mjs';
@@ -1034,6 +1033,7 @@ import './otc-tier6-venue-video-conversion-20261128.law.test.mjs';
 import './otc-tier6-attribution-and-full-funnel-20261128.law.test.mjs';
 import './otc-forensic-all-phases-hardening-20261128.law.test.mjs';
 import './site-wide-payload-budget.test.mjs';
+import './jarvis-photo-reader-removed.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
