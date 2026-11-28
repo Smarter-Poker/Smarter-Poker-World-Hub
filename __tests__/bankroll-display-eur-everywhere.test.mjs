@@ -100,6 +100,8 @@ const DISPLAY = {
   'src/components/bankroll/LedgerTimeline.jsx': /<LedgerTimeline\s+displayEUR=\{preferences\.currencyEUR\}\s+entries=\{entries\.slice\(0, 5\)\}/,
   'src/components/bankroll/BankrollGoals.jsx': /<BankrollGoals userId=\{userId\} displayEUR=\{preferences\.currencyEUR\} \/>/,
   'src/components/bankroll/BankrollProjection.jsx': /currentBankroll=\{stats\?\.totalBankroll \|\| 0\}\s+displayEUR=\{preferences\.currencyEUR\}/,
+  'src/components/bankroll/StakeAffordability.jsx': /<StakeAffordability [^>]*displayEUR=\{preferences\.currencyEUR\}/,
+  'src/components/bankroll/VenueRoomDetail.jsx': null,
   'src/components/bankroll/SavedReceipts.jsx': /<SavedReceipts userId=\{userId\} displayEUR=\{preferences\.currencyEUR\} \/>/,
   'src/components/bankroll/JarvisLeakInsights.jsx': /<JarvisLeakInsights userId=\{userId\} displayEUR=\{preferences\.currencyEUR\}/,
 };

@@ -1,0 +1,131 @@
+.card {
+  color: #e6f1ff;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+  background: radial-gradient(ellipse at 85% 0, #173350 0, transparent 62%), #091727;
+  border: 1px solid #3c5870;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.flat {
+  background: rgba(9, 23, 39, 0.6);
+  margin: 16px 0 0;
+}
+.card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font: 700 1.07rem/1.18 var(--sd-type, sans-serif);
+  color: #f1f7ff;
+}
+.card h3 svg {
+  color: #8ddcff;
+  flex: none;
+}
+.answer {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: #f1f7ff;
+  overflow-wrap: anywhere;
+}
+.secondary {
+  margin: 8px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: #d3e2f0;
+  overflow-wrap: anywhere;
+}
+.muted {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #b6c9dc;
+  overflow-wrap: anywhere;
+}
+.error {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: #fca5a5;
+}
+.levels {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+.levels li {
+  padding: 8px 0;
+  border-top: 1px solid #2c4459;
+  min-width: 0;
+}
+.row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+}
+.row strong {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.badge {
+  margin-left: auto;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.yes {
+  background: rgba(102, 199, 164, 0.16);
+  color: #86e0bd;
+}
+.no {
+  background: rgba(220, 120, 130, 0.16);
+  color: #f3a3ab;
+}
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-top: 3px;
+  font-size: 0.78rem;
+  color: #b6c9dc;
+}
+.gain {
+  color: #86e0bd;
+}
+.loss {
+  color: #f3a3ab;
+}
+.how {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: #c3d4e3;
+}
+.how summary {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  color: #96dfff;
+  cursor: pointer;
+  font-weight: 650;
+}
+.how ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  line-height: 1.5;
+}
+.how li {
+  margin-bottom: 4px;
+  overflow-wrap: anywhere;
+}
+.how code {
+  font-size: 0.78rem;
+  color: #e6f1ff;
+}
