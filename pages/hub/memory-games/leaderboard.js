@@ -35,7 +35,7 @@ export default function MemoryGamesLeaderboard() {
         eyebrow="RANKED CIRCUIT // AUTHORITY GATE"
         title="Ranked Standings Paused"
         description="Local Range Lab practice remains available, but local results do not create an account rank, prize result, or verified personal best."
-        metric="PAUSED"
+        metric="Rankings Paused"
       >
         <section className="preflop-subpage-panel" aria-labelledby="rank-authority-title">
           <div className="preflop-panel-heading">

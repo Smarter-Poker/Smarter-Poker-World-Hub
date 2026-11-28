@@ -369,7 +369,7 @@ body.world-preflop-charts .preflop-smart-copy > p {
 
 body.world-preflop-charts .preflop-smart-practice .preflop-panel-kicker,
 body.world-preflop-charts .preflop-suggestions-title {
-    color: #b897ff;
+    color: #86daff;
 }
 
 body.world-preflop-charts .preflop-weak-spots {
@@ -483,7 +483,7 @@ body.world-preflop-charts .preflop-suggestion-row > span:last-child {
     align-items: center;
     gap: 5px;
     flex-shrink: 0;
-    color: #b897ff;
+    color: #86daff;
     font-size: 12px;
     font-weight: 800;
 }
@@ -695,7 +695,7 @@ body.world-preflop-charts .preflop-launch-best {
     border: 1px solid rgba(255, 215, 0, 0.2);
     border-radius: 10px;
     background: rgba(255, 215, 0, 0.08);
-    color: #FFD700;
+    color: #86daff;
     font-size: 12px;
 }
 
@@ -794,7 +794,7 @@ body.world-preflop-charts .preflop-board-daily-art {
 }
 
 body.world-preflop-charts .preflop-board-panel.is-daily-casino .preflop-board-kicker {
-    color: #f2b84b;
+    color: #86daff;
     font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif;
     letter-spacing: .14em;
     text-transform: uppercase;
@@ -827,7 +827,7 @@ body.world-preflop-charts .preflop-board-panel.is-daily-casino .preflop-board-st
 
 body.world-preflop-charts .preflop-board-panel.is-daily-casino .preflop-board-streaks svg,
 body.world-preflop-charts .preflop-board-panel.is-daily-casino .preflop-board-streaks strong {
-    color: #f2b84b;
+    color: #86daff;
 }
 
 body.world-preflop-charts .preflop-board-panel.is-daily-casino .preflop-board-challenge,
@@ -848,7 +848,7 @@ body.world-preflop-charts .preflop-board-panel.is-daily-casino .preflop-board-no
 
 body.world-preflop-charts .preflop-board-panel.is-daily-casino .preflop-board-challenge-head { color: #25c8ff; }
 body.world-preflop-charts .preflop-board-panel.is-daily-casino .preflop-board-challenge-meta > div:first-child strong { color: #25c8ff; }
-body.world-preflop-charts .preflop-board-panel.is-daily-casino .preflop-board-challenge-meta > div:last-child strong { color: #f2b84b; }
+body.world-preflop-charts .preflop-board-panel.is-daily-casino .preflop-board-challenge-meta > div:last-child strong { color: #86daff; }
 body.world-preflop-charts .preflop-board-panel.is-daily-casino .preflop-board-start {
     min-height: 52px;
     border: 1px solid #25c8ff;
@@ -866,14 +866,14 @@ body.world-preflop-charts .preflop-board-heading {
     gap: 8px;
     margin-bottom: 20px;
     text-align: center;
-    color: #FFD700;
+    color: #86daff;
 }
 
 body.world-preflop-charts .preflop-board-heading h2 {
     margin: 0;
     font-size: 26px;
     font-weight: 700;
-    color: #FFD700;
+    color: #86daff;
 }
 
 body.world-preflop-charts .preflop-board-heading p {
@@ -943,7 +943,7 @@ body.world-preflop-charts .preflop-board-table {
 }
 
 body.world-preflop-charts .preflop-board-table .sp-rtable th {
-    color: #FFD700;
+    color: #86daff;
 }
 
 body.world-preflop-charts .preflop-board-table .sp-rtable td,
@@ -968,7 +968,7 @@ body.world-preflop-charts .preflop-board-empty h3 {
     margin: 0 0 8px;
     font-size: 18px;
     font-weight: 600;
-    color: #FFA500;
+    color: #86daff;
 }
 
 body.world-preflop-charts .preflop-board-empty p {
@@ -1052,7 +1052,7 @@ body.world-preflop-charts .preflop-board-complete p {
 body.world-preflop-charts .preflop-board-complete strong {
     margin-top: 12px;
     font-size: 18px;
-    color: #FFD700;
+    color: #86daff;
 }
 
 body.world-preflop-charts .preflop-board-challenge {
@@ -1140,7 +1140,7 @@ body.world-preflop-charts .preflop-board-note {
 
 body.world-preflop-charts .preflop-board-note strong {
     font-size: 14px;
-    color: #FFD700;
+    color: #86daff;
 }
 
 body.world-preflop-charts .preflop-board-note span {
@@ -1627,7 +1627,7 @@ body.world-preflop-charts .preflop-circuit-stat.is-mastery {
 }
 
 body.world-preflop-charts .preflop-circuit-stat.is-pool.has-filters {
-    color: #c8a8ff;
+    color: #f0f8ff;
     background: rgba(128, 77, 212, 0.055);
 }
 
@@ -1649,7 +1649,7 @@ body.world-preflop-charts .preflop-game-notice {
     border: 1px solid rgba(244, 196, 78, 0.42);
     border-left: 3px solid #f4c44e;
     background: linear-gradient(90deg, rgba(244, 196, 78, 0.11), rgba(6, 17, 28, 0.94));
-    color: #dec982;
+    color: #86daff;
     font-size: 13px;
     line-height: 1.45;
 }
@@ -1660,7 +1660,7 @@ body.world-preflop-charts .preflop-game-notice button {
     border: 1px solid rgba(244, 196, 78, 0.32);
     border-radius: 2px;
     background: rgba(0, 0, 0, 0.2);
-    color: #f0d98d;
+    color: #86daff;
     font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -1726,21 +1726,21 @@ body.world-preflop-charts .preflop-daily-card-mark {
     display: grid;
     place-items: center;
     border: 1px solid rgba(244, 196, 78, 0.4);
-    color: #f4c44e;
+    color: #86daff;
     transform: rotate(45deg);
 }
 
 body.world-preflop-charts .preflop-daily-card-mark svg { transform: rotate(-45deg); }
-body.world-preflop-charts .preflop-daily-card-copy > span { color: #c0a45a; font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.08em; }
+body.world-preflop-charts .preflop-daily-card-copy > span { color: #86daff; font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.08em; }
 body.world-preflop-charts .preflop-daily-card-copy h2 { margin: 6px 0 0; color: #f0e8d2; font-size: 15px; }
 
 body.world-preflop-charts .preflop-daily-card-streak {
     display: grid;
     justify-items: end;
-    color: #c9ab5a;
+    color: #86daff;
 }
 
-body.world-preflop-charts .preflop-daily-card-streak strong { color: #f4c44e; font: 800 18px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
+body.world-preflop-charts .preflop-daily-card-streak strong { color: #86daff; font: 800 18px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
 body.world-preflop-charts .preflop-daily-card-streak span { font-size: 12px; }
 
 body.world-preflop-charts .preflop-daily-card-metrics {
@@ -1775,7 +1775,7 @@ body.world-preflop-charts .preflop-daily-card-complete {
     border: 1px solid rgba(244, 196, 78, 0.5);
     border-radius: 2px;
     background: rgba(75, 55, 10, 0.44);
-    color: #f0da99;
+    color: #f0f8ff;
     font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif;
     text-transform: uppercase;
     cursor: pointer;
@@ -1784,7 +1784,7 @@ body.world-preflop-charts .preflop-daily-card-complete {
 body.world-preflop-charts .preflop-daily-card > button:active,
 body.world-preflop-charts .preflop-daily-card > button:focus-visible {
     border-color: #f4c44e;
-    color: #fff3cf;
+    color: #f0f8ff;
 }
 
 body.world-preflop-charts .preflop-daily-card-complete {
@@ -1940,7 +1940,7 @@ body.world-preflop-charts .preflop-level-state.is-mastered {
 
 body.world-preflop-charts .preflop-level-state.is-no-match {
     border-color: rgba(155, 108, 255, 0.46);
-    color: #c4a6ff;
+    color: #f0f8ff;
 }
 
 body.world-preflop-charts .preflop-level-copy h3 {
@@ -1983,7 +1983,7 @@ body.world-preflop-charts .preflop-level-meta > span:nth-child(3) {
 }
 
 body.world-preflop-charts .preflop-level-meta .is-filtered-count {
-    color: #c8a8ff;
+    color: #f0f8ff;
     font-weight: 800;
 }
 
@@ -2466,7 +2466,7 @@ body.world-preflop-charts .preflop-ai-overlay-icon {
 body.world-preflop-charts .preflop-ai-overlay-title {
     font-size: 20px;
     font-weight: 600;
-    color: #FFD700;
+    color: #86daff;
 }
 
 body.world-preflop-charts .preflop-ai-overlay-sub {
@@ -2945,7 +2945,7 @@ body.world-preflop-charts .preflop-combo-popup span {
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: #f4c44e;
+    color: #86daff;
 }
 
 body.world-preflop-charts .preflop-range-lab {
@@ -3074,7 +3074,7 @@ body.world-preflop-charts .preflop-lab-tip {
     padding: 10px;
     border-left: 2px solid #f4c44e;
     background: linear-gradient(90deg, rgba(244, 196, 78, 0.1), transparent);
-    color: #dec982;
+    color: #86daff;
     font-size: 12px;
     line-height: 1.45;
 }
@@ -4028,7 +4028,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
     --ps-line: rgba(107, 210, 255, 0.22);
     --ps-cyan: #6bd2ff;
     --ps-blue: #238fe8;
-    --ps-gold: #f4c44e;
+    --ps-gold: #86daff; /* #SMARTERDESIGN: the old gold accent is retired */
     --ps-text: #e7f2f8;
     --ps-muted: #8fa6b5;
     background:
@@ -4283,7 +4283,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
     padding: 10px 12px;
     border: 1px solid rgba(244, 196, 78, 0.38);
     background: rgba(73, 49, 5, 0.22);
-    color: #edd99a;
+    color: #f0f8ff;
     font-size: 12px;
 }
 
@@ -4304,11 +4304,11 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-user-rank span,
 .preflop-daily-signal div { display: grid; gap: 4px; }
 .preflop-user-rank small,
-.preflop-daily-signal small { color: #a58a44; font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.08em; }
+.preflop-daily-signal small { color: #86daff; font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.08em; }
 .preflop-user-rank strong,
-.preflop-daily-signal strong { color: #f1e4b5; font-size: 14px; }
+.preflop-daily-signal strong { color: #f0f8ff; font-size: 14px; }
 .preflop-daily-signal span { color: #9bb0bd; font-size: 12px; }
-.preflop-daily-signal > a { flex: 1 0 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(244, 196, 78, 0.35); background: rgba(121, 83, 12, 0.2); color: #f1d57e; font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif; text-decoration: none; text-transform: uppercase; }
+.preflop-daily-signal > a { flex: 1 0 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(244, 196, 78, 0.35); background: rgba(121, 83, 12, 0.2); color: #86daff; font: 700 12px/1 var(--font-orbitron), 'Orbitron', sans-serif; text-decoration: none; text-transform: uppercase; }
 
 .preflop-podium {
     display: grid;
@@ -4389,7 +4389,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-session-list article > div { display: grid; gap: 4px; }
 .preflop-session-list article > div span { color: #c3d4dd; font-size: 12px; }
 .preflop-session-list small { color: #7590a1; font-size: 12px; }
-.preflop-session-list strong { color: #dfb85a; font: 800 12px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
+.preflop-session-list strong { color: #86daff; font: 800 12px/1 var(--font-orbitron), 'Orbitron', sans-serif; }
 .preflop-session-list strong[data-pass='true'] { color: #55d6a1; }
 .preflop-session-list article > span { color: #8399a8; font-size: 12px; }
 
@@ -4415,12 +4415,12 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-award-progress { display: grid; grid-template-columns: auto 1fr; gap: 12px; padding: 16px; }
 .preflop-award-progress > svg { color: var(--ps-gold); }
 .preflop-award-progress > div { display: grid; gap: 7px; }
-.preflop-award-progress small { color: #a58a44; font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.08em; }
+.preflop-award-progress small { color: #86daff; font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif; letter-spacing: 0.08em; }
 .preflop-award-progress strong { color: #e8dfc2; }
 .preflop-award-progress [role='progressbar'] { height: 7px; overflow: hidden; background: rgba(255,255,255,0.06); }
 .preflop-award-progress [role='progressbar'] i { display: block; width: var(--award-progress); height: 100%; background: linear-gradient(90deg, #a97b19, var(--ps-gold)); }
-.preflop-award-progress > span { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; border-top: 1px solid rgba(244, 196, 78, 0.11); color: #9b8f6f; font-size: 12px; }
-.preflop-award-progress > span strong { color: #c6b987; }
+.preflop-award-progress > span { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; border-top: 1px solid rgba(244, 196, 78, 0.11); color: #86daff; font-size: 12px; }
+.preflop-award-progress > span strong { color: #86daff; }
 
 .preflop-award-grid { display: grid; gap: 8px; }
 .preflop-award-grid article { min-height: 148px; display: grid; align-content: start; grid-template-columns: auto 1fr; gap: 8px 10px; padding: 15px; border: 1px solid rgba(107, 210, 255, 0.14); background: rgba(5, 15, 24, 0.92); opacity: 0.6; }
@@ -4432,7 +4432,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-award-grid article > small { color: #7590a1; font: 700 12px/1.2 var(--font-orbitron), 'Orbitron', sans-serif; }
 .preflop-award-grid h2 { grid-column: 1 / -1; margin: 7px 0 0; color: #dbeaf1; font-size: 17px; }
 .preflop-award-grid p { grid-column: 1 / -1; margin: 0; color: #8098a6; font-size: 12px; line-height: 1.5; }
-.preflop-award-grid time { grid-column: 1 / -1; color: #b89d57; font-size: 12px; }
+.preflop-award-grid time { grid-column: 1 / -1; color: #86daff; font-size: 12px; }
 
 /* Guide page: the eight tour steps as stacked articles (always displayed),
    the feedback legend, the shortcut map, and the CTA to the interactive tour. */
@@ -4660,3 +4660,79 @@ body.world-preflop-charts .preflop-menu .preflop-grade-chip {
 }
 
 body.world-preflop-charts .preflop-menu .preflop-grade-chip span:first-child { color: #86daff !important; }
+
+/* =========================================================================
+   #SMARTERDESIGN - Preflop Charts sub pages: Stats, Ranks, Awards, Guide
+   (2026-11-27). One steel rim per surface, cobalt selection, ice emphasis,
+   no gold or purple anywhere. The old --ps-gold accent is retired here.
+   ========================================================================= */
+.preflop-subpage { --ps-line: rgba(134, 218, 255, 0.2); }
+.preflop-subpage-main { padding-top: 8px; }
+.preflop-subpage .preflop-subpage-utility { min-height: 0; border-bottom: 0; margin-bottom: 8px; }
+.preflop-subpage .preflop-subpage-back { color: #fff; font: inherit; letter-spacing: 0; }
+.preflop-subpage :is(.preflop-subpage-panel, .preflop-user-rank, .preflop-daily-signal, .preflop-award-progress, .preflop-subpage-empty, .preflop-subpage-error, .preflop-subpage-loading, .preflop-guide-step),
+.preflop-subpage .preflop-stat-grid > article,
+.preflop-subpage .preflop-award-grid > article {
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45) !important;
+}
+.preflop-subpage .preflop-panel-heading { border-bottom: 1px solid rgba(134, 218, 255, 0.16); }
+.preflop-subpage .preflop-panel-heading span,
+.preflop-subpage :is(.preflop-daily-signal, .preflop-award-progress) small { color: #86daff !important; }
+.preflop-subpage .preflop-panel-heading h2 { color: #fff; }
+.preflop-subpage .preflop-daily-signal svg,
+.preflop-subpage .preflop-award-progress > svg { color: #86daff !important; }
+.preflop-subpage .preflop-daily-signal strong,
+.preflop-subpage .preflop-award-progress strong { color: #fff !important; }
+.preflop-subpage .preflop-daily-signal span { color: #b9c9d6 !important; }
+.preflop-subpage :is(.preflop-daily-signal > a, .preflop-subpage-primary-cta, .preflop-guide-tour-cta, .preflop-subpage-empty a, .preflop-subpage-error button) {
+  min-height: 46px;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) !important;
+  color: #fff !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font: 700 15px/1 var(--sd-type, system-ui) !important;
+}
+.preflop-subpage .preflop-award-progress [role='progressbar'] i { background: linear-gradient(90deg, #1981ec, #86daff) !important; }
+.preflop-subpage .preflop-award-progress > span { border-top-color: rgba(134, 218, 255, 0.16) !important; }
+.preflop-subpage .preflop-award-grid > article[data-unlocked] { border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important; }
+.preflop-subpage .preflop-award-grid > article :is(small, .preflop-award-code span) { color: #86daff !important; }
+.preflop-subpage .preflop-award-grid > article h2 { color: #fff !important; }
+.preflop-subpage .preflop-award-grid > article p { color: #b9c9d6 !important; }
+.preflop-subpage .preflop-stat-grid > article svg { color: #86daff !important; }
+.preflop-subpage .preflop-stat-grid > article strong { color: #fff !important; font-variant-numeric: tabular-nums; }
+.preflop-subpage .preflop-stat-grid > article span { color: #c9d8e4 !important; }
+.preflop-subpage .preflop-stat-grid > article small { color: #93a8b8 !important; }
+.preflop-subpage .preflop-subpage-metric { margin: 6px 0 0; }
+.preflop-subpage :is(.preflop-subpage-nav, .preflop-tab-rail) {
+  gap: 6px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+.preflop-subpage :is(.preflop-subpage-nav > a, .preflop-tab-rail > button) {
+  flex: 1 1 auto;
+  min-height: 46px;
+  justify-content: center;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, #1a2c40, #0a1624 60%, #07111c) !important;
+  color: #e6f0f8 !important;
+  box-shadow: none !important;
+  font-family: var(--sd-type, system-ui) !important;
+  letter-spacing: 0 !important;
+}
+.preflop-subpage :is(.preflop-subpage-nav > a[aria-current='page'], .preflop-tab-rail > button[aria-selected='true']) {
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) !important;
+  color: #fff !important;
+}
+.preflop-subpage :is(.preflop-subpage-nav > a, .preflop-tab-rail > button)::after { display: none !important; }

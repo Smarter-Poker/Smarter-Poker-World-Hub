@@ -1,0 +1,130 @@
+/* #SMARTERDESIGN surfaces for Custom Spot Reference. Shared console pieces
+   come from analysis-tools.module.css; this module owns the board picker,
+   the action-frequency rows and the hand-class heatmap. Heatmap and action
+   FILLS keep their meaning (aggressive vs passive, raise / call / fold);
+   frames, labels and type follow the console standard. */
+
+.boardSlots {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  max-inline-size: 320px;
+}
+
+.boardSlot {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: #bdd0e2;
+  font: 600 0.74rem / 1.1 var(--font-inter, Inter), sans-serif;
+}
+
+.slotCard {
+  font: 800 1rem / 1 var(--sd-type, 'Arial Narrow'), sans-serif;
+  color: #f2f7ff;
+  display: grid;
+  justify-items: center;
+}
+
+.rankRow {
+  display: grid;
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+  gap: 3px;
+  min-inline-size: 0;
+}
+
+.rankRow .rankPick.rankPick.rankPick {
+  min-inline-size: 0 !important;
+  inline-size: 100%;
+  min-block-size: 40px !important;
+  padding: 0 !important;
+  border: 1px solid rgba(124, 158, 187, 0.24) !important;
+  border-image: none !important;
+  border-radius: 2px !important;
+  background: #0b1c2c !important;
+  box-shadow: none !important;
+  font: 800 0.86rem / 1 var(--sd-type, 'Arial Narrow'), sans-serif !important;
+  cursor: pointer;
+}
+
+.rankRow .rankPick.rankPick.rankPick:disabled { opacity: 0.25; cursor: not-allowed; }
+.rankRow .rankPick.rankPick.rankPick:hover:not(:disabled) { border-color: #86daff !important; }
+
+.actionRow {
+  display: grid;
+  grid-template-columns: 10px minmax(48px, auto) minmax(0, 1fr) 3rem;
+  align-items: center;
+  gap: 8px;
+  color: #f2f7ff;
+  font: 600 0.86rem / 1.2 var(--font-inter, Inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.actionRow > :last-child { color: #bdd0e2; text-align: right; font-weight: 700; }
+
+.actionSwatch { inline-size: 10px; block-size: 10px; }
+
+.rangeText {
+  margin: 0;
+  color: #bdd0e2;
+  font: 500 0.82rem / 1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+}
+
+.heatGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
+  gap: 8px;
+}
+
+.heatCell {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+}
+
+/* Fill carries the meaning: aggressive lines tinted warm, passive lines cool. */
+.heatCell[data-tone='aggressive'] { background: linear-gradient(135deg, rgba(239, 68, 68, 0.22), #0b1c2c 70%); }
+.heatCell[data-tone='passive'] { background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), #0b1c2c 70%); }
+
+.heatTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  color: #f2f7ff;
+  font: 800 1rem / 1.1 var(--sd-type, 'Arial Narrow'), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.heatAction { color: #f2f7ff; font: 700 0.84rem / 1.2 var(--font-inter, Inter), sans-serif; }
+.heatMeta { color: #bdd0e2; font: 500 0.78rem / 1.35 var(--font-inter, Inter), sans-serif; font-variant-numeric: tabular-nums; }
+
+.heatLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: #bdd0e2;
+  font-size: 0.8rem;
+}
+
+.heatSwatch {
+  display: inline-block;
+  inline-size: 12px;
+  block-size: 12px;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.rankRow .rankPick.rankPick.rankPick[data-suit='h'],
+.rankRow .rankPick.rankPick.rankPick[data-suit='d'] { color: #ff7a86 !important; }
+.rankRow .rankPick.rankPick.rankPick[data-suit='d'] { color: #64a9ff !important; }
+.rankRow .rankPick.rankPick.rankPick[data-suit='c'] { color: #5ee08a !important; }
+.rankRow .rankPick.rankPick.rankPick[data-suit='s'] { color: #f2f7ff !important; }
+
+.suitMark[data-suit='h'] { color: #ff7a86; }
+.suitMark[data-suit='d'] { color: #64a9ff; }
+.suitMark[data-suit='c'] { color: #5ee08a; }
+.suitMark[data-suit='s'] { color: #f2f7ff; }

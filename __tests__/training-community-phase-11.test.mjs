@@ -5,15 +5,19 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
-const routes = [
-  'daily-challenge',
-  'pvp-lobby',
-  'coach-mode',
-  'study-group',
-  'study-group-finder',
-  'training-feed',
-  'tournament-prep',
-];
+// Hand Of The Day and the Training Feed moved to #SMARTERDESIGN interiors
+// (2026-11-27): the command-deck shell repainted every pressed control pale
+// cyan with dark ink and every heading in Orbitron over the console.
+const routes = [];
+
+test('Coach Mode is rebuilt on the #SMARTERDESIGN sessions interior (2026-11-27)', () => {
+  const source = read('pages/hub/training/coach-mode.js');
+  assert.match(source, /sessions-coaching\.module\.css/);
+  assert.match(source, /className=\{s\.page\}/);
+  // The retired command-deck shell drew a second frame, cyan pill buttons and
+  // an amber progress segment around the lesson console.
+  assert.doesNotMatch(source, /sp-training-command|sp-command-header|sp-command-main/);
+});
 
 test('the Goals page is rebuilt on #SMARTERDESIGN with its own image header (2026-11-27)', () => {
   const source = read('pages/hub/training/challenges.js');
@@ -23,6 +27,30 @@ test('the Goals page is rebuilt on #SMARTERDESIGN with its own image header (202
   // The retired command-deck shell repainted every button border and drew a
   // second frame and an amber strip around the image header.
   assert.doesNotMatch(source, /sp-training-command|sp-command-header/);
+});
+
+test('the study group room and finder are rebuilt on #SMARTERDESIGN study-tool interiors (2026-11-27)', () => {
+  for (const route of ['study-group', 'study-group-finder']) {
+    const source = read(`pages/hub/training/${route}.js`);
+    assert.match(source, /<TrainingPageHead slug="training-study-group/, `${route} uses the image header`);
+    assert.match(source, /study-tools\.module\.css/, `${route} uses the study-tool interior`);
+    assert.match(source, /className=\{st\.page\}/, `${route} uses the console page rhythm`);
+    // The retired command-deck shell repainted selected filters pale cyan and
+    // drew a second frame around every surface.
+    assert.doesNotMatch(source, /sp-training-command|sp-command-header|sp-command-main/);
+  }
+});
+
+test('Hand Of The Day and the Training Feed are rebuilt on #SMARTERDESIGN interiors (2026-11-27)', () => {
+  const daily = read('pages/hub/training/daily-challenge.js');
+  assert.match(daily, /daily-challenge-casino\.module\.css/);
+  assert.match(daily, /<main className=\{styles\.shell\}>/);
+  const feed = read('pages/hub/training/training-feed.js');
+  assert.match(feed, /training-journey-sd\.module\.css/);
+  assert.match(feed, /className=\{sd\.main\}/);
+  for (const source of [daily, feed]) {
+    assert.doesNotMatch(source, /sp-training-command|sp-command-header|sp-command-main/);
+  }
 });
 
 test('the remaining Phase 11 routes adopt the shared command-deck surface', () => {
@@ -71,7 +99,7 @@ test('Coach Mode keeps four-choice quizzes and unmistakable manual feedback', ()
     assert.equal(choices.length, 4, `coach quiz does not have four answers: ${match[0]}`);
   }
   assert.match(source, /COACH_EXPLANATIONS/);
-  assert.match(source, /sp-command-verdict/);
+  assert.match(source, /className=\{s\.verdict\}[\s\S]{0,80}data-correct=/);
   assert.match(source, /'Correct'\s*:\s*'Incorrect'/);
   assert.match(source, /Your Answer/);
   assert.match(source, /Correct Answer/);
@@ -145,9 +173,17 @@ test('study groups and training feed use persisted, authenticated activity', () 
 });
 
 test('the global header stays outside every scoped Phase 11 redesign', () => {
-  for (const route of ['study-group', 'tournament-prep']) {
+  // The study group room left the command deck for #SMARTERDESIGN
+  // (2026-11-27): the global header still renders before the page head.
+  const room = read('pages/hub/training/study-group.js');
+  assert.ok(room.indexOf('<UniversalHeader') < room.lastIndexOf('<TrainingPageHead'));
+  // PvP Lobby and Tournament Prep left the command deck for #SMARTERDESIGN
+  // (2026-11-27): the global header still renders before the page head.
+  for (const route of ['pvp-lobby', 'tournament-prep']) {
     const source = read(`pages/hub/training/${route}.js`);
-    assert.ok(source.indexOf('<UniversalHeader') < source.lastIndexOf('sp-training-command'));
+    assert.ok(source.indexOf('<UniversalHeader') < source.lastIndexOf('<TrainingPageHead'));
+    assert.match(source, /training-play\.module\.css/);
+    assert.doesNotMatch(source, /sp-training-command|sp-command-header/);
   }
   const goals = read('pages/hub/training/challenges.js');
   assert.ok(goals.indexOf('<UniversalHeader') < goals.lastIndexOf('<TrainingPageHead'));

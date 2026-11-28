@@ -81,7 +81,7 @@ export default function TrainingLobbyControls({
             ref={searchInputRef}
             type="search"
             aria-label="Search Games"
-            placeholder="Search Games, e.g. ICM or 3-Bet"
+            placeholder="Search, e.g. ICM or 3-Bet"
             value={filters.query}
             onChange={(e) => onUpdateFilters({ query: e.target.value })}
           />

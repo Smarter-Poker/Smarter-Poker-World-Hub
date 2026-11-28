@@ -42,18 +42,18 @@ export default function PreflopSubpageShell({ eyebrow, title, description, metri
           {/* HubPageShell already renders the page's <main>; this is a plain
               column so the document keeps exactly one landmark. */}
           <div className="preflop-subpage-main">
-            <div className="preflop-subpage-utility">
-              <Link href="/hub/preflop-charts" className="preflop-subpage-back">
-                <ArrowLeft size={15} aria-hidden />
+            <div className="sd-back-row preflop-subpage-utility">
+              <Link href="/hub/preflop-charts" className="sd-button preflop-subpage-back">
+                <ArrowLeft size={16} aria-hidden />
                 Back To Preflop Charts
               </Link>
-
             </div>
 
             <BankrollImageHeader art={({ stats: 'preflop-stats', leaderboard: 'preflop-leaderboard', achievements: 'preflop-achievements', tutorial: 'preflop-tutorial' })[current.split('/').pop()] || 'preflop-charts'} title={title}
-              helpContent={<p>{description}</p>} />
+              helpContent={<p>{description}</p>}>
+              {metric && metric !== '-' && <p className="sp-head-note preflop-subpage-metric">{metric}</p>}
+            </BankrollImageHeader>
             <PreflopSubpageNav current={current} />
-            {metric && <strong>{metric}</strong>}
 
             {children}
           </div>

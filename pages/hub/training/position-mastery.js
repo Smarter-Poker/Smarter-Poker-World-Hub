@@ -21,6 +21,7 @@ import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 import TrainingSignInPrompt from '../../../src/components/training/TrainingSignInPrompt';
 
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/sessions-coaching.module.css';
 // TRAIN-CSS-MOTION-ADOPT-17 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -39,22 +40,14 @@ const POSITIONS = [
   { id: 'BB', name: 'Big-Blind', short: 'BB', desc: 'Forced bet, defends vs opens' },
 ];
 
-const POSITION_COLORS = {
-  BTN: 'var(--sp-accent-green)',
-  CO: 'var(--sp-accent-blue)',
-  HJ: 'var(--sp-accent-purple)',
-  MP: 'var(--sp-accent-amber)',
-  UTG: 'var(--sp-accent-red)',
-  SB: 'var(--sp-accent-orange)',
-  BB: 'var(--sp-accent-cyan)',
-};
-
+// Accuracy is shown on one ice scale with semantic green (strong) and red
+// (weak) ends; every value also carries a text label beside the colour.
 function getAccuracyColor(acc) {
-  if (acc >= 75) return 'var(--sp-accent-green)';
-  if (acc >= 60) return '#84cc16';
-  if (acc >= 45) return 'var(--sp-accent-amber)';
-  if (acc >= 30) return 'var(--sp-accent-orange)';
-  return 'var(--sp-accent-red)';
+  if (acc >= 75) return '#5ee08a';
+  if (acc >= 45) return '#86daff';
+  if (acc >= 30) return '#4f9fd1';
+  if (acc > 0) return '#ff7a86';
+  return '#8ea4b9';
 }
 
 function getAccuracyLabel(acc) {
@@ -84,6 +77,8 @@ function TableHeatmap({ positionData }) {
   return (
     <svg
       viewBox="0 0 400 250"
+      role="img"
+      aria-label="Accuracy By Seat"
       style={{ width: '100%', maxWidth: 400, margin: '0 auto', display: 'block' }}
     >
       {/* Table oval */}
@@ -92,8 +87,8 @@ function TableHeatmap({ positionData }) {
         cy="125"
         rx="170"
         ry="90"
-        fill="rgba(34,197,94,0.08)"
-        stroke="rgba(34,197,94,0.2)"
+        fill="#0b1c2c"
+        stroke="#7f9db6"
         strokeWidth="2"
       />
       <ellipse
@@ -101,25 +96,24 @@ function TableHeatmap({ positionData }) {
         cy="125"
         rx="130"
         ry="60"
-        fill="rgba(34,197,94,0.04)"
-        stroke="rgba(34,197,94,0.1)"
+        fill="#071420"
+        stroke="rgba(124,158,187,0.35)"
         strokeWidth="1"
       />
       <text
         x="200"
         y="128"
         textAnchor="middle"
-        fill="rgba(255,255,255,0.15)"
+        fill="rgba(189,208,226,0.35)"
         fontSize='12px'
         fontWeight="700"
-        style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}
       >
         SMARTER.POKER
       </text>
 
       {/* Dealer button */}
-      <circle cx="230" cy="170" r="8" fill="#d4a020" stroke="#fff" strokeWidth="1" />
-      <text x="230" y="173" textAnchor="middle" fill="#1a1d24" fontSize='12px' fontWeight="900">
+      <circle cx="230" cy="170" r="8" fill="#f2f7ff" stroke="#7f9db6" strokeWidth="1" />
+      <text x="230" y="173" textAnchor="middle" fill="#040d18" fontSize='12px' fontWeight="900">
         D
       </text>
 
@@ -147,7 +141,7 @@ function TableHeatmap({ positionData }) {
               cx={seat.cx}
               cy={seat.cy}
               r={radius}
-              fill={`${color}22`}
+              fill="#071420"
               stroke={color}
               strokeWidth="2"
             />
@@ -156,7 +150,7 @@ function TableHeatmap({ positionData }) {
               x={seat.cx}
               y={seat.cy - 4}
               textAnchor="middle"
-              fill="#e2e8f0"
+              fill="#f2f7ff"
               fontSize='12px'
               fontWeight="800"
             >
@@ -170,7 +164,6 @@ function TableHeatmap({ positionData }) {
               fill={color}
               fontSize='12px'
               fontWeight="900"
-              style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}
             >
               {acc > 0 ? `${acc}%` : '--'}
             </text>
@@ -254,14 +247,14 @@ export default function PositionMasteryPage() {
         );
       });
 
-      const totalQ = relevant.reduce((s, r) => s + (r.total_questions_answered || 0), 0);
-      const totalC = relevant.reduce((s, r) => s + (r.total_correct || 0), 0);
+      const totalQ = relevant.reduce((sum, r) => sum + (r.total_questions_answered || 0), 0);
+      const totalC = relevant.reduce((sum, r) => sum + (r.total_correct || 0), 0);
       const accuracy = totalQ > 0 ? Math.round((totalC / totalQ) * 100) : 0;
       const streak = Math.max(0, ...relevant.map((r) => r.best_streak || 0));
       const mastery =
         relevant.length > 0
           ? Math.round(
-              relevant.reduce((s, r) => s + (r.mastery_percentage || 0), 0) / relevant.length
+              relevant.reduce((sum, r) => sum + (r.mastery_percentage || 0), 0) / relevant.length
             )
           : 0;
 
@@ -297,46 +290,15 @@ export default function PositionMasteryPage() {
         canonical="/hub/training/position-mastery"
       />
 
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
+      <div className={s.shell}>
         <TrainingPageHead slug="training-position-mastery" />
 
-        <div style={{ padding: '16px 24px', maxWidth: 700, margin: '0 auto' }}>
+        <div className={s.page}>
           {/* Error */}
           {error && (
-            <div
-              style={{
-                padding: '10px 14px',
-                background: 'rgba(239,68,68,0.1)',
-                border: '1px solid rgba(239,68,68,0.3)',
-                borderRadius: 8,
-                color: 'var(--sp-accent-red)',
-                fontSize: 12,
-                fontWeight: 600,
-                marginBottom: 14,
-              }}
-            >
-              {error}
-              <button
-                onClick={fetchData}
-                style={{
-                  marginLeft: 12,
-                  background: 'rgba(34,197,94,0.2)',
-                  border: '1px solid rgba(34,197,94,0.4)',
-                  borderRadius: 6,
-                  padding: '4px 12px',
-                  color: 'var(--sp-accent-green)',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  fontWeight: 700,
-                }}
-              >
+            <div role="alert" className={s.error} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <span>{error}</span>
+              <button type="button" onClick={fetchData} className={`sd-button ${s.button}`}>
                 Retry
               </button>
             </div>
@@ -344,22 +306,13 @@ export default function PositionMasteryPage() {
 
           {/* Loading */}
           {loading && (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: 40,
-                color: 'var(--sp-fg-dim)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
-              LOADING POSITION DATA...
-            </div>
+            <section className={`sd-panel ${s.panel} ${s.state}`} role="status" aria-live="polite">
+              <p className={s.copy}>Loading Position Data...</p>
+            </section>
           )}
 
           {!loading && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'grid', gap: 14, minWidth: 0 }}>
               {signedOut && (
                 <TrainingSignInPrompt
                   returnPath="/hub/training/position-mastery"
@@ -367,334 +320,126 @@ export default function PositionMasteryPage() {
                 />
               )}
               {!signedOut && !hasPositionData && (
-                <div
-                  role="status"
-                  style={{
-                    padding: '16px 18px',
-                    marginBottom: 14,
-                    background: 'rgba(68,211,255,0.06)',
-                    border: '1px solid rgba(68,211,255,0.24)',
-                    borderRadius: 10,
-                    color: 'var(--sp-fg-muted)',
-                    fontSize: 12,
-                    lineHeight: 1.6,
-                  }}
-                >
+                <p role="status" className={s.note}>
                   No Position-Tagged Decisions Have Been Recorded Yet. Complete A Position-Specific
                   Drill To Populate This Map; Overall Results Are Never Redistributed Into Invented
                   Seat Statistics.
-                </div>
+                </p>
               )}
               {/* Visual Table Heatmap */}
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: 12,
-                  padding: '16px',
-                  marginBottom: 14,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    marginBottom: 8,
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                    textAlign: 'center',
-                  }}
-                >
-                  Position Heatmap
-                </div>
+              <section className={`sd-panel ${s.panel}`} aria-labelledby="position-heatmap-title">
+                <h2 id="position-heatmap-title" className={s.sectionTitle}>Position Heatmap</h2>
                 <TableHeatmap positionData={positionData} />
                 {/* Legend */}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    gap: 12,
-                    marginTop: 8,
-                    flexWrap: 'wrap',
-                  }}
-                >
+                <ul className={s.facts} style={{ justifyContent: 'center', listStyle: 'none', padding: 0 }} aria-label="Heatmap Legend">
                   {[
-                    { color: 'var(--sp-accent-red)', label: '0-30%' },
-                    { color: '#86daff', label: '30-45%' },
-                    { color: '#86daff', label: '45-60%' },
-                    { color: '#84cc16', label: '60-75%' },
-                    { color: 'var(--sp-accent-green)', label: '75%+' },
+                    { color: '#ff7a86', label: 'Under 30%' },
+                    { color: '#4f9fd1', label: '30-45%' },
+                    { color: '#86daff', label: '45-75%' },
+                    { color: '#5ee08a', label: '75%+' },
                   ].map((l) => (
-                    <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <div
-                        style={{ width: 8, height: 8, borderRadius: '50%', background: l.color }}
-                      />
-                      <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
-                        {l.label}
-                      </span>
-                    </div>
+                    <li key={l.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <span aria-hidden style={{ width: 10, height: 10, borderRadius: '50%', background: l.color }} />
+                      <span>{l.label}</span>
+                    </li>
                   ))}
-                </div>
-              </div>
+                </ul>
+              </section>
 
               {/* Weakest Position Callout */}
               {weakest && positionData[weakest.id]?.totalQ > 0 && (
-                <div
-                  style={{
-                    padding: '14px 16px',
-                    marginBottom: 14,
-                    background: 'rgba(239,68,68,0.06)',
-                    border: '1px solid rgba(239,68,68,0.15)',
-                    borderRadius: 10,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: 8,
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: 'var(--sp-accent-red)',
-                        textTransform: 'uppercase',
-                        letterSpacing: 1,
-                      }}
+                <section className={`sd-panel ${s.panel}`} aria-labelledby="weakest-position-title">
+                  <div className={s.panelHead}>
+                    <div>
+                      <p className={`${s.eyebrow} ${s.down}`}>Weakest Position</p>
+                      <h2 id="weakest-position-title" className={s.sectionTitle}>
+                        {weakest.name} ({positionData[weakest.id]?.accuracy || 0}%)
+                      </h2>
+                      <p className={s.copy}>Focus Your Drills Here To Improve Fastest</p>
+                    </div>
+                    <button
+                      type="button"
+                      className={`sd-button sd-primary ${s.button}`}
+                      onClick={() =>
+                        router.push(`/hub/training/drill-builder?position=${weakest.id}`)
+                      }
                     >
-                      Weakest Position
-                    </div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--sp-fg)', marginTop: 2 }}>
-                      {weakest.name} ({positionData[weakest.id]?.accuracy || 0}%)
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
-                      Focus Your Drills Here To Improve Fastest
-                    </div>
+                      Practice {weakest.short}
+                    </button>
                   </div>
-                  <button
-                    onClick={() =>
-                      router.push(`/hub/training/drill-builder?position=${weakest.id}`)
-                    }
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: 8,
-                      background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #dc2626)',
-                      border: 'none',
-                      color: '#fff',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Practice {weakest.short}
-                  </button>
-                </div>
+                </section>
               )}
 
               {/* Accuracy Bar Chart */}
-              <div
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: 12,
-                  padding: '14px 16px',
-                  marginBottom: 14,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    marginBottom: 10,
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  }}
-                >
-                  Accuracy By Position
-                </div>
-                {POSITIONS.map((pos, i) => {
-                  const acc = positionData[pos.id]?.accuracy || 0;
-                  const width = maxBar > 0 ? (acc / maxBar) * 100 : 0;
-                  return (
-                    <div
-                      key={pos.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        marginBottom: 6,
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 32,
-                          textAlign: 'right',
-                          fontSize: 12,
-                          fontWeight: 800,
-                          color: POSITION_COLORS[pos.id],
-                        }}
-                      >
-                        {pos.short}
-                      </span>
-                      <div
-                        style={{
-                          flex: 1,
-                          height: 16,
-                          borderRadius: 4,
-                          background: 'rgba(255,255,255,0.04)',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${width}%` }}
-                          transition={{ duration: MOTION.slow, delay: i * 0.08 }}
-                          style={{
-                            height: '100%',
-                            borderRadius: 4,
-                            background: `linear-gradient(90deg, ${POSITION_COLORS[pos.id]}88, ${POSITION_COLORS[pos.id]})`,
-                          }}
-                        />
+              <section className={`sd-panel ${s.panel}`} aria-labelledby="accuracy-by-position-title">
+                <h2 id="accuracy-by-position-title" className={s.sectionTitle}>Accuracy By Position</h2>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {POSITIONS.map((pos, i) => {
+                    const acc = positionData[pos.id]?.accuracy || 0;
+                    const width = maxBar > 0 ? (acc / maxBar) * 100 : 0;
+                    return (
+                      <div key={pos.id} style={{ display: 'grid', gridTemplateColumns: '2.6rem minmax(0, 1fr) 3rem', alignItems: 'center', gap: 10 }}>
+                        <span className={s.ice} style={{ fontWeight: 800, fontSize: 13, textAlign: 'right' }}>{pos.short}</span>
+                        <div className={s.track} style={{ blockSize: 14 }}>
+                          <motion.div
+                            className={s.fill}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${width}%` }}
+                            transition={{ duration: MOTION.slow, delay: i * 0.08 }}
+                          />
+                        </div>
+                        <span style={{ fontWeight: 800, fontSize: 13, color: getAccuracyColor(acc), fontVariantNumeric: 'tabular-nums' }}>
+                          {acc > 0 ? `${acc}%` : '--'}
+                        </span>
                       </div>
-                      <span
-                        style={{
-                          width: 32,
-                          fontSize: 12,
-                          fontWeight: 900,
-                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                          color: getAccuracyColor(acc),
-                        }}
-                      >
-                        {acc > 0 ? `${acc}%` : '--'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              </section>
 
               {/* Position Detail Cards */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: 8,
-                  marginBottom: 14,
-                }}
-              >
+              <section className={s.cardGrid} style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 160px), 1fr))' }} aria-label="Position Details">
                 {POSITIONS.map((pos, i) => {
                   const data = positionData[pos.id] || {};
                   const acc = data.accuracy || 0;
                   return (
-                    <motion.div
+                    <motion.article
                       key={pos.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      style={{
-                        background: 'rgba(255,255,255,0.03)',
-                        border: `1px solid ${POSITION_COLORS[pos.id]}22`,
-                        borderRadius: 10,
-                        padding: '10px 12px',
-                      }}
+                      className={`sd-metric ${s.card}`}
                     >
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: 4,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 800,
-                            color: POSITION_COLORS[pos.id],
-                          }}
-                        >
-                          {pos.short}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 900,
-                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                            color: getAccuracyColor(acc),
-                          }}
-                        >
+                      <div className={s.panelHead}>
+                        <span className={s.subTitle}>{pos.short}</span>
+                        <span style={{ fontWeight: 800, fontSize: 15, color: getAccuracyColor(acc), fontVariantNumeric: 'tabular-nums' }}>
                           {acc > 0 ? `${acc}%` : '--'}
                         </span>
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 4 }}>
-                        {pos.desc}
-                      </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: 8,
-                          fontSize: 12,
-                          color: 'var(--sp-fg-dim)',
-                          fontWeight: 600,
-                        }}
-                      >
+                      <p className={s.copy} style={{ fontSize: 13, textTransform: 'capitalize' }}>{pos.desc}</p>
+                      <p className={s.facts} style={{ fontSize: 12 }}>
                         <span>{data.drills || 0} Drills</span>
                         <span>{data.totalQ || 0} Hands</span>
-                        {data.streak > 0 && (
-                          <span style={{ color: '#86daff' }}>{data.streak} Streak</span>
-                        )}
-                      </div>
-                      <div
-                        style={{
-                          marginTop: 4,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: getAccuracyColor(acc),
-                          textTransform: 'uppercase',
-                          letterSpacing: 0.5,
-                        }}
-                      >
+                        {data.streak > 0 && <span className={s.ice}>{data.streak} Streak</span>}
+                      </p>
+                      <span className={s.metricLabel} style={{ color: getAccuracyColor(acc) }}>
                         {acc > 0 ? getAccuracyLabel(acc) : 'No Data'}
-                      </div>
-                    </motion.div>
+                      </span>
+                    </motion.article>
                   );
                 })}
-              </div>
+              </section>
 
               {/* About */}
-
-              <div
-                style={{
-                  padding: '14px 18px',
-                  background: 'rgba(255,255,255,0.02)',
-                  borderRadius: 10,
-                  border: '1px solid rgba(255,255,255,0.06)',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    marginBottom: 6,
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  }}
-                >
-                  About Position Mastery
-                </div>
-                <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
+              <section className={`sd-panel ${s.panel}`} aria-labelledby="about-position-mastery-title">
+                <h2 id="about-position-mastery-title" className={s.subTitle}>About Position Mastery</h2>
+                <p className={s.copy}>
                   GTO Accuracy Varies Significantly By Position. Most Players Are Weakest From The
                   Blinds (SB/BB) And Strongest From Late Position (BTN/CO). Use This Map To Identify
                   Your Weakest Seats, Then Drill Those Positions Specifically Using The Drill
                   Builder.
                 </p>
-              </div>
+              </section>
             </motion.div>
           )}
         </div>

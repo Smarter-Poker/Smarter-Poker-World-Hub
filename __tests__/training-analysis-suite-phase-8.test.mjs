@@ -33,6 +33,14 @@ test('the complete analysis family adopts one dimensional tool shell', () => {
       assert.ok(source.includes(`destination: '${destination}'`));
       continue;
     }
+    if (route === 'weakness-scanner') {
+      // Rebuilt on the #SMARTERDESIGN sessions interior (2026-11-27); the
+      // analysis shell repainted its console buttons and pressed filters.
+      assert.match(source, /sessions-coaching\.module\.css/);
+      assert.match(source, /className=\{s\.page\}/);
+      assert.doesNotMatch(source, /sp-training-tool--analysis/);
+      continue;
+    }
     assert.match(source, /sp-training-tool--analysis/, `${route} must adopt the analysis shell`);
     assert.match(source, /sp-training-analysis-(?:header|main)/, `${route} must adopt analysis structure`);
   }

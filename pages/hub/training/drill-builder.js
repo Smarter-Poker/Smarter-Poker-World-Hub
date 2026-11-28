@@ -26,6 +26,7 @@ import { encodeSharedDrillPack } from '../../../src/lib/training/trainingPresets
 
 
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import st from '../../../src/styles/training/study-tools.module.css';
 let _supabase = null;
 function getSupabase() {
   if (typeof window === 'undefined') return null;
@@ -248,23 +249,15 @@ const STREETS = [
 // CHIP BUTTON
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-function Chip({ label, selected, onClick, color = 'var(--sp-accent-cyan)', ...rest }) {
+function Chip({ label, selected, onClick, color: _color, ...rest }) {
   return (
     <motion.button
+      type="button"
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
+      aria-pressed={!!selected}
+      className="sd-button"
       {...rest}
-      style={{
-        padding: '8px 16px',
-        borderRadius: 8,
-        border: `1px solid ${selected ? `${color}55` : 'rgba(255,255,255,0.08)'}`,
-        background: selected ? `${color}15` : 'rgba(255,255,255,0.03)',
-        color: selected ? color : 'var(--sp-fg-muted)',
-        fontSize: 13,
-        fontWeight: 600,
-        cursor: 'pointer',
-        transition: 'all 0.15s ease',
-      }}
     >
       {label}
     </motion.button>
@@ -454,124 +447,53 @@ export default function DrillBuilderPage() {
         description="Build Custom GTO Poker Practice Drills Filtered By Table Position, Street Focus, Stack Depth, And Pot Type To Target Specific Game Leaks On Smarter.Poker."
         canonical="/hub/training/drill-builder"
       />
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: '#040d18',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
+      <div className={st.shell}>
         <TrainingPageHead slug="training-drill-builder" note="Create Focused Practice Sessions" />
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={st.page}>
           {saveError && (
-            <div role="alert" style={{
-              marginBottom: 14, padding: '10px 12px', borderRadius: 8,
-              border: '1px solid rgba(248,113,113,0.35)',
-              background: 'rgba(127,29,29,0.14)', color: '#fca5a5', fontSize: 12,
-            }}>
+            <div role="alert" className={st.error}>
               {saveError}
             </div>
           )}
           {/* Quick Presets */}
-          <div style={{ marginBottom: 24 }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-                marginBottom: 10,
-              }}
-            >
-              Quick Presets
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+          <section className={`sd-panel ${st.panel}`} aria-labelledby="drill-presets-title">
+            <h2 id="drill-presets-title" className={st.title}>Quick Presets</h2>
+            <div className={st.presetGrid}>
               {PRESETS.map((preset) => (
                 <motion.button
                   key={preset.id}
+                  type="button"
                   whileTap={{ scale: 0.97 }}
                   onClick={() => applyPreset(preset)}
-                  style={{
-                    padding: '14px 12px',
-                    borderRadius: 10,
-                    textAlign: 'left',
-                    background: 'rgba(0,0,0,0.2)',
-                    border: `1px solid ${preset.color}22`,
-                    cursor: 'pointer',
-                  }}
+                  aria-pressed={drillName === preset.name}
+                  className={`sd-button ${st.presetButton}`}
                 >
-                  <div
-                    style={{ fontSize: 13, fontWeight: 700, color: preset.color, marginBottom: 2 }}
-                  >
-                    {preset.name}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{preset.desc}</div>
+                  <span className={st.presetName}>{preset.name}</span>
+                  <span className={st.presetDesc}>{preset.desc}</span>
                 </motion.button>
               ))}
             </div>
-          </div>
+          </section>
 
           {/* Custom Builder */}
-          <div
-            style={{
-              padding: '20px 16px',
-              borderRadius: 7,
-              background: '#091727',
-              border: '1px solid #688299',
-              borderTopColor: '#aec0d0',
-              marginBottom: 24,
-            }}
-          >
+          <section className={`sd-panel ${st.panel}`} aria-labelledby="drill-custom-title">
+            <h2 id="drill-custom-title" className={st.title}>Custom Drill</h2>
             {/* Drill Name */}
-            <div style={{ marginBottom: 16 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                  marginBottom: 6,
-                }}
-              >
-                Drill Name
-              </div>
+            <label className={st.field}>
+              <span className={st.label}>Drill Name</span>
               <input
                 value={drillName}
                 onChange={(e) => setDrillName(e.target.value)}
                 placeholder="Example: SB Vs BB 3-Bet Defense"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: 'var(--sp-fg)',
-                  fontSize: 13,
-                  outline: 'none',
-                  fontFamily: "'Inter', -apple-system, sans-serif",
-                }}
+                className={st.input}
               />
-            </div>
+            </label>
 
             {/* Format */}
-            <div style={{ marginBottom: 16 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                  marginBottom: 6,
-                }}
-              >
-                Format
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+            <fieldset className={st.fieldset}>
+              <legend className={st.label}>Format</legend>
+              <div className={st.chips}>
                 {FORMATS.map((f) => (
                   <Chip
                     key={f.id}
@@ -581,23 +503,12 @@ export default function DrillBuilderPage() {
                   />
                 ))}
               </div>
-            </div>
+            </fieldset>
 
             {/* Game Variant */}
-            <div data-drill-variant-selector="true" style={{ marginBottom: 16 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                  marginBottom: 6,
-                }}
-              >
-                Variant
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <fieldset className={st.fieldset} data-drill-variant-selector="true">
+              <legend className={st.label}>Variant</legend>
+              <div className={st.chips}>
                 {DRILL_VARIANTS.map((v) => (
                   <Chip
                     key={v.id}
@@ -605,111 +516,65 @@ export default function DrillBuilderPage() {
                     label={v.label}
                     selected={variant === v.id}
                     onClick={() => setVariant(v.id)}
-                    color="#06b6d4"
                   />
                 ))}
               </div>
-            </div>
+            </fieldset>
 
             {/* Positions */}
-            <div style={{ marginBottom: 16 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                  marginBottom: 6,
-                }}
-              >
-                Position (Choose One Or Leave Empty For Any)
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <fieldset className={st.fieldset}>
+              <legend className={st.label}>Position (Choose One Or Leave Empty For Any)</legend>
+              <div className={st.chips}>
                 {POSITIONS.map((pos) => (
                   <Chip
                     key={pos}
                     label={pos}
                     selected={selectedPositions.includes(pos)}
                     onClick={() => togglePosition(pos)}
-                    color="#86daff"
                   />
                 ))}
               </div>
-            </div>
+            </fieldset>
 
             {/* Streets */}
-            <div style={{ marginBottom: 16 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                  marginBottom: 6,
-                }}
-              >
-                Street (Choose One Or Leave Empty For All)
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+            <fieldset className={st.fieldset}>
+              <legend className={st.label}>Street (Choose One Or Leave Empty For All)</legend>
+              <div className={st.chips}>
                 {STREETS.map((s) => (
                   <Chip
                     key={s.id}
                     label={s.label}
                     selected={selectedStreets.includes(s.id)}
                     onClick={() => toggleStreet(s.id)}
-                    color="#22c55e"
                   />
                 ))}
               </div>
-            </div>
+            </fieldset>
 
             {/* Exact supported stack */}
-            <div style={{ marginBottom: 16 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                  marginBottom: 6,
-                }}
-              >
-                Stack Depth (Big Blinds)
-              </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <fieldset className={st.fieldset}>
+              <legend className={st.label}>Stack Depth (Big Blinds)</legend>
+              <div className={st.chips}>
                 {STACK_DEPTHS[format].map((depth) => (
                   <Chip
                     key={depth}
                     label={`${depth}BB`}
                     selected={stackDepth === depth}
                     onClick={() => setStackDepth(depth)}
-                    color="#86daff"
                   />
                 ))}
               </div>
-            </div>
+            </fieldset>
 
+            <hr className={st.divider} />
             {/* Actions */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div className={st.actions}>
               <motion.button
+                type="button"
                 whileTap={{ scale: 0.97 }}
                 onClick={saveDrill}
                 disabled={saving || !drillName.trim()}
-                style={{
-                  flex: 1,
-                  minWidth: 130,
-                  padding: '12px 0',
-                  borderRadius: 10,
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  background: 'rgba(255,255,255,0.05)',
-                  color: drillName.trim() ? 'var(--sp-fg)' : 'var(--sp-fg-faint)',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
+                className="sd-button"
               >
                 {saving ? 'Saving...' : 'Save Drill'}
               </motion.button>
@@ -719,121 +584,65 @@ export default function DrillBuilderPage() {
                 data-copy-shared-drill-pack="true"
                 data-shared-pack-token={sharedDrillPackToken}
                 onClick={copySharedDrillPackLink}
-                style={{
-                  flex: 1,
-                  minWidth: 165,
-                  padding: '12px 10px',
-                  borderRadius: 7,
-                  border: '1px solid #688299',
-                  borderTopColor: '#aec0d0',
-                  background: 'linear-gradient(180deg, #13253a 0%, #091727 60%, #060e18 100%)',
-                  color: '#83deff',
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
+                className="sd-button"
               >
                 {sharedPackCopied ? 'Shared Pack Link Copied!' : 'Copy Shared Drill Pack Link'}
               </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                data-launch-club-arena-cta="true"
-                onClick={() =>
-                  startDrill({
-                    format,
-                    variant,
-                    positions: selectedPositions,
-                    streets: selectedStreets,
-                    stackDepth,
-                  })
-                }
-                style={{
-                  flex: 1,
-                  minWidth: 130,
-                  padding: '12px 0',
-                  borderRadius: 7,
-                  border: '1px solid #56d8ff',
-                  background:
-                    'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)',
-                  color: '#fff',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                Start Drill
-              </motion.button>
             </div>
-          </div>
-
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.97 }}
+              data-launch-club-arena-cta="true"
+              onClick={() =>
+                startDrill({
+                  format,
+                  variant,
+                  positions: selectedPositions,
+                  streets: selectedStreets,
+                  stackDepth,
+                })
+              }
+              className={`sd-button sd-primary ${st.block}`}
+            >
+              Start Drill
+            </motion.button>
+          </section>
 
           {loading && (
-            <div role="status" style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 16 }}>
+            <div role="status" className={st.small}>
               Loading Saved Drills...
             </div>
           )}
 
           {/* Saved Drills */}
           {savedDrills.length > 0 && (
-            <div>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                  marginBottom: 10,
-                }}
-              >
-                Saved Drills
-              </div>
+            <section className={`sd-panel ${st.panel}`} aria-labelledby="drill-saved-title">
+              <h2 id="drill-saved-title" className={st.title}>Saved Drills</h2>
+              <div className={st.list}>
               {savedDrills.map((drill, i) => (
                 <motion.button
                   key={drill.id || i}
+                  type="button"
                   whileTap={{ scale: 0.98 }}
                   onClick={() => startDrill(drill.config)}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    borderRadius: 10,
-                    marginBottom: 8,
-                    background: 'rgba(0,0,0,0.2)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+                  className={`sd-button ${st.savedRow}`}
                 >
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
+                  <span className={st.savedText}>
+                    <span className={st.presetName}>
                       {drill.title || drill.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
+                    </span>
+                    <span className={st.presetDesc}>
                       {drill.config?.format?.toUpperCase()} |{' '}
                       {drill.config?.variant?.toUpperCase() || 'NLH'} |{' '}
                       {(drill.config?.positions || []).join(', ') || 'All Positions'} |{' '}
                       {(drill.config?.streets || []).join(', ') || 'All Streets'}
-                    </div>
-                  </div>
-                  <span
-                    style={{
-                      padding: '4px 12px',
-                      borderRadius: 6,
-                      background: 'rgba(0,212,255,0.08)',
-                      border: '1px solid rgba(0,212,255,0.15)',
-                      color: 'var(--sp-accent-cyan)',
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  >
-                    Play
+                    </span>
                   </span>
+                  <span className={st.tag}>Play</span>
                 </motion.button>
               ))}
-            </div>
+              </div>
+            </section>
           )}
         </div>
       </div>

@@ -19,11 +19,11 @@ import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 import { analyzeVerifiedTrainingWeaknesses } from '../../../src/lib/training/weaknessAnalysis.mjs';
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/sessions-coaching.module.css';
 // TRAIN-WIRE-EMPTY-6a — adoption: shared empty-state primitive
 
 export const analyzeData = analyzeVerifiedTrainingWeaknesses;
@@ -122,38 +122,20 @@ export default function WeaknessScannerPage() {
         description="Scan Your Graded Poker Training History By Table Seat, Street, And Scenario Category To Pinpoint And Fix Expected Value Leaks On Smarter.Poker."
         canonical="/hub/training/weakness-scanner"
       />
-      <div
-        className="sp-training-tool sp-training-tool--analysis sp-analysis-weakness"
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: '#040d18',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
+      <div className={`sp-analysis-weakness ${s.shell}`}>
         <TrainingPageHead slug="training-weakness-scanner" note="Verified Session Analysis" />
 
-        <div className="sp-training-analysis-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={s.page}>
           {/* Time Filter */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+          <div className={s.chips} role="group" aria-label="Time Range">
             {[{ id: '7d', label: 'Last 7 Days' }, { id: '30d', label: 'Last 30 Days' }, { id: 'all', label: 'All Time' }].map(f => (
               <button
                 key={f.id}
                 type="button"
+                className={`sd-button ${s.button}`}
                 onClick={() => setTimeFilter(f.id)}
                 aria-label={`Filter by ${f.label}`}
                 aria-pressed={timeFilter === f.id}
-                style={{
-                  flex: 1,
-                  padding: '8px',
-                  borderRadius: 8,
-                  border: `1px solid ${timeFilter === f.id ? 'rgba(248,113,113,0.2)' : 'transparent'}`,
-                  background: timeFilter === f.id ? 'rgba(248,113,113,0.06)' : 'transparent',
-                  color: timeFilter === f.id ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
               >
                 {f.label}
               </button>
@@ -162,10 +144,10 @@ export default function WeaknessScannerPage() {
 
           {!loading && !fetchError && topLeakHref && (
             <section data-leak-brain-panel="true" data-leak-basis="verified-history" data-leak-sample-count={topLeak.sample}
-              aria-labelledby="top-weakness">
-              <h2 id="top-weakness">Top Weakness</h2>
-              <p>{topLeak.area || topLeak.name} Across {topLeak.sample} Decisions</p>
-              <a href={topLeakHref} data-fix-top-leak-cta="true" className="sp-mtt-primary-cta">Practice This Spot</a>
+              aria-labelledby="top-weakness" className={`sd-panel ${s.panel}`}>
+              <h2 id="top-weakness" className={s.sectionTitle}>Top Weakness</h2>
+              <p className={s.copy}>{topLeak.area || topLeak.name} Across {topLeak.sample} Decisions</p>
+              <a href={topLeakHref} data-fix-top-leak-cta="true" className={`sd-button sd-primary ${s.button} ${s.primary}`}>Practice This Spot</a>
             </section>
           )}
 
@@ -173,277 +155,110 @@ export default function WeaknessScannerPage() {
           <ErrorBanner message={fetchError} onRetry={() => { setLoading(true); fetchData(); }} />
 
           {loading && (
-            <div style={{ padding: '20px 0' }}>
-              <SkeletonLoader variant="card" count={2} />
-            </div>
+            <section className={`sd-panel ${s.panel} ${s.state}`} role="status" aria-live="polite">
+              <p className={s.copy}>Scanning Your Verified Sessions...</p>
+            </section>
           )}
 
           {!loading && data && (
             <>
               {/* Summary Card */}
-              <div
-                style={{
-                  padding: '24px 20px',
-                  borderRadius: 16,
-                  background: 'linear-gradient(135deg, rgba(248,113,113,0.1), rgba(0,0,0,0.2))',
-                  border: '1px solid rgba(248,113,113,0.2)',
-                  marginBottom: 16,
-                }}
-              >
-                <div
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                >
+              <section className={`sd-panel ${s.panel}`} aria-labelledby="scan-summary-title">
+                <div className={s.panelHead}>
                   <div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: 'var(--sp-accent-red)',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: 1,
-                        marginBottom: 4,
-                      }}
-                    >
-                      Scan Complete
-                    </div>
-                    <div style={{ fontSize: 24, fontWeight: 900 }}>
+                    <p className={s.eyebrow}>Scan Complete</p>
+                    <h2 id="scan-summary-title" className={s.sectionTitle}>
                       {data.leaks.length} {data.leaks.length === 1 ? 'Weakness' : 'Weaknesses'} Identified
-                    </div>
+                    </h2>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div
-                      style={{
-                        fontSize: 28,
-                        fontWeight: 900,
-                        color: data.overallAcc === null
-                          ? 'var(--sp-fg-muted)'
-                          : data.overallAcc >= 80
-                            ? 'var(--sp-accent-green)'
-                            : 'var(--sp-accent-amber)',
-                      }}
-                    >
+                  <div className={`sd-metric ${s.metric}`}>
+                    <strong className={s.metricValue} data-tone={data.overallAcc === null ? undefined : data.overallAcc >= 80 ? 'up' : 'ice'}>
                       {data.overallAcc === null ? '-' : `${Math.round(data.overallAcc)}%`}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>Overall Acc</div>
+                    </strong>
+                    <span className={s.metricLabel}>Overall Accuracy</span>
                   </div>
                 </div>
-                <div style={{ marginTop: 16, fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
+                <p className={s.copy}>
                   Based On {data.totalHands} Verified Decisions. Modules Appear Below Only When They
                   Have At Least Three Decisions And Measured Accuracy Of 85% Or Lower.
-                </div>
-              </div>
+                </p>
 
-              {/* Severity Distribution Bar */}
-              {data.leaks.length > 0 && (() => {
-                const highCount = data.leaks.filter((l) => l.sev === 'High').length;
-                const medCount = data.leaks.filter((l) => l.sev === 'Medium').length;
-                const lowCount = data.leaks.filter((l) => l.sev === 'Low').length;
-                return (
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 8,
-                      marginBottom: 16,
+                {/* Severity Distribution */}
+                {data.leaks.length > 0 && (() => {
+                  const highCount = data.leaks.filter((l) => l.sev === 'High').length;
+                  const medCount = data.leaks.filter((l) => l.sev === 'Medium').length;
+                  const lowCount = data.leaks.filter((l) => l.sev === 'Low').length;
+                  return (
+                    <div className={s.metrics3} aria-label="Severity Distribution">
+                      <div className={`sd-metric ${s.metric}`}>
+                        <strong className={s.metricValue} data-tone={highCount > 0 ? 'down' : undefined}>{highCount}</strong>
+                        <span className={s.metricLabel}>High</span>
+                      </div>
+                      <div className={`sd-metric ${s.metric}`}>
+                        <strong className={s.metricValue} data-tone="ice">{medCount}</strong>
+                        <span className={s.metricLabel}>Medium</span>
+                      </div>
+                      <div className={`sd-metric ${s.metric}`}>
+                        <strong className={s.metricValue}>{lowCount}</strong>
+                        <span className={s.metricLabel}>Low</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Drill Weakest CTA */}
+                {data.leaks.length > 0 && data.leaks[0].sev !== 'Low' && (
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.97 }}
+                    className={`sd-button sd-primary ${s.button} ${s.primary} ${s.full}`}
+                    onClick={() => {
+                      const w = data.topSpotLeak || data.leaks[0];
+                      router.push(buildCustomTrainingArenaHref({
+                        gameId: w.gameId || w._engineLeak?.drill?.gameId,
+                        variant: w.variant,
+                        street: w.street,
+                        position: w.position,
+                      }, 'weakness-scanner'));
                     }}
                   >
-                    {highCount > 0 && (
-                      <div
-                        style={{
-                          flex: highCount,
-                          padding: '8px 10px',
-                          borderRadius: 8,
-                          background: 'rgba(239,68,68,0.08)',
-                          border: '1px solid rgba(239,68,68,0.15)',
-                          textAlign: 'center',
-                        }}
-                      >
-                        <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--sp-accent-red)' }}>
-                          {highCount}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--sp-accent-red)', textTransform: 'uppercase' }}>
-                          High
-                        </div>
-                      </div>
-                    )}
-                    {medCount > 0 && (
-                      <div
-                        style={{
-                          flex: medCount,
-                          padding: '8px 10px',
-                          borderRadius: 8,
-                          background: 'rgba(134, 218, 255, 0.06)',
-                          border: '1px solid rgba(134, 218, 255, 0.12)',
-                          textAlign: 'center',
-                        }}
-                      >
-                        <div style={{ fontSize: 16, fontWeight: 900, color: '#86daff' }}>
-                          {medCount}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#86daff', textTransform: 'uppercase' }}>
-                          Medium
-                        </div>
-                      </div>
-                    )}
-                    {lowCount > 0 && (
-                      <div
-                        style={{
-                          flex: lowCount,
-                          padding: '8px 10px',
-                          borderRadius: 8,
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid rgba(255,255,255,0.06)',
-                          textAlign: 'center',
-                        }}
-                      >
-                        <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--sp-fg-muted)' }}>
-                          {lowCount}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                          Low
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* Drill Weakest CTA */}
-              {data.leaks.length > 0 && data.leaks[0].sev !== 'Low' && (
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => {
-                    const w = data.topSpotLeak || data.leaks[0];
-                    router.push(buildCustomTrainingArenaHref({
-                      gameId: w.gameId || w._engineLeak?.drill?.gameId,
-                      variant: w.variant,
-                      street: w.street,
-                      position: w.position,
-                    }, 'weakness-scanner'));
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    borderRadius: 12,
-                    border: 'none',
-                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-red-rgb), 1), #dc2626)',
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 20px rgba(239,68,68,0.25)',
-                    marginBottom: 20,
-                  }}
-                >
-                  Drill Weakest Spot: {(data.topSpotLeak || data.leaks[0]).area}
-                </motion.button>
-              )}
+                    Drill Weakest Spot: {(data.topSpotLeak || data.leaks[0]).area}
+                  </motion.button>
+                )}
+              </section>
 
               {/* Leaks List */}
-              {data.leaks.length > 0 && <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                  marginBottom: 12,
-                }}
-              >
-                Identified Weaknesses
-              </div>}
+              {data.leaks.length > 0 && <h2 className={s.sectionTitle}>Identified Weaknesses</h2>}
               <AnimatePresence>
                 {data.leaks.map((leak, i) => (
-                  <motion.div
+                  <motion.article
                     key={leak.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    style={{
-                      padding: '16px',
-                      borderRadius: 12,
-                      marginBottom: 12,
-                      background: 'rgba(0,0,0,0.2)',
-                      border: `1px solid ${leak.sev === 'High' ? 'rgba(239,68,68,0.3)' : leak.sev === 'Medium' ? 'rgba(134, 218, 255, 0.3)' : 'rgba(255,255,255,0.05)'}`,
-                    }}
+                    className={`sd-panel ${s.panel}`}
                   >
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        marginBottom: 12,
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}
-                        >
-                          <span style={{ fontSize: 15, fontWeight: 800 }}>{leak.area}</span>
-                          <span
-                            style={{
-                              padding: '2px 6px',
-                              borderRadius: 4,
-                              background:
-                                leak.sev === 'High'
-                                  ? 'rgba(239,68,68,0.1)'
-                                  : leak.sev === 'Medium'
-                                    ? 'rgba(134, 218, 255, 0.1)'
-                                    : 'rgba(255,255,255,0.05)',
-                              color:
-                                leak.sev === 'High'
-                                  ? 'var(--sp-accent-red)'
-                                  : leak.sev === 'Medium'
-                                    ? 'var(--sp-accent-amber)'
-                                    : 'var(--sp-fg-muted)',
-                              fontSize: 12,
-                              fontWeight: 700,
-                              textTransform: 'uppercase',
-                            }}
-                          >
-                            {leak.sev} Severity
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>
-                          Category: {leak.cat} • {leak.sample} Hand Sample
-                        </div>
+                    <div className={s.panelHead} style={{ alignItems: 'flex-start', flexWrap: 'nowrap' }}>
+                      <div style={{ display: 'grid', gap: 6, minWidth: 0 }}>
+                        <h3 className={s.subTitle}>{leak.area}</h3>
+                        <span className={s.tag} style={leak.sev === 'High' ? { color: '#ff7a86' } : undefined}>{leak.sev} Severity</span>
+                        <span className={s.metricLabel}>Category: {leak.cat} • {leak.sample} Hand Sample</span>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div
-                          style={{
-                            fontSize: 18,
-                            fontWeight: 800,
-                            color:
-                              leak.acc >= 75 ? 'var(--sp-accent-green)' : leak.acc >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
-                          }}
-                        >
-                          {leak.acc}%
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Accuracy</div>
+                      <div className={`sd-metric ${s.metric}`}>
+                        <strong className={s.metricValue} data-tone={leak.acc >= 75 ? 'up' : leak.acc >= 60 ? 'ice' : 'down'}>{leak.acc}%</strong>
+                        <span className={s.metricLabel}>Accuracy</span>
                       </div>
                     </div>
 
-                    <div
-                      style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: 8 }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: 'var(--sp-accent-cyan)',
-                          textTransform: 'uppercase',
-                          marginBottom: 4,
-                        }}
-                      >
-                        Verified Training Recommendation
-                      </div>
-                      <div style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.5 }}>
-                        {leak.tip}
-                      </div>
+                    <div className={s.answerBlock}>
+                      <p className={s.eyebrow}>Verified Training Recommendation</p>
+                      <p className={s.copy} style={{ color: '#f2f7ff' }}>{leak.tip}</p>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <div className={s.actions}>
                       <button
                         type="button"
+                        className={`sd-button sd-primary ${s.button}`}
                         aria-label={`Practice ${leak.area} leak in spot trainer`}
                         onClick={() => {
                           router.push(buildCustomTrainingArenaHref({
@@ -453,22 +268,12 @@ export default function WeaknessScannerPage() {
                             position: leak.position,
                           }, 'weakness-scanner'));
                         }}
-                        style={{
-                          flex: 1,
-                          padding: '10px',
-                          borderRadius: 8,
-                          border: 'none',
-                          background: 'rgba(34,197,94,0.1)',
-                          color: 'var(--sp-accent-green)',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
                       >
                         Practice This Leak
                       </button>
                       <button
                         type="button"
+                        className={`sd-button ${s.button}`}
                         aria-label={`Ask Jarvis about ${leak.area} leak`}
                         onClick={() => {
                           const q = new URLSearchParams({
@@ -479,29 +284,18 @@ export default function WeaknessScannerPage() {
                           });
                           window.location.href = `/hub/training/jarvis?${q.toString()}`;
                         }}
-                        style={{
-                          flex: 1,
-                          padding: '10px',
-                          borderRadius: 8,
-                          border: 'none',
-                          background: 'rgba(134, 218, 255, 0.1)',
-                          color: '#86daff',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
                       >
                         Get Coaching
                       </button>
                     </div>
-                  </motion.div>
+                  </motion.article>
                 ))}
               </AnimatePresence>
               {data.totalHands > 0 && data.leaks.length === 0 && (
                 <TrainerEmptyState
                   variant="no-data"
                   title="No Measured Weakness Yet"
-                  message="No module with at least three verified decisions is currently at 85% accuracy or lower. Keep training to expand the sample."
+                  message="No Module With At Least Three Verified Decisions Is Currently At 85% Accuracy Or Lower. Keep Training To Expand The Sample."
                   compact
                 />
               )}
@@ -509,7 +303,7 @@ export default function WeaknessScannerPage() {
                 <TrainerEmptyState
                   variant="no-data"
                   title="No Scored Decisions Available"
-                  message="Complete a scored training session before running this analysis."
+                  message="Complete A Scored Training Session Before Running This Analysis."
                   compact
                 />
               )}
@@ -520,15 +314,15 @@ export default function WeaknessScannerPage() {
             rawSessions && rawSessions.length > 0 ? (
               <TrainerEmptyState
                 variant="no-data"
-                title="No data in this time range"
-                message="Try selecting a wider time range above."
+                title="No Data In This Time Range"
+                message="Try Selecting A Wider Time Range Above."
                 compact
               />
             ) : (
               <TrainerEmptyState
                 variant="no-data"
-                title="No data to scan"
-                message="Play some training sessions first."
+                title="No Data To Scan"
+                message="Play Some Training Sessions First."
                 compact
               />
             )

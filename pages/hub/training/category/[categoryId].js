@@ -294,31 +294,11 @@ export default function CategoryPage() {
           color: #f2f7ff;
           background: #040d18;
         }
-        .sp-category-hero {
-          position: relative;
-          overflow: hidden;
-        }
-        .sp-category-hero-art { position: absolute; inset: 0; overflow: hidden; }
-        .sp-category-hero-art :global(picture),
-        .sp-category-hero-art :global(img) { display: block; width: 100%; height: 100%; }
-        .sp-category-hero-art :global(img) { object-fit: cover; object-position: center; filter: saturate(1.02) contrast(1.08) brightness(0.45); }
-        .sp-category-hero-shade {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(180deg, rgba(4, 13, 24, 0.72) 0%, rgba(4, 13, 24, 0.92) 100%);
-          pointer-events: none;
-        }
-        .sp-cat-topbar,
-        .sp-cat-banner,
-        .sp-cat-quickbar {
-          position: relative;
-          z-index: 2;
-        }
-        .sp-cat-topbar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
+        /* The head grid is a single shrinkable column, so a long Top Drill
+           line ellipsizes instead of pushing the header past the viewport. */
+        .sp-training-category :global(.sp-training-head) {
+          grid-template-columns: minmax(0, 1fr);
+          padding: 4px 0 0;
         }
         .sp-cat-back-btn {
           display: inline-flex;
@@ -326,38 +306,9 @@ export default function CategoryPage() {
           gap: 6px;
           min-height: 44px;
           padding: 0 12px;
-          font-size: 13px;
-          font-weight: 800;
-          text-transform: uppercase;
-        }
-        .sp-cat-banner {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .sp-cat-banner__copy {
-          min-width: 0;
-          flex: 1;
-        }
-        .sp-cat-banner__title-row {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: #86daff;
-        }
-        .sp-cat-banner__title-row h1 {
-          margin: 0;
-          font-family: var(--font-orbitron, 'Orbitron'), var(--font-rajdhani, sans-serif);
-          font-size: clamp(20px, 4.5vw, 28px);
-          font-weight: 800;
-          color: #f2f7ff;
-          text-transform: uppercase;
-        }
-        .sp-cat-banner__copy p {
-          margin: 4px 0 0;
-          font-size: 13px;
-          line-height: 1.4;
-          color: #bdd0e2;
+          font-size: 15px;
+          font-weight: 700;
+          text-transform: none;
         }
         .sp-category-missing {
           min-height: calc(100dvh - 60px);

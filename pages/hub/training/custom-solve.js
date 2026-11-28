@@ -20,6 +20,8 @@ import { createBoundedTrainingFetch } from '../../../src/lib/training/boundedTra
 import { evaluateTrainingSpotWithHorseBrain, buildCustomTrainingArenaHref } from '../../../src/lib/training/horseBrainTrainingAdapter';
 
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import at from '../../../src/styles/training/analysis-tools.module.css';
+import cs from '../../../src/styles/training/custom-solve.module.css';
 const trainingFetch = createBoundedTrainingFetch(authedFetch);
 
 
@@ -114,61 +116,33 @@ function BoardCardSelector({ boardCards, setBoardCards }) {
   const slotLabels = ['Flop 1', 'Flop 2', 'Flop 3', 'Turn', 'River'];
 
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 700,
-          color: 'var(--sp-fg-dim)',
-          textTransform: 'uppercase',
-          letterSpacing: 0.5,
-          marginBottom: 6,
-          padding: '0 4px',
-        }}
-      >
-        Board Cards (Optional)
-      </div>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+    <div className={at.field}>
+      <span className={at.label}>Board Cards (Optional)</span>
+      <div className={cs.boardSlots}>
         {slotLabels.map((label, i) => {
           const card = boardCards[i];
           const isActive = selectorOpen === i;
           const suit = card ? ALL_CARD_SUITS.find((s) => s.s === card[1]) : null;
           return (
-            <div key={i} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginBottom: 2 }}>{label}</div>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
+            <div key={i} className={cs.boardSlot}>
+              <span>{label}</span>
+              <button
+                type="button"
+                className={at.slot}
+                data-filled={card ? 'true' : undefined}
+                data-active={isActive ? 'true' : undefined}
+                aria-label={card ? `Clear ${label} (${card})` : `Pick ${label}`}
                 onClick={() => (card ? clearCard(i) : setSelectorOpen(isActive ? null : i))}
-                style={{
-                  width: 44,
-                  height: 60,
-                  borderRadius: 8,
-                  border: `2px solid ${isActive ? 'var(--sp-accent-cyan)' : card ? suit?.color || 'var(--sp-fg-dim)' : 'rgba(255,255,255,0.08)'}`,
-                  background: card
-                    ? 'rgba(255,255,255,0.06)'
-                    : isActive
-                      ? 'rgba(0,212,255,0.05)'
-                      : 'rgba(0,0,0,0.2)',
-                  color: card ? 'var(--sp-fg)' : 'var(--sp-fg-faint)',
-                  fontSize: card ? 14 : 20,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 0,
-                }}
               >
                 {card ? (
-                  <>
+                  <span className={cs.slotCard}>
                     <span>{card[0]}</span>
-                    <span style={{ color: suit?.color, fontSize: 12 }}>{suit?.symbol}</span>
-                  </>
+                    <span className={cs.suitMark} data-suit={suit?.s}>{suit?.symbol}</span>
+                  </span>
                 ) : (
-                  '+'
+                  <span className={at.slotPlus} aria-hidden>+</span>
                 )}
-              </motion.button>
+              </button>
             </div>
           );
         })}
@@ -181,36 +155,31 @@ function BoardCardSelector({ boardCards, setBoardCards }) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            style={{
-              overflow: 'hidden',
-              borderRadius: 10,
-              background: 'rgba(0,0,0,0.3)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              padding: 10,
-            }}
+            className={`sd-panel ${at.panel} ${at.tight}`}
+            style={{ overflow: 'hidden' }}
+            role="group"
+            aria-label={`Pick ${slotLabels[selectorOpen]}`}
           >
+            <div className={at.pickerHead}>
+              <span className={at.eyebrow}>Pick {slotLabels[selectorOpen]}</span>
+              <button type="button" className={`sd-button ${at.close}`} onClick={() => setSelectorOpen(null)} aria-label="Close Card Picker">
+                ✕
+              </button>
+            </div>
             {ALL_CARD_SUITS.map((suit) => (
-              <div key={suit.s} style={{ display: 'flex', gap: 3, marginBottom: 3 }}>
+              <div key={suit.s} className={cs.rankRow}>
                 {ALL_CARD_RANKS.map((rank) => {
                   const card = rank + suit.s;
                   const used = usedCards.has(card);
                   return (
                     <button
                       key={card}
+                      type="button"
+                      className={cs.rankPick}
+                      data-suit={suit.s}
                       disabled={used}
+                      aria-label={`${rank}${suit.symbol}`}
                       onClick={() => pickCard(card)}
-                      style={{
-                        flex: '1 1 auto',
-                        padding: '4px 2px',
-                        borderRadius: 4,
-                        border: 'none',
-                        cursor: used ? 'not-allowed' : 'pointer',
-                        background: used ? 'rgba(255,255,255,0.02)' : `${suit.color}15`,
-                        color: used ? '#333' : suit.color,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        opacity: used ? 0.3 : 1,
-                      }}
                     >
                       {rank}
                     </button>
@@ -238,177 +207,66 @@ function BoardCardSelector({ boardCards, setBoardCards }) {
 function SolveResult({ heroPos, villainPos, config, result }) {
   if (!result) return null;
   const isPreflopRfi = (config.boardCards?.filter(Boolean).length || 0) < 3;
+  const actionFill = (action) => (
+    action === 'Raise'
+      ? 'var(--sp-accent-red)'
+      : action === 'Call'
+        ? 'var(--sp-accent-green)'
+        : action === 'Fold'
+          ? 'var(--sp-fg-dim)'
+          : 'var(--sp-accent-blue)'
+  );
 
   return (
-    <motion.div
+    <motion.section
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{
-        padding: '16px',
-        borderRadius: 14,
-        background: 'rgba(0,0,0,0.2)',
-        border: '1px solid rgba(0,212,255,0.12)',
-        marginBottom: 12,
-      }}
+      className={`sd-panel ${at.panel}`}
+      aria-labelledby="cs-result-title"
     >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 12,
-        }}
-      >
+      <div className={at.panelHead}>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)' }}>
+          <h2 id="cs-result-title" className={at.sectionTitle}>
             {isPreflopRfi ? `${heroPos} First-In RFI` : `${heroPos} Vs ${villainPos}`}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
+          </h2>
+          <p className={at.small}>
             6-Max Cash · {config.stackDepth}BB · {isPreflopRfi ? 'Authored First-In Reference' : 'Board Reference Query'}
-          </div>
+          </p>
         </div>
-        <div
-          style={{
-            padding: '4px 10px',
-            borderRadius: 6,
-            background: 'rgba(34,197,94,0.08)',
-            border: '1px solid rgba(34,197,94,0.2)',
-            fontSize: 12,
-            fontWeight: 700,
-            color: 'var(--sp-accent-green)',
-          }}
-        >
-          {result.authorityLabel || 'Audited Solver Result'}
-        </div>
+        <span className={at.tag}>{result.authorityLabel || 'Audited Solver Result'}</span>
       </div>
 
-      {result.message && (
-        <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5, marginBottom: 12 }}>
-          {result.message}
-        </div>
-      )}
+      {result.message && <p className={at.copy}>{result.message}</p>}
 
       {/* Strategy */}
-      <div style={{ marginBottom: 12 }}>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: 'var(--sp-fg-dim)',
-            textTransform: 'uppercase',
-            letterSpacing: 0.5,
-            marginBottom: 6,
-          }}
-        >
-          Action Frequency Reference
-        </div>
+      <div className={at.field}>
+        <h3 className={at.label}>Action Frequency Reference</h3>
         {(Array.isArray(result?.actions) ? result.actions : []).map((a) => (
-          <div
-            key={a.action}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              marginBottom: 4,
-            }}
-          >
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 2,
-                background:
-                  a.action === 'Raise'
-                    ? 'var(--sp-accent-red)'
-                    : a.action === 'Call'
-                      ? 'var(--sp-accent-green)'
-                      : a.action === 'Fold'
-                        ? 'var(--sp-fg-dim)'
-                        : 'var(--sp-accent-blue)',
-              }}
-            />
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)', minWidth: 50 }}>
-              {a.action}
-            </div>
-            <div
-              style={{
-                flex: 1,
-                height: 6,
-                borderRadius: 3,
-                background: 'rgba(255,255,255,0.06)',
-                overflow: 'hidden',
-              }}
-            >
+          <div key={a.action} className={cs.actionRow}>
+            <span className={cs.actionSwatch} style={{ background: actionFill(a.action) }} aria-hidden />
+            <span>{a.action}</span>
+            <div className={at.track}>
               <motion.div
+                className={at.fill}
                 initial={{ width: 0 }}
                 animate={{ width: `${a.freq}%` }}
                 transition={{ duration: MOTION.slow }}
-                style={{
-                  height: '100%',
-                  borderRadius: 3,
-                  background:
-                    a.action === 'Raise'
-                      ? 'var(--sp-accent-red)'
-                      : a.action === 'Call'
-                        ? 'var(--sp-accent-green)'
-                        : a.action === 'Fold'
-                          ? 'var(--sp-fg-dim)'
-                          : 'var(--sp-accent-blue)',
-                }}
+                style={{ background: actionFill(a.action) }}
               />
             </div>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--sp-fg-muted)',
-                minWidth: 36,
-                textAlign: 'right',
-              }}
-            >
-              {a.freq}%
-            </div>
+            <span>{a.freq}%</span>
           </div>
         ))}
       </div>
 
       {/* Range Text */}
       {result.range && (
-        <div
-          style={{
-            padding: '10px',
-            borderRadius: 8,
-            marginTop: 8,
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.04)',
-          }}
-        >
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: 'var(--sp-fg-dim)',
-              marginBottom: 4,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-            }}
-          >
-            Hands ({result.rangePercent || 0}% Of Combos)
-          </div>
-          <div
-            style={{
-              fontSize: 12,
-              color: 'var(--sp-fg-muted)',
-              lineHeight: 1.5,
-              fontFamily: "'Courier New', monospace",
-            }}
-          >
-            {result.range}
-          </div>
+        <div className={at.helpBlock}>
+          <h3 className={at.label}>Hands ({result.rangePercent || 0}% Of Combos)</h3>
+          <p className={cs.rangeText}>{result.range}</p>
         </div>
       )}
-
-    </motion.div>
+    </motion.section>
   );
 }
 
@@ -603,254 +461,121 @@ export default function CustomSolvePage() {
         canonical="/hub/training/custom-solve"
       />
 
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
+      <div className={at.shell}>
         <TrainingPageHead slug="training-custom-solve" note="Query Authored Preflop And Audited Root-Node Data" />
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={at.page}>
           {/* Supported corpus — variants are not offered as no-op controls. */}
-          <div style={{ marginBottom: 16, padding: '12px 14px', border: '1px solid rgba(0,212,255,.16)', background: 'rgba(0,212,255,.04)' }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                marginBottom: 6,
-                padding: '0 4px',
-              }}
-            >
-              Supported Corpus
-            </div>
-            <div style={{ color: 'var(--sp-fg)', fontSize: 13, fontWeight: 800 }}>6-Max Cash</div>
-            <div style={{ color: 'var(--sp-fg-dim)', fontSize: 12, marginTop: 3 }}>
+          <section className={`sd-panel ${at.panel} ${at.tight}`} aria-labelledby="cs-corpus-title">
+            <h2 id="cs-corpus-title" className={at.label}>Supported Corpus</h2>
+            <strong className={at.subTitle}>6-Max Cash</strong>
+            <p className={at.small}>
               {isPreflopRfi
                 ? 'Before A Complete Flop Is Selected, This Tool Queries Only The Authored 100BB First-In RFI Reference. No Opponent Exists In A First-In Decision.'
                 : 'Postflop Requests Apply Hero, Opponent, Effective Stack, And Every Concrete Board Card. Only An Audited Exact Root Decision Is Displayed. If No Exact Match Exists, The Request Fails Closed And No Modeled Result Is Shown.'}
-            </div>
-          </div>
+            </p>
+          </section>
 
-          {/* Positions */}
-          <div
-            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                  marginBottom: 6,
-                  padding: '0 4px',
-                }}
-              >
-                Hero Position
-              </div>
-              <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+          <section className={`sd-panel ${at.panel}`} aria-label="Spot Setup">
+            {/* Positions */}
+            <div className={at.field}>
+              <span className={at.label}>Hero Position</span>
+              <div className={at.segmented} role="group" aria-label="Hero Position">
                 {(isPreflopRfi ? PREFLOP_RFI_POSITIONS : POSITIONS).map((p) => (
-                  <motion.button
+                  <button
                     key={p}
-                    whileTap={{ scale: 0.95 }}
+                    type="button"
+                    className="sd-button"
+                    aria-pressed={heroPos === p}
                     onClick={() => selectHeroPosition(p)}
-                    style={{
-                      padding: '6px 8px',
-                      borderRadius: 6,
-                      flex: '1 1 auto',
-                      minWidth: 36,
-                      border: `1px solid ${heroPos === p ? 'rgba(34,197,94,0.3)' : 'transparent'}`,
-                      background: heroPos === p ? 'rgba(34,197,94,0.08)' : 'rgba(0,0,0,0.2)',
-                      color: heroPos === p ? 'var(--sp-accent-green)' : 'var(--sp-fg-dim)',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                    }}
                   >
                     {p}
-                  </motion.button>
+                  </button>
                 ))}
               </div>
             </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                  marginBottom: 6,
-                  padding: '0 4px',
-                }}
-              >
-                {isPreflopRfi ? 'Opponent' : 'Villain Position'}
-              </div>
+
+            <div className={at.field}>
+              <span className={at.label}>{isPreflopRfi ? 'Opponent' : 'Villain Position'}</span>
               {isPreflopRfi ? (
-                <div
-                  data-preflop-opponent="not-applicable"
-                  style={{
-                    minHeight: 31,
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '0 9px',
-                    border: '1px solid rgba(148,163,184,0.16)',
-                    borderRadius: 6,
-                    color: 'var(--sp-fg-dim)',
-                    background: 'rgba(15,23,42,0.34)',
-                    fontSize: 12,
-                    lineHeight: 1.35,
-                  }}
-                >
+                <p data-preflop-opponent="not-applicable" className={at.note}>
                   Not Applicable For A First-In RFI Node
-                </div>
+                </p>
               ) : (
-                <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                <div className={at.segmented} role="group" aria-label="Villain Position">
                   {POSITIONS.filter((p) => p !== heroPos).map((p) => (
-                    <motion.button
+                    <button
                       key={p}
-                      whileTap={{ scale: 0.95 }}
+                      type="button"
+                      className="sd-button"
+                      aria-pressed={villainPos === p}
                       onClick={() => setVillainPos(p)}
-                      style={{
-                        padding: '6px 8px',
-                        borderRadius: 6,
-                        flex: '1 1 auto',
-                        minWidth: 36,
-                        border: `1px solid ${villainPos === p ? 'rgba(239,68,68,0.3)' : 'transparent'}`,
-                        background: villainPos === p ? 'rgba(239,68,68,0.08)' : 'rgba(0,0,0,0.2)',
-                        color: villainPos === p ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                      }}
                     >
                       {p}
-                    </motion.button>
+                    </button>
                   ))}
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Stack Depth */}
-          <div style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                marginBottom: 6,
-                padding: '0 4px',
-              }}
+            {/* Stack Depth */}
+            <div className={at.field}>
+              <span className={at.label}>Effective Stack Depth</span>
+              <div className={at.segmented} role="group" aria-label="Effective Stack Depth">
+                {[20, 40, 60, 100, 150, 200].map((sd) => (
+                  <button
+                    key={sd}
+                    type="button"
+                    className="sd-button"
+                    aria-pressed={stackDepth === sd}
+                    onClick={() => {
+                      if (!isPreflopRfi || sd === 100) setStackDepth(sd);
+                    }}
+                    disabled={isPreflopRfi && sd !== 100}
+                    aria-label={`${sd} big blinds${isPreflopRfi && sd !== 100 ? ' unavailable for the first-in reference' : ''}`}
+                  >
+                    {sd}BB
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Board Card Selector */}
+            <BoardCardSelector boardCards={boardCards} setBoardCards={setBoardCards} />
+
+            {/* Solve Button */}
+            <motion.button
+              type="button"
+              className={`sd-button sd-primary ${at.primary}`}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleSolve}
+              disabled={loading}
             >
-              Effective Stack Depth
-            </div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              {[20, 40, 60, 100, 150, 200].map((sd) => (
-                <motion.button
-                  key={sd}
-                  whileTap={isPreflopRfi && sd !== 100 ? undefined : { scale: 0.95 }}
-                  onClick={() => {
-                    if (!isPreflopRfi || sd === 100) setStackDepth(sd);
-                  }}
-                  disabled={isPreflopRfi && sd !== 100}
-                  aria-label={`${sd} big blinds${isPreflopRfi && sd !== 100 ? ' unavailable for the first-in reference' : ''}`}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: 6,
-                    border: `1px solid ${stackDepth === sd ? 'rgba(0,212,255,0.3)' : 'transparent'}`,
-                    background: stackDepth === sd ? 'rgba(0,212,255,0.06)' : 'rgba(0,0,0,0.2)',
-                    color: stackDepth === sd ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                    opacity: isPreflopRfi && sd !== 100 ? 0.35 : 1,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: isPreflopRfi && sd !== 100 ? 'not-allowed' : 'pointer',
-                  }}
+              {loading ? (
+                <>
+                  <span className={at.spinner} style={{ inlineSize: 16, blockSize: 16, borderWidth: 2 }} aria-hidden />
+                  Solving...
+                </>
+              ) : (
+                isPreflopRfi ? 'Load First-In RFI Reference' : 'Solve This Postflop Spot'
+              )}
+            </motion.button>
+
+            {/* Error */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  role="alert"
+                  className={at.error}
                 >
-                  {sd}bb
-                </motion.button>
-              ))}
-            </div>
-          </div>
-
-          {/* Board Card Selector */}
-          <BoardCardSelector boardCards={boardCards} setBoardCards={setBoardCards} />
-
-          {/* Solve Button */}
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleSolve}
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '14px',
-              borderRadius: 12,
-              border: '1px solid rgba(0,212,255,0.3)',
-              background: loading
-                ? 'rgba(0,212,255,0.03)'
-                : 'linear-gradient(135deg, rgba(0,212,255,0.12) 0%, rgba(134, 218, 255, 0.08) 100%)',
-              color: 'var(--sp-accent-cyan)',
-              fontSize: 14,
-              fontWeight: 800,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              marginBottom: 20,
-            }}
-          >
-            {loading ? (
-              <span
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-              >
-                <motion.span
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  style={{
-                    display: 'inline-block',
-                    width: 14,
-                    height: 14,
-                    border: '2px solid transparent',
-                    borderTopColor: 'var(--sp-accent-cyan)',
-                    borderRadius: '50%',
-                  }}
-                />
-                Solving...
-              </span>
-            ) : (
-              isPreflopRfi ? 'Load First-In RFI Reference' : 'Solve This Postflop Spot'
-            )}
-          </motion.button>
-
-          {/* Error */}
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  marginBottom: 16,
-                  background: 'rgba(239,68,68,0.05)',
-                  border: '1px solid rgba(239,68,68,0.2)',
-                  color: 'var(--sp-accent-red)',
-                  fontSize: 12,
-                }}
-              >
-                {error}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  {error}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </section>
 
           {/* Result */}
           {result && (
@@ -863,112 +588,52 @@ export default function CustomSolvePage() {
           )}
 
           {/* Hand-Class Action Frequency Matrix / Heatmap */}
-          <div
-            data-custom-solve-heatmap="true"
-            style={{
-              marginTop: 18,
-              marginBottom: 18,
-              padding: 18,
-              borderRadius: 14,
-              border: '1px solid rgba(56, 189, 248, 0.35)',
-              background: 'rgba(15, 23, 42, 0.72)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 8,
-                marginBottom: 12,
-              }}
+          <section data-custom-solve-heatmap="true" className={`sd-panel ${at.panel}`} aria-labelledby="cs-heatmap-title">
+            <div>
+              <h2 id="cs-heatmap-title" className={at.sectionTitle}>
+                Hand-Class Action Frequency Matrix &amp; Heatmap
+              </h2>
+              <p className={at.small}>
+                Live Horse Brain Action Frequencies On [{effectiveBrainBoard.join(' ')}] At {stackDepth}BB ({activeVariant.toUpperCase()})
+              </p>
+            </div>
+            <button
+              type="button"
+              className="sd-button sd-primary"
+              data-lock-spot-drill-cta="true"
+              onClick={() => router.push(arenaLaunchHref)}
             >
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 900, color: '#7dd3fc', textTransform: 'uppercase' }}>
-                  Hand-Class Action Frequency Matrix &amp; Heatmap
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-                  Live Horse Brain Action Frequencies On [{effectiveBrainBoard.join(' ')}] At {stackDepth}BB ({activeVariant.toUpperCase()})
-                </div>
-              </div>
-              <button
-                type="button"
-                data-lock-spot-drill-cta="true"
-                onClick={() => router.push(arenaLaunchHref)}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(52, 211, 153, 0.5)',
-                  background: 'rgba(16, 185, 129, 0.18)',
-                  color: '#6ee7b7',
-                  fontSize: 12,
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                }}
-              >
-                Lock Spot &amp; Drill 10 Hands On Club Arena Felt →
-              </button>
+              Lock Spot &amp; Drill 10 Hands On Club Arena Felt →
+            </button>
+
+            <div className={cs.heatLegend} aria-hidden>
+              <span><i className={cs.heatSwatch} style={{ background: 'rgba(239, 68, 68, 0.6)' }} />Bet / Raise Lines</span>
+              <span><i className={cs.heatSwatch} style={{ background: 'rgba(16, 185, 129, 0.6)' }} />Check / Call Lines</span>
             </div>
 
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                gap: 10,
-              }}
-            >
+            <div className={cs.heatGrid}>
               {heatmapCells.map((cell) => {
                 const isAggressive = /^b|^r|allin/i.test(String(cell.recommendedId || ''));
                 return (
                   <div
                     key={cell.label}
                     data-heatmap-hand-cell={cell.label}
-                    style={{
-                      padding: 12,
-                      borderRadius: 10,
-                      border: isAggressive
-                        ? '1px solid rgba(248, 113, 113, 0.4)'
-                        : '1px solid rgba(52, 211, 153, 0.35)',
-                      background: isAggressive
-                        ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.16), rgba(15, 23, 42, 0.85))'
-                        : 'linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(15, 23, 42, 0.85))',
-                    }}
+                    className={cs.heatCell}
+                    data-tone={isAggressive ? 'aggressive' : 'passive'}
                   >
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: 4,
-                      }}
-                    >
-                      <span style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>
-                        {cell.label}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 800,
-                          color: isAggressive ? '#fca5a5' : '#6ee7b7',
-                        }}
-                      >
-                        {cell.frequencyPct}%
-                      </span>
+                    <div className={cs.heatTop}>
+                      <span>{cell.label}</span>
+                      <span>{cell.frequencyPct}%</span>
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', marginBottom: 2 }}>
-                      {cell.recommendedAction}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                    <div className={cs.heatAction}>{cell.recommendedAction}</div>
+                    <div className={cs.heatMeta}>
                       Score {cell.handScore}/100 · EV {cell.evBb >= 0 ? `+${cell.evBb}` : cell.evBb} BB
                     </div>
                   </div>
                 );
               })}
             </div>
-          </div>
-
-          {/* 4-Variant Horse Brain Spot Preview & 1-Click Club Arena Launcher */}
+          </section>
         </div>
       </div>
       <HubPageSummary page="training-custom-solve" />

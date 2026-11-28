@@ -455,7 +455,7 @@ export default function DailyChallengePage() {
         canonical="/hub/training/daily-challenge"
       />
 
-      <main className={`sp-training-command sp-training-command--daily ${styles.shell}`}>
+      <main className={styles.shell}>
         <TrainingPageHead slug="training-daily-challenge" nav={<TrainingDailyNav current="/hub/training/daily-challenge" />}>
           <p className="sp-head-note">
             <span>Table Resets</span>{' '}
@@ -463,7 +463,7 @@ export default function DailyChallengePage() {
           </p>
         </TrainingPageHead>
 
-        <div className={`sp-command-main ${styles.commandDeck}`}>
+        <div className={styles.commandDeck}>
 
           <section className={styles.metrics} aria-label="Daily Challenge Status">
             <div><span>Current Run</span><strong>{currentStreak}</strong><small>Day Streak</small></div>

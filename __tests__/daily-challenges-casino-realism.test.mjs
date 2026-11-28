@@ -52,11 +52,18 @@ test('every Daily Challenges surface adopts the casino realism visual system', (
   // The Goals page moved to #SMARTERDESIGN on 2026-11-27, which forbids gold
   // and amber anywhere; its module keeps only the shell and hooks.
   assert.doesNotMatch(challengesCss, /#f2b84b|#f4c44e|#ffc65b|gold|amber/i);
-  for (const css of [trainingCss, goalsCss, personalQuizCss, memoryCss]) {
-    assert.match(css, /#25c8ff/i, 'Electric cyan token is required');
-    assert.match(css, /#f2b84b|#f4c44e/i, 'Vault gold token is required');
-    assert.match(css, /border-radius:\s*2px/i, 'Physical straight-edged controls are required');
+  // Hand Of The Day, the Daily Goals Vault and the Daily Strategy Quiz moved
+  // to #SMARTERDESIGN on 2026-11-27: one chrome steel rim per surface, square
+  // corners, cobalt selection, and no gold / amber ink or tokens anywhere.
+  for (const css of [trainingCss, goalsCss, personalQuizCss]) {
+    assert.doesNotMatch(css, /#f2b84b|#f4c44e|#ffc65b|#f2d38b|gold|amber/i, 'No vault gold on #SMARTERDESIGN surfaces');
+    assert.match(css, /chrome-stat\.webp/, 'Steel rim surfaces are required');
+    assert.match(css, /chrome-active\.webp/, 'Cobalt selected controls are required');
+    assert.doesNotMatch(css, /border-radius:\s*(?:[1-9]\d*px)/i, 'Square corners are required');
   }
+  assert.match(memoryCss, /#25c8ff/i, 'Electric cyan token is required');
+  assert.match(memoryCss, /#f2b84b|#f4c44e/i, 'Vault gold token is required');
+  assert.match(memoryCss, /border-radius:\s*2px/i, 'Physical straight-edged controls are required');
 
   // Daily Trivia moved from these tokens to the painted Club Arena console
   // (#ClubArenaConsole). Its inks are the console master inks, pinned in

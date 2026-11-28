@@ -128,9 +128,9 @@ export default function TrainingFiltersSheet({
     >
       <div className="sp-arena-sheet__chrome">
         <header className="sp-arena-sheet__head">
-          <h1 id="training-filters-title" className="sp-arena-sheet__title">
+          <h2 id="training-filters-title" className="sp-arena-sheet__title">
             Filter &amp; Sort Training Games
-          </h1>
+          </h2>
           <button
             type="button"
             className="sp-arena-sheet__close sd-button"

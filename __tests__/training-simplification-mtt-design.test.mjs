@@ -145,7 +145,7 @@ test('1-tap start flow, preset summary, and progressive disclosures are wired ac
   const multiTable = read('pages/hub/training/multi-table.js');
   assert.ok(multiTable.includes('data-multitable-preset-summary="true"'), 'multi-table.js must display active preset summary bar');
   assert.doesNotMatch(multiTable, /data-multitable-advanced-disclosure/);
-  assert.match(multiTable, /START \{tableCount\} TABLES/);
+  assert.match(multiTable, /Start \{tableCount\} Tables/i);
 
   const categoryPage = read('pages/hub/training/category/[categoryId].js');
   assert.ok(categoryPage.includes('data-category-preset-summary="true"'), 'category/[categoryId].js must display 1-tap sector preset summary');

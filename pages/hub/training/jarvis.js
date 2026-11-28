@@ -24,6 +24,7 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 import { analyzeVerifiedTrainingWeaknesses } from '../../../src/lib/training/weaknessAnalysis.mjs';
+import s from '../../../src/styles/training/sessions-coaching.module.css';
 // TRAIN-WIRE-EMPTY-5d — adoption: shared empty-state primitive
 
 
@@ -245,73 +246,71 @@ export default function JarvisDashboard() {
         <UniversalHeader pageDepth={2} />
 
         <TrainingPageHead slug="training-jarvis" note="Your AI Training Coach" />
-        <div style={styles.content}>
+        <div className={s.page}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); loadInsights(); }} />
 
-          <div
+          {/* The question Jarvis is answering, and the action that follows it. */}
+          <section
+            className={`sd-panel ${s.panel}`}
+            aria-labelledby="jarvis-priority-title"
             data-dynamic-leak-curriculum="true"
             data-leak-variant={topLeak.variant}
             data-leak-street={topLeak.street}
             data-leak-position={topLeak.position}
             data-leak-sample-count={topLeak.sampleSize}
             data-leak-basis={leakAnalysis.hasVerifiedLeak ? 'verified-history' : 'baseline-calibration'}
-            style={{
-              marginBottom: 20,
-              padding: 18,
-              borderRadius: 12,
-              border: '1px solid rgba(134, 218, 255, 0.42)',
-              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.85))',
-            }}
           >
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 900, color: '#86daff', textTransform: 'uppercase' }}>
-                #1 Priority Leak Curriculum: {String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}
+            <div className={s.askBlock}>
+              <div className={s.panelHead}>
+                <p className={s.eyebrow}>Priority Leak Curriculum</p>
+                <span className={s.tag} style={leakAnalysis.hasVerifiedLeak ? { color: '#5ee08a' } : undefined}>
+                  {leakAnalysis.hasVerifiedLeak ? 'Verified Leak History' : 'Baseline Calibration'} · N = {topLeak.sampleSize}
+                </span>
               </div>
-              <div style={{ fontSize: 12, fontWeight: 800, color: leakAnalysis.hasVerifiedLeak ? '#4ade80' : '#94a3b8' }}>
-                {leakAnalysis.hasVerifiedLeak ? 'Verified Leak History' : 'Baseline Calibration'} · N = {topLeak.sampleSize}
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 12, color: '#e2e8f0', marginBottom: 12 }}>
-              <span>Target Module: <strong>{topLeak.gameId}</strong></span>
-              <span>Sample Count: <strong>N = {topLeak.sampleSize}</strong></span>
-              <span>Total EV Loss: <strong>{topLeak.evLossBb} BB</strong></span>
-              <span>Avg EV Loss: <strong>{topLeak.avgEvLossBb} BB/Hand</strong></span>
+              <h2 id="jarvis-priority-title" className={s.sectionTitle}>
+                #1 Priority: {String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}
+              </h2>
+              <dl className={s.metrics2} style={{ margin: 0 }}>
+                <div className={`sd-metric ${s.metric}`}>
+                  <dt className={s.metricLabel}>Target Module</dt>
+                  <dd className={s.metricValue} data-tone="ice" style={{ margin: 0 }}>{topLeak.gameId}</dd>
+                </div>
+                <div className={`sd-metric ${s.metric}`}>
+                  <dt className={s.metricLabel}>Sample Count</dt>
+                  <dd className={s.metricValue} style={{ margin: 0 }}>N = {topLeak.sampleSize}</dd>
+                </div>
+                <div className={`sd-metric ${s.metric}`}>
+                  <dt className={s.metricLabel}>Total EV Loss</dt>
+                  <dd className={s.metricValue} style={{ margin: 0 }}>{topLeak.evLossBb} BB</dd>
+                </div>
+                <div className={`sd-metric ${s.metric}`}>
+                  <dt className={s.metricLabel}>Avg EV Loss</dt>
+                  <dd className={s.metricValue} style={{ margin: 0 }}>{topLeak.avgEvLossBb} BB/Hand</dd>
+                </div>
+              </dl>
             </div>
             <button
               type="button"
+              className={`sd-button sd-primary ${s.button} ${s.primary} ${s.full}`}
               data-drill-priority-leak-cta="true"
               data-drill-href={topLeakDrillHref}
               onClick={() => router.push(topLeakDrillHref)}
-              style={{
-                display: 'inline-flex',
-                minHeight: 44,
-                alignItems: 'center',
-                padding: '0 16px',
-                borderRadius: 8,
-                border: '1px solid #fbbf24',
-                background: 'linear-gradient(180deg, rgba(134, 218, 255, 0.48), rgba(146, 64, 14, 0.72))',
-                color: '#86daff',
-                fontSize: 12,
-                fontWeight: 900,
-                cursor: 'pointer',
-              }}
             >
               Drill Priority #1 Leak In Club Arena ({String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}) →
             </button>
-          </div>
-
+          </section>
 
           {loading ? (
-            <div style={styles.loading}>
+            <section className={`sd-panel ${s.panel} ${s.state}`} role="status" aria-live="polite">
               <Image
                 src="/images/jarvis-avatar.webp"
                 alt="Jarvis"
                 width={1024}
                 height={682}
-                style={{ width: 48, height: 48, borderRadius: '50%' }}
+                style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 0 0 2px #0b1724, 0 0 0 3px #7f9db6' }}
               />
-              <p>Analyzing Your Training Data...</p>
-            </div>
+              <p className={s.copy}>Analyzing Your Training Data...</p>
+            </section>
           ) : !user ? (
             <TrainerEmptyState
               variant="locked"
@@ -320,138 +319,97 @@ export default function JarvisDashboard() {
               cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[jarvis] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
             />
           ) : (
-            <div style={styles.dashboard}>
-              {/* Overview Stats */}
-              <div style={styles.section}>
-                <h2 style={styles.sectionTitle}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    {/* TRAIN-JARVIS-A11Y-1: SVG heading icon */}
-                    <HeadingIcon kind="chart" size={18} />
-                    Overview
-                  </span>
+            <>
+              {/* Jarvis's answer, in its own space. */}
+              <section className={`sd-panel ${s.panel}`} aria-labelledby="jarvis-says-title">
+                <h2 id="jarvis-says-title" className={s.sectionTitle}>
+                  <HeadingIcon kind="lightbulb" size={18} />
+                  Jarvis Says
                 </h2>
-                <div style={styles.statsGrid}>
-                  <StatCard
-                    label="Total Sessions"
-                    value={insights?.overview?.totalSessions || 0}
-                    icon="●"
-                    iconKind="gamepad"
-                  />
-                  <StatCard
-                    label="Accuracy"
-                    value={accuracyLabel}
-                    icon="◆"
-                    iconKind="target"
-                  />
-                  <StatCard
-                    label="Current Streak"
-                    value={insights?.overview?.currentStreak || 0}
-                    icon="▲"
-                    iconKind="flame"
-                  />
-                  <StatCard
-                    label="Achievements"
-                    value={insights?.overview?.achievementsUnlocked || 0}
-                    icon="★"
-                    iconKind="medal"
-                  />
-                </div>
-              </div>
-
-              {/* Jarvis Advice */}
-              <div style={styles.section}>
-                <h2 style={styles.sectionTitle}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    {/* TRAIN-JARVIS-A11Y-1: SVG heading icon */}
-                    <HeadingIcon kind="lightbulb" size={18} />
-                    Jarvis Says
-                  </span>
-                </h2>
-                <div style={styles.adviceBox}>
-                  <p style={styles.advice}>
-                    {insights?.jarvisAdvice || 'Keep training to unlock personalized insights!'}
+                <div className={s.answerBlock}>
+                  <p className={s.answerText}>
+                    {insights?.jarvisAdvice || 'Keep Training To Unlock Personalized Insights.'}
                   </p>
                 </div>
-              </div>
+              </section>
 
-              {/* Top Leaks */}
+              {/* Overview Stats */}
+              <section className={`sd-panel ${s.panel}`} aria-labelledby="jarvis-overview-title">
+                <h2 id="jarvis-overview-title" className={s.sectionTitle}>
+                  <HeadingIcon kind="chart" size={18} />
+                  Overview
+                </h2>
+                <div className={s.metrics2}>
+                  <StatCard label="Total Sessions" value={insights?.overview?.totalSessions || 0} iconKind="gamepad" />
+                  <StatCard label="Accuracy" value={accuracyLabel} iconKind="target" />
+                  <StatCard label="Current Streak" value={insights?.overview?.currentStreak || 0} iconKind="flame" />
+                  <StatCard label="Achievements" value={insights?.overview?.achievementsUnlocked || 0} iconKind="medal" />
+                </div>
+              </section>
+
+              {/* Top Leaks: earlier findings */}
               {insights?.topLeaks?.length > 0 && (
-                <div style={styles.section}>
-                  <h2 style={styles.sectionTitle}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    {/* TRAIN-JARVIS-A11Y-1: SVG heading icon */}
+                <section className={`sd-panel ${s.panel}`} aria-labelledby="jarvis-leaks-title">
+                  <h2 id="jarvis-leaks-title" className={s.sectionTitle}>
                     <HeadingIcon kind="search" size={18} />
                     Top Leaks To Fix
-                  </span>
-                </h2>
-                  <div style={styles.leaksList}>
+                  </h2>
+                  <ul className={s.list}>
                     {insights.topLeaks.map((leak, i) => (
-                      <div key={i} style={styles.leakCard}>
-                        <span style={styles.leakName}>{leak.leak || leak.name || leak.position || 'Training Area'}</span>
-                        <span style={styles.leakCount}>{leak.count} Occurrences</span>
-                      </div>
+                      <li key={i} className={s.row}>
+                        <span className={s.rowLabel}>{leak.leak || leak.name || leak.position || 'Training Area'}</span>
+                        <span className={s.rowValue}>{leak.count} Occurrences</span>
+                      </li>
                     ))}
-                  </div>
-                </div>
+                  </ul>
+                </section>
               )}
 
               {/* Game Performance */}
               {insights?.gamePerformance?.length > 0 && (
-                <div style={styles.section}>
-                  <h2 style={styles.sectionTitle}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    {/* TRAIN-JARVIS-A11Y-1: SVG heading icon */}
+                <section className={`sd-panel ${s.panel}`} aria-labelledby="jarvis-games-title">
+                  <h2 id="jarvis-games-title" className={s.sectionTitle}>
                     <HeadingIcon kind="gamepad" size={18} />
                     Game Performance
-                  </span>
-                </h2>
-                  <div style={styles.gamesGrid}>
+                  </h2>
+                  <div className={s.metrics}>
                     {insights.gamePerformance.slice(0, 6).map((game, i) => (
-                      <div key={i} style={styles.gameCard}>
-                        <div style={styles.gameName}>{game.gameName || game.name || 'Training'}</div>
-                        <div style={styles.gameAccuracy}>{game.accuracy}%</div>
-                        <div style={styles.gameLabel}>Accuracy</div>
+                      <div key={i} className={`sd-metric ${s.metric}`}>
+                        <span className={s.metricLabel}>{game.gameName || game.name || 'Training'}</span>
+                        <strong className={s.metricValue} data-tone="ice">{game.accuracy}%</strong>
+                        <span className={s.metricLabel}>Accuracy</span>
                       </div>
                     ))}
                   </div>
-                </div>
+                </section>
               )}
 
               {/* Bankroll & Weekly Progress (Progressive Disclosure) */}
               <details
-                className="sp-mtt-disclosure"
+                className={`sd-panel ${s.details}`}
                 data-jarvis-detailed-metrics="true"
                 open
               >
                 <summary>
                   <span>Detailed Bankroll &amp; Weekly Activity Telemetry</span>
                 </summary>
-                <div className="sp-mtt-disclosure__body">
+                <div className={s.detailsBody}>
               {/* Bankroll Summary */}
               {insights?.bankroll && (
-                <div style={styles.section}>
-                  <h2 style={styles.sectionTitle}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    {/* TRAIN-JARVIS-A11Y-1: SVG heading icon */}
+                <div className={s.panel}>
+                  <h3 className={s.sectionTitle}>
                     <HeadingIcon kind="money" size={18} />
                     Bankroll Overview
-                  </span>
-                </h2>
-                  <div style={styles.statsGrid}>
+                  </h3>
+                  <div className={s.metrics2}>
                     <StatCard
                       label="Monthly P/L"
-                      value={`${insights.bankroll.monthlyPL >= 0 ? '+' : ''}$${Math.abs(insights.bankroll.monthlyPL).toLocaleString()}`}
-                      icon="▲"
-                    iconKind="trending"
+                      value={`${insights.bankroll.monthlyPL >= 0 ? '+' : '-'}$${Math.abs(insights.bankroll.monthlyPL).toLocaleString()}`}
+                      tone={insights.bankroll.monthlyPL >= 0 ? 'up' : 'down'}
+                      iconKind="trending"
                     />
-                    <StatCard
-                      label="Hourly Rate"
-                      value={`$${insights.bankroll.hourlyRate}/hr`}
-                      icon="○"
-                    iconKind="clock"
-                    />
-                    <StatCard label="Win Rate" value={`${insights.bankroll.winRate}%`} icon="◆"
-                    iconKind="target" />
+                    <StatCard label="Hourly Rate" value={`$${insights.bankroll.hourlyRate}/hr`} iconKind="clock" />
+                    <StatCard label="Win Rate" value={`${insights.bankroll.winRate}%`} iconKind="target" />
                     <StatCard
                       label="Trend"
                       value={insights.bankroll.recentTrend}
@@ -465,51 +423,27 @@ export default function JarvisDashboard() {
                     />
                   </div>
                   {(insights.bankroll.topVenue || insights.bankroll.worstVenue) && (
-                    <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                    <div className={s.metrics2}>
                       {insights.bankroll.topVenue && (
-                        <div
-                          style={{
-                            ...styles.adviceBox,
-                            flex: 1,
-                            borderColor: 'rgba(34,197,94,0.3)',
-                            background: 'rgba(34,197,94,0.1)',
-                          }}
-                        >
-                          <div style={{ fontSize: 12, color: 'var(--sp-accent-green)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            {/* TRAIN-JARVIS-A11Y-1: SVG trophy replaces ★ */}
+                        <div className={`sd-metric ${s.metric}`}>
+                          <span className={`${s.metricLabel} ${s.up}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             <TrophyIcon size={12} /> Best Venue
-                          </div>
-                          <div style={{ fontWeight: 600, fontSize: 14 }}>
-                            {insights.bankroll.topVenue.name}
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--sp-accent-green)' }}>
-                            +$
-                            {Math.abs(Math.round(insights.bankroll.topVenue.net)).toLocaleString()}
-                          </div>
+                          </span>
+                          <strong className={s.subTitle}>{insights.bankroll.topVenue.name}</strong>
+                          <span className={s.metricValue} data-tone="up">
+                            +${Math.abs(Math.round(insights.bankroll.topVenue.net)).toLocaleString()}
+                          </span>
                         </div>
                       )}
                       {insights.bankroll.worstVenue && insights.bankroll.worstVenue.net < 0 && (
-                        <div
-                          style={{
-                            ...styles.adviceBox,
-                            flex: 1,
-                            borderColor: 'rgba(239,68,68,0.3)',
-                            background: 'rgba(239,68,68,0.1)',
-                          }}
-                        >
-                          <div style={{ fontSize: 12, color: 'var(--sp-accent-red)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            {/* TRAIN-JARVIS-A11Y-1: SVG alert replaces ▲ */}
+                        <div className={`sd-metric ${s.metric}`}>
+                          <span className={`${s.metricLabel} ${s.down}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             <AlertIcon size={12} /> Worst Venue
-                          </div>
-                          <div style={{ fontWeight: 600, fontSize: 14 }}>
-                            {insights.bankroll.worstVenue.name}
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--sp-accent-red)' }}>
-                            -$
-                            {Math.abs(
-                              Math.round(insights.bankroll.worstVenue.net)
-                            ).toLocaleString()}
-                          </div>
+                          </span>
+                          <strong className={s.subTitle}>{insights.bankroll.worstVenue.name}</strong>
+                          <span className={s.metricValue} data-tone="down">
+                            -${Math.abs(Math.round(insights.bankroll.worstVenue.net)).toLocaleString()}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -518,36 +452,29 @@ export default function JarvisDashboard() {
               )}
 
               {/* Weekly Progress */}
-              <div style={styles.section}>
-                <h2 style={styles.sectionTitle}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    {/* TRAIN-JARVIS-A11Y-1: SVG heading icon */}
-                    <HeadingIcon kind="trending" size={18} />
-                    This Week
-                  </span>
-                </h2>
-                <div style={styles.weeklyStats}>
-                  <div style={styles.weeklyStat}>
-                    <span style={styles.weeklyValue}>
-                      {insights?.weeklyProgress?.sessions || 0}
-                    </span>
-                    <span style={styles.weeklyLabel}>Sessions</span>
+              <div className={s.panel}>
+                <h3 className={s.sectionTitle}>
+                  <HeadingIcon kind="trending" size={18} />
+                  This Week
+                </h3>
+                <div className={s.metrics3}>
+                  <div className={`sd-metric ${s.metric}`}>
+                    <strong className={s.metricValue} data-tone="ice">{insights?.weeklyProgress?.sessions || 0}</strong>
+                    <span className={s.metricLabel}>Sessions</span>
                   </div>
-                  <div style={styles.weeklyStat}>
-                    <span style={styles.weeklyValue}>{insights?.weeklyProgress?.correct || 0}</span>
-                    <span style={styles.weeklyLabel}>Correct</span>
+                  <div className={`sd-metric ${s.metric}`}>
+                    <strong className={s.metricValue} data-tone="ice">{insights?.weeklyProgress?.correct || 0}</strong>
+                    <span className={s.metricLabel}>Correct</span>
                   </div>
-                  <div style={styles.weeklyStat}>
-                    <span style={styles.weeklyValue}>
-                      {weeklyTimeLabel}
-                    </span>
-                    <span style={styles.weeklyLabel}>Time Spent</span>
+                  <div className={`sd-metric ${s.metric}`}>
+                    <strong className={s.metricValue} data-tone="ice">{weeklyTimeLabel}</strong>
+                    <span className={s.metricLabel}>Time Spent</span>
                   </div>
                 </div>
               </div>
                 </div>
               </details>
-            </div>
+            </>
           )}
         </div>
       </div>
@@ -559,195 +486,25 @@ export default function JarvisDashboard() {
   );
 }
 
-function StatCard({ label, value, icon, iconKind }) {
+function StatCard({ label, value, iconKind, tone }) {
   return (
-    <div style={styles.statCard}>
-      {/* TRAIN-JARVIS-A11Y-1: SVG StatIcon when iconKind given, otherwise legacy emoji */}
-      <div style={styles.statIcon} aria-hidden>
-        {iconKind ? <StatIcon kind={iconKind} size={24} /> : icon}
-      </div>
-      <div style={styles.statValue}>{value}</div>
-      <div style={styles.statLabel}>{label}</div>
+    <div className={`sd-metric ${s.metric}`}>
+      {/* TRAIN-JARVIS-A11Y-1: SVG StatIcon */}
+      {iconKind && (
+        <span className={s.metricIcon} aria-hidden>
+          <StatIcon kind={iconKind} size={22} />
+        </span>
+      )}
+      <strong className={s.metricValue} data-tone={tone}>{value}</strong>
+      <span className={s.metricLabel}>{label}</span>
     </div>
   );
 }
 
 const styles = {
   container: {
-    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
+    minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: '#040d18',
-    color: '#FFFFFF',
-  },
-  content: {
-    maxWidth: '800px',
-    margin: '0 auto',
-    padding: '80px 24px 40px',
-  },
-  header: {
-    textAlign: 'center',
-    marginBottom: '32px',
-  },
-  jarvisIcon: {
-    fontSize: '48px',
-    marginBottom: '12px',
-  },
-  title: {
-    fontSize: '28px',
-    fontWeight: 700,
-  },
-  subtitle: {
-    color: 'var(--sp-fg-muted)',
-    marginTop: '8px',
-  },
-  loading: {
-    textAlign: 'center',
-    padding: '60px',
-    color: 'var(--sp-fg-muted)',
-  },
-  loadingIcon: {
-    fontSize: '48px',
-    marginBottom: '16px',
-    animation: 'pulse 2s infinite',
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '60px',
-    color: 'var(--sp-fg-muted)',
-  },
-  signInBtn: {
-    display: 'inline-block',
-    marginTop: '16px',
-    padding: '12px 32px',
-    background: '#00E0FF',
-    color: '#000',
-    borderRadius: '8px',
-    textDecoration: 'none',
-    fontWeight: 600,
-  },
-  dashboard: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '32px',
-  },
-  section: {},
-  sectionTitle: {
-    fontSize: '18px',
-    fontWeight: 600,
-    marginBottom: '16px',
-    color: '#FFFFFF',
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '12px',
-  },
-  statCard: {
-    padding: '20px',
-    background: '#1a1a1a',
-    borderRadius: '12px',
-    textAlign: 'center',
-  },
-  statIcon: {
-    fontSize: '24px',
-    marginBottom: '8px',
-  },
-  statValue: {
-    fontSize: '28px',
-    fontWeight: 700,
-    color: '#00E0FF',
-  },
-  statLabel: {
-    fontSize: '12px',
-    color: 'var(--sp-fg-muted)',
-    marginTop: '4px',
-  },
-  adviceBox: {
-    padding: '20px',
-    background: 'linear-gradient(135deg, rgba(0, 224, 255, 0.1), rgba(134, 218, 255, 0.1))',
-    border: '1px solid rgba(0, 224, 255, 0.3)',
-    borderRadius: '12px',
-  },
-  advice: {
-    fontSize: '16px',
-    lineHeight: 1.6,
-    fontStyle: 'italic',
-  },
-  leaksList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-  leakCard: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: '12px 16px',
-    background: '#1a1a1a',
-    borderRadius: '8px',
-    borderLeft: '3px solid #ef4444',
-  },
-  leakName: {
-    fontWeight: 500,
-  },
-  leakCount: {
-    color: 'var(--sp-fg-muted)',
-    fontSize: '14px',
-  },
-  gamesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '12px',
-  },
-  gameCard: {
-    padding: '16px',
-    background: '#1a1a1a',
-    borderRadius: '12px',
-    textAlign: 'center',
-  },
-  gameName: {
-    fontSize: '12px',
-    color: 'var(--sp-fg-muted)',
-    marginBottom: '8px',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  gameAccuracy: {
-    fontSize: '24px',
-    fontWeight: 700,
-    color: 'var(--sp-accent-green)',
-  },
-  gameLabel: {
-    fontSize: '12px',
-    color: '#666',
-  },
-  weeklyStats: {
-    display: 'flex',
-    gap: '16px',
-    justifyContent: 'center',
-  },
-  weeklyStat: {
-    flex: 1,
-    padding: '16px',
-    background: '#1a1a1a',
-    borderRadius: '12px',
-    textAlign: 'center',
-  },
-  weeklyValue: {
-    display: 'block',
-    fontSize: '24px',
-    fontWeight: 700,
-    color: '#86daff',
-  },
-  weeklyLabel: {
-    fontSize: '12px',
-    color: 'var(--sp-fg-muted)',
-    marginTop: '4px',
-  },
-  backLink: {
-    display: 'block',
-    textAlign: 'center',
-    marginTop: '32px',
-    color: '#00E0FF',
-    textDecoration: 'none',
+    color: '#f2f7ff',
   },
 };

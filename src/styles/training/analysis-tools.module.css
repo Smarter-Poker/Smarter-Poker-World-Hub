@@ -1,0 +1,1197 @@
+/* #SMARTERDESIGN interiors for the Training analysis tools (Equity
+   Calculator, Hand Lab, Range Builder, Range Browser, Hand Comparison,
+   Hand History Upload, Replay Theater, QRE Explorer, Custom Spot Reference,
+   Rake Cost Estimator, Rake Sensitivity, Risk Of Ruin, ICM Simulator).
+   Rims come from the shared chrome border-image assets used by
+   styles/smarterdesign.css (.sd-panel, .sd-metric, .sd-button); this module
+   owns the layout, type and data surfaces inside them.
+   Text colours: white titles, silver copy, ice/cyan emphasis, semantic
+   green/red only for real gains, losses and errors. Range-grid and chart
+   action FILLS keep their meaning and are set by each page. */
+
+.page {
+  --at-ice: #86daff;
+  --at-silver: #bdd0e2;
+  --at-white: #f2f7ff;
+  --at-up: #5ee08a;
+  --at-down: #ff7a86;
+  --at-line: rgba(124, 158, 187, 0.24);
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: 820px;
+  margin: 0 auto;
+  padding: 0 clamp(10px, 3vw, 24px) calc(118px + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 14px;
+  min-inline-size: 0;
+  color: var(--at-white);
+  font-family: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.page > * { min-inline-size: 0; }
+
+/* The page head sits directly under the global header, like the four
+   approved Training pages. */
+.head {
+  padding-bottom: 0 !important;
+}
+
+/* Root shell: ink canvas, no legacy grid art. */
+.shell.shell.shell {
+  min-block-size: 100dvh;
+  inline-size: 100%;
+  max-inline-size: 100vw;
+  overflow-x: clip;
+  box-sizing: border-box;
+  padding: 0 !important;
+  background: radial-gradient(ellipse at 50% -10%, #12304d 0%, transparent 55%), #040d18 !important;
+  color: var(--sd-text, #f2f7ff);
+}
+
+.shell.shell.shell::before,
+.shell.shell.shell::after { content: none !important; display: none !important; }
+
+/* ── Surfaces ──────────────────────────────────────────────────────────── */
+/* One continuous steel rim per surface, even inside legacy Training shells
+   whose border shorthands would otherwise erase the border-image. */
+.page.page :global(.sd-panel) {
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+  border-radius: 0 !important;
+  background: var(--sd-navy, #091828) !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32) !important;
+  clip-path: none !important;
+}
+
+.page.page :global(.sd-metric) {
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: var(--sd-navy, #0b1929) !important;
+  box-shadow: none !important;
+}
+
+.page.page :global(.sd-panel)::after { content: none !important; }
+
+.panel {
+  display: grid;
+  gap: 12px;
+  min-inline-size: 0;
+}
+
+.panel.tight { gap: 8px; }
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+  min-inline-size: 0;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--at-white) !important;
+  font: 700 clamp(1.08rem, 2.6vw, 1.4rem) / 1.15 var(--sd-type, 'Arial Narrow'), sans-serif !important;
+  letter-spacing: 0.015em;
+  text-transform: none !important;
+}
+
+.subTitle {
+  margin: 0;
+  color: var(--at-white) !important;
+  font: 700 1.02rem / 1.2 var(--sd-type, 'Arial Narrow'), sans-serif !important;
+  letter-spacing: 0.02em;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--at-ice) !important;
+  font: 700 0.8rem / 1.2 var(--sd-type, 'Arial Narrow'), sans-serif !important;
+  letter-spacing: 0.06em;
+  text-transform: none !important;
+}
+
+.label {
+  margin: 0;
+  color: var(--at-silver) !important;
+  font: 650 0.84rem / 1.2 var(--font-inter, Inter), sans-serif !important;
+  letter-spacing: 0.02em;
+  text-transform: none !important;
+}
+
+.copy {
+  margin: 0;
+  color: var(--at-silver) !important;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.small {
+  margin: 0;
+  color: var(--at-silver) !important;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.ice { color: var(--at-ice) !important; }
+.white { color: var(--at-white) !important; }
+.up { color: var(--at-up) !important; }
+.down { color: var(--at-down) !important; }
+
+.rule {
+  block-size: 1px;
+  border: 0;
+  margin: 0;
+  background: linear-gradient(90deg, transparent, #5d7d98 12%, #9cb8cf 50%, #5d7d98 88%, transparent);
+  opacity: 0.55;
+}
+
+/* Inset note: a quiet line inside a surface, never a second frame. */
+.note {
+  margin: 0;
+  padding: 8px 0 8px 12px;
+  border-left: 3px solid #49c6ff;
+  color: var(--at-silver) !important;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.note strong, .note b { color: var(--at-ice) !important; }
+
+.error {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid #ff6b78;
+  background: #2a0d14;
+  color: #ffd2d6 !important;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.errorRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* ── Controls ──────────────────────────────────────────────────────────── */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-inline-size: 0;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  min-inline-size: 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-inline-size: 0;
+}
+
+.chips > :is(a, button) {
+  flex: 1 1 auto;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/* Fixed-width choice grid (positions, stacks): equal cells that never split
+   a word mid-letter. */
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: 8px;
+}
+
+.segmented > :is(a, button) {
+  font-size: 0.95rem;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
+}
+
+/* Long single row on phones: scroll instead of wrapping into slivers. */
+.scrollRow {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-bottom: 4px;
+  min-inline-size: 0;
+}
+
+.scrollRow > :is(a, button) {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.choiceCard {
+  display: grid !important;
+  gap: 3px;
+  align-content: start;
+  text-align: left !important;
+  padding: 10px 12px !important;
+  min-block-size: 64px;
+}
+
+.choiceCard > span { overflow-wrap: anywhere; }
+.choiceTitle { color: inherit; font: 700 1rem / 1.15 var(--sd-type, 'Arial Narrow'), sans-serif; }
+.choiceMeta { color: var(--at-silver); font: 600 0.8rem / 1.3 var(--font-inter, Inter), sans-serif; }
+[aria-pressed='true'] > .choiceMeta { color: #d9ecff; }
+
+.primary {
+  inline-size: 100%;
+  min-block-size: 52px !important;
+  font-size: 1.1rem !important;
+  letter-spacing: 0.04em;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actions > :first-child { flex: 1 1 200px; }
+
+/* Every console control on these pages: chrome rim, cobalt when selected,
+   white ink. Beats the cyan analysis shell and legacy page shells. */
+.page.page :is(button, a, label):global(.sd-button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  clip-path: none !important;
+  font-family: var(--sd-type, 'Arial Narrow'), sans-serif;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.page.page :is(button, a, label):global(.sd-button):not([aria-pressed='true'], [aria-selected='true'], [aria-current='page'], :global(.sd-primary)) {
+  color: var(--sd-text, #f2f7ff) !important;
+  background: var(--sd-control, #0e2236) !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  text-shadow: 0 1px 1px #000 !important;
+}
+
+.page.page :is(button, a, label):global(.sd-button):is([aria-pressed='true'], [aria-selected='true'], [aria-current='page'], :global(.sd-primary)):not(:disabled) {
+  color: #fff !important;
+  background: var(--sd-cobalt, #0c4ea9) !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  text-shadow: 0 1px 2px #021022 !important;
+}
+
+.page.page :is(button, a):global(.sd-button):disabled {
+  color: #a7b7c8 !important;
+  background: #13202c !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  text-shadow: none !important;
+  cursor: default;
+  opacity: 0.8;
+}
+
+.page.page .compact:global(.sd-button) {
+  min-block-size: 36px;
+  padding: 3px 10px;
+  font-size: 0.86rem;
+}
+
+/* Inputs. */
+.page .input,
+.page .select {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  block-size: 46px;
+  padding: 0 12px;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: #06111c !important;
+  color: var(--at-white) !important;
+  font: 650 1rem / 1 var(--font-inter, Inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 1px 3px #000 !important;
+  outline: none;
+}
+
+.page .input:focus-visible,
+.page .select:focus-visible { outline: 2px solid #9ee3ff; outline-offset: 2px; }
+
+.page .textarea {
+  block-size: auto;
+  min-block-size: 140px;
+  padding: 10px 12px;
+  line-height: 1.45;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.page .input::placeholder { color: #8ea4b8; }
+
+.page .range {
+  inline-size: 100%;
+  min-block-size: 34px;
+  accent-color: #49c6ff !important;
+  filter: none !important;
+}
+
+.unit {
+  color: var(--at-silver) !important;
+  font: 650 0.9rem / 1.1 var(--font-inter, Inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Metrics ───────────────────────────────────────────────────────────── */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: 8px;
+}
+
+.metrics3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.metrics2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+@media (max-width: 420px) {
+  .metrics3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metrics3 > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+.metric {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  text-align: center;
+  min-inline-size: 0;
+}
+
+.metricLabel {
+  color: var(--at-silver) !important;
+  font: 650 0.76rem / 1.2 var(--font-inter, Inter), sans-serif !important;
+  letter-spacing: 0.02em;
+  text-transform: none !important;
+}
+
+.metricValue {
+  color: var(--at-white) !important;
+  font: 750 clamp(1.2rem, 4.6vw, 1.65rem) / 1.05 var(--sd-type, 'Arial Narrow'), sans-serif !important;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.metricValue[data-tone='ice'] { color: var(--at-ice) !important; }
+.metricValue[data-tone='up'] { color: var(--at-up) !important; }
+.metricValue[data-tone='down'] { color: var(--at-down) !important; }
+
+.page.page .metric[data-active='true'] {
+  border-image-source: url('/images/smarterdesign/chrome-active.webp') !important;
+  border-image-slice: 11 !important;
+}
+
+/* Key/value list. */
+.kv {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.kv > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--at-line);
+  font-size: 0.9rem;
+}
+
+.kv > div:last-child { border-bottom: 0; }
+.kv dt, .kv > div > :first-child { color: var(--at-silver); margin: 0; }
+.kv dd, .kv > div > :last-child { color: var(--at-white); margin: 0; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ── Bars ──────────────────────────────────────────────────────────────── */
+.barHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 5px;
+  font: 650 0.86rem / 1.2 var(--font-inter, Inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.barHead > :first-child { color: var(--at-white); }
+.barHead > :last-child { color: var(--at-silver); text-align: right; }
+
+.track {
+  position: relative;
+  block-size: 8px;
+  background: #06111c;
+  box-shadow: inset 0 1px 3px #000, 0 0 0 1px rgba(124, 158, 187, 0.25);
+  overflow: hidden;
+}
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(180deg, #7fe7ff, #1d8fe0);
+}
+
+.fillSilver { background: linear-gradient(180deg, #d4e3ef, #6d8aa3); }
+
+/* ── Tables ────────────────────────────────────────────────────────────── */
+.tableWrap {
+  inline-size: 100%;
+  overflow-x: auto;
+  min-inline-size: 0;
+}
+
+.table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th {
+  padding: 0 6px 8px;
+  color: var(--at-silver) !important;
+  font: 700 0.74rem / 1.15 var(--font-inter, Inter), sans-serif;
+  letter-spacing: 0.02em;
+  text-align: right;
+  text-transform: none !important;
+  border-bottom: 1px solid var(--at-line);
+}
+
+.table td {
+  padding: 9px 6px;
+  color: var(--at-white);
+  font: 600 0.9rem / 1.2 var(--font-inter, Inter), sans-serif;
+  text-align: right;
+  border-bottom: 1px solid var(--at-line);
+}
+
+.table :is(th, td):first-child { text-align: left; padding-left: 0; }
+.table :is(th, td):last-child { padding-right: 0; }
+.table tr:last-child td { border-bottom: 0; }
+
+/* ── Playing-card slots and pickers ────────────────────────────────────── */
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.page.page .slot {
+  position: relative;
+  box-sizing: border-box;
+  inline-size: 46px;
+  block-size: 62px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 2px dashed rgba(134, 218, 255, 0.38);
+  border-radius: 4px;
+  background: #06111c;
+  color: var(--at-silver) !important;
+  font: 650 0.7rem / 1.1 var(--font-inter, Inter), sans-serif !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.page.page .slot[data-filled='true'] { border: 2px solid rgba(134, 218, 255, 0.55); background: #0b1c2c; inline-size: auto; min-inline-size: 46px; block-size: auto; min-block-size: 62px; padding: 2px; }
+.page.page .slot[data-active='true'] { border: 2px solid #9ee3ff; box-shadow: 0 0 0 2px #0c55c0; }
+.slot:focus-visible { outline: 2px solid #9ee3ff; outline-offset: 2px; }
+
+.page.page .slotSmall { inline-size: 40px; block-size: 54px; }
+
+.slotPlus {
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--at-ice);
+}
+
+.page.page .remove {
+  position: absolute;
+  inset-block-start: -8px;
+  inset-inline-end: -8px;
+  inline-size: 22px !important;
+  block-size: 22px !important;
+  min-block-size: 0 !important;
+  padding: 0 !important;
+  display: grid;
+  place-items: center;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: #b4283a !important;
+  color: #fff !important;
+  font: 800 0.72rem / 1 var(--font-inter, Inter), sans-serif !important;
+  box-shadow: 0 0 0 2px #06111c;
+  cursor: pointer;
+}
+
+/* Hit area grows to 44px without enlarging the badge. */
+.remove::after {
+  content: '';
+  position: absolute;
+  inset: -11px;
+}
+
+.picker {
+  display: grid;
+  gap: 8px;
+  max-block-size: 56dvh;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+
+.pickerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pickerRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.page.page .pick {
+  box-sizing: border-box;
+  inline-size: 44px;
+  block-size: 50px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(124, 158, 187, 0.22);
+  border-radius: 4px;
+  background: #0b1c2c;
+  cursor: pointer;
+}
+
+.page.page .pick:hover:not(:disabled) { border-color: #86daff; }
+.page.page .pick:disabled { opacity: 0.28; cursor: not-allowed; }
+.pick:focus-visible { outline: 2px solid #9ee3ff; outline-offset: 1px; }
+
+.close {
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0 !important;
+  font-size: 1rem !important;
+}
+
+/* ── Help sheet blocks ─────────────────────────────────────────────────── */
+.helpBlock {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(124, 158, 187, 0.3);
+}
+
+.helpBlock h3 {
+  margin: 0;
+  color: var(--at-white, #f2f7ff);
+  font: 700 1.02rem / 1.2 var(--sd-type, 'Arial Narrow'), sans-serif;
+}
+
+.helpBlock p { margin: 0; color: var(--at-silver, #bdd0e2); font-size: 0.9rem; line-height: 1.55; }
+
+.faq {
+  border-top: 1px solid rgba(124, 158, 187, 0.22);
+  padding: 10px 0;
+}
+
+.faq summary {
+  min-block-size: 32px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--at-white, #f2f7ff);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.faq p, .faq > div { margin: 6px 0 0; color: var(--at-silver, #bdd0e2); font-size: 0.86rem; line-height: 1.55; }
+
+/* ── Empty / loading states ────────────────────────────────────────────── */
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 18px 8px;
+  text-align: center;
+}
+
+.empty svg { color: var(--at-ice); }
+
+.list {
+  display: grid;
+  gap: 10px;
+}
+
+.listRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--at-line);
+}
+
+.listRow:last-child { border-bottom: 0; }
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 26px;
+  padding: 2px 10px;
+  border: 2px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 3px stretch;
+  background: var(--sd-control, #0e2236);
+  color: var(--at-ice) !important;
+  font: 700 0.78rem / 1 var(--sd-type, 'Arial Narrow'), sans-serif;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+  gap: 8px;
+}
+
+.cardsGrid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+@media (max-width: 380px) {
+  .cardsGrid2 { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot, .pick { transition: none; }
+}
+
+/* ── Equity split bar ──────────────────────────────────────────────────── */
+.swatch {
+  display: inline-block;
+  inline-size: 10px;
+  block-size: 10px;
+  margin-right: 6px;
+  vertical-align: -1px;
+  box-shadow: 0 0 0 1px #06111c, 0 0 0 2px rgba(189, 208, 226, 0.4);
+}
+
+.equityBar {
+  display: flex;
+  block-size: 40px;
+  overflow: hidden;
+  background: #06111c;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+}
+
+.equitySeg {
+  display: grid;
+  place-items: center;
+  block-size: 100%;
+  color: #04121f;
+  font: 800 0.86rem / 1 var(--sd-type, 'Arial Narrow'), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Words never break mid-letter inside a control (the Training stage sets
+   overflow-wrap: anywhere on every button). */
+.page.page.page :is(button, a, [role='button']) {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: manual;
+}
+
+.page.page .slot { overflow: visible !important; }
+
+/* ── Modal dialog (card picker) ────────────────────────────────────────── */
+.dialog {
+  box-sizing: border-box;
+  inline-size: min(94vw, 580px);
+  max-block-size: 82dvh;
+  margin: auto;
+  padding: 0 !important;
+  overflow-y: auto;
+  color: var(--sd-text, #f2f7ff);
+}
+
+.dialog::backdrop { background: rgba(2, 8, 15, 0.78); }
+
+.dialogHead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
+  background: #0b1c2c;
+  border-bottom: 1px solid rgba(124, 158, 187, 0.3);
+}
+
+.dialogBody {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.suitRow {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.suitLabel {
+  font-size: 1.6rem;
+  line-height: 1;
+  text-align: center;
+}
+
+/* ── 13x13 hand grids (Range Builder, Range Browser) ───────────────────
+   Cells carry range meaning in their fill, set by the page. These classes
+   own only the frame, label and focus. Cells are classed (never inline
+   bordered) so the shared Training interior layer leaves them alone. */
+.gridWrap {
+  inline-size: 100%;
+  overflow-x: auto;
+  min-inline-size: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+  gap: 2px;
+  inline-size: 100%;
+  max-inline-size: 520px;
+  margin: 0 auto;
+  padding: 4px;
+  box-sizing: border-box;
+  background: #040b13;
+  box-shadow: inset 0 1px 4px #000;
+}
+
+.page.page .gridCell {
+  position: relative;
+  box-sizing: border-box;
+  aspect-ratio: 1;
+  min-inline-size: 0;
+  min-block-size: 0 !important;
+  display: grid;
+  place-items: center;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-image: none !important;
+  border-radius: 2px !important;
+  box-shadow: none !important;
+  color: #8195a8 !important;
+  font: 700 clamp(7px, 2.05vw, 11px) / 1 var(--font-inter, Inter), sans-serif !important;
+  letter-spacing: -0.02em;
+  text-shadow: none !important;
+  cursor: pointer;
+  user-select: none;
+  overflow: visible;
+  transition: border-color 0.1s ease;
+}
+
+.page.page .gridCell[data-lit='true'] { color: #fff !important; border-color: rgba(255, 255, 255, 0.28) !important; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6) !important; }
+.page.page .gridCell[data-hover='true'] { border: 2px solid #86daff !important; }
+.page.page .gridCell[data-diff='true'] { cursor: default; }
+.page.page .gridCell:focus-visible { outline: 2px solid #9ee3ff !important; outline-offset: 1px; z-index: 2; }
+
+.gridMark {
+  position: absolute;
+  inset: auto 0 0;
+  block-size: 2px;
+  opacity: 0.55;
+}
+
+.gridTip {
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 4px 8px;
+  white-space: nowrap;
+  border: 2px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 3px stretch;
+  background: #0b1c2c;
+  color: #f2f7ff;
+  font-size: 12px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.legend {
+  display: grid;
+  gap: 6px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--at-silver, #bdd0e2);
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.legendSwatch {
+  inline-size: 12px;
+  block-size: 12px;
+  flex: 0 0 auto;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.bigFigure {
+  display: block;
+  margin: 0;
+  color: var(--at-white, #f2f7ff);
+  font: 800 clamp(2.2rem, 10vw, 3.2rem) / 1 var(--sd-type, 'Arial Narrow'), sans-serif !important;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* Plain vertical stack that overrides legacy layout wrappers' padding. */
+.page.page .stack,
+.page.page :global(.sp-range-builder-layout) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 14px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+.page.page .stack > * { min-inline-size: 0; }
+
+.page.page :global(.sp-range-builder-matrix),
+.page.page :global(.sp-range-builder-sidebar) {
+  inline-size: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+/* ── Shared RangeGrid hosted on these pages ───────────────────────────
+   The Training interior layer (styles/smarterdesign.css) matches any inline
+   "border-radius: 2px; border: 1px" div and re-rims it with the chrome stat
+   frame. RangeGrid cells are exactly that, so here they get their thin cell
+   frame back. The selector outranks the layer's (0,5,1) specificity. Fills
+   (raise / call / fold meaning) stay untouched. */
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"] {
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  border-image: none !important;
+  border-radius: 2px !important;
+  box-shadow: none !important;
+}
+
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"][style*="2px solid"] {
+  border-width: 2px !important;
+  border-color: #86daff !important;
+  box-shadow: 0 0 10px rgba(134, 218, 255, 0.5) !important;
+}
+
+.gridBox {
+  inline-size: 100%;
+  max-inline-size: 520px;
+  margin: 0 auto;
+  min-inline-size: 0;
+}
+
+.spinner {
+  inline-size: 34px;
+  block-size: 34px;
+  border: 3px solid rgba(134, 218, 255, 0.2);
+  border-top-color: #86daff;
+  border-radius: 50%;
+  animation: atSpin 1s linear infinite;
+}
+
+@keyframes atSpin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
+}
+
+/* The same layer repaints those cells' background with the navy panel fill
+   (their border colour matches its "rgba(255, 255, 255, 0.0" test), which
+   erased the action colours. Restore each action fill from the cell's own
+   inline value. */
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"][style*="background-color: var(--sp-accent-green)"] { background: var(--sp-accent-green) !important; }
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"][style*="background-color: var(--sp-accent-emerald)"] { background: var(--sp-accent-emerald) !important; }
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"][style*="background-color: var(--sp-accent-cyan)"] { background: var(--sp-accent-cyan) !important; }
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"][style*="background-color: var(--sp-accent-blue)"] { background: var(--sp-accent-blue) !important; }
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"][style*="background-color: var(--sp-accent-red)"] { background: var(--sp-accent-red) !important; }
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"][style*="background-color: var(--sp-accent-orange)"] { background: var(--sp-accent-orange) !important; }
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"][style*="background-color: var(--sp-accent-amber)"] { background: var(--sp-accent-amber) !important; }
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"][style*="background-color: var(--sp-accent-purple)"] { background: var(--sp-accent-purple) !important; }
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"][style*="background-color: var(--sp-fg-dim)"] { background: var(--sp-fg-dim) !important; }
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"][style*="background-color: var(--sp-bg-elev2)"] { background: var(--sp-bg-elev2) !important; }
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"][style*="background-color: rgb(26, 26, 46)"] { background: #1a1a2e !important; }
+.rangeHost.rangeHost.rangeHost.rangeHost.rangeHost div[style*="aspect-ratio"][style*="background-color: rgb(13, 13, 26)"] { background: #0d0d1a !important; }
+
+.pickerWide {
+  position: relative;
+  inline-size: min(100%, 320px);
+  min-inline-size: 240px;
+}
+
+.rankGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 6px;
+}
+
+.rankGrid > button { padding: 0 !important; }
+
+.suitPick {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.slots > .field:has(.pickerWide) { flex: 1 1 100%; }
+
+/* Legacy analysis wrappers zero or reset the main column's padding with
+   !important; the page keeps its own gutters and footer clearance. */
+.page.page.page.page {
+  box-sizing: border-box !important;
+  inline-size: 100% !important;
+  max-inline-size: 820px !important;
+  margin: 0 auto !important;
+  padding: 0 clamp(10px, 3vw, 24px) calc(118px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+.cardsWide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); }
+
+/* ── Line chart frame (Risk Of Ruin) ───────────────────────────────────── */
+.chartFrame {
+  display: grid;
+  gap: 4px;
+}
+
+.chart {
+  position: relative;
+  block-size: 200px;
+  padding: 6px 0;
+  border-left: 1px solid rgba(189, 208, 226, 0.35);
+  border-bottom: 1px dashed rgba(255, 122, 134, 0.55);
+  background: repeating-linear-gradient(0deg, transparent 0 49px, rgba(124, 158, 187, 0.12) 49px 50px);
+}
+
+.chartAxisY, .chartAxisX {
+  color: var(--at-silver, #bdd0e2);
+  font: 600 0.78rem / 1.2 var(--font-inter, Inter), sans-serif;
+}
+
+.chartAxisX { text-align: right; }
+
+/* The analysis family's primary action keeps its class for the shared shell
+   contract; here it is the cobalt console action. */
+.page.page.page.page :global(.sp-analysis-primary-action) {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-block-size: 52px;
+  padding: 6px 14px;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: var(--sd-cobalt, #0c4ea9) !important;
+  color: #fff !important;
+  font: 700 1.1rem / 1.1 var(--sd-type, 'Arial Narrow'), sans-serif !important;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 2px #021022 !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.page.page.page.page :global(.sp-analysis-primary-action):disabled {
+  border-image-source: url('/images/smarterdesign/chrome-row.webp') !important;
+  border-image-slice: 13 !important;
+  background: #13202c !important;
+  color: #a7b7c8 !important;
+  cursor: default;
+}
+
+.page.page :global(.sp-analysis-control-deck),
+.page.page :global(.sp-analysis-output-deck) {
+  min-inline-size: 0;
+  inline-size: 100%;
+}
+
+.page.page :global(.sp-analysis-output-deck) > * { min-inline-size: 0; }
+
+/* ── Labelled input rows (ICM Simulator) ───────────────────────────────── */
+.fieldList {
+  display: grid;
+  gap: 8px;
+}
+
+.fieldRow {
+  display: grid;
+  grid-template-columns: 2.9rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-inline-size: 0;
+}
+
+.stackRow {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 8px;
+  min-inline-size: 0;
+}
+
+.page .input[data-hero='true'] { color: var(--at-ice, #86daff) !important; font-weight: 750; }
+
+.seatTag {
+  box-sizing: border-box;
+  display: inline-grid;
+  place-items: center;
+  inline-size: 2.9rem;
+  block-size: 2.5rem;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: var(--sd-navy, #0b1929);
+  color: var(--at-ice, #86daff);
+  font: 700 0.95rem / 1 var(--sd-type, 'Arial Narrow'), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.freqRow {
+  display: grid;
+  grid-template-columns: minmax(0, 88px) minmax(0, 1fr) 3rem;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.freqRow > :first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.freqRow > :last-child { text-align: right; font-size: 0.86rem; }
+
+.page.page .metricButton {
+  min-block-size: 44px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.page.page .choiceCard {
+  justify-content: stretch !important;
+  justify-items: start;
+  align-items: start;
+}
+
+.scaleLabels {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  color: var(--at-silver, #bdd0e2);
+  font-size: 0.76rem;
+}
+
+.page.page .stackedButton {
+  display: grid !important;
+  justify-items: center;
+  gap: 2px;
+  padding: 8px 6px !important;
+  min-block-size: 56px;
+}
+
+/* ── Expandable row cards (Replay Theater) ─────────────────────────────── */
+.page.page .rowCard { padding: 0 !important; display: grid; }
+
+.page.page .rowHead {
+  inline-size: 100%;
+  display: grid !important;
+  grid-template-columns: 32px minmax(0, 1fr) auto 16px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px !important;
+  border: 0 !important;
+  border-image: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--at-white, #f2f7ff) !important;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rowIcon {
+  inline-size: 32px;
+  block-size: 32px;
+  display: grid;
+  place-items: center;
+  background: #2a0d14;
+  color: #ff7a86;
+  font-weight: 800;
+}
+
+.rowBody {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+
+.skeleton {
+  block-size: 64px;
+  background: linear-gradient(90deg, #0b1c2c 0%, #13283c 50%, #0b1c2c 100%) !important;
+  background-size: 200% 100% !important;
+  animation: atShimmer 1.4s linear infinite;
+}
+
+@keyframes atShimmer { to { background-position: -200% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}
+
+/* A note that is its own surface gets full panel padding, no inset rule. */
+.page.page :global(.sd-panel).note {
+  padding: 12px 14px !important;
+  border-left-width: 5px;
+}

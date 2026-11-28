@@ -171,11 +171,17 @@ test('Arena Lobby CSS & dialogs obey #SMARTERDESIGN, mobile 12px floor, and mode
   const previewSheet = read('src/components/training/lobby/TrainingGamePreviewSheet.jsx');
   const row = read('src/components/training/lobby/TrainingLobbyRow.jsx');
 
-  for (const file of ['arena-mode.webp', 'arena-filter.webp', 'arena-row-rim.webp']) {
-    const url = '/images/training/lobby/' + file;
-    assert.ok(css.includes(url), `Missing Arena skin on live controls: ${file}`);
+  // #SMARTERDESIGN (2026-11-27): the lobby's live controls and rows wear the
+  // Club Arena chrome nine-slices (steel rim, cobalt selection), not the
+  // retired glowing arena skins.
+  for (const file of ['chrome-readout.webp', 'chrome-stat.webp', 'chrome-row.webp', 'chrome-active.webp']) {
+    const url = '/images/smarterdesign/' + file;
+    assert.ok(css.includes(url), `Missing chrome rim on live controls: ${file}`);
     const asset = fs.readFileSync(path.join(ROOT, 'public', url));
     assert.equal(asset.toString('ascii', 8, 12), 'WEBP');
+  }
+  for (const file of ['arena-mode.webp', 'arena-filter.webp', 'arena-row-rim.webp']) {
+    assert.ok(!css.includes('/images/training/lobby/' + file), `Retired arena skin still painted: ${file}`);
   }
   assert.equal(countAdvancedFilters({ ...DEFAULT_LOBBY_FILTERS, quickFilter: 'BEGINNER' }), 1);
   assert.match(filtersSheet, /data-quick-filter=\{pill.id.toLowerCase\(\)\}/);

@@ -18,9 +18,10 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import st from '../../../src/styles/training/study-tools.module.css';
 const PHASES = {
-  FOCUS: { id: 'focus', label: 'Focus Block', mins: 25, color: 'var(--sp-accent-blue)' },
-  SHORT_BREAK: { id: 'short', label: 'Short Break', mins: 5, color: 'var(--sp-accent-green)' },
+  FOCUS: { id: 'focus', label: 'Focus Block', mins: 25, color: '#49c6ff' },
+  SHORT_BREAK: { id: 'short', label: 'Short Break', mins: 5, color: '#86daff' },
   LONG_BREAK: { id: 'long', label: 'Long Break', mins: 15, color: '#86daff' },
 };
 
@@ -204,45 +205,20 @@ export default function FocusTimerPage() {
         description="Structure Poker Study Blocks And Multi-Table Grinding Sessions Into Timed High-Concentration Intervals And Mental Reset Breaks On Smarter.Poker."
         canonical="/hub/training/focus-timer"
       />
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
+      <div className={st.shell}>
         <TrainingPageHead slug="training-focus-timer" note="Pomodoro Training" />
 
-        <div style={{ padding: '40px 16px', maxWidth: 400, margin: '0 auto', textAlign: 'center' }}>
+        <div className={st.page}>
           {/* Phase Selectors */}
-          <div
-            style={{
-              display: 'flex',
-              gap: 6,
-              marginBottom: 40,
-              background: 'rgba(0,0,0,0.2)',
-              padding: 6,
-              borderRadius: 12,
-              border: '1px solid rgba(255,255,255,0.05)',
-            }}
-          >
+          <div className={`sd-tabs ${st.grid3}`} role="group" aria-label="Timer Phase">
             {Object.values(PHASES || {}).map((p) => (
               <motion.button
                 key={p.id}
+                type="button"
                 whileTap={{ scale: 0.95 }}
                 onClick={() => changePhase(p)}
-                style={{
-                  flex: 1,
-                  padding: '10px 4px',
-                  borderRadius: 8,
-                  border: 'none',
-                  background: phase.id === p.id ? `${p.color}15` : 'transparent',
-                  color: phase.id === p.id ? p.color : 'var(--sp-fg-dim)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
+                aria-pressed={phase.id === p.id}
+                className="sd-button"
               >
                 {p.label}
               </motion.button>
@@ -250,229 +226,106 @@ export default function FocusTimerPage() {
           </div>
 
           {/* Timer Circle */}
-          <div
-            style={{
-              position: 'relative',
-              width: 280,
-              height: 280,
-              margin: '0 auto 40px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <svg
-              width="280"
-              height="280"
-              style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}
-            >
-              <circle
-                cx="140"
-                cy="140"
-                r="130"
-                fill="none"
-                stroke="rgba(255,255,255,0.03)"
-                strokeWidth="8"
-              />
-              <motion.circle
-                cx="140"
-                cy="140"
-                r="130"
-                fill="none"
-                stroke={phase.color}
-                strokeWidth="8"
-                strokeLinecap="round"
-                strokeDasharray={130 * 2 * Math.PI}
-                animate={{ strokeDashoffset: (1 - progress) * 130 * 2 * Math.PI }}
-                transition={{ duration: 1, ease: 'linear' }}
-              />
-            </svg>
-            <div style={{ zIndex: 1 }}>
-              <div
-                style={{
-                  fontSize: 64,
-                  fontWeight: 900,
-                  fontFamily: 'monospace',
-                  letterSpacing: -2,
-                  color: isActive ? phase.color : 'var(--sp-fg)',
-                  textShadow: isActive ? `0 0 20px ${phase.color}40` : 'none',
-                }}
-              >
-                {formatTime(timeLeft)}
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 2,
-                  marginTop: 4,
-                }}
-              >
-                {phase.label}
+          <section className={`sd-panel ${st.panel} ${st.timerPanel}`} aria-label={`${phase.label} Timer`}>
+            <div className={st.timerDial}>
+              <svg viewBox="0 0 280 280" className={st.timerRing} aria-hidden>
+                <circle cx="140" cy="140" r="130" fill="none" stroke="#11263a" strokeWidth="10" />
+                <circle cx="140" cy="140" r="118" fill="none" stroke="rgba(124,158,187,0.25)" strokeWidth="1" />
+                <motion.circle
+                  cx="140"
+                  cy="140"
+                  r="130"
+                  fill="none"
+                  stroke={phase.color}
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  strokeDasharray={130 * 2 * Math.PI}
+                  animate={{ strokeDashoffset: (1 - progress) * 130 * 2 * Math.PI }}
+                  transition={{ duration: 1, ease: 'linear' }}
+                />
+              </svg>
+              <div className={st.timerReadout}>
+                <div className={st.timerTime} data-active={isActive ? 'true' : undefined} role="timer" aria-live="off">
+                  {formatTime(timeLeft)}
+                </div>
+                <div className={st.timerPhase}>
+                  {isActive ? 'Running' : 'Ready'} · {phase.label}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Controls */}
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 40, flexWrap: 'wrap' }}>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsActive(!isActive)}
-              style={{
-                width: 140,
-                padding: '16px',
-                borderRadius: 16,
-                border: 'none',
-                background: isActive
-                  ? 'rgba(239,68,68,0.1)'
-                  : `linear-gradient(135deg, ${phase.color}, ${phase.color}aa)`,
-                color: isActive ? 'var(--sp-accent-red)' : '#fff',
-                fontSize: 16,
-                fontWeight: 800,
-                cursor: 'pointer',
-                boxShadow: isActive ? 'none' : `0 4px 20px ${phase.color}40`,
-              }}
-            >
-              {isActive ? 'PAUSE' : 'START'}
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={reset}
-              style={{
-                width: 64,
-                padding: '16px',
-                borderRadius: 16,
-                border: '1px solid rgba(255,255,255,0.1)',
-                background: 'rgba(0,0,0,0.2)',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 20,
-                cursor: 'pointer',
-              }}
-            >
-              ↺
-            </motion.button>
+            {/* Controls */}
+            <div className={st.timerControls}>
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsActive(!isActive)}
+                className={`sd-button ${isActive ? '' : 'sd-primary'}`}
+              >
+                {isActive ? 'Pause' : 'Start'}
+              </motion.button>
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.95 }}
+                onClick={reset}
+                aria-label="Reset Timer"
+                className="sd-button"
+              >
+                ↺ Reset
+              </motion.button>
+            </div>
             <motion.button
               type="button"
               data-complete-focus-block-btn="true"
               whileTap={{ scale: 0.95 }}
               onClick={recordCompletedFocusBlock}
-              style={{
-                padding: '12px 16px',
-                borderRadius: 12,
-                border: '1px solid rgba(34,197,94,0.35)',
-                background: 'rgba(34,197,94,0.12)',
-                color: 'var(--sp-accent-green)',
-                fontSize: 12,
-                fontWeight: 800,
-                cursor: 'pointer',
-              }}
+              className={`sd-button ${st.block}`}
             >
               Log Completed Block
             </motion.button>
-          </div>
+          </section>
 
           {/* Stats */}
-          <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-            <div
-              data-focus-completed-count={completedBlocks}
-              style={{
-                flex: 1,
-                padding: '16px',
-                borderRadius: 12,
-                background: 'rgba(0,0,0,0.2)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-fg)' }}>
-                {completedBlocks}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                Blocks
-              </div>
+          <section className={st.metrics} style={{ '--cols': 3 }} aria-label="Focus Summary">
+            <div data-focus-completed-count={completedBlocks} className={`sd-metric ${st.metric}`}>
+              <strong className={st.metricValue}>{completedBlocks}</strong>
+              <span className={st.metricLabel}>Blocks</span>
             </div>
-            <div
-              style={{
-                flex: 1,
-                padding: '16px',
-                borderRadius: 12,
-                background: 'rgba(0,0,0,0.2)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-accent-green)' }}>
+            <div className={`sd-metric ${st.metric}`}>
+              <strong className={st.metricValue} data-tone="ice">
                 {Math.round(((completedBlocks * 25) / 60) * 10) / 10}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                Hours
-              </div>
+              </strong>
+              <span className={st.metricLabel}>Hours</span>
             </div>
-            <div
-              style={{
-                flex: 1,
-                padding: '16px',
-                borderRadius: 12,
-                background: 'rgba(0,0,0,0.2)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                textAlign: 'center',
-              }}
-            >
+            <div className={`sd-metric ${st.metric}`}>
               <button
                 type="button"
                 aria-label={notify ? 'Disable notifications' : 'Enable notifications'}
                 aria-pressed={notify}
                 onClick={() => setNotify(!notify)}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: notify ? 'var(--sp-accent-green)' : 'var(--sp-fg-muted)' }}
+                className={`sd-button ${st.close}`}
               >
                 {notify ? <BellIcon size={20} /> : <BellOffIcon size={20} />}
               </button>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                {notify ? 'on' : 'off'}
-              </div>
+              <span className={st.metricLabel}>Alerts {notify ? 'On' : 'Off'}</span>
             </div>
-          </div>
+          </section>
 
           {/* Session Log */}
           {sessionLog.length > 0 && (
-            <div
-              style={{
-                padding: '12px 16px',
-                borderRadius: 12,
-                background: 'rgba(0,0,0,0.15)',
-                border: '1px solid rgba(255,255,255,0.03)',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  color: 'var(--sp-fg-faint)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                  marginBottom: 8,
-                }}
-              >
-                Recent Sessions
+            <section className={`sd-panel ${st.panel}`} aria-labelledby="focus-log-title">
+              <h2 id="focus-log-title" className={st.title}>Recent Sessions</h2>
+              <div className={st.list}>
+                {sessionLog.slice(0, 5).map((s) => (
+                  <div key={s.id} className={`${st.item} ${st.rowItem}`}>
+                    <span className={st.small}>{s.time}</span>
+                    <span className={st.ice} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 650, fontSize: '0.86rem' }}>
+                      {s.duration}min Focus <FtCheckIcon size={12} />
+                    </span>
+                  </div>
+                ))}
               </div>
-              {sessionLog.slice(0, 5).map((s) => (
-                <div
-                  key={s.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '4px 0',
-                    borderBottom: '1px solid rgba(255,255,255,0.02)',
-                  }}
-                >
-                  <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{s.time}</span>
-                  <span style={{ fontSize: 12, color: 'var(--sp-accent-green)', fontWeight: 600 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{s.duration}min Focus <FtCheckIcon size={12} /></span>
-                  </span>
-                </div>
-              ))}
-            </div>
+            </section>
           )}
 
         </div>

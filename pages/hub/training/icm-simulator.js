@@ -22,6 +22,8 @@ import {
 } from '../../../src/lib/training/horseBrainTrainingAdapter';
 
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import { Calculator } from 'lucide-react';
+import at from '../../../src/styles/training/analysis-tools.module.css';
 const ICM_SIM_HERO_CARDS_BY_VARIANT = {
   nlh: ['Ad', 'Js'],
   plo4: ['Ad', 'Kd', 'Qs', 'Js'],
@@ -151,327 +153,163 @@ export default function IcmSimulatorPage() {
         description="Calculate Malmuth-Harville Tournament Prize Pool Equity, Bubble Factors, And Risk Premiums Across Multi-Table Payout Structures On Smarter.Poker."
         canonical="/hub/training/icm-simulator"
       />
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: '#040d18',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', sans-serif",
-        }}
-      >
+      <div className={at.shell}>
         <TrainingPageHead slug="training-icm-simulator" note="Final Table Math & Deal Calculator" />
 
-        <div
-          style={{
-            maxWidth: 800,
-            margin: '40px auto',
-            display: 'flex',
-            gap: 32,
-            padding: '0 20px',
-            flexWrap: 'wrap',
-          }}
-        >
-          {/* Left: Inputs */}
-          <div style={{ flex: '1 1 300px' }}>
-            <div
-              style={{
-                background: 'rgba(0,0,0,0.3)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                borderRadius: 16,
-                padding: 24,
-                marginBottom: 24,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: 'var(--sp-accent-cyan)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                  marginBottom: 16,
-                }}
-              >
-                Prize Pool Structure
-              </div>
-              {payouts.map((p, i) => (
-                <div
-                  key={`payout-${i}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    marginBottom: 8,
-                    background: 'rgba(255,255,255,0.02)',
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                  }}
-                >
-                  <div style={{ width: 40, fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
-                    {i + 1}
-                    {i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'}
-                  </div>
-                  <div style={{ fontSize: 14, color: 'var(--sp-accent-green)', marginRight: 8 }}>$</div>
-                  <input
-                    aria-label={`${i + 1}${i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'} Place Payout`}
-                    type="number"
-                    value={p}
-                    onChange={(e) => {
-                      const arr = [...payouts];
-                      arr[i] = e.target.value;
-                      setPayouts(arr);
-                    }}
-                    style={{
-                      flex: 1,
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#fff',
-                      fontSize: 14,
-                      outline: 'none',
-                      fontWeight: 600,
-                    }}
-                  />
-                </div>
-              ))}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '12px 12px 0',
-                  borderTop: '1px solid rgba(255,255,255,0.1)',
-                  marginTop: 8,
-                }}
-              >
-                <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 700 }}>
-                  Total Prizepool:
-                </span>
-                <span style={{ fontSize: 14, color: 'var(--sp-accent-green)', fontWeight: 800 }}>
-                  ${totalPrizePool.toLocaleString()}
-                </span>
-              </div>
+        <div className={at.page}>
+          {/* Inputs */}
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="icms-prizes-title">
+            <h2 id="icms-prizes-title" className={at.sectionTitle}>Prize Pool Structure</h2>
+            <div className={at.fieldList}>
+              {payouts.map((p, i) => {
+                const place = `${i + 1}${i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'}`;
+                return (
+                  <label key={`payout-${i}`} className={at.fieldRow}>
+                    <span className={at.seatTag}>{place}</span>
+                    <input
+                      aria-label={`${place} Place Payout`}
+                      type="number"
+                      inputMode="decimal"
+                      className={at.input}
+                      value={p}
+                      onChange={(e) => {
+                        const arr = [...payouts];
+                        arr[i] = e.target.value;
+                        setPayouts(arr);
+                      }}
+                    />
+                    <span className={at.unit}>USD</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className={at.panelHead} style={{ borderTop: '1px solid rgba(124, 158, 187, 0.24)', paddingTop: 10 }}>
+              <span className={at.label}>Total Prize Pool</span>
+              <strong className={at.white} style={{ fontSize: '1.1rem' }}>${totalPrizePool.toLocaleString()}</strong>
+            </div>
+          </section>
+
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="icms-stacks-title">
+            <div className={at.panelHead}>
+              <h2 id="icms-stacks-title" className={at.sectionTitle}>Player Stacks</h2>
+              <span className={at.small}>Total: {totalChips.toLocaleString()}</span>
             </div>
 
-            <div
-              style={{
-                background: 'rgba(0,0,0,0.3)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                borderRadius: 16,
-                padding: 24,
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 16,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: '#86daff',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                  }}
-                >
-                  Player Stacks
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>
-                  Total: {totalChips.toLocaleString()}
-                </div>
-              </div>
-
+            <div className={at.fieldList}>
               {players.map((p, i) => (
-                <div
-                  key={p.id}
-                  style={{ display: 'flex', alignItems: 'center', marginBottom: 8, gap: 12 }}
-                >
+                <div key={p.id} className={at.stackRow}>
                   <input
                     aria-label={`Player ${i + 1} Name`}
+                    className={at.input}
+                    data-hero={p.id === 1 ? 'true' : undefined}
                     value={p.name}
                     onChange={(e) => {
                       const arr = [...players];
                       arr[i].name = e.target.value;
                       setPlayers(arr);
                     }}
-                    style={{
-                      width: 100,
-                      background: 'rgba(255,255,255,0.05)',
-                      border:
-                        p.id === 1 ? '1px solid rgba(0,212,255,0.3)' : '1px solid transparent',
-                      color: p.id === 1 ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)',
-                      padding: '10px',
-                      borderRadius: 8,
-                      fontSize: 13,
-                      fontWeight: p.id === 1 ? 700 : 500,
-                      outline: 'none',
-                    }}
                   />
                   <input
                     aria-label={`${p.name || `Player ${i + 1}`} Stack`}
                     type="number"
+                    inputMode="numeric"
+                    className={at.input}
                     value={p.stack}
                     onChange={(e) => {
                       const arr = [...players];
                       arr[i].stack = e.target.value;
                       setPlayers(arr);
                     }}
-                    style={{
-                      flex: 1,
-                      background: 'rgba(255,255,255,0.02)',
-                      border: 'none',
-                      color: '#fff',
-                      padding: '10px 12px',
-                      borderRadius: 8,
-                      fontSize: 14,
-                      fontWeight: 700,
-                      outline: 'none',
-                    }}
                   />
                 </div>
               ))}
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={runSim}
-                disabled={calculating}
-                style={{
-                  width: '100%',
-                  marginTop: 24,
-                  padding: 16,
-                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-blue-rgb), 1), #8b5cf6)',
-                  border: 'none',
-                  borderRadius: 12,
-                  color: '#fff',
-                  fontSize: 15,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  boxShadow: '0 8px 24px rgba(59,130,246,0.3)',
-                }}
-              >
-                {calculating ? 'Calculating…' : 'Run ICM Calculator'}
-              </motion.button>
-              {calculationError && (
-                <div role="alert" style={{ marginTop: 12, color: 'var(--sp-accent-red)', fontSize: 12, lineHeight: 1.5 }}>
-                  {calculationError}
-                </div>
-              )}
             </div>
-          </div>
 
-          {/* Right: Output */}
-          <div style={{ flex: '1 1 350px' }}>
-            <div
-              style={{
-                background: 'rgba(15,23,42,0.8)',
-                border: '1px solid rgba(59,130,246,0.2)',
-                borderRadius: 16,
-                padding: 32,
-                height: '100%',
-              }}
+            <motion.button
+              type="button"
+              className={`sd-button sd-primary ${at.primary}`}
+              whileTap={{ scale: 0.98 }}
+              onClick={runSim}
+              disabled={calculating}
             >
-              <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 8, color: '#fff' }}>
-                ICM Value Distribution
+              {calculating ? 'Calculating…' : 'Run ICM Calculator'}
+            </motion.button>
+            {calculationError && (
+              <div role="alert" className={at.error}>
+                {calculationError}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--sp-fg-muted)', lineHeight: 1.5, marginBottom: 32 }}>
-                Independent Chip Model Converts Raw Tournament Chips Into Actual Dollar Equity
-                Mapped To The Remaining Prize Pool Structure.
+            )}
+          </section>
+
+          {/* Output */}
+          <section className={`sd-panel ${at.panel}`} aria-labelledby="icms-output-title">
+            <h2 id="icms-output-title" className={at.sectionTitle}>ICM Value Distribution</h2>
+            <p className={at.copy}>
+              Independent Chip Model Converts Raw Tournament Chips Into Actual Dollar Equity
+              Mapped To The Remaining Prize Pool Structure.
+            </p>
+
+            {equities.length > 0 ? (
+              <div className={at.list}>
+                {[...players]
+                  .map((p, i) => ({ ...p, eq: equities[i] }))
+                  .sort((a, b) => b.eq - a.eq)
+                  .map((p, rank) => {
+                    const chipPct = (p.stack / totalChips) * 100;
+                    const eqPct = (p.eq / totalPrizePool) * 100;
+                    const isHero = p.id === 1;
+
+                    return (
+                      <motion.div
+                        key={p.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: rank * 0.1 }}
+                        className={`sd-metric ${at.panel} ${at.tight}`}
+                        data-active={isHero ? 'true' : undefined}
+                        style={{ textAlign: 'left' }}
+                      >
+                        <div className={at.barHead}>
+                          <strong className={isHero ? at.ice : at.white} style={{ fontSize: '1rem' }}>{p.name}</strong>
+                          <strong className={at.white} style={{ fontSize: '1.1rem' }}>
+                            $
+                            {p.eq.toLocaleString('en-US', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </strong>
+                        </div>
+
+                        <div className={at.row} style={{ columnGap: 18 }}>
+                          <span className={at.small}>
+                            <strong className={at.white}>Chips:</strong>{' '}
+                            {(Number.isFinite(Number(chipPct)) ? Number(chipPct) : 0).toFixed(1)}% ({Number(p.stack).toLocaleString()})
+                          </span>
+                          <span className={at.small}>
+                            <strong className={at.white}>Prize EQ:</strong>{' '}
+                            {(Number.isFinite(Number(eqPct)) ? Number(eqPct) : 0).toFixed(1)}%
+                          </span>
+                        </div>
+
+                        <div className={at.track}>
+                          <motion.div
+                            className={`${at.fill} ${isHero ? '' : at.fillSilver}`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${eqPct}%` }}
+                          />
+                        </div>
+                      </motion.div>
+                    );
+                  })}
               </div>
-
-              {equities.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {[...players]
-                    .map((p, i) => ({ ...p, eq: equities[i] }))
-                    .sort((a, b) => b.eq - a.eq)
-                    .map((p, rank) => {
-                      const chipPct = (p.stack / totalChips) * 100;
-                      const eqPct = (p.eq / totalPrizePool) * 100;
-                      const isHero = p.id === 1;
-
-                      return (
-                        <motion.div
-                          key={p.id}
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: rank * 0.1 }}
-                          style={{
-                            background: isHero ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.02)',
-                            border: isHero
-                              ? '1px solid rgba(0,212,255,0.3)'
-                              : '1px solid rgba(255,255,255,0.05)',
-                            borderRadius: 12,
-                            padding: 16,
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              marginBottom: 8,
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: 15,
-                                fontWeight: isHero ? 800 : 600,
-                                color: isHero ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)',
-                              }}
-                            >
-                              {p.name}
-                            </div>
-                            <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--sp-accent-green)' }}>
-                              $
-                              {p.eq.toLocaleString('en-US', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', gap: 24, fontSize: 12, color: 'var(--sp-fg-muted)' }}>
-                            <div>
-                              <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>Chips:</span>{' '}
-                              {(Number.isFinite(Number(chipPct)) ? Number(chipPct) : 0).toFixed(1)}% ({Number(p.stack).toLocaleString()})
-                            </div>
-                            <div>
-                              <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>Prize EQ:</span>{' '}
-                              {(Number.isFinite(Number(eqPct)) ? Number(eqPct) : 0).toFixed(1)}%
-                            </div>
-                          </div>
-
-                          <div
-                            style={{
-                              width: '100%',
-                              height: 4,
-                              background: 'rgba(0,0,0,0.5)',
-                              borderRadius: 2,
-                              marginTop: 12,
-                              overflow: 'hidden',
-                            }}
-                          >
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${eqPct}%` }}
-                              style={{ height: '100%', background: isHero ? 'var(--sp-accent-cyan)' : 'var(--sp-accent-purple)' }}
-                            />
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '60px 0', opacity: 0.5 }}>
-                  <div style={{ fontSize: 48, marginBottom: 16 }}>■</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>Run Solver</div>
-                  <div style={{ fontSize: 13, color: 'var(--sp-fg-muted)' }}>Fill In Stacks And Payouts.</div>
-                </div>
-              )}
-
-            </div>
-          </div>
+            ) : (
+              <div className={at.empty}>
+                <Calculator size={36} aria-hidden />
+                <h3 className={at.subTitle}>Run The Calculator</h3>
+                <p className={at.copy}>Fill In Stacks And Payouts.</p>
+              </div>
+            )}
+          </section>
         </div>
       </div>
       <HubPageSummary page="training-icm-simulator" />

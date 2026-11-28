@@ -178,16 +178,16 @@ body.world-training .sp-training-head button[aria-haspopup='dialog'][aria-label^
    buttons with cobalt selection. Round controls, image buttons (cards, chips)
    and the painted help icon are left alone.
    ═══════════════════════════════════════════════════════════════════════════ */
-.sp-training-page-stage:has(.sp-training-head) :is(div, section, article, form, li):is([style*="border-radius: 1"], [style*="border-radius: 2"]):is([style*="border: 1px"], [style*="border: 2px"], [style*="border-width"]):not([style*="50%"]) {
+.sp-training-page-stage:has(.sp-training-head) :is(div, section, article, form, li):is([style*="border-radius: 1"], [style*="border-radius: 2"]):is([style*="border: 1px"], [style*="border: 2px"], [style*="border-width"]):not([style*="50%"], [style*="aspect-ratio"]) {
   border: 3px solid transparent !important;
   border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
   border-radius: 0 !important;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32) !important;
 }
-.sp-training-page-stage:has(.sp-training-head) :is(div, section, article, form, li):is([style*="border-radius: 1"], [style*="border-radius: 2"]):is([style*="rgba(255, 255, 255, 0.0"], [style*="rgba(255,255,255,0.0"]):not([style*="50%"]) {
+.sp-training-page-stage:has(.sp-training-head) :is(div, section, article, form, li):is([style*="border-radius: 1"], [style*="border-radius: 2"]):is([style*="rgba(255, 255, 255, 0.0"], [style*="rgba(255,255,255,0.0"]):not([style*="50%"], [style*="aspect-ratio"]) {
   background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
 }
-.sp-training-page-stage:has(.sp-training-head) :is(div, section, article):is([style*="border-radius: 6px"], [style*="border-radius: 8px"]):is([style*="border: 1px"]):not([style*="50%"]) {
+.sp-training-page-stage:has(.sp-training-head) :is(div, section, article):is([style*="border-radius: 6px"], [style*="border-radius: 8px"]):is([style*="border: 1px"]):not([style*="50%"], [style*="aspect-ratio"]) {
   border-radius: 0 !important;
 }
 .sp-training-page-stage:has(.sp-training-head) button[style]:not(.sd-button, [aria-label^="Help For"], [style*="50%"], :has(img)) {

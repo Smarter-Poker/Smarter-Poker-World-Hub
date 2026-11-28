@@ -18,7 +18,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import { TrainingConsoleSkeleton, TrainingConsoleStatus } from '../../../src/components/training/console/TrainingConsoleStates';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
@@ -127,7 +127,7 @@ function generateGoals(sessionsParams) {
     {
       id: 'peak',
       iconKind: 'flame',
-      label: 'Score 90%+ in Any Session',
+      label: 'Score 90%+ In Any Session',
       target: 90,
       current: bestAccuracy,
       type: 'percent',
@@ -221,27 +221,16 @@ export default function DailyGoalsPage() {
         <div className={`sp-journey-main ${casinoStyles.main}`}>
 
           {loading && (
-            <div style={{ padding: '20px 0' }} role="status" aria-label="Loading Daily Goals">
-              <SkeletonLoader variant="rows" rows={4} />
-            </div>
+            <TrainingConsoleSkeleton label="Loading Daily Goals" metrics={2} panels={3} rows={2} />
           )}
 
           {!loading && signedOut && (
-            <div className={casinoStyles.panel} role="status" style={{ padding: '20px 18px', marginBottom: 16 }}>
-              <strong style={{ display: 'block', color: '#f2f7f9', fontSize: 16, marginBottom: 6 }}>
-                Sign In To View Daily Goals
-              </strong>
-              <span style={{ color: '#9cb0ba', fontSize: 13, lineHeight: 1.6, display: 'block' }}>
-                Goal Progress And Streaks Come From Your Verified Training Sessions.
-              </span>
-              <button
-                type="button"
-                className={casinoStyles.returnButton}
-                onClick={() => router.push('/auth/login?redirect=/hub/training/daily-goals')}
-              >
-                Sign In
-              </button>
-            </div>
+            <TrainingConsoleStatus
+              title="Sign In To View Daily Goals"
+              message="Goal Progress And Streaks Come From Your Verified Training Sessions."
+              actionLabel="Sign In"
+              onAction={() => router.push('/auth/login?redirect=/hub/training/daily-goals')}
+            />
           )}
 
           {!loading && !signedOut && (fetchError || !data || !dailyBonus) && (
@@ -261,24 +250,15 @@ export default function DailyGoalsPage() {
                   className={`${casinoStyles.panel} ${casinoStyles.bonusPanel}`}
                 >
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff' }}>
-                      Daily Bonus Settlement Paused
-                    </div>
-                    <div style={{ fontSize: 12, color: '#a8bbc4', marginTop: 4 }}>
+                    <div className={casinoStyles.noticeTitle}>Daily Bonus Settlement Paused</div>
+                    <div className={casinoStyles.noticeCopy}>
                       Goal Progress Is Live. No Daily-Goal Currency Is Promised Until Settlement Is Bound To A Verified Completion.
                     </div>
                   </div>
                 </motion.div>
               )}
               {dailyBonus && dailyBonus.alreadyClaimed && (
-                <div
-                  className={`${casinoStyles.panel} ${casinoStyles.claimedPanel}`}
-                  style={{
-                    fontSize: 12,
-                    color: '#39d59b',
-                    fontWeight: 700,
-                  }}
-                >
+                <div className={`${casinoStyles.panel} ${casinoStyles.claimedPanel}`}>
                   Daily Bonus Claimed - +{dailyBonus.diamondsAwarded || dailyBonus.totalBonus} Diamonds
                 </div>
               )}
@@ -287,71 +267,36 @@ export default function DailyGoalsPage() {
               <div className={casinoStyles.summaryGrid}>
                 <div className={`${casinoStyles.panel} ${casinoStyles.summaryPanel}`}>
                   <div
-                    style={{
-                      fontSize: 48,
-                      marginBottom: 8,
-                      display: 'inline-flex',
-                      justifyContent: 'center',
-                      color: data.completeCount === data.totalGoals ? '#39d59b' : '#25c8ff',
-                    }}
+                    className={casinoStyles.metricIcon}
+                    data-complete={data.completeCount === data.totalGoals || undefined}
                     aria-hidden
                   >
-                    {data.completeCount === data.totalGoals ? <CrownIcon size={44} /> : <TargetIcon size={44} />}
+                    {data.completeCount === data.totalGoals ? <CrownIcon size={36} /> : <TargetIcon size={36} />}
                   </div>
                   <div
-                    style={{
-                      fontSize: 26,
-                      fontWeight: 900,
-                      color: data.completeCount === data.totalGoals ? '#39d59b' : '#f2f7f9',
-                      fontFamily: 'ui-monospace, SFMono-Regular, Consolas, monospace',
-                    }}
+                    className={casinoStyles.metricValue}
+                    data-complete={data.completeCount === data.totalGoals || undefined}
                     role="status"
                     aria-label={`${data.completeCount} of ${data.totalGoals} goals completed`}
                   >
                     {data.completeCount}/{data.totalGoals}
                   </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: '#8ca4b0',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.1em',
-                      marginTop: 4,
-                      fontWeight: 700,
-                    }}
-                  >
-                    Goals Completed
-                  </div>
+                  <div className={casinoStyles.metricLabel}>Goals Completed</div>
                 </div>
 
                 {/* Streak */}
                 <div className={`${casinoStyles.panel} ${casinoStyles.streakPanel}`}>
-                  <div
-                    style={{
-                      fontSize: 24,
-                      color: streakDays > 0 ? '#86daff' : '#6c8593',
-                      display: 'inline-flex',
-                      marginBottom: 4,
-                    }}
-                    aria-hidden
-                  >
+                  <div className={casinoStyles.metricIcon} data-idle={streakDays > 0 ? undefined : true} aria-hidden>
                     <FlameIcon size={26} />
                   </div>
                   <div
-                    style={{
-                      fontSize: 24,
-                      fontWeight: 900,
-                      color: streakDays > 0 ? '#86daff' : '#8ca4b0',
-                      fontFamily: 'ui-monospace, SFMono-Regular, Consolas, monospace',
-                    }}
+                    className={casinoStyles.metricValue}
                     role="status"
                     aria-label={`${streakDays} day streak`}
                   >
                     {streakDays}
                   </div>
-                  <div style={{ fontSize: 12, color: '#8ca4b0', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
-                    Day Streak
-                  </div>
+                  <div className={casinoStyles.metricLabel}>Day Streak</div>
                 </div>
               </div>
 
@@ -362,9 +307,7 @@ export default function DailyGoalsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   className={`${casinoStyles.panel} ${casinoStyles.completePanel}`}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#39d59b' }}>
-                    All Goals Complete For Today
-                  </div>
+                  All Goals Complete For Today
                 </motion.div>
               )}
 
@@ -396,30 +339,15 @@ export default function DailyGoalsPage() {
                       className={`${casinoStyles.goalPanel} ${isComplete ? casinoStyles.goalComplete : ''}`}
                     >
                       <div className={casinoStyles.goalHeading}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ fontSize: 20, color: isComplete ? '#39d59b' : g.color, display: 'inline-flex' }} aria-hidden>
+                        <div className={casinoStyles.goalName}>
+                          <span className={casinoStyles.goalIcon} aria-hidden>
                             <GoalIcon kind={g.iconKind} size={20} />
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 15,
-                              fontWeight: 700,
-                              color: isComplete ? '#ffffff' : '#eaf2f6',
-                            }}
-                          >
-                            {g.label}
-                          </div>
+                          </span>
+                          <span>{g.label}</span>
                         </div>
-                        <div
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 800,
-                            color: isComplete ? '#39d59b' : '#25c8ff',
-                            fontFamily: 'ui-monospace, SFMono-Regular, Consolas, monospace',
-                          }}
-                        >
+                        <div className={casinoStyles.goalCount}>
                           {g.current}{' '}
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#8ca4b0' }}>
+                          <span>
                             / {g.target}
                             {g.type === 'percent' ? '%' : ''}
                           </span>
@@ -439,30 +367,15 @@ export default function DailyGoalsPage() {
                           animate={{ width: `${percent}%` }}
                           transition={{ duration: 1, ease: 'easeOut' }}
                           className={casinoStyles.goalProgressFill}
-                          style={{
-                            background: isComplete
-                              ? '#39d59b'
-                              : `linear-gradient(90deg, ${g.color}, #f2b84b)`,
-                          }}
                         />
                       </div>
                       {isComplete && (
                         <motion.div
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: '#39d59b',
-                            marginTop: 8,
-                            textAlign: 'right',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.08em',
-                          }}
+                          className={casinoStyles.goalDone}
                         >
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <CheckIcon size={12} />Completed
-                          </span>
+                          <CheckIcon size={12} />Completed
                         </motion.div>
                       )}
                     </motion.div>

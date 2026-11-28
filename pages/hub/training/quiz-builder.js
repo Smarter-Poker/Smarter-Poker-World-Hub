@@ -22,6 +22,7 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/horseBrainTrainingAdapter';
 import { encodeSharedDrillPack } from '../../../src/lib/training/trainingPresets.mjs';
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import st from '../../../src/styles/training/study-tools.module.css';
 // TRAIN-WIRE-EMPTY-8b — adoption: shared empty-state primitive
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -65,78 +66,36 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
   };
 
   return (
-    <motion.div
+    <motion.section
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0 }}
-      style={{
-        padding: '16px',
-        borderRadius: 14,
-        marginBottom: 10,
-        background: 'rgba(0,0,0,0.2)',
-        border: '1px solid rgba(255,255,255,0.06)',
-      }}
+      className={`sd-panel ${st.panel}`}
+      aria-label={`Question ${index + 1}`}
     >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 12,
-        }}
-      >
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>Q{index + 1}</div>
+      <div className={st.panelHead}>
+        <h3 className={st.title}>Question {index + 1}</h3>
         <motion.button
+          type="button"
           whileTap={{ scale: 0.9 }}
           onClick={() => onRemove(index)}
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: 6,
-            background: 'rgba(239,68,68,0.1)',
-            border: 'none',
-            color: 'var(--sp-accent-red)',
-            fontSize: 12,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          aria-label={`Remove Question ${index + 1}`}
+          className={`sd-button ${st.close}`}
         >
           ✕
         </motion.button>
       </div>
 
       {/* Position Row */}
-      <div
-        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 10 }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: 12,
-              color: 'var(--sp-fg-dim)',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              marginBottom: 4,
-            }}
-          >
-            YOUR POS
-          </div>
+      <div className={st.grid3}>
+        <label className={st.field}>
+          <span className={st.label}>Your Position</span>
           <select
             aria-label={`Question ${index + 1} Game Type`}
             value={question.position}
             onChange={(e) => update('position', e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px',
-              borderRadius: 6,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'var(--sp-fg)',
-              fontSize: 12,
-            }}
+            className={st.input}
           >
             {POSITION_OPTIONS.map((p) => (
               <option key={p} value={p}>
@@ -144,32 +103,14 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
               </option>
             ))}
           </select>
-        </div>
-        <div>
-          <div
-            style={{
-              fontSize: 12,
-              color: 'var(--sp-fg-dim)',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              marginBottom: 4,
-            }}
-          >
-            VILLAIN
-          </div>
+        </label>
+        <label className={st.field}>
+          <span className={st.label}>Villain</span>
           <select
             aria-label={`Question ${index + 1} Difficulty`}
             value={question.vilPosition}
             onChange={(e) => update('vilPosition', e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px',
-              borderRadius: 6,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'var(--sp-fg)',
-              fontSize: 12,
-            }}
+            className={st.input}
           >
             {POSITION_OPTIONS.map((p) => (
               <option key={p} value={p}>
@@ -177,32 +118,14 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
               </option>
             ))}
           </select>
-        </div>
-        <div>
-          <div
-            style={{
-              fontSize: 12,
-              color: 'var(--sp-fg-dim)',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              marginBottom: 4,
-            }}
-          >
-            STREET
-          </div>
+        </label>
+        <label className={st.field}>
+          <span className={st.label}>Street</span>
           <select
             aria-label={`Question ${index + 1} Position`}
             value={question.street}
             onChange={(e) => update('street', e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px',
-              borderRadius: 6,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'var(--sp-fg)',
-              fontSize: 12,
-            }}
+            className={st.input}
           >
             {STREET_OPTIONS.map((s) => (
               <option key={s} value={s}>
@@ -210,68 +133,29 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
               </option>
             ))}
           </select>
-        </div>
+        </label>
       </div>
 
       {/* Scenario */}
-      <div style={{ marginBottom: 10 }}>
-        <div
-          style={{
-            fontSize: 12,
-            color: 'var(--sp-fg-dim)',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            marginBottom: 4,
-          }}
-        >
-          SCENARIO
-        </div>
+      <label className={st.field}>
+        <span className={st.label}>Scenario</span>
         <textarea
           value={question.scenario}
           onChange={(e) => update('scenario', e.target.value)}
           placeholder="e.g. Hero opens BTN to 2.5x, BB 3-bets to 8x. Hero holds AKo. What is the best action?"
           rows={2}
-          style={{
-            width: '100%',
-            padding: '8px 10px',
-            borderRadius: 6,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: 'var(--sp-fg)',
-            fontSize: 12,
-            resize: 'vertical',
-            fontFamily: 'Inter, sans-serif',
-          }}
+          className={st.input}
         />
-      </div>
+      </label>
 
       {/* Correct Action */}
-      <div style={{ marginBottom: 10 }}>
-        <div
-          style={{
-            fontSize: 12,
-            color: 'var(--sp-fg-dim)',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            marginBottom: 4,
-          }}
-        >
-          CORRECT ACTION
-        </div>
+      <label className={st.field}>
+        <span className={st.label}>Correct Action</span>
         <select
           aria-label={`Question ${index + 1} Correct Answer`}
           value={question.correctAction}
           onChange={(e) => update('correctAction', e.target.value)}
-          style={{
-            width: '100%',
-            padding: '8px',
-            borderRadius: 6,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: 'var(--sp-accent-green)',
-            fontSize: 12,
-            fontWeight: 700,
-          }}
+          className={st.input}
         >
           {ACTION_OPTIONS.map((a) => (
             <option key={a} value={a}>
@@ -279,40 +163,20 @@ function QuestionEditor({ question, index, onChange, onRemove }) {
             </option>
           ))}
         </select>
-      </div>
+      </label>
 
       {/* Explanation */}
-      <div>
-        <div
-          style={{
-            fontSize: 12,
-            color: 'var(--sp-fg-dim)',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            marginBottom: 4,
-          }}
-        >
-          EXPLANATION (OPTIONAL)
-        </div>
+      <label className={st.field}>
+        <span className={st.label}>Explanation (Optional)</span>
         <textarea
           value={question.explanation}
           onChange={(e) => update('explanation', e.target.value)}
           placeholder="Why is this the correct play?"
           rows={2}
-          style={{
-            width: '100%',
-            padding: '8px 10px',
-            borderRadius: 6,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: 'var(--sp-fg)',
-            fontSize: 12,
-            resize: 'vertical',
-            fontFamily: 'Inter, sans-serif',
-          }}
+          className={st.input}
         />
-      </div>
-    </motion.div>
+      </label>
+    </motion.section>
   );
 }
 
@@ -480,100 +344,46 @@ export default function QuizBuilderPage() {
         description="Create, Save, And Practice Custom Multi-Question GTO Poker Strategy Quizzes With Custom Board Textures, Stack Sizes, And Explanations On Smarter.Poker."
         canonical="/hub/training/quiz-builder"
       />
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
+      <div className={st.shell}>
         <TrainingPageHead slug="training-quiz-builder" note="Create Custom GTO Scenarios" />
 
+        <div className={st.page}>
         {/* Tabs */}
-        <div
-          style={{
-            display: 'flex',
-            gap: 4,
-            padding: '10px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.04)',
-            background: 'rgba(0,0,0,0.15)',
-          }}
-        >
+        <div className={`sd-tabs ${st.grid2}`} role="tablist" aria-label="Quiz Builder Views">
           {[
             { id: 'build', label: 'Build Quiz' },
             { id: 'saved', label: `My Quizzes (${savedQuizzes.length})` },
           ].map((t) => (
             <motion.button
               key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
               whileTap={{ scale: 0.97 }}
               onClick={() => setTab(t.id)}
-              style={{
-                flex: 1,
-                padding: '8px',
-                borderRadius: 6,
-                border: `1px solid ${tab === t.id ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
-                background: tab === t.id ? 'rgba(0,212,255,0.06)' : 'transparent',
-                color: tab === t.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
+              className="sd-button"
             >
               {t.label}
             </motion.button>
           ))}
         </div>
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {/* BUILD TAB */}
           {tab === 'build' && (
             <>
               {/* Quiz Name */}
-              <div style={{ marginBottom: 16 }}>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: 'var(--sp-fg-dim)',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    marginBottom: 4,
-                  }}
-                >
-                  QUIZ NAME
-                </div>
-                <input
-                  value={quizName}
-                  onChange={(e) => setQuizName(e.target.value)}
-                  placeholder="e.g. BTN vs BB 3-Bet Defense"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 8,
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    color: 'var(--sp-fg)',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    fontFamily: 'Inter, sans-serif',
-                  }}
-                />
-              </div>
-
-              {/* Questions */}
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                  marginBottom: 8,
-                }}
-              >
-                QUESTIONS ({questions.length})
-              </div>
+              <section className={`sd-panel ${st.panel}`} aria-label="Quiz Details">
+                <label className={st.field}>
+                  <span className={st.label}>Quiz Name</span>
+                  <input
+                    value={quizName}
+                    onChange={(e) => setQuizName(e.target.value)}
+                    placeholder="e.g. BTN vs BB 3-Bet Defense"
+                    className={st.input}
+                  />
+                </label>
+                <p className={st.eyebrow}>Questions ({questions.length})</p>
+              </section>
 
               <AnimatePresence>
                 {questions.map((q, i) => (
@@ -588,22 +398,12 @@ export default function QuizBuilderPage() {
               </AnimatePresence>
 
               {/* Add + Save + Share Study Group Pack */}
-              <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              <div className={st.actions}>
                 <motion.button
+                  type="button"
                   whileTap={{ scale: 0.97 }}
                   onClick={addQuestion}
-                  style={{
-                    flex: 1,
-                    minWidth: 130,
-                    padding: '12px',
-                    borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    background: 'rgba(255,255,255,0.03)',
-                    color: 'var(--sp-fg-muted)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
+                  className="sd-button"
                 >
                   + Add Question
                 </motion.button>
@@ -613,44 +413,21 @@ export default function QuizBuilderPage() {
                   data-copy-shared-drill-pack="true"
                   data-shared-pack-token={sharedQuizPackToken}
                   onClick={copySharedQuizPackLink}
-                  style={{
-                    flex: 1,
-                    minWidth: 165,
-                    padding: '12px 10px',
-                    borderRadius: 7,
-                    border: '1px solid #688299',
-                    borderTopColor: '#aec0d0',
-                    background: 'linear-gradient(180deg, #13253a 0%, #091727 60%, #060e18 100%)',
-                    color: '#83deff',
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
+                  className="sd-button"
                 >
                   {sharedPackCopied ? 'Shared Pack Link Copied!' : 'Copy Shared Drill Pack Link'}
                 </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={saveQuiz}
-                  disabled={!quizName.trim()}
-                  style={{
-                    flex: 1,
-                    minWidth: 130,
-                    padding: '12px',
-                    borderRadius: 10,
-                    border: 'none',
-                    background: quizName.trim()
-                      ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))'
-                      : 'rgba(255,255,255,0.05)',
-                    color: quizName.trim() ? '#fff' : 'var(--sp-fg-faint)',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: quizName.trim() ? 'pointer' : 'not-allowed',
-                  }}
-                >
-                  Save Quiz
-                </motion.button>
               </div>
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.97 }}
+                onClick={saveQuiz}
+                disabled={!quizName.trim()}
+                className={`sd-button sd-primary ${st.block}`}
+              >
+                Save Quiz
+              </motion.button>
+              {!quizName.trim() && <p className={st.small}>Name The Quiz To Save It.</p>}
             </>
           )}
 
@@ -660,64 +437,46 @@ export default function QuizBuilderPage() {
               {savedQuizzes.length === 0 && (
                 <TrainerEmptyState
                   variant="no-data"
-                  title="No quizzes yet"
-                  message="Switch to the Build tab to create your first quiz."
+                  title="No Quizzes Yet"
+                  message="Switch To The Build Tab To Create Your First Quiz."
                   compact
                 />
               )}
+              <div className={st.list}>
               {savedQuizzes.map((quiz) => (
                 <motion.div
                   key={quiz.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  style={{
-                    padding: '14px 16px',
-                    borderRadius: 12,
-                    marginBottom: 8,
-                    background: 'rgba(0,0,0,0.2)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
+                  className={`${st.item} ${st.rowItem}`}
                 >
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)' }}>
+                    <div className={st.itemTitle}>
                       {quiz.name}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
+                    <div className={st.small}>
                       {quiz.questions.length} Questions · Created{' '}
                       {new Date(quiz.createdAt).toLocaleDateString()}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => deleteQuiz(quiz.id)}
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: 6,
-                        background: 'rgba(239,68,68,0.08)',
-                        border: '1px solid rgba(239,68,68,0.15)',
-                        color: 'var(--sp-accent-red)',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Delete
-                    </motion.button>
-                  </div>
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => deleteQuiz(quiz.id)}
+                    aria-label={`Delete ${quiz.name}`}
+                    className="sd-button"
+                  >
+                    Delete
+                  </motion.button>
                 </motion.div>
               ))}
+              </div>
             </>
           )}
 
           <details
             className="sp-mtt-disclosure"
             data-quiz-builder-advanced="true"
-            open
-            style={{ marginTop: 18 }}
           >
             <summary>
               <span>Horse Brain Spot Reference &amp; 1:1 Club Arena Launcher</span>

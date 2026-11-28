@@ -167,7 +167,7 @@ export default function ChallengesPage() {
             </section>
           </div>
         </div>
-        <HubPageSummary page="training-challenges" as="h1" />
+        <HubPageSummary page="training-challenges" />
       </PageTransition>
     );
   }
@@ -288,7 +288,7 @@ export default function ChallengesPage() {
         </div>
       </PageTransition>
       <ConnectionToast />
-      <HubPageSummary page="training-challenges" as="h1" />
+      <HubPageSummary page="training-challenges" />
     </>
   );
 }

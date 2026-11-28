@@ -5,6 +5,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/sessions-coaching.module.css';
 const SAMPLE_CLUB_ARENA_HAND = `PokerStars Hand #994810241: Hold'em No Limit ($1/$2 USD) - 2026/11/09 15:30:00 ET
 Table 'ClubArena_6Max_1' 6-max Seat #1 is the button
 Seat 1: Hero ($200.00 in chips)
@@ -194,333 +195,194 @@ export default function LiveHudSyncPage() {
               <meta name="robots" content="noindex, nofollow" />
       </Head>
       <UniversalHeader pageDepth={2} />
-      <main style={{ minHeight: 'calc(100dvh - 70px)', padding: 'clamp(26px, 7vw, 82px) 18px', background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)', color: '#f7fbff' }}>
+      <main className={s.shell}>
         <TrainingPageHead slug="training-live-hud-sync" />
-        <section style={{ position: 'relative', maxWidth: 860, margin: '0 auto', border: '1px solid #688299', borderTopColor: '#aec0d0', background: 'linear-gradient(180deg, rgba(9, 23, 39, 0.96) 0%, rgba(3, 11, 20, 0.98) 100%)', boxShadow: 'inset 0 1px rgba(255,255,255,.25), inset 0 -24px 55px rgba(0,0,0,.42), 0 32px 76px rgba(0,0,0,.55)', padding: 'clamp(24px, 5vw, 48px)' }}>
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 7, border: '1px solid rgba(93,201,240,.16)', pointerEvents: 'none' }} />
-          <div style={{ position: 'relative' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, color: '#86daff', fontSize: 12, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffb84d', boxShadow: '0 0 12px rgba(134, 218, 255, .8)' }} />
-              Integration Status
-            </div>
-            <h2 style={{ margin: '14px 0 10px', fontSize: 'clamp(32px, 7vw, 62px)', lineHeight: .98, textTransform: 'capitalize' }}>Live HUD Sync</h2>
-            <p style={{ margin: 0, maxWidth: 670, color: '#b8cad7', lineHeight: 1.7 }}>Physical Beacon Discovery And Bluetooth Pairing Are Not Connected To A Production Service Yet. This Page Will Not Simulate A Device, Connection, Signal Strength, Battery, Or Firmware Version.</p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginTop: 28 }}>
+        <div className={s.page}>
+          <section className={`sd-panel ${s.panel}`} aria-labelledby="live-hud-status-title">
+            <p className={s.eyebrow}>Integration Status</p>
+            <h2 id="live-hud-status-title" className={s.sectionTitle}>Live HUD Sync</h2>
+            <p className={s.copy}>Physical Beacon Discovery And Bluetooth Pairing Are Not Connected To A Production Service Yet. This Page Will Not Simulate A Device, Connection, Signal Strength, Battery, Or Firmware Version.</p>
+            <dl className={s.list}>
               {statusRows.map(([label, value]) => (
-                <div key={label} style={{ padding: '16px 17px', border: '1px solid rgba(132,213,242,.18)', background: 'linear-gradient(180deg, rgba(39,75,96,.34), rgba(3,9,14,.68))', boxShadow: 'inset 0 1px rgba(255,255,255,.12)' }}>
-                  <div style={{ color: '#6f8b9e', fontSize: 12, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</div>
-                  <div style={{ marginTop: 6, color: value === 'Available' ? '#77f2b4' : '#d8e7ef', fontSize: 14, fontWeight: 800 }}>{value}</div>
+                <div key={label} className={s.row}>
+                  <dt className={s.rowValue}>{label}</dt>
+                  <dd className={value === 'Available' ? `${s.rowLabel} ${s.up}` : s.rowLabel}>{value}</dd>
                 </div>
               ))}
-            </div>
+            </dl>
+          </section>
 
-            {/* AUTHENTICATED PARTICIPANT HAND RETRIEVAL & TRAIN THIS HAND */}
-            <div
-              data-live-hand-sync-panel="true"
-              style={{
-                marginTop: 28,
-                padding: '22px',
-                border: '1px solid rgba(102,211,246,.34)',
-                background: 'rgba(3,12,20,.78)',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                <div>
-                  <div style={{ color: '#82e7ff', fontSize: 12, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Authenticated Participant Hand Sync
-                  </div>
-                  <p style={{ margin: '6px 0 0', color: '#a9becd', fontSize: 13, lineHeight: 1.55 }}>
-                    Retrieve Your Participant-Verified Club Arena Or Imported Hands And Launch Directly Into A Focused Arena Drill.
-                  </p>
-                </div>
+          {/* AUTHENTICATED PARTICIPANT HAND RETRIEVAL & TRAIN THIS HAND */}
+          <section data-live-hand-sync-panel="true" className={`sd-panel ${s.panel}`} aria-labelledby="live-hand-sync-title">
+            <div className={s.panelHead}>
+              <h2 id="live-hand-sync-title" className={s.sectionTitle}>Participant Hand Sync</h2>
+              <button
+                type="button"
+                data-refresh-synced-hands="true"
+                onClick={fetchParticipantHands}
+                className={`sd-button ${s.button}`}
+              >
+                {loadingHands ? 'Syncing Hands...' : 'Refresh My Hands'}
+              </button>
+            </div>
+            <p className={s.copy}>
+              Retrieve Your Participant-Verified Club Arena Or Imported Hands And Launch Directly Into A Focused Arena Drill.
+            </p>
+
+            {/* Import & Sync Hand History */}
+            <div className={s.askBlock}>
+              <div className={s.panelHead}>
+                <h3 className={s.subTitle}>Import Hand History</h3>
                 <button
                   type="button"
-                  data-refresh-synced-hands="true"
-                  onClick={fetchParticipantHands}
-                  style={{
-                    minHeight: 44,
-                    padding: '0 14px',
-                    border: '1px solid rgba(165,239,255,.45)',
-                    background: 'rgba(22,55,74,.65)',
-                    color: '#e0f7ff',
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
+                  data-load-sample-hand="true"
+                  onClick={() => setHandInputText(SAMPLE_CLUB_ARENA_HAND)}
+                  className={`sd-button ${s.button}`}
                 >
-                  {loadingHands ? 'Syncing Hands...' : 'Refresh My Hands'}
+                  Load Sample Hand
                 </button>
               </div>
+              <textarea
+                data-sync-hand-input="true"
+                className={s.input}
+                aria-label="Hand History Text"
+                value={handInputText}
+                onChange={(e) => setHandInputText(e.target.value)}
+                placeholder="Paste Club Arena, PokerStars, Or GGPoker Hand History Text..."
+                rows={4}
+                style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13 }}
+              />
+              <button
+                type="button"
+                data-sync-import-btn="true"
+                disabled={importing || !handInputText.trim()}
+                onClick={() => handleImportAndSync()}
+                className={`sd-button ${importing || !handInputText.trim() ? '' : 'sd-primary'} ${s.button}`}
+              >
+                {importing ? 'Auditing & Syncing...' : 'Import & Sync Hand'}
+              </button>
+              {importFeedback && (
+                <p data-sync-import-feedback="true" className={importFeedback.ok ? s.note : s.error} role="status">
+                  {importFeedback.message}
+                </p>
+              )}
+            </div>
 
-              {/* Import & Sync Hand History Box */}
-              <div style={{ marginTop: 16, padding: 14, border: '1px solid rgba(132,213,242,.18)', background: 'rgba(0,0,0,.3)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#cfe9f7' }}>
-                    Import Hand History Into Participant Sync
-                  </span>
-                  <button
-                    type="button"
-                    data-load-sample-hand="true"
-                    onClick={() => setHandInputText(SAMPLE_CLUB_ARENA_HAND)}
-                    style={{
-                      padding: '4px 10px',
-                      border: '1px solid rgba(132,213,242,.35)',
-                      background: 'rgba(20,48,66,.55)',
-                      color: '#82e7ff',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Load Sample Hand
-                  </button>
-                </div>
-                <textarea
-                  data-sync-hand-input="true"
-                  value={handInputText}
-                  onChange={(e) => setHandInputText(e.target.value)}
-                  placeholder="Paste Club Arena, PokerStars, Or GGPoker Hand History Text..."
-                  rows={4}
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: 10,
-                    background: 'rgba(2,8,14,.85)',
-                    border: '1px solid rgba(132,213,242,.25)',
-                    color: '#e6f6ff',
-                    fontSize: 12,
-                    fontFamily: 'monospace',
-                  }}
+            {/* Participant-Only Hand ID Lookup */}
+            <div className={s.askBlock}>
+              <h3 className={s.subTitle}>Verify Hand Retrieval By Hand ID</h3>
+              <div className={s.actions}>
+                <input
+                  type="text"
+                  data-lookup-hand-id="true"
+                  className={s.input}
+                  aria-label="Hand ID"
+                  value={lookupHandId}
+                  onChange={(e) => setLookupHandId(e.target.value)}
+                  placeholder="Enter Hand ID (E.G. 994810241)"
+                  style={{ flex: '1 1 200px', width: 'auto' }}
                 />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    data-sync-import-btn="true"
-                    disabled={importing || !handInputText.trim()}
-                    onClick={() => handleImportAndSync()}
-                    style={{
-                      minHeight: 44,
-                      padding: '0 18px',
-                      border: '1px solid #a5efff',
-                      background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
-                      color: '#fff',
-                      fontSize: 12,
-                      fontWeight: 900,
-                      cursor: importing ? 'wait' : 'pointer',
-                    }}
-                  >
-                    {importing ? 'Auditing & Syncing...' : 'Import & Sync Hand'}
-                  </button>
-                  {importFeedback && (
-                    <span
-                      data-sync-import-feedback="true"
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: importFeedback.ok ? '#77f2b4' : '#fca5a5',
-                      }}
-                    >
-                      {importFeedback.message}
-                    </span>
+                <button
+                  type="button"
+                  data-lookup-hand-btn="true"
+                  onClick={handleLookupHandById}
+                  className={`sd-button ${s.button}`}
+                >
+                  Verify & Retrieve Hand
+                </button>
+              </div>
+              {lookupStatus && (
+                <div
+                  data-lookup-status="true"
+                  data-lookup-code={lookupStatus.code || ''}
+                  className={lookupStatus.ok || lookupStatus.loading ? s.note : s.error}
+                  role="status"
+                >
+                  {lookupStatus.message}
+                  {lookupStatus.hand?.drillHref && (
+                    <p style={{ margin: '8px 0 0' }}><a className={`sd-button sd-primary ${s.button}`} href={lookupStatus.hand.drillHref}>Train This Hand</a></p>
                   )}
                 </div>
-              </div>
+              )}
+            </div>
 
-              {/* Participant-Only Hand ID Lookup */}
-              <div style={{ marginTop: 14, padding: 14, border: '1px solid rgba(132,213,242,.18)', background: 'rgba(0,0,0,.3)' }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#cfe9f7', marginBottom: 8 }}>
-                  Verify Participant-Only Hand Retrieval By Hand ID
+            {/* Participant-Verified Hands List with "Train This Hand" */}
+            <div data-synced-hands-list="true" style={{ display: 'grid', gap: 10 }}>
+              <h3 className={s.subTitle}>Your Synced Hands</h3>
+              {handsError ? (
+                <div role="alert" className={s.error} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <span>{handsError}</span>
+                  <button type="button" className={`sd-button ${s.button}`} onClick={fetchParticipantHands}>Retry</button>
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <input
-                    type="text"
-                    data-lookup-hand-id="true"
-                    value={lookupHandId}
-                    onChange={(e) => setLookupHandId(e.target.value)}
-                    placeholder="Enter Hand ID (e.g. 994810241)"
-                    style={{
-                      flex: '1 1 220px',
-                      minHeight: 44,
-                      padding: '0 12px',
-                      background: 'rgba(2,8,14,.85)',
-                      border: '1px solid rgba(132,213,242,.25)',
-                      color: '#e6f6ff',
-                      fontSize: 12,
-                    }}
-                  />
-                  <button
-                    type="button"
-                    data-lookup-hand-btn="true"
-                    onClick={handleLookupHandById}
-                    style={{
-                      minHeight: 44,
-                      padding: '0 16px',
-                      border: '1px solid rgba(165,239,255,.45)',
-                      background: 'rgba(22,55,74,.65)',
-                      color: '#d8f6ff',
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
+              ) : hands.length === 0 ? (
+                <p className={s.note}>
+                  {loadingHands
+                    ? 'Loading Participant-Verified Hands...'
+                    : 'No Synced Hands Yet. Import A Hand History To Practice A Decision.'}
+                </p>
+              ) : (
+                hands.map((hand) => (
+                  <article
+                    key={hand.id}
+                    data-synced-hand-row={hand.id}
+                    data-hand-leak-priority={hand.leakPriorityRank}
+                    data-estimated-ev-loss-bb={hand.estimatedEvLossBb}
+                    className={`sd-metric ${s.card}`}
                   >
-                    Verify & Retrieve Hand
-                  </button>
-                </div>
-                {lookupStatus && (
-                  <div
-                    data-lookup-status="true"
-                    data-lookup-code={lookupStatus.code || ''}
-                    style={{
-                      marginTop: 8,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: lookupStatus.ok ? '#77f2b4' : '#fca5a5',
-                    }}
-                  >
-                    {lookupStatus.message}
-                    {lookupStatus.hand?.drillHref && (
-                      <p><a href={lookupStatus.hand.drillHref}>Train This Hand</a></p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Participant-Verified Hands List with "Train This Hand" */}
-              <div data-synced-hands-list="true" style={{ marginTop: 16, display: 'grid', gap: 10 }}>
-                {handsError ? (
-                  <div role="alert">
-                    {handsError} <button type="button" onClick={fetchParticipantHands}>Retry</button>
-                  </div>
-                ) : hands.length === 0 ? (
-                  <div style={{ padding: 14, border: '1px solid rgba(132,213,242,.14)', color: '#9bb4c4', fontSize: 12 }}>
-                    {loadingHands
-                      ? 'Loading Participant-Verified Hands...'
-                      : 'No Synced Hands Yet. Import A Hand History To Practice A Decision.'}
-                  </div>
-                ) : (
-                  hands.map((hand) => (
-                    <div
-                      key={hand.id}
-                      data-synced-hand-row={hand.id}
-                      data-hand-leak-priority={hand.leakPriorityRank}
-                      data-estimated-ev-loss-bb={hand.estimatedEvLossBb}
-                      style={{
-                        padding: '14px 16px',
-                        border: hand.leakPriorityRank === 1
-                          ? '1px solid rgba(134, 218, 255, .65)'
-                          : '1px solid rgba(132,213,242,.26)',
-                        background: hand.leakPriorityRank === 1
-                          ? 'rgba(30,22,12,.86)'
-                          : 'rgba(8,22,34,.82)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: 12,
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
-                          <span
-                            style={{
-                              padding: '2px 8px',
-                              border: hand.leakPriorityRank === 1
-                                ? '1px solid #fbbf24'
-                                : '1px solid rgba(132,213,242,.35)',
-                              background: hand.leakPriorityRank === 1
-                                ? 'rgba(134, 218, 255, .32)'
-                                : 'rgba(20,48,66,.55)',
-                              color: hand.leakPriorityRank === 1 ? '#86daff' : '#82e7ff',
-                              fontSize: 12,
-                              fontWeight: 900,
-                            }}
-                          >
-                            Leak Priority #{hand.leakPriorityRank}{hand.leakPriorityRank === 1 ? ' · #1 Highest EV Leak' : ''}
-                          </span>
-                          <span
-                            style={{
-                              padding: '2px 8px',
-                              border: '1px solid rgba(248,113,113,.45)',
-                              background: 'rgba(127,29,29,.35)',
-                              color: '#fca5a5',
-                              fontSize: 12,
-                              fontWeight: 800,
-                            }}
-                          >
-                            {Number.isFinite(hand.estimatedEvLossBb) ? `Estimated EV Loss: ${hand.estimatedEvLossBb} BB` : "EV Loss Unavailable"}
-                          </span>
-                        </div>
-                        <div style={{ color: '#e6f6ff', fontSize: 13, fontWeight: 900 }}>
-                          Hand #{hand.id} · {hand.site || 'Club Arena'} ({hand.gameType || 'Cash'} {hand.stakes || '1/2'})
-                        </div>
-                        <div style={{ marginTop: 4, color: '#9bb4c4', fontSize: 12 }}>
-                          Hero ({hand.heroPosition || 'BTN'}):{' '}
-                          <strong style={{ color: '#77f2b4' }}>
-                            {Array.isArray(hand.heroCards) && hand.heroCards.length > 0 ? hand.heroCards.join(' ') : 'Unavailable'}
-                          </strong>
-                          {' · '}
-                          Board:{' '}
-                          <strong style={{ color: '#82e7ff' }}>
-                            {Array.isArray(hand.board) && hand.board.length > 0 ? hand.board.join(' ') : 'Preflop'}
-                          </strong>
-                          {' · '}
-                          Recommended:{' '}
-                          <strong style={{ color: '#86daff' }}>
-                            {hand.recommendedAction || 'Unavailable'}
-                          </strong>
-                        </div>
-                      </div>
-                      <a
-                        data-train-this-hand="true"
-                        data-train-top-imported-leak={hand.leakPriorityRank === 1 ? "true" : undefined}
-                        data-drill-similar-spot-cta="true"
-                        data-hand-id={hand.id}
-                        href={hand.drillHref || `/hub/training/arena/cash-002?level=1&syncedHandId=${encodeURIComponent(hand.id)}`}
-                        style={{
-                          display: 'inline-flex',
-                          minHeight: 44,
-                          alignItems: 'center',
-                          padding: '0 16px',
-                          border: '1px solid #77f2b4',
-                          background: 'linear-gradient(180deg, rgba(16,185,129,.32), rgba(6,78,59,.65))',
-                          color: '#ecfdf5',
-                          fontSize: 12,
-                          fontWeight: 900,
-                          textDecoration: 'none',
-                        }}
-                      >
-                        Train This Hand →
-                      </a>
+                    <div className={s.chips} style={{ gap: 6 }}>
+                      <span className={s.tag}>
+                        Leak Priority #{hand.leakPriorityRank}{hand.leakPriorityRank === 1 ? ' · #1 Highest EV Leak' : ''}
+                      </span>
+                      <span className={s.tag} style={Number.isFinite(hand.estimatedEvLossBb) ? { color: '#ff7a86' } : undefined}>
+                        {Number.isFinite(hand.estimatedEvLossBb) ? `Estimated EV Loss: ${hand.estimatedEvLossBb} BB` : "EV Loss Unavailable"}
+                      </span>
                     </div>
-                  ))
-                )}
-              </div>
+                    <strong className={s.rowLabel}>
+                      Hand #{hand.id} · {hand.site || 'Club Arena'} ({hand.gameType || 'Cash'} {hand.stakes || '1/2'})
+                    </strong>
+                    <p className={s.facts}>
+                      <span>Hero ({hand.heroPosition || 'BTN'}): <strong>{Array.isArray(hand.heroCards) && hand.heroCards.length > 0 ? hand.heroCards.join(' ') : 'Unavailable'}</strong></span>
+                      <span>Board: <strong className={s.ice}>{Array.isArray(hand.board) && hand.board.length > 0 ? hand.board.join(' ') : 'Preflop'}</strong></span>
+                      <span>Recommended: <strong className={s.ice}>{hand.recommendedAction || 'Unavailable'}</strong></span>
+                    </p>
+                    <a
+                      data-train-this-hand="true"
+                      data-train-top-imported-leak={hand.leakPriorityRank === 1 ? "true" : undefined}
+                      data-drill-similar-spot-cta="true"
+                      data-hand-id={hand.id}
+                      href={hand.drillHref || `/hub/training/arena/cash-002?level=1&syncedHandId=${encodeURIComponent(hand.id)}`}
+                      className={`sd-button sd-primary ${s.button}`}
+                    >
+                      Train This Hand →
+                    </a>
+                  </article>
+                ))
+              )}
             </div>
+          </section>
 
-            <div style={{ marginTop: 28, padding: '20px', border: '1px solid rgba(102,211,246,.24)', background: 'rgba(0,0,0,.22)' }}>
-              <div style={{ color: '#82e7ff', fontSize: 12, fontWeight: 900, textTransform: 'capitalize' }}>Supported Workflow</div>
-              <p style={{ margin: '8px 0 0', color: '#a9becd', fontSize: 13, lineHeight: 1.65 }}>Import A Real Hand-History File For Analysis And Review. Imported Decisions Are Parsed And Audited; They Are Not Replaced With Generated Device Telemetry.</p>
-              <a href="/hub/training/hand-history-upload" style={{ display: 'inline-flex', minHeight: 48, alignItems: 'center', padding: '0 20px', marginTop: 18, border: '1px solid #a5efff', background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)', color: '#fff', fontSize: 13, fontWeight: 900, textDecoration: 'none', textTransform: 'capitalize' }}>
-                Open Hand History Import →
-              </a>
-            </div>
+          <section className={`sd-panel ${s.panel}`} aria-labelledby="live-hud-workflow-title">
+            <h2 id="live-hud-workflow-title" className={s.sectionTitle}>Supported Workflow</h2>
+            <p className={s.copy}>Import A Real Hand-History File For Analysis And Review. Imported Decisions Are Parsed And Audited; They Are Not Replaced With Generated Device Telemetry.</p>
+            <a href="/hub/training/hand-history-upload" className={`sd-button sd-primary ${s.button} ${s.primary}`}>
+              Open Hand History Import →
+            </a>
+          </section>
 
-            <div data-live-hud-sync-workflows="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginTop: 20 }}>
-              {clubArenaSyncRoutes.map((item) => (
-                <div key={item.href} style={{ padding: '18px', border: '1px solid rgba(132,213,242,.2)', background: 'rgba(5,14,22,.72)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 12 }}>
-                  <div>
-                    <div style={{ color: '#e6f6ff', fontSize: 14, fontWeight: 900 }}>{item.title}</div>
-                    <p style={{ margin: '6px 0 0', color: '#9bb4c4', fontSize: 12, lineHeight: 1.55 }}>{item.subtitle}</p>
-                  </div>
-                  <a href={item.href} style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', padding: '0 14px', border: '1px solid rgba(165,239,255,.45)', background: 'rgba(22,55,74,.55)', color: '#d8f6ff', fontSize: 12, fontWeight: 800, textDecoration: 'none' }}>
-                    {item.cta}
-                  </a>
+          <section data-live-hud-sync-workflows="true" className={s.cardGrid} aria-label="Related Workflows">
+            {clubArenaSyncRoutes.map((item) => (
+              <article key={item.href} className={`sd-panel ${s.card}`} style={{ alignContent: 'space-between' }}>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <h3 className={s.subTitle}>{item.title}</h3>
+                  <p className={s.copy}>{item.subtitle}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
+                <a href={item.href} className={`sd-button ${s.button}`}>
+                  {item.cta}
+                </a>
+              </article>
+            ))}
+          </section>
+        </div>
       </main>
     </>
   );

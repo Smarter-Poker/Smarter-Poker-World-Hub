@@ -23,6 +23,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import PokerSoundManager from '../../../src/components/poker/PokerSoundManager';
 
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import tp from '../../../src/styles/training/training-play.module.css';
 function computePaneSpatialPan(paneIndex, totalTables) {
   const count = Math.max(1, Number(totalTables) || 1);
   if (count <= 1) return 0;
@@ -46,7 +47,7 @@ function resolveDefaultPaneConfigs(baseVariant = 'nlh') {
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
   ssr: false,
   loading: () => (
-    <div style={{ padding: 40, textAlign: 'center', color: 'var(--sp-fg-dim)' }}>Loading Table...</div>
+    <div className={tp.loadingTable}>Loading Table...</div>
   ),
 });
 
@@ -639,23 +640,17 @@ export default function MultiTablePage() {
         canonical="/hub/training/multi-table"
       />
 
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
+      <div className={tp.shell}>
         {showSummary ? (
           /* Results Summary Screen */
-          <div
-            style={{ padding: '40px 20px', maxWidth: 500, margin: '0 auto', textAlign: 'center' }}
-          >
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
+          <main className={tp.page}>
+            <TrainingPageHead slug="training-multi-table" />
+            <motion.section
+              initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+              className={`sd-panel ${tp.panel}`}
+              aria-labelledby="multi-table-summary-title"
             >
               {(() => {
                 const accuracy =
@@ -672,142 +667,61 @@ export default function MultiTablePage() {
                         : accuracy >= 60
                           ? 'D'
                           : 'F';
-                const gradeColor = {
-                  A: 'var(--sp-accent-green)',
-                  B: 'var(--sp-accent-blue)',
-                  C: '#86daff',
-                  D: '#7dd3fc',
-                  F: 'var(--sp-accent-red)',
-                }[grade];
                 return (
                   <>
-                    <div
-                      style={{
-                        width: 100,
-                        height: 100,
-                        borderRadius: '50%',
-                        margin: '0 auto 20px',
-                        background: `linear-gradient(135deg, ${gradeColor}30, ${gradeColor}15)`,
-                        border: `3px solid ${gradeColor}60`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 48,
-                        fontWeight: 900,
-                        color: gradeColor,
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      }}
-                    >
-                      {grade}
-                    </div>
-                    <h2
-                      style={{
-                        fontSize: 22,
-                        fontWeight: 800,
-                        color: 'var(--sp-fg)',
-                        marginBottom: 4,
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      }}
-                    >
-                      SESSION COMPLETE
-                    </h2>
-                    <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 24 }}>
-                      {tableCount} Tables · {combinedStats.totalHands} Total Decisions
-                    </p>
-
-                    {/* Save Status Indicator */}
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        marginBottom: 12,
-                        color:
-                          saveStatus === 'saved'
-                            ? 'var(--sp-accent-green)'
-                            : saveStatus === 'error'
-                              ? 'var(--sp-accent-red)'
-                              : 'var(--sp-fg-dim)',
-                      }}
-                    >
-                      {saveStatus === 'saving' && 'Saving session...'}
-                      {saveStatus === 'saved' && 'Saved to profile'}
-                      {saveStatus === 'error' && 'Save failed - results still shown'}
+                    <div className={tp.gradeRow}>
+                      <div className={`sd-metric ${tp.grade}`} aria-label={`Grade ${grade}`}>{grade}</div>
+                      <div className={tp.panel}>
+                        <h2 id="multi-table-summary-title" className={tp.sectionTitle}>Session Complete</h2>
+                        <p className={tp.copy}>
+                          {tableCount} Tables · {combinedStats.totalHands} Total Decisions
+                        </p>
+                        {/* Save Status Indicator */}
+                        {saveStatus && (
+                          <p role="status" className={saveStatus === 'saved' ? tp.up : saveStatus === 'error' ? tp.down : tp.small}>
+                            {saveStatus === 'saving' && 'Saving Session...'}
+                            {saveStatus === 'saved' && 'Saved To Profile'}
+                            {saveStatus === 'error' && 'Save Failed - Results Still Shown'}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(2, 1fr)',
-                        gap: 10,
-                        marginBottom: 24,
-                      }}
-                    >
+                    <div className={tp.metrics2}>
                       {[
-                        { label: 'Accuracy', value: `${accuracy}%`, color: gradeColor },
+                        { label: 'Accuracy', value: `${accuracy}%`, tone: 'ice' },
                         {
                           label: 'Measured EV Loss',
                           value: combinedStats.measuredEVDecisions > 0
-                            ? `${combinedStats.totalEVLoss.toFixed(1)}bb`
+                            ? `${combinedStats.totalEVLoss.toFixed(1)} BB`
                             : '-',
-                          color: combinedStats.measuredEVDecisions < 1
-                            ? 'var(--sp-fg-muted)'
-                            : combinedStats.totalEVLoss < 5
-                            ? 'var(--sp-accent-green)'
-                            : 'var(--sp-accent-red)',
+                          tone: combinedStats.measuredEVDecisions > 0 && combinedStats.totalEVLoss > 0 ? 'down' : undefined,
                         },
                         {
                           label: 'Correct',
                           value: `${combinedStats.totalCorrect}/${combinedStats.totalHands}`,
-                          color: 'var(--sp-accent-cyan)',
                         },
                         {
                           label: 'Tables Done',
                           value: `${combinedStats.tablesCompleted}/${tableCount}`,
-                          color: '#86daff',
                         },
-                      ].map((s, i) => (
+                      ].map((stat, i) => (
                         <motion.div
-                          key={i}
+                          key={stat.label}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 + i * 0.1 }}
-                          style={{
-                            padding: '14px 10px',
-                            borderRadius: 12,
-                            textAlign: 'center',
-                            background: 'rgba(0,0,0,0.25)',
-                            border: '1px solid rgba(255,255,255,0.06)',
-                          }}
+                          transition={{ delay: 0.15 + i * 0.08 }}
+                          className={`sd-metric ${tp.metric}`}
                         >
-                          <div
-                            style={{
-                              fontSize: 22,
-                              fontWeight: 800,
-                              color: s.color,
-                              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                            }}
-                          >
-                            {s.value}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: 'var(--sp-fg-dim)',
-                              textTransform: 'uppercase',
-                              letterSpacing: 1,
-                              marginTop: 4,
-                            }}
-                          >
-                            {s.label}
-                          </div>
+                          <span className={tp.metricLabel}>{stat.label}</span>
+                          <strong className={tp.metricValue} data-tone={stat.tone}>{stat.value}</strong>
                         </motion.div>
                       ))}
                     </div>
 
-                    <div style={{ display: 'flex', gap: 10 }}>
+                    <div className={tp.actions}>
                       <motion.button
-                        whileHover={{ scale: 1.03 }}
+                        type="button"
                         whileTap={{ scale: 0.97 }}
                         onClick={() => {
                           setShowSummary(false);
@@ -830,24 +744,12 @@ export default function MultiTablePage() {
                           });
                           hasSavedRef.current = false;
                         }}
-                        style={{
-                          flex: 1,
-                          padding: '14px',
-                          borderRadius: 12,
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontSize: 14,
-                          fontWeight: 800,
-                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                          background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
-                          color: '#fff',
-                          boxShadow: '0 4px 20px rgba(0,212,255,0.3)',
-                        }}
+                        className={`sd-button sd-primary ${tp.button}`}
                       >
-                        PLAY AGAIN
+                        Play Again
                       </motion.button>
                       <motion.button
-                        whileHover={{ scale: 1.03 }}
+                        type="button"
                         whileTap={{ scale: 0.97 }}
                         onClick={() => {
                           setShowSummary(false);
@@ -866,118 +768,62 @@ export default function MultiTablePage() {
                           });
                           hasSavedRef.current = false;
                         }}
-                        style={{
-                          flex: 1,
-                          padding: '14px',
-                          borderRadius: 12,
-                          cursor: 'pointer',
-                          fontSize: 13,
-                          fontWeight: 700,
-                          background: 'rgba(255,255,255,0.04)',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          color: 'var(--sp-fg-muted)',
-                        }}
+                        className={`sd-button ${tp.button}`}
                       >
-                        CHANGE CONFIG
+                        Change Setup
                       </motion.button>
                     </div>
                   </>
                 );
               })()}
-            </motion.div>
-          </div>
+            </motion.section>
+          </main>
         ) : !isStarted ? (
           /* Setup Screen */
-          <div
-            style={{ padding: '60px 20px', maxWidth: 500, margin: '0 auto', textAlign: 'center' }}
-          >
+          <main className={tp.page}>
             <TrainingPageHead slug="training-multi-table" />
-            <p style={{ fontSize: 13, color: 'var(--sp-fg-muted)', marginBottom: 18 }}>
-              Train On Multiple Tables Simultaneously To Build Speed And Accuracy Under Pressure.
-            </p>
 
-            {/* 1-Tap Active Preset Summary Bar */}
-            <div
-              data-multitable-preset-summary="true"
-              style={{
-                marginBottom: 20,
-                padding: '12px 14px',
-                border: '1px solid #688299',
-                borderTopColor: '#aec0d0',
-                background: 'linear-gradient(180deg, rgba(9, 23, 39, 0.96) 0%, rgba(3, 11, 20, 0.98) 100%)',
-                textAlign: 'left',
-              }}
-            >
-              <div style={{ fontSize: 12, fontWeight: 800, color: '#8fd0ff', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Active Multi-Table Preset
+            <section className={`sd-panel ${tp.panel}`} aria-labelledby="multi-table-setup-title">
+              <h2 id="multi-table-setup-title" className={tp.sectionTitle}>Set Up Your Session</h2>
+              <p className={tp.copy}>
+                Train On Multiple Tables Simultaneously To Build Speed And Accuracy Under Pressure.
+              </p>
+
+              {/* 1-Tap Active Preset Summary Bar */}
+              <div data-multitable-preset-summary="true" className={`sd-metric ${tp.metric} ${tp.metricLeft}`}>
+                <span className={tp.metricLabel}>Active Multi-Table Preset</span>
+                <strong className={tp.metricSmall}>
+                  {tableCount} Tables · {selectedVariant.toUpperCase()} ({selectedVariant === 'nlh' ? 'No-Limit' : 'Pot-Limit'}) · 6-Max Cash · 100{'\u00a0'}BB
+                </strong>
               </div>
-              <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: '#f2f7fb' }}>
-                {tableCount} Tables · {selectedVariant.toUpperCase()} ({selectedVariant === 'nlh' ? 'No-Limit' : 'Pot-Limit'}) · 6-Max Cash · 100 BB
-              </div>
-            </div>
+            </section>
 
             {/* Table Count Selector */}
-            <div style={{ marginBottom: 28 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  letterSpacing: 1.5,
-                  textTransform: 'uppercase',
-                  marginBottom: 10,
-                }}
-              >
-                NUMBER OF TABLES
-              </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+            <section className={`sd-panel ${tp.panel}`} aria-labelledby="multi-table-count-title">
+              <h3 id="multi-table-count-title" className={tp.subTitle}>Number Of Tables</h3>
+              <div className={tp.segmented} role="group" aria-labelledby="multi-table-count-title">
                 {[2, 3, 4].map((n) => (
                   <motion.button
                     key={n}
+                    type="button"
                     aria-label={`Select ${n} tables`}
                     aria-pressed={tableCount === n}
                     onClick={() => setTableCount(n)}
-                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    style={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: 12,
-                      cursor: 'pointer',
-                      fontSize: 22,
-                      fontWeight: 800,
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      background:
-                        tableCount === n
-                          ? 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))'
-                          : 'rgba(255,255,255,0.04)',
-                      color: tableCount === n ? '#fff' : 'var(--sp-fg-dim)',
-                      border: tableCount === n ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                    }}
+                    className={`sd-button ${tp.button} ${tp.countButton}`}
                   >
                     {n}
                   </motion.button>
                 ))}
               </div>
-            </div>
 
-            {/* Variant Selector (Hold'em / PLO4 / PLO5 / PLO6 / PLO8) */}
-            <div style={{ marginBottom: 24 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  letterSpacing: 1.5,
-                  textTransform: 'uppercase',
-                  marginBottom: 10,
-                }}
-              >
-                POKER VARIANT
-              </div>
+              {/* Variant Selector (Hold'em / PLO4 / PLO5 / PLO6 / PLO8) */}
+              <h3 id="multi-table-variant-title" className={tp.subTitle}>Poker Variant</h3>
               <div
                 data-multitable-variant-selector="true"
-                style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}
+                className={tp.chips}
+                role="group"
+                aria-labelledby="multi-table-variant-title"
               >
                 {[
                   { id: 'nlh', label: "Hold'em (2)" },
@@ -996,45 +842,27 @@ export default function MultiTablePage() {
                       onClick={() => {
                         setSelectedVariant(v.id);
                       }}
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        border: active ? '1px solid rgba(0,212,255,0.65)' : '1px solid rgba(255,255,255,0.08)',
-                        background: active ? 'rgba(0,212,255,0.18)' : 'rgba(255,255,255,0.04)',
-                        color: active ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
-                      }}
+                      className={`sd-button ${tp.button}`}
                     >
                       {v.label}
                     </button>
                   );
                 })}
               </div>
-            </div>
+            </section>
 
             {/* Game Selection Grid */}
-            <div style={{ marginBottom: 28 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  letterSpacing: 1.5,
-                  textTransform: 'uppercase',
-                  marginBottom: 10,
-                }}
-              >
-                DRILLS (SELECT {tableCount})
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+            <section className={`sd-panel ${tp.panel}`} aria-labelledby="multi-table-drills-title">
+              <h3 id="multi-table-drills-title" className={tp.subTitle}>Drills (Select {tableCount})</h3>
+              <div className={tp.drillGrid}>
                 {MULTI_TABLE_GAMES.map((g) => {
                   const isSelected =
                     selectedGames.indexOf(g.id) < tableCount && selectedGames.includes(g.id);
                   return (
                     <button
                       key={g.id}
+                      type="button"
+                      aria-pressed={isSelected}
                       onClick={() => {
                         setSelectedGames((prev) => {
                           if (prev.includes(g.id)) return prev.filter((x) => x !== g.id);
@@ -1042,26 +870,17 @@ export default function MultiTablePage() {
                           return [...prev, g.id];
                         });
                       }}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: 8,
-                        cursor: 'pointer',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        textAlign: 'left',
-                        background: isSelected ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.03)',
-                        color: isSelected ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
-                        border: `1px solid ${isSelected ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                      }}
+                      className={`sd-button ${tp.button} ${tp.drillButton}`}
                     >
                       {g.name}
                     </button>
                   );
                 })}
               </div>
-            </div>
+            </section>
 
             <motion.button
+              type="button"
               onClick={() => {
                 // #10: one run id per START press. Each arena derives its own
                 // sessionId from it, so the four tables in a run write four
@@ -1083,41 +902,19 @@ export default function MultiTablePage() {
                 hasSavedRef.current = false;
                 setIsStarted(true);
               }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                padding: '14px 40px',
-                borderRadius: 12,
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 15,
-                fontWeight: 800,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-purple-rgb), 1))',
-                color: '#fff',
-                boxShadow: '0 4px 20px rgba(0,212,255,0.3)',
-              }}
+              whileTap={{ scale: 0.97 }}
+              className={`sd-button sd-primary ${tp.primaryAction}`}
             >
-              START {tableCount} TABLES
+              Start {tableCount} Tables
             </motion.button>
-
-
-          </div>
+          </main>
         ) : (
           /* Playing Screen — Multi Table Grid */
-          <>
+          <div className={tp.playChrome}>
             {/* Top Stats Bar */}
-            <div
-              style={{
-                padding: '8px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 16,
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
-                background: 'rgba(0,0,0,0.3)',
-              }}
-            >
+            <div className={tp.playBar}>
               <button
+                type="button"
                 onClick={() => {
                   setIsStarted(false);
                   reportedTablesRef.current = new Set();
@@ -1133,32 +930,18 @@ export default function MultiTablePage() {
                     tablesCompleted: 0,
                   });
                 }}
-                style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: '4px 10px',
-                  color: 'var(--sp-fg-muted)',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  fontWeight: 600,
-                }}
+                className={`sd-button ${tp.barButton}`}
               >
-                ← Exit
+                Exit
               </button>
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-accent-cyan)',
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                }}
-              >
-                {tableCount}-TABLE MODE
+              <span className={tp.barTitle}>
+                {tableCount}-Table Mode
               </span>
               <div
                 data-multitable-variant-selector="true"
-                style={{ display: 'flex', gap: 4, alignItems: 'center' }}
+                className={tp.barGroup}
+                role="group"
+                aria-label="Poker Variant"
               >
                 {[
                   { id: 'nlh', label: "Hold'em" },
@@ -1192,16 +975,7 @@ export default function MultiTablePage() {
                         });
                         hasSavedRef.current = false;
                       }}
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        border: active ? '1px solid rgba(0,212,255,0.65)' : '1px solid rgba(255,255,255,0.1)',
-                        background: active ? 'rgba(0,212,255,0.18)' : 'rgba(255,255,255,0.04)',
-                        color: active ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
-                      }}
+                      className={`sd-button ${tp.barButton}`}
                     >
                       {v.label}
                     </button>
@@ -1209,58 +983,31 @@ export default function MultiTablePage() {
                 })}
               </div>
               {!isPhone && (
-                <span
-                  data-multi-table-hotkey-hint="true"
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    padding: '2px 8px',
-                    borderRadius: 6,
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                  }}
-                >
+                <span data-multi-table-hotkey-hint="true" className={tp.barHint}>
                   Keys: [ / ] Switch Table
                 </span>
               )}
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, fontSize: 12 }}>
-                <span style={{ color: 'var(--sp-accent-green)' }}>Hands: {combinedStats.totalHands}</span>
-                <span style={{ color: '#86daff' }}>Correct: {combinedStats.totalCorrect}</span>
-                <span style={{ color: 'var(--sp-accent-red)' }}>
+              <div className={tp.barStats}>
+                <span>Hands: <strong>{combinedStats.totalHands}</strong></span>
+                <span>Correct: <strong>{combinedStats.totalCorrect}</strong></span>
+                <span>
                   Measured EV Loss:{' '}
-                  {combinedStats.measuredEVDecisions > 0
-                    ? `${combinedStats.totalEVLoss.toFixed(1)} BB`
-                    : '-'}
+                  <strong>
+                    {combinedStats.measuredEVDecisions > 0
+                      ? `${combinedStats.totalEVLoss.toFixed(1)} BB`
+                      : '-'}
+                  </strong>
                 </span>
-                <span style={{ color: '#86daff' }}>
-                  Done: {completedTables.size}/{tableCount}
+                <span>
+                  Done: <strong>{completedTables.size}/{tableCount}</strong>
                 </span>
               </div>
             </div>
 
             {/* Live Multi-Table Decision Queue & Per-Table EV Ledger Bar */}
-            <div
-              data-multitable-focus-queue="true"
-              style={{
-                padding: '6px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 8,
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
-                background: 'rgba(2, 6, 23, 0.72)',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: '#7dd3fc',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Action Queue &amp; EV Ledger:
+            <div data-multitable-focus-queue="true" className={tp.playBar}>
+              <span className={tp.barLabel}>
+                Action Queue &amp; EV Ledger
               </span>
               {visibleGames.map((gameId, idx) => {
                 const tally = liveTableTallyRef.current[gameId] || {
@@ -1289,32 +1036,13 @@ export default function MultiTablePage() {
                     data-multitable-ledger-pill={gameId}
                     data-active-table={isFocusedTable ? 'true' : 'false'}
                     data-table-status={isDoneTable ? 'completed' : isPendingDecision ? 'pending' : 'answered'}
+                    aria-pressed={isFocusedTable}
                     onClick={() => setFocusedGameId(gameId)}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 8,
-                      cursor: 'pointer',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      border: isFocusedTable
-                        ? '1px solid rgba(0, 212, 255, 0.65)'
-                        : isPendingDecision
-                          ? '1px solid rgba(134, 218, 255, 0.45)'
-                          : '1px solid rgba(255, 255, 255, 0.12)',
-                      background: isFocusedTable
-                        ? 'rgba(0, 212, 255, 0.18)'
-                        : isPendingDecision
-                          ? 'rgba(134, 218, 255, 0.1)'
-                          : 'rgba(255, 255, 255, 0.04)',
-                      color: isFocusedTable ? '#67e8f9' : '#e2e8f0',
-                    }}
+                    className={`sd-button ${tp.barButton} ${tp.ledgerPill}`}
                   >
                     <span>T{idx + 1} · {gameLabel}</span>
-                    <span style={{ color: '#94a3b8' }}>({answeredCount}H · {accPct}%)</span>
-                    <span style={{ color: evLossVal > 0 ? '#f87171' : '#86efac' }}>
+                    <span className={tp.ledgerMeta}>({answeredCount}H · {accPct}%)</span>
+                    <span className={evLossVal > 0 ? tp.down : tp.ledgerMeta}>
                       -{evLossVal.toFixed(2)} BB
                     </span>
                   </button>
@@ -1339,19 +1067,9 @@ export default function MultiTablePage() {
                   const nextId = visibleGames[(curIdx + 1) % visibleGames.length];
                   if (nextId) setFocusedGameId(nextId);
                 }}
-                style={{
-                  marginLeft: 'auto',
-                  padding: '5px 12px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(56, 189, 248, 0.5)',
-                  background: 'rgba(56, 189, 248, 0.18)',
-                  color: '#e0f2fe',
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
+                className={`sd-button sd-primary ${tp.barButton} ${tp.barEnd}`}
               >
-                Jump To Next Pending Table →
+                Jump To Next Pending Table
               </button>
             </div>
 
@@ -1361,18 +1079,7 @@ export default function MultiTablePage() {
                 than disappearing, so the tab positions never shift under a
                 thumb mid-session. */}
             {isPhone && visibleGames.length > 1 && (
-              <div
-                role="tablist"
-                aria-label="Tables"
-                style={{
-                  display: 'flex',
-                  gap: 6,
-                  padding: '6px 10px',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
-                  background: 'rgba(0,0,0,0.25)',
-                  overflowX: 'auto',
-                }}
-              >
+              <div role="tablist" aria-label="Tables" className={`${tp.playBar} ${tp.tabScroll}`}>
                 {visibleGames.map((gameId, i) => {
                   const isActive = gameId === activeGameId;
                   const isDone = completedTables.has(gameId);
@@ -1381,10 +1088,9 @@ export default function MultiTablePage() {
                       key={gameId}
                       type="button"
                       role="tab"
-                      className="sd-button"
+                      className={`sd-button ${tp.barButton}`}
                       aria-selected={isActive}
                       onClick={() => setFocusedGameId(gameId)}
-                      style={{ flex: '0 0 auto', whiteSpace: 'nowrap' }}
                     >
                       Table {i + 1}
                       {isDone ? ' · Complete' : ''}
@@ -1411,6 +1117,13 @@ export default function MultiTablePage() {
                   format: 'cash',
                 };
                 const panValue = computePaneSpatialPan(i, tableCount);
+                const tableStatus = gameId === activeGameId
+                  ? 'Active Focus'
+                  : completedTables.has(gameId) || tableStates[gameId]?.gameComplete
+                    ? 'Done'
+                    : tableStates[gameId]?.showFeedback
+                      ? 'Answered'
+                      : 'Unanswered';
                 return (
                 <div
                   key={gameId}
@@ -1448,90 +1161,20 @@ export default function MultiTablePage() {
                     overflow: 'hidden',
                     borderRadius: 0,
                     border: completedTables.has(gameId)
-                      ? '2px solid rgba(34,197,94,0.3)'
+                      ? '2px solid rgba(124, 158, 187, 0.45)'
                       : gameId === activeGameId
-                        ? '2px solid rgba(var(--sp-accent-cyan-rgb), 0.55)'
+                        ? '2px solid #49b8ff'
                         : '1px solid rgba(255,255,255,0.04)',
                     position: 'relative',
                   }}
                 >
                   {/* Table Number & Focus Badge */}
-                  <div
-                    data-multitable-focus-badge={gameId}
-                    style={{
-                      position: 'absolute',
-                      top: 8,
-                      left: 8,
-                      zIndex: 10,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        background: 'rgba(0,212,255,0.2)',
-                        border: '1px solid rgba(0,212,255,0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: 'var(--sp-accent-cyan)',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      }}
-                    >
-                      {i + 1}
-                    </div>
-                    <span
-                      style={{
-                        padding: '2px 7px',
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 800,
-                        background:
-                          gameId === activeGameId
-                            ? 'rgba(0, 212, 255, 0.22)'
-                            : tableStates[gameId]?.showFeedback
-                              ? 'rgba(34, 197, 94, 0.18)'
-                              : 'rgba(0, 0, 0, 0.55)',
-                        border:
-                          gameId === activeGameId
-                            ? '1px solid rgba(0, 212, 255, 0.65)'
-                            : tableStates[gameId]?.showFeedback
-                              ? '1px solid rgba(34, 197, 94, 0.45)'
-                              : '1px solid rgba(255, 255, 255, 0.14)',
-                        color:
-                          gameId === activeGameId
-                            ? '#67e8f9'
-                            : tableStates[gameId]?.showFeedback
-                              ? '#86efac'
-                              : '#94a3b8',
-                      }}
-                    >
-                      {gameId === activeGameId
-                        ? 'ACTIVE FOCUS'
-                        : completedTables.has(gameId) || tableStates[gameId]?.gameComplete
-                          ? 'DONE'
-                          : tableStates[gameId]?.showFeedback
-                            ? 'ANSWERED'
-                            : 'UNANSWERED'}
+                  <div data-multitable-focus-badge={gameId} className={tp.focusBadge}>
+                    <span className={tp.tableNumber}>{i + 1}</span>
+                    <span className={tp.badgeTag} data-focus={gameId === activeGameId ? 'true' : undefined}>
+                      {tableStatus}
                     </span>
-                    <span
-                      style={{
-                        padding: '2px 7px',
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 800,
-                        background: 'rgba(15, 23, 42, 0.78)',
-                        border: '1px solid rgba(255, 255, 255, 0.14)',
-                        color: '#cbd5e1',
-                      }}
-                    >
+                    <span className={tp.badgeTag}>
                       {String(paneCfg.variant || selectedVariant).toUpperCase()} · {String(paneCfg.format || 'cash').toUpperCase()} · Pan {panValue > 0 ? `+${panValue}` : String(panValue)}
                     </span>
                   </div>
@@ -1583,7 +1226,7 @@ export default function MultiTablePage() {
                 );
               })}
             </div>
-          </>
+          </div>
         )}
       </div>
       <ConnectionToast />

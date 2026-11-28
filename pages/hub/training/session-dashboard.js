@@ -20,6 +20,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { normalizeScoreToPercent } from '../../../src/engines/GTOScoreEngine';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import sc from '../../../src/styles/training/sessions-coaching.module.css';
 // TRAIN-WIRE-EMPTY-1a — adoption: shared empty-state primitive
 
 
@@ -50,7 +51,7 @@ function LineChart({ data, width = 600, height = 200, color = 'var(--sp-accent-c
   const measuredData = (Array.isArray(data) ? data : []).filter((entry) => nullableNumber(entry?.value) !== null);
   if (measuredData.length < 2) {
     return (
-      <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sp-fg-faint)', fontSize: 12 }}>
+      <div className={sc.copy} style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
         {measuredData.length === 1 ? 'Need More Measured Sessions For Chart' : 'No Measured Data Yet'}
       </div>
     );
@@ -72,31 +73,33 @@ function LineChart({ data, width = 600, height = 200, color = 'var(--sp-accent-c
   const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
   const areaD = `${pathD} L ${points[points.length - 1].x} ${padding.top + chartH} L ${points[0].x} ${padding.top + chartH} Z`;
 
+  const gradientId = `sd-chart-gradient-${String(label || 'trend').replace(/[^a-z0-9]+/gi, '-')}`;
+
   // Grid lines
   const gridLines = 4;
   const gridY = Array.from({ length: gridLines + 1 }, (_, i) => ({
     y: padding.top + (i / gridLines) * chartH,
-    label: (max - (i / gridLines) * range).toFixed(0),
+    label: (max - (i / gridLines) * range).toFixed(range < 5 ? 2 : 0),
   }));
 
   return (
-    <svg width={width} height={height} style={{ overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" style={{ display: 'block', maxWidth: '100%', height: 'auto', overflow: 'visible' }} role="img" aria-label={label || 'Trend Chart'}>
       {/* Grid */}
       {gridY.map((g, i) => (
         <g key={i}>
-          <line x1={padding.left} y1={g.y} x2={width - padding.right} y2={g.y} stroke="rgba(255,255,255,0.05)" strokeDasharray="4" />
-          <text x={padding.left - 6} y={g.y + 3} textAnchor="end" fill="#475569" fontSize={12}>{g.label}</text>
+          <line x1={padding.left} y1={g.y} x2={width - padding.right} y2={g.y} stroke="rgba(124,158,187,0.22)" strokeDasharray="4" />
+          <text x={padding.left - 6} y={g.y + 3} textAnchor="end" fill="#bdd0e2" fontSize={12}>{g.label}</text>
         </g>
       ))}
 
       {/* Area fill */}
       <defs>
-        <linearGradient id={`gradient-${label}`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity={0.2} />
           <stop offset="100%" stopColor={color} stopOpacity={0} />
         </linearGradient>
       </defs>
-      <path d={areaD} fill={`url(#gradient-${label})`} />
+      <path d={areaD} fill={`url(#${gradientId})`} />
 
       {/* Line */}
       <path d={pathD} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
@@ -107,7 +110,7 @@ function LineChart({ data, width = 600, height = 200, color = 'var(--sp-accent-c
           <circle cx={p.x} cy={p.y} r={3} fill={color} stroke="rgba(0,0,0,0.5)" strokeWidth={1} />
           {/* Label (only show every few) */}
           {(i === 0 || i === points.length - 1 || i % Math.ceil(points.length / 6) === 0) && measuredData[i]?.label && (
-            <text x={p.x} y={padding.top + chartH + 16} textAnchor="middle" fill="#475569" fontSize={12}>
+            <text x={p.x} y={padding.top + chartH + 16} textAnchor="middle" fill="#bdd0e2" fontSize={12}>
               {measuredData[i].label}
             </text>
           )}
@@ -116,7 +119,7 @@ function LineChart({ data, width = 600, height = 200, color = 'var(--sp-accent-c
 
       {/* Label */}
       {label && (
-        <text x={padding.left} y={12} fill={color} fontSize={12} fontWeight={700}>
+        <text x={padding.left} y={12} fill="#f2f7ff" fontSize={13} fontWeight={700}>
           {label}
         </text>
       )}
@@ -128,34 +131,12 @@ function LineChart({ data, width = 600, height = 200, color = 'var(--sp-accent-c
 // STAT TILE
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-function StatTile({ label, value, color, icon, subtitle }) {
+function StatTile({ label, value, tone, subtitle }) {
   return (
-    <div
-      style={{
-        padding: '14px 16px',
-        borderRadius: 12,
-        background: 'rgba(0,0,0,0.25)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        textAlign: 'center',
-      }}
-    >
-      {icon && <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>}
-      <div
-        style={{
-          fontSize: 24,
-          fontWeight: 900,
-          color: color || 'var(--sp-accent-cyan)',
-          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-        }}
-      >
-        {value}
-      </div>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-dim)', textTransform: 'uppercase', letterSpacing: 1 }}>
-        {label}
-      </div>
-      {subtitle && (
-        <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginTop: 2 }}>{subtitle}</div>
-      )}
+    <div className={`sd-metric ${sc.metric}`}>
+      <strong className={sc.metricValue} data-tone={tone}>{value}</strong>
+      <span className={sc.metricLabel}>{label}</span>
+      {subtitle && <span className={sc.metricLabel} style={{ opacity: 0.85 }}>{subtitle}</span>}
     </div>
   );
 }
@@ -198,70 +179,27 @@ function PerformanceTable({ sessions }) {
   if (gameStats.length === 0) return null;
 
   return (
-    <div
-      style={{
-        background: 'rgba(0,0,0,0.2)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 12,
-        overflow: 'hidden',
-      }}
-    >
-      <div
-        style={{
-          padding: '10px 16px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          fontSize: 12,
-          fontWeight: 800,
-          color: 'var(--sp-accent-cyan)',
-          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-          textTransform: 'uppercase',
-          letterSpacing: 1,
-        }}
-      >
-        Per-Game Performance
-      </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+    <section className={`sd-panel ${sc.panel}`} aria-labelledby="per-game-performance-title">
+      <h2 id="per-game-performance-title" className={sc.sectionTitle}>Per-Game Performance</h2>
+      <div className={sc.tableWrap}>
+        <table className={sc.table}>
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <tr>
               {['Game', 'Sessions', 'Hands', 'Avg Accuracy', 'Avg Measured EV Loss'].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    padding: '8px 12px',
-                    textAlign: 'left',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                  }}
-                >
-                  {h}
-                </th>
+                <th key={h} scope="col">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {gameStats.slice(0, 12).map((g) => (
-              <tr key={g.game} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--sp-fg)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {g.game}
-                </td>
-                <td style={{ padding: '8px 12px', color: 'var(--sp-fg-muted)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace", fontWeight: 600 }}>{g.sessions}</td>
-                <td style={{ padding: '8px 12px', color: 'var(--sp-fg-muted)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace", fontWeight: 600 }}>{g.totalHands}</td>
-                <td style={{ padding: '8px 12px' }}>
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      color: g.avgAccuracy >= 75 ? 'var(--sp-accent-green)' : g.avgAccuracy >= 50 ? '#86daff' : 'var(--sp-accent-red)',
-                    }}
-                  >
+              <tr key={g.game}>
+                <td style={{ textTransform: 'capitalize', overflowWrap: 'anywhere' }}>{g.game}</td>
+                <td>{g.sessions}</td>
+                <td>{g.totalHands}</td>
+                <td className={g.avgAccuracy === null ? '' : g.avgAccuracy >= 75 ? sc.up : g.avgAccuracy >= 50 ? sc.ice : sc.down}>
                   {g.avgAccuracy === null ? '-' : `${g.avgAccuracy}%`}
-                  </span>
                 </td>
-                <td style={{ padding: '8px 12px', color: '#86daff', fontWeight: 600, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
+                <td className={sc.ice}>
                   {g.avgEV === null ? '-' : `${g.avgEV.toFixed(3)} BB`}
                 </td>
               </tr>
@@ -269,7 +207,7 @@ function PerformanceTable({ sessions }) {
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -335,67 +273,43 @@ function StreakTracker({ sessions }) {
     return d.toISOString().split('T')[0];
   });
 
+  const todayKey = today.toISOString().split('T')[0];
   return (
-    <div
-      style={{
-        background: 'rgba(0,0,0,0.25)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 12,
-        padding: 16,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 800,
-          color: '#86daff',
-          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-          textTransform: 'uppercase',
-          letterSpacing: 1,
-          marginBottom: 12,
-        }}
-      >
-        Training Streak
-      </div>
-
-      <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: streaks.current > 0 ? '#86daff' : 'var(--sp-fg-faint)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
-            {streaks.current}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 700, textTransform: 'uppercase' }}>Current</div>
+    <section className={`sd-panel ${sc.panel}`} aria-labelledby="training-streak-title">
+      <h2 id="training-streak-title" className={sc.sectionTitle}>Training Streak</h2>
+      <div className={sc.metrics2}>
+        <div className={`sd-metric ${sc.metric}`}>
+          <strong className={sc.metricValue} data-tone={streaks.current > 0 ? 'ice' : undefined}>{streaks.current}</strong>
+          <span className={sc.metricLabel}>Current</span>
         </div>
-        <div style={{ width: 1, background: 'rgba(255,255,255,0.06)' }} />
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: '#86daff', fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
-            {streaks.best}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 700, textTransform: 'uppercase' }}>Best</div>
+        <div className={`sd-metric ${sc.metric}`}>
+          <strong className={sc.metricValue} data-tone="ice">{streaks.best}</strong>
+          <span className={sc.metricLabel}>Best</span>
         </div>
       </div>
 
       {/* Activity heatmap (last 14 days) */}
-      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(14, minmax(0, 1fr))', gap: 3 }} role="list" aria-label="Activity, Last 14 Days">
         {last14.map((day) => {
           const isActive = streaks.days.includes(day);
-          const isToday = day === today.toISOString().split('T')[0];
+          const isToday = day === todayKey;
           return (
             <div
               key={day}
+              role="listitem"
               title={day}
+              aria-label={`${day}: ${isActive ? 'Trained' : 'No Training'}${isToday ? ' (Today)' : ''}`}
               style={{
-                width: 18,
-                height: 18,
-                borderRadius: 4,
-                background: isActive ? 'rgba(134, 218, 255, 0.5)' : 'rgba(255,255,255,0.04)',
-                border: isToday ? '1px solid #fbbf24' : '1px solid transparent',
+                aspectRatio: '1',
+                background: isActive ? 'linear-gradient(180deg, #7fe7ff, #1d8fe0)' : '#06111c',
+                boxShadow: isToday ? '0 0 0 2px #f2f7ff' : 'inset 0 0 0 1px rgba(124, 158, 187, 0.3)',
               }}
             />
           );
         })}
       </div>
-      <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginTop: 4 }}>Last 14 Days</div>
-    </div>
+      <p className={sc.metricLabel} style={{ margin: 0 }}>Last 14 Days (Today Outlined In White)</p>
+    </section>
   );
 }
 
@@ -408,7 +322,8 @@ function DashboardSkeleton() {
     background: 'linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%)',
     backgroundSize: '200% 100%',
     animation: 'shimmer 1.5s ease-in-out infinite',
-    borderRadius: 12,
+    border: '3px solid transparent',
+    borderImage: "url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch",
   };
   return (
     <>
@@ -471,62 +386,29 @@ function CoachingCard({ session }) {
 
   if (error || (!coaching && !loadingCoach)) return null;
 
-  const gradeColors = { A: 'var(--sp-accent-green)', B: 'var(--sp-accent-blue)', C: '#86daff', D: 'var(--sp-accent-red)' };
-  const gradeColor = gradeColors[coaching?.overallGrade] || 'var(--sp-fg-dim)';
+  const gradeTone = { A: sc.up, B: sc.ice, C: sc.ice, D: sc.down }[coaching?.overallGrade] || sc.white;
 
   return (
-    <motion.div
+    <motion.section
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{
-        marginBottom: 16,
-        borderRadius: 12,
-        background: 'rgba(0,0,0,0.25)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        overflow: 'hidden',
-      }}
+      className={`sd-panel ${sc.panel}`}
+      aria-label="Coach's Notes"
     >
       <button
         type="button"
         aria-expanded={expanded}
         onClick={() => setExpanded(!expanded)}
-        style={{
-          width: '100%',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-        }}
+        className={`sd-button ${sc.button} ${sc.full}`}
+        style={{ justifyContent: 'space-between' }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            fontSize: 12,
-            fontWeight: 800,
-            color: '#86daff',
-            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-            textTransform: 'uppercase',
-            letterSpacing: 1,
-          }}>
-            Coach&apos;S Notes
-          </div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+          Coach&apos;s Notes
           {coaching?.overallGrade && (
-            <span style={{
-              padding: '2px 8px',
-              borderRadius: 6,
-              background: `${gradeColor}15`,
-              border: `1px solid ${gradeColor}40`,
-              color: gradeColor,
-              fontSize: 12,
-              fontWeight: 800,
-            }}>
-              {coaching.overallGrade}
-            </span>
+            <span className={`${sc.tag} ${gradeTone}`}>Grade {coaching.overallGrade}</span>
           )}
-        </div>
-        <span style={{ color: 'var(--sp-fg-dim)', fontSize: 14, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+        </span>
+        <span aria-hidden className={sc.ice} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
           ▾
         </span>
       </button>
@@ -539,56 +421,49 @@ function CoachingCard({ session }) {
             exit={{ height: 0, opacity: 0 }}
             style={{ overflow: 'hidden' }}
           >
-            <div style={{ padding: '0 16px 14px' }}>
-              {loadingCoach ? (
-                <div style={{ padding: '12px 0', color: 'var(--sp-fg-dim)', fontSize: 12 }}>Loading Coach&apos;S Analysis...</div>
-              ) : coaching ? (
-                <div style={{ display: 'grid', gap: 10, fontSize: 12 }}>
-                  {coaching.headline && (
-                    <div style={{ color: 'var(--sp-fg)', fontWeight: 700, fontSize: 14 }}>{coaching.headline}</div>
-                  )}
-                  {coaching.detailedFeedback && (
-                    <div style={{ color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>{coaching.detailedFeedback}</div>
-                  )}
+            {loadingCoach ? (
+              <p className={sc.copy}>Loading Coach&apos;s Analysis...</p>
+            ) : coaching ? (
+              <div style={{ display: 'grid', gap: 10 }}>
+                {coaching.headline && <h3 className={sc.subTitle}>{coaching.headline}</h3>}
+                {coaching.detailedFeedback && <p className={sc.copy}>{coaching.detailedFeedback}</p>}
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    {coaching.strengths?.length > 0 && (
-                      <div style={{ padding: 10, borderRadius: 8, background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.1)' }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Strengths</div>
-                        {coaching.strengths.map((s, i) => (
-                          <div key={i} style={{ color: 'var(--sp-fg-muted)', fontSize: 12, marginBottom: 3 }}>+ {s}</div>
-                        ))}
-                      </div>
-                    )}
-                    {coaching.areasToImprove?.length > 0 && (
-                      <div style={{ padding: 10, borderRadius: 8, background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.1)' }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Work On</div>
-                        {coaching.areasToImprove.map((s, i) => (
-                          <div key={i} style={{ color: 'var(--sp-fg-muted)', fontSize: 12, marginBottom: 3 }}>- {s}</div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {coaching.recommendedDrill && (
-                    <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.1)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase' }}>Next Drill:</span>
-                      <span style={{ color: 'var(--sp-fg)', fontSize: 12, fontWeight: 600 }}>{coaching.recommendedDrill.name}</span>
+                <div className={sc.cardGrid}>
+                  {coaching.strengths?.length > 0 && (
+                    <div className={`sd-metric ${sc.card}`}>
+                      <span className={`${sc.eyebrow} ${sc.up}`}>Strengths</span>
+                      {coaching.strengths.map((item, i) => (
+                        <span key={i} className={sc.copy}>+ {item}</span>
+                      ))}
                     </div>
                   )}
-
-                  {coaching.motivationalQuote && (
-                    <div style={{ color: 'var(--sp-fg-faint)', fontSize: 12, fontStyle: 'italic', textAlign: 'center', paddingTop: 4 }}>
-                      {coaching.motivationalQuote}
+                  {coaching.areasToImprove?.length > 0 && (
+                    <div className={`sd-metric ${sc.card}`}>
+                      <span className={sc.eyebrow}>Work On</span>
+                      {coaching.areasToImprove.map((item, i) => (
+                        <span key={i} className={sc.copy}>- {item}</span>
+                      ))}
                     </div>
                   )}
                 </div>
-              ) : null}
-            </div>
+
+                {coaching.recommendedDrill && (
+                  <p className={sc.note}>
+                    <strong className={sc.ice}>Next Drill:</strong> <span className={sc.white}>{coaching.recommendedDrill.name}</span>
+                  </p>
+                )}
+
+                {coaching.motivationalQuote && (
+                  <p className={sc.copy} style={{ fontStyle: 'italic', textAlign: 'center' }}>
+                    {coaching.motivationalQuote}
+                  </p>
+                )}
+              </div>
+            ) : null}
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </motion.section>
   );
 }
 
@@ -742,19 +617,18 @@ export default function SessionDashboard() {
       </Head>
 
       <div
-        className="sp-training-intelligence sp-training-intelligence--session-dashboard"
+        className="sp-training-session-dashboard"
         style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
+          minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
+          background: '#040d18',
+          color: '#f2f7ff',
         }}
       >
         <TrainingPageHead slug="training-session-dashboard" note="Track Your Training Progress, Identify Trends, And Maintain Your Streak." />
 
-        <div className="sp-intelligence-main" style={{ padding: '16px 24px', maxWidth: 900, margin: '0 auto' }}>
+        <div className={sc.page}>
           {/* Time Range Selector */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+          <div className={sc.chips} role="group" aria-label="Time Range">
             {[
               { key: 'week', label: 'Last 7 Days' },
               { key: 'month', label: 'Last 30 Days' },
@@ -763,19 +637,10 @@ export default function SessionDashboard() {
               <button
                 key={t.key}
                 type="button"
+                className={`sd-button ${sc.button}`}
                 onClick={() => setTimeRange(t.key)}
                 aria-label={`Filter by ${t.label}`}
                 aria-pressed={timeRange === t.key}
-                style={{
-                  padding: '5px 14px',
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: 'none',
-                  background: timeRange === t.key ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
-                  color: timeRange === t.key ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                }}
               >
                 {t.label}
               </button>
@@ -785,15 +650,8 @@ export default function SessionDashboard() {
           {/* Error State */}
           <ErrorBanner message={fetchError} onRetry={() => { setLoading(true); fetchSessions(); }} />
 
-
-          {/* Last Club Arena Hand Played — Instant Post-Hand Review Quick-Drill Bar */}
-
-          {/* 6-Max Club Arena Positional Seat EV Leak Heatmap */}
-
-          {/* PLO8 Hi-Lo & Fixed-Limit Leak Diagnostics + Decision Pacing (Progressive Disclosure) */}
-
           {loading ? (
-            <div style={{ marginTop: 24 }}>
+            <div role="status" aria-label="Loading Sessions">
               <DashboardSkeleton />
             </div>
           ) : (
@@ -818,167 +676,103 @@ export default function SessionDashboard() {
                   .sort((a, b) => b.acc - a.acc);
                 if (entries.length < 2) return null;
                 return (
-                  <motion.div
+                  <motion.section
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    style={{
-                      marginBottom: 16,
-                      padding: '14px 16px',
-                      borderRadius: 12,
-                      background: 'rgba(0,0,0,0.25)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                    }}
+                    className={`sd-panel ${sc.panel}`}
+                    aria-labelledby="progress-report-title"
                   >
-                    <div style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: 'var(--sp-accent-cyan)',
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      marginBottom: 10,
-                    }}>Progress Report</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <h2 id="progress-report-title" className={sc.sectionTitle}>Progress Report</h2>
+                    <ul className={sc.list}>
                       {(() => {
                         const displayEntries = entries.slice(0, 5);
                         return displayEntries.map((e, i) => (
-                        <div key={e.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: 6, background: i === 0 ? 'rgba(34,197,94,0.04)' : i === displayEntries.length - 1 ? 'rgba(239,68,68,0.04)' : 'transparent' }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)', flex: 1 }}>
-                            {i === 0 && <span style={{ color: 'var(--sp-accent-green)', marginRight: 4 }}>●</span>}
-                            {i === displayEntries.length - 1 && displayEntries.length > 1 && <span style={{ color: 'var(--sp-accent-red)', marginRight: 4 }}>●</span>}
+                        <li key={e.name} className={sc.row}>
+                          <span className={sc.rowLabel}>
+                            {i === 0 && <span className={sc.up} style={{ marginRight: 6 }}>Strongest ·</span>}
+                            {i === displayEntries.length - 1 && displayEntries.length > 1 && <span className={sc.down} style={{ marginRight: 6 }}>Weakest ·</span>}
                             {e.name}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{e.hands}h</span>
-                            <span style={{ fontSize: 13, fontWeight: 800, color: e.acc >= 80 ? 'var(--sp-accent-green)' : e.acc >= 60 ? '#86daff' : 'var(--sp-accent-red)' }}>
+                          </span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                            <span className={sc.rowValue}>{e.hands} Hands</span>
+                            <strong className={e.acc >= 80 ? sc.up : e.acc >= 60 ? sc.ice : sc.down}>
                               {e.acc}%
-                            </span>
-                          </div>
-                        </div>
+                            </strong>
+                          </span>
+                        </li>
                       ));
                       })()}
-                    </div>
-                  </motion.div>
+                    </ul>
+                  </motion.section>
                 );
               })()}
 
               {/* Stat Tiles */}
               {stats && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
-                  <StatTile label="Sessions" value={stats.sessions} color="#00d4ff" icon="●" />
-                  <StatTile label="Hands Played" value={stats.totalHands} color="#22c55e" icon="◇" />
-                  <StatTile label="Avg Accuracy" value={stats.avgAccuracy === null ? '-' : `${stats.avgAccuracy}%`} color={stats.avgAccuracy !== null && stats.avgAccuracy >= 70 ? 'var(--sp-accent-green)' : '#86daff'} icon="◆" />
-                  <StatTile label="Measured EV Loss" value={stats.totalEV === null ? '-' : stats.totalEV.toFixed(3)} color="#ef4444" icon="▼" subtitle={stats.totalEV === null ? 'No Solver-Measured Decisions' : `${stats.measuredEVDecisions} Measured Decisions`} />
-                  <StatTile label="Pass Rate" value={stats.accuracySessions > 0 ? `${Math.round((stats.wins / stats.accuracySessions) * 100)}%` : '-'} color="#86daff" icon="★" subtitle={`${stats.wins}/${stats.accuracySessions} Scored Sessions`} />
-                </div>
+                <section className={sc.metrics} aria-label="Session Summary">
+                  <StatTile label="Sessions" value={stats.sessions} />
+                  <StatTile label="Hands Played" value={stats.totalHands} />
+                  <StatTile label="Avg Accuracy" value={stats.avgAccuracy === null ? '-' : `${stats.avgAccuracy}%`} tone={stats.avgAccuracy !== null && stats.avgAccuracy >= 70 ? 'up' : 'ice'} />
+                  <StatTile label="Measured EV Loss" value={stats.totalEV === null ? '-' : stats.totalEV.toFixed(3)} tone={stats.totalEV === null ? undefined : 'down'} subtitle={stats.totalEV === null ? 'No Solver-Measured Decisions' : `${stats.measuredEVDecisions} Measured Decisions`} />
+                  <StatTile label="Pass Rate" value={stats.accuracySessions > 0 ? `${Math.round((stats.wins / stats.accuracySessions) * 100)}%` : '-'} tone="ice" subtitle={`${stats.wins}/${stats.accuracySessions} Scored Sessions`} />
+                </section>
               )}
 
+              {filteredSessions.length === 0 ? (
+                <TrainerEmptyState
+                  variant="no-data"
+                  title="No Sessions Yet"
+                  message="Start Training To See Your Progress Here."
+                />
+              ) : (
+              <>
               {/* Charts */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginBottom: 16 }}>
-                <div
-                  style={{
-                    background: 'rgba(0,0,0,0.25)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: 12,
-                    padding: '14px 12px',
-                    overflow: 'hidden',
-                  }}
-                >
+              <div className={sc.cardGrid} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 14 }}>
+                <section className={`sd-panel ${sc.panel}`} aria-label="Accuracy Trend">
                   <LineChart data={accuracyChartData} width={400} height={180} color="#22c55e" label="Accuracy Trend" />
-                </div>
-                <div
-                  style={{
-                    background: 'rgba(0,0,0,0.25)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: 12,
-                    padding: '14px 12px',
-                    overflow: 'hidden',
-                  }}
-                >
+                </section>
+                <section className={`sd-panel ${sc.panel}`} aria-label="Measured EV Loss Per Session">
                   <LineChart data={evLossChartData} width={400} height={180} color="#ef4444" label="Measured EV Loss Per Session" />
-                </div>
+                </section>
               </div>
 
               {/* Streak + Performance */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginBottom: 16 }}>
+              <div className={sc.cardGrid} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 14 }}>
                 <StreakTracker sessions={filteredSessions} />
                 <PerformanceTable sessions={filteredSessions} />
               </div>
 
               {/* Recent Sessions */}
-              <div
-                style={{
-                  background: 'rgba(0,0,0,0.2)',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: 12,
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    padding: '10px 16px',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: 'var(--sp-accent-cyan)',
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                  }}
-                >
-                  Recent Sessions ({filteredSessions.length})
-                </div>
-                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                  {filteredSessions.length === 0 ? (
-                    <TrainerEmptyState
-                      variant="no-data"
-                      title="No Sessions Yet"
-                      message="Start Training To See Your Progress Here."
-                      compact
-                    />
-                  ) : (
-                    [...filteredSessions]
-                      .sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp))
-                      .slice(0, 20)
-                      .map((s, i) => {
-                        const acc = sessionAccuracyPercent(s);
-                        const game = (s.game_name || s.gameName || s.game_id || s.gameId || 'Training').replace(/_/g, ' ');
-                        const d = new Date(s.created_at || s.timestamp);
-                        const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+              <section className={`sd-panel ${sc.panel}`} aria-labelledby="recent-sessions-title">
+                <h2 id="recent-sessions-title" className={sc.sectionTitle}>Recent Sessions ({filteredSessions.length})</h2>
+                <div style={{ maxHeight: 340, overflowY: 'auto' }}>
+                    <ul className={sc.list}>
+                      {[...filteredSessions]
+                        .sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp))
+                        .slice(0, 20)
+                        .map((s, i) => {
+                          const acc = sessionAccuracyPercent(s);
+                          const game = (s.game_name || s.gameName || s.game_id || s.gameId || 'Training').replace(/_/g, ' ');
+                          const d = new Date(s.created_at || s.timestamp);
+                          const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
 
-                        return (
-                          <div
-                            key={i}
-                            style={{
-                              padding: '8px 16px',
-                              borderBottom: '1px solid rgba(255,255,255,0.03)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 10,
-                              fontSize: 12,
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: '50%',
-                                background: acc === null ? 'var(--sp-fg-faint)' : acc >= 70 ? 'var(--sp-accent-green)' : acc >= 50 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
-                                flexShrink: 0,
-                              }}
-                            />
-                            <span style={{ color: 'var(--sp-fg)', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {game}
-                            </span>
-                            <span style={{ color: acc === null ? 'var(--sp-fg-faint)' : acc >= 70 ? 'var(--sp-accent-green)' : acc >= 50 ? '#86daff' : 'var(--sp-accent-red)', fontWeight: 700, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>
-                              {acc === null ? '-' : `${Math.round(acc)}%`}
-                            </span>
-                            <span style={{ color: 'var(--sp-fg-faint)', fontSize: 12 }}>{dateStr}</span>
-                          </div>
-                        );
-                      })
-                  )}
+                          return (
+                            <li key={i} className={sc.row}>
+                              <span className={sc.rowLabel} style={{ textTransform: 'capitalize' }}>{game}</span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                                <strong className={acc === null ? sc.rowValue : acc >= 70 ? sc.up : acc >= 50 ? sc.ice : sc.down}>
+                                  {acc === null ? '-' : `${Math.round(acc)}%`}
+                                </strong>
+                                <span className={sc.rowValue}>{dateStr}</span>
+                              </span>
+                            </li>
+                          );
+                        })}
+                    </ul>
                 </div>
-              </div>
+              </section>
+              </>
+              )}
             </>
           )}
         </div>

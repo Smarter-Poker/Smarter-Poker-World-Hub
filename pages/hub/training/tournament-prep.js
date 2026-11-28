@@ -11,6 +11,7 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/training-play.module.css';
 // BUG FIX (TRAIN-TPP-A11Y-1): SVG icons replacing the bare back-arrow +
 // strategy-tip lightbulb. Strict build-safety rules from PR #362/#365/#369
 // — no JSX comments inside conditional expressions, no emoji chars in
@@ -135,215 +136,196 @@ export default function TournamentPrepPlanner() {
       />
       <UniversalHeader pageDepth={2} hideLeftIcon />
 
-      <div className="sp-training-command sp-training-command--tournament" style={styles.container}>
-        <TrainingPageHead slug="training-tournament-prep" note="ICM-Aware Strategy & Structure Analysis" />
-
-        <div className="sp-command-main sp-command-tournament-grid" style={styles.content}>
-          {/* LEFT COLUMN: Controls */}
-          <div style={styles.sidebar}>
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Tournament Settings</h3>
-
-              <div style={styles.inputGroup}>
-                <label htmlFor="tournament-buy-in" style={styles.label}>Buy-In ($)</label>
-                <input
-                  id="tournament-buy-in"
-                  type="number"
-                  inputMode="decimal"
-                  value={buyIn}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setBuyIn(Number.isFinite(v) && v >= 0 ? v : 0);
-                  }}
-                  style={styles.input}
-                />
-              </div>
-
-              <div style={styles.inputGroup}>
-                <label htmlFor="tournament-starting-stack" style={styles.label}>Starting Stack</label>
-                <input
-                  id="tournament-starting-stack"
-                  type="number"
-                  inputMode="numeric"
-                  value={startStack}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setStartStack(Number.isFinite(v) && v >= 0 ? v : 0);
-                  }}
-                  style={styles.input}
-                />
-              </div>
-
-              <div style={styles.inputGroup}>
-                <label htmlFor="tournament-blind-level-length" style={styles.label}>Blind Level Length (Min)</label>
-                <input
-                  id="tournament-blind-level-length"
-                  type="number"
-                  inputMode="numeric"
-                  value={blindLevelLength}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setBlindLevelLength(Number.isFinite(v) && v >= 1 ? v : 1);
-                  }}
-                  style={styles.input}
-                />
-              </div>
-
-              <div style={styles.inputGroup}>
-                <label htmlFor="tournament-current-level" style={styles.label}>Current Level</label>
-                <input
-                  id="tournament-current-level"
-                  type="range"
-                  min="1"
-                  max="12"
-                  value={currentLevel}
-                  onChange={(e) => setCurrentLevel(Number(e.target.value))}
-                  style={styles.range}
-                />
-                <div style={styles.rangeLabels}>
-                  <span>Lvl 1</span>
-                  <span style={{ color: 'var(--sp-accent-cyan)', fontWeight: 'bold' }}>Level {currentLevel}</span>
-                  <span>Lvl 12</span>
+      <div className={s.shell}>
+        <main className={`${s.page} ${s.wide}`}>
+          <TrainingPageHead slug="training-tournament-prep" note="ICM-Aware Strategy & Structure Analysis" />
+          <div className={s.split}>
+            {/* LEFT COLUMN: Controls */}
+            <div className={s.splitSide}>
+              <section className={`sd-panel ${s.panel}`} aria-labelledby="tpp-settings-title">
+                <h2 id="tpp-settings-title" className={s.sectionTitle}>Tournament Settings</h2>
+                <div className={s.formGrid}>
+                  <label htmlFor="tournament-buy-in" className={s.fieldLabel}>
+                    Buy-In ($)
+                    <input
+                      id="tournament-buy-in"
+                      type="number"
+                      inputMode="decimal"
+                      value={buyIn}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setBuyIn(Number.isFinite(v) && v >= 0 ? v : 0);
+                      }}
+                      className={s.field}
+                    />
+                  </label>
+                  <label htmlFor="tournament-starting-stack" className={s.fieldLabel}>
+                    Starting Stack
+                    <input
+                      id="tournament-starting-stack"
+                      type="number"
+                      inputMode="numeric"
+                      value={startStack}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setStartStack(Number.isFinite(v) && v >= 0 ? v : 0);
+                      }}
+                      className={s.field}
+                    />
+                  </label>
+                  <label htmlFor="tournament-blind-level-length" className={s.fieldLabel}>
+                    Blind Level Length (Min)
+                    <input
+                      id="tournament-blind-level-length"
+                      type="number"
+                      inputMode="numeric"
+                      value={blindLevelLength}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setBlindLevelLength(Number.isFinite(v) && v >= 1 ? v : 1);
+                      }}
+                      className={s.field}
+                    />
+                  </label>
                 </div>
-              </div>
+                <label htmlFor="tournament-current-level" className={s.fieldLabel}>
+                  Current Level
+                  <input
+                    id="tournament-current-level"
+                    type="range"
+                    min="1"
+                    max="12"
+                    value={currentLevel}
+                    onChange={(e) => setCurrentLevel(Number(e.target.value))}
+                    className={s.range}
+                  />
+                </label>
+                <div className={s.rangeLabels}>
+                  <span>Level 1</span>
+                  <strong className={s.ice}>Level {currentLevel}</strong>
+                  <span>Level 12</span>
+                </div>
+              </section>
+
+              <section className={`sd-panel ${s.panel}`} aria-labelledby="tpp-status-title">
+                <h2 id="tpp-status-title" className={s.sectionTitle}>Current Status</h2>
+                <div className={s.metrics2}>
+                  <div className={`sd-metric ${s.metric}`}>
+                    <span className={s.metricLabel}>Blinds</span>
+                    <strong className={s.metricValue}>{currentBlindInfo.sb}/{currentBlindInfo.bb}</strong>
+                  </div>
+                  <div className={`sd-metric ${s.metric}`}>
+                    <span className={s.metricLabel}>Ante</span>
+                    <strong className={s.metricValue}>{currentBlindInfo.ante}</strong>
+                  </div>
+                  <div className={`sd-metric ${s.metric}`}>
+                    <span className={s.metricLabel}>Starting Stack In BBs</span>
+                    <strong className={s.metricValue} data-tone={initialBBs < 20 ? 'down' : 'ice'}>
+                      {Number.isFinite(initialBBs) ? (Number.isFinite(Number(initialBBs)) ? Number(initialBBs) : 0).toFixed(1) : '0.0'} BB
+                    </strong>
+                  </div>
+                  <div className={`sd-metric ${s.metric}`}>
+                    <span className={s.metricLabel}>Starting Stack M-Ratio</span>
+                    <strong className={s.metricValue}>
+                      {Number.isFinite(initialM) ? (Number.isFinite(Number(initialM)) ? Number(initialM) : 0).toFixed(1) : '0.0'}
+                    </strong>
+                  </div>
+                </div>
+              </section>
             </div>
 
-            <div style={{ ...styles.card, marginTop: 16 }}>
-              <h3 style={styles.cardTitle}>Current Status</h3>
-              <div style={styles.statusRow}>
-                <span style={styles.statusLabel}>Blinds</span>
-                <span style={styles.statusValue}>
-                  {currentBlindInfo.sb}/{currentBlindInfo.bb}
-                </span>
-              </div>
-              <div style={styles.statusRow}>
-                <span style={styles.statusLabel}>Ante</span>
-                <span style={styles.statusValue}>{currentBlindInfo.ante}</span>
-              </div>
-              <div style={styles.statusRow}>
-                <span style={styles.statusLabel}>Starting Stack In BBs</span>
-                <span
-                  style={{ ...styles.statusValue, color: initialBBs < 20 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)' }}
+            {/* RIGHT COLUMN: Analysis Display */}
+            <section className={`sd-panel ${s.panel} ${s.splitMain}`} aria-label="Structure Analysis">
+              <div className={s.segmented} role="group" aria-label="Analysis View">
+                <button
+                  type="button"
+                  aria-label="View Structure Flow"
+                  aria-pressed={activeTab === 'structure'}
+                  onClick={() => setActiveTab('structure')}
+                  className={`sd-button ${s.button}`}
                 >
-                  {Number.isFinite(initialBBs) ? (Number.isFinite(Number(initialBBs)) ? Number(initialBBs) : 0).toFixed(1) : '0.0'} BB
-                </span>
+                  Structure Flow
+                </button>
+                <button
+                  type="button"
+                  aria-label="View Push/Fold"
+                  aria-pressed={activeTab === 'pushfold'}
+                  onClick={() => setActiveTab('pushfold')}
+                  className={`sd-button ${s.button}`}
+                >
+                  Push/Fold Engine
+                </button>
               </div>
-              <div style={styles.statusRow}>
-                <span style={styles.statusLabel}>Starting Stack M-Ratio</span>
-                <span style={styles.statusValue}>
-                  {Number.isFinite(initialM) ? (Number.isFinite(Number(initialM)) ? Number(initialM) : 0).toFixed(1) : '0.0'}
-                </span>
-              </div>
-            </div>
 
-          </div>
-
-          {/* RIGHT COLUMN: Analysis Display */}
-          <div style={styles.main}>
-            <div style={styles.tabs}>
-              <button
-                type="button"
-                aria-label="View Structure Flow"
-                aria-pressed={activeTab === 'structure'}
-                onClick={() => setActiveTab('structure')}
-                style={{
-                  ...styles.tab,
-                  borderBottom:
-                    activeTab === 'structure' ? '2px solid #00d4ff' : '2px solid transparent',
-                  color: activeTab === 'structure' ? '#fff' : 'var(--sp-fg-dim)',
-                }}
-              >
-                Structure Flow
-              </button>
-              <button
-                type="button"
-                aria-label="View Push/Fold"
-                aria-pressed={activeTab === 'pushfold'}
-                onClick={() => setActiveTab('pushfold')}
-                style={{
-                  ...styles.tab,
-                  borderBottom:
-                    activeTab === 'pushfold' ? '2px solid #00d4ff' : '2px solid transparent',
-                  color: activeTab === 'pushfold' ? '#fff' : 'var(--sp-fg-dim)',
-                }}
-              >
-                Push/Fold Engine
-              </button>
-            </div>
-
-            <div style={styles.tabContent}>
               {activeTab === 'structure' && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <h3 style={{ color: '#fff', marginBottom: 16 }}>Blind Structure Projections</h3>
-                  <div style={styles.table}>
-                    <div style={styles.tableHeaderRow}>
-                      <div style={styles.cellH}>Level</div>
-                      <div style={styles.cellH}>Blinds</div>
-                      <div style={styles.cellH}>Stack (If No Hands Played)</div>
-                      <div style={styles.cellH}>Zone</div>
-                    </div>
-                    {bls.map((b) => {
-                      const costPerOrbit = b.sb + b.bb + b.ante * 9;
-                      // Rough estimation of stack drain assuming 3 orbits per level
-                      let estStack = startStack;
-                      for (let i = 1; i <= b.level; i++) {
-                        const lvlInfo = bls[i - 1];
-                        const drain = (lvlInfo.sb + lvlInfo.bb + lvlInfo.ante * 9) * 3;
-                        if (i < b.level) estStack -= drain;
-                      }
-                      const bbCount = b.bb > 0 ? estStack / b.bb : 0;
-
-                      let zone =
-                        bbCount > 40
-                          ? 'Green (Comfort)'
-                          : bbCount > 20
-                            ? 'Yellow (Active)'
-                            : bbCount > 10
-                              ? 'Orange (Steal)'
-                              : 'Red (Push/Fold)';
-                      let zColor =
-                        bbCount > 40
-                          ? 'var(--sp-accent-green)'
-                          : bbCount > 20
-                            ? 'var(--sp-accent-amber)'
-                            : bbCount > 10
-                              ? 'var(--sp-accent-orange)'
-                              : 'var(--sp-accent-red)';
-
-                      return (
-                        <div
-                          key={b.level}
-                          style={{
-                            ...styles.tableRow,
-                            background:
-                              currentLevel === b.level ? 'rgba(0,212,255,0.1)' : 'transparent',
-                            borderLeft:
-                              currentLevel === b.level
-                                ? '3px solid #00d4ff'
-                                : '3px solid transparent',
-                          }}
-                        >
-                          <div style={styles.cell}>{b.level}</div>
-                          <div style={styles.cell}>
-                            {b.sb}/{b.bb} ({b.ante})
-                          </div>
-                          <div style={styles.cell}>
-                            {Math.max(0, estStack)} ({Math.max(0, bbCount).toFixed(1)} BB)
-                          </div>
-                          <div style={{ ...styles.cell, color: zColor, fontWeight: 'bold' }}>
-                            {estStack <= 0 ? 'BUSTED' : zone}
-                          </div>
-                        </div>
-                      );
-                    })}
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={s.panel}>
+                  <h3 className={s.subTitle}>Blind Structure Projections</h3>
+                  <div className={s.tableWrap}>
+                    <table className={s.table}>
+                      <thead>
+                        <tr>
+                          <th>Level</th>
+                          <th>Blinds</th>
+                          <th>Stack If No Hands Played</th>
+                          <th>Zone</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bls.map((b) => {
+                          // Rough estimation of stack drain assuming 3 orbits per level
+                          let estStack = startStack;
+                          for (let i = 1; i <= b.level; i++) {
+                            const lvlInfo = bls[i - 1];
+                            const drain = (lvlInfo.sb + lvlInfo.bb + lvlInfo.ante * 9) * 3;
+                            if (i < b.level) estStack -= drain;
+                          }
+                          const bbCount = b.bb > 0 ? estStack / b.bb : 0;
+                          const zoneKey =
+                            bbCount > 40 ? 'green' : bbCount > 20 ? 'yellow' : bbCount > 10 ? 'orange' : 'red';
+                          const zone = {
+                            green: 'Green (Comfort)',
+                            yellow: 'Yellow (Active)',
+                            orange: 'Orange (Steal)',
+                            red: 'Red (Push/Fold)',
+                          }[zoneKey];
+                          const isCurrent = currentLevel === b.level;
+                          return (
+                            <tr key={b.level} className={isCurrent ? s.currentRow : undefined} aria-current={isCurrent ? 'step' : undefined}>
+                              <td className={isCurrent ? s.ice : undefined}>{b.level}</td>
+                              <td>
+                                <span className={s.cellMain}>{b.sb}/{b.bb}</span>
+                                <span className={s.cellSub}>Ante {b.ante}</span>
+                              </td>
+                              <td>
+                                <span className={s.cellMain}>{Math.max(0, estStack)}</span>
+                                <span className={s.cellSub}>{Math.max(0, bbCount).toFixed(1)} BB</span>
+                              </td>
+                              <td>
+                                {estStack <= 0 ? (
+                                  <span className={s.down}>Busted</span>
+                                ) : (
+                                  <span className={s.zone}>
+                                    <span className={s.zoneSwatch} data-zone={zoneKey} aria-hidden />
+                                    <span className={zoneKey === 'red' ? s.down : undefined}>
+                                      <span className={s.cellMain}>{zone.split(' (')[0]}</span>
+                                      <span className={s.cellSub}>{zone.split(' (')[1].replace(')', '')}</span>
+                                    </span>
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </motion.div>
               )}
 
               {activeTab === 'pushfold' && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <h3 style={{ color: '#fff', marginBottom: 16 }}>Nash Equilibrium Push/Fold</h3>
-                  <p style={{ color: 'var(--sp-fg-muted)', fontSize: 13, marginBottom: 20 }}>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={s.panel}>
+                  <h3 className={s.subTitle}>Nash Equilibrium Push/Fold</h3>
+                  <p className={s.copy}>
                     Calculated For Your Estimated Stack Depth At Level {currentLevel} (
                     {Number.isFinite(initialBBs) ? (Number.isFinite(Number(initialBBs)) ? Number(initialBBs) : 0).toFixed(1) : '0.0'} BB Initial,
                     Currently ~
@@ -352,53 +334,42 @@ export default function TournamentPrepPlanner() {
                       : '0.0'}{' '}
                     BB Effective).
                   </p>
-
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <div style={{ ...styles.card, flex: 1 }}>
-                      <h4 style={{ color: 'var(--sp-accent-cyan)', margin: '0 0 12px 0' }}>UTG/Early Position</h4>
-                      <p style={{ color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.5 }}>
-                        Push: 77+, A9s+, AJo+, KTs+, KQo
+                  <div className={s.grid}>
+                    <div className={`sd-metric ${s.card}`}>
+                      <h4 className={`${s.subTitle} ${s.ice}`}>UTG/Early Position</h4>
+                      <p className={s.copy}>
+                        Push: <span className={s.white}>77+, A9s+, AJo+, KTs+, KQo</span>
                         <br />
-                        <span style={{ color: 'var(--sp-accent-red)' }}>Fold Everything Else.</span> The Danger
+                        <span className={s.ice}>Fold Everything Else.</span> The Danger
                         Of Calling Off With Medium Stacks Is Immense.
                       </p>
                     </div>
-                    <div style={{ ...styles.card, flex: 1 }}>
-                      <h4 style={{ color: 'var(--sp-accent-green)', margin: '0 0 12px 0' }}>BTN/Late Position</h4>
-                      <p style={{ color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.5 }}>
-                        Push: 22+, A2s+, A2o+, K2s+, K8o+, Q8s+, QTo+, J8s+, T8s+, 98s
+                    <div className={`sd-metric ${s.card}`}>
+                      <h4 className={`${s.subTitle} ${s.ice}`}>BTN/Late Position</h4>
+                      <p className={s.copy}>
+                        Push: <span className={s.white}>22+, A2s+, A2o+, K2s+, K8o+, Q8s+, QTo+, J8s+, T8s+, 98s</span>
                         <br />
-                        <span style={{ color: 'var(--sp-accent-green)' }}>Expand Shoving Range</span> To Exploit
+                        <span className={s.ice}>Expand Shoving Range</span> To Exploit
                         Tight Blinds.
                       </p>
                     </div>
                   </div>
-                  <div
-                    style={{
-                      marginTop: 20,
-                      padding: 16,
-                      background: 'rgba(0,212,255,0.05)',
-                      borderRadius: 12,
-                      border: '1px solid rgba(0,212,255,0.1)',
-                    }}
-                  >
-                    <h4 style={{ color: '#fff', margin: '0 0 8px 0' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#86daff' }}>
-                        <TppLightbulbIcon size={14} />
-                        Strategy Tip (Level {currentLevel})
-                      </span>
-                    </h4>
-                    <p style={{ color: 'var(--sp-fg-muted)', fontSize: 14, margin: 0 }}>
+                  <div className={s.note}>
+                    <p className={`${s.subTitle} ${s.iconLabel} ${s.ice}`}>
+                      <TppLightbulbIcon size={14} />
+                      Strategy Tip (Level {currentLevel})
+                    </p>
+                    <p className={s.copy}>
                       {initialBBs < 20
-                        ? 'You are in the pure Push/Fold territory. Do not open-raise to fold. Only shove or fold preflop to maximize fold equity.'
-                        : 'You have room to maneuver. Use smaller open sizes (2x - 2.2x) to preserve your stack while stealing blinds.'}
+                        ? 'You Are In Pure Push/Fold Territory. Do Not Open-Raise To Fold. Only Shove Or Fold Preflop To Maximize Fold Equity.'
+                        : 'You Have Room To Maneuver. Use Smaller Open Sizes (2x - 2.2x) To Preserve Your Stack While Stealing Blinds.'}
                     </p>
                   </div>
                 </motion.div>
               )}
-            </div>
+            </section>
           </div>
-        </div>
+        </main>
       </div>
     </PageTransition>
     <ConnectionToast />
@@ -406,160 +377,3 @@ export default function TournamentPrepPlanner() {
     </>
   );
 }
-
-const styles = {
-  container: {
-    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-    background: '#040d18',
-    padding: '24px 4vw 80px',
-    color: '#fff',
-    fontFamily: "'Inter', sans-serif",
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 20,
-    marginBottom: 32,
-    paddingBottom: 24,
-    borderBottom: '1px solid #688299',
-  },
-  backButton: {
-    background: '#091727',
-    border: '1px solid #688299',
-    color: '#fff',
-    padding: '8px 16px',
-    borderRadius: 7,
-    cursor: 'pointer',
-    fontSize: 14,
-    fontWeight: 600,
-  },
-  title: {
-    margin: '0 0 4px 0',
-    fontSize: 28,
-    fontWeight: 900,
-    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
-    letterSpacing: 1,
-    color: 'var(--sp-accent-cyan)',
-  },
-  subtitle: {
-    margin: 0,
-    color: 'var(--sp-fg-muted)',
-    fontSize: 14,
-  },
-  content: {
-    display: 'flex',
-    gap: 24,
-    flexWrap: 'wrap',
-  },
-  sidebar: {
-    flex: '1 1 300px',
-    maxWidth: 400,
-  },
-  main: {
-    flex: '3 1 600px',
-    background: '#091727',
-    border: '1px solid #688299',
-    borderTopColor: '#aec0d0',
-    borderRadius: 7,
-    padding: 24,
-  },
-  card: {
-    background: '#091727',
-    border: '1px solid #688299',
-    borderTopColor: '#aec0d0',
-    borderRadius: 7,
-    padding: 20,
-  },
-  cardTitle: {
-    marginTop: 0,
-    marginBottom: 16,
-    fontSize: 14,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    color: 'var(--sp-accent-cyan)',
-    fontWeight: 700,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    display: 'block',
-    fontSize: 12,
-    color: 'var(--sp-fg-muted)',
-    marginBottom: 6,
-    fontWeight: 600,
-  },
-  input: {
-    width: '100%',
-    background: 'rgba(0,0,0,0.3)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    padding: '10px 12px',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 14,
-    outline: 'none',
-  },
-  range: {
-    width: '100%',
-    accentColor: 'var(--sp-accent-cyan)',
-    cursor: 'pointer',
-  },
-  rangeLabels: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: 12,
-    color: 'var(--sp-fg-dim)',
-    marginTop: 6,
-  },
-  statusRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: '8px 0',
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
-  },
-  statusLabel: {
-    color: 'var(--sp-fg-muted)',
-    fontSize: 13,
-  },
-  statusValue: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 700,
-  },
-  tabs: {
-    display: 'flex',
-    gap: 24,
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
-    marginBottom: 24,
-  },
-  tab: {
-    background: 'transparent',
-    padding: '12px 4px',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  tabContent: {
-    minHeight: 400,
-  },
-  table: {
-    width: '100%',
-    fontSize: 13,
-  },
-  tableHeaderRow: {
-    display: 'flex',
-    background: 'rgba(255,255,255,0.05)',
-    padding: '10px 16px',
-    borderRadius: 8,
-    fontWeight: 700,
-    color: 'var(--sp-fg-muted)',
-    marginBottom: 8,
-  },
-  tableRow: {
-    display: 'flex',
-    padding: '12px 16px',
-    borderBottom: '1px solid rgba(255,255,255,0.03)',
-  },
-  cellH: { flex: 1 },
-  cell: { flex: 1, color: 'var(--sp-fg)' },
-};

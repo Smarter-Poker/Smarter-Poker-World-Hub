@@ -123,7 +123,7 @@ export default function TrainingGamePreviewSheet({
           <header className="sp-arena-sheet__head">
             <div>
               <span className="sp-arena-preview__cat">{meta.categoryLabel} · {meta.plaqueLabel}</span>
-              <h1 id="training-preview-title" className="sp-arena-sheet__title">{game.name}</h1>
+              <h2 id="training-preview-title" className="sp-arena-sheet__title">{game.name}</h2>
             </div>
             <button
               type="button"

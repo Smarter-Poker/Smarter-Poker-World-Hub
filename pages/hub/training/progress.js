@@ -22,6 +22,8 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import { TrainingConsoleSkeleton } from '../../../src/components/training/console/TrainingConsoleStates';
+import sd from '../../../src/styles/training/training-journey-sd.module.css';
 import { deriveTrainingSessionAccuracy } from '../../../src/lib/training/sessionEvidence.mjs';
 
 
@@ -314,52 +316,49 @@ export default function TrainingProgress() {
   }, [loadProgress]);
 
   const offlineNotice = !isOnline && (
-    <div
-      role="status"
-      data-offline-banner="true"
-      style={{
-        marginBottom: 16,
-        padding: '10px 14px',
-        borderRadius: 8,
-        border: '1px solid rgba(134, 218, 255, 0.4)',
-        background: 'rgba(134, 218, 255, 0.08)',
-        color: '#86daff',
-        fontSize: 12,
-        fontWeight: 700,
-      }}
-    >
+    <div role="status" data-offline-banner="true" className={sd.notice}>
       Offline. Progress Updates Will Resume After Reconnection.
+    </div>
+  );
+
+  const seo = (
+    <SEOHead title="Training Progress - Your Journey" description="Track Your GTO Training Progress Across All 100 Games And Categories." canonical="/hub/training/progress" noindex={true} />
+  );
+
+  // The header and Back row render in every branch (loading, signed out,
+  // unavailable, ready) so the page never sits on a bare loading screen.
+  const frame = (children) => (
+    <div className={`sp-training-journey sp-training-journey--progress ${sd.root}`}>
+      <UniversalHeader pageDepth={2} />
+      <TrainingPageHead slug="training-progress" />
+      <div className={`sp-journey-main ${sd.main}`}>{children}</div>
     </div>
   );
 
   if (loading) {
     return (
-      <>
-        <SEOHead title="Training Progress - Your Journey" description="Track Your GTO Training Progress Across All 100 Games And Categories." canonical="/hub/training/progress" noindex={true} />
-        <div style={styles.loadingContainer}>
-          <div style={styles.spinner}></div>
-          <p style={styles.loadingText}>Loading Your Progress...</p>
-        </div>
-      </>
+      <PageTransition>
+        {seo}
+        {frame(<TrainingConsoleSkeleton label="Loading Your Progress" metrics={4} panels={2} rows={3} />)}
+      </PageTransition>
     );
   }
 
   if (!user) {
     return (
       <PageTransition>
-        <SEOHead title="Training Progress - Your Journey" description="Track Your GTO Training Progress Across All 100 Games And Categories." canonical="/hub/training/progress" noindex={true} />
-        <div style={styles.container}>
-          <UniversalHeader pageDepth={2} />
-          <div style={styles.content}>
+        {seo}
+        {frame(
+          <>
             {offlineNotice}
             <TrainerEmptyState
               variant="locked"
-              title="Sign in to view your progress"
-              message="Track your accuracy, streaks, and weak spots once you sign in."
+              title="Sign In To View Your Progress"
+              message="Track Your Accuracy, Streaks, And Weak Spots Once You Sign In."
               cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[progress] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
             />
-          </div>
-        </div>
+          </>
+        )}
       </PageTransition>
     );
   }
@@ -367,46 +366,38 @@ export default function TrainingProgress() {
   if (fetchError) {
     return (
       <PageTransition>
-        <SEOHead title="Training Progress - Your Journey" description="Track Your GTO Training Progress Across All 100 Games And Categories." canonical="/hub/training/progress" noindex={true} />
-        <div style={styles.container}>
-          <UniversalHeader pageDepth={2} />
-          <div style={styles.content}>
+        {seo}
+        {frame(
+          <>
             {offlineNotice}
             <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); loadProgress(); }} />
             <TrainerEmptyState
               variant="retry"
               title="Training Progress Is Unavailable"
-              message="We could not verify your sealed training sessions. No zero-history fallback has been shown."
+              message="We Could Not Verify Your Sealed Training Sessions. No Zero-History Fallback Has Been Shown."
               cta={{ label: 'Try Again', onClick: () => { setFetchError(null); setLoading(true); loadProgress(); } }}
             />
-          </div>
-        </div>
+          </>
+        )}
         <ConnectionToast />
       </PageTransition>
     );
   }
 
+  const categories = Object.entries(stats.categoryBreakdown || {});
+
   return (
     <PageTransition>
-      <SEOHead
-        title="Training Progress - Your Journey"
-        description="Track Your GTO Training Progress Across All 100 Games And Categories."
-        canonical="/hub/training/progress"
-        noindex={true}
-      />
+      {seo}
 
-      <div className="sp-training-journey sp-training-journey--progress" style={styles.container}>
-        <UniversalHeader pageDepth={2} />
-
-        <TrainingPageHead slug="training-progress" />
-        <div className="sp-journey-main" style={styles.content}>
+      {frame(
+        <>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); loadProgress(); }} />
-
 
           {offlineNotice}
 
           {/* Overall Stats */}
-          <div className="sp-journey-stat-grid" style={styles.statsGrid}>
+          <div className={`sp-journey-stat-grid ${sd.metrics} ${sd.metricsWide}`}>
             {/* TRAIN-PROGRESS-A11Y-1: emoji icon prop replaced with SVG iconKind */}
             <StatCard
               iconKind="questions"
@@ -422,53 +413,57 @@ export default function TrainingProgress() {
               iconKind="accuracy"
               label="Accuracy"
               value={Number.isFinite(stats.accuracy) ? `${stats.accuracy}%` : '-'}
-              color={
-                Number.isFinite(stats.accuracy)
-                  ? (stats.accuracy >= 80 ? '#31A24C' : stats.accuracy >= 60 ? '#FFB800' : '#FF4444')
-                  : 'var(--sp-fg-muted)'
-              }
+              tone={Number.isFinite(stats.accuracy) ? (stats.accuracy >= 80 ? 'good' : stats.accuracy >= 60 ? 'ice' : 'bad') : 'muted'}
             />
-            <StatCard iconKind="timer" label="Avg Time/Question" value={stats.averageTime == null ? 'Unavailable' : `${stats.averageTime}s`} />
+            <StatCard iconKind="timer" label="Avg Time/Question" value={stats.averageTime == null ? 'Unavailable' : `${stats.averageTime}s`} tone={stats.averageTime == null ? 'muted' : undefined} />
             <StatCard
               iconKind="streak"
               label="Current Streak"
-              value={`${stats.streak} days`}
-              color={stats.streak >= 7 ? '#FF6B35' : stats.streak >= 3 ? '#86daff' : 'var(--sp-fg-muted)'}
+              value={`${stats.streak} Days`}
+              tone={stats.streak >= 3 ? 'ice' : undefined}
             />
           </div>
 
           {/* Category Breakdown */}
-          <section className="sp-journey-section" style={styles.section}>
-            <h2 style={{ ...styles.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              {/* TRAIN-PROGRESS-A11Y-1: SVG icon (was □) */}
-              <StatIcon kind="category" size={20} color="currentColor" />
-              Category Breakdown
-            </h2>
-            <div style={styles.categoryList}>
-              {Object.entries(stats.categoryBreakdown || {}).map(([category, data]) => {
-                const accuracy = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
-                return (
-                  <CategoryCard
-                    key={category}
-                    category={category}
-                    total={data.total}
-                    correct={data.correct}
-                    accuracy={accuracy}
-                  />
-                );
-              })}
+          <section className={`sp-journey-section ${sd.section}`}>
+            <div className={sd.sectionHead}>
+              <h2 className={sd.sectionTitle}>
+                {/* TRAIN-PROGRESS-A11Y-1: SVG icon */}
+                <StatIcon kind="category" size={20} color="currentColor" />
+                Category Breakdown
+              </h2>
             </div>
+            {categories.length === 0 ? (
+              <p className={sd.copy}>No Verified Sessions Yet. Finish A Drill And Your Category Accuracy Builds Here.</p>
+            ) : (
+              <div className={sd.list}>
+                {categories.map(([category, data]) => {
+                  const accuracy = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
+                  return (
+                    <CategoryCard
+                      key={category}
+                      category={category}
+                      total={data.total}
+                      correct={data.correct}
+                      accuracy={accuracy}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           {/* Weak Areas */}
           {stats.weakAreas.length > 0 && (
-            <section className="sp-journey-section" style={styles.section}>
-              <h2 style={{ ...styles.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              {/* TRAIN-PROGRESS-A11Y-1: SVG icon */}
-              <StatIcon kind="improve" size={20} color="currentColor" />
-              Areas To Improve
-            </h2>
-              <div style={styles.weakAreasList}>
+            <section className={`sp-journey-section ${sd.section}`}>
+              <div className={sd.sectionHead}>
+                <h2 className={sd.sectionTitle}>
+                  {/* TRAIN-PROGRESS-A11Y-1: SVG icon */}
+                  <StatIcon kind="improve" size={20} color="currentColor" />
+                  Areas To Improve
+                </h2>
+              </div>
+              <div className={sd.list}>
                 {stats.weakAreas.map((area) => (
                   <WeakAreaCard key={area.category} {...area} />
                 ))}
@@ -477,30 +472,36 @@ export default function TrainingProgress() {
           )}
 
           {/* Recent Activity */}
-          <section className="sp-journey-section" style={styles.section}>
-            <h2 style={{ ...styles.sectionTitle, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              {/* TRAIN-PROGRESS-A11Y-1: SVG icon (was ·) */}
-              <StatIcon kind="activity" size={20} color="currentColor" />
-              Recent Activity
-            </h2>
-            <div style={styles.activityList}>
-              {stats.recentActivity.map((activity, i) => (
-                <ActivityCard key={i} {...activity} />
-              ))}
+          <section className={`sp-journey-section ${sd.section}`}>
+            <div className={sd.sectionHead}>
+              <h2 className={sd.sectionTitle}>
+                {/* TRAIN-PROGRESS-A11Y-1: SVG icon */}
+                <StatIcon kind="activity" size={20} color="currentColor" />
+                Recent Activity
+              </h2>
             </div>
+            {stats.recentActivity.length === 0 ? (
+              <p className={sd.copy}>Your Ten Most Recent Verified Sessions Appear Here.</p>
+            ) : (
+              <div className={sd.list}>
+                {stats.recentActivity.map((activity, i) => (
+                  <ActivityCard key={i} {...activity} />
+                ))}
+              </div>
+            )}
           </section>
 
           {/* Actions */}
-          <div style={styles.actions}>
-            <Link href="/hub/training" style={styles.primaryButton}>
+          <div className={sd.actions}>
+            <Link href="/hub/training" className={`${sd.button} ${sd.primary}`}>
               Continue Training
             </Link>
-            <Link href="/hub/training/leaderboard" style={styles.secondaryButton}>
+            <Link href="/hub/training/leaderboard" className={sd.button}>
               View Leaderboard
             </Link>
           </div>
-        </div>
-      </div>
+        </>
+      )}
       <ConnectionToast />
     </PageTransition>
   );
@@ -511,64 +512,58 @@ export default function TrainingProgress() {
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 // TRAIN-PROGRESS-A11Y-1: iconKind takes precedence; legacy icon accepted for back-compat.
-function StatCard({ iconKind, icon, label, value, color = '#00E0FF' }) {
+// tone: 'good' / 'bad' only for real accuracy bands, 'ice' emphasis, 'muted' unavailable.
+const TONE_CLASS = { good: sd.good, bad: sd.bad, ice: sd.ice, muted: sd.muted };
+
+function StatCard({ iconKind, icon, label, value, tone }) {
   return (
-    <motion.div className="sp-journey-stat-card" style={styles.statCard} whileHover={{ scale: 1.02 }} transition={{ duration: MOTION.standard }}>
-      <div style={{ fontSize: '32px', marginBottom: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-        {iconKind ? <StatIcon kind={iconKind} size={28} color={color} /> : icon}
-      </div>
-      <div style={{ ...styles.statValue, color }}>{value}</div>
-      <div style={styles.statLabel}>{label}</div>
+    <motion.div className={`sp-journey-stat-card ${sd.metric}`} whileHover={{ scale: 1.02 }} transition={{ duration: MOTION.standard }}>
+      <span className={sd.metricIcon}>
+        {iconKind ? <StatIcon kind={iconKind} size={24} color="currentColor" /> : icon}
+      </span>
+      <div className={`${sd.metricValue} ${TONE_CLASS[tone] || ''}`}>{value}</div>
+      <div className={sd.metricLabel}>{label}</div>
     </motion.div>
   );
 }
 
 function CategoryCard({ category, total, correct, accuracy }) {
+  const strong = accuracy >= 70;
   return (
-    <div className="sp-journey-data-card" style={styles.categoryCard}>
-      <div style={styles.categoryHeader}>
-        <span style={styles.categoryName}>{category}</span>
-        <span style={{ ...styles.categoryAccuracy, color: accuracy >= 70 ? '#31A24C' : '#86daff' }}>
-          {accuracy}%
-        </span>
+    <div className={`sp-journey-data-card ${sd.card}`}>
+      <div className={sd.row}>
+        <span className={sd.title}>{category}</span>
+        <span className={`${sd.value} ${strong ? sd.good : ''}`}>{accuracy}%</span>
       </div>
-      <div style={styles.categoryStats}>
-        {correct}/{total} Correct
-      </div>
-      <div style={styles.progressBar}>
-        <div
-          style={{
-            ...styles.progressFill,
-            width: `${accuracy}%`,
-            background: accuracy >= 70 ? '#31A24C' : '#FFB800',
-          }}
-        />
+      <div className={sd.copy}>{correct}/{total} Correct</div>
+      <div className={sd.meter}>
+        <div className={sd.meterFill} data-tone={strong ? 'good' : undefined} style={{ width: `${accuracy}%` }} />
       </div>
     </div>
   );
 }
 
-function WeakAreaCard({ category, accuracy, total }) {
+function WeakAreaCard({ category, accuracy }) {
   return (
-    <div className="sp-journey-data-card sp-journey-data-card--warning" style={styles.weakAreaCard}>
-      <div style={styles.weakAreaHeader}>
-        <span>{category}</span>
-        <span style={styles.weakAreaAccuracy}>{accuracy}%</span>
+    <div className={`sp-journey-data-card sp-journey-data-card--warning ${sd.card}`} data-tone="bad">
+      <div className={sd.row}>
+        <span className={sd.title}>{category}</span>
+        <span className={`${sd.value} ${sd.bad}`}>{accuracy}%</span>
       </div>
-      <p style={styles.weakAreaHint}>Practice More {category} Questions To Improve</p>
+      <p className={sd.copy}>Practice More {category} Questions To Improve</p>
     </div>
   );
 }
 
 function ActivityCard({ date, category, questions, correct, accuracy }) {
   return (
-    <div className="sp-journey-data-card" style={styles.activityCard}>
-      <div style={styles.activityDate}>
+    <div className={`sp-journey-data-card ${sd.card} ${sd.activity}`}>
+      <div className={sd.activityDate}>
         {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
       </div>
-      <div style={styles.activityDetails}>
-        <div style={styles.activityCategory}>{category}</div>
-        <div style={styles.activityStats}>
+      <div>
+        <div className={sd.title}>{category}</div>
+        <div className={sd.copy}>
           {correct}/{questions} Correct ({Number.isFinite(accuracy) ? `${accuracy}%` : 'Accuracy Not Available'})
         </div>
       </div>
@@ -576,212 +571,3 @@ function ActivityCard({ date, category, questions, correct, accuracy }) {
   );
 }
 
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// STYLES
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-
-const styles = {
-  container: {
-    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-    background: '#040d18',
-    color: '#FFFFFF',
-  },
-  content: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '80px 24px 40px',
-  },
-  title: {
-    fontSize: '32px',
-    fontWeight: 700,
-    marginBottom: '32px',
-    textAlign: 'center',
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '16px',
-    marginBottom: '40px',
-  },
-  statCard: {
-    background: '#1a1a1a',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '12px',
-    padding: '24px',
-    textAlign: 'center',
-  },
-  statValue: {
-    fontSize: '28px',
-    fontWeight: 700,
-    marginBottom: '4px',
-  },
-  statLabel: {
-    fontSize: '14px',
-    color: 'var(--sp-fg-muted)',
-  },
-  section: {
-    marginBottom: '40px',
-  },
-  sectionTitle: {
-    fontSize: '20px',
-    fontWeight: 600,
-    marginBottom: '16px',
-  },
-  categoryList: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-    gap: '16px',
-  },
-  categoryCard: {
-    background: '#1a1a1a',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '12px',
-    padding: '16px',
-  },
-  categoryHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '8px',
-  },
-  categoryName: {
-    fontSize: '16px',
-    fontWeight: 600,
-  },
-  categoryAccuracy: {
-    fontSize: '18px',
-    fontWeight: 700,
-  },
-  categoryStats: {
-    fontSize: '14px',
-    color: 'var(--sp-fg-muted)',
-    marginBottom: '12px',
-  },
-  progressBar: {
-    height: '6px',
-    background: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: '3px',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    transition: 'width 0.3s ease',
-  },
-  weakAreasList: {
-    display: 'grid',
-    gap: '12px',
-  },
-  weakAreaCard: {
-    background: 'rgba(255, 68, 68, 0.1)',
-    border: '1px solid rgba(255, 68, 68, 0.3)',
-    borderRadius: '8px',
-    padding: '16px',
-  },
-  weakAreaHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '8px',
-    fontWeight: 600,
-  },
-  weakAreaAccuracy: {
-    color: '#FF4444',
-  },
-  weakAreaHint: {
-    fontSize: '14px',
-    color: 'var(--sp-fg-muted)',
-    margin: 0,
-  },
-  activityList: {
-    display: 'grid',
-    gap: '12px',
-  },
-  activityCard: {
-    display: 'flex',
-    gap: '16px',
-    background: '#1a1a1a',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '8px',
-    padding: '16px',
-  },
-  activityDate: {
-    fontSize: '14px',
-    fontWeight: 600,
-    color: '#00E0FF',
-    minWidth: '60px',
-  },
-  activityDetails: {
-    flex: 1,
-  },
-  activityCategory: {
-    fontSize: '16px',
-    fontWeight: 600,
-    marginBottom: '4px',
-  },
-  activityStats: {
-    fontSize: '14px',
-    color: 'var(--sp-fg-muted)',
-  },
-  actions: {
-    display: 'flex',
-    gap: '16px',
-    justifyContent: 'center',
-    marginTop: '40px',
-  },
-  primaryButton: {
-    padding: '12px 32px',
-    background: 'linear-gradient(135deg, #00E0FF, #0099FF)',
-    color: '#FFFFFF',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    textDecoration: 'none',
-    display: 'inline-block',
-  },
-  secondaryButton: {
-    padding: '12px 32px',
-    background: 'transparent',
-    color: '#00E0FF',
-    border: '1px solid #00E0FF',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    textDecoration: 'none',
-    display: 'inline-block',
-  },
-  loadingContainer: {
-    minHeight: '100dvh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#040d18',
-    color: '#FFFFFF',
-  },
-  spinner: {
-    fontSize: '48px',
-    animation: 'pulse 1.5s ease-in-out infinite',
-  },
-  loadingText: {
-    marginTop: '16px',
-    color: 'var(--sp-fg-muted)',
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '80px 24px',
-    color: '#FFFFFF',
-  },
-  button: {
-    display: 'inline-block',
-    marginTop: '24px',
-    padding: '12px 32px',
-    background: '#00E0FF',
-    color: '#FFFFFF',
-    borderRadius: '8px',
-    textDecoration: 'none',
-    fontWeight: 600,
-  },
-};

@@ -212,7 +212,7 @@ body.world-training .sp-arena-plate {
   border-image: none;
   border-radius: 0;
   box-shadow: none;
-  background: url('/images/training/lobby/arena-mode.webp') center / 100% 100% no-repeat;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   color: #f2f7ff;
   cursor: pointer;
 }
@@ -322,8 +322,8 @@ body.world-training .sp-arena-sticky-rail .sp-arena-sticky-rail__btn {
   border-image: none;
   border-radius: 0;
   box-shadow: none;
-  background: url('/images/training/lobby/arena-filter.webp') center / 100% 100% no-repeat;
-  color: #e8eff6;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
 }
 
 body.world-training .sp-arena-favorites-btn[aria-pressed='true'],
@@ -541,10 +541,9 @@ body.world-training .sp-arena-row-list {
    Nine slices keep the rim intact when a game name wraps or the row widens. */
 body.world-training .sp-arena-row {
   position: relative;
-  border: solid transparent;
-  border-width: 6px 10px;
-  border-image: url('/images/training/lobby/arena-row-rim.webp') 15 27 / 6px 10px stretch;
-  background: #06101c;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
   color: #f2f7ff;
 }
 
@@ -558,8 +557,8 @@ body.world-training .sp-arena-row__head-wrap {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
-  background: url('/images/training/lobby/arena-mode.webp') center / 160% 280% no-repeat;
-  border-bottom: 1px solid #708295;
+  background: linear-gradient(180deg, rgba(38, 63, 88, 0.55), rgba(7, 20, 32, 0.2));
+  border-bottom: 1px solid #2c4560;
 }
 
 /* Upper Half: Emblem + Title/Focus + Format Plaque */
@@ -1255,4 +1254,624 @@ body.world-training .sp-arena-variants__play {
 body.world-training .sp-arena-variants button:focus-visible {
   outline: 2px solid #9be3ff;
   outline-offset: -3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   #SMARTERDESIGN CONSOLE LAYER (2026-11-27)
+   One continuous steel rim per surface (Club Arena chrome nine-slices from
+   styles/smarterdesign.css), ink-navy fills, square corners, cobalt + white
+   for every selected control, white titles, silver copy, ice emphasis.
+   Scoped to the Arena lobby shell (Training lobby + category pages) so the
+   page-level legacy dashboard styles underneath never show through.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-training .sp-arena-lobby-shell {
+  --sd-rim-panel: url('/images/smarterdesign/chrome-readout.webp');
+  --sd-rim-stat: url('/images/smarterdesign/chrome-stat.webp');
+  --sd-rim-row: url('/images/smarterdesign/chrome-row.webp');
+  --sd-rim-active: url('/images/smarterdesign/chrome-active.webp');
+  --sd-fill-navy: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  --sd-fill-control: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  --sd-fill-cobalt: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  border: 0;
+  box-shadow: none;
+  background: radial-gradient(ellipse at 50% -10%, #12304d 0%, transparent 55%), #040d18;
+}
+
+body.world-training .sp-arena-lobby-shell > * { min-width: 0; }
+body.world-training .sp-arena-lobby-shell > section + section { margin-top: 0; }
+
+/* Label type: condensed console face, Title Case as authored, tight tracking. */
+body.world-training .sp-arena-lobby-shell :is(
+  .sp-arena-plate__title, .sp-arena-favorites-btn, .sp-cat-chip.sp-arena-subtab,
+  .sp-arena-pill, .sp-arena-sticky-rail__btn, .sp-arena-sortbar__col,
+  .sp-arena-variants button, .sp-arena-quickbar__cta, .sp-arena-row__plaque,
+  .sp-arena-quickbar__tag, .sp-arena-divider__label, .sp-arena-cell__label,
+  .sp-arena-deck__heading, .sp-arena-deck__count, .sp-arena-reset-btn
+) {
+  font-family: var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Selector deck: one panel rim ─────────────────────────────────────── */
+body.world-training .sp-arena-lobby-shell .sp-arena-deck {
+  gap: 10px;
+  padding: 12px;
+  border: 5px solid transparent;
+  border-image: var(--sd-rim-panel) 21 / 8px stretch;
+  border-radius: 0;
+  background: var(--sd-fill-navy);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-deck__heading {
+  font-size: clamp(1.12rem, 4.4vw, 1.4rem);
+  font-weight: 700;
+  color: #f2f7ff;
+  text-shadow: 0 2px 0 #243951, 0 3px 6px #020914;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-deck__count {
+  color: #86daff;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Search well */
+body.world-training .sp-arena-lobby-shell .sp-arena-search-row { flex-wrap: nowrap; margin: 0; }
+body.world-training .sp-arena-lobby-shell .sp-arena-search { min-width: 0; flex: 1 1 auto; }
+/* The Training stage layer paints every input with a 1px cyan line
+   (!important); the search well keeps its own steel rim. */
+body.world-training .sp-arena-lobby-shell .sp-arena-search input,
+dialog.sp-arena-sheet .sp-arena-sheet__search input {
+  box-sizing: border-box;
+  min-height: 46px;
+  padding: 8px 10px 8px 34px;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: #040b14 !important;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+  color: #f2f7ff !important;
+  font-family: var(--font-inter, Inter), system-ui, sans-serif;
+  font-size: 14px;
+  text-transform: none;
+}
+body.world-training .sp-arena-lobby-shell .sp-arena-search:has(.sp-arena-search__clear) input { padding-right: 44px; }
+body.world-training .sp-arena-lobby-shell .sp-arena-search input::placeholder,
+dialog.sp-arena-sheet .sp-arena-sheet__search input::placeholder { color: #8fa6bc !important; text-transform: none !important; }
+body.world-training .sp-arena-lobby-shell .sp-arena-search input:focus-visible {
+  outline: 2px solid #9ee3ff;
+  outline-offset: 2px;
+}
+
+/* ─── Every console control: chrome row rim, control fill ──────────────── */
+body.world-training .sp-arena-lobby-shell :is(
+  .sp-arena-plate, .sp-arena-favorites-btn, .sp-cat-chip.sp-arena-subtab,
+  .sp-arena-pill, .sp-arena-variants button, .sp-arena-sticky-rail__btn,
+  .sp-arena-reset-btn
+),
+body.world-training .sp-arena-sticky-rail .sp-arena-sticky-rail__btn {
+  box-sizing: border-box;
+  min-height: 44px;
+  border: 3px solid transparent;
+  border-image: var(--sd-rim-row) 13 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-fill-control);
+  color: #f2f7ff;
+  box-shadow: none;
+  filter: none;
+  font-weight: 700;
+  text-decoration: none;
+  text-shadow: 0 1px 1px #000;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
+}
+
+body.world-training .sp-arena-lobby-shell :is(
+  .sp-arena-plate, .sp-arena-favorites-btn, .sp-cat-chip.sp-arena-subtab,
+  .sp-arena-pill, .sp-arena-variants button, .sp-arena-sticky-rail__btn
+):is([aria-pressed='true'], .active),
+body.world-training .sp-arena-sticky-rail .sp-arena-sticky-rail__btn:is([aria-pressed='true'], .active),
+body.world-training .sp-arena-lobby-shell .sp-arena-variants__play {
+  border-image: var(--sd-rim-active) 11 / 4px stretch;
+  background: var(--sd-fill-cobalt);
+  color: #fff;
+  text-decoration: none;
+  text-shadow: 0 1px 2px #021022;
+}
+
+body.world-training .sp-arena-lobby-shell :is(
+  .sp-arena-plate, .sp-arena-favorites-btn, .sp-cat-chip.sp-arena-subtab,
+  .sp-arena-pill, .sp-arena-variants button, .sp-arena-sticky-rail__btn
+):active { filter: brightness(0.89); }
+
+body.world-training .sp-arena-lobby-shell :is(
+  .sp-arena-plate, .sp-arena-favorites-btn, .sp-cat-chip.sp-arena-subtab,
+  .sp-arena-pill, .sp-arena-variants button, .sp-arena-sticky-rail__btn,
+  .sp-arena-sortbar__col, .sp-arena-row__head, .sp-arena-row__options,
+  .sp-arena-row__star, .sp-arena-row__telemetry-left, .sp-arena-row__status-btn,
+  .sp-section-link, .sp-arena-search__clear
+):focus-visible {
+  outline: 2px solid #9ee3ff;
+  outline-offset: 1px;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-plate__title,
+body.world-training .sp-arena-lobby-shell .sp-arena-plate[aria-pressed='true'] .sp-arena-plate__title {
+  color: inherit;
+  font-size: clamp(14px, 3.7vw, 17px);
+  font-weight: 700;
+  line-height: 1.1;
+  text-decoration: none;
+  text-shadow: inherit;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-favorites-btn,
+body.world-training .sp-arena-lobby-shell .sp-cat-chip.sp-arena-subtab {
+  padding: 0 8px;
+  font-size: clamp(14px, 3.7vw, 16px);
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-pill { padding: 0 12px; font-size: 15px; gap: 6px; }
+body.world-training .sp-arena-lobby-shell .sp-arena-search-row .sp-arena-pill { flex: 0 0 auto; }
+body.world-training .sp-arena-lobby-shell .sp-arena-search-row .sp-arena-pill[aria-label='Favorite Games'] { width: 46px; padding: 0; }
+
+body.world-training .sp-arena-lobby-shell .sp-arena-primary-plates,
+body.world-training .sp-arena-lobby-shell .sp-cat-chips.sp-arena-subtabs {
+  gap: 8px;
+  padding: 0;
+}
+
+/* Variant row: six equal console keys, the Omaha quick launch spans the row. */
+body.world-training .sp-arena-lobby-shell .sp-arena-variants { gap: 6px; }
+body.world-training .sp-arena-lobby-shell .sp-arena-variants button {
+  padding: 0 2px;
+  font-size: clamp(14px, 3.8vw, 17px);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Sticky dock: rail + sort header share one steel surface ──────────── */
+body.world-training .sp-arena-lobby-shell .sp-arena-sticky-dock {
+  margin-top: 0;
+  background: #040d18;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-sticky-rail {
+  gap: 6px;
+  padding: 6px;
+  border: 3px solid transparent;
+  border-bottom: 0;
+  border-image: var(--sd-rim-stat) 11 / 4px stretch;
+  background: var(--sd-fill-navy);
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-sticky-rail__btn { font-size: 14px; padding: 0 4px; }
+
+body.world-training .sp-arena-lobby-shell .sp-arena-sortbar {
+  border: 3px solid transparent;
+  border-image: var(--sd-rim-stat) 11 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-fill-navy);
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-sortbar__col {
+  min-height: 44px;
+  border-right: 1px solid rgba(157, 184, 207, 0.18);
+  color: #bdd0e2;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-sortbar__col.is-sorted {
+  color: #fff;
+  background: var(--sd-fill-cobalt);
+}
+
+/* ─── Section divider: a quiet labelled rule, not another frame ───────── */
+body.world-training .sp-arena-lobby-shell .sp-arena-sections { gap: 12px; margin-top: 10px; }
+body.world-training .sp-arena-lobby-shell .sp-arena-group { gap: 8px; }
+
+body.world-training .sp-arena-lobby-shell .sp-arena-divider {
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 0 2px 6px;
+  border: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, transparent, #5d7d98 12%, #9cb8cf 50%, #5d7d98 88%, transparent) bottom / 100% 1px no-repeat;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-divider__label {
+  color: #86daff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-results-range {
+  color: #bdd0e2;
+  font-family: var(--font-inter, Inter), system-ui, sans-serif;
+  font-size: 0.86rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ─── Game rows ───────────────────────────────────────────────────────── */
+body.world-training .sp-arena-lobby-shell .sp-arena-row-list { gap: 10px; }
+
+body.world-training .sp-arena-lobby-shell .sp-arena-row {
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32);
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-row__emblem {
+  box-sizing: border-box;
+  border: 2px solid transparent;
+  border-image: var(--sd-rim-stat) 11 / 3px stretch;
+  border-radius: 0;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-row__title {
+  font-family: var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #f2f7ff;
+  text-transform: none;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-row__focus {
+  color: #bdd0e2;
+  font-family: var(--font-inter, Inter), system-ui, sans-serif;
+  font-size: 13px;
+  text-transform: none;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-row__vip {
+  border: 2px solid transparent;
+  border-image: var(--sd-rim-stat) 11 / 3px stretch;
+  border-radius: 0;
+  background: #071420;
+  color: #86daff;
+  text-transform: none;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-row__plaque {
+  min-height: 36px;
+  padding: 0 11px;
+  border: 3px solid transparent;
+  border-image: var(--sd-rim-active) 11 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-fill-cobalt);
+  box-shadow: none;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px #021022;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-row__options {
+  border-left: 1px solid rgba(157, 184, 207, 0.2);
+  background: transparent;
+  color: #bdd0e2;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-row__options:hover { background: rgba(134, 218, 255, 0.1); color: #fff; }
+
+body.world-training .sp-arena-lobby-shell .sp-arena-row__telemetry {
+  padding-left: 0;
+  background: rgba(3, 9, 16, 0.55);
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-cell { border-right-color: rgba(157, 184, 207, 0.16); }
+
+body.world-training .sp-arena-lobby-shell .sp-arena-cell__label {
+  color: #9fb6cc;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-cell__value {
+  font-family: var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-row__star { border-right-color: rgba(157, 184, 207, 0.16); color: #bdd0e2; }
+body.world-training .sp-arena-lobby-shell .sp-arena-row__star.is-starred { color: #86daff; }
+body.world-training .sp-arena-lobby-shell .sp-arena-pip { border-radius: 0; }
+body.world-training .sp-arena-lobby-shell .sp-arena-pip.is-filled { background: #86daff; }
+body.world-training .sp-arena-lobby-shell .sp-arena-row__meter { border-radius: 0; }
+
+/* Pagination */
+body.world-training .sp-arena-lobby-shell .sp-arena-pagination {
+  color: #bdd0e2;
+  font-variant-numeric: tabular-nums;
+}
+body.world-training .sp-arena-lobby-shell .sp-arena-pagination button { min-width: 96px; font-size: 15px; }
+body.world-training .sp-arena-lobby-shell .sp-arena-pagination button:disabled { opacity: 1; color: #a7b7c8; background: #13202c; }
+
+/* Empty / notice states */
+body.world-training .sp-arena-lobby-shell .sp-arena-empty {
+  border: 3px solid transparent;
+  border-image: var(--sd-rim-stat) 11 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-fill-navy);
+  color: #bdd0e2;
+}
+
+/* ─── Slim quick bars (5-Min Fix, category Top Drill) ─────────────────── */
+body.world-training .sp-arena-lobby-shell .sp-arena-quickbar {
+  min-width: 0;
+  padding: 8px 8px 8px 12px;
+  border: 3px solid transparent;
+  border-image: var(--sd-rim-stat) 11 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-fill-navy);
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-quickbar__copy {
+  flex-direction: column;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-quickbar__tag {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #86daff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-quickbar__text {
+  max-width: 100%;
+  color: #f2f7ff;
+  font-family: var(--font-inter, Inter), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 650;
+  text-transform: none;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-arena-quickbar__cta { font-size: 15px; padding: 5px 14px; }
+
+/* ─── Dashboard sections under the browser (This Week, Progress) ──────── */
+body.world-training .sp-arena-lobby-shell .sp-training-section {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 0;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+body.world-training .sp-arena-lobby-shell .sp-section-head {
+  min-height: 0;
+  margin: 0;
+  padding: 0 0 8px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background:
+    linear-gradient(90deg, transparent, #5d7d98 12%, #9cb8cf 50%, #5d7d98 88%, transparent) bottom / 100% 1px no-repeat;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-section-title {
+  color: #f2f7ff;
+  font: 700 clamp(1.12rem, 4.4vw, 1.4rem) / 1.15 var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  letter-spacing: 0.015em;
+  text-transform: none;
+  text-shadow: 0 2px 0 #243951, 0 3px 6px #020914;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-section-link {
+  min-height: 44px;
+  padding: 0 4px;
+  border-radius: 0;
+  color: #86daff;
+  font-family: var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+body.world-training .sp-arena-lobby-shell .sp-section-link:hover { color: #fff; background: transparent; }
+
+body.world-training .sp-arena-lobby-shell .sp-stats { gap: 10px; }
+
+body.world-training .sp-arena-lobby-shell :is(.sp-stat, .sp-grade-card, .sp-training-section > .sp-progress, .sp-data-unavailable:not(.sp-data-unavailable-compact), .sp-leak) {
+  border: 3px solid transparent;
+  border-image: var(--sd-rim-stat) 11 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-fill-navy);
+  box-shadow: none;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-stat { min-height: 96px; padding: 10px 12px; }
+body.world-training .sp-arena-lobby-shell .sp-stat-value.sp-skel-text { color: transparent; }
+
+body.world-training .sp-arena-lobby-shell .sp-stat-label {
+  color: #bdd0e2;
+  font-family: var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+body.world-training .sp-arena-lobby-shell .sp-stat-label svg { color: #86daff; }
+
+body.world-training .sp-arena-lobby-shell .sp-stat-value {
+  color: #f2f7ff;
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-shadow: none;
+}
+
+body.world-training .sp-arena-lobby-shell :is(.sp-stat-unit, .sp-stat-sub, .sp-grade-label, .sp-grade-value, .sp-grade-meta, .sp-progress-note, .sp-progress-meta, .sp-progress-label) {
+  color: #bdd0e2;
+  text-transform: none;
+}
+
+body.world-training .sp-arena-lobby-shell .sp-grade-card { padding: 12px; }
+body.world-training .sp-arena-lobby-shell .sp-grade-letter { color: #86daff; text-shadow: none; }
+body.world-training .sp-arena-lobby-shell .sp-grade-card .sp-progress { border-radius: 0; background: rgba(134, 218, 255, 0.14); }
+body.world-training .sp-arena-lobby-shell .sp-progress-fill { border-radius: 0; background: linear-gradient(90deg, #1981ec, #86daff); }
+body.world-training .sp-arena-lobby-shell .sp-training-section > .sp-progress { padding: 12px; }
+body.world-training .sp-arena-lobby-shell .sp-progress-blank { text-align: center; }
+body.world-training .sp-arena-lobby-shell :is(.sp-skel-text, .sp-skel-line, .sp-skel-block) { border-radius: 0; }
+
+/* Data unavailable / retry */
+body.world-training .sp-arena-lobby-shell .sp-data-unavailable { color: #86daff; padding: 12px; }
+body.world-training .sp-arena-lobby-shell .sp-data-unavailable-copy strong { color: #f2f7ff; font-size: 14px; text-transform: none; }
+body.world-training .sp-arena-lobby-shell .sp-data-unavailable-copy span { color: #bdd0e2; font-size: 13px; text-transform: none; }
+body.world-training .sp-arena-lobby-shell .sp-data-retry {
+  min-height: 44px;
+  border: 3px solid transparent;
+  border-image: var(--sd-rim-row) 13 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-fill-control);
+  color: #f2f7ff;
+  font-family: var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 15px;
+}
+
+/* Priority leak: same console surface, ice emphasis, cobalt action. */
+body.world-training .sp-arena-lobby-shell .sp-leak { padding: 12px; gap: 12px; }
+body.world-training .sp-arena-lobby-shell .sp-leak-eyebrow {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #86daff;
+  font-size: 13px;
+  font-weight: 700;
+}
+body.world-training .sp-arena-lobby-shell .sp-leak-title { color: #f2f7ff; font-family: var(--font-rajdhani, 'Arial Narrow'), sans-serif; font-size: 1.25rem; font-weight: 700; }
+body.world-training .sp-arena-lobby-shell .sp-leak-body { color: #bdd0e2; }
+body.world-training .sp-arena-lobby-shell .sp-leak-body b { color: #86daff; font-weight: 700; }
+body.world-training .sp-arena-lobby-shell .sp-leak .sp-cta {
+  min-height: 46px;
+  padding: 0 16px;
+  border: 3px solid transparent;
+  border-image: var(--sd-rim-active) 11 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-fill-cobalt);
+  color: #fff;
+  box-shadow: none;
+  font-family: var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* The site summary under the dashboard: square steel tiles, no rounded cards. */
+body.world-training .sp-arena-lobby-shell > section[aria-labelledby] li[style] {
+  border: 3px solid transparent !important;
+  border-image: var(--sd-rim-stat) 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: var(--sd-fill-navy) !important;
+}
+body.world-training .sp-arena-lobby-shell > section[aria-labelledby] li[style] a[style] { color: #86daff !important; }
+
+/* ─── Filter + preview sheets ─────────────────────────────────────────── */
+dialog.sp-arena-sheet {
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+}
+
+dialog.sp-arena-sheet .sp-arena-sheet__head {
+  border-bottom: 0;
+  background:
+    linear-gradient(90deg, transparent, #5d7d98 12%, #9cb8cf 50%, #5d7d98 88%, transparent) bottom / 100% 1px no-repeat,
+    transparent;
+}
+
+dialog.sp-arena-sheet .sp-arena-sheet__title {
+  font-family: var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  text-transform: none;
+  color: #f2f7ff;
+}
+
+dialog.sp-arena-sheet :is(.sp-arena-sheet__label, .sp-arena-preview__cat) {
+  font-family: var(--font-rajdhani, 'Arial Narrow'), sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #86daff;
+}
+
+
+dialog.sp-arena-sheet .sp-arena-sheet__pills { gap: 8px; }
+dialog.sp-arena-sheet .sp-arena-sheet__pill { flex: 1 1 auto; font-size: 15px; }
+
+dialog.sp-arena-sheet .sp-arena-sheet__foot {
+  border-top: 0;
+  background:
+    linear-gradient(90deg, transparent, #5d7d98 12%, #9cb8cf 50%, #5d7d98 88%, transparent) top / 100% 1px no-repeat,
+    #050e18;
+}
+
+dialog.sp-arena-sheet :is(.sp-arena-sheet__reset, .sp-arena-sheet__apply) {
+  font-size: 16px;
+  text-transform: none;
+}
+
+dialog.sp-arena-sheet .sp-arena-preview__banner {
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+}
+
+dialog.sp-arena-sheet .sp-arena-preview__preset {
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: #071420;
+  color: #bdd0e2;
+}
+
+@media (max-width: 768px) {
+  dialog.sp-arena-sheet {
+    border-radius: 0;
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  body.world-training .sp-arena-lobby-shell .sp-arena-deck { padding: 10px 8px; }
+  body.world-training .sp-arena-lobby-shell .sp-cat-chips.sp-arena-subtabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  body.world-training .sp-arena-lobby-shell .sp-arena-sortbar__col { font-size: 14px; }
+  body.world-training .sp-arena-lobby-shell .sp-arena-row__title { font-size: 16px; }
+  body.world-training .sp-arena-lobby-shell .sp-arena-row__plaque { font-size: 14px; padding: 0 9px; }
+}
+
+/* The lobby page's legacy theme rounds these frames with !important; the
+   console keeps every steel surface square. */
+body.world-training .sp-arena-lobby-shell :is(.sp-section-head, .sp-grade-card, .sp-leak, .sp-progress, .sp-stat, .sp-search input, .sp-cat-chip, .sp-empty, .sp-cta, .sp-tag) {
+  border-radius: 0 !important;
+}
+
+/* Sheet groups are plain fieldsets: no stage-layer card fill or inset line. */
+dialog.sp-arena-sheet .sp-arena-sheet__group {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }

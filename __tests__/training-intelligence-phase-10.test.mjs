@@ -21,9 +21,20 @@ test('the Training Leaderboard is rebuilt on #SMARTERDESIGN with its own image h
   assert.doesNotMatch(source, /sp-training-intelligence/);
 });
 
+// Reports (and its gto-reports alias) and Session Dashboard moved to the
+// #SMARTERDESIGN sessions interior (2026-11-27): the intelligence rail
+// repainted every console button with a 1px line and wrapped the image
+// header in a second frame, so those pages now use the shared module instead.
+const SMARTERDESIGN_REPORT_ROUTES = new Set(['reports', 'gto-reports', 'session-dashboard']);
+
 test('the complete reporting family adopts one intelligence-rail shell', () => {
   for (const route of routes) {
     const source = read(`pages/hub/training/${route === 'gto-reports' ? 'reports' : route}.js`);
+    if (SMARTERDESIGN_REPORT_ROUTES.has(route)) {
+      assert.match(source, /sessions-coaching\.module\.css/, `${route} is missing the #SMARTERDESIGN sessions interior`);
+      assert.doesNotMatch(source, /sp-training-intelligence/, `${route} must not re-wrap the console in the intelligence rail`);
+      continue;
+    }
     assert.match(source, /sp-training-intelligence/, `${route} is missing the intelligence shell`);
   }
   assert.match(read('pages/hub/training/gto-scorecard.js'), /destination: '\/hub\/training\/gto-reports'/);
@@ -49,6 +60,10 @@ test('report, scorecard, dashboard, and profile pages expose responsive stages',
   ]) {
     const source = read(`pages/hub/training/${route === 'gto-reports' ? 'reports' : route}.js`);
     assert.match(source, /<TrainingPageHead slug="training-/, `${route} is missing the #SMARTERDESIGN page head`);
+    if (SMARTERDESIGN_REPORT_ROUTES.has(route)) {
+      assert.match(source, /className=\{(?:s|sc)\.page\}/, `${route} is missing the responsive #SMARTERDESIGN stage`);
+      continue;
+    }
     assert.match(source, /sp-intelligence-main/, `${route} is missing the responsive stage`);
   }
 });

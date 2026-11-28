@@ -4,6 +4,7 @@
 
 import BankrollExportFormats from '../../../src/components/bankroll/BankrollExportFormats';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import BankrollImageHeader from '../../../src/components/bankroll/BankrollImageHeader';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import layout from '../../../styles/BankrollManager.module.css';
@@ -25,7 +26,7 @@ export default function BankrollExport() {
                     <UniversalHeader pageDepth={2} />
                     <main className={`smarterdesign ${layout.exportContent}`}>
                         <div className="sd-back-row">
-                            <Link href="/hub/bankroll-manager" className="sd-button">Back To Dashboard</Link>
+                            <Link href="/hub/bankroll-manager" className="sd-button"><ArrowLeft size={16} aria-hidden /> Back To Dashboard</Link>
                         </div>
                         <BankrollImageHeader title="Export Data" art="export" parent="Bankroll Manager" className={layout.mast} />
                         <div className="sd-panel">

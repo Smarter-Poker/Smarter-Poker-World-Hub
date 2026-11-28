@@ -298,7 +298,9 @@ test('Phase 6 of 6: 12-Item Master Expansion — 30 Official Rules, 15 Game Vari
     assert.equal(nonCommentLines.includes('\u2014'), false, `${trainingRel} UI copy has zero em dashes`);
     assert.ok(
       src.includes('achievements-casino.module.css') ||
+      src.includes('training-journey-sd.module.css') ||
       src.includes('training-smarterdesign.module.css') ||
+      src.includes('training-play.module.css') ||
       src.includes('daily-challenge-casino.module.css') ||
       src.includes('#25c8ff') ||
       src.includes("borderRadius: '2px'") ||

@@ -22,8 +22,11 @@ test('tournament filters render their labels instead of conditional source text'
 
 test('specialty tool adopters use straight dimensional Smarter.Poker chrome', () => {
   assert.match(rangeBuilder, /sp-training-tool--range-builder/);
-  assert.match(tournaments, /sp-training-tool--tournaments/);
   assert.match(trainingCss, /\.sp-training-tool::before\s*\{/);
-  assert.match(tournaments, /borderRadius:\s*0/);
-  assert.match(tournaments, /#8beaff 0%, #23aee8 48%, #07557f 100%/);
+  // Tournaments moved to #SMARTERDESIGN (2026-11-27): steel-rimmed panels from
+  // the Play module and cobalt selected filters replace the cyan command deck.
+  assert.match(tournaments, /training-play\.module\.css/);
+  assert.match(tournaments, /className=\{`sd-panel \$\{s\.card\}`\}/);
+  assert.match(tournaments, /className=\{`sd-button \$\{s\.button\}`\}/);
+  assert.doesNotMatch(tournaments, /#8beaff 0%, #23aee8 48%, #07557f 100%/);
 });
