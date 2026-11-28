@@ -14,6 +14,7 @@ import {
   marketplaceFulfillmentStatus,
 } from '../../../src/lib/store/marketplaceCopy';
 import { boundedCommerceFetch } from '../../../src/lib/store/boundedCommerceFetch';
+import { formatUsd } from '../../../src/lib/store/formatStoreMoney.mjs';
 
 const FULFILLMENT_AUTH_TIMEOUT_MS = 20000;
 
@@ -25,6 +26,12 @@ const FULFILLMENT_HELP = {
     'Marketplace Operations Shows Verified 30-Day Commerce Signals. Orders Run By A Connected Provider, Or Quarantined For Reconciliation, Cannot Be Shipped Or Refunded Here.',
   ],
 };
+
+// Operations counts read like every other store number: 18,000, not 18000.
+function formatCount(value) {
+  const n = Number(value);
+  return (Number.isFinite(n) ? n : 0).toLocaleString('en-US');
+}
 
 function itemLabel(order) {
   const items = Array.isArray(order?.items) ? order.items : [];
@@ -449,20 +456,20 @@ export default function MerchandiseFulfillmentConsole() {
             {operationsSummary && (
               <div className={styles.metricGrid}>
                 <div>
-                  <strong>{operationsSummary.summary?.orders?.created || 0}</strong>
+                  <strong>{formatCount(operationsSummary.summary?.orders?.created)}</strong>
                   <span>Orders In 30 Days</span>
                 </div>
                 <div>
-                  <strong>{operationsSummary.summary?.orders?.awaitingAttention || 0}</strong>
+                  <strong>{formatCount(operationsSummary.summary?.orders?.awaitingAttention)}</strong>
                   <span>Need Fulfillment Attention</span>
                 </div>
                 <div>
-                  <strong>{operationsSummary.summary?.orders?.providerReview || 0}</strong>
+                  <strong>{formatCount(operationsSummary.summary?.orders?.providerReview)}</strong>
                   <span>Provider Reviews</span>
                 </div>
                 <div>
                   <strong>
-                    {operationsSummary.summary?.lifetimeVip?.monthlyDiamondsIssued || 0}
+                    {formatCount(operationsSummary.summary?.lifetimeVip?.monthlyDiamondsIssued)}
                   </strong>
                   <span>Lifetime Diamonds Issued</span>
                 </div>
@@ -471,7 +478,7 @@ export default function MerchandiseFulfillmentConsole() {
                   <span>Fulfillment Mode</span>
                 </div>
                 <div>
-                  <strong>{operationsSummary.summary?.funnel?.store_checkout_complete || 0}</strong>
+                  <strong>{formatCount(operationsSummary.summary?.funnel?.store_checkout_complete)}</strong>
                   <span>Verified Checkout Returns</span>
                 </div>
               </div>
@@ -513,7 +520,7 @@ export default function MerchandiseFulfillmentConsole() {
                 <p className={styles.money}>
                   {order.payment_method === 'diamonds'
                     ? `${Number(order.diamonds_spent || 0).toLocaleString()} Diamonds`
-                    : `$${Number(order.total_usd || 0).toFixed(2)}`}
+                    : formatUsd(order.total_usd)}
                 </p>
                 <address data-user-content="true" data-preserve-case="true">
                   {address.name || 'Recipient'}

@@ -36,6 +36,10 @@ export const SMARTERDESIGN_SEAL_AND_HEADER_PAINT = Object.freeze([
   'radial-gradient(ellipse at 20% 102%, #233f63 0, #102337 38%, #07121e 78%)',
   'linear-gradient(90deg, transparent, #0002 18%, #0006 43%, #0009 68%, #000)',
   'linear-gradient(90deg, transparent, #0002 22%, #0006 52%, #0009 76%, #000f)',
+  // The store image header's painted-scene fade (StoreImageHeader desktop and
+  // phone): the low-key painted scenes need a shorter fade to read.
+  'linear-gradient(90deg, transparent, #0004 16%, #000a 40%, #000 62%)',
+  'linear-gradient(90deg, transparent, #0005 18%, #000b 42%, #000 60%)',
   // The VIP image header (VipKit VipMasthead and the VipDialog head): its
   // backdrop and the crown-scene fade, kept exactly as approved.
   'radial-gradient(ellipse at 18% 104%, #23466f 0, #0f2338 40%, #06111d 80%)',

@@ -61,6 +61,7 @@ test('store displays use the shared formatter instead of toFixed(2) USD', () => 
     'pages/hub/diamond-store/orders/[orderId].js',
     'pages/hub/diamond-store/wishlist.js',
     'pages/hub/club-shop/[itemId].js',
+    'pages/hub/merch-store/fulfillment.js',
     'src/components/diamond-store/CheckoutStatusPanel.jsx',
   ];
   for (const file of users) {
@@ -70,4 +71,14 @@ test('store displays use the shared formatter instead of toFixed(2) USD', () => 
   }
   assert.doesNotMatch(read('pages/hub/diamond-store/cart.js'), /function formatCartUsd/);
   assert.doesNotMatch(read('src/components/diamond-store/CheckoutStatusPanel.jsx'), /style: 'currency'/);
+});
+
+test('the operator fulfillment console reads money and counts like the rest of the store', () => {
+  const source = read('pages/hub/merch-store/fulfillment.js');
+  assert.match(source, /import \{ formatUsd \} from '\.\.\/\.\.\/\.\.\/src\/lib\/store\/formatStoreMoney\.mjs'/);
+  assert.match(source, /: formatUsd\(order\.total_usd\)\}/);
+  // Every operations metric is a grouped count (18,000), never a bare number.
+  for (const metric of ['orders?.created', 'orders?.awaitingAttention', 'orders?.providerReview', 'lifetimeVip?.monthlyDiamondsIssued', 'funnel?.store_checkout_complete']) {
+    assert.ok(source.includes(`formatCount(operationsSummary.summary?.${metric})`), `${metric} must use formatCount`);
+  }
 });

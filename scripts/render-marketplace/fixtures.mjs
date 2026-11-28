@@ -214,6 +214,18 @@ function rest(r, rows) {
  *                  (the plain route renders of shoot.mjs)
  * @param supabase  Supabase origin the dev build calls (mocked entirely)
  */
+const FULFILLMENT_ADDRESS = { name: 'Dan Fisher', address1: '1200 Main Street', address2: 'Suite 400', city: 'Dallas', state_code: 'TX', zip: '75201', country_code: 'US' };
+export const FULFILLMENT_ORDERS = [
+  { id: 'b7f3c2d1-5e4a-4c11-9f20-0a1b2c3d4e5f', status: 'paid', payment_method: 'card', total_usd: 60, items: [{ name: 'Diamond Altitude Hoodie', quantity: 1 }], shipping_address: FULFILLMENT_ADDRESS, metadata: { fulfillment_mode: 'manual', fulfillment_status: 'paid' }, fulfillment_version: 1 },
+  { id: 'c81e7a90-2f3b-4d55-8a66-1b2c3d4e5f60', status: 'processing', payment_method: 'diamonds', diamonds_spent: 6000, items: [{ name: 'Neural Steel Diamond Hat', quantity: 2 }], shipping_address: FULFILLMENT_ADDRESS, metadata: { fulfillment_mode: 'manual', fulfillment_status: 'processing' }, fulfillment_version: 2 },
+  { id: 'd92f8b01-3a4c-4e66-9b77-2c3d4e5f6071', status: 'shipped', payment_method: 'card', total_usd: 34.5, carrier: 'usps', tracking_number: '9400 1000 0000 0000 0000 00', items: [{ name: 'Smarter Poker Card Protector', quantity: 1 }], shipping_address: FULFILLMENT_ADDRESS, metadata: { fulfillment_mode: 'manual', fulfillment_status: 'shipped' }, fulfillment_version: 3 },
+  { id: 'e0a19c12-4b5d-4f77-8c88-3d4e5f607182', status: 'paid', payment_method: 'card', total_usd: 90, items: [{ name: 'Diamond Altitude Hoodie', quantity: 1 }, { name: 'Neural Steel Diamond Hat', quantity: 1 }], shipping_address: FULFILLMENT_ADDRESS, metadata: { needs_review: true, reason: 'Provider Order State Requires Reconciliation.', printful_order_id: '88231457' }, fulfillment_version: 1 },
+];
+export const OPERATIONS_SUMMARY = { success: true, data: {
+  readiness: { ready: true, fulfillmentMode: 'Manual' },
+  summary: { orders: { created: 42, awaitingAttention: 3, providerReview: 1 }, lifetimeVip: { monthlyDiamondsIssued: 18000 }, funnel: { store_checkout_complete: 37 } },
+} };
+
 export async function prep(ctx, { auth = true, role = 'player', populated = true, supabase = 'http://127.0.0.1:54399' } = {}) {
   if (auth) {
     await ctx.addInitScript(([a, cart, uid, bal]) => {
@@ -244,6 +256,13 @@ export async function prep(ctx, { auth = true, role = 'player', populated = true
   await ctx.route('**/api/store/merch-catalog**', J(MERCH_CATALOG));
   await ctx.route('**/api/store/vip-membership-status**', J({ success: true, active: false }));
   await ctx.route('**/api/rewards/progress**', J(REWARDS_PROGRESS));
+  // Operator fulfillment console (/hub/merch-store/fulfillment): a populated
+  // queue (manual card order, manual diamond order in processing, a shipped
+  // order, a quarantined provider order) and a ready operations summary.
+  await ctx.route('**/api/store/fulfillment-operations**', (r) => r.request().method() === 'GET'
+    ? r.fulfill({ json: { success: true, data: { orders: FULFILLMENT_ORDERS, nextCursor: null } } })
+    : r.fulfill({ json: { success: true, data: {} } }));
+  await ctx.route('**/api/store/operations-summary**', J(OPERATIONS_SUMMARY));
   await ctx.route('**/api/user/get-header-stats**', (r) => auth ? r.fulfill({ json: HEADER_STATS }) : r.fulfill({ status: 401, json: { success: false } }));
   await ctx.route(`${supabase}/**`, (r) => {
     const u = r.request().url();
