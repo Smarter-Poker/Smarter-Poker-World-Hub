@@ -94,10 +94,10 @@ function NativeToggle({ id, label, checked, onChange, disabled = false }) {
     );
 }
 
-function SettingRow({ title, description, status, children }) {
+function SettingRow({ title, description, status, stacked = false, children }) {
     return (
         <li className="trivia-progress-setting">
-            <div className="trivia-progress-setting__row">
+            <div className={`trivia-progress-setting__row${stacked ? ' trivia-progress-setting__row--stacked' : ''}`}>
                 <div className="trivia-progress-setting__copy">
                     <h3 className="trivia-progress-setting__title">{title}</h3>
                     <p className="trivia-progress-setting__description">{description}</p>
@@ -449,14 +449,14 @@ export default function TriviaSettings() {
                                             <SettingRow title="Timer Visibility" description="Show The Countdown During Questions" status={messageKey === 'timerEnabled' ? statusMessage : null}><NativeToggle id="trivia-setting-timer" label="Timer Visibility" checked={preferences.timerEnabled} disabled={locked} onChange={(value) => update('timerEnabled', value)} /></SettingRow>
                                             <SettingRow title="Question Hints" description="Show Hints Where A Question Supports Them" status={messageKey === 'hintsEnabled' ? statusMessage : null}><NativeToggle id="trivia-setting-hints" label="Question Hints" checked={preferences.hintsEnabled} disabled={locked} onChange={(value) => update('hintsEnabled', value)} /></SettingRow>
                                             <SettingRow title="Auto-Advance On Correct" description="Advance Automatically After A Correct Answer" status={messageKey === 'autoAdvanceOnCorrect' ? statusMessage : null}><NativeToggle id="trivia-setting-auto-advance" label="Auto-Advance On Correct" checked={preferences.autoAdvanceOnCorrect === true} disabled={locked} onChange={(value) => update('autoAdvanceOnCorrect', value)} /></SettingRow>
-                                            <SettingRow title="Difficulty" description="Preferred Endless Mode Question Difficulty" status={messageKey === 'difficulty' ? statusMessage : null}><ChoiceRow label="Difficulty" options={DIFFICULTY_OPTIONS} value={preferences.difficulty} disabled={locked} onSelect={(value) => update('difficulty', value)} /></SettingRow>
+                                            <SettingRow title="Difficulty" description="Preferred Endless Mode Question Difficulty" status={messageKey === 'difficulty' ? statusMessage : null} stacked><ChoiceRow label="Difficulty" options={DIFFICULTY_OPTIONS} value={preferences.difficulty} disabled={locked} onSelect={(value) => update('difficulty', value)} /></SettingRow>
                                         </SettingsSection>
 
                                         <SettingsSection id="trivia-settings-feedback" title="Feedback">
                                             <SettingRow title="Sound Effects" description="Countdown And Answer Feedback Audio" status={messageKey === 'soundEffects' ? statusMessage : null}><NativeToggle id="trivia-setting-sound" label="Sound Effects" checked={preferences.soundEffects} disabled={locked} onChange={(value) => update('soundEffects', value)} /></SettingRow>
                                             <SettingRow title="Haptic Vibration" description="Mobile Vibration During Time Pressure" status={messageKey === 'haptics' ? statusMessage : null}><NativeToggle id="trivia-setting-haptics" label="Haptic Vibration" checked={preferences.haptics} disabled={locked} onChange={(value) => update('haptics', value)} /></SettingRow>
                                             <SettingRow title="Screen Shake" description="Board Motion During Final Countdown" status={messageKey === 'screenShake' ? statusMessage : null}><NativeToggle id="trivia-setting-shake" label="Screen Shake" checked={preferences.screenShake} disabled={locked} onChange={(value) => update('screenShake', value)} /></SettingRow>
-                                            <SettingRow title="Feedback Intensity" description="Strength Of Audio, Haptic, And Motion Cues" status={messageKey === 'intensity' ? statusMessage : null}><ChoiceRow label="Feedback Intensity" options={INTENSITY_OPTIONS} value={preferences.intensity} disabled={locked} onSelect={(value) => update('intensity', value)} /></SettingRow>
+                                            <SettingRow title="Feedback Intensity" description="Strength Of Audio, Haptic, And Motion Cues" status={messageKey === 'intensity' ? statusMessage : null} stacked><ChoiceRow label="Feedback Intensity" options={INTENSITY_OPTIONS} value={preferences.intensity} disabled={locked} onSelect={(value) => update('intensity', value)} /></SettingRow>
                                         </SettingsSection>
 
                                         <SettingsSection id="trivia-settings-accessibility" title="Accessibility">
