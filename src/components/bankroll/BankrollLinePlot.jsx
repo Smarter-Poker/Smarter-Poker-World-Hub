@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { chartTicks } from '../../lib/bankroll/analyticsView.mjs';
+import { moneyChartTicks } from '../../lib/bankroll/analyticsView.mjs';
 import {
   dateAxisRows,
   idleTail,
@@ -20,8 +20,6 @@ import {
   sessionTicks,
 } from '../../lib/bankroll/trendAxis.mjs';
 import {
-  USD_TO_EUR,
-  convertCurrency,
   formatCentsCurrency,
   formatCurrencyCompact,
 } from '../../lib/bankroll/currencyUtils';
@@ -31,14 +29,6 @@ import styles from './BankrollAnalytics.module.css';
 const tick = { fill: '#b8cde1', fontSize: 12 };
 const stripe = '#304960';
 const DAY = 86400000;
-
-// Ticks on whole display units: in euros the ruler is rounded in euros and
-// mapped back to the US cents the rows are plotted in.
-function yTicks(minimum, maximum, displayEUR) {
-  if (!displayEUR) return chartTicks(minimum, maximum);
-  const toEur = (cents) => Math.round(convertCurrency(cents / 100, true) * 100);
-  return chartTicks(toEur(minimum), toEur(maximum)).map((eur) => eur / USD_TO_EUR);
-}
 
 function dateTicks(start, end) {
   const monthly = end - start > 93 * DAY;
@@ -73,7 +63,8 @@ export default function BankrollLinePlot({ model, axis, displayEUR }) {
     minimum = Math.min(minimum, row.cumulative);
     maximum = Math.max(maximum, row.cumulative);
   }
-  const ticks = yTicks(minimum, maximum, displayEUR);
+  // Ticks on whole display units (moneyChartTicks, shared with the bars).
+  const ticks = moneyChartTicks(minimum, maximum, displayEUR);
   const dates = bySession ? null : dateTicks(start, end);
   const xTicks = bySession ? sessionTicks(rows.length) : dates.ticks;
   const xFormatter = bySession

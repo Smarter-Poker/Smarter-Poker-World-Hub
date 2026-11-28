@@ -11,7 +11,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { chartTicks } from '../../lib/bankroll/analyticsView.mjs';
+import { chartTicks, moneyChartTicks } from '../../lib/bankroll/analyticsView.mjs';
+import { formatCurrencyCompact } from '../../lib/bankroll/currencyUtils';
 import BankrollLinePlot from './BankrollLinePlot';
 import { money, periodDate } from './analyticsDisplay';
 import styles from './BankrollAnalytics.module.css';
@@ -91,7 +92,9 @@ function ColumnPlot({ mode, model, bins, displayEUR }) {
       </div>
     );
   const rows = isDistribution ? bins : model.series;
-  const yFormat = (value) => (isDistribution ? String(value) : money(value, displayEUR, false, true));
+  // The money axis is labelled by currencyUtils, on a ruler that is round in
+  // the displayed currency (moneyChartTicks); counts stay plain integers.
+  const yFormat = (value) => (isDistribution ? String(value) : formatCurrencyCompact(Number(value) / 100, displayEUR));
   let minimum = 0;
   let maximum = 0;
   for (const row of rows) {
@@ -111,7 +114,7 @@ function ColumnPlot({ mode, model, bins, displayEUR }) {
       maximum = Math.max(maximum, amount);
     }
   }
-  const ticks = chartTicks(minimum, maximum);
+  const ticks = isDistribution ? chartTicks(minimum, maximum) : moneyChartTicks(minimum, maximum, displayEUR);
   const xFormatter = (v) => (isDistribution ? money(v, displayEUR, false, true) : dateLabel(v));
   return (
     <div className={styles.plot}>
