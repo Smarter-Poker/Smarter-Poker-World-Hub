@@ -15,7 +15,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 
 const PHASES = {
   FOCUS: { id: 'focus', label: 'Focus Block', mins: 25, color: 'var(--sp-accent-blue)' },
@@ -92,6 +92,7 @@ export default function FocusTimerPage() {
       const log = localStorage.getItem('focus-timer-log');
       if (log) setSessionLog(JSON.parse(log));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    if (!getAccessToken()) return;
     authedFetch('/api/training/tool-records?tool_id=focus-timer&limit=25')
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {

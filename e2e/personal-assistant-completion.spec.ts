@@ -123,6 +123,10 @@ test('approved artwork, fixed chrome and all six landing destinations work', asy
   await activate(main.getByRole('link', { name: 'Start Review', exact: true }));
   await expect(page).toHaveURL(/\/hub\/personal-assistant\/review$/);
   await expect(main.getByRole('heading', { name: 'Review My Play', exact: true })).toBeVisible();
+  const sampleTrigger = main.locator('[data-sample-hand-trigger="true"]');
+  await expect(sampleTrigger).toBeVisible();
+  await activate(sampleTrigger);
+  await expect(main.locator('[data-review-arena-table="true"]')).toBeVisible();
   await activate(main.getByRole('link', { name: 'Personal Assistant', exact: true }));
   await expect(main.getByRole('heading', { name: 'Personal Assistant', exact: true })).toBeVisible();
 
@@ -134,17 +138,28 @@ test('approved artwork, fixed chrome and all six landing destinations work', asy
   await activate(main.locator('svg[data-approved-illustration="sandbox"]'));
   await expect(page).toHaveURL(/\/hub\/personal-assistant\/sandbox$/);
   await expect(page.getByRole('region', { name: 'Poker Table', exact: true })).toBeVisible();
-  await expect(page.locator('[data-arena-table="true"]')).toBeVisible();
+  const arenaTable = page.locator('[data-arena-table="true"]');
+  await expect(arenaTable).toBeVisible();
   await expect(page.locator('img[data-arena-table-skin="true"]')).toHaveAttribute('src', /\/hub\/table-theme\/tables\/skin_/);
   await expect(page.locator('[data-arena-pot="true"]')).toBeVisible();
   await expect(page.locator('[data-arena-board="true"]')).toBeVisible();
   await expect(page.locator('[data-arena-hero-cards="true"]')).toBeVisible();
   await expect(page.locator('[data-arena-dealer-button="true"]')).toBeVisible();
+  // Geometry invariant: board cards stay inside the Club Arena table bounds and never overlap Hero hole cards
+  const tableBox = await arenaTable.boundingBox();
+  const boardBox = await page.locator('[data-arena-board="true"]').boundingBox();
+  const heroBox = await page.locator('[data-arena-hero-cards="true"]').boundingBox();
+  expect(tableBox && boardBox && heroBox).toBeTruthy();
+  expect(boardBox!.x).toBeGreaterThanOrEqual(tableBox!.x);
+  expect(boardBox!.x + boardBox!.width).toBeLessThanOrEqual(tableBox!.x + tableBox!.width + 1);
+  expect(boardBox!.y + boardBox!.height).toBeLessThanOrEqual(heroBox!.y + 1);
   const actionBar = page.locator('[data-arena-action-bar="true"]');
   await expect(actionBar).toBeVisible();
+  await expect(actionBar.locator('[data-arena-bet-slider="true"]')).toBeVisible();
   const potBefore = await page.locator('[data-arena-pot="true"]').innerText();
   await activate(actionBar.getByRole('button', { name: /^Bet\b/ }));
   await expect(page.locator('[data-arena-seat-bet="hero"]')).toBeVisible();
+  await expect(page.locator('[data-arena-pot-odds="true"]')).toBeVisible();
   await expect.poll(() => page.locator('[data-arena-pot="true"]').innerText()).not.toEqual(potBefore);
   await activate(main.getByRole('link', { name: 'Back To Personal Assistant', exact: true }));
 

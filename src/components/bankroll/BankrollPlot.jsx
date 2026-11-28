@@ -33,6 +33,7 @@ export default function BankrollPlot({ mode, model, bins, displayEUR }) {
     b.low === b.high
       ? money(b.low, displayEUR)
       : money(b.low, displayEUR) + ' to ' + money(b.high, displayEUR);
+  const isLine = mode === 'line';
   const tip = ({ active, payload }) => {
     if (!active || !payload?.length) return null;
     const row = payload[0].payload;
@@ -43,7 +44,7 @@ export default function BankrollPlot({ mode, model, bins, displayEUR }) {
             ? binLabel(row)
             : mode === 'donut'
               ? row.label
-              : periodDate(row.date, monthly, true)}
+              : periodDate(row.date, isLine ? false : monthly, true)}
         </strong>
         {mode === 'donut' ? (
           <span>
@@ -88,9 +89,8 @@ export default function BankrollPlot({ mode, model, bins, displayEUR }) {
         </div>
       </div>
     );
-  const isLine = mode === 'line';
   const Chart = isLine ? AreaChart : BarChart;
-  const rows = isDistribution ? bins : model.series;
+  const rows = isDistribution ? bins : isLine ? model.line : model.series;
   const yFormat = (value) => (isDistribution ? String(value) : money(value, displayEUR, false, true));
   let minimum = 0;
   let maximum = 0;
@@ -112,7 +112,27 @@ export default function BankrollPlot({ mode, model, bins, displayEUR }) {
     }
   }
   const ticks = chartTicks(minimum, maximum);
-  const xFormatter = (v) => (isDistribution ? money(v, displayEUR, false, true) : dateLabel(v));
+  const lineStart = isLine && rows.length ? rows[0].t : 0;
+  const lineEnd = isLine && rows.length ? rows[rows.length - 1].t : 0;
+  const lineMonthly = lineEnd - lineStart > 93 * 86400000;
+  const lineTicks = [];
+  if (isLine && rows.length) {
+    const cursor = new Date(lineStart);
+    if (lineMonthly) cursor.setUTCDate(1);
+    while (cursor.getTime() <= lineEnd) {
+      if (cursor.getTime() >= lineStart) lineTicks.push(cursor.getTime());
+      if (lineMonthly) cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+      else cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    const stride = Math.max(1, Math.ceil(lineTicks.length / 5));
+    for (let i = lineTicks.length - 1; i >= 0; i--) if (i % stride) lineTicks.splice(i, 1);
+  }
+  const xFormatter = (v) =>
+    isDistribution
+      ? money(v, displayEUR, false, true)
+      : isLine
+        ? periodDate(new Date(v).toISOString().slice(0, 10), lineMonthly)
+        : dateLabel(v);
   return (
     <div className={styles.plot}>
       <ResponsiveContainer width="100%" height="100%">
@@ -130,7 +150,11 @@ export default function BankrollPlot({ mode, model, bins, displayEUR }) {
           </defs>
           <CartesianGrid vertical={false} stroke={stripe} strokeDasharray="3 5" />
           <XAxis
-            dataKey={isDistribution ? 'low' : 'date'}
+            dataKey={isDistribution ? 'low' : isLine ? 't' : 'date'}
+            type={isLine ? 'number' : 'category'}
+            scale={isLine ? 'time' : 'auto'}
+            domain={isLine ? [lineStart, lineEnd] : undefined}
+            ticks={isLine ? lineTicks : undefined}
             tickFormatter={xFormatter}
             tick={tick}
             tickLine={false}

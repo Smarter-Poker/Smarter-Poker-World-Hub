@@ -175,7 +175,7 @@ test('strategy surface parses and pins recovery, reporting, receipts and scoped 
     assert.match(source, /data-preserve-case="true">\{settlementReceipt\.resultHash\}<\/span>/);
     assert.match(source, /className="tc-row__value strategy-transaction-value" data-preserve-case="true"/);
     assert.match(source, /settled\?\.replayed !== true && awarded > 0/);
-    assert.match(source, /onKeyDown=\{handleGameKeyDown\}/);
+    assert.match(source, /useTriviaKeyboardControls\s*\(/);
     assert.doesNotMatch(source, /window\.addEventListener\(['"]keydown/);
     assert.doesNotMatch(source, /GameCostPopup/);
     assert.doesNotMatch(source, /generateGTOApproach|readSolverMetadata/);

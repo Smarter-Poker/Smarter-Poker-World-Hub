@@ -16,6 +16,7 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import StopScheduleModal from '../../../src/components/tours/StopScheduleModal';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import TourPageSummary from '../../../src/components/seo/TourPageSummary';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import { tourSeo, tourSchema, registryCodeForTour, tourCanonical } from '../../../src/lib/seo/tourPageSeo';
 import { DeepRouteNotice } from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
 import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from '../../../src/components/poker-near-me/PokerNearMeConsole';
@@ -1150,6 +1151,14 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
                 </div>
               </div>
             </PokerNearMePanelShell>
+            <div style={{ marginTop: 24 }}>
+              <SmarterAccountUnlockGate
+                variant="live-venue-intel"
+                context="tour-detail-page"
+                title={`Track ${tour.tour_name} Stops, Guarantees & Late Reg Alerts Free`}
+                redirectPath={seo?.canonical || '/hub/poker-series'}
+              />
+            </div>
           </>
         )}
       </main>

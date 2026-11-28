@@ -323,6 +323,9 @@ test('About publishes the visible company identity, not identities of its softwa
     if (name === 'next/link') return link;
     if (name.endsWith('LandingProductSummary')) return products;
     if (name.endsWith('FaqSection')) return faqSection;
+    if (name.endsWith('SmarterConversionCta') || name.endsWith('SmarterAccountUnlockGate')) {
+      return { __esModule: true, default: () => null };
+    }
     if (name.endsWith('SEOHead')) return {
       __esModule: true, schemas, FOUNDER: siteSeo.FOUNDER,
       default: props => { jsonLd = props.jsonLd; return null; },

@@ -1406,7 +1406,7 @@ export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercen
 // RUNOUT CHART · Phase 2.2
 // Shows best/worst cards for next street + improve/worsen rates
 // ═══════════════════════════════════════════════════════════════════════════
-export function RunoutChart({ runoutData }) {
+export function RunoutChart({ runoutData, onSelectRunoutCard = null }) {
     if (!runoutData || !runoutData.bestCards || runoutData.bestCards.length === 0) return null;
 
     const stat = (value, label, color) => (
@@ -1415,32 +1415,55 @@ export function RunoutChart({ runoutData }) {
             <div style={{ fontSize: F.caption, color: T.textMuted }}>{label}</div>
         </div>
     );
+    const renderRunoutRow = (item, i, toneColor) => (
+        <button
+            key={`${item.card}-${i}`}
+            type="button"
+            className="pa-btn"
+            disabled={!onSelectRunoutCard}
+            onClick={() => onSelectRunoutCard?.(item.card)}
+            aria-label={`Deal ${item.card} Onto Table`}
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                minHeight: 34,
+                padding: '4px 8px',
+                marginBottom: 4,
+                borderRadius: R.sm,
+                border: `1px solid ${onSelectRunoutCard ? T.borderHi : 'transparent'}`,
+                background: onSelectRunoutCard ? T.surface2 : 'transparent',
+                fontSize: F.caption,
+                cursor: onSelectRunoutCard ? 'pointer' : 'default',
+                touchAction: 'manipulation',
+            }}
+        >
+            <span style={{ color: T.text, fontWeight: 700 }}>{item.card}</span>
+            <span style={{ color: toneColor, fontWeight: 700, ...NUM }}>{item.equity}%</span>
+        </button>
+    );
     return (
         <div className="pa-chart-panel" style={{ ...card, padding: S.md, marginBottom: S.md }}>
-            <div style={sectionHeader}><p style={sectionTitle}>Runout Simulator</p></div>
+            <div style={sectionHeader}>
+                <p style={sectionTitle}>Runout Simulator</p>
+                {onSelectRunoutCard && (
+                    <span style={{ fontSize: F.caption, color: T.textDim }}>Tap Card To Deal</span>
+                )}
+            </div>
             <div style={{ display: 'flex', gap: S.md, marginBottom: S.md }}>
                 {stat(runoutData.improveRate, 'Improve', T.success)}
                 {stat(runoutData.worsenRate, 'Worsen', T.danger)}
-                {stat(runoutData.avgEquity, 'Avg equity', T.warn)}
+                {stat(runoutData.avgEquity, 'Avg Equity', T.warn)}
             </div>
             <div style={{ display: 'flex', gap: S.md }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: F.caption, color: T.success, fontWeight: 700, marginBottom: S.xs }}>Best Cards</div>
-                    {runoutData.bestCards.map((c, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: F.caption }}>
-                            <span style={{ color: T.text, fontWeight: 600 }}>{c.card}</span>
-                            <span style={{ color: T.success, ...NUM }}>{c.equity}%</span>
-                        </div>
-                    ))}
+                    {runoutData.bestCards.map((c, i) => renderRunoutRow(c, i, T.success))}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: F.caption, color: T.danger, fontWeight: 700, marginBottom: S.xs }}>Worst Cards</div>
-                    {runoutData.worstCards.map((c, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: F.caption }}>
-                            <span style={{ color: T.text, fontWeight: 600 }}>{c.card}</span>
-                            <span style={{ color: T.danger, ...NUM }}>{c.equity}%</span>
-                        </div>
-                    ))}
+                    {runoutData.worstCards.map((c, i) => renderRunoutRow(c, i, T.danger))}
                 </div>
             </div>
         </div>

@@ -22,7 +22,7 @@ import {
 } from './tournamentReleaseControl.mjs';
 
 export const TRIVIA_OPERATIONS_SLOS = Object.freeze({
-    pvpFallbackP95Ms: 45_000,
+    pvpFallbackP95Ms: 30_000,
     settlementP95Ms: 10_000,
     upcomingTournamentInstances: 7,
     schedulerLivenessWindowMs: 180_000,
@@ -1129,7 +1129,7 @@ export function buildTriviaOperationsSnapshot(input = {}) {
     }
     const fallbackP95 = pvp?.join_to_match_ms?.horse_p95;
     if (finite(fallbackP95) && Number(fallbackP95) > TRIVIA_OPERATIONS_SLOS.pvpFallbackP95Ms) {
-        issues.push(issue('pvp_fallback_p95_slow', 'warning', 'PvP horse fallback p95 exceeds 45 seconds'));
+        issues.push(issue('pvp_fallback_p95_slow', 'warning', 'PvP horse fallback p95 exceeds 30 seconds'));
     }
     const settlementP95 = pvp?.settlement_latency_ms?.p95;
     if (finite(settlementP95) && Number(settlementP95) >= TRIVIA_OPERATIONS_SLOS.settlementP95Ms) {

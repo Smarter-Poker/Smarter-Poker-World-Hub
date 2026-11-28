@@ -306,6 +306,7 @@ export default function HandLabV2() {
   const [brainVariant, setBrainVariant] = useState('nlh');
 
   useEffect(() => {
+    if (!getAccessToken()) return undefined;
     let active = true;
     (async () => {
       try {
@@ -850,7 +851,10 @@ export default function HandLabV2() {
                         const isUsed = heroCards.includes(card) || boardCards.includes(card);
                         return (
                           <button
+                            type="button"
                             key={card}
+                            data-training-raw-control="true"
+                            aria-label={`Select ${card}`}
                             onClick={() => handleCardSelect(rank, suit)}
                             disabled={isUsed || !selectedSlot}
                             style={{

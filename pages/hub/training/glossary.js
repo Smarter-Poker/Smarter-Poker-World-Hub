@@ -19,7 +19,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { GLOSSARY_TERMS, GLOSSARY_CATEGORIES, glossaryTermPath } from '../../../src/content/glossary/terms';
-import { authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 // TRAIN-WIRE-EMPTY-3c — adoption: shared empty-state primitive
 
 
@@ -93,6 +93,7 @@ export default function GlossaryPage() {
       const saved = localStorage.getItem('glossary-favorites');
       if (saved) setFavorites(new Set(JSON.parse(saved)));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    if (!getAccessToken()) return;
     authedFetch('/api/training/tool-records?tool_id=glossary&limit=5')
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
@@ -128,6 +129,7 @@ export default function GlossaryPage() {
     try {
       localStorage.setItem('glossary-favorites', JSON.stringify(list));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    if (!getAccessToken()) return;
     authedFetch('/api/training/tool-records', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

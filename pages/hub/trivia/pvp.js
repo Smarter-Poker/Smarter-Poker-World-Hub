@@ -143,11 +143,10 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
     const fallbackPollMs = syncContext.basePollMs || 2000;
     const connectedPollMs = useMemo(() => {
         if (syncContext.state === 'searching') {
-            const heartbeatMs = (syncContext.heartbeatSeconds || 5) * 1000;
-            return Math.min(Math.max(fallbackPollMs * 2, 4000), Math.max(heartbeatMs, 4000), 10000);
+            return Math.max(500, Math.min(fallbackPollMs, 2000));
         }
         return Math.min(Math.max(fallbackPollMs * 3, 6000), 10000);
-    }, [fallbackPollMs, syncContext.heartbeatSeconds, syncContext.state]);
+    }, [fallbackPollMs, syncContext.state]);
 
     const realtimeSync = useTriviaRealtimeSync({
         channelName: realtimeChannelName,

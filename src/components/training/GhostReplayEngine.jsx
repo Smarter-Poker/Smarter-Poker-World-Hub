@@ -5,7 +5,7 @@
  * player's decision alongside the GTO optimal baseline.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { handDataOf } from '../../lib/training/handHistoryEntry';
 
@@ -44,12 +44,22 @@ function parseCards(cardStr) {
 
 export default function GhostReplayEngine({ sessionName, handHistory = [], onClose }) {
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [autoPlay, setAutoPlay] = useState(false);
+
+    useEffect(() => {
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') onClose?.();
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [onClose]);
 
     if (!handHistory || handHistory.length === 0) {
         return (
             <div style={styles.overlay}>
-                <div style={styles.emptyBox}>No Hand History Available For This Session. <button onClick={onClose} style={styles.closeBtnText}>Go Back</button></div>
+                <div role="dialog" aria-modal="true" aria-label="Ghost Replay" className="sp-training-modal-surface" style={styles.emptyBox}>
+                    No Hand History Available For This Session.
+                    <button type="button" onClick={onClose} className="sd-button sd-primary" style={styles.closeBtnText}>Go Back</button>
+                </div>
             </div>
         );
     }
@@ -68,17 +78,17 @@ export default function GhostReplayEngine({ sessionName, handHistory = [], onClo
 
     return (
         <div style={styles.overlay}>
-            <div style={styles.container}>
+            <div role="dialog" aria-modal="true" aria-label={`Ghost Replay ${sessionName || ''}`.trim()} className="sp-training-modal-surface" style={styles.container}>
                 {/* Header */}
                 <div style={styles.header}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={styles.recordingDot} />
                         <div>
-                            <div style={styles.title}>GHOST REPLAY <span style={{ color: '#64748b' }}>{'//'}</span> {sessionName}</div>
+                            <div style={styles.title}>GHOST REPLAY <span style={{ color: '#8de6ff' }}>{'//'}</span> {sessionName}</div>
                             <div style={styles.subtitle}>Hand {currentIndex + 1} Of {handHistory.length}</div>
                         </div>
                     </div>
-                    <button onClick={onClose} style={styles.closeBtn}><X size={20} color="#94a3b8" /></button>
+                    <button type="button" aria-label="Close Ghost Replay" onClick={onClose} style={styles.closeBtn}><X size={20} color="#f3f7fb" /></button>
                 </div>
 
                 {/* Felt / Mini Arena */}
@@ -133,13 +143,13 @@ export default function GhostReplayEngine({ sessionName, handHistory = [], onClo
 
                 {/* Scrubber / Controls */}
                 <div style={styles.controls}>
-                    <button onClick={handlePrev} disabled={currentIndex === 0} style={styles.navBtn}>
+                    <button type="button" aria-label="Previous Hand" onClick={handlePrev} disabled={currentIndex === 0} style={styles.navBtn}>
                         <ChevronLeft size={20} />
                     </button>
                     <div style={styles.scrubber}>
                         <div style={{ ...styles.progress, width: `${((currentIndex + 1) / handHistory.length) * 100}%` }} />
                     </div>
-                    <button onClick={handleNext} disabled={currentIndex === handHistory.length - 1} style={styles.navBtn}>
+                    <button type="button" aria-label="Next Hand" onClick={handleNext} disabled={currentIndex === handHistory.length - 1} style={styles.navBtn}>
                         <ChevronRight size={20} />
                     </button>
                 </div>
@@ -158,15 +168,15 @@ const styles = {
         fontFamily: "'Inter', sans-serif"
     },
     container: {
-        width: '90%', maxWidth: 500,
-        background: '#0f172a',
-        border: '1px solid rgba(0, 212, 255, 0.2)',
-        borderRadius: 20, overflow: 'hidden',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+        width: '92%', maxWidth: 520,
+        background: 'linear-gradient(165deg, #0c2031 0%, #040d18 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box',
+        border: '3px solid transparent',
+        borderRadius: 18, overflow: 'hidden',
+        boxShadow: '0 24px 64px rgba(0, 0, 0, 0.78)'
     },
     header: {
-        padding: '16px 20px', background: 'rgba(0, 0, 0, 0.3)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+        padding: '14px 18px', background: 'linear-gradient(180deg, #102b40, #061723)',
+        borderBottom: '1px solid #688299',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
     },
     recordingDot: {
@@ -176,23 +186,26 @@ const styles = {
         animation: 'pulse 2s infinite'
     },
     title: {
-        fontSize: 12, fontWeight: 900, color: '#e2e8f0', letterSpacing: 1, fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif"
+        fontSize: 13, fontWeight: 900, color: '#f3f7fb', letterSpacing: 1, fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif"
     },
     subtitle: {
-        fontSize: 12, color: '#64748b', marginTop: 2
+        fontSize: 12, color: '#c4d2df', marginTop: 2
     },
     closeBtn: {
-        background: 'transparent', border: 'none', cursor: 'pointer', padding: 4
+        minWidth: 44, minHeight: 44, width: 44, height: 44,
+        background: 'linear-gradient(180deg, #34434c 0%, #0d1b25 12%, #030a0e 52%, #07151d 86%, #142e3b 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 18%, #e6f7ff 45%, #4c6470 72%, #e6f4fa 100%) border-box',
+        border: '2px solid transparent', borderRadius: 10, cursor: 'pointer', padding: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
     },
     felt: {
         position: 'relative', height: 350,
-        background: 'radial-gradient(ellipse at center, #1e3a8a 0%, #0f172a 100%)',
+        background: 'radial-gradient(ellipse at center, #0e2c4a 0%, #040d18 100%)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
     },
     potOverlay: {
         position: 'absolute', top: 30, left: '50%', transform: 'translateX(-50%)',
-        background: 'rgba(0, 0, 0, 0.8)', padding: '4px 12px',
-        borderRadius: 14, fontSize: 12, fontWeight: 700, color: '#fff', border: '1px solid rgba(255,255,255,0.1)'
+        background: 'rgba(2, 10, 18, 0.88)', padding: '4px 12px',
+        borderRadius: 14, fontSize: 12, fontWeight: 700, color: '#f3f7fb', border: '1px solid #688299'
     },
     boardWrap: {
         display: 'flex', position: 'absolute', top: '35%', left: '50%', transform: 'translate(-50%, -50%)'
@@ -202,8 +215,9 @@ const styles = {
         display: 'flex', flexDirection: 'column', alignItems: 'center'
     },
     heroLabel: {
-        background: 'linear-gradient(180deg, #d4a020, #8b6914)', color: '#1a1d24',
-        fontSize: 12, fontWeight: 800, padding: '2px 8px', borderRadius: 4, transform: 'translateY(-4px)'
+        background: 'linear-gradient(180deg, #51c9ff 0%, #0873ff 18%, #022695 100%)', color: '#ffffff',
+        border: '1px solid #b9efff',
+        fontSize: 12, fontWeight: 800, padding: '2px 10px', borderRadius: 6, transform: 'translateY(-4px)'
     },
     heroStack: {
         fontSize: 12, fontWeight: 700, color: '#94a3b8'

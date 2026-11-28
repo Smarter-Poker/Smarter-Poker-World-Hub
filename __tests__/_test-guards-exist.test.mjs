@@ -959,6 +959,7 @@ import './seo-aeo-geo-smarterdesign-and-conversion-fortress.law.test.mjs';
 import './phase2-seo-smarterdesign-fortress-20261127.law.test.mjs';
 import './phase3-conversion-funnel-fortress-20261127.law.test.mjs';
 import './phase4-seo-ctr-and-activation-fortress-20261127.law.test.mjs';
+import './forensic-hardening-fortress-20261127.law.test.mjs';
 import './a-request-the-database-must-refuse-is-not-sent.law.test.mjs';
 import './a-profile-post-count-asks-the-post-policy.law.test.mjs';
 import './removed-pitch-decks-stay-gone.law.test.mjs';
@@ -968,6 +969,7 @@ import './trivia-wave5-stats-calendar-laws.test.mjs';
 import './trivia-phase3-enhancements.test.mjs';
 import './smarterdesign-standard.test.mjs';
 import './diamond-store-smarterdesign.test.mjs';
+import './trivia-hardening-audit.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

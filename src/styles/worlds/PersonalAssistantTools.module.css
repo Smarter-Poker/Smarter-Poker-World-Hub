@@ -413,7 +413,82 @@
   box-shadow: none !important;
 }
 
+.sparklineRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(140, 161, 180, 0.24);
+  background: #061220;
+  color: #b7d2e6;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.verifiedFixedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(77, 224, 165, 0.55);
+  background: rgba(77, 224, 165, 0.14);
+  color: #4DE0A5;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.digestPreviewCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 8px;
+  background: linear-gradient(155deg, #13283d 0%, #091726 55%, #050d17 100%);
+  color: #e6f2fc;
+  margin-bottom: 10px;
+}
+
+.digestPreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.digestPreviewMetric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(140, 161, 180, 0.22);
+  background: #061220;
+  min-width: 0;
+}
+
+.digestPreviewLabel {
+  color: #9eb4c8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.digestPreviewValue {
+  color: #f1f5fc;
+  font-size: 13px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 768px) {
+  .digestPreviewGrid {
+    grid-template-columns: 1fr;
+  }
   .machineHeroCopy { padding: 10px 12px; }
   .machineTitle { font-size: 23px; }
   .machineDescription { font-size: 12px; }

@@ -720,6 +720,29 @@ GitHub's environment to execute:
   all seven repos without either, and CHECK 6 had been failing on `main` ever
   since, which is one of the two reasons Pre-Deploy Safety Checks could not be
   made a required check.
+  **Correction (2026-11-27): this entry is NOT inactive.** `agent-autopilot.yml`
+  still runs on `pull_request_target`, and together with
+  `agent-branch-proposal.yml` and `agent-open-pr.yml` it opens a PR for a pushed
+  agent branch and squash auto-merges it once required checks pass. That chain
+  merged a handoff bookmark (`bookmark/video-library-smarterdesign-2026-11-27`,
+  PR #3170) into production without owner approval. Since #3182 all three call
+  `.github/scripts/unfinished-work-guard.sh`. Only an explicit signal holds
+  work: a branch with a `bookmark`, `handoff` or `wip` path segment; a head
+  commit subject that starts with a marker (`wip`, `[wip]`, `bookmark:`,
+  `bookmark(`, `handoff:`, `handoff(`, `do-not-ship:`) or contains
+  `[do-not-ship]` anywhere; a draft PR; or a PR carrying the `do-not-ship`
+  label (the older `do-not-merge`, `hold` and `wip` labels hold too). Such work
+  never gets a PR from automation and never gets auto-merge. The word
+  "bookmark" or "unfinished" in an ordinary subject is NOT a marker, so
+  "feat(video-library): bookmark timestamps" ships normally (the first version
+  of the guard matched the bare words and silently refused real features).
+  Autopilot also runs on `labeled`/`unlabeled`: labelling an already-queued PR
+  `do-not-ship` turns its auto-merge off, and removing the label queues it
+  again. Pinned by `tests/unfinished-work-is-never-auto-merged.test.mjs`.
+  To park work without shipping it, push it under `bookmark/`, `handoff/` or
+  `wip/`, mark the head commit `wip:` or `[do-not-ship]`, label its PR
+  `do-not-ship`, or keep the PR in draft. A push to any other agent branch
+  should be treated as a release.
 - **Historical, inactive release entry:** `publish-watchdog.yml` — formerly every 15 minutes, compared `main`'s HEAD against the
   short sha `/api/health` reports and raises a self-closing issue when they
   diverge past a 20-minute budget. It cannot live in Open Claw: it asks GitHub

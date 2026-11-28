@@ -160,7 +160,8 @@ test('server answer uncertainty locks the same answer and keyboard shortcuts sta
     assert.match(game, />\s*Retry Answer\s*</);
     assert.match(game, /answerConfirmed/);
     assert.match(game, /onKeyDown=\{onGameKeyDown\}/);
-    assert.match(game, /target\?\.closest\?\.\('button, a, input, textarea, select, summary,/);
+    assert.match(game, /useTriviaKeyboardControls\s*\(/);
+    assert.match(game, /target\?\.closest\?\.\('input, textarea, select, \[contenteditable="true"\], \[role="dialog"\], \[aria-modal="true"\]'\)/);
     assert.doesNotMatch(game, /window\.addEventListener\('keydown'/);
     assert.match(game, /sessionId=\{reportSessionId\}/);
     assert.match(game, /questionIntegrityIssue/);

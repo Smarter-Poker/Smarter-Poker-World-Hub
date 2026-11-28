@@ -2633,11 +2633,16 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                     <dt className="info-label">Address</dt>
                     {venue.address && !locationConflict ? (
                       <dd className="info-value">
-                        <a href="#" onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('search'); }} className="info-link">
+                        <button
+                          type="button"
+                          onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('search'); }}
+                          className="info-link"
+                          style={{ background: 'none', border: 0, padding: 0, textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
+                        >
                           {venue.address}
                           {venue.city && (', ' + venue.city)}
                           {venue.state && (', ' + venue.state)}
-                        </a>
+                        </button>
                       </dd>
                     ) : (
                       <dd className="info-value">

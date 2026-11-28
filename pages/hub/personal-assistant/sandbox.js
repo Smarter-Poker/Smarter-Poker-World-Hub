@@ -28,7 +28,7 @@ import {
   SlidersHorizontal, Shuffle, RotateCcw, Undo2, Plus, X as XIcon,
   Layers, Users, LayoutGrid, Flame, Bookmark, FolderOpen, Upload, FileCode,
   Film, Share2, ClipboardList, BarChart3, ShieldAlert, Check,
-  PlayCircle, Trash2, Loader2, RefreshCw, ExternalLink, Volume2, VolumeX,
+  PlayCircle, Trash2, Loader2, RefreshCw, ExternalLink, Volume2, VolumeX, Keyboard,
 } from 'lucide-react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -43,6 +43,7 @@ import { useHaptics } from '../../../src/hooks/useHaptics';
 import { useModalHistory } from '../../../src/hooks/useModalHistory';
 import useSandboxSounds from '../../../src/hooks/useSandboxSounds';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
+import { recordPaMilestone } from '../../../src/lib/personal-assistant/telemetry.mjs';
 import {
   readPersistenceResponse, persistenceMessage,
 } from '../../../src/lib/personal-assistant/persistenceContract';
@@ -152,6 +153,14 @@ const SessionAnalytics = dynamic(
   () => import('../../../src/components/sandbox/SessionAnalytics'),
   { ssr: false, loading: () => <ModalLoadingFallback label="Loading Historical Stats…" height={140} /> },
 );
+const TableCustomizers = dynamic(
+  () => import('../../../src/components/sandbox/TableCustomizers'),
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Club Arena Customizers…" height={160} /> },
+);
+const RangeAdvantagePanel = dynamic(
+  () => import('../../../src/components/sandbox/RangeAdvantagePanel'),
+  { ssr: false, loading: () => <ModalLoadingFallback label="Loading Range Advantage…" height={140} /> },
+);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS & PURE HELPERS
@@ -168,13 +177,24 @@ const GAME_TYPES = [
   { id: 'cash', label: 'Cash Game' },
   { id: 'tournament', label: 'Tournament' },
 ];
-const FELT_COLORS = [
-  { id: 'default', label: 'Classic Green', skinId: 'classic_green', swatch: '#14532D' },
-  { id: 'blue', label: 'Ocean Blue', skinId: 'ocean_blue', swatch: '#1E3A5F' },
-  { id: 'red', label: 'Crimson', skinId: 'crimson', swatch: '#7F1D1D' },
-  { id: 'carbon', label: 'Carbon Ion', skinId: 'carbon_ion', swatch: '#1E293B' },
-  { id: 'jade', label: 'Jade City', skinId: 'jade_city', swatch: '#134E4A' },
-  { id: 'final', label: 'Final Table', skinId: 'final_table', swatch: '#312E81' },
+const POKER_VARIANTS = [
+  { id: 'nlh', label: 'NLH (2)', cards: 2 },
+  { id: 'plo4', label: 'PLO4 (4)', cards: 4 },
+  { id: 'plo5', label: 'PLO5 (5)', cards: 5 },
+  { id: 'plo6', label: 'PLO6 (6)', cards: 6 },
+];
+const ANTE_OPTIONS = [0, 0.25, 0.5, 1];
+const STRADDLE_OPTIONS = [0, 2, 4];
+const BOMB_POT_OPTIONS = [0, 5, 10];
+const DESKTOP_HOTKEYS = [
+  { key: 'F', label: 'Fold Active Seat' },
+  { key: 'C', label: 'Check Or Call Facing Bet' },
+  { key: 'B', label: 'Bet Or Raise Active Sizing' },
+  { key: '1 - 5', label: 'Select Sizing Preset (33% To All-In / Max Pot)' },
+  { key: 'Space', label: 'Deal Next Street (Flop / Turn / River)' },
+  { key: 'Left / Right', label: 'Step Backward Or Forward In Action Replay' },
+  { key: 'Z', label: 'Undo Last Table Change' },
+  { key: '?', label: 'Toggle Keyboard Shortcuts Guide' },
 ];
 const MAX_VILLAINS = 5;
 const DEFAULT_VILLAINS = [
@@ -357,7 +377,7 @@ const MOBILE_SUIT_ROWS = [
 // getBoundingClientRect() arrow movement, scrollIntoView, Esc focus restore.
 // ═══════════════════════════════════════════════════════════════════════════
 function CardPickerSheet({
-  isOpen, onClose, onSelect, usedCards = [], mode, pickProgress, onRandomCard, onRandomFlop,
+  isOpen, onClose, onSelect, usedCards = [], mode, pickProgress, heroCardCount = 2, onRandomCard, onRandomFlop,
 }) {
   const [rank, setRank] = useState(null);
   const [activeDesktopCard, setActiveDesktopCard] = useState(null);
@@ -503,10 +523,12 @@ function CardPickerSheet({
 
   const isHero = mode === 'hero';
   const title = isHero
-    ? `Pick Hero Card ${pickProgress || 1} Of 2`
-    : mode === 'board'
-      ? 'Select Board Card'
-      : 'Select Card';
+    ? `Pick Hero Card ${pickProgress || 1} Of ${heroCardCount}`
+    : mode === 'villain'
+      ? 'Pick Villain Showdown Card'
+      : mode === 'board'
+        ? 'Select Board Card'
+        : 'Select Card';
 
   return (
     <BottomSheet
@@ -699,11 +721,21 @@ function SetupSheet({
   isOpen, onClose,
   heroPosition, setHeroPosition,
   gameType, setGameType,
+  variant, onChangeVariant,
+  anteBb, setAnteBb,
+  straddleBb, setStraddleBb,
+  bombPotBb, setBombPotBb,
   heroStack, setHeroStack,
   potBase, setPotBase,
   villains, onVillainPatch, onVillainArchetype, onAddVillain, onRemoveVillain,
+  villainHoleCards, onPickVillainCards, onClearVillainCards,
   onOpenPresets, onOpenRanges,
-  tableFelt, onChangeFelt, arenaThemeActive,
+  tableSkinId, onChangeSkin,
+  roomBgId, onChangeRoomBg,
+  cardBackId, onChangeCardBack,
+  dealerButtonId, onChangeDealerButton,
+  deckStyle, onChangeDeckStyle,
+  arenaThemeActive, themePreviewOverride, onTogglePreviewOverride,
   equityVsRange, setEquityVsRange,
 }) {
   const archetypes = useMemo(
@@ -717,8 +749,8 @@ function SetupSheet({
       onClose={onClose}
       title="Table Setup"
       titleIcon={<SlidersHorizontal size={18} strokeWidth={2} color={T.accent} />}
-      subtitle="Configure Game Format, Stacks, Positions And Multiway Villains."
-      ariaLabel="Table setup"
+      subtitle="Configure Variant, Antes, Stacks, Multiway Villains And Club Arena Theme."
+      ariaLabel="Table Setup"
       maxWidth={680}
       footer={(
         <button type="button" className="pa-btn" onClick={onClose} style={btn('primary', { block: true })}>
@@ -749,6 +781,95 @@ function SetupSheet({
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* Poker Variant (NLH, PLO4, PLO5, PLO6) */}
+        <div>
+          <div style={sectionTitle}>Poker Variant</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: S.xs }}>
+            {POKER_VARIANTS.map((pv) => {
+              const active = variant === pv.id;
+              return (
+                <button
+                  key={pv.id}
+                  type="button"
+                  className="pa-btn"
+                  aria-pressed={active}
+                  onClick={() => onChangeVariant(pv.id)}
+                  style={{
+                    ...btn(active ? 'primary' : 'secondary'),
+                    minWidth: 0, padding: '0 6px', fontSize: F.caption,
+                  }}
+                >
+                  {pv.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Ante / Straddle / Bomb-Pot Toggles */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: S.sm }}>
+          <div>
+            <div style={sectionTitle}>Ante (BB)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 4 }}>
+              {ANTE_OPTIONS.map((a) => (
+                <button
+                  key={`ante-${a}`}
+                  type="button"
+                  className="pa-btn"
+                  aria-pressed={anteBb === a}
+                  onClick={() => setAnteBb(a)}
+                  style={{
+                    ...btn(anteBb === a ? 'primary' : 'secondary'),
+                    minHeight: 36, padding: '0 4px', fontSize: F.caption,
+                  }}
+                >
+                  {a === 0 ? 'Off' : `${a}`}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div style={sectionTitle}>Straddle</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 4 }}>
+              {STRADDLE_OPTIONS.map((st) => (
+                <button
+                  key={`straddle-${st}`}
+                  type="button"
+                  className="pa-btn"
+                  aria-pressed={straddleBb === st}
+                  onClick={() => setStraddleBb(st)}
+                  style={{
+                    ...btn(straddleBb === st ? 'primary' : 'secondary'),
+                    minHeight: 36, padding: '0 4px', fontSize: F.caption,
+                  }}
+                >
+                  {st === 0 ? 'Off' : `${st} BB`}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div style={sectionTitle}>Bomb Pot</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 4 }}>
+              {BOMB_POT_OPTIONS.map((bp) => (
+                <button
+                  key={`bomb-${bp}`}
+                  type="button"
+                  className="pa-btn"
+                  aria-pressed={bombPotBb === bp}
+                  onClick={() => setBombPotBb(bp)}
+                  style={{
+                    ...btn(bombPotBb === bp ? 'primary' : 'secondary'),
+                    minHeight: 36, padding: '0 4px', fontSize: F.caption,
+                  }}
+                >
+                  {bp === 0 ? 'Off' : `${bp} BB`}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -916,6 +1037,33 @@ function SetupSheet({
                     />
                   </div>
                 </div>
+
+                {/* Optional Exact Showdown Hole Cards */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.sm, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: F.caption, color: T.textMuted, fontWeight: 700 }}>
+                    Showdown Cards: {villainHoleCards?.[`villain_${idx}`]?.length ? villainHoleCards[`villain_${idx}`].join(' ') : 'Hidden (Range)'}
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      onClick={() => onPickVillainCards?.(`villain_${idx}`)}
+                      style={{ ...btn('secondary'), minHeight: 34, padding: '0 10px', fontSize: F.caption }}
+                    >
+                      Set Cards
+                    </button>
+                    {villainHoleCards?.[`villain_${idx}`]?.length > 0 && (
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        onClick={() => onClearVillainCards?.(`villain_${idx}`)}
+                        style={{ ...btn('ghost'), minHeight: 34, padding: '0 8px', fontSize: F.caption, color: T.danger }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -930,41 +1078,186 @@ function SetupSheet({
           </div>
         </div>
 
-        {/* Club Arena Table Skin */}
-        <div>
-          <div style={sectionTitle}>
-            Club Arena Table Skin {arenaThemeActive ? '(Locked Club Arena Theme Active)' : ''}
+        {/* Full Club Arena Table Customizer (Lazy-Loaded) */}
+        <TableCustomizers
+          tableSkinId={tableSkinId}
+          onChangeSkin={onChangeSkin}
+          roomBgId={roomBgId}
+          onChangeRoomBg={onChangeRoomBg}
+          cardBackId={cardBackId}
+          onChangeCardBack={onChangeCardBack}
+          dealerButtonId={dealerButtonId}
+          onChangeDealerButton={onChangeDealerButton}
+          deckStyle={deckStyle}
+          onChangeDeckStyle={onChangeDeckStyle}
+          arenaThemeActive={arenaThemeActive}
+          previewOverride={themePreviewOverride}
+          onTogglePreviewOverride={onTogglePreviewOverride}
+        />
+      </div>
+    </BottomSheet>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TAP-SEAT QUICK EDITOR SHEET (Range, Archetype, Stack & Showdown Cards)
+// ═══════════════════════════════════════════════════════════════════════════
+function VillainSeatSheet({
+  isOpen, onClose, villain, villainIdx, showdownCards = [],
+  onVillainPatch, onVillainArchetype, onPickCards, onClearCards,
+  onOpenRangeEditor, onOpenPresets,
+}) {
+  const archetypes = useMemo(
+    () => Object.entries(ARCHETYPE_CONFIG || {}).map(([id, cfg]) => ({ id, name: cfg?.name || id })),
+    [],
+  );
+  if (!villain) return null;
+  const seatKey = `villain_${villainIdx}`;
+
+  return (
+    <BottomSheet
+      open={isOpen}
+      onClose={onClose}
+      title={`Seat ${villainIdx + 1} · ${villain.position || 'BB'}`}
+      titleIcon={<Users size={18} strokeWidth={2} color={T.accent} />}
+      subtitle="Edit Opponent Range, Archetype, Stack Or Exact Showdown Cards."
+      ariaLabel={`Edit Villain Seat ${villainIdx + 1}`}
+      maxWidth={560}
+      footer={(
+        <button type="button" className="pa-btn" onClick={onClose} style={btn('primary', { block: true })}>
+          Done
+        </button>
+      )}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: S.sm }}>
+          <div>
+            <label htmlFor="tap-seat-pos" style={{ fontSize: F.caption, color: T.textDim, display: 'block', marginBottom: 4 }}>Position</label>
+            <select
+              id="tap-seat-pos"
+              value={villain.position || 'BB'}
+              onChange={(e) => onVillainPatch(villainIdx, { position: e.target.value })}
+              style={{
+                width: '100%', minHeight: 44, padding: '0 8px',
+                background: T.surface2, border: `1px solid ${T.borderHi}`, borderRadius: R.sm,
+                color: T.text, fontSize: F.label,
+              }}
+            >
+              {POSITIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: S.sm }}>
-            {FELT_COLORS.map((f) => {
-              const active = tableFelt === f.id;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  className="pa-btn"
-                  disabled={arenaThemeActive}
-                  aria-pressed={active}
-                  onClick={() => onChangeFelt(f.id)}
-                  style={{
-                    ...btn('secondary', { disabled: arenaThemeActive }),
-                    padding: '0 8px', fontSize: F.caption,
-                    borderColor: active ? T.accent : T.borderHi,
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 12, height: 12, borderRadius: '50%',
-                      background: f.swatch, border: `1px solid ${T.borderHi}`, flexShrink: 0,
-                    }}
-                  />
-                  {f.label}
-                </button>
-              );
-            })}
+          <div>
+            <label htmlFor="tap-seat-arch" style={{ fontSize: F.caption, color: T.textDim, display: 'block', marginBottom: 4 }}>Archetype</label>
+            <select
+              id="tap-seat-arch"
+              value={villain.archetype?.id || 'gto_neutral'}
+              onChange={(e) => onVillainArchetype(villainIdx, e.target.value)}
+              style={{
+                width: '100%', minHeight: 44, padding: '0 8px',
+                background: T.surface2, border: `1px solid ${T.borderHi}`, borderRadius: R.sm,
+                color: T.text, fontSize: F.label,
+              }}
+            >
+              {archetypes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="tap-seat-stack" style={{ fontSize: F.caption, color: T.textDim, display: 'block', marginBottom: 4 }}>Stack (BB)</label>
+            <input
+              id="tap-seat-stack"
+              type="number"
+              min={5}
+              max={1000}
+              value={villain.stack ?? 100}
+              onChange={(e) => onVillainPatch(villainIdx, { stack: Math.max(5, Math.min(1000, Number(e.target.value) || 100)) })}
+              style={{
+                width: '100%', minHeight: 44, padding: '0 8px', boxSizing: 'border-box',
+                background: T.surface2, border: `1px solid ${T.borderHi}`, borderRadius: R.sm,
+                color: T.text, fontSize: F.input, ...NUM,
+              }}
+            />
           </div>
         </div>
+
+        <div style={{ ...cardCompact, background: T.surface2, display: 'flex', flexDirection: 'column', gap: S.sm }}>
+          <div style={{ fontSize: F.bodySm, fontWeight: 700, color: T.text }}>
+            Showdown Hole Cards (Face-Up On Felt)
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, flexWrap: 'wrap' }}>
+            {showdownCards.length > 0 ? (
+              showdownCards.map((c, idx) => (
+                <TableCard key={`${c}-${idx}`} card={c} style={{ width: 42, height: 58 }} />
+              ))
+            ) : (
+              <span style={{ fontSize: F.caption, color: T.textMuted }}>
+                No Showdown Cards Set · Opponent Plays Range Face-Down.
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
+            <button type="button" className="pa-btn" onClick={() => onPickCards(seatKey)} style={{ ...btn('secondary'), flex: '1 1 130px' }}>
+              Pick Showdown Cards
+            </button>
+            {showdownCards.length > 0 && (
+              <button type="button" className="pa-btn" onClick={() => onClearCards(seatKey)} style={{ ...btn('danger'), flex: '0 1 auto' }}>
+                Hide Cards
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
+          <button type="button" className="pa-btn" onClick={onOpenRangeEditor} style={{ ...btn('primary'), flex: '1 1 140px' }}>
+            <LayoutGrid size={16} strokeWidth={2} aria-hidden="true" /> Edit 13x13 Range
+          </button>
+          <button type="button" className="pa-btn" onClick={onOpenPresets} style={{ ...btn('secondary'), flex: '1 1 140px' }}>
+            <Users size={16} strokeWidth={2} aria-hidden="true" /> Villain Presets
+          </button>
+        </div>
+      </div>
+    </BottomSheet>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DESKTOP POKER HOTKEYS SHEET
+// ═══════════════════════════════════════════════════════════════════════════
+function HotkeysSheet({ isOpen, onClose }) {
+  return (
+    <BottomSheet
+      open={isOpen}
+      onClose={onClose}
+      title="Desktop Poker Hotkeys"
+      titleIcon={<Keyboard size={18} strokeWidth={2} color={T.accent} />}
+      subtitle="Press Any Key While Focus Is Outside Text Inputs."
+      ariaLabel="Desktop Poker Hotkeys"
+      maxWidth={520}
+      footer={(
+        <button type="button" className="pa-btn" onClick={onClose} style={btn('primary', { block: true })}>
+          Got It
+        </button>
+      )}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {DESKTOP_HOTKEYS.map((item) => (
+          <div
+            key={item.key}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: S.md, minHeight: 42, padding: '6px 10px', borderRadius: R.sm,
+              background: T.surface2, border: `1px solid ${T.border}`,
+            }}
+          >
+            <span style={{ fontSize: F.bodySm, color: T.text }}>{item.label}</span>
+            <kbd style={{
+              fontSize: F.caption, fontWeight: 800, color: T.accent,
+              background: T.surface, border: `1px solid ${T.borderHi}`,
+              borderRadius: 6, padding: '4px 10px', whiteSpace: 'nowrap',
+            }}>
+              {item.key}
+            </kbd>
+          </div>
+        ))}
       </div>
     </BottomSheet>
   );
@@ -1120,18 +1413,31 @@ export default function VirtualSandboxPage() {
 
   // ── Core Poker Table & Scenario State ──
   const [gameType, setGameType] = useState('cash');
+  const [variant, setVariant] = useState('nlh');
+  const [anteBb, setAnteBb] = useState(0);
+  const [straddleBb, setStraddleBb] = useState(0);
+  const [bombPotBb, setBombPotBb] = useState(0);
   const [heroPosition, setHeroPosition] = useState('BTN');
   const [heroStack, setHeroStack] = useState(100);
   const [potBase, setPotBase] = useState(6.5);
   const [heroHand, setHeroHand] = useState({ card1: 'Ah', card2: 'Kd' });
+  const [extraHeroCards, setExtraHeroCards] = useState([]);
   const [board, setBoard] = useState({ flop: ['Kh', '7c', '2d'], turn: null, river: null });
   const [villains, setVillains] = useState(() => withVillainIds(DEFAULT_VILLAINS));
+  const [villainHoleCards, setVillainHoleCards] = useState({});
   const [activeVillainIdx, setActiveVillainIdx] = useState(0);
+  const [manualActorKey, setManualActorKey] = useState(null);
+  const [selectedBetPreset, setSelectedBetPreset] = useState(0.5);
   const [actionHistory, setActionHistory] = useState([]);
   const [preflopPosts, setPreflopPosts] = useState([]);
   const [replayIndex, setReplayIndex] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
-  const [tableFelt, setTableFelt] = useState('default');
+  const [tableSkinId, setTableSkinId] = useState('classic_green');
+  const [roomBgId, setRoomBgId] = useState('midnight');
+  const [cardBackId, setCardBackId] = useState('classic_blue');
+  const [dealerButtonId, setDealerButtonId] = useState('classic-white');
+  const [deckStyle, setDeckStyle] = useState('4color');
+  const [themePreviewOverride, setThemePreviewOverride] = useState(false);
   const [arenaTheme, setArenaTheme] = useState(null);
 
   // ── Equity & Runout Engine State ──
@@ -1164,6 +1470,8 @@ export default function VirtualSandboxPage() {
   const [showShareScenario, setShowShareScenario] = useState(false);
   const [showSessionReport, setShowSessionReport] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [tapSeatIdx, setTapSeatIdx] = useState(null);
+  const [showHotkeys, setShowHotkeys] = useState(false);
 
   // ── Templates State ──
   const [templates, setTemplates] = useState([]);
@@ -1246,15 +1554,20 @@ export default function VirtualSandboxPage() {
   }, [checkLivePlayGate]);
 
   // ── Derived Table Values ──
+  const variantCardCount = variant === 'plo6' ? 6 : variant === 'plo5' ? 5 : variant === 'plo4' ? 4 : 2;
   const communityCards = useMemo(() => boardToArray(board), [board]);
   const currentStreet = useMemo(() => streetOfBoard(board), [board]);
   const heroCardsMemo = useMemo(
-    () => [heroHand?.card1, heroHand?.card2].filter(Boolean),
-    [heroHand],
+    () => [heroHand?.card1, heroHand?.card2, ...(variant === 'nlh' ? [] : extraHeroCards)].filter(Boolean).slice(0, variantCardCount),
+    [heroHand, extraHeroCards, variant, variantCardCount],
   );
   const allUsedCards = useMemo(
-    () => [...heroCardsMemo, ...communityCards],
-    [heroCardsMemo, communityCards],
+    () => [
+      ...heroCardsMemo,
+      ...communityCards,
+      ...Object.values(villainHoleCards || {}).flat().filter(Boolean),
+    ],
+    [heroCardsMemo, communityCards, villainHoleCards],
   );
   const boardTexture = useMemo(
     () => (communityCards.length >= 3 ? classifyBoardTexture(communityCards) : null),
@@ -1272,8 +1585,16 @@ export default function VirtualSandboxPage() {
 
   const activeVillainRange = resolvedVillainRanges[safeVillainIdx] || '';
 
+  const effectiveBasePot = useMemo(() => {
+    const seatsCount = 1 + villains.length;
+    const extraDead = (Number(anteBb) || 0) * seatsCount
+      + (Number(straddleBb) || 0)
+      + ((Number(bombPotBb) || 0) > 0 ? (Number(bombPotBb) || 0) * seatsCount : 0);
+    return Math.round(((Number(potBase) || 6.5) + extraDead) * 10) / 10;
+  }, [potBase, anteBb, straddleBb, bombPotBb, villains.length]);
+
   const handState = useMemo(() => computeHandState({
-    basePot: Number(potBase) || 6.5,
+    basePot: effectiveBasePot,
     heroPosition,
     villainPosition: primaryVillain?.position || 'BB',
     heroStack: Number(heroStack) || 100,
@@ -1282,13 +1603,13 @@ export default function VirtualSandboxPage() {
     street: currentStreet,
     actions: actionHistory,
     preflopPosts,
-  }), [potBase, heroPosition, heroStack, primaryVillain, villains, currentStreet, actionHistory, preflopPosts]);
+  }), [effectiveBasePot, heroPosition, heroStack, primaryVillain, villains, currentStreet, actionHistory, preflopPosts]);
 
   const replayState = useMemo(() => {
     if (replayIndex == null || replayIndex < 0 || replayIndex >= actionHistory.length) return null;
     const sliced = actionHistory.slice(0, replayIndex + 1);
     const st = computeHandState({
-      basePot: Number(potBase) || 6.5,
+      basePot: effectiveBasePot,
       heroPosition,
       villainPosition: primaryVillain?.position || 'BB',
       heroStack: Number(heroStack) || 100,
@@ -1307,7 +1628,7 @@ export default function VirtualSandboxPage() {
           ? communityCards.slice(0, 4)
           : communityCards;
     return { handState: st, cards, street: lastStreet };
-  }, [replayIndex, actionHistory, potBase, heroPosition, heroStack, primaryVillain, villains, currentStreet, communityCards, preflopPosts]);
+  }, [replayIndex, actionHistory, effectiveBasePot, heroPosition, heroStack, primaryVillain, villains, currentStreet, communityCards, preflopPosts]);
 
   const streetHistory = useMemo(() => {
     const order = ['preflop', 'flop', 'turn', 'river'];
@@ -1639,18 +1960,57 @@ export default function VirtualSandboxPage() {
   }, [heroHand, heroPosition, currentStreet, communityCards, equity, heroStack, handState.pot, actionHistory, sandboxSnapshot]);
 
   // ── Table Card & Deal Interactions ──
+  const handleChangeVariant = useCallback((nextVariant) => {
+    setVariant(nextVariant);
+    const needed = nextVariant === 'plo6' ? 6 : nextVariant === 'plo5' ? 5 : nextVariant === 'plo4' ? 4 : 2;
+    if (needed <= 2) {
+      setExtraHeroCards([]);
+      return;
+    }
+    setExtraHeroCards((prev) => {
+      const currentExtras = prev.slice(0, needed - 2);
+      const missing = (needed - 2) - currentExtras.length;
+      if (missing <= 0) return currentExtras;
+      const drawn = pickRandomCards(missing, [...allUsedCards, ...currentExtras]);
+      return [...currentExtras, ...drawn];
+    });
+  }, [allUsedCards]);
+
   const openHeroPicker = useCallback(() => {
     if (activePlayBlock) return;
     setDeckTarget('hero');
-    setHeroPickStep(heroHand.card1 && !heroHand.card2 ? 2 : 1);
+    if (!heroHand.card1) setHeroPickStep(1);
+    else if (!heroHand.card2) setHeroPickStep(2);
+    else if (variantCardCount > 2 && extraHeroCards.length < variantCardCount - 2) {
+      setHeroPickStep(3 + extraHeroCards.length);
+    } else {
+      setHeroPickStep(1);
+    }
     setShowDeck(true);
-  }, [heroHand, activePlayBlock]);
+  }, [heroHand, extraHeroCards, variantCardCount, activePlayBlock]);
 
   const openBoardPicker = useCallback(() => {
     if (activePlayBlock) return;
     setDeckTarget('board');
     setShowDeck(true);
   }, [activePlayBlock]);
+
+  const openVillainCardPicker = useCallback((seatKey) => {
+    if (activePlayBlock || !seatKey) return;
+    setShowSetup(false);
+    setTapSeatIdx(null);
+    setDeckTarget({ kind: 'villain', seatKey });
+    setShowDeck(true);
+  }, [activePlayBlock]);
+
+  const clearVillainCards = useCallback((seatKey) => {
+    if (!seatKey) return;
+    setVillainHoleCards((prev) => {
+      const next = { ...prev };
+      delete next[seatKey];
+      return next;
+    });
+  }, []);
 
   const handleDeckSelect = useCallback((cardStr) => {
     pushUndo();
@@ -1659,8 +2019,41 @@ export default function VirtualSandboxPage() {
       if (heroPickStep === 1) {
         setHeroHand((h) => ({ card1: cardStr, card2: h.card2 === cardStr ? null : h.card2 }));
         setHeroPickStep(2);
-      } else {
+      } else if (heroPickStep === 2) {
         setHeroHand((h) => ({ ...h, card2: cardStr }));
+        if (variantCardCount > 2) {
+          setHeroPickStep(3);
+        } else {
+          setShowDeck(false);
+          setDeckTarget(null);
+        }
+      } else {
+        const extraIdx = heroPickStep - 3;
+        setExtraHeroCards((prev) => {
+          const next = [...prev];
+          next[extraIdx] = cardStr;
+          return next.filter(Boolean).slice(0, variantCardCount - 2);
+        });
+        if (heroPickStep >= variantCardCount) {
+          setShowDeck(false);
+          setDeckTarget(null);
+        } else {
+          setHeroPickStep(heroPickStep + 1);
+        }
+      }
+      return;
+    }
+    if (deckTarget?.kind === 'villain') {
+      const { seatKey } = deckTarget;
+      let reachedMax = false;
+      setVillainHoleCards((prev) => {
+        const cur = Array.isArray(prev[seatKey]) ? prev[seatKey] : [];
+        const base = cur.length >= 2 ? [] : cur;
+        const nextCards = [...base, cardStr];
+        if (nextCards.length >= 2) reachedMax = true;
+        return { ...prev, [seatKey]: nextCards };
+      });
+      if (reachedMax) {
         setShowDeck(false);
         setDeckTarget(null);
       }
@@ -1696,20 +2089,46 @@ export default function VirtualSandboxPage() {
       setShowDeck(false);
       setDeckTarget(null);
     }
-  }, [deckTarget, heroPickStep, pushUndo, playSound]);
+  }, [deckTarget, heroPickStep, variantCardCount, pushUndo, playSound]);
+
+  const handleSelectRunoutCard = useCallback((cardStr) => {
+    if (activePlayBlock || !cardStr) return;
+    if (allUsedCards.includes(cardStr)) {
+      toast.error(`${cardStr} Is Already On The Table`);
+      return;
+    }
+    if (board.flop.length === 3 && !board.turn) {
+      pushUndo();
+      setBoard((prev) => ({ ...prev, turn: cardStr }));
+      playSound?.('card');
+      haptic('light');
+      toast.success(`Dealt ${cardStr} On Turn`);
+      return;
+    }
+    if (board.flop.length === 3 && board.turn && !board.river) {
+      pushUndo();
+      setBoard((prev) => ({ ...prev, river: cardStr }));
+      playSound?.('card');
+      haptic('light');
+      toast.success(`Dealt ${cardStr} On River`);
+    }
+  }, [activePlayBlock, allUsedCards, board, pushUndo, playSound, haptic]);
 
   const dealRandomSpot = useCallback(() => {
     if (activePlayBlock) return;
     pushUndo();
-    const cards = pickRandomCards(5, []);
+    const cards = pickRandomCards(variantCardCount + 3, []);
     setHeroHand({ card1: cards[0], card2: cards[1] });
-    setBoard({ flop: cards.slice(2, 5), turn: null, river: null });
+    setExtraHeroCards(variantCardCount > 2 ? cards.slice(2, variantCardCount) : []);
+    setBoard({ flop: cards.slice(variantCardCount, variantCardCount + 3), turn: null, river: null });
+    setVillainHoleCards({});
+    setManualActorKey(null);
     setActionHistory([]);
     setPreflopPosts([]);
     setReplayIndex(null);
     playSound?.('card');
     haptic('light');
-  }, [pushUndo, playSound, haptic, activePlayBlock]);
+  }, [variantCardCount, pushUndo, playSound, haptic, activePlayBlock]);
 
   const dealNextStreet = useCallback(() => {
     if (activePlayBlock) return;
@@ -1748,6 +2167,9 @@ export default function VirtualSandboxPage() {
     pushUndo();
     recordExplorationSnapshot('Archived Before Reset');
     setHeroHand({ card1: null, card2: null });
+    setExtraHeroCards([]);
+    setVillainHoleCards({});
+    setManualActorKey(null);
     setBoard({ flop: [], turn: null, river: null });
     setActionHistory([]);
     setPreflopPosts([]);
@@ -2018,32 +2440,199 @@ export default function VirtualSandboxPage() {
     });
     return out;
   }, [activeTableState, villains]);
-  const heroFacingBet = Math.max(
+
+  const tableFoldedSeats = useMemo(() => {
+    const set = new Set();
+    (activeTableState?.players || []).forEach((p) => {
+      if (!p?.folded) return;
+      if (p.key === 'villain') set.add('villain_0');
+      else set.add(p.key);
+    });
+    return set;
+  }, [activeTableState]);
+
+  const tableSeatActions = useMemo(() => {
+    const slice = replayIndex != null && replayIndex >= 0
+      ? actionHistory.slice(0, replayIndex + 1)
+      : actionHistory;
+    const map = {};
+    slice.forEach((entry) => {
+      const st = String(entry?.street || 'preflop').toLowerCase();
+      if (st !== tableStreet && String(entry?.action || '').toLowerCase() !== 'fold') return;
+      const key = entry.isHero || entry.actorKey === 'hero' || entry.actor === 'hero'
+        ? 'hero'
+        : (entry.actorKey === 'villain' || entry.actor === 'villain')
+          ? 'villain_0'
+          : (entry.actorKey || (typeof entry.villainIndex === 'number' ? `villain_${entry.villainIndex}` : 'villain_0'));
+      map[key] = entry.label || entry.action || '';
+    });
+    return map;
+  }, [actionHistory, replayIndex, tableStreet]);
+
+  const tableActiveActorKey = useMemo(() => {
+    const normalize = (k) => (k === 'villain' ? 'villain_0' : k);
+    if (manualActorKey && !tableFoldedSeats.has(normalize(manualActorKey))) {
+      return normalize(manualActorKey);
+    }
+    const engineTurn = normalize(activeTableState?.toAct || 'hero');
+    if (engineTurn && !tableFoldedSeats.has(engineTurn)) return engineTurn;
+    return 'hero';
+  }, [manualActorKey, activeTableState, tableFoldedSeats]);
+
+  const actorEngineKey = villains.length <= 1 && tableActiveActorKey === 'villain_0'
+    ? 'villain'
+    : tableActiveActorKey;
+  const activeActorFacingBet = Math.max(
     0,
-    Math.round(((Number(activeTableState?.highestStreetBet) || 0) - (Number(activeTableState?.streetIn?.hero) || 0)) * 10) / 10,
+    Math.round(((Number(activeTableState?.highestStreetBet) || 0) - (Number(activeTableState?.streetIn?.[actorEngineKey]) || 0)) * 10) / 10,
   );
+  const activeActorPotOdds = activeActorFacingBet > 0 && (Number(tablePot) + activeActorFacingBet) > 0
+    ? Math.round((activeActorFacingBet / (Number(tablePot) + activeActorFacingBet)) * 1000) / 10
+    : null;
+  const activeActorMdf = activeActorFacingBet > 0 && Number(tablePot) > 0
+    ? Math.round((Number(tablePot) / (Number(tablePot) + activeActorFacingBet)) * 1000) / 10
+    : null;
+
   const handleTableQuickAction = useCallback((payload) => {
     if (activePlayBlock || handState.terminal || !payload?.action) return;
+    const rawActorKey = payload.actorKey || tableActiveActorKey || 'hero';
+    const isHeroActor = rawActorKey === 'hero';
+    const vMatch = String(rawActorKey).match(/^villain_(\d+)$/);
+    const vIdx = vMatch ? Number(vMatch[1]) : 0;
+    const targetVillain = !isHeroActor ? (villains[vIdx] || villains[0]) : null;
+    const resolvedEngineKey = isHeroActor
+      ? 'hero'
+      : (villains.length <= 1 ? 'villain' : `villain_${vIdx}`);
+
     pushUndo();
     setActionHistory((prev) => [
       ...prev,
       {
         street: currentStreet,
-        actor: 'hero',
-        actorKey: 'hero',
-        isHero: true,
-        position: heroPosition,
+        actor: resolvedEngineKey,
+        actorKey: resolvedEngineKey,
+        seatIndex: isHeroActor ? 0 : vIdx + 1,
+        villainIndex: isHeroActor ? undefined : vIdx,
+        isHero: isHeroActor,
+        isVillain: !isHeroActor,
+        player: isHeroActor ? 'Hero' : (targetVillain?.name || `Villain ${vIdx + 1}`),
+        position: isHeroActor ? heroPosition : (targetVillain?.position || 'BB'),
         id: payload.action,
         action: payload.action,
         amount: Number(payload.amount) || 0,
+        ...(payload.raiseTo != null ? { raiseTo: Number(payload.raiseTo) } : {}),
         label: payload.label || payload.action,
       },
     ]);
+    setManualActorKey(null);
     setReplayIndex(null);
     playSound?.('chip');
     haptic('light');
-  }, [activePlayBlock, handState.terminal, pushUndo, currentStreet, heroPosition, playSound, haptic]);
+    recordPaMilestone('sandbox_action', { variant, surface: 'sandbox' });
+  }, [activePlayBlock, handState.terminal, tableActiveActorKey, villains, pushUndo, currentStreet, heroPosition, playSound, haptic, variant]);
+
   const canDealNext = !board.river && !activePlayBlock;
+
+  // ── Desktop Poker Hotkeys (F, C, B, 1-5, Space, ArrowLeft, ArrowRight, Z, ?) ──
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const isEditable = (el) => {
+      if (!el) return false;
+      const tag = String(el.tagName || '').toUpperCase();
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || Boolean(el.isContentEditable);
+    };
+    const onKeyDown = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isEditable(e.target)) return;
+      const key = e.key;
+      if (key === '?') {
+        e.preventDefault();
+        setShowHotkeys((v) => !v);
+        return;
+      }
+      // Pause table action hotkeys while a modal or card picker is open
+      if (showDeck || showSetup || showRangeExplorer || showRangeHeatGrid || showVillainPresets
+        || showSaveHand || showStudyFolders || showImportHH || showSolverImport || showTemplates
+        || showHandReplay || showShareScenario || showSessionReport || tapSeatIdx != null || showHotkeys) {
+        return;
+      }
+      if (activePlayBlock) return;
+      const lower = key.toLowerCase();
+      if (lower === 'f') {
+        e.preventDefault();
+        handleTableQuickAction({ action: 'fold', amount: 0, label: 'Fold', actorKey: tableActiveActorKey });
+      } else if (lower === 'c') {
+        e.preventDefault();
+        handleTableQuickAction(
+          activeActorFacingBet > 0
+            ? { action: 'call', amount: activeActorFacingBet, label: `Call ${activeActorFacingBet} BB`, actorKey: tableActiveActorKey }
+            : { action: 'check', amount: 0, label: 'Check', actorKey: tableActiveActorKey },
+        );
+      } else if (lower === 'b') {
+        e.preventDefault();
+        const isPloVar = variant !== 'nlh';
+        const seatObj = (activeTableState?.players || []).find((p) => p.key === actorEngineKey);
+        const actorStack = Math.max(1, Number(seatObj?.remaining) || Number(heroStack) || 100);
+        const minB = Math.min(actorStack, activeActorFacingBet > 0 ? Math.max(Math.round(activeActorFacingBet * 4) / 2, 2) : 1);
+        const maxB = isPloVar ? Math.min(actorStack, Math.max(minB, Math.round((3 * activeActorFacingBet + Number(tablePot)) * 2) / 2)) : actorStack;
+        const raw = selectedBetPreset === 'allin'
+          ? maxB
+          : Math.max(minB, Math.round(Math.max(Number(tablePot), 2) * Number(selectedBetPreset || 0.5) * 2) / 2);
+        const sz = Math.max(minB, Math.min(maxB, raw));
+        const verb = activeActorFacingBet > 0 ? 'raise' : 'bet';
+        const isShove = !isPloVar && (selectedBetPreset === 'allin' || sz >= actorStack);
+        handleTableQuickAction({
+          action: isShove ? 'allin' : verb,
+          amount: sz,
+          ...(verb === 'raise' ? { raiseTo: sz } : {}),
+          label: isShove ? `All-In ${sz} BB` : `${verb === 'raise' ? 'Raise' : 'Bet'} ${sz} BB`,
+          actorKey: tableActiveActorKey,
+        });
+      } else if (key === '1') {
+        setSelectedBetPreset(0.33);
+      } else if (key === '2') {
+        setSelectedBetPreset(0.5);
+      } else if (key === '3') {
+        setSelectedBetPreset(0.75);
+      } else if (key === '4') {
+        setSelectedBetPreset(1);
+      } else if (key === '5') {
+        setSelectedBetPreset('allin');
+      } else if (key === ' ') {
+        if (canDealNext) {
+          e.preventDefault();
+          dealNextStreet();
+        }
+      } else if (key === 'ArrowLeft') {
+        if (actionHistory.length > 0) {
+          e.preventDefault();
+          setReplayIndex((prev) => {
+            if (prev == null) return actionHistory.length - 1;
+            return Math.max(0, prev - 1);
+          });
+        }
+      } else if (key === 'ArrowRight') {
+        if (actionHistory.length > 0 && replayIndex != null) {
+          e.preventDefault();
+          setReplayIndex((prev) => (prev == null || prev >= actionHistory.length - 1 ? null : prev + 1));
+        }
+      } else if (lower === 'z') {
+        if (undoStack.length > 0) {
+          e.preventDefault();
+          popUndo();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [
+    showDeck, showSetup, showRangeExplorer, showRangeHeatGrid, showVillainPresets,
+    showSaveHand, showStudyFolders, showImportHH, showSolverImport, showTemplates,
+    showHandReplay, showShareScenario, showSessionReport, tapSeatIdx, showHotkeys,
+    activePlayBlock, handleTableQuickAction, tableActiveActorKey, activeActorFacingBet,
+    variant, activeTableState, actorEngineKey, heroStack, tablePot, selectedBetPreset,
+    canDealNext, dealNextStreet, actionHistory.length, replayIndex, undoStack.length, popUndo,
+  ]);
   const equityLabel = equity
     ? (villains.length >= 2
       ? `Multiway Vs ${villains.length} Seats`
@@ -2105,11 +2694,21 @@ export default function VirtualSandboxPage() {
                 <button
                   type="button"
                   className="pa-btn"
+                  onClick={() => setShowHotkeys(true)}
+                  aria-label="Desktop Poker Hotkeys"
+                  title="Keyboard Shortcuts (?)"
+                  style={iconBtn({ color: T.textMuted })}
+                >
+                  <Keyboard size={18} strokeWidth={2} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="pa-btn"
                   onClick={toggleSound}
                   aria-label={soundEnabled ? 'Mute Sandbox Audio' : 'Enable Sandbox Audio'}
                   style={iconBtn({ color: soundEnabled ? T.accent : T.textDim })}
                 >
-                  {soundEnabled ? <Volume2 size={18} strokeWidth={2} /> : <VolumeX size={18} strokeWidth={2} />}
+                  {soundEnabled ? <Volume2 size={18} strokeWidth={2} aria-hidden="true" /> : <VolumeX size={18} strokeWidth={2} aria-hidden="true" />}
                 </button>
                 <button
                   type="button"
@@ -2187,9 +2786,11 @@ export default function VirtualSandboxPage() {
             <div className="metric-tile">
               <span className="metric-label">Hero Hand</span>
               <strong className="metric-value">
-                {heroCardsMemo.length === 2 ? `${heroHand.card1} ${heroHand.card2}` : 'Pick Cards'}
+                {heroCardsMemo.length >= 2 ? heroCardsMemo.join(' ') : 'Pick Cards'}
               </strong>
-              <span className="metric-sub">{heroClassLabel || `${heroPosition} · ${heroStack} BB`}</span>
+              <span className="metric-sub">
+                {variant !== 'nlh' ? `${variant.toUpperCase()} · ${heroPosition}` : (heroClassLabel || `${heroPosition} · ${heroStack} BB`)}
+              </span>
             </div>
             <div className="metric-tile">
               <span className="metric-label">Monte Carlo Equity</span>
@@ -2228,7 +2829,9 @@ export default function VirtualSandboxPage() {
             <div className="sandbox-col">
               <section className="workspace-panel" aria-label="Poker Table">
                 <div className="panel-header-row">
-                  <h2 className="panel-heading">Poker Table · {heroPosition}</h2>
+                  <h2 className="panel-heading">
+                    Poker Table · {heroPosition}{variant !== 'nlh' ? ` · ${variant.toUpperCase()}` : ''}
+                  </h2>
                   <div className="panel-btn-group">
                     <button
                       type="button"
@@ -2256,6 +2859,24 @@ export default function VirtualSandboxPage() {
                   </div>
                 </div>
 
+                {/* Compact 1-Line Equity / Pot / SPR Strip Above Felt */}
+                <div className="table-telemetry-inline" aria-label="Compact Table Telemetry">
+                  <span style={{ color: equity?.heroEquity != null && Number(equity.heroEquity) >= 50 ? T.success : T.accent, fontWeight: 800, ...NUM }}>
+                    EQ {equity?.heroEquity != null && Number.isFinite(Number(equity.heroEquity)) ? `${Number(equity.heroEquity).toFixed(1)}%` : 'Not Available'}
+                  </span>
+                  <span style={{ color: '#DCE5EF', fontWeight: 700, ...NUM }}>
+                    Pot {Number(tablePot).toFixed(1)} BB
+                  </span>
+                  <span style={{ color: '#86DAFF', fontWeight: 700, ...NUM }}>
+                    SPR {tableSpr != null && Number.isFinite(Number(tableSpr)) ? tableSpr : 'Not Available'}
+                  </span>
+                  {(anteBb > 0 || straddleBb > 0 || bombPotBb > 0) && (
+                    <span style={{ color: '#4DE0A5', fontWeight: 700 }}>
+                      {[anteBb > 0 ? `Ante ${anteBb}` : null, straddleBb > 0 ? `Str ${straddleBb}` : null, bombPotBb > 0 ? `Bomb ${bombPotBb}` : null].filter(Boolean).join(' · ')}
+                    </span>
+                  )}
+                </div>
+
                 <div
                   className="table-stage"
                   style={{ position: 'relative' }}
@@ -2268,24 +2889,46 @@ export default function VirtualSandboxPage() {
                     heroStack={Math.round(activeTableState.remaining.hero)}
                     villains={tableVillains}
                     street={tableStreet}
-                    tableSkinId={FELT_COLORS.find((f) => f.id === tableFelt)?.skinId || 'classic_green'}
+                    variant={variant}
+                    tableSkinId={tableSkinId}
+                    roomBgId={roomBgId}
+                    cardBackId={cardBackId}
+                    dealerButtonId={dealerButtonId}
+                    deckStyle={deckStyle}
+                    themePreviewOverride={themePreviewOverride}
+                    activeActorKey={tableActiveActorKey}
+                    seatActions={tableSeatActions}
+                    foldedSeats={tableFoldedSeats}
+                    potOdds={activeActorPotOdds}
+                    mdf={activeActorMdf}
+                    villainHoleCards={villainHoleCards}
                     streetBets={tableStreetBets}
-                    facingBet={heroFacingBet}
+                    facingBet={activeActorFacingBet}
                     actionsDisabled={!!activePlayBlock || Boolean(handState.terminal)}
                     onQuickAction={handleTableQuickAction}
+                    selectedBetPreset={selectedBetPreset}
+                    onSelectBetPreset={setSelectedBetPreset}
+                    onSelectActor={(seatKey) => setManualActorKey(seatKey)}
+                    onTapSeat={(_seatKey, villainIdx) => {
+                      if (activePlayBlock || typeof villainIdx !== 'number') return;
+                      setActiveVillainIdx(villainIdx);
+                      setTapSeatIdx(villainIdx);
+                    }}
                     boardTexture={boardTexture}
                     showTextureBadge={false}
                     equity={equity?.heroEquity}
                     equityLabel={equityLabel}
                     spr={tableSpr}
-                    showDealHint={canDealNext && heroCardsMemo.length === 2}
+                    showDealHint={canDealNext && heroCardsMemo.length >= 2}
                     onTapHeroCards={openHeroPicker}
                     onTapBoard={openBoardPicker}
                     onReset={resetTable}
                     onRemoveHeroCard={(idx) => {
                       pushUndo();
-                      if (idx === 0) setHeroHand((h) => ({ card1: h.card2, card2: null }));
-                      else setHeroHand((h) => ({ ...h, card2: null }));
+                      const nextCards = [...heroCardsMemo];
+                      nextCards.splice(idx, 1);
+                      setHeroHand({ card1: nextCards[0] || null, card2: nextCards[1] || null });
+                      setExtraHeroCards(nextCards.slice(2));
                     }}
                     onRemoveBoardCard={(idx) => {
                       pushUndo();
@@ -2476,7 +3119,7 @@ export default function VirtualSandboxPage() {
                   heroPosition={heroPosition}
                   villainPosition={primaryVillain?.position || 'BB'}
                   villains={villains}
-                  potSize={potBase}
+                  potSize={effectiveBasePot}
                   heroStack={heroStack}
                   villainStack={Number(primaryVillain?.stack) || 100}
                   preflopPosts={preflopPosts}
@@ -2564,6 +3207,19 @@ export default function VirtualSandboxPage() {
                 </div>
               </section>
 
+              {/* Range & Nut Advantage (Flop / Turn / River) */}
+              {communityCards.length >= 3 && (
+                <RangeAdvantagePanel
+                  heroCards={heroCardsMemo}
+                  heroPosition={heroPosition}
+                  villainRange={activeVillainRange}
+                  villainPosition={primaryVillain?.position || 'BB'}
+                  villainLabel={`Villain ${safeVillainIdx + 1} (${primaryVillain?.position || 'BB'})`}
+                  communityCards={communityCards}
+                  variant={variant}
+                />
+              )}
+
               {/* Runouts & Preflop Reference */}
               <section className="workspace-panel" aria-label="Runouts And Preflop Reference">
                 <div className="panel-header-row">
@@ -2577,7 +3233,7 @@ export default function VirtualSandboxPage() {
 
                 {communityCards.length >= 3 && communityCards.length < 5 ? (
                   runouts ? (
-                    <RunoutChart runoutData={runouts} />
+                    <RunoutChart runoutData={runouts} onSelectRunoutCard={handleSelectRunoutCard} />
                   ) : (
                     <p className="panel-note">
                       Pick Two Hero Cards And A Flop Or Turn Board To Compute Next-Card Runout Equity Distribution.
@@ -2758,7 +3414,7 @@ export default function VirtualSandboxPage() {
           </div>
 
           {/* ── Verified Solver Destinations Bar (Honest Routing For Graded Study) ── */}
-          <section className="workspace-panel" aria-label="Verified Solver-Backed Destinations">
+          <section className="workspace-panel sandbox-verified-panel" aria-label="Verified Solver-Backed Destinations">
             <div className="panel-header-row">
               <div>
                 <h2 className="panel-heading">Need Verified Solver Grading?</h2>
@@ -2814,8 +3470,9 @@ export default function VirtualSandboxPage() {
         onClose={closeDeck}
         onSelect={handleDeckSelect}
         usedCards={allUsedCards}
-        mode={deckTarget === 'hero' ? 'hero' : deckTarget === 'board' ? 'board' : 'single'}
+        mode={deckTarget === 'hero' ? 'hero' : deckTarget?.kind === 'villain' ? 'villain' : deckTarget === 'board' ? 'board' : 'single'}
         pickProgress={heroPickStep}
+        heroCardCount={variantCardCount}
         onRandomCard={() => {
           const [card] = pickRandomCards(1, allUsedCards);
           if (card) handleDeckSelect(card);
@@ -2830,6 +3487,14 @@ export default function VirtualSandboxPage() {
         setHeroPosition={setHeroPosition}
         gameType={gameType}
         setGameType={setGameType}
+        variant={variant}
+        onChangeVariant={handleChangeVariant}
+        anteBb={anteBb}
+        setAnteBb={setAnteBb}
+        straddleBb={straddleBb}
+        setStraddleBb={setStraddleBb}
+        bombPotBb={bombPotBb}
+        setBombPotBb={setBombPotBb}
         heroStack={heroStack}
         setHeroStack={setHeroStack}
         potBase={potBase}
@@ -2839,13 +3504,53 @@ export default function VirtualSandboxPage() {
         onVillainArchetype={handleVillainArchetype}
         onAddVillain={addVillain}
         onRemoveVillain={removeVillain}
+        villainHoleCards={villainHoleCards}
+        onPickVillainCards={openVillainCardPicker}
+        onClearVillainCards={clearVillainCards}
         onOpenPresets={() => { setShowSetup(false); setShowVillainPresets(true); }}
         onOpenRanges={() => { setShowSetup(false); setShowRangeExplorer(true); }}
-        tableFelt={tableFelt}
-        onChangeFelt={setTableFelt}
+        tableSkinId={tableSkinId}
+        onChangeSkin={setTableSkinId}
+        roomBgId={roomBgId}
+        onChangeRoomBg={setRoomBgId}
+        cardBackId={cardBackId}
+        onChangeCardBack={setCardBackId}
+        dealerButtonId={dealerButtonId}
+        onChangeDealerButton={setDealerButtonId}
+        deckStyle={deckStyle}
+        onChangeDeckStyle={setDeckStyle}
         arenaThemeActive={!!arenaTheme?.fromCache}
+        themePreviewOverride={themePreviewOverride}
+        onTogglePreviewOverride={setThemePreviewOverride}
         equityVsRange={equityVsRange}
         setEquityVsRange={setEquityVsRange}
+      />
+
+      <VillainSeatSheet
+        isOpen={tapSeatIdx != null}
+        onClose={() => setTapSeatIdx(null)}
+        villain={tapSeatIdx != null ? villains[tapSeatIdx] : null}
+        villainIdx={tapSeatIdx ?? 0}
+        showdownCards={tapSeatIdx != null ? (villainHoleCards?.[`villain_${tapSeatIdx}`] || []) : []}
+        onVillainPatch={patchVillain}
+        onVillainArchetype={handleVillainArchetype}
+        onPickCards={openVillainCardPicker}
+        onClearCards={clearVillainCards}
+        onOpenRangeEditor={() => {
+          if (tapSeatIdx != null) setActiveVillainIdx(tapSeatIdx);
+          setTapSeatIdx(null);
+          setShowRangeExplorer(true);
+        }}
+        onOpenPresets={() => {
+          if (tapSeatIdx != null) setActiveVillainIdx(tapSeatIdx);
+          setTapSeatIdx(null);
+          setShowVillainPresets(true);
+        }}
+      />
+
+      <HotkeysSheet
+        isOpen={showHotkeys}
+        onClose={() => setShowHotkeys(false)}
       />
 
       <TemplatesSheet
@@ -3140,9 +3845,24 @@ export default function VirtualSandboxPage() {
 
         .sandbox-main-grid {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
           gap: 12px;
           align-items: start;
+        }
+
+        .table-telemetry-inline {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          flex-wrap: wrap;
+          padding: 6px 10px;
+          margin-bottom: 8px;
+          border-radius: 8px;
+          background: rgba(6, 15, 28, 0.72);
+          border: 1px solid rgba(140, 161, 180, 0.28);
+          font-size: 12px;
+          line-height: 1.3;
         }
 
         .sandbox-col {
@@ -3368,6 +4088,11 @@ export default function VirtualSandboxPage() {
           .sandbox-metrics-strip {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
+
+          .sandbox-main-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+          }
         }
 
         @media (max-width: 768px) {
@@ -3376,7 +4101,32 @@ export default function VirtualSandboxPage() {
             padding-top: 8px;
           }
 
-          .sandbox-main-grid,
+          .active-play-gate {
+            order: 0;
+          }
+
+          .sandbox-header-card {
+            order: 1;
+            padding: 10px 12px;
+          }
+
+          .sandbox-main-grid {
+            order: 2;
+            grid-template-columns: 1fr;
+          }
+
+          .sandbox-metrics-strip {
+            order: 3;
+          }
+
+          .sandbox-verified-panel {
+            order: 4;
+          }
+
+          .summary-disclosure {
+            order: 5;
+          }
+
           .sandbox-command-bar,
           .tools-grid {
             grid-template-columns: 1fr;

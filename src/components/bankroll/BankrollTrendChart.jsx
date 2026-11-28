@@ -124,11 +124,21 @@ function DataTable({ mode, model, bins, displayEUR }) {
     rows = [...model.byDate.values()]
       .sort((a, b) => a.date.localeCompare(b.date))
       .map((r) => [periodDate(r.date, false, true), currency(r.cents), String(r.sessions)]);
+  } else if (mode === 'line') {
+    headers = ['Recorded Day', 'Running Net', 'Day Result', 'Sessions'];
+    rows = model.line
+      .filter((r) => !r.synthetic)
+      .map((r) => [
+        periodDate(r.date, false, true),
+        currency(r.cumulative),
+        currency(r.cents),
+        String(r.sessions),
+      ]);
   } else {
-    headers = [model.period, mode === 'line' ? 'Running Net' : 'Net Result', 'Sessions'];
+    headers = [model.period, 'Net Result', 'Sessions'];
     rows = model.series.map((r) => [
       periodDate(r.date, model.period === 'Month', true),
-      currency(mode === 'line' ? r.cumulative : r.cents),
+      currency(r.cents),
       String(r.sessions),
     ]);
   }

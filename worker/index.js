@@ -496,3 +496,103 @@ function urlBase64ToUint8Array(base64String) {
     for (let i = 0; i < raw.length; ++i) output[i] = raw.charCodeAt(i);
     return output;
 }
+
+// ---------------------------------------------------------------------------
+// OFFLINE-FIRST PERSONAL ASSISTANT & CLUB ARENA ASSET CACHING.
+// Serves Club Arena table skins, room backdrops, 4-color card sprites, and
+// Personal Assistant chrome/artwork reliably in low-signal poker rooms without
+// touching document navigation, API responses, or push handlers.
+// ---------------------------------------------------------------------------
+const PA_ARENA_ASSET_CACHE = 'pa-club-arena-assets-v1';
+const PA_ARENA_CACHE_FIRST_PREFIXES = [
+    '/hub/table-theme/tables/',
+    '/hub/table-theme/backgrounds/',
+    '/hub/club-arena/cards/',
+];
+const PA_ARENA_SWR_PREFIXES = [
+    '/images/personal-assistant/',
+];
+
+function classifyArenaOfflineAsset(requestUrl) {
+    try {
+        const origin = (typeof self !== 'undefined' && self.location && self.location.origin)
+            ? self.location.origin
+            : 'https://smarter.poker';
+        const parsed = new URL(requestUrl, origin);
+        if (typeof self !== 'undefined' && self.location && self.location.origin && parsed.origin !== self.location.origin) {
+            return null;
+        }
+        const pathname = parsed.pathname || '';
+        for (let i = 0; i < PA_ARENA_CACHE_FIRST_PREFIXES.length; i++) {
+            if (pathname.indexOf(PA_ARENA_CACHE_FIRST_PREFIXES[i]) === 0) return 'cache-first';
+        }
+        for (let i = 0; i < PA_ARENA_SWR_PREFIXES.length; i++) {
+            if (pathname.indexOf(PA_ARENA_SWR_PREFIXES[i]) === 0) return 'stale-while-revalidate';
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function isCacheableAssetResponse(response) {
+    return !!(response && response.ok && (response.type === 'basic' || response.type === 'cors'));
+}
+
+async function handleArenaCacheFirst(request) {
+    const cacheStorage = typeof self !== 'undefined' ? self.caches : null;
+    if (!cacheStorage) return fetch(request);
+    const cache = await cacheStorage.open(PA_ARENA_ASSET_CACHE);
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    const response = await fetch(request);
+    if (isCacheableAssetResponse(response)) {
+        try {
+            await cache.put(request, response.clone());
+        } catch (e) { /* quota exceeded or read-only storage */ }
+    }
+    return response;
+}
+
+async function handleArenaStaleWhileRevalidate(request, event) {
+    const cacheStorage = typeof self !== 'undefined' ? self.caches : null;
+    if (!cacheStorage) return fetch(request);
+    const cache = await cacheStorage.open(PA_ARENA_ASSET_CACHE);
+    const cached = await cache.match(request);
+    const networkFetch = fetch(request)
+        .then(async (response) => {
+            if (isCacheableAssetResponse(response)) {
+                try {
+                    await cache.put(request, response.clone());
+                } catch (e) { /* ignore storage quota failure */ }
+            }
+            return response;
+        })
+        .catch((err) => {
+            if (cached) return cached;
+            throw err;
+        });
+
+    if (cached) {
+        if (event && typeof event.waitUntil === 'function') {
+            event.waitUntil(networkFetch.catch(() => null));
+        }
+        return cached;
+    }
+    return networkFetch;
+}
+
+if (typeof self !== 'undefined' && typeof self.addEventListener === 'function') {
+    self.addEventListener('fetch', (event) => {
+        const request = event && event.request;
+        if (!request || request.method !== 'GET' || !self.caches) return;
+        const strategy = classifyArenaOfflineAsset(request.url);
+        if (!strategy) return;
+
+        if (strategy === 'cache-first') {
+            event.respondWith(handleArenaCacheFirst(request));
+        } else if (strategy === 'stale-while-revalidate') {
+            event.respondWith(handleArenaStaleWhileRevalidate(request, event));
+        }
+    });
+}

@@ -7,7 +7,7 @@
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -23,6 +23,15 @@ export default function CardSelectorModal({ isOpen, onClose, onSelectCard, deadC
     const deadSet = useMemo(() => {
         return new Set((deadCards || []).map(c => c.toLowerCase()));
     }, [deadCards]);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') onClose?.();
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [isOpen, onClose]);
 
     if (!isOpen) return null;
 
@@ -95,7 +104,7 @@ export default function CardSelectorModal({ isOpen, onClose, onSelectCard, deadC
                         </div>
 
                         {/* Card Grid: 4 rows (suits) × 13 cols (ranks) */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div data-allow-small="true" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {SUITS.map(suit => (
                                 <div key={suit.code} style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
                                     {/* Suit Label */}
@@ -113,6 +122,10 @@ export default function CardSelectorModal({ isOpen, onClose, onSelectCard, deadC
                                         return (
                                             <motion.button
                                                 key={card}
+                                                type="button"
+                                                data-allow-small="true"
+                                                data-training-raw-control="true"
+                                                aria-label={`${rank === 'T' ? '10' : rank} Of ${suit.name}`}
                                                 whileHover={!isDead ? { scale: 1.15, zIndex: 10 } : {}}
                                                 whileTap={!isDead ? { scale: 0.95 } : {}}
                                                 onClick={() => !isDead && onSelectCard(card)}
