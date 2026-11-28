@@ -170,7 +170,6 @@ export default function SquadsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">Squads</h1>
-                <p className="text-[#9FB3C8] text-sm">Join Waitlists With Friends</p>
               </div>
               <button
                 onClick={handleCreateSquad}

@@ -288,7 +288,6 @@ export default function PlayerHomeGamesHub() {
                 </div>
                 <div>
                   <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">Home Games</h1>
-                  <p className="text-sm text-[#9FB3C8] font-medium tracking-wide">Find Or Host Private Poker Games</p>
                 </div>
               </div>
               <div className="cmd-home-games-header-actions flex items-center gap-2">

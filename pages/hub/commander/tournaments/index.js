@@ -279,7 +279,6 @@ export default function PlayerTournamentsHub() {
               </div>
               <div>
                 <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">Tournaments</h1>
-                <p className="text-sm text-[#9FB3C8] font-medium tracking-wide">Find And Register For Poker Tournaments</p>
               </div>
               {/* Rivets */}
               <div className="ml-auto flex gap-2">

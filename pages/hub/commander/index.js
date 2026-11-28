@@ -7,17 +7,15 @@ import LocationEnableModal from '../../../src/components/ui/LocationEnableModal'
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import Link from 'next/link';
-import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, Users, Clock, CreditCard, Globe, Grid3X3 } from 'lucide-react';
+import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, Users, Clock, CreditCard, Globe } from 'lucide-react';
 import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
-import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
-import { useAvatar } from '../../../src/contexts/AvatarContext';
 // NOTE: PushNotificationProvider removed - _app.js OneSignalProvider covers all pages globally
 
 export default function CommanderHub() {
-  const { user } = useAvatar();
   const [venues, setVenues] = useState([]);
   const [confirmLeaveId, setConfirmLeaveId] = useState(null);
   const [myWaitlists, setMyWaitlists] = useState([]);
@@ -29,7 +27,6 @@ export default function CommanderHub() {
   const [locationLoading, setLocationLoading] = useState(false);
   const [liveGames, setLiveGames] = useState([]);
   const [hasClubPage, setHasClubPage] = useState(null); // null=loading, false=no page, string=page id
-  const [menuOpen, setMenuOpen] = useState(false);
 
   async function fetchVenues() {
     try {
@@ -244,8 +241,9 @@ export default function CommanderHub() {
         ]}
       />
 
+      <CommanderPageShell>
       <div className="cmd-page">
-        {/* Header with chrome rail and glow strip */}
+        {/* #SMARTERDESIGN page image header (scene, hamburger and painted help from CommanderPageShell) */}
         <header className="cmd-header-full sticky top-0 z-50">
           <div className="max-w-3xl mx-auto px-4 py-5">
             <div className="flex items-center gap-4">
@@ -254,18 +252,6 @@ export default function CommanderHub() {
               </div>
               <div>
                 <h1 className="text-2xl font-extrabold text-white tracking-wider cmd-text-glow">Live Poker</h1>
-                <p className="text-sm text-[#9FB3C8] font-medium tracking-wide">Find Games And Join Waitlists</p>
-              </div>
-              {/* Rivets */}
-              <div className="ml-auto flex gap-4 items-center">
-                <div className="flex gap-2">
-                  <span className="cmd-rivet" />
-                  <span className="cmd-rivet" />
-                  <span className="cmd-rivet" />
-                </div>
-                <button onClick={() => setMenuOpen(true)} className="cmd-icon-box hover:cmd-icon-box-glow transition-all" style={{ width: 40, height: 40 }}>
-                  <Grid3X3 className="w-5 h-5 text-white" aria-hidden="true" />
-                </button>
               </div>
             </div>
           </div>
@@ -504,15 +490,8 @@ export default function CommanderHub() {
             onManualEntry={() => setShowLocationModal(false)}
           />
         )}
-
-        <HamburgerMenu
-          isOpen={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          direction="right"
-          theme="dark"
-          user={user}
-        />
       </div>
+      </CommanderPageShell>
       {/* Server rendered, outside every client-only wrapper: measured on
           production this page returned only navigation labels to a crawler
           (AEO phase 3, 2026-09-17). */}

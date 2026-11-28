@@ -648,51 +648,41 @@ export default function CreateHomeGamePage() {
       />
 
       <div className="cmd-page" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
-        {/* Dan-fix/header-pin-v2 (2026-05-12): switched from `sticky top-0` to
-            `fixed top-0 left-0 right-0` because an ancestor (likely the layout
-            wrapper) was breaking the sticky containing block on long forms,
-            unsticking the header mid-scroll. Fixed positioning is immune to
-            ancestor overflow/transform. A spacer below reserves height so
-            page content doesn't jump under the pinned bar. */}
-        {/* Dan-fix/header-overlap (2026-05-12): cmd-header-bar uses inline-flex
-            which shrunk the header to content width, exposing the page behind it.
-            Removed that class and added an opaque background to the fixed wrapper
-            so content never bleeds through. Spacer bumped from 61 to 80 to match
-            real rendered height (header + progress bar). */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-[#0F1C32] border-b border-[#445E77]">
-          <header className="bg-[#0F1C32]">
-            <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-              <button
-                onClick={() => router.back()}
-                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 text-[#9FB3C8]" />
-              </button>
-              <div>
-                <h1 className="font-bold text-white">Host A Home Game</h1>
-                <p className="text-sm text-[#9FB3C8]">
-                  {step <= 3 ? `Step ${step} of 3` : 'Schedule First Game'}
-                </p>
-              </div>
-            </div>
-          </header>
-
-          {/* Progress Bar */}
-          <div className="bg-[#0F1C32] border-b border-[#445E77]">
-            <div className="max-w-2xl mx-auto px-4">
-              <div className="flex">
-                {[1, 2, 3].map((s) => (
-                  <div
-                    key={s}
-                    className={`flex-1 h-1 ${s <= step ? 'bg-[#22D3EE]' : 'bg-[#445E77]'}`}
-                  />
-                ))}
-              </div>
+        {/* #SMARTERDESIGN page image header (2026-11-28). It replaces the
+            viewport-fixed bar and 80px spacer of 2026-05-12 (header-pin-v2 /
+            header-overlap): the image header scrolls with the page like every
+            other #SMARTERDESIGN page, and the step progress sits directly
+            under it, so nothing is pinned over the form. */}
+        <header className="cmd-header-full">
+          <div className="max-w-2xl mx-auto px-4 py-4 sm:py-5 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              aria-label="Back"
+              className="p-2 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#BDD0E2]" aria-hidden="true" />
+            </button>
+            <div className="min-w-0">
+              <h1>Host A Home Game</h1>
+              <p className="text-sm">
+                {step <= 3 ? `Step ${step} Of 3` : 'Schedule First Game'}
+              </p>
             </div>
           </div>
+        </header>
+
+        {/* Progress Bar */}
+        <div className="max-w-2xl mx-auto px-4 mb-2" role="progressbar" aria-label="Setup Progress" aria-valuemin={1} aria-valuemax={3} aria-valuenow={Math.min(step, 3)}>
+          <div className="flex gap-1">
+            {[1, 2, 3].map((s) => (
+              <div
+                key={s}
+                className={`flex-1 h-1 rounded-full ${s <= step ? 'bg-[#22D3EE]' : 'bg-[#445E77]'}`}
+              />
+            ))}
+          </div>
         </div>
-        {/* Dan-fix/header-overlap (2026-05-12): spacer matches header+progress bar */}
-        <div style={{ height: 80 }} aria-hidden="true" />
 
         {/* ── Club Commander Home Games - Unified Signup Banner ──
             Shown identically whether the user arrived from Poker Near Me,

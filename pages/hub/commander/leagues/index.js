@@ -193,7 +193,6 @@ export default function LeaguesPage() {
                 <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">
                   POKER LEAGUES
                 </h1>
-                <p className="text-sm text-[#9FB3C8] font-medium tracking-wide">Compete For Points And Prizes</p>
               </div>
               {/* Rivets */}
               <div className="ml-auto flex gap-2">

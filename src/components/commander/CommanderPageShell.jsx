@@ -1,8 +1,11 @@
 /**
  * CommanderPageShell
  * ═══════════════════════════════════════════════════════════════════════════
- * Provides a persistent hamburger menu icon + drawer to every Commander
- * subpage. Must be wrapped around the outermost <div className="cmd-page">.
+ * Every Club Commander player page (pages/hub/commander/*) renders inside this
+ * shell. It mounts the approved Smarter.Poker global header (UniversalHeader:
+ * the approved hamburger, the live profile photo, the same row every other
+ * World Hub page shows) and gives the page's own image header its
+ * #SMARTERDESIGN scene and its one painted "?".
  *
  * Usage:
  *   import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
@@ -10,14 +13,16 @@
  *     <div className="cmd-page">...</div>
  *   </CommanderPageShell>
  *
- * The universal HamburgerMenu already contains ReportBugWidget and Geeves AI.
+ * Until 2026-11-28 the shell drew its own floating hamburger instead of the
+ * global header, so no /hub/commander subpage showed the Smarter.Poker header
+ * or the player's photo, and the floating button sat on top of the painted
+ * "?" in the image header's upper-right corner.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/router';
-import { Menu } from 'lucide-react';
-import HamburgerMenu from '../ui/HamburgerMenu';
+import UniversalHeader from '../ui/UniversalHeader';
 import { SD_HEADER_HELP_ICON } from '../smarterdesign/headerHelp';
 
 /*
@@ -56,11 +61,10 @@ export function sceneFor(pathname = '') {
 }
 
 function findHeader() {
-  return typeof document === 'undefined' ? null : document.querySelector('header.cmd-header-full');
+  return typeof document === 'undefined' ? null : document.querySelector('header.cmd-header-full, header.cmd-header-bar');
 }
 
 export default function CommanderPageShell({ children }) {
-    const [menuOpen, setMenuOpen] = useState(false);
     const router = useRouter();
     const pathname = (router && router.pathname) || '';
     const scene = sceneFor(pathname);
@@ -84,49 +88,8 @@ export default function CommanderPageShell({ children }) {
 
     return (
         <>
-            {/* Fixed hamburger icon - always visible on Commander subpages */}
-            <button
-                className="commander-page-shell__menu-trigger"
-                onClick={() => setMenuOpen(true)}
-                aria-label="Open Menu"
-                style={{
-                    position: 'fixed',
-                    top: 16,
-                    right: 16,
-                    zIndex: 9000,
-                    width: 40,
-                    height: 40,
-                    borderRadius: 8,
-                    background: 'rgba(10, 30, 60, 0.85)',
-                    border: '1px solid rgba(34, 211, 238, 0.35)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    backdropFilter: 'blur(4px)',
-                    transition: 'border-color 0.2s, background 0.2s',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
-                }}
-                onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = 'rgba(34, 211, 238, 0.7)';
-                    e.currentTarget.style.background = 'rgba(10, 30, 60, 0.95)';
-                }}
-                onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = 'rgba(34, 211, 238, 0.35)';
-                    e.currentTarget.style.background = 'rgba(10, 30, 60, 0.85)';
-                }}
-            >
-                <Menu size={20} color="#22D3EE" aria-hidden="true" />
-            </button>
-
-            {/* Universal HamburgerMenu - contains ReportBugWidget + Geeves AI */}
-            <HamburgerMenu
-                isOpen={menuOpen}
-                onClose={() => setMenuOpen(false)}
-                direction="right"
-                theme="dark"
-                showProfile={true}
-            />
+            {/* The approved Smarter.Poker global header, as on every World Hub page */}
+            <UniversalHeader />
 
             {/* Page content, with this page's #SMARTERDESIGN scene */}
             <div className="smarterdesign" style={{ '--sd-scene': `url(/images/smarterdesign/headers/${scene}-scene.webp)` }} data-sd-scene={scene}>

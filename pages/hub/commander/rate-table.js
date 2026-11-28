@@ -80,25 +80,19 @@ export default function RateTable() {
   const RatingSlider = ({ label, value, onChange, config }) => {
     const Icon = config.icon;
     return (
-      <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #F2F7FF' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <Icon size={18} color={config.color} />
-          <span style={{ fontWeight: 700, fontSize: 15, color: '#1C2526' }}>{label}</span>
+      <div className="cmd-panel p-4">
+        <div className="flex items-center gap-2 mb-2.5">
+          <Icon size={18} color={config.color} aria-hidden="true" />
+          <span className="font-bold text-[15px] text-[#F2F7FF]">{label}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 11, color: '#65676B' }}>{config.low}</span>
-          <span style={{ fontSize: 11, color: '#65676B' }}>{config.high}</span>
+        <div className="flex justify-between mb-1.5">
+          <span className="text-[13px] text-[#BDD0E2]">{config.low}</span>
+          <span className="text-[13px] text-[#BDD0E2]">{config.high}</span>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="flex gap-1.5" role="group" aria-label={label}>
           {[1, 2, 3, 4, 5].map(n => (
-            <button key={n} onClick={() => onChange(n)}
-              style={{
-                flex: 1, height: 44, border: '2px solid', borderRadius: 10, fontSize: 18, fontWeight: 800,
-                cursor: 'pointer', transition: 'all 0.15s',
-                background: value === n ? config.color : 'white',
-                borderColor: value === n ? config.color : '#F2F7FF',
-                color: value === n ? 'white' : '#65676B'
-              }}>
+            <button key={n} type="button" onClick={() => onChange(n)} aria-pressed={value === n}
+              className={`cmd-btn flex-1 h-11 justify-center text-lg font-extrabold ${value === n ? 'cmd-btn-primary' : 'cmd-btn-secondary'}`}>
               {n}
             </button>
           ))}
@@ -109,74 +103,73 @@ export default function RateTable() {
 
   if (done) {
     return (
-      <>
+      <CommanderPageShell>
         <SEOHead
           title="Rate Table"
           description="Smarter.Poker - The Future Of The Game."
           noindex={true}
         />
-        <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ textAlign: 'center', padding: 32 }}>
-            <CheckCircle2 size={56} color="#31A24C" style={{ marginBottom: 16 }} />
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#1C2526', marginBottom: 6 }}>Thanks For Rating!</div>
-            <div style={{ fontSize: 14, color: '#65676B', marginBottom: 24 }}>Your Feedback Helps Other Players Find The Right Game.</div>
-            <button onClick={() => router.back()}
-              style={{ background: '#1981EC', color: 'white', border: 'none', borderRadius: 10, padding: '12px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+        <div className="cmd-page min-h-screen flex items-center justify-center px-4">
+          <div className="cmd-panel text-center p-8 max-w-md w-full">
+            <CheckCircle2 size={56} color="#31A24C" className="mx-auto mb-4" aria-hidden="true" />
+            <h1 className="text-2xl font-extrabold text-[#F2F7FF] mb-1.5">Thanks For Rating</h1>
+            <p className="text-sm text-[#BDD0E2] mb-6">Your Feedback Helps Other Players Find The Right Game.</p>
+            <button type="button" onClick={() => router.back()} className="cmd-btn cmd-btn-primary h-12 px-8 justify-center font-bold">
               Done
             </button>
           </div>
         </div>
-      </>
+      </CommanderPageShell>
     );
   }
 
   return (
     <CommanderPageShell>
-    <>
       <Head><title>Rate Table | Smarter.Poker</title></Head>
-      <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
-        <div style={{ background: '#1981EC', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 4 }}>
-            <ArrowLeft size={22} />
-          </button>
-          <Star size={22} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 17 }}>Rate Table {table_number}</div>
-            {game_type && <div style={{ fontSize: 12, opacity: 0.85 }}>{game_type} {stakes}</div>}
+      <div className="cmd-page min-h-screen">
+        <header className="cmd-header-full">
+          <div className="flex items-center gap-3 px-4 py-4 sm:px-6 sm:py-5">
+            <button type="button" onClick={() => router.back()} aria-label="Back" className="text-white p-1">
+              <ArrowLeft size={22} aria-hidden="true" />
+            </button>
+            <div className="cmd-icon-box w-11 h-11 flex items-center justify-center shrink-0">
+              <Star size={22} aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <h1>Rate Table {table_number}</h1>
+              {game_type && <p className="text-sm">{game_type} {stakes}</p>}
+            </div>
           </div>
-        </div>
+        </header>
 
-        <div style={{ padding: 16, maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontSize: 14, color: '#65676B', textAlign: 'center' }}>How Was The Game?</div>
+        <div className="px-4 pb-6 max-w-[480px] mx-auto flex flex-col gap-3">
+          <p className="text-sm text-[#BDD0E2] text-center">How Was The Game?</p>
 
           <RatingSlider label="Action Level" value={action} onChange={setAction} config={LABELS.action_level} />
           <RatingSlider label="Friendliness" value={friendly} onChange={setFriendly} config={LABELS.friendliness} />
           <RatingSlider label="Pace" value={pace} onChange={setPace} config={LABELS.pace} />
 
-          <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #F2F7FF' }}>
-            <div style={{ fontWeight: 600, fontSize: 14, color: '#1C2526', marginBottom: 6 }}>Comment (Optional)</div>
-            <textarea value={comment} onChange={e => setComment(e.target.value)} rows={2}
+          <div className="cmd-panel p-4">
+            <label htmlFor="rate-table-comment" className="block font-semibold text-sm text-[#F2F7FF] mb-1.5">Comment (Optional)</label>
+            <textarea id="rate-table-comment" value={comment} onChange={e => setComment(e.target.value)} rows={2}
               placeholder="How Was The Table?"
-              style={{ width: '100%', padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
+              className="cmd-input w-full px-3 py-2.5 text-sm resize-y" />
           </div>
 
           {/* 2026-07-25 audit fix: submit error surfaced in the UI. */}
           {error && (
-            <div style={{ background: '#FDECEA', border: '1px solid #EF4444', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: '#B91C1C', textAlign: 'center' }}>
+            <div role="alert" className="rounded-lg border border-[#EF4444] bg-[#EF44441A] px-3 py-2.5 text-[13px] text-[#FCA5A5] text-center">
               {error}
             </div>
           )}
 
-          <button onClick={handleSubmit} disabled={submitting}
-            style={{ background: '#1981EC', color: 'white', border: 'none', borderRadius: 10, padding: '14px 0', fontSize: 16, fontWeight: 700, cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            {submitting ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
+          <button type="button" onClick={handleSubmit} disabled={submitting}
+            className="cmd-btn cmd-btn-primary w-full h-12 justify-center gap-2 text-base font-bold disabled:opacity-70 flex items-center">
+            {submitting ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <Send size={18} aria-hidden="true" />}
             Submit Rating
           </button>
         </div>
       </div>
-      <style>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
-    </>
     </CommanderPageShell>
   );
 }

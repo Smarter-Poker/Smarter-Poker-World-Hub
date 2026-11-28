@@ -13,11 +13,11 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
 
 const TIER_COLORS = {
-  bronze: { bg: 'linear-gradient(135deg, #92400E, #0EA5C6)', text: '#FFFBEB' },
+  bronze: { bg: 'linear-gradient(135deg, #2A4560, #0EA5C6)', text: '#F2F7FF' },
   silver: { bg: 'linear-gradient(135deg, #6B7280, #D1D5DB)', text: '#F9FAFB' },
-  gold: { bg: 'linear-gradient(135deg, #0E7490, #FCD34D)', text: '#FFFBEB' },
+  gold: { bg: 'linear-gradient(135deg, #0E7490, #86DAFF)', text: '#F2F7FF' },
   platinum: { bg: 'linear-gradient(135deg, #1E3A5F, #60A5FA)', text: '#EBF5FF' },
-  diamond: { bg: 'linear-gradient(135deg, #4C1D95, #93C5FD)', text: '#F5F3FF' },
+  diamond: { bg: 'linear-gradient(135deg, #0C55C0, #BFE9FF)', text: '#F2F7FF' },
 };
 
 export default function PlayerCard() {
@@ -90,8 +90,8 @@ export default function PlayerCard() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 size={32} color="#1981EC" className="spin" />
+      <div className="cmd-page min-h-screen flex items-center justify-center" role="status" aria-label="Loading">
+        <Loader2 size={32} color="#86DAFF" className="animate-spin" aria-hidden="true" />
       </div>
     );
   }
@@ -104,15 +104,18 @@ export default function PlayerCard() {
         description="Smarter.Poker - The Future Of The Game."
         noindex={true}
       />
-      <div style={{ minHeight: '100vh', background: '#111827', fontFamily: 'Inter, system-ui, sans-serif' }}>
-        {/* Header */}
-        <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => router.push('/hub/commander')} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 4 }}>
-            <ArrowLeft size={22} />
-          </button>
-          <QrCode size={22} color="white" />
-          <span style={{ color: 'white', fontWeight: 700, fontSize: 17 }}>Digital Player Card</span>
-        </div>
+      <div className="cmd-page min-h-screen">
+        <header className="cmd-header-full">
+          <div className="flex items-center gap-3 px-4 py-4 sm:px-6 sm:py-5">
+            <button type="button" onClick={() => router.push('/hub/commander')} aria-label="Back To Live Poker" className="text-white p-1">
+              <ArrowLeft size={22} aria-hidden="true" />
+            </button>
+            <div className="cmd-icon-box w-11 h-11 flex items-center justify-center shrink-0">
+              <QrCode size={22} aria-hidden="true" />
+            </div>
+            <h1>Digital Player Card</h1>
+          </div>
+        </header>
 
         <div style={{ padding: '0 16px 24px', maxWidth: 420, margin: '0 auto' }}>
           {/* Card */}
@@ -125,27 +128,27 @@ export default function PlayerCard() {
             <div style={{ padding: '24px 20px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                 <div>
-                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.8 }}>Smarter.Poker</div>
+                  <div style={{ fontSize: 11, opacity: 0.8 }}>Smarter.Poker</div>
                   <div style={{ fontSize: 24, fontWeight: 800, marginTop: 4 }}>
                     {player?.display_name || player?.full_name || 'Player'}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <Crown size={16} />
-                  <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase' }}>{tier}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'capitalize' }}>{tier}</span>
                 </div>
               </div>
 
               {/* Member info */}
               <div style={{ display: 'flex', gap: 20, fontSize: 12, opacity: 0.85 }}>
                 <div>
-                  <div style={{ opacity: 0.7, fontSize: 10 }}>MEMBER SINCE</div>
+                  <div style={{ opacity: 0.8, fontSize: 11 }}>Member Since</div>
                   <div style={{ fontWeight: 600 }}>
                     {player?.created_at ? new Date(player.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '-'}
                   </div>
                 </div>
                 <div>
-                  <div style={{ opacity: 0.7, fontSize: 10 }}>MEMBER ID</div>
+                  <div style={{ opacity: 0.8, fontSize: 11 }}>Member ID</div>
                   <div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{(player?.id || '').slice(0, 8).toUpperCase()}</div>
                 </div>
               </div>
@@ -167,49 +170,42 @@ export default function PlayerCard() {
                       style={{ display: 'block' }}
                     />
                     <div style={{ position: 'absolute', bottom: -4, right: -4 }}>
-                      <button onClick={() => setQrRefresh(r => r + 1)}
-                        style={{ background: '#F0F2F5', border: 'none', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                        <RefreshCw size={14} color="#65676B" />
+                      <button type="button" onClick={() => setQrRefresh(r => r + 1)} aria-label="Refresh Code"
+                        style={{ background: '#0A1829', border: '1px solid #445E77', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <RefreshCw size={14} color="#86DAFF" aria-hidden="true" />
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div style={{ width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Loader2 size={24} color="#65676B" className="spin" />
+                    <Loader2 size={24} color="#445E77" className="animate-spin" aria-hidden="true" />
                   </div>
                 )}
               </div>
-              <div style={{ marginTop: 8, fontSize: 11, color: '#65676B' }}>
+              <div style={{ marginTop: 8, fontSize: 12, color: '#2A4560' }}>
                 Scan At Kiosk Or Show To Staff • Refreshes Every 30s
               </div>
             </div>
           </div>
 
           {/* Quick Actions */}
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#9CA3AF', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              Quick Actions
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          <section className="mb-4" aria-labelledby="player-card-actions">
+            <h2 id="player-card-actions" className="text-[13px] font-bold text-[#BDD0E2] mb-2">Quick Actions</h2>
+            <div className="grid grid-cols-3 gap-2">
               {quickActions.map(a => (
-                <button key={a.label} onClick={() => router.push(a.href)}
-                  style={{
-                    background: '#1F2937', border: '1px solid #374151', borderRadius: 12, padding: '14px 8px',
-                    cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s'
-                  }}>
-                  <a.icon size={22} color={a.color} style={{ margin: '0 auto 6px' }} />
-                  <div style={{ fontSize: 11, color: '#D1D5DB', fontWeight: 600 }}>{a.label}</div>
+                <button key={a.label} type="button" onClick={() => router.push(a.href)}
+                  className="cmd-btn cmd-btn-secondary flex flex-col items-center justify-center py-3.5 px-2 text-center">
+                  <a.icon size={22} color={a.color} className="mx-auto mb-1.5" aria-hidden="true" />
+                  <span className="text-[13px] text-[#F2F7FF] font-semibold leading-tight">{a.label}</span>
                 </button>
               ))}
             </div>
-          </div>
+          </section>
 
           {/* Stats */}
           {player && (
-            <div style={{ background: '#1F2937', borderRadius: 14, border: '1px solid #374151', padding: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#9CA3AF', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                My Stats
-              </div>
+            <section className="cmd-panel p-4" aria-labelledby="player-card-stats">
+              <h2 id="player-card-stats" className="text-[13px] font-bold text-[#BDD0E2] mb-2.5">My Stats</h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
                 {[
                   { label: 'Total Sessions', val: player.total_sessions || player.session_count || '-' },
@@ -217,17 +213,16 @@ export default function PlayerCard() {
                   { label: 'Comp Balance', val: player.comp_balance ? `$${player.comp_balance}` : '-' },
                   { label: 'Achievements', val: player.achievements_count || player.badges?.length || '-' },
                 ].map(s => (
-                  <div key={s.label} style={{ padding: 10, background: '#111827', borderRadius: 10, textAlign: 'center' }}>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: 'white' }}>{s.val}</div>
-                    <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>{s.label}</div>
+                  <div key={s.label} className="cmd-inset p-2.5 rounded-lg text-center">
+                    <div className="text-xl font-extrabold text-white">{s.val}</div>
+                    <div className="text-xs text-[#BDD0E2] mt-0.5">{s.label}</div>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           )}
         </div>
       </div>
-      <style>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
     </CommanderPageShell>
   );

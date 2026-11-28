@@ -257,7 +257,6 @@ export default function ResponsibleGamingPage() {
                   <Shield className="w-6 h-6 text-[#22D3EE]" />
                   Responsible Gaming
                 </h1>
-                <p className="text-sm text-[#9FB3C8]">Manage Your Limits And Controls</p>
               </div>
             </div>
           </div>

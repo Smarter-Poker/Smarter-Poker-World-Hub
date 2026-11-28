@@ -749,7 +749,9 @@ select.cmd-input option {
 
 /* Page image header */
 .cmd-header-full,
-.cmd-header-full.sticky {
+.cmd-header-full.sticky,
+header.cmd-header-bar,
+header.cmd-header-bar.sticky {
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -759,8 +761,14 @@ select.cmd-input option {
   background: radial-gradient(ellipse at 20% 102%, #233f63 0, #102337 38%, #07121e 78%);
   box-shadow: none;
 }
-.cmd-header-full.sticky { position: relative; top: auto; }
-.cmd-header-full::before {
+.cmd-header-full.sticky,
+header.cmd-header-bar.sticky { position: relative; top: auto; }
+/* A sub-page title bar that is the page's <header> is the page image header too:
+   the retired hexagonal-plate geometry (inline-flex, 28px padding, radius) does
+   not apply to it. */
+header.cmd-header-bar { display: block; padding: 0; border-radius: 0; }
+.cmd-header-full::before,
+header.cmd-header-bar::before {
   content: '';
   position: absolute;
   inset: 0 0 0 auto;
@@ -774,9 +782,12 @@ select.cmd-input option {
   mask-image: linear-gradient(90deg, transparent, #0002 18%, #0006 43%, #0009 68%, #000);
   pointer-events: none;
 }
-.cmd-header-full::after { display: none; }
-.cmd-header-full > * { padding-right: 52px; }
-.cmd-header-full h1 {
+.cmd-header-full::after,
+header.cmd-header-bar::after { display: none; }
+.cmd-header-full > *,
+header.cmd-header-bar > * { padding-right: 52px; }
+.cmd-header-full h1,
+header.cmd-header-bar h1 {
   color: #f3f7fc !important;
   -webkit-text-fill-color: #f3f7fc;
   font-family: var(--sd-type, 'Arial Narrow'), sans-serif;
@@ -788,7 +799,8 @@ select.cmd-input option {
   text-transform: none;
   text-shadow: 0 2px 3px #020911, 0 0 8px #061321;
 }
-.cmd-header-full p { color: #bdd0e2 !important; }
+.cmd-header-full p,
+header.cmd-header-bar p { color: #bdd0e2 !important; }
 
 /* Seals and icon boxes: a circular chrome frame */
 .cmd-icon-box,
@@ -800,7 +812,8 @@ select.cmd-input option {
   box-shadow: 0 0 0 1px #09121c, 0 0 0 2px #92aac0, 0 2px 9px #01060fbb !important;
 }
 .cmd-icon-box::before, .cmd-icon-box::after { display: none !important; }
-.cmd-header-full .cmd-icon-box {
+.cmd-header-full .cmd-icon-box,
+header.cmd-header-bar .cmd-icon-box {
   box-shadow: 0 0 0 1px #09121c, 0 0 0 3px #a6c8e0, 0 0 0 4px #234968, 0 2px 9px #01060fbb !important;
 }
 
@@ -815,7 +828,7 @@ select.cmd-input option {
 .cmd-panel::before { display: none; }
 .cmd-panel .cmd-panel { border-image: none; border-width: 1px; border-color: #445e77; background: #0a1829; }
 .cmd-inset { background: #071420; border: 1px solid #1d3550; box-shadow: none; }
-.cmd-header-bar {
+.cmd-header-bar:not(header) {
   border: 3px solid transparent;
   border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
   background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);

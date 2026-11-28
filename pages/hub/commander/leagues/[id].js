@@ -21,7 +21,7 @@ function StandingRow({ entry, rank, isCurrentUser }) {
       <div className="flex items-center gap-3">
         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${rank === 1 ? 'bg-[#22D3EE] text-white' :
           rank === 2 ? 'bg-[#9CA3AF] text-white' :
-            rank === 3 ? 'bg-[#CD7F32] text-white' :
+            rank === 3 ? 'bg-[#3A8FC0] text-white' :
               'bg-[#0D192E] text-[#9FB3C8]'
           }`}>
           {rank}

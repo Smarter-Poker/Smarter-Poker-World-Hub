@@ -1515,6 +1515,7 @@ jobs:
             __tests__/_test-guards-exist.test.mjs \
             __tests__/auth-routes-exist.test.mjs \
             __tests__/commander-orb-sso.test.mjs \
+            __tests__/hub-commander-smarterdesign.law.test.mjs \
             __tests__/gdpr-financial-refusal.test.mjs \
             tests/spin-activation-route.test.mjs \
             __tests__/signup-hardening.test.mjs \

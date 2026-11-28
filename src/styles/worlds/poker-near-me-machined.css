@@ -970,27 +970,6 @@ body.world-poker-near-me :is(
   z-index: 12000 !important;
 }
 
-/* CommanderPageShell renders its fixed trigger beside, rather than inside,
-   the Home Games page root. Scope through the world body so the trigger still
-   inherits the same continuous machined control geometry on these routes. */
-body.world-poker-near-me .commander-page-shell__menu-trigger {
-  width: 44px !important;
-  min-width: 44px !important;
-  height: 44px !important;
-  min-height: 44px !important;
-  border: 1px solid rgba(170, 184, 196, 0.42) !important;
-  border-radius: 3px !important;
-  background: #060b10 !important;
-  box-shadow: var(--pnm-v2-inset), 0 12px 28px rgba(0, 0, 0, 0.45) !important;
-  backdrop-filter: none !important;
-}
-
-body.world-poker-near-me .commander-page-shell__menu-trigger:hover,
-body.world-poker-near-me .commander-page-shell__menu-trigger:focus-visible {
-  border-color: rgba(72, 199, 255, 0.8) !important;
-  background: #09131c !important;
-}
-
 [data-pnm-home-games='true'] .cmd-panel::before,
 [data-pnm-home-games='true'] .cmd-corner-lights .cmd-light {
   content: none !important;

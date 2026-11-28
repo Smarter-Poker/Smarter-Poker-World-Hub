@@ -408,9 +408,9 @@ export default function PlayerFAQPage() {
       <div className="cmd-page min-h-screen">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-20">
-          <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="max-w-4xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-4">
-              <Link href="/hub/commander" className="text-[#9FB3C8] hover:text-white">
+              <Link href="/hub/commander" aria-label="Back To Live Poker" className="text-[#9FB3C8] hover:text-white">
                 <ChevronLeft className="w-5 h-5" />
               </Link>
               <div className="flex items-center gap-2">
@@ -418,7 +418,7 @@ export default function PlayerFAQPage() {
                 <h1 className="text-xl font-bold text-white">FAQ</h1>
               </div>
             </div>
-            <div className="relative w-64">
+            <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9FB3C8]" />
               <input
                 type="text"

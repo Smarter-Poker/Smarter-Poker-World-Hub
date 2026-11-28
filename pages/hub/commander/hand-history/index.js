@@ -248,11 +248,11 @@ export default function HandHistoryPage() {
                   <FileText className="w-6 h-6 text-[#22D3EE]" />
                   {selectedSession ? selectedSession.venue_name : 'Hand History'}
                 </h1>
-                <p className="text-sm text-[#9FB3C8]">
-                  {selectedSession
-                    ? `${selectedSession.game_type} - ${selectedSession.hands_played} hands`
-                    : 'Review your session hands'}
-                </p>
+                {selectedSession && (
+                  <p className="text-sm text-[#9FB3C8]">
+                    {`${selectedSession.game_type} - ${selectedSession.hands_played} Hands`}
+                  </p>
+                )}
               </div>
             </div>
           </div>

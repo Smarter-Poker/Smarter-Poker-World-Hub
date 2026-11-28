@@ -231,23 +231,23 @@ export default function TournamentRegisterPage() {
             />
 
       <div className="cmd-page">
-        {/* Hero */}
-        <div className="cmd-header-full text-white p-6 pb-12">
-          <div className="max-w-lg mx-auto">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="cmd-icon-box bg-white/10">
-                <Trophy className="w-6 h-6" />
+        {/* #SMARTERDESIGN page image header (scene, hamburger and painted help from CommanderPageShell) */}
+        <header className="cmd-header-full text-white">
+          <div className="max-w-lg mx-auto px-4 py-4 sm:py-5">
+            <div className="flex items-center gap-3">
+              <div className="cmd-icon-box w-11 h-11 flex items-center justify-center shrink-0">
+                <Trophy className="w-6 h-6" aria-hidden="true" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold">{tournament.name}</h1>
-                <p className="text-white/80">{tournament.venue?.name}</p>
+              <div className="min-w-0">
+                <h1>{tournament.name}</h1>
+                {tournament.venue?.name && <p>{tournament.venue.name}</p>}
               </div>
             </div>
           </div>
-        </div>
+        </header>
 
         {/* Content */}
-        <main className="max-w-lg mx-auto px-4 -mt-6">
+        <main className="max-w-lg mx-auto px-4">
           {/* Main Card */}
           <div className="cmd-panel overflow-hidden">
             {/* Status Badge */}
