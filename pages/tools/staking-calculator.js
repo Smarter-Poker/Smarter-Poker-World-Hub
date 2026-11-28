@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -554,6 +555,16 @@ export default function StakingCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="staking-calculator"
+              toolName="Poker Staking & Markup Split Calculator"
+              eyebrow="Free Staking Cloud Sync"
+              title="Save This Staking Package & Markup Split Free"
+              description="Sync Package Percentages, Markup Costs & Backer Break-Even ROI Numbers In Your Free Account."
+              ctaLabel="Save Staking Split Free"
+              summaryText={`${metrics.safePackage.toLocaleString('en-US')} Package @ ${metrics.safeMarkup}x Markup (${metrics.safeSoldPct}% Sold): 1% Costs ${metrics.costPerOnePctAtMarkup} | Breakeven ROI = +${metrics.requiredBreakevenRoiPct}%`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-staking-calculator"

@@ -61,7 +61,7 @@ export default function PayoutStructure() {
           <span style={{ fontSize: 24 }}>{struct.icon}</span>
           <span style={{ fontSize: 15, fontWeight: 800, color: struct.color }}>{struct.structure}</span>
         </div>
-        <div style={{ background: `${struct.color}08`, borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'monospace' }}>
+        <div style={{ background: `${struct.color}08`, borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Distribution</div>
           <div style={{ fontSize: 12, color: struct.color }}>{struct.distribution}</div>
         </div>

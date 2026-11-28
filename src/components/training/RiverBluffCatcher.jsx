@@ -67,7 +67,7 @@ export default function RiverBluffCatcher() {
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center', flex: 2 }}>
             <div style={{ fontSize: 12, color: '#64748b' }}>Board</div>
-            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace', color: '#e2e8f0' }}>{spot.board}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', color: '#e2e8f0' }}>{spot.board}</div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center', flex: 1 }}>
             <div style={{ fontSize: 12, color: '#64748b' }}>Bet Size</div>

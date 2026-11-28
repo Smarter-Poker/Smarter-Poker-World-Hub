@@ -70,7 +70,7 @@ export default function TurnProbeGuide() {
         </div>
         <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center', marginBottom: 10 }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Board</div>
-          <div style={{ fontSize: 15, fontWeight: 700, fontFamily: 'monospace', color: '#e2e8f0' }}>{spot.board}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', color: '#e2e8f0' }}>{spot.board}</div>
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 10 }}>{spot.why}</p>
         <div style={{ display: 'grid', gap: 8 }}>

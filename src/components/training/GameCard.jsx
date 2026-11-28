@@ -160,7 +160,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress, pl
                     justify-content: space-between;
                     gap: 12px;
                     color: #eaf6fa;
-                    font: 700 12px/1.2 var(--font-orbitron, 'Orbitron'), sans-serif;
+                    font: 700 12px/1.2 var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
                     letter-spacing: .13em;
                     text-shadow: 0 2px 5px #000;
                     text-transform: uppercase;
@@ -179,7 +179,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress, pl
                     color: #f1f8fa;
                     background: rgba(1,5,7,.86);
                     box-shadow: 0 5px 14px #000;
-                    font: 700 12px/1 var(--font-orbitron, 'Orbitron'), sans-serif;
+                    font: 700 12px/1 var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
                     letter-spacing: .08em;
                     text-transform: uppercase;
                 }
@@ -193,7 +193,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress, pl
                 .sp-casino-game-title {
                     display: block;
                     color: #f4f8fa;
-                    font: 500 clamp(17px, 1.5vw, 22px)/1.2 var(--font-orbitron, 'Orbitron'), sans-serif;
+                    font: 500 clamp(17px, 1.5vw, 22px)/1.2 var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
                     letter-spacing: .015em;
                     text-shadow: 0 2px 2px #000;
                 }
@@ -211,7 +211,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress, pl
                     gap: 8px;
                     margin-top: 15px;
                     color: #738c98;
-                    font: 650 12px/1.25 var(--font-orbitron, 'Orbitron'), sans-serif;
+                    font: 650 12px/1.25 var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
                     letter-spacing: .06em;
                     text-transform: uppercase;
                 }
@@ -244,7 +244,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress, pl
                     color: #ffffff;
                     background: linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%);
                     box-shadow: inset 0 1px rgba(255,255,255,.32), 0 6px 14px rgba(0,74,184,.38);
-                    font: 700 12px/1 var(--font-orbitron, 'Orbitron'), sans-serif;
+                    font: 700 12px/1 var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
                     letter-spacing: .09em;
                     text-transform: uppercase;
                 }

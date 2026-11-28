@@ -17,6 +17,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -210,7 +211,7 @@ export default function BlindStructureCalculatorPage({
         </h1>
 
         <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
-          <strong>Direct Answer:</strong> A No-Limit Hold&apos;Em Tournament Reaches Heads-Up Completion When <strong>Total Chips In Play Equal 20 To 30 Big Blinds</strong>. By Scaling Level Increases Between <strong>25% And 50% Per Level</strong> And Issuing <strong>29 Physical Chips Per Player</strong> Across Four Standard TDA Denominations, Tournament Directors Guarantee A Smooth Clock Without Abrupt Shove-Fest Jumps.
+          <strong>Direct Answer:</strong> A No-Limit Hold'Em Tournament Reaches Heads-Up Completion When <strong>Total Chips In Play Equal 20 To 30 Big Blinds</strong>. By Scaling Level Increases Between <strong>25% And 50% Per Level</strong> And Issuing <strong>29 Physical Chips Per Player</strong> Across Four Standard TDA Denominations, Tournament Directors Guarantee A Smooth Clock Without Abrupt Shove-Fest Jumps.
         </p>
 
         <CalculatorShareAndPresets
@@ -454,6 +455,16 @@ export default function BlindStructureCalculatorPage({
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="blind-structure-calculator"
+            toolName="Tournament Blind Structure Calculator"
+            eyebrow="Free Director Cloud Sync"
+            title="Save This Tournament Blind Structure Free"
+            description="Store Custom Blind Schedules, Ante Transitions & Starting Chip Breakdowns In Your Free Account."
+            ctaLabel="Save Blind Structure Free"
+            summaryText={`${metrics.safePlayers} Entries (${metrics.safeStack.toLocaleString('en-US')} Stack, ${metrics.safeMins}-Min Levels): Est Finish At Level ${metrics.finishLevel} (~${(metrics.estimatedDurationMinutes / 60).toFixed(1)} Hrs)`}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-blind-structure-calculator"

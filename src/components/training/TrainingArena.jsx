@@ -796,7 +796,7 @@ const styles = {
     timerValue: {
         fontSize: 28,
         fontWeight: 800,
-        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+        fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
     },
 
     timerLabel: {

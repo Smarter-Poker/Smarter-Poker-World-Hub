@@ -105,7 +105,7 @@ function TreeNode({ node, depth, selectedNode, onSelect, locks, onToggleLock, on
         {/* Action */}
         <span style={{
           color: isBoard ? '#86daff' : '#f1f5f9', fontSize: 12,
-          fontWeight: isBoard ? 700 : 500, fontFamily: isBoard ? 'monospace' : 'inherit',
+          fontWeight: isBoard ? 700 : 500, fontFamily: isBoard ? "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" : 'inherit',
         }}>
           {node.action}
         </span>

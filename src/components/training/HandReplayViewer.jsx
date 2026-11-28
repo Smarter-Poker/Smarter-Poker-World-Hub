@@ -42,7 +42,7 @@ function MiniCard({ card, size = 'sm' }) {
             justifyContent: 'center',
             fontSize: dims.fs,
             fontWeight: 800,
-            fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+            fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
             color: colorMap[suit] || '#1e293b',
             lineHeight: 1.1,
             boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
@@ -216,7 +216,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                 }}>
                                     {config.icon} {config.label}
                                 </div>
-                                <div style={{ color: selectedHand.evLoss > 0 ? '#ef4444' : '#22c55e', fontWeight: 'bold', fontSize: 14, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                                <div style={{ color: selectedHand.evLoss > 0 ? '#ef4444' : '#22c55e', fontWeight: 'bold', fontSize: 14, fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>
                                     {selectedHand.evLoss > 0 ? `-${selectedHand.evLoss.toFixed(2)}` : '0.00'} BB
                                 </div>
                             </div>
@@ -385,7 +385,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                                     </div>
                                                     <div style={{
                                                         fontSize: 12, fontWeight: 700,
-                                                        fontFamily: "'Inter', monospace",
+                                                        fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                                                         color: ev >= 0 ? '#22c55e' : '#ef4444',
                                                     }}>
                                                         {ev >= 0 ? '+' : ''}{typeof ev === 'number' ? ev.toFixed(2) : ev} BB
@@ -988,7 +988,7 @@ const styles = {
         background: 'rgba(0,212,255,0.1)', color: '#00d4ff', fontSize: 12,
     },
     listEV: {
-        fontSize: 12, fontWeight: 'bold', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+        fontSize: 12, fontWeight: 'bold', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
         minWidth: 40, textAlign: 'right',
     },
 };

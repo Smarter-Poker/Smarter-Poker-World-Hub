@@ -16,6 +16,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -416,6 +417,16 @@ export default function SidePotCalculatorPage({
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="side-pot-calculator"
+            toolName="Side Pot & Multi-Way All-In Calculator"
+            eyebrow="Free Side Pot Cloud Sync"
+            title="Save This Multi-Way Side Pot Breakdown Free"
+            description="Keep Main Pot Splits, Contested Side Pots & Uncalled Chip Returns Saved In Your Free Library."
+            ctaLabel="Save Side Pot Free"
+            summaryText={`${stacks.length}-Way All-In (${metrics.totalPotInPlay.toLocaleString('en-US')} Total Chips, ${metrics.safeDead} Dead): ${metrics.contestedPotCount} Contested Pots | Uncalled Return: ${metrics.uncalledReturn.toLocaleString('en-US')}`}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-side-pot-calculator"

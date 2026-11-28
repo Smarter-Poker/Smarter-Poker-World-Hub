@@ -59,7 +59,7 @@ export default function SpinAndGoStrategy() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: p.color, marginBottom: 8 }}>{p.icon} {p.phase}</div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{p.detail}</p>
-        <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'monospace' }}>
+        <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Opening Ranges</div>
           <div style={{ fontSize: 12, color: p.color }}>{p.opens}</div>
         </div>

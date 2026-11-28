@@ -66,7 +66,7 @@ export default function CommonLeaksGuide() {
 
         <div style={{ background: `${leak.color}10`, borderRadius: 8, padding: 8, marginBottom: 10, textAlign: 'center' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Diagnostic Stat</div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: leak.color, fontFamily: 'monospace' }}>{leak.stat}</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: leak.color, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{leak.stat}</div>
         </div>
 
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 10 }}>{leak.impact}</p>

@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -714,6 +715,16 @@ export default function BoardTextureAnalyzerPage() {
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="board-texture-analyzer"
+              toolName="Flop Board Texture & C-Bet Analyzer"
+              eyebrow="Free Texture Cloud Sync"
+              title="Save This Flop Texture & C-Bet Analysis Free"
+              description="Store Flop Connectedness Scores, Suit Textures & GTO C-Bet Frequency Splits In Your Free Account."
+              ctaLabel="Save Flop Analysis Free"
+              summaryText={`Flop ${analysis.flopString} (${analysis.suitTexture}, Connectedness ${analysis.connectedness}/100): ${analysis.strategyLabel} (${analysis.smallBetPct}% Small / ${analysis.bigBetPct}% Big / ${analysis.checkPct}% Check)`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-board-texture-analyzer"

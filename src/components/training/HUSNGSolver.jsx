@@ -110,9 +110,9 @@ export default function HUSNGSolver() {
           {NASH_CHART.map((row, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', padding: '5px 12px',
               borderBottom: '1px solid rgba(255,255,255,0.03)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-              <span style={{ fontSize: 12, color: '#e2e8f0', fontFamily: 'monospace', fontWeight: 700 }}>{row.hand}</span>
+              <span style={{ fontSize: 12, color: '#e2e8f0', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', fontWeight: 700 }}>{row.hand}</span>
               {[row.sb10, row.bb10, row.sb7, row.bb7].map((v, j) => (
-                <span key={j} style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace',
+                <span key={j} style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                   color: v === 'PUSH' ? '#ef4444' : v === 'CALL' ? '#22c55e' : '#64748b' }}>{v}</span>
               ))}
             </div>

@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -570,6 +571,16 @@ export default function FormatQuizPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="format-quiz"
+              toolName="Poker Format Selector & Study Plan Quiz"
+              eyebrow="Free Study Plan Cloud Sync"
+              title="Save Your Poker Format Match & Study Plan Free"
+              description="Keep Your Recommended Game Format, Bankroll Cushion & Weekly GTO Study Roadmap Synced Free."
+              ctaLabel="Save Study Plan Free"
+              summaryText={`Primary Match: ${diagnosis.winner.profile.name} (${diagnosis.winner.matchPct}% Match) | Bankroll Cushion: ${diagnosis.winner.profile.bankrollCushion}`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-format-quiz"

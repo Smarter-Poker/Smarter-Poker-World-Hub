@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -524,6 +525,16 @@ export default function PokerTaxCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="poker-tax-calculator"
+              toolName="US Poker Tax & Form W-2G Calculator"
+              eyebrow="Free Tax Log Cloud Sync"
+              title="Save This Poker Tax & W-2G Estimate Free"
+              description="Keep Net Gambling Profit Estimates, Federal Bracket Projections & Session Logs Synced Free."
+              ctaLabel="Save Tax Estimate Free"
+              summaryText={`Net Taxable Poker Profit: ${taxMetrics.netGamblingProfit.toLocaleString('en-US')} | Estimated Federal Tax: ${taxMetrics.totalEstimatedFederalTax.toLocaleString('en-US')} (${taxMetrics.marginalRatePct}% Bracket) | W-2G Trigger: ${taxMetrics.triggersW2G ? 'Yes' : 'No'}`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-poker-tax-calculator"

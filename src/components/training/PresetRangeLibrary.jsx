@@ -64,7 +64,7 @@ function RangeGrid({ hands, size }) {
           return (
             <div key={`${r}-${c}`} style={{
               width: cellSize, height: cellSize, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: cellSize < 24 ? 7 : 9, fontWeight: 600, fontFamily: 'monospace',
+              fontSize: cellSize < 24 ? 7 : 9, fontWeight: 600, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
               background: inRange ? (r === c ? 'rgba(239,68,68,0.5)' : r < c ? 'rgba(59,130,246,0.5)' : 'rgba(16,185,129,0.5)') : 'rgba(255,255,255,0.03)',
               color: inRange ? '#fff' : 'rgba(255,255,255,0.15)',
               borderRadius: 2,

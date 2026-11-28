@@ -64,10 +64,10 @@ export default function RangeVsRange() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: match.color, marginBottom: 8 }}>{match.matchup}</div>
         <div style={{ display: 'grid', gap: 6, marginBottom: 10 }}>
-          <div style={{ background: 'rgba(59,130,246,0.05)', borderRadius: 6, padding: 8, fontFamily: 'monospace', fontSize: 12 }}>
+          <div style={{ background: 'rgba(59,130,246,0.05)', borderRadius: 6, padding: 8, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', fontSize: 12 }}>
             <span style={{ color: '#3b82f6' }}>{match.range1}</span>
           </div>
-          <div style={{ background: 'rgba(239,68,68,0.05)', borderRadius: 6, padding: 8, fontFamily: 'monospace', fontSize: 12 }}>
+          <div style={{ background: 'rgba(239,68,68,0.05)', borderRadius: 6, padding: 8, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', fontSize: 12 }}>
             <span style={{ color: '#ef4444' }}>{match.range2}</span>
           </div>
         </div>
