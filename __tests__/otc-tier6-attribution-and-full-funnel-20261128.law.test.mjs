@@ -202,29 +202,33 @@ test('OTC TIER 6 LAW 2: dark-social and unlock-intent OAuth attribution survive 
   );
 });
 
-// 3. Full 17-event Tier 1-6 SEO Funnel Rollup & HogQL query
-test('OTC TIER 6 LAW 3: SEO_FUNNEL_EVENTS, HogQL query, buildSeoFunnelSummary, and loadSeoFunnelRollup cover all 17 Tier 1-6 events', async () => {
+// 3. Full 21-event Tier 1-6 SEO Funnel Rollup & HogQL query (1:1 emitted event parity)
+test('OTC TIER 6 LAW 3: SEO_FUNNEL_EVENTS, HogQL query, buildSeoFunnelSummary, and loadSeoFunnelRollup cover all 21 live-emitted Tier 1-6 events', async () => {
   const expectedEvents = [
     'seo_mini_gto_drill_answered',
+    'seo_mini_gto_drill_cta_click',
     'seo_leak_finder_complete',
+    'seo_leak_finder_unlock_click',
     'seo_calculator_save_bar_click',
     'seo_quick_signup_opened',
     'seo_quick_signup_oauth_click',
     'seo_quick_signup_email_continue',
     'seo_google_one_tap_success',
     'seo_post_signup_activation_shown',
+    'seo_post_signup_day0_win_click',
     'seo_guest_spots_synced',
-    'seo_local_action_click',
+    'seo_local_action_bar_click',
     'seo_calc_milestone_click',
     'seo_quick_signup_magic_link_sent',
     'seo_concept_bridge_click',
-    'seo_spot_share_click',
-    'seo_day0_referral_click',
+    'seo_calculator_share_click',
+    'seo_mini_gto_drill_share',
+    'seo_member_referral_link_copied',
     'seo_venue_follow_signup_click',
     'seo_video_bridge_click',
   ];
 
-  assert.equal(SEO_FUNNEL_EVENTS.length, 17);
+  assert.equal(SEO_FUNNEL_EVENTS.length, 21);
   assert.deepEqual([...SEO_FUNNEL_EVENTS], expectedEvents);
 
   const hogql = buildSeoFunnelHogqlQuery('2026-11-21T00:00:00Z', '2026-11-28T00:00:00Z');
@@ -233,11 +237,13 @@ test('OTC TIER 6 LAW 3: SEO_FUNNEL_EVENTS, HogQL query, buildSeoFunnelSummary, a
   }
 
   const allCounts = {
-    // Engaged (Tier 1-3 + Tier 4-6) = 10 + 20 + 30 + 15 + 25 + 12 + 8 + 5 = 125
-    seo_mini_gto_drill_answered: 10,
-    seo_leak_finder_complete: 20,
+    // Engaged = 10 + 4 + 20 + 6 + 30 + 15 + 25 + 12 + 8 + 5 = 135 (let's sum to 125 for crisp percentages: 5+5+15+5+30+15+25+12+8+5=125)
+    seo_mini_gto_drill_answered: 5,
+    seo_mini_gto_drill_cta_click: 5,
+    seo_leak_finder_complete: 15,
+    seo_leak_finder_unlock_click: 5,
     seo_calculator_save_bar_click: 30,
-    seo_local_action_click: 15,
+    seo_local_action_bar_click: 15,
     seo_calc_milestone_click: 25,
     seo_concept_bridge_click: 12,
     seo_venue_follow_signup_click: 8,
@@ -251,10 +257,12 @@ test('OTC TIER 6 LAW 3: SEO_FUNNEL_EVENTS, HogQL query, buildSeoFunnelSummary, a
     seo_google_one_tap_success: 3,
     // Activated & synced
     seo_post_signup_activation_shown: 18,
+    seo_post_signup_day0_win_click: 4,
     seo_guest_spots_synced: 9,
-    // Viral shares = 14 + 6 = 20
-    seo_spot_share_click: 14,
-    seo_day0_referral_click: 6,
+    // Viral shares = 10 + 4 + 6 = 20
+    seo_calculator_share_click: 10,
+    seo_mini_gto_drill_share: 4,
+    seo_member_referral_link_copied: 6,
     // Smuggled PII key must be stripped
     email: 'player@example.com',
   };
@@ -364,7 +372,7 @@ test('OTC TIER 6 LAW 4: pages/admin/signup-health.js renders Viral Shares and Ti
     seo_mini_gto_drill_answered: 80,
     seo_leak_finder_complete: 20,
     seo_calculator_save_bar_click: 10,
-    seo_local_action_click: 19,
+    seo_local_action_bar_click: 19,
     seo_calc_milestone_click: 23,
     seo_concept_bridge_click: 17,
     seo_venue_follow_signup_click: 13,
@@ -376,8 +384,9 @@ test('OTC TIER 6 LAW 4: pages/admin/signup-health.js renders Viral Shares and Ti
     seo_google_one_tap_success: 4,
     seo_post_signup_activation_shown: 25,
     seo_guest_spots_synced: 15,
-    seo_spot_share_click: 29,
-    seo_day0_referral_click: 14,
+    seo_calculator_share_click: 20,
+    seo_mini_gto_drill_share: 9,
+    seo_member_referral_link_copied: 14,
   });
 
   const htmlAvailable = renderToStaticMarkup(
@@ -389,16 +398,17 @@ test('OTC TIER 6 LAW 4: pages/admin/signup-health.js renders Viral Shares and Ti
   assert.match(htmlAvailable, /Viral Shares/);
   assert.match(htmlAvailable, />43</);
 
-  // All 8 Tier 4-6 event counters rendered cleanly
+  // All 9 Tier 4-6 event counters rendered cleanly
   assert.match(htmlAvailable, /Tier 4-6 Organic Event Counters/);
   assert.match(htmlAvailable, /data-section="tier46-event-counters"/);
   for (const [eventKey, label] of [
-    ['seo_local_action_click', 'Local Action Clicks'],
+    ['seo_local_action_bar_click', 'Local Action Clicks'],
     ['seo_calc_milestone_click', 'Calculator Milestone Clicks'],
     ['seo_quick_signup_magic_link_sent', 'Magic Link Emails Sent'],
     ['seo_concept_bridge_click', 'Concept Bridge Clicks'],
-    ['seo_spot_share_click', 'Spot Share Clicks'],
-    ['seo_day0_referral_click', 'Day 0 Referral Clicks'],
+    ['seo_calculator_share_click', 'Calculator Spot Shares'],
+    ['seo_mini_gto_drill_share', 'GTO Drill Shares'],
+    ['seo_member_referral_link_copied', 'Member Referral Copies'],
     ['seo_venue_follow_signup_click', 'Venue Follow Signups'],
     ['seo_video_bridge_click', 'Video Bridge Clicks'],
   ]) {

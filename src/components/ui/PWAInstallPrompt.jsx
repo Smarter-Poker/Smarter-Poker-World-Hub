@@ -80,23 +80,27 @@ const PEAK_UTILITY_LOCAL_KEYS = new Set([
     'local-game-rooms',
     'local-corridor-rooms',
     'live-venue-intel',
+    'venue-follow',
 ]);
 
 const PEAK_UTILITY_GTO_KEYS = new Set([
     'gto-leak-finder-report',
     'training-gto',
     'solver-matrix',
+    'calc-session-milestone',
+    'video-practice',
+    'video-bookmark',
 ]);
 
 export function resolvePeakUtilityPwaCopy(unlockKey) {
     const key = String(unlockKey || '').trim().toLowerCase();
-    if (key === 'series-alerts-event-reminder') {
+    if (key === 'series-alerts-event-reminder' || key.startsWith('series-alerts')) {
         return 'Install Smarter.Poker For 1-Tap Tournament Alerts';
     }
-    if (PEAK_UTILITY_LOCAL_KEYS.has(key)) {
+    if (PEAK_UTILITY_LOCAL_KEYS.has(key) || key.startsWith('local-')) {
         return 'Install Smarter.Poker For Live Waitlists & Room Alerts';
     }
-    if (PEAK_UTILITY_GTO_KEYS.has(key)) {
+    if (PEAK_UTILITY_GTO_KEYS.has(key) || key.startsWith('concept-bridge')) {
         return 'Install Smarter.Poker For 1-Tap Daily GTO Drills';
     }
     return 'Add Smarter.Poker To Your Home Screen For Instant Alerts';

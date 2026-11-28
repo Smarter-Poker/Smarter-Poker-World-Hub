@@ -578,12 +578,13 @@ function LiveOrganicFunnelScorecard({ seoFunnel }) {
     const viralShares = Number(stages?.viralShares || 0);
 
     const tierEventCards = stages ? [
-        { key: 'seo_local_action_click', label: 'Local Action Clicks', stage: 'Engaged', accent: '#00D4FF' },
+        { key: 'seo_local_action_bar_click', label: 'Local Action Clicks', stage: 'Engaged', accent: '#00D4FF' },
         { key: 'seo_calc_milestone_click', label: 'Calculator Milestone Clicks', stage: 'Engaged', accent: '#00D4FF' },
         { key: 'seo_quick_signup_magic_link_sent', label: 'Magic Link Emails Sent', stage: 'Auth Intent', accent: '#0ea5e9' },
         { key: 'seo_concept_bridge_click', label: 'Concept Bridge Clicks', stage: 'Engaged', accent: '#00D4FF' },
-        { key: 'seo_spot_share_click', label: 'Spot Share Clicks', stage: 'Viral Shares', accent: '#65e8aa' },
-        { key: 'seo_day0_referral_click', label: 'Day 0 Referral Clicks', stage: 'Viral Shares', accent: '#65e8aa' },
+        { key: 'seo_calculator_share_click', label: 'Calculator Spot Shares', stage: 'Viral Shares', accent: '#65e8aa' },
+        { key: 'seo_mini_gto_drill_share', label: 'GTO Drill Shares', stage: 'Viral Shares', accent: '#65e8aa' },
+        { key: 'seo_member_referral_link_copied', label: 'Member Referral Copies', stage: 'Viral Shares', accent: '#65e8aa' },
         { key: 'seo_venue_follow_signup_click', label: 'Venue Follow Signups', stage: 'Engaged', accent: '#00D4FF' },
         { key: 'seo_video_bridge_click', label: 'Video Bridge Clicks', stage: 'Engaged', accent: '#00D4FF' },
     ] : [];
