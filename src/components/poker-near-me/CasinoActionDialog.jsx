@@ -9,7 +9,7 @@ import PokerNearMeConsole from './PokerNearMeConsole';
  */
 export default function CasinoActionDialog({
   open,
-  eyebrow = 'Confirm action',
+  eyebrow = 'Confirm Action',
   title,
   message,
   children,
@@ -115,6 +115,15 @@ export default function CasinoActionDialog({
             {children ? <div className="pnm-console-dialog__content">{children}</div> : null}
           </div>
         </PokerNearMeConsole>
+        <button
+          type="button"
+          className="pnm-console-dialog__close"
+          onClick={onClose}
+          disabled={busy}
+          aria-label={`Close ${title || 'confirmation'} dialog`}
+        >
+          Close
+        </button>
       </section>
     </div>
   );

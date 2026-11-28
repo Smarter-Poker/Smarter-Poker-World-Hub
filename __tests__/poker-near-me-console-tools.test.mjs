@@ -77,7 +77,8 @@ test('painted conversion preserves each tool data and interaction contract', () 
   const alerts = sources['TournamentAlerts.jsx'];
   assert.match(alerts, /fetch\('\/api\/poker\/tournament-alerts'/);
   assert.match(alerts, /Notification\.requestPermission/);
-  assert.match(alerts, /aria-pressed=\{prefs\.enabled\}/);
+  assert.match(alerts, /aria-pressed=\{!!prefs\.enabled\}/);
+  assert.match(alerts, /\{prefs\.enabled \? 'On' : 'Off'\}/);
   assert.match(alerts, /aria-expanded=\{showSetup\}/);
 
   const feed = sources['NearMeNowFeed.jsx'];

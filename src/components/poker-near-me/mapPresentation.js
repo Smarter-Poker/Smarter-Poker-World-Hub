@@ -275,7 +275,7 @@ export function buildPokerVenuePopupHtml(venue, options = {}) {
     return `${game?.game || 'Cash game'}: ${game?.is_simulated ? 'approx. ' : ''}${count}`;
   });
   const open = getOpenStatus(venue);
-  const status = open?.open === true ? 'OPEN' : open?.open === false ? 'CLOSED' : '';
+  const status = open?.open === true ? 'Open' : open?.open === false ? 'Closed' : '';
   const trust = trustLevel(Number(venue?.trust_score));
   const detailPath = escapeHtml(venueDetailPath(venue));
   const address = encodeURIComponent(`${venue?.address || ''} ${venue?.name || ''} ${venue?.city || ''} ${venue?.state || ''}`.trim());
@@ -298,7 +298,7 @@ export function buildPokerTourPopupHtml(venue, options = {}) {
   const logo = escapeHtml(venueLogo(venue));
   const tourPath = escapeHtml(`/hub/tours/${encodeURIComponent(venue?.tour_code || '')}`);
   const address = encodeURIComponent(`${venue?.city || ''}, ${venue?.state || ''}`);
-  const body = `<div class="pnm-map-dossier__identity"><span class="pnm-map-dossier__logo-machine"><img src="${logo}" alt="" onerror="this.src='${DEFAULT_LOGO}';" /></span><div class="pnm-map-dossier__identity-copy"><strong>${name}</strong><span>${city}${city && state ? ', ' : ''}${state}</span></div></div><div class="pnm-map-dossier__signals"><span class="pnm-map-dossier__signal pnm-map-dossier__signal--type">${code}</span><span class="pnm-map-dossier__signal pnm-map-dossier__signal--${venue?.is_running ? 'open' : 'upcoming'}">${venue?.is_running ? 'IN PROGRESS' : 'UPCOMING'}</span></div><p class="pnm-map-dossier__stop">${stop}</p>${venue?.dates ? `<p class="pnm-map-dossier__dates">${escapeHtml(venue.dates)}</p>` : ''}<div class="pnm-map-dossier__actions"><button class="fsp-trigger pnm-map-dossier__action pnm-map-dossier__action--primary" data-url="${tourPath}" data-title="${name}">View Tour</button><button class="directions-trigger pnm-map-dossier__action pnm-map-dossier__action--secondary" data-addr="${address}" data-lat="${Number(venue?.latitude)}" data-lng="${Number(venue?.longitude)}">Directions</button></div>`;
+  const body = `<div class="pnm-map-dossier__identity"><span class="pnm-map-dossier__logo-machine"><img src="${logo}" alt="" onerror="this.src='${DEFAULT_LOGO}';" /></span><div class="pnm-map-dossier__identity-copy"><strong>${name}</strong><span>${city}${city && state ? ', ' : ''}${state}</span></div></div><div class="pnm-map-dossier__signals"><span class="pnm-map-dossier__signal pnm-map-dossier__signal--type">${code}</span><span class="pnm-map-dossier__signal pnm-map-dossier__signal--${venue?.is_running ? 'open' : 'upcoming'}">${venue?.is_running ? 'In Progress' : 'Upcoming'}</span></div><p class="pnm-map-dossier__stop">${stop}</p>${venue?.dates ? `<p class="pnm-map-dossier__dates">${escapeHtml(venue.dates)}</p>` : ''}<div class="pnm-map-dossier__actions"><button class="fsp-trigger pnm-map-dossier__action pnm-map-dossier__action--primary" data-url="${tourPath}" data-title="${name}">View Tour</button><button class="directions-trigger pnm-map-dossier__action pnm-map-dossier__action--secondary" data-addr="${address}" data-lat="${Number(venue?.latitude)}" data-lng="${Number(venue?.longitude)}">Directions</button></div>`;
   return paintedMapDossier(body, { accent: color, compact, kind: 'tour' });
 }
 

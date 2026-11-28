@@ -425,7 +425,6 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   font: 800 12px/1 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif;
   letter-spacing: 0.14em;
   text-align: right;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-switch-state[data-state='on'] {

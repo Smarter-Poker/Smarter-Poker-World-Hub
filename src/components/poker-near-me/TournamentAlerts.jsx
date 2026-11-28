@@ -293,10 +293,11 @@ export default function TournamentAlerts({ dailyTournaments = EMPTY_LIST, userId
                 <button
                     type="button"
                     className={'ta-toggle' + (prefs.enabled ? ' active' : '')}
-                    aria-pressed={prefs.enabled}
+                    aria-pressed={!!prefs.enabled}
+                    aria-label="Tournament Alerts"
                     onClick={() => setPrefs(p => ({ ...p, enabled: !p.enabled }))}
                 >
-                    {prefs.enabled ? 'ON' : 'OFF'}
+                    {prefs.enabled ? 'On' : 'Off'}
                 </button>
             </div>
 
