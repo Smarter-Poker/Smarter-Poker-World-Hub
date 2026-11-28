@@ -1011,6 +1011,26 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
   if (cleanPath === '/tools/poker-iq-test') {
     return withLiveScenario(renderPokerIqTestMarkdown(query));
   }
+  if (cleanPath === '/tools/gto-leak-finder') {
+    const url = `${SITE}/tools/gto-leak-finder`;
+    return withLiveScenario([
+      '# 60-Second GTO Poker Leak Finder Diagnostic | Smarter.Poker',
+      '',
+      `> Source: [60-Second GTO Poker Leak Finder on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'The Smarter.Poker 60-Second GTO Poker Leak Finder Grades Players Across 5 Realistic 100BB 6-Max Cash And MTT Final-Table ICM Decision Spots Spanning Preflop 3-Bet Defense, Flop C-Bet Discipline, Turn Barrel Selection, River Bluff-Catching, And Short-Stack ICM Shove/Fold. Each Spot Measures Solver Frequencies And Estimated BB/100 EV Loss, Linking Directly To Targeted Free Drills Inside Smarter.Poker.',
+      '',
+      '## Five Diagnostic Leak Pillars',
+      '| Pillar | Format | Core GTO Principle | Targeted Smarter.Poker Tool |',
+      '| :--- | :--- | :--- | :--- |',
+      '| Preflop 3-Bet Defense | 100BB 6-Max Cash | Polarized BTN 3-Betting & Blocker Selection | /tools/preflop-ranges |',
+      '| Flop C-Bet Discipline | 100BB 6-Max Cash | Range Advantage Vs Connected Wet Textures | /tools/board-texture-analyzer |',
+      '| Turn Barrel Selection | 100BB 6-Max Cash | Nut Advantage & Equity Deniability | /hub/training |',
+      '| River Bluff-Catching | 100BB 6-Max Cash | Minimum Defense Frequency & Removal Blockers | /tools/bluff-catching-calculator |',
+      '| MTT ICM Shove/Fold | Final Table Bubble | Risk Premium & Bubble Factor Equity Shifts | /tools/icm-calculator |',
+    ].join('\n'));
+  }
   if (cleanPath === '/tools/plo-outs-calculator') {
     const url = `${SITE}/tools/plo-outs-calculator`;
     return withLiveScenario([

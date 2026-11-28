@@ -37,6 +37,90 @@ import {
 const RESEND_COOLDOWN_S = 60;
 const DISMISS_KEY = 'phone_prompt_dismissed_at';
 
+const SEO_UNLOCK_PREFIXES = [
+    '/tools/',
+    '/learn/',
+    '/hub/series/',
+    '/hub/venues/',
+    '/compare/',
+    '/freerolls',
+];
+
+export function appendSeoUnlockedParam(rawPath) {
+    if (typeof rawPath !== 'string' || !rawPath.startsWith('/') || rawPath.startsWith('//')) return rawPath;
+    const hashIdx = rawPath.indexOf('#');
+    const pathAndQuery = hashIdx >= 0 ? rawPath.slice(0, hashIdx) : rawPath;
+    const hashPart = hashIdx >= 0 ? rawPath.slice(hashIdx) : '';
+    const queryIdx = pathAndQuery.indexOf('?');
+    const pathname = queryIdx >= 0 ? pathAndQuery.slice(0, queryIdx) : pathAndQuery;
+    const queryPart = queryIdx >= 0 ? pathAndQuery.slice(queryIdx + 1) : '';
+    const isSeoRoute = SEO_UNLOCK_PREFIXES.some((prefix) => {
+        const bare = prefix.endsWith('/') ? prefix.slice(0, -1) : prefix;
+        return pathname === bare || pathname.startsWith(prefix);
+    });
+    if (!isSeoRoute) return rawPath;
+    if (/(?:^|&)unlocked(?:=|&|$)/.test(queryPart)) return rawPath;
+    const nextQuery = queryPart ? `${queryPart}&unlocked=1` : 'unlocked=1';
+    return `${pathname}?${nextQuery}${hashPart}`;
+}
+
+export function describePendingDestination(nextPath) {
+    if (typeof nextPath !== 'string') return null;
+    const trimmed = nextPath.trim();
+    if (!trimmed.startsWith('/') || trimmed.startsWith('//')) return null;
+    const pathname = trimmed.split(/[?#]/, 1)[0].toLowerCase().replace(/\/+$/, '') || '/';
+    if (pathname === '/' || pathname === '/hub') return 'Your Smarter.Poker Hub';
+    if (pathname === '/tools/gto-leak-finder' || pathname.startsWith('/tools/gto-leak-finder/')) {
+        return 'Your Full GTO Leak Report';
+    }
+    if (pathname === '/tools/preflop-ranges' || pathname.startsWith('/tools/preflop-ranges/')) {
+        return 'Your Saved GTO Preflop Range';
+    }
+    if (
+        pathname === '/tools/odds'
+        || pathname.startsWith('/tools/odds/')
+        || pathname === '/tools/poker-odds-calculator'
+    ) {
+        return 'Your Saved Hand Equity Spot';
+    }
+    if (pathname === '/tools/icm-calculator') {
+        return 'Your Saved ICM Calculation';
+    }
+    if (pathname === '/tools' || pathname.startsWith('/tools/')) {
+        return 'Your Saved Poker Tool Spot';
+    }
+    if (pathname === '/hub/series' || pathname.startsWith('/hub/series/') || pathname === '/hub/poker-series') {
+        return 'Your Tournament Event Reminder';
+    }
+    if (
+        pathname === '/hub/venues'
+        || pathname.startsWith('/hub/venues/')
+        || pathname.startsWith('/hub/poker-near-me')
+        || pathname.startsWith('/poker-rooms')
+    ) {
+        return 'Your Followed Poker Room';
+    }
+    if (pathname === '/learn' || pathname.startsWith('/learn/')) {
+        return 'Your GTO Strategy Drill';
+    }
+    if (pathname === '/hub/training' || pathname.startsWith('/hub/training/')) {
+        return 'Your 107 GTO Training Games';
+    }
+    if (pathname === '/hub/club-arena' || pathname.startsWith('/hub/club-arena/')) {
+        return 'Your Club Arena Table';
+    }
+    if (pathname === '/hub/bankroll-manager') {
+        return 'Your Cloud Bankroll Manager';
+    }
+    if (pathname === '/compare' || pathname.startsWith('/compare/')) {
+        return 'Your Poker Platform Comparison';
+    }
+    if (pathname === '/freerolls' || pathname.startsWith('/freerolls/')) {
+        return 'Your Free Daily Freeroll Schedule';
+    }
+    return 'Your Smarter.Poker Destination';
+}
+
 function phoneChallengeStorage() {
     try { return sessionStorage; } catch { return null; }
 }
@@ -70,13 +154,15 @@ export default function VerifyPhonePage() {
     const rawQueryRedirect = Array.isArray(router.query.redirect)
         ? router.query.redirect[0]
         : router.query.redirect;
-    const queryNext = isSafeInternalPath(rawQueryNext)
+    const safeQueryNext = isSafeInternalPath(rawQueryNext)
         ? rawQueryNext
         : (isSafeInternalPath(rawQueryRedirect) ? rawQueryRedirect : null);
+    const queryNext = safeQueryNext ? appendSeoUnlockedParam(safeQueryNext) : null;
     // Opened without ?next= (the hamburger's verify phone entry): the account's
     // own pending invite, if any, is where the player continues to.
     const [pendingNext, setPendingNext] = useState(null);
     const nextPath = queryNext || pendingNext;
+    const pendingDestinationLabel = nextPath ? describePendingDestination(nextPath) : null;
     const safePtShape = (raw) => {
         if (typeof cleanPromoTokenShape === 'function') return cleanPromoTokenShape(raw);
         const val = typeof raw === 'string' ? raw.trim() : '';
@@ -386,6 +472,45 @@ export default function VerifyPhonePage() {
                 canonical="/hub/verify-phone"
                 noindex
             />
+            {isWelcome && nextPath && pendingDestinationLabel && !checking && !alreadyVerified && stage !== 'done' && (
+                <div
+                    role="status"
+                    aria-live="polite"
+                    data-testid="verify-phone-continuity-bar"
+                    style={{
+                        width: '100%',
+                        background: '#000',
+                        padding: '12px 12px 0',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        boxSizing: 'border-box',
+                    }}
+                >
+                    <div
+                        style={{
+                            width: 'min(620px, 100%)',
+                            padding: '10px 14px',
+                            borderRadius: 0,
+                            border: '1px solid #3a7fbd',
+                            background: 'linear-gradient(180deg, #10243a 0%, #0b1120 100%)',
+                            boxShadow: 'inset 0 1px 0 rgba(134, 218, 255, 0.34)',
+                            color: '#f2f7ff',
+                            fontFamily: "var(--font-inter), system-ui, -apple-system, sans-serif",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            lineHeight: 1.45,
+                            textAlign: 'center',
+                        }}
+                    >
+                        <span style={{ color: '#38bdf8', fontWeight: 800 }}>
+                            {`Waiting Next: ${pendingDestinationLabel}`}
+                        </span>
+                        <span>
+                            {' · Claim Your Free 30-Day VIP + 500 Diamonds In 15 Seconds, Or Skip Straight There'}
+                        </span>
+                    </div>
+                </div>
+            )}
             <VerificationConsole checking={checking} alreadyVerified={alreadyVerified} stage={stage}
                 busy={busy} error={error} phone={phone} digits={digits} code={code} codeRef={codeRef}
                 cooldown={cooldown} formatPhone={formatPhone} sendCode={sendCode} verifyCode={verifyCode}

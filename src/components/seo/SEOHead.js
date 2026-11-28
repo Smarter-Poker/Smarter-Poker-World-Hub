@@ -49,6 +49,7 @@ const SOLVED_SPOT_QUERY_SCHEMAS = {
   'hand-converter': ['stakes', 'stack', 'hero', 'villain', 'cards', 'flop'],
   'mixed-game-placards': ['preset', 'orbit', 'hand'],
   'poker-iq-test': ['score', 'ans'],
+  'gto-leak-finder': ['score', 'leak'],
   'format-quiz': ['hours', 'br', 'var', 'focus', 'env'],
   'preflop-ranges': ['pos', 'action', 'depth'],
   'geometric-bet-calculator': ['pot', 'stack', 'mode'],
@@ -329,6 +330,7 @@ export default function SEOHead(props) {
       pathname === '/tools/who-wins-calculator' ||
       pathname === '/tools/mixed-game-placards' ||
       pathname === '/tools/poker-iq-test' ||
+      pathname === '/tools/gto-leak-finder' ||
       pathname === '/tools/geometric-bet-calculator' ||
       pathname === '/tools/late-reg-calculator' ||
       pathname === '/tools/mtt-grind-planner' ||

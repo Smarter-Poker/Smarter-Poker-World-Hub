@@ -224,3 +224,15 @@ test('Phase 4 Law 12: trivia-console.css defines all Phase 4 layout classes clea
         assert.ok(css.includes(selector), `trivia-console.css must define ${selector}`);
     }
 });
+
+test('Phase 4 Law 13: Settings multi-choice rows stack vertically so descriptions never clip on narrow mobile phones', () => {
+    const settings = read('pages/hub/trivia/settings.js');
+    assert.match(settings, /trivia-progress-setting__row--stacked/);
+    assert.match(settings, /title="Difficulty"[^>]*stacked>/);
+    assert.match(settings, /title="Feedback Intensity"[^>]*stacked>/);
+
+    const progressCss = read('src/styles/worlds/trivia-console-progress.css');
+    assert.match(progressCss, /\.trivia-progress-setting__row--stacked/);
+    assert.match(progressCss, /flex-direction:\s*column/);
+    assert.match(progressCss, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+});

@@ -19,6 +19,7 @@ export const PENDING_UNLOCK_KEY = 'sp_pending_unlock_v1';
 export const JUST_UNLOCKED_KEY = 'sp_just_unlocked_v1';
 export const SAVED_SPOTS_STORAGE_KEY = 'sp_saved_spots_v1';
 export const SPOTS_SYNCED_SESSION_KEY = 'sp_spots_synced_v1';
+export const DAY0_WINS_STORAGE_KEY = 'sp_day0_wins_v1';
 
 let spotsSyncInflight = false;
 
@@ -133,9 +134,116 @@ const UNLOCK_COPY_MAP = {
   'video-drill': 'Interactive Video Hand Quizzes, Study Playlists & Pro Bookmarks Are Now Active.',
   'study-deck': 'Your Personal Poker Study Deck, Leak Tracker & 107 GTO Games Are Unlocked.',
   'dataset-export': 'Full Interactive Filter Matrix, Benchmark Tables & CSV Exports Are Now Active.',
+  'training-gto': 'Your Full 5-Category GTO Leak Matrix & 107 Interactive Training Games Are Unlocked.',
+  'gto-leak-finder-report': 'Your Full 5-Category GTO Leak Matrix & Custom 107-Game Drill Plan Are Unlocked.',
   'editorial-wire': 'Weekly GTO Strategy Polls, Full Wire Archives & Pro Alerts Are Now Active.',
   'masthead': 'Your Free Smarter.Poker Pro Console, 107 GTO Games & Live Venue Intel Are Active.',
 };
+
+export function buildDay0ChecklistState({ savedSpotCount = 0, completedIds = [] } = {}) {
+  const doneSet = new Set(Array.isArray(completedIds) ? completedIds : []);
+  const hasSavedSpot = Number(savedSpotCount) > 0 || doneSet.has('save-first-spot');
+  return [
+    {
+      id: 'save-first-spot',
+      step: 1,
+      label: 'Save Your First Spot Or Range',
+      href: '/tools/gto-leak-finder',
+      completed: hasSavedSpot,
+    },
+    {
+      id: 'play-gto-hands',
+      step: 2,
+      label: 'Play 3 Free GTO Hands',
+      href: '/hub/training',
+      completed: doneSet.has('play-gto-hands'),
+    },
+    {
+      id: 'follow-live-room',
+      step: 3,
+      label: 'Follow A Live Poker Room Or Series',
+      href: '/hub/poker-near-me',
+      completed: doneSet.has('follow-live-room'),
+    },
+  ];
+}
+
+export function resolveHubGravityLinks(unlockKey = '', pathname = '') {
+  const key = String(unlockKey || '').toLowerCase();
+  const path = String(pathname || '').toLowerCase();
+
+  if (
+    key.includes('venue') ||
+    key.includes('series') ||
+    path.startsWith('/hub/venues') ||
+    path.startsWith('/hub/series') ||
+    path.startsWith('/hub/poker-near-me') ||
+    path.startsWith('/poker-rooms')
+  ) {
+    return [
+      { href: '/tools/gto-leak-finder', label: '60-Second GTO Leak Finder', tag: 'Free Diagnostic' },
+      { href: '/hub/bankroll-manager', label: 'Free Bankroll Manager', tag: 'Log Live Cash' },
+    ];
+  }
+
+  if (
+    key.includes('gto') ||
+    key.includes('solver') ||
+    key.includes('calc') ||
+    key.includes('preflop') ||
+    key.includes('training') ||
+    path.startsWith('/tools') ||
+    path.startsWith('/hub/training')
+  ) {
+    return [
+      { href: '/hub/bankroll-manager', label: 'Free Bankroll Manager', tag: 'Track Sessions' },
+      { href: '/hub/poker-near-me/lobby', label: 'Live Poker Near Me', tag: 'Find Live Games' },
+    ];
+  }
+
+  if (
+    key.includes('study') ||
+    key.includes('video') ||
+    key.includes('editorial') ||
+    key.includes('dataset') ||
+    path.startsWith('/learn') ||
+    path.startsWith('/compare')
+  ) {
+    return [
+      { href: '/tools/gto-leak-finder', label: '60-Second GTO Leak Finder', tag: '5-Hand Test' },
+      { href: '/hub/poker-near-me/lobby', label: 'Live Poker Near Me', tag: 'Listed Rooms' },
+    ];
+  }
+
+  return [
+    { href: '/tools/gto-leak-finder', label: '60-Second GTO Leak Finder', tag: 'Free Diagnostic' },
+    { href: '/hub/bankroll-manager', label: 'Free Bankroll Manager', tag: 'Track Profit' },
+  ];
+}
+
+function readLocalSavedSpotCount() {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const raw = window.localStorage.getItem(SAVED_SPOTS_STORAGE_KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.length : 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+function readCompletedDay0Wins() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.sessionStorage.getItem(DAY0_WINS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [];
+  } catch (_) {
+    return [];
+  }
+}
 
 function hasStoredAuthSession() {
   if (typeof window === 'undefined') return false;
@@ -203,6 +311,8 @@ function resolveWelcomeBody(unlockKey) {
 export default function SmarterUnlockedWelcomeBanner() {
   const router = useRouter();
   const [bannerState, setBannerState] = useState(null);
+  const [syncedSpotCount, setSyncedSpotCount] = useState(0);
+  const [completedWinIds, setCompletedWinIds] = useState([]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -216,6 +326,8 @@ export default function SmarterUnlockedWelcomeBanner() {
       return;
     }
 
+    setSyncedSpotCount(readLocalSavedSpotCount());
+    setCompletedWinIds(readCompletedDay0Wins());
     void syncGuestSavedSpotsToCloud();
 
     try {
@@ -240,6 +352,27 @@ export default function SmarterUnlockedWelcomeBanner() {
     }
   }, [router?.asPath]);
 
+  const markDay0Win = (winId) => {
+    setCompletedWinIds((prev) => {
+      const next = prev.includes(winId) ? prev : [...prev, winId];
+      try {
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.setItem(DAY0_WINS_STORAGE_KEY, JSON.stringify(next));
+        }
+      } catch (_) {
+        /* ignore */
+      }
+      return next;
+    });
+    if (bannerState) {
+      trackSeoFunnelEvent('seo_post_signup_day0_win_click', {
+        win_id: winId,
+        unlock_key: bannerState.unlockKey,
+        source: bannerState.source || 'seo-unlock',
+      });
+    }
+  };
+
   const dismiss = (reason = 'dismiss') => {
     try {
       if (typeof window !== 'undefined') {
@@ -262,6 +395,14 @@ export default function SmarterUnlockedWelcomeBanner() {
   };
 
   if (!bannerState) return null;
+
+  const currentPath = String(router?.asPath || '').split('?')[0];
+  const day0Items = buildDay0ChecklistState({
+    savedSpotCount: syncedSpotCount,
+    completedIds: completedWinIds,
+  });
+  const completedCount = day0Items.filter((item) => item.completed).length;
+  const gravityLinks = resolveHubGravityLinks(bannerState.unlockKey, currentPath);
 
   return (
     <aside
@@ -304,6 +445,128 @@ export default function SmarterUnlockedWelcomeBanner() {
           >
             ×
           </button>
+        </div>
+      </div>
+
+      <div
+        data-testid="unlocked-banner-day0-checklist"
+        style={{
+          marginTop: 12,
+          paddingTop: 10,
+          borderTop: '1px solid #243b54',
+          display: 'grid',
+          gap: 8,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+          }}
+        >
+          <span
+            style={{
+              color: '#86daff',
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: '0.07em',
+              textTransform: 'uppercase',
+            }}
+          >
+            {`Day-0 First 3 Wins (${completedCount}/3 Completed)`}
+          </span>
+          {syncedSpotCount > 0 ? (
+            <span style={{ color: '#22c55e', fontSize: 11, fontWeight: 700 }}>
+              {`${syncedSpotCount} Saved Spot${syncedSpotCount === 1 ? '' : 's'} Synced`}
+            </span>
+          ) : null}
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))',
+            gap: 6,
+          }}
+        >
+          {day0Items.map((item) => (
+            <Link
+              key={item.id}
+              href={item.href}
+              data-testid={`day0-win-${item.id}`}
+              onClick={() => markDay0Win(item.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '7px 10px',
+                borderRadius: 0,
+                border: `1px solid ${item.completed ? '#22c55e' : '#2b4663'}`,
+                background: item.completed ? 'rgba(22, 101, 52, 0.25)' : 'rgba(11, 17, 32, 0.85)',
+                color: '#f2f7ff',
+                fontSize: 12,
+                fontWeight: 600,
+                textDecoration: 'none',
+                lineHeight: 1.3,
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  color: item.completed ? '#22c55e' : '#38bdf8',
+                  fontWeight: 800,
+                  flex: 'none',
+                }}
+              >
+                {item.completed ? '✓' : `${item.step}.`}
+              </span>
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div
+        data-testid="unlocked-banner-gravity-rail"
+        style={{
+          marginTop: 10,
+          paddingTop: 10,
+          borderTop: '1px solid #1e354d',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+        }}
+      >
+        <span
+          style={{
+            color: '#bdd0e2',
+            fontSize: 11.5,
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+          }}
+        >
+          Explore More Free On Smarter.Poker
+        </span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {gravityLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={styles.btnSharpSecondary}
+              data-testid={`gravity-link-${link.href.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}`}
+              onClick={() => dismiss(`gravity-${link.href}`)}
+              style={{ minHeight: 34, padding: '0 10px', fontSize: 12 }}
+            >
+              <span>{link.label}</span>
+              <span style={{ color: '#38bdf8', fontSize: 11 }}>{`· ${link.tag}`}</span>
+            </Link>
+          ))}
         </div>
       </div>
     </aside>

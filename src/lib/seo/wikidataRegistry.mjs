@@ -505,6 +505,7 @@ export const TOOL_WIKIDATA_MAP = {
   'who-wins-calculator': ['texas-holdem', 'omaha-holdem', 'poker'],
   'mixed-game-placards': ['texas-holdem', 'omaha-holdem', 'seven-card-stud', 'razz', 'poker'],
   'poker-iq-test': ['game-theory', 'independent-chip-model', 'texas-holdem', 'poker'],
+  'gto-leak-finder': ['game-theory', 'independent-chip-model', 'texas-holdem', 'poker'],
   'plo-outs-calculator': ['omaha-holdem', 'game-theory', 'monte-carlo-method', 'poker'],
   'late-reg-calculator': ['independent-chip-model', 'poker-tournament', 'prize-money', 'game-theory', 'poker'],
   'winrate-confidence-calculator': ['monte-carlo-method', 'game-theory', 'texas-holdem', 'poker'],
