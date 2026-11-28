@@ -1035,6 +1035,10 @@ import './otc-tier6-day3-and-event-reminders-20261128.law.test.mjs';
 import './otc-tier6-venue-video-conversion-20261128.law.test.mjs';
 import './otc-tier6-attribution-and-full-funnel-20261128.law.test.mjs';
 import './otc-forensic-all-phases-hardening-20261128.law.test.mjs';
+import './otc-tier7-all-calculators-savebar-20261128.law.test.mjs';
+import './otc-tier7-posthog-stability-and-ab-stats-20261128.law.test.mjs';
+import './otc-tier7-habit-digest-vip-graduation-and-push-20261128.law.test.mjs';
+import './otc-tier7-og-scorecards-and-150-matchups-20261128.law.test.mjs';
 import './site-wide-payload-budget.test.mjs';
 import './an-internal-link-reaches-a-page.law.test.mjs';
 
