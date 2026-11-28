@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════
--- 03_fn_bankroll_totals.sql
--- Install as: supabase/migrations/<UTC stamp>_fn_bankroll_totals.sql
--- DRAFT - NOT INSTALLED. Nothing in this folder has been applied anywhere.
+-- 20261128100300_fn_bankroll_totals.sql
+-- PROVISIONAL VERSION: not applied yet. The coordinator applies it and this
+-- file is renamed to the version recorded in supabase_migrations.schema_migrations.
 -- ═══════════════════════════════════════════════════════════════════════
 -- TIER:        2 (additive: one new read-only function)
 -- AUTHOR:      Claude (Bankroll Manager programme, Wave 4 db lane, 2026-11-28)

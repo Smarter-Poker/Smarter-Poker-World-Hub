@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════
--- 01_staking_sessions_update_delete_grant.sql
--- Install as: supabase/migrations/<UTC stamp>_staking_sessions_update_delete_grant.sql
--- DRAFT - NOT INSTALLED. Nothing in this folder has been applied anywhere.
+-- 20261128100100_staking_sessions_update_delete_grant.sql
+-- PROVISIONAL VERSION: not applied yet. The coordinator applies it and this
+-- file is renamed to the version recorded in supabase_migrations.schema_migrations.
 -- ═══════════════════════════════════════════════════════════════════════
 -- TIER:        2
 -- AUTHOR:      Claude (Bankroll Manager programme, Wave 4 db lane, 2026-11-28)

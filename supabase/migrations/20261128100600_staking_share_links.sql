@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════
--- 06_staking_share_links.sql
--- Install as: supabase/migrations/<UTC stamp>_staking_share_links.sql
--- DRAFT - NOT INSTALLED. Nothing in this folder has been applied anywhere.
+-- 20261128100600_staking_share_links.sql
+-- PROVISIONAL VERSION: not applied yet. The coordinator applies it and this
+-- file is renamed to the version recorded in supabase_migrations.schema_migrations.
 -- ═══════════════════════════════════════════════════════════════════════
 -- TIER:        2 (additive: new table, RLS, one SECURITY DEFINER reader)
 -- AUTHOR:      Claude (Bankroll Manager programme, Wave 4 db lane, 2026-11-28)

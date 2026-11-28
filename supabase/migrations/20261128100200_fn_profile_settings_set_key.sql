@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════
--- 02_fn_profile_settings_set_key.sql
--- Install as: supabase/migrations/<UTC stamp>_fn_profile_settings_set_key.sql
--- DRAFT - NOT INSTALLED. Nothing in this folder has been applied anywhere.
+-- 20261128100200_fn_profile_settings_set_key.sql
+-- PROVISIONAL VERSION: not applied yet. The coordinator applies it and this
+-- file is renamed to the version recorded in supabase_migrations.schema_migrations.
 -- ═══════════════════════════════════════════════════════════════════════
 -- TIER:        2 (additive: one new function)
 -- AUTHOR:      Claude (Bankroll Manager programme, Wave 4 db lane, 2026-11-28)

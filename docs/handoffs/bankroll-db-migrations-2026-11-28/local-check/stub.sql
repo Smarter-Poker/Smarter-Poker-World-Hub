@@ -43,3 +43,7 @@ CREATE TABLE public.staking_sessions (id uuid PRIMARY KEY DEFAULT gen_random_uui
 ALTER TABLE public.staking_sessions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage own staking sessions" ON public.staking_sessions USING (arrangement_id IN (SELECT staking_arrangements.id FROM staking_arrangements WHERE staking_arrangements.user_id = (SELECT auth.uid())));
 GRANT SELECT, INSERT ON public.staking_sessions TO authenticated;
+-- Supabase's default privileges: new tables and functions in public are granted to the API roles.
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated;

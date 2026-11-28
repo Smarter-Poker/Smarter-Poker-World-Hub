@@ -1,19 +1,18 @@
-# Bankroll Manager database drafts (2026-11-28)
+# Bankroll Manager database migrations (2026-11-28)
 
-**Nothing in this folder is installed.** These are drafts, parked on the
-`bookmark/bankroll-db-migrations-2026-11-28` branch (never auto-merged) and kept
-out of `supabase/migrations/` so nothing looks installed when it is not. The
-session that wrote them was not allowed to change the production database.
-
-Installing one means: copy it to `supabase/migrations/<UTC stamp>_<slug>.sql`
-(the "Install as" line in each header), apply it once through the normal
-migration path, and commit the copy in the same PR.
-For 2 and 3, the same PR must also delete the function's entry from
-`phantom_rpcs` in `scripts/ci/supabase-invariants.allowlist.json` (added by
-PR #3296 so CI accepts the call before the function exists; the phantom-rpc
-check fails on a stale entry once it is installed). Follow
+The six migrations live in `supabase/migrations/` under PROVISIONAL versions
+(`20261128100100` ... `20261128100600`) until each is applied. The coordinator
+applies them one at a time, in the order below, through the normal migration
+path; each file is then renamed to the version recorded in
+`supabase_migrations.schema_migrations`, so repo and database agree. Follow
 `.agent/workflows/migration-safety.md` (advisor scan before and after,
-overload check, readback).
+overload check, readback). Never edit a file after it is applied.
+
+For 2 and 3, the PR that ships the installed files must also delete the
+function's entry from `phantom_rpcs` in
+`scripts/ci/supabase-invariants.allowlist.json` (added by PR #3296 so CI
+accepted the call before the function existed; the phantom-rpc check fails on
+a stale entry once it is installed).
 
 **Break window:** the database refuses DDL from **:50 to :03 UTC every hour**.
 Run `date -u` first. A refused migration applied nothing and wrote no history
@@ -23,26 +22,22 @@ with `execute_sql`, not `list_migrations`:
 
 ## Apply order
 
-Each is independent of the others except where noted; this order applies the
-ones the shipped client already uses first.
-
-| # | File | Tier | Client today | Depends on |
+| # | File (provisional version) | Tier | Client today | Depends on |
 |---|------|------|--------------|------------|
-| 1 | `01_staking_sessions_update_delete_grant.sql` | 2 | Already used (no-op on production) | - |
-| 2 | `02_fn_profile_settings_set_key.sql` | 2 | Shipped, falls back until installed | - |
-| 3 | `03_fn_bankroll_totals.sql` | 2 | Shipped, falls back until installed | - |
-| 4 | `04_bankroll_ledger_entry_currency.sql` | 2 | Nothing reads it yet | - |
-| 5 | `05_bankroll_ledger_changes.sql` | 2 | Nothing reads it yet | - (after 4 the history images include the currency columns automatically) |
-| 6 | `06_staking_share_links.sql` | 2 | Nothing reads it yet | - |
+| 1 | `20261128100100_staking_sessions_update_delete_grant.sql` | 2 | Already used (no-op on production) | - |
+| 2 | `20261128100200_fn_profile_settings_set_key.sql` | 2 | Shipped (#3296), falls back until installed | - |
+| 3 | `20261128100300_fn_bankroll_totals.sql` | 2 | Shipped (#3296), falls back until installed | - |
+| 4 | `20261128100400_bankroll_ledger_changes.sql` | 2 | Nothing reads it yet | - |
+| 5 | `20261128100500_bankroll_ledger_entry_currency.sql` | 2 | Nothing reads it yet | - (after 4, history images carry the new columns automatically) |
+| 6 | `20261128100600_staking_share_links.sql` | 2 | Nothing reads it yet | - |
 
 "Falls back" means the client (`src/lib/bankroll/rpcFallback.mjs`) calls the
 function first and uses its old path ONLY when PostgREST answers PGRST202 /
-404. Any other error is surfaced. So 2 and 3 can be installed at any time
-after the client PR, and dropped again without breaking anything.
+404. Any other error is surfaced. Dropping 2 or 3 again breaks nothing.
 
 ## How they were checked
 
-- All six were applied in order to a throwaway local PostgreSQL 16 built with
+- All six were applied (original order 1, 2, 3, currency, history, links; each is independent) to a throwaway local PostgreSQL 16 built with
   the production shapes of `bankroll_ledger`, `bankroll_segments`,
   `staking_*`, `profiles` (column grants included), stub `auth.uid()`,
   `anon` and `authenticated` roles, and the same RLS policies (read from
@@ -86,17 +81,17 @@ Run as the migration user via `execute_sql` unless noted. All read-only.
    `POST /rest/v1/rpc/fn_bankroll_totals` 200 and no paged
    `GET /rest/v1/bankroll_ledger?select=id,category,gross_in,...` for the
    stats tiles.
-4. **entry currency**
-   `SELECT column_name, column_default, is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='bankroll_ledger' AND column_name IN ('entry_currency','fx_rate_to_usd','original_gross_in','original_gross_out');`
-   and `SELECT conname, convalidated FROM pg_constraint WHERE conrelid='public.bankroll_ledger'::regclass AND conname IN ('bankroll_ledger_entry_currency_check','bankroll_ledger_fx_rate_positive','bankroll_ledger_foreign_entry_complete');`
-   expect three rows, all validated.
-   Rerun the bankroll-live suite: unchanged.
-5. **ledger history**
+4. **ledger history**
    `SELECT tgname, tgenabled FROM pg_trigger WHERE tgrelid='public.bankroll_ledger'::regclass AND NOT tgisinternal;`
    expect both `bankroll_ledger_changes_on_*` with `O`; `SELECT polname, polcmd FROM pg_policy WHERE polrelid='public.bankroll_ledger_changes'::regclass;`
    expect one SELECT policy. Edit one CI-account session note and read
    `bankroll_ledger_changes` as that account (one UPDATE row).
    Run `get_advisors(security)`: no new finding for the SECDEF function.
+5. **entry currency**
+   `SELECT column_name, column_default, is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='bankroll_ledger' AND column_name IN ('entry_currency','fx_rate_to_usd','original_gross_in','original_gross_out');`
+   and `SELECT conname, convalidated FROM pg_constraint WHERE conrelid='public.bankroll_ledger'::regclass AND conname IN ('bankroll_ledger_entry_currency_check','bankroll_ledger_fx_rate_positive','bankroll_ledger_foreign_entry_complete');`
+   expect three rows, all validated.
+   Rerun the bankroll-live suite: unchanged.
 6. **share links**
    `SELECT count(*) FROM public.fn_staking_statement(gen_random_uuid());`
    expect 0; `get_advisors(security)` shows no new finding (search_path is
@@ -126,10 +121,10 @@ secrets); it must never be scheduled.
 
 ## Client changes still needed (not shipped)
 
-- 4 (currency): entry form currency select, edit form, ledger display,
+- 5 (currency): entry form currency select, edit form, ledger display,
   export columns, revision copies, regenerated `src/types/supabase.ts`;
   details in the migration header.
-- 5 (history): an Edit History panel and a Recently Deleted list with
+- 4 (history): an Edit History panel and a Recently Deleted list with
   restore; staking links of a deleted session are not restored.
 - 6 (share links): Share With Backer / Revoke in the Staking Tracker, and a
   rate-limited public backer page (Next API route calling the rpc

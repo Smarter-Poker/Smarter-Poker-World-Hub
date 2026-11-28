@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════
--- 05_bankroll_ledger_changes.sql
--- Install as: supabase/migrations/<UTC stamp>_bankroll_ledger_changes.sql
--- DRAFT - NOT INSTALLED. Nothing in this folder has been applied anywhere.
+-- 20261128100400_bankroll_ledger_changes.sql
+-- PROVISIONAL VERSION: not applied yet. The coordinator applies it and this
+-- file is renamed to the version recorded in supabase_migrations.schema_migrations.
 -- ═══════════════════════════════════════════════════════════════════════
 -- TIER:        2 (additive: new table, RLS, trigger function, two triggers)
 -- AUTHOR:      Claude (Bankroll Manager programme, Wave 4 db lane, 2026-11-28)
