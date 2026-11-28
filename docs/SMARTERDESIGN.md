@@ -43,6 +43,8 @@ Never use yellow, gold, amber, purple, violet, lavender, pink or magenta text an
 
 ### Cross-repo palette (2026-11-28)
 
+Club Arena defines the table palette as `--sd-ice` #86daff, `--sd-ice-strong` #74dfff, `--sd-silver` #bdd0e2, `--sd-silver-dim` #9fbacc, `--sd-white` #f4f8ff, `--sd-cobalt-top` #087cfa, `--sd-cobalt-mid` #0044ac, `--sd-cobalt-deep` #002b68, `--sd-green` #4dc660 and `--sd-red` #ff8a93 (its `docs/SMARTERDESIGN-TABLE-PALETTE.md`). World Hub declares the same names with the same values on `:root` in `styles/smarterdesign.css`. One name differs in meaning: Club Arena's `--sd-ink` is body text (#f1f5fc); World Hub's scoped `--sd-ink` is the navy ground, so World Hub code uses `--sd-white-ink` for body text. Change a shared value in both repos in the same piece of work.
+
 World Hub and Club Arena use the same custom-property names for the #SmarterDesign inks, so a colour is read by name in both repos instead of being copied as a literal. World Hub declares them in `styles/smarterdesign.css`: the new names on `:root`, and `--sd-ice`, `--sd-silver` and `--sd-text` in the `.smarterdesign` scope, where they already were.
 
 | Token | Value | Job |

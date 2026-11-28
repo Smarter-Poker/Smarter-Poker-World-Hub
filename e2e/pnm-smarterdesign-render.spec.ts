@@ -90,11 +90,7 @@ const FLOOR = { text: 12, contrast: 6, buttons: 1 };
 // page is held to the full rule.
 type Debt = { rule: 'contrast' | 'small'; route: RegExp; element: RegExp; owner: string };
 const KNOWN_DEBT: Debt[] = [
-  { rule: 'contrast', route: /^\/hub\/venues\//, element: /^dt\.info-label /, owner: 'venue page lane: .info-label #64748b' },
-  { rule: 'contrast', route: /^\/hub\/venues\//, element: /^dd\.info-value\.muted /, owner: 'venue page lane: .info-value.muted #475569' },
-  { rule: 'contrast', route: /^\/hub\/venues\//, element: /^span\.nearby-venue-type /, owner: 'venue page lane: .nearby-venue-type #64748b' },
-  { rule: 'contrast', route: /^\/hub\/venues\//, element: /^p "No (Check-Ins Yet Today|Updates Yet)/, owner: 'venue page lane: empty-state copy #64748b' },
-  { rule: 'small', route: /^\/hub\/venues\//, element: /^button\.info-link /, owner: 'venue page lane: .info-link address button under 44px tall' },
+  // Empty: the venue page contrast and 44px items were fixed at source on 2026-11-28.
 ];
 
 type Audit = Awaited<ReturnType<typeof audit>>;
