@@ -1404,6 +1404,7 @@ async function fetchLinkedLedgerIds(arrangementIds: string[]): Promise<Set<strin
   const { data, error } = await supabase
     .from('staking_sessions')
     .select('ledger_entry_id')
+    // in-list: bounded by one player's own staking deals
     .in('arrangement_id', arrangementIds);
   if (error) throw error;
   return new Set((data || []).map((row: any) => row.ledger_entry_id));
@@ -1413,13 +1414,15 @@ async function fetchLinkedLedgerIds(arrangementIds: string[]): Promise<Set<strin
 async function fetchLedgerRowsById(userId: string, ids: string[]): Promise<Map<string, any>> {
   const byId = new Map<string, any>();
   if (!ids.length) return byId;
-  const { data, error } = await supabase
-    .from('bankroll_ledger')
-    .select('id, entry_date, start_time, category, net_result, gross_in, gross_out, stakes, tournament_name')
-    .eq('user_id', userId)
-    .in('id', ids);
-  if (error) throw error;
-  for (const row of data || []) byId.set(row.id, row);
+  for (let start = 0; start < ids.length; start += 100) {
+    const { data, error } = await supabase
+      .from('bankroll_ledger')
+      .select('id, entry_date, start_time, category, net_result, gross_in, gross_out, stakes, tournament_name')
+      .eq('user_id', userId)
+      .in('id', ids.slice(start, start + 100));
+    if (error) throw error;
+    for (const row of data || []) byId.set(row.id, row);
+  }
   return byId;
 }
 
