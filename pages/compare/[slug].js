@@ -96,7 +96,7 @@ export default function ComparePage({ slug }) {
                 <caption>{page.table.caption}</caption>
                 <thead>
                   <tr>
-                    <th scope="col">Product</th>
+                    <th scope="col">{page.table.subjectLabel || 'Product'}</th>
                     {page.table.columns.map((column) => (
                       <th scope="col" key={column.key}>
                         {column.label}
@@ -178,6 +178,13 @@ export default function ComparePage({ slug }) {
               <li key={productId}>
                 <Link href={PRODUCTS[productId].href} className="cmp-link">
                   {PRODUCTS[productId].name}
+                </Link>
+              </li>
+            ))}
+            {(page.extraLinks || []).map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className="cmp-link">
+                  {item.label}
                 </Link>
               </li>
             ))}

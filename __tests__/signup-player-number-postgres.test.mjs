@@ -1,9 +1,23 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+
+function reserveFreePort() {
+  return new Promise((resolve, reject) => {
+    const srv = createServer();
+    srv.unref();
+    srv.on('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const addr = srv.address();
+      const port = typeof addr === 'object' && addr ? addr.port : 0;
+      srv.close((err) => (err ? reject(err) : resolve(port)));
+    });
+  });
+}
 const root = new URL('../', import.meta.url);
 const read = (file) => readFileSync(new URL(file, root), 'utf8');
 const bindir = [process.env.PHASE6_POSTGRES_BIN, process.env.PG17_BINDIR, process.env.PG_BINDIR, '/opt/homebrew/opt/postgresql@17/bin', '/usr/lib/postgresql/17/bin', '/usr/lib/postgresql/16/bin'].filter(Boolean).find(p => existsSync(join(p, 'initdb')));
@@ -12,9 +26,12 @@ const migration = read('supabase/migrations/20261018134229_signup_auth_uses_cano
 
 test('native signup skips occupied numbers, creates dependent rows, and preserves eligibility under concurrent signups', async () => {
   assert.ok(bindir, 'PostgreSQL binaries are required, never skip this regression');
-  const base = process.env.AGENT_TEST_ROOT || (process.platform === 'darwin' ? '/Volumes/SmarterWork/agent-work/digest-fixes-01a14f3d' : tmpdir());
+  const darwinFallback = existsSync('/Volumes/SmarterWork/agent-work/digest-fixes-01a14f3d')
+    ? '/Volumes/SmarterWork/agent-work/digest-fixes-01a14f3d'
+    : (existsSync('/Volumes/SmarterWork/agent-work') ? '/Volumes/SmarterWork/agent-work' : tmpdir());
+  const base = process.env.AGENT_TEST_ROOT || (process.platform === 'darwin' ? darwinFallback : tmpdir());
   const scratch = mkdtempSync(join(base, 'signup-pg-'));
-  const port = 56000 + Math.floor(Math.random() * 5000);
+  const port = await reserveFreePort();
   const args = ['-X', '-h', '127.0.0.1', '-p', String(port), '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-At'];
   const sql = input => execFileSync(join(bindir, 'psql'), args, { input, encoding: 'utf8', stdio: ['pipe','pipe','pipe'] }).trim();
   let started = false;

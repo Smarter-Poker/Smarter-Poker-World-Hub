@@ -19,6 +19,7 @@ import FaqSection from '../../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import SmarterSeoMasthead from '../../../src/components/seo/SmarterSeoMasthead';
+import SmarterMiniGtoDrill from '../../../src/components/seo/SmarterMiniGtoDrill';
 import { fitMetaDescription } from '../../../src/lib/seo/titleFit.js';
 import {
   LEARN_PATH,
@@ -157,6 +158,7 @@ export default function LearnCategoryPillarPage({ category, intro, lessons, othe
         title={`${category} Poker Strategy: ${lessons.length} Free GTO Guides`}
         description={description}
         canonical={path}
+        ogImage={`/api/og/tool-card?tool=learn&title=${encodeURIComponent(`${category} Poker Strategy`)}&subtitle=${encodeURIComponent(`${lessons.length} Free GTO Guides`)}`}
         markdownUrl={`${SITE_URL}${path}.md`}
         jsonLd={categorySchema({ category, path, description, lessons, faqs })}
       />
@@ -196,6 +198,8 @@ export default function LearnCategoryPillarPage({ category, intro, lessons, othe
             secondaryHref={feature.toolHref}
             secondaryLabel={`Open ${feature.toolName}`}
           />
+
+          <SmarterMiniGtoDrill category={category} redirectPath={path} />
 
           <section style={styles.section}>
             <h2 style={styles.h2}>All {category} Lessons</h2>

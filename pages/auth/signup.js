@@ -6,7 +6,7 @@ import { useSignInOpening } from '../../src/world/components/CinematicIntro';
    Last Deploy: 2026-01-12 01:18:00 - OTP Code Input Active
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ExistingAccountDialog from '../../src/components/auth/ExistingAccountDialog';
 import AuthEntryChoices from '../../src/components/auth/AuthEntryChoices';
 import { isExistingSignup, isAbortedAuthRequest, signUpWithRecovery } from '../../src/lib/signupOutcome.mjs';
@@ -178,6 +178,175 @@ const usStates = [
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
 ];
 
+const NON_US_ISO_TO_COUNTRY = Object.freeze({
+  AR: 'Argentina',
+  AT: 'Austria',
+  AU: 'Australia',
+  BE: 'Belgium',
+  BR: 'Brazil',
+  CA: 'Canada',
+  CH: 'Switzerland',
+  CL: 'Chile',
+  CN: 'China',
+  CO: 'Colombia',
+  CZ: 'Czech Republic',
+  DE: 'Germany',
+  DK: 'Denmark',
+  ES: 'Spain',
+  FI: 'Finland',
+  FR: 'France',
+  GB: 'United Kingdom',
+  GR: 'Greece',
+  HK: 'Hong Kong',
+  HU: 'Hungary',
+  ID: 'Indonesia',
+  IE: 'Ireland',
+  IL: 'Israel',
+  IN: 'India',
+  IT: 'Italy',
+  JP: 'Japan',
+  KR: 'South Korea',
+  MX: 'Mexico',
+  MY: 'Malaysia',
+  NG: 'Nigeria',
+  NL: 'Netherlands',
+  NO: 'Norway',
+  NZ: 'New Zealand',
+  PE: 'Peru',
+  PH: 'Philippines',
+  PL: 'Poland',
+  PT: 'Portugal',
+  RO: 'Romania',
+  RU: 'Russia',
+  SE: 'Sweden',
+  SG: 'Singapore',
+  TH: 'Thailand',
+  TR: 'Turkey',
+  TW: 'Taiwan',
+  UA: 'Ukraine',
+  UK: 'United Kingdom',
+  VN: 'Vietnam',
+  ZA: 'South Africa',
+  AE: 'United Arab Emirates',
+});
+
+const TIMEZONE_TO_NON_US_COUNTRY = Object.freeze({
+  'America/Toronto': 'Canada',
+  'America/Vancouver': 'Canada',
+  'America/Montreal': 'Canada',
+  'America/Edmonton': 'Canada',
+  'America/Winnipeg': 'Canada',
+  'America/Halifax': 'Canada',
+  'America/St_Johns': 'Canada',
+  'America/Regina': 'Canada',
+  'America/Moncton': 'Canada',
+  'America/Whitehorse': 'Canada',
+  'America/Yellowknife': 'Canada',
+  'America/Dawson': 'Canada',
+  'America/Iqaluit': 'Canada',
+  'America/Mexico_City': 'Mexico',
+  'America/Monterrey': 'Mexico',
+  'America/Tijuana': 'Mexico',
+  'America/Cancun': 'Mexico',
+  'America/Merida': 'Mexico',
+  'America/Chihuahua': 'Mexico',
+  'America/Mazatlan': 'Mexico',
+  'America/Hermosillo': 'Mexico',
+  'America/Sao_Paulo': 'Brazil',
+  'America/Fortaleza': 'Brazil',
+  'America/Recife': 'Brazil',
+  'America/Belem': 'Brazil',
+  'America/Manaus': 'Brazil',
+  'America/Bahia': 'Brazil',
+  'America/Cuiaba': 'Brazil',
+  'America/Campo_Grande': 'Brazil',
+  'America/Porto_Velho': 'Brazil',
+  'America/Rio_Branco': 'Brazil',
+  'America/Buenos_Aires': 'Argentina',
+  'America/Bogota': 'Colombia',
+  'America/Santiago': 'Chile',
+  'America/Lima': 'Peru',
+  'Europe/London': 'United Kingdom',
+  'Europe/Belfast': 'United Kingdom',
+  'Europe/Dublin': 'Ireland',
+  'Europe/Berlin': 'Germany',
+  'Europe/Busingen': 'Germany',
+  'Europe/Paris': 'France',
+  'Europe/Madrid': 'Spain',
+  'Atlantic/Canary': 'Spain',
+  'Europe/Rome': 'Italy',
+  'Europe/Amsterdam': 'Netherlands',
+  'Europe/Stockholm': 'Sweden',
+  'Europe/Oslo': 'Norway',
+  'Europe/Copenhagen': 'Denmark',
+  'Europe/Helsinki': 'Finland',
+  'Europe/Zurich': 'Switzerland',
+  'Europe/Vienna': 'Austria',
+  'Europe/Brussels': 'Belgium',
+  'Europe/Lisbon': 'Portugal',
+  'Europe/Warsaw': 'Poland',
+  'Europe/Prague': 'Czech Republic',
+  'Europe/Athens': 'Greece',
+  'Europe/Bucharest': 'Romania',
+  'Europe/Budapest': 'Hungary',
+  'Europe/Kyiv': 'Ukraine',
+  'Europe/Kiev': 'Ukraine',
+  'Europe/Moscow': 'Russia',
+  'Europe/Istanbul': 'Turkey',
+  'Asia/Jerusalem': 'Israel',
+  'Asia/Dubai': 'United Arab Emirates',
+  'Asia/Kolkata': 'India',
+  'Asia/Calcutta': 'India',
+  'Asia/Tokyo': 'Japan',
+  'Asia/Seoul': 'South Korea',
+  'Asia/Singapore': 'Singapore',
+  'Asia/Manila': 'Philippines',
+  'Asia/Hong_Kong': 'Hong Kong',
+  'Asia/Taipei': 'Taiwan',
+  'Asia/Bangkok': 'Thailand',
+  'Asia/Ho_Chi_Minh': 'Vietnam',
+  'Asia/Saigon': 'Vietnam',
+  'Asia/Jakarta': 'Indonesia',
+  'Asia/Kuala_Lumpur': 'Malaysia',
+  'Asia/Shanghai': 'China',
+  'Pacific/Auckland': 'New Zealand',
+  'Pacific/Chatham': 'New Zealand',
+  'Africa/Johannesburg': 'South Africa',
+  'Africa/Lagos': 'Nigeria',
+});
+
+export function inferNonUsCountryFromTimezone(timeZone, validCountries = NON_US_COUNTRIES) {
+  const tz = String(timeZone || '').trim();
+  if (!tz) return null;
+  let candidate = TIMEZONE_TO_NON_US_COUNTRY[tz] || null;
+  if (!candidate) {
+    if (tz.startsWith('Australia/')) candidate = 'Australia';
+    else if (tz.startsWith('Canada/')) candidate = 'Canada';
+    else if (tz.startsWith('America/Argentina/')) candidate = 'Argentina';
+    else if (tz === 'GB' || tz === 'GB-Eire') candidate = 'United Kingdom';
+  }
+  if (!candidate) return null;
+  if (Array.isArray(validCountries) && !validCountries.includes(candidate)) return null;
+  return candidate;
+}
+
+function resolveNonUsCountryQuery(rawCountry, validCountries = NON_US_COUNTRIES) {
+  const clean = String(rawCountry || '').trim();
+  if (!clean) return null;
+  const upper = clean.toUpperCase();
+  if (upper === 'US' || upper === 'USA' || upper === 'UNITED STATES') return 'US';
+  if (NON_US_ISO_TO_COUNTRY[upper]) {
+    const mapped = NON_US_ISO_TO_COUNTRY[upper];
+    if (!Array.isArray(validCountries) || validCountries.includes(mapped)) return mapped;
+  }
+  if (Array.isArray(validCountries)) {
+    const lower = clean.toLowerCase();
+    const matched = validCountries.find((c) => c.toLowerCase() === lower);
+    if (matched) return matched;
+  }
+  return null;
+}
+
 export default function SignUpPage() {
   const router = useRouter();
   const { beginOpening, cancelOpening, OpeningComponent } = useSignInOpening();
@@ -204,6 +373,10 @@ export default function SignUpPage() {
     pokerAlias: '',
     promoCode: '',
   });
+
+  // Track whether the player manually interacted with location fields so smart
+  // geo-defaulting never overrides an explicit choice.
+  const locationTouchedRef = useRef(false);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -343,6 +516,69 @@ export default function SignUpPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Smart client-side geo-defaulting: preserves US default for US visitors and
+  // respects explicit ?state= / ?country= query overrides, while pre-selecting
+  // Outside The US + matching country for clear international timezones before
+  // the player interacts with any location control.
+  useEffect(() => {
+    if (!router.isReady || locationTouchedRef.current) return;
+    const one = (v) => (Array.isArray(v) ? v[0] : v);
+    let stateParam = one(router.query?.state);
+    let countryParam = one(router.query?.country);
+    if ((!stateParam || !countryParam) && typeof window !== 'undefined' && window.location?.search) {
+      try {
+        const sp = new URLSearchParams(window.location.search);
+        if (!stateParam) stateParam = sp.get('state') || '';
+        if (!countryParam) countryParam = sp.get('country') || '';
+      } catch {
+        /* ignore malformed search */
+      }
+    }
+
+    const cleanState = String(stateParam || '').trim().toUpperCase();
+    if (cleanState && US_STATES.includes(cleanState)) {
+      setFormData((prev) =>
+        locationTouchedRef.current || prev.state || prev.country
+          ? prev
+          : { ...prev, outsideUs: false, state: cleanState, country: '' }
+      );
+      return;
+    }
+
+    if (countryParam) {
+      const resolvedCountry = resolveNonUsCountryQuery(countryParam);
+      if (resolvedCountry === 'US') {
+        setFormData((prev) =>
+          locationTouchedRef.current ? prev : { ...prev, outsideUs: false, country: '' }
+        );
+        return;
+      }
+      if (resolvedCountry) {
+        setFormData((prev) =>
+          locationTouchedRef.current || prev.state || prev.country
+            ? prev
+            : { ...prev, outsideUs: true, country: resolvedCountry, state: '' }
+        );
+        return;
+      }
+    }
+
+    try {
+      const detectedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const inferredCountry = inferNonUsCountryFromTimezone(detectedTimeZone);
+      if (inferredCountry) {
+        setFormData((prev) =>
+          locationTouchedRef.current || prev.state || prev.country
+            ? prev
+            : { ...prev, outsideUs: true, country: inferredCountry, state: '' }
+        );
+      }
+    } catch {
+      /* Intl timezone lookup unavailable */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady]);
 
   // Override global html/body background for SmarterPoker Dark theme
   useEffect(() => {
@@ -1215,14 +1451,15 @@ export default function SignUpPage() {
                           role="radio"
                           aria-checked={active}
                           className={`auth-input-styled auth-country-choice${active ? ' is-active' : ''}`}
-                          onClick={() =>
+                          onClick={() => {
+                            locationTouchedRef.current = true;
                             setFormData({
                               ...formData,
                               outsideUs: opt.outside,
                               state: opt.outside ? '' : formData.state,
                               country: opt.outside ? formData.country : '',
-                            })
-                          }
+                            });
+                          }}
                           style={{
                             flex: 1,
                             minWidth: 0,
@@ -1256,7 +1493,10 @@ export default function SignUpPage() {
                       <select
                         className="auth-input-styled"
                         value={formData.country}
-                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                        onChange={(e) => {
+                          locationTouchedRef.current = true;
+                          setFormData({ ...formData, country: e.target.value });
+                        }}
                         required
                       >
                         <option value="" disabled>Select</option>
@@ -1271,7 +1511,10 @@ export default function SignUpPage() {
                       <select
                         className="auth-input-styled"
                         value={formData.state}
-                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                        onChange={(e) => {
+                          locationTouchedRef.current = true;
+                          setFormData({ ...formData, state: e.target.value });
+                        }}
                         required
                       >
                         <option value="" disabled>Select</option>

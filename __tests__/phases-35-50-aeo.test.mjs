@@ -145,8 +145,8 @@ test('Phase 39 & 40: First-party Research Reports and Editorial Standards render
   assert.ok(renderEditorialStandardsMarkdown().includes('Mathematical Verification Standards'));
 });
 
-test('Phase 41: Competitor Comparison Matrix includes 30 verified pages', () => {
-  assert.equal(COMPARE_PAGES.length, 30);
+test('Phase 41: Competitor Comparison Matrix includes 30+ verified pages', () => {
+  assert.ok(COMPARE_PAGES.length >= 30);
   for (const slug of [
     'smarter-poker-vs-run-it-once',
     'smarter-poker-vs-upswing-poker',

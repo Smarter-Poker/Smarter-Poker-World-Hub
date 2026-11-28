@@ -32,6 +32,30 @@ import {
 } from '../../../src/lib/learn/learnSite.js';
 import { STARTING_HANDS, HANDS_BASE_PATH, handPath, getStartingHand, getExpandedHandMatchups } from '../../../src/content/learn/hands.js';
 import { HAND_MATCHUPS, matchupPath } from '../../../src/content/learn/matchups.js';
+import { RFI } from '../../../src/config/solverRanges';
+
+const SIX_MAX_SEATS = [
+  { id: 'UTG', label: 'Under The Gun (UTG)' },
+  { id: 'MP', label: 'Middle Position (MP)' },
+  { id: 'HJ', label: 'Hijack (HJ)' },
+  { id: 'CO', label: 'Cutoff (CO)' },
+  { id: 'BTN', label: 'Button (BTN)' },
+  { id: 'SB', label: 'Small Blind (SB)' },
+];
+
+function getSeatOpenProfile(seatId, handCode) {
+  const rawFreq = Number(RFI?.[seatId]?.[handCode]?.raise || 0);
+  const openPct = Math.max(0, Math.min(100, Math.round(rawFreq * 100)));
+  const foldPct = 100 - openPct;
+  const statusLabel =
+    openPct >= 99
+      ? 'Pure Open 100%'
+      : openPct > 0
+        ? `Mixed ${openPct}%`
+        : 'Fold 0%';
+  const tone = openPct >= 99 ? 'pure' : openPct > 0 ? 'mixed' : 'fold';
+  return { seatId, openPct, foldPct, statusLabel, tone };
+}
 
 export async function getStaticPaths() {
   return {
@@ -204,6 +228,20 @@ function evaluateBtnSpotCheck(hand, choice) {
 export default function StartingHandDetailPage({ hand }) {
   const [copiedHandCard, setCopiedHandCard] = useState('');
   const [spotSelection, setSpotSelection] = useState(null);
+  const [seatSelection, setSeatSelection] = useState(null);
+  const activeSeat = seatSelection?.slug === hand.slug ? seatSelection.seat : 'BTN';
+  const seatProfiles = SIX_MAX_SEATS.map((seat) => ({
+    ...seat,
+    ...getSeatOpenProfile(seat.id, hand.code),
+  }));
+  const activeSeatProfile =
+    seatProfiles.find((seat) => seat.id === activeSeat) || seatProfiles[4];
+  const openCombos = ((Number(hand.combinations || 0) * activeSeatProfile.openPct) / 100).toFixed(1);
+  const shareableHandCardUrl = `${SITE_URL}/api/og/tool-card?tool=preflop&title=${encodeURIComponent(
+    `${hand.name} (${hand.code}) - ${activeSeatProfile.id} ${activeSeatProfile.statusLabel}`
+  )}&subtitle=${encodeURIComponent(
+    `100BB 6-Max Open ${activeSeatProfile.openPct}% (${openCombos}/${hand.combinations} Combos) | Equity Vs Random ${hand.vsRandomEquity}`
+  )}`;
   const activeChoice = spotSelection?.slug === hand.slug ? spotSelection.choice : null;
   const spotResult = activeChoice ? evaluateBtnSpotCheck(hand, activeChoice) : null;
   const path = handPath(hand.slug);
@@ -272,6 +310,155 @@ export default function StartingHandDetailPage({ hand }) {
         <p style={{ fontSize: 17, lineHeight: 1.65, color: '#bdd0e2', margin: '0 0 26px 0' }}>
           {hand.summary}
         </p>
+
+        <section
+          aria-label="6-Max 100BB Position Action Bar"
+          data-testid="hand-position-action-bar"
+          style={{
+            marginBottom: 28,
+            padding: 20,
+            background: 'linear-gradient(180deg, #081121 0%, #060d1a 100%)',
+            borderRadius: 0,
+            border: '1px solid #38bdf8',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+              marginBottom: 12,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#86daff', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 4 }}>
+                6-Max 100BB Position Action Bar · {hand.code}
+              </div>
+              <h2 style={{ fontSize: 19, fontWeight: 800, color: '#f2f7ff', margin: 0 }}>
+                {hand.code} Solver Open Frequency Across Every Table Seat
+              </h2>
+            </div>
+            <button
+              type="button"
+              data-testid="copy-shareable-hand-card-btn"
+              onClick={() => handleCopyHandCard('shareable-og', shareableHandCardUrl)}
+              style={{
+                minHeight: 44,
+                padding: '8px 14px',
+                borderRadius: 0,
+                border: '1px solid #38bdf8',
+                background: copiedHandCard === 'shareable-og' ? '#047857' : '#1d4ed8',
+                color: '#f2f7ff',
+                fontSize: 12.5,
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              {copiedHandCard === 'shareable-og'
+                ? 'Copied Shareable Hand Card'
+                : 'Copy Shareable Hand Card'}
+            </button>
+          </div>
+
+          <div
+            role="tablist"
+            aria-label={`Select 6-Max Seat For ${hand.code}`}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: 8,
+              marginBottom: 14,
+            }}
+          >
+            {seatProfiles.map((seat) => {
+              const isSelected = seat.id === activeSeatProfile.id;
+              const badgeColor =
+                seat.tone === 'pure'
+                  ? '#34d399'
+                  : seat.tone === 'mixed'
+                    ? '#38bdf8'
+                    : '#94a3b8';
+              return (
+                <button
+                  key={seat.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isSelected}
+                  data-testid={`hand-seat-btn-${seat.id.toLowerCase()}`}
+                  onClick={() => setSeatSelection({ slug: hand.slug, seat: seat.id })}
+                  style={{
+                    minHeight: 58,
+                    padding: '10px 10px',
+                    borderRadius: 0,
+                    border: isSelected ? '1px solid #38bdf8' : '1px solid #2b4663',
+                    background: isSelected
+                      ? 'linear-gradient(180deg, #1d4ed8 0%, #10328c 100%)'
+                      : '#0a1a2b',
+                    color: '#f2f7ff',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: 4,
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.04em' }}>
+                    {seat.id}
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: isSelected ? '#f2f7ff' : badgeColor }}>
+                    {seat.statusLabel}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div
+            role="tabpanel"
+            data-testid="hand-seat-inspector"
+            style={{
+              padding: 14,
+              borderRadius: 0,
+              border: '1px solid #2b4663',
+              background: '#0a1a2b',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#f2f7ff', marginBottom: 4 }}>
+                {activeSeatProfile.label}: {activeSeatProfile.statusLabel}
+              </div>
+              <div style={{ fontSize: 13, color: '#bdd0e2', lineHeight: 1.5 }}>
+                Raise First In: <strong style={{ color: '#38bdf8' }}>{activeSeatProfile.openPct}%</strong> ({openCombos} Of {hand.combinations} Deck Combos) · Fold: <strong>{activeSeatProfile.foldPct}%</strong>
+              </div>
+            </div>
+            <Link
+              href={`/tools/preflop-ranges/${activeSeatProfile.id.toLowerCase()}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                minHeight: 44,
+                padding: '8px 14px',
+                borderRadius: 0,
+                border: '1px solid #2b4663',
+                background: '#071321',
+                color: '#86daff',
+                fontSize: 12.5,
+                fontWeight: 700,
+                textDecoration: 'none',
+              }}
+            >
+              Inspect {activeSeatProfile.id} Full 13x13 Chart
+            </Link>
+          </div>
+        </section>
 
         <section
           aria-label="Interactive Solver And Equity Quick-Launch"
