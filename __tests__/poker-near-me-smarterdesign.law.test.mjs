@@ -88,7 +88,30 @@ test('no painted plate button, input well or three-slice panel remains in Poker 
   assert.deepEqual(left, []);
   const layer = read(LAYER);
   assert.match(layer, /chrome-readout\.webp/);
-  assert.match(layer, /\.pnc\[data-pnm-console='painted-chassis-v1'\] > \.pnc__head \{[^}]*aspect-ratio: auto !important;/);
+});
+
+test('the console chassis is one steel rim at source, not painted slices re-skinned by the layer', () => {
+  // 2026-11-28: the chassis used to paint a raster head per crest, a mid rail,
+  // a foot and a plate strip from painted-chassis-v1, and the layer overrode
+  // every slice. The rim is now declared where the chassis is declared.
+  const consoleCss = stripComments(read('src/styles/worlds/poker-near-me-console.css'));
+  const chassis = consoleCss.match(/body\.world-poker-near-me \.pnc,\s*\.pnc\[data-pnm-console='painted-chassis-v1'\] \{([^}]*)\}/);
+  assert.ok(chassis, 'the chassis rim is declared in poker-near-me-console.css');
+  assert.match(chassis[1], /border-image: url\('\/images\/smarterdesign\/chrome-readout\.webp'\) 21 \/ 8px stretch !important;/);
+  assert.match(chassis[1], /background: linear-gradient\(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%\) padding-box !important;/);
+  assert.match(consoleCss, /\.pnc\[data-pnm-console='painted-chassis-v1'\] > \.pnc__head \{[^}]*display: grid !important;/);
+  assert.match(consoleCss, /\.pnc\[data-pnm-console='painted-chassis-v1'\] \.pnc-plate \{[^}]*chrome-row\.webp/);
+  assert.match(consoleCss, /\.pnc\[data-pnm-console='painted-chassis-v1'\] \.pnc-plate:last-child \{[^}]*chrome-active-v2\.webp/);
+  // The rim rules follow every other chassis rule in the file, which is where
+  // the layer used to stand relative to them.
+  assert.ok(consoleCss.lastIndexOf('.pnc-panel:focus-visible') < consoleCss.indexOf("body.world-poker-near-me .pnc,\n.pnc[data-pnm-console='painted-chassis-v1'] {"));
+  assert.doesNotMatch(stripComments(read(LAYER)), /\.pnc\[data-pnm-console='painted-chassis-v1'\]/, 'the layer no longer re-skins the chassis');
+  // No Poker Near Me stylesheet paints a chassis head, rail, foot or plate strip.
+  for (const f of readdirSync(new URL('src/styles/worlds/', ROOT)).filter((n) => /^poker-near-me.*\.css$/.test(n))) {
+    const css = stripComments(read(`src/styles/worlds/${f}`));
+    assert.doesNotMatch(css, /painted-chassis-v1\/(?:top|mid|bottom)[\w-]*\.(?:webp|png)/, `${f} paints a retired chassis slice`);
+    assert.doesNotMatch(css, /painted-panels-v1\/panel-/, `${f} paints a retired panel slice`);
+  }
 });
 
 test('no gold, amber, yellow, purple or pink colour survives in Poker Near Me source', () => {

@@ -104,7 +104,7 @@
 .statLabel {
   display: block;
   color: var(--sk-ice);
-  font: 700 11px/1.2 var(--sk-type);
+  font: 700 12px/1.2 var(--sk-type);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -590,7 +590,7 @@
   align-items: center;
   gap: 10px;
   color: var(--sk-silver);
-  font: 700 11px/1 var(--sk-type);
+  font: 700 12px/1 var(--sk-type);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }

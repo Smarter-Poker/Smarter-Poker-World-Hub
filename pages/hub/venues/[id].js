@@ -53,6 +53,7 @@ import { isPublishableStreetAddress } from '../../../src/lib/poker-near-me/struc
 import { venueTitle } from '../../../src/lib/seo/venueTitle';
 import { safeImageUrl } from '../../../src/lib/security/imageHosts.js';
 import { groupVenueDailyTournamentRows, qualifyVenueTournamentRows, readVenueTournamentRows } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
+import { describeVenueScheduleFreshness, venueScheduleFreshnessCopy } from '../../../src/lib/poker-near-me/venueScheduleFreshness.mjs';
 import {
   buildVenueFactKernel,
   buildVenuePaaQuestions,
@@ -499,6 +500,10 @@ export async function getServerSideProps({ params, query, req, res }) {
         if (qualifiedRows.length > 0) {
           overrides.last_scraped = qualifiedRows[0].last_scraped ?? null;
         }
+        // The badge and empty state read this, never the legacy last_scraped
+        // column the collector stopped writing (venueScheduleFreshness.mjs).
+        // Same derivation as /api/poker/venues so hydration does not change it.
+        overrides.schedule_freshness = describeVenueScheduleFreshness(data, qualifiedRows);
         // Narrow before it becomes a prop — see PUBLIC_VENUE_FIELDS. This is
         // the point where is_suppressed (already consumed above) and the rest
         // of the private columns are dropped.
@@ -897,6 +902,28 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
   const [showPostForm, setShowPostForm] = useState(false);
   const [postContent, setPostContent] = useState('');
   const [postSubmitting, setPostSubmitting] = useState(false);
+
+  // ONE "NOT YET AVAILABLE" GROUP (2026-11-28). A venue with no reports,
+  // check-ins, reviews or observed history printed a full framed panel per
+  // empty section, and a new room's page ran past 6,000px on a phone. A
+  // section with nothing to show now hands one compact line to a shared group
+  // and keeps its real UI for when it has something. The three widgets that
+  // fetch their own data report it here; the rest are read from page state.
+  // `false` (or absent) means "has data or not known yet": only a section that
+  // has finished loading and found nothing is ever listed as unavailable.
+  const [quietWidgets, setQuietWidgets] = useState({});
+  const [reviewOpenRequest, setReviewOpenRequest] = useState(0);
+  const markQuietWidget = useCallback(function (key, value) {
+    setQuietWidgets(function (prev) {
+      if (JSON.stringify(prev[key] || false) === JSON.stringify(value || false)) return prev;
+      var next = Object.assign({}, prev);
+      next[key] = value || false;
+      return next;
+    });
+  }, []);
+  const onBestTimeAvailability = useCallback(function (empty) { markQuietWidget('bestTime', empty); }, [markQuietWidget]);
+  const onPopularTimesAvailability = useCallback(function (empty) { markQuietWidget('popularTimes', empty); }, [markQuietWidget]);
+  const onReviewsAvailability = useCallback(function (state) { markQuietWidget('reviews', state); }, [markQuietWidget]);
 
   // Account-specific permissions, never another user's claim.
   const [claimStatus, setClaimStatus] = useState(null);
@@ -2060,6 +2087,47 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
   var seo = buildVenueSeo(venue, id, countSchedules(venue));
   var venueJsonLd = isIndexable ? buildVenueJsonLd(venue, seo.canonical, seo.image) : null;
 
+  // Which sections have nothing to show right now (see quietWidgets above).
+  // A section that is open for input, carries an alert, or has any row of its
+  // own is never quiet: its real UI renders where it always has.
+  var liveGamesQuiet = liveGames.length === 0 && !showReportGame;
+  var checkinsQuiet = checkins.length === 0 && !showCheckinForm && !hasCheckedIn && !checkinConfirm && !checkinError && whosHere.total === 0;
+  var activityQuiet = activities.length === 0 && !showPostForm;
+  var reviewsQuiet = Boolean(quietWidgets.reviews);
+  var popularTimesQuiet = quietWidgets.popularTimes === true;
+  var openQuietSection = function (sectionId) {
+    setTimeout(function () {
+      var el = document.getElementById(sectionId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+  };
+  var quietRows = [
+    liveGamesQuiet && {
+      key: 'liveGames', label: 'Live Games', note: 'No Live Game Reports Yet',
+      action: { label: 'Report A Game', onClick: function () { setReportError(''); setShowReportGame(true); openQuietSection('live-games-section'); } },
+    },
+    checkinsQuiet && {
+      key: 'checkins', anchor: 'checkins-section', label: 'Check-Ins', note: 'No Check-Ins Yet Today',
+      action: { label: 'Check In', onClick: function () { setShowCheckinForm(true); openQuietSection('checkins-section'); } },
+    },
+    quietWidgets.bestTime === true && {
+      key: 'bestTime', label: 'Best Time To Go', note: 'Needs Verified Observed Activity',
+    },
+    popularTimesQuiet && {
+      key: 'popularTimes', label: 'Popular Times', note: 'Needs More Observed History',
+    },
+    reviewsQuiet && {
+      key: 'reviews', anchor: 'reviews-section', label: 'Player Reviews', note: 'No Reviews Yet',
+      action: quietWidgets.reviews && quietWidgets.reviews.canWrite
+        ? { label: 'Write A Review', onClick: function () { setReviewOpenRequest(function (n) { return n + 1; }); openQuietSection('reviews-section'); } }
+        : null,
+    },
+    activityQuiet && {
+      key: 'activity', label: 'Activity Feed', note: 'No Updates Yet',
+      action: { label: 'Post Update', onClick: function () { setShowPostForm(true); openQuietSection('activity-section'); } },
+    },
+  ].filter(Boolean);
+
   return (
     <>
       {/* A SHARE CARD IS A PROP, NEVER A SIBLING META (2026-09-30).
@@ -2655,7 +2723,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                   <button
                     className="bravo-live-scroll-btn"
                     onClick={function () {
-                      var el = document.querySelector('.live-games-section');
+                      var el = document.querySelector('.live-games-section') || document.querySelector('[data-quiet-section="liveGames"]');
                       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }}
                   >
@@ -3082,7 +3150,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
             {/* ============================================ */}
             {/* BEST TIME TO GO WIDGET                      */}
             {/* ============================================ */}
-            <BestTimeToGoWidget venueId={id} venueName={venue.name} />
+            <BestTimeToGoWidget venueId={id} venueName={venue.name} onAvailabilityChange={onBestTimeAvailability} />
 
             {/* Daily Tournaments Section */}
             {groupedSchedules && Object.keys(groupedSchedules || {}).length > 0 && (
@@ -3144,7 +3212,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
               <PokerNearMePanelShell as="section" id="tournaments-section" className="tournaments-section venue-console-body">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="empty-tournaments">
-                  <p>{venue.schedule_read_error ? 'Tournament Schedule Could Not Be Loaded. Please Try Again.' : 'Tournament Schedule Data Is Being Collected For This Venue.'}</p>
+                  <p>{venueScheduleFreshnessCopy(venue.schedule_freshness, { readError: Boolean(venue.schedule_read_error) }).emptyMessage}</p>
                   {venue.poker_atlas_url && (
                     <a href={venue.poker_atlas_url} target="_blank" rel="noopener noreferrer" className="pa-link">
                       Check Venue Website For Current Schedule
@@ -3154,21 +3222,25 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
               </PokerNearMePanelShell>
             )}
 
-            {/* Last Scraped Badge */}
-            {venue.last_scraped && (
-              <div
-                className="last-scraped-badge"
-                // The date formats in the server's timezone first and the
-                // visitor's after hydration, which is not a real mismatch.
-                suppressHydrationWarning
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#86daff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                Data Last Updated: {new Date(venue.last_scraped).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </div>
-            )}
+            {/* Schedule Freshness Badge: cites the collector's last verified
+                read and says plainly when it is older than
+                SCHEDULE_STALE_AFTER_DAYS (venueScheduleFreshness.mjs). */}
+            {(function () {
+              var freshnessCopy = venueScheduleFreshnessCopy(venue.schedule_freshness);
+              if (!freshnessCopy.badge) return null;
+              return (
+                <div
+                  className={'last-scraped-badge' + (freshnessCopy.isStale ? ' is-stale' : '')}
+                  data-schedule-freshness={venue.schedule_freshness ? venue.schedule_freshness.status : 'unknown'}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#86daff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }} aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  {freshnessCopy.badge}
+                </div>
+              );
+            })()}
 
             {/* Venue News & Updates Section */}
             {venue.venue_news && venue.venue_news.length > 0 && (
@@ -3288,7 +3360,29 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
             {/* ============================================ */}
             {/* LIVE GAMES SECTION                           */}
             {/* ============================================ */}
-            <PokerNearMePanelShell as="section" className="live-games-section venue-console-body">
+            {quietRows.length > 0 && (
+              <section className="venue-quiet-group" aria-labelledby="venue-quiet-title" data-venue-quiet-group="true">
+                <h2 id="venue-quiet-title" className="venue-quiet-group__title">Not Yet Available</h2>
+                <ul className="venue-quiet-group__list">
+                  {quietRows.map(function (row) {
+                    return (
+                      <li key={row.key} id={row.anchor || undefined} className="venue-quiet-row" data-quiet-section={row.key}>
+                        <span className="venue-quiet-row__copy">
+                          <span className="venue-quiet-row__label">{row.label}</span>
+                          <span className="venue-quiet-row__note">{row.note}</span>
+                        </span>
+                        {row.action ? (
+                          <button type="button" className="venue-quiet-row__action" onClick={row.action.onClick}>{row.action.label}</button>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
+
+            {!liveGamesQuiet && (
+            <PokerNearMePanelShell as="section" className="live-games-section venue-console-body" id="live-games-section">
               <div className="section-header-row">
                 <h2 className="section-title">
                   <PokerNearMeConsoleIcon name="live-games" />
@@ -3431,10 +3525,12 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 </div>
               )}
             </PokerNearMePanelShell>
+            )}
 
             {/* ============================================ */}
             {/* CHECK-INS SECTION                            */}
             {/* ============================================ */}
+            {!checkinsQuiet && (
             <section id="checkins-section" className="checkins-section">
               <div className="section-header-row">
                 <h2 className="section-title">
@@ -3604,6 +3700,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 </div>
               )}
             </section>
+            )}
 
             {/* ============================================ */}
             {/* VENUE LEADERBOARD                           */}
@@ -3680,7 +3777,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
             {/* ============================================ */}
             {/* POPULAR HOURS (REPLACED WITH PeakHoursHeatmap) */}
             {/* ============================================ */}
-            <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 0, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16, position: 'relative' }}>
+            <section hidden={popularTimesQuiet || undefined} className="venue-popular-times" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 0, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16, position: 'relative' }}>
               <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#86daff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 Popular Times Heatmap
@@ -3689,13 +3786,13 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
               {!isVip ? (
                 <div style={{ position: 'relative' }}>
                   <div style={{ filter: 'blur(8px)', opacity: 0.5, pointerEvents: 'none' }}>
-                    <PeakHoursHeatmap venueId={id} />
+                    <PeakHoursHeatmap venueId={id} onAvailabilityChange={onPopularTimesAvailability} />
                   </div>
                   <div style={{
                     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10
                   }}>
-                    <span style={{ fontSize: 32, marginBottom: 8 }}>🔒</span>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bdd0e2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ marginBottom: 8 }}><rect x="4" y="11" width="16" height="10" rx="1" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
                     <h4 style={{ color: '#fff', margin: '0 0 8px', fontSize: 16, fontWeight: 800 }}>VIP Feature</h4>
                     <p style={{ color: '#a0aec0', fontSize: 13, marginBottom: 16, textAlign: 'center', maxWidth: 220 }}>
                       Upgrade To View Peak Hour Predictions And Avoid Long Wait Lists.
@@ -3715,21 +3812,22 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                   </div>
                 </div>
               ) : (
-                <PeakHoursHeatmap venueId={id} />
+                <PeakHoursHeatmap venueId={id} onAvailabilityChange={onPopularTimesAvailability} />
               )}
             </section>
 
             {/* ============================================ */}
             {/* REVIEWS & RATINGS SECTION (REPLACED WITH VenueReviews) */}
             {/* ============================================ */}
-            <section id="reviews-section" className="reviews-section">
-              <VenueReviews venueId={id} venueName={venue?.name} defaultOpen={showReviewForm} />
+            <section id={reviewsQuiet ? undefined : 'reviews-section'} hidden={reviewsQuiet || undefined} className="reviews-section">
+              <VenueReviews venueId={id} venueName={venue?.name} defaultOpen={showReviewForm} openFormRequest={reviewOpenRequest} onAvailabilityChange={onReviewsAvailability} />
             </section>
 
             {/* ============================================ */}
             {/* ACTIVITY FEED SECTION                        */}
             {/* ============================================ */}
-            <section className="activity-section">
+            {!activityQuiet && (
+            <section className="activity-section" id="activity-section">
               <div className="section-header-row">
                 <h2 className="section-title">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
@@ -3811,6 +3909,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
                 </div>
               )}
             </section>
+            )}
 
             {/* ============================================ */}
             {/* PROMOTIONS SECTION                            */}
@@ -4686,6 +4785,12 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null, i
           border-radius: 0;
           text-align: center;
           font-weight: 500;
+        }
+        /* An out-of-date schedule is called out in white over an ice-blue rim,
+           never warning yellow or orange (#SmarterDesign palette). */
+        .last-scraped-badge.is-stale {
+          color: #ffffff;
+          border-color: rgba(116, 223, 255, 0.55);
         }
 
         /* Venue News Section */

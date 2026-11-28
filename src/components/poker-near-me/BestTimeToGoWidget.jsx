@@ -28,7 +28,11 @@ function confidenceColor(conf) {
   return '#f87171';
 }
 
-export default function BestTimeToGoWidget({ venueId, venueName }) {
+// onAvailabilityChange (optional): the venue page lists an empty widget in its
+// shared "Not Yet Available" group instead of printing a framed empty panel.
+// When it is passed the widget reports true (nothing observed) or false once
+// it has loaded, and renders nothing while it has nothing to show.
+export default function BestTimeToGoWidget({ venueId, venueName, onAvailabilityChange }) {
   const [predictions, setPredictions] = useState(null);
   const [heatmapData, setHeatmapData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -104,6 +108,12 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
   const hasPredictions = predictions?.predictions?.length > 0;
   const hasHeatmap = heatmapGrid.length > 0;
   const hasBatchData = batchInsights?.has_data;
+  const isEmpty = !hasPredictions && !hasHeatmap && !hasBatchData;
+
+  useEffect(() => {
+    if (!onAvailabilityChange || loading) return;
+    onAvailabilityChange(isEmpty);
+  }, [onAvailabilityChange, loading, isEmpty]);
 
   if (loading) {
     return (
@@ -117,7 +127,8 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
     );
   }
 
-  if (!hasPredictions && !hasHeatmap && !hasBatchData) {
+  if (isEmpty) {
+    if (onAvailabilityChange) return null;
     return (
       <PokerNearMePanelShell className="bttg-widget bttg-empty venue-console-body" role="status">
         <div className="bttg-title-row">

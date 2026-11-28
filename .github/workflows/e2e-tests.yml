@@ -1497,8 +1497,25 @@ jobs:
       - name: Install verification browser
         run: |
           if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+      # Phone speed first and alone (one worker), so nothing else shares the
+      # 4x-throttled CPU: LCP, stat tiles, trend chart, JS bytes and Supabase
+      # requests on a cold signed-in load over Slow 4G. Evidence, not a gate:
+      # only the disaster ceiling in e2e/fixtures/bankrollPhoneSpeed.mjs fails it.
+      - name: Measure Bankroll Manager phone speed with the designated test account
+        id: bankroll-phone-speed
+        run: npx playwright test --config=playwright.bankroll-live.config.ts --project=bankroll-live-phone-speed --workers=1
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          BANKROLL_LIVE_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Summarise Bankroll Manager phone speed
+        if: ${{ always() }}
+        run: node scripts/ci/bankroll-phone-speed-summary.mjs test-results/bankroll-live
+        env:
+          BANKROLL_LIVE_EXPECTED_SHA: ${{ inputs.expected_sha }}
       - name: Verify every published Bankroll Manager section with the designated test account
-        run: npx playwright test --config=playwright.bankroll-live.config.ts
+        if: ${{ !cancelled() }}
+        run: npx playwright test --config=playwright.bankroll-live.config.ts --project=bankroll-live-mobile-375 --project=bankroll-live-desktop
         env:
           TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
