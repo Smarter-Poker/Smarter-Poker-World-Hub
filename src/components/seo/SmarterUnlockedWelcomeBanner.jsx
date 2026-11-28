@@ -17,6 +17,112 @@ import styles from './SmarterSeoKit.module.css';
 
 export const PENDING_UNLOCK_KEY = 'sp_pending_unlock_v1';
 export const JUST_UNLOCKED_KEY = 'sp_just_unlocked_v1';
+export const SAVED_SPOTS_STORAGE_KEY = 'sp_saved_spots_v1';
+export const SPOTS_SYNCED_SESSION_KEY = 'sp_spots_synced_v1';
+
+let spotsSyncInflight = false;
+
+function readStoredAccessToken(localStorageRef) {
+  try {
+    const raw = localStorageRef?.getItem('smarter-poker-auth');
+    if (!raw) return '';
+    const parsed = JSON.parse(raw);
+    const token = typeof parsed?.access_token === 'string' ? parsed.access_token.trim() : '';
+    return token.length > 10 ? token : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function sanitizeGuestSpots(rawList) {
+  if (!Array.isArray(rawList)) return [];
+  const cleaned = [];
+  for (const item of rawList.slice(0, 50)) {
+    if (!item || typeof item !== 'object') continue;
+    cleaned.push({
+      id: String(item.id || `spot_${cleaned.length}`).slice(0, 80),
+      toolSlug: String(item.toolSlug || 'poker-tool').slice(0, 80),
+      toolName: String(item.toolName || 'Smarter.Poker Calculator').slice(0, 140),
+      summaryText: String(item.summaryText || '').slice(0, 320),
+      url: String(item.url || '').slice(0, 320),
+      savedAt: String(item.savedAt || '').slice(0, 40),
+    });
+  }
+  return cleaned;
+}
+
+/**
+ * Non-blockingly syncs guest calculator saved spots (localStorage sp_saved_spots_v1)
+ * to the authenticated player's cloud record (/api/training/tool-records) once per
+ * browser session (guarded by sessionStorage sp_spots_synced_v1).
+ *
+ * Note: /api/poker/player-preferences strictly validates PNM location keys only;
+ * /api/training/tool-records is the live Bearer-authenticated cloud persistence
+ * endpoint for tool records (upserts on user_id + tool_id + record_key).
+ */
+export async function syncGuestSavedSpotsToCloud(deps = {}) {
+  const win = typeof window !== 'undefined' ? window : null;
+  const localStore = deps.localStorage || win?.localStorage;
+  const sessionStore = deps.sessionStorage || win?.sessionStorage;
+  const fetchFn = deps.fetch || (typeof fetch === 'function' ? fetch : null);
+
+  if (!localStore || !sessionStore || !fetchFn) return false;
+  if (spotsSyncInflight && !deps.fetch) return false;
+
+  try {
+    if (sessionStore.getItem(SPOTS_SYNCED_SESSION_KEY)) return false;
+    const accessToken = readStoredAccessToken(localStore);
+    if (!accessToken) return false;
+
+    const rawSpots = localStore.getItem(SAVED_SPOTS_STORAGE_KEY);
+    if (!rawSpots) return false;
+    const parsedSpots = JSON.parse(rawSpots);
+    const spots = sanitizeGuestSpots(parsedSpots);
+    if (spots.length === 0) return false;
+
+    const payload = {
+      toolId: 'calculator-saved-spots',
+      recordType: 'saved_spots',
+      recordKey: 'guest_spots_v1',
+      data: {
+        spots,
+        syncedAt: new Date().toISOString(),
+        source: 'seo-guest-bridge',
+      },
+    };
+    if (JSON.stringify(payload.data).length > 60000) {
+      payload.data.spots = spots.slice(0, 20);
+    }
+
+    spotsSyncInflight = true;
+    const res = await fetchFn('/api/training/tool-records', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res && res.ok) {
+      try {
+        sessionStore.setItem(SPOTS_SYNCED_SESSION_KEY, '1');
+      } catch (_) {
+        /* ignore storage restrictions */
+      }
+      trackSeoFunnelEvent('seo_guest_spots_synced', {
+        spot_count: payload.data.spots.length,
+      });
+      return true;
+    }
+    return false;
+  } catch (_) {
+    /* never disrupt signed-in render on auth or network failures */
+    return false;
+  } finally {
+    spotsSyncInflight = false;
+  }
+}
 
 const UNLOCK_COPY_MAP = {
   'solver-matrix': 'Your Full GTO Preflop & Postflop Solver Library Is Now Unlocked.',
@@ -109,6 +215,9 @@ export default function SmarterUnlockedWelcomeBanner() {
       setBannerState(null);
       return;
     }
+
+    void syncGuestSavedSpotsToCloud();
+
     try {
       const raw = window.sessionStorage.getItem(JUST_UNLOCKED_KEY);
       if (!raw) {

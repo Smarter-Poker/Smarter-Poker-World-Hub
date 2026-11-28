@@ -249,6 +249,29 @@ export default function SmarterAccountUnlockGate({
         ))}
       </ul>
 
+      <div
+        data-testid="unlock-gate-welcome-ribbon"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          margin: '0 0 14px',
+          padding: '8px 12px',
+          borderRadius: 0,
+          border: '1px solid #3a7fbd',
+          background: 'linear-gradient(90deg, rgba(16, 56, 102, 0.92) 0%, rgba(7, 25, 48, 0.92) 100%)',
+          boxShadow: 'inset 0 1px 0 rgba(134, 218, 255, 0.34)',
+          color: '#f2f7ff',
+          fontSize: 12.5,
+          fontWeight: 700,
+          letterSpacing: '0.02em',
+          lineHeight: 1.35,
+        }}
+      >
+        <span style={{ color: '#86daff', flex: 'none' }} aria-hidden="true">▸</span>
+        <span>Bonus: Free 30-Day VIP + 500 Diamonds On Phone Verify</span>
+      </div>
+
       <div className={styles.unlockActions}>
         <a
           href={signupHref}

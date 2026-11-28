@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { openQuickSignup } from './SmarterQuickSignupSheet';
+import { getAiWelcomeContext } from '../../lib/seo/seoExperiment';
 
 export const GUEST_BAR_DISMISSED_KEY = 'sp_guest_conversion_bar_dismissed_v1';
 
@@ -138,6 +139,7 @@ export default function GuestConversionBar() {
   const [signedIn, setSignedIn] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [detectedHeader, setDetectedHeader] = useState(false);
+  const [aiWelcome, setAiWelcome] = useState(null);
 
   const rawPath = router?.asPath || router?.pathname || '/';
   const currentPath = normalizePath(rawPath);
@@ -147,6 +149,7 @@ export default function GuestConversionBar() {
     const syncState = () => {
       setSignedIn(hasStoredAuthSession());
       setDismissed(readDismissed());
+      setAiWelcome(getAiWelcomeContext());
       if (typeof document !== 'undefined') {
         setDetectedHeader(Boolean(document.querySelector('.approved-global-header')));
       }
@@ -176,7 +179,9 @@ export default function GuestConversionBar() {
     setDismissed(true);
   };
 
-  const contextualCopy = guestBarCopyForPath(currentPath);
+  const contextualCopy = aiWelcome
+    ? `From ${aiWelcome.label}? Run Live GTO Solvers & Save Ranges Free`
+    : guestBarCopyForPath(currentPath);
 
   const handleSignupClick = (e) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
@@ -200,12 +205,22 @@ export default function GuestConversionBar() {
       <div className="sd-guest-bar__inner">
         <div className="sd-guest-bar__copy">
           <span className="sd-guest-bar__brand">SMARTER.POKER</span>
-          <span className="sd-guest-bar__text">{contextualCopy}</span>
+          <span
+            className="sd-guest-bar__text"
+            data-testid={aiWelcome ? 'guest-bar-ai-copy' : 'guest-bar-copy'}
+          >
+            {contextualCopy}
+          </span>
+          {!aiWelcome ? (
+            <span className="sd-guest-bar__vip" data-testid="guest-bar-vip-hook">
+              + Free 30-Day VIP
+            </span>
+          ) : null}
         </div>
 
         <div className="sd-guest-bar__actions">
           <a href={signupHref} onClick={handleSignupClick} className="sd-guest-bar__signup">
-            Sign Up Free
+            {aiWelcome ? 'Run Solvers Free' : 'Sign Up Free + 30-Day VIP'}
           </a>
           <Link href={loginHref} className="sd-guest-bar__login">
             Sign In
@@ -293,6 +308,22 @@ export default function GuestConversionBar() {
           color: #bdd0e2;
           min-width: 0;
           overflow-wrap: break-word;
+        }
+
+        .sd-guest-bar__vip {
+          display: inline-flex;
+          align-items: center;
+          padding: 2px 8px;
+          border-radius: 0;
+          border: 1px solid #3a7fbd;
+          background: rgba(16, 56, 102, 0.85);
+          color: #86daff;
+          font-family: var(--font-roboto-condensed, 'Arial Narrow'), Arial, sans-serif;
+          font-size: 11.5px;
+          font-weight: 800;
+          letter-spacing: 0.05em;
+          line-height: 1.2;
+          white-space: nowrap;
         }
 
         .sd-guest-bar__actions {
@@ -398,12 +429,17 @@ export default function GuestConversionBar() {
 
           .sd-guest-bar :global(.sd-guest-bar__signup) {
             flex: 1 1 auto;
-            padding: 8px 12px;
+            min-width: 0;
+            padding: 8px 10px;
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
 
           .sd-guest-bar :global(.sd-guest-bar__login) {
             flex: 0 1 auto;
-            padding: 8px 12px;
+            padding: 8px 10px;
+            font-size: 13px;
           }
         }
 
