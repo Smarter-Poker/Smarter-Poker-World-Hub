@@ -31,6 +31,17 @@ export function mergePrefs(base, update) {
   return { ...DEFAULT_TOKE_PREFS, ...cleanPrefs(base), ...cleanPrefs(update) };
 }
 
+/**
+ * The preferences to show once the account's copy arrives, or null to keep
+ * what is shown. The account read starts on page load; a toggle made (here or
+ * in another tab) before it answers is newer than that answer and was itself
+ * written to the account, so the older answer must not flip it back.
+ */
+export function prefsFromAccount(current, remote, editedSinceRead) {
+  if (editedSinceRead || !remote || typeof remote !== 'object' || Array.isArray(remote)) return null;
+  return mergePrefs(current, remote);
+}
+
 /** The preferences this browser saved, or null. Never throws. */
 export function readStoredPrefs(storage) {
   try {
