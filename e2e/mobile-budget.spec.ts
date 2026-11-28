@@ -166,6 +166,8 @@ for (const route of ROUTES) {
       assertPnmMobileBudget({ jsBytes, lcpMs: metrics.lcp, scriptCount: scripts.length, unmeasuredScripts, overflow: metrics.overflow }, budget);
     }
 
+    // WIP measurement only: per-script breakdown.
+    console.log(`BUDGETDUMP ${route} total=${jsKb}KB ` + JSON.stringify(scripts.map((s) => [s.url.replace(/^https?:\/\/[^/]+/, ''), Math.round(s.bytes / 1024)]).sort((a, b) => (b[1] as number) - (a[1] as number))));
     test.info().annotations.push({ type: 'budget', description: JSON.stringify({ route, jsKb, ...metrics }) });
 
     expect(metrics.overflow, `${route} scrolls sideways by ${metrics.overflow}px`).toBeLessThanOrEqual(0);
