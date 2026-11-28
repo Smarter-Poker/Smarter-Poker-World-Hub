@@ -689,16 +689,6 @@ export async function updateDownMultiplier(downId: string, multiplier: number): 
 
 // ─── EXPENSE CRUD ────────────────────────────────────────────────────
 
-export async function fetchExpenses(gigId: string): Promise<TokeExpense[]> {
-    const { data, error } = await supabase
-        .from('toke_expenses')
-        .select('*')
-        .eq('gig_id', gigId)
-        .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data || [];
-}
-
 export async function createExpense(
     userId: string,
     gigId: string,

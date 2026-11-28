@@ -114,17 +114,6 @@ export function taxReportRequest(query, now = new Date()) {
   return { year, format, today };
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** POST /api/bankroll/geofence-visit body. geofence_visits.venue_id is a uuid column. */
-export function geofenceVisitRequest(body) {
-  const b = body && typeof body === 'object' ? body : {};
-  const venueId = typeof b.venueId === 'string' ? b.venueId.trim() : '';
-  if (!UUID.test(venueId)) return { error: 'venueId must be a venue uuid' };
-  const name = typeof b.venueName === 'string' ? b.venueName.trim().slice(0, 120) : '';
-  return { venueId, venueName: name || 'Poker Venue' };
-}
-
 /**
  * An optional position for the nearby-venue read, rounded to two decimals
  * (about a kilometre): enough to pick venues, not a precise location trail.

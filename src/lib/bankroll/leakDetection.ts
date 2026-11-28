@@ -16,7 +16,6 @@ import {
 } from './leakMath.mjs';
 import { idBatches } from '../inBatches.mjs';
 import { supabase } from '../supabase';
-import { localDay } from './localDates.mjs';
 
 // Gaming categories. Withdrawals carry a negative net (money out of the
 // roll) and expenses are costs, not losses at play; counting them made
@@ -329,73 +328,4 @@ export async function runLeakAnalysis(
     totalLeakAmount,
     recommendations,
   };
-}
-
-/**
- * Check if current session would violate rules
- */
-export async function checkRuleViolations(
-  userId: string,
-  sessionAmount: number
-): Promise<{ violated: boolean; rules: string[] }> {
-  const { data: rules } = await supabase
-    .from('bankroll_rules')
-    .select('rule_type, value, is_strict')
-    .eq('user_id', userId)
-    .eq('is_active', true);
-
-  if (!rules) return { violated: false, rules: [] };
-
-  const violatedRules: string[] = [];
-
-  // Today's results on the player's own calendar (the UTC date was already
-  // tomorrow every evening in the Americas, so the day's losses read as zero).
-  const today = localDay();
-  const { data: todayEntries } = await supabase
-    .from('bankroll_ledger')
-    .select('net_result')
-    .eq('user_id', userId)
-    .eq('entry_date', today)
-    .eq('is_revision', false)
-    // in-list: bounded by the five built-in gaming categories
-    .in('category', GAMING_CATEGORIES);
-
-  const todayNet = todayEntries?.reduce((sum, e) => sum + (e.net_result || 0), 0) || 0;
-
-  for (const rule of rules) {
-    if (rule.rule_type === 'stop_loss_day') {
-      if (todayNet + sessionAmount < -rule.value) {
-        violatedRules.push(`Daily stop-loss of $${rule.value} would be exceeded`);
-      }
-    }
-    if (rule.rule_type === 'stop_loss_session' && sessionAmount < -rule.value) {
-      violatedRules.push(`Session stop-loss of $${rule.value} exceeded`);
-    }
-  }
-
-  return {
-    violated: violatedRules.length > 0,
-    rules: violatedRules,
-  };
-}
-
-/**
- * Log a rule violation
- */
-export async function logRuleViolation(
-  userId: string,
-  ruleId: string,
-  ledgerEntryId: string,
-  violationType: string,
-  ruleValue: number,
-  actualValue: number
-): Promise<void> {
-  await (supabase as any).from('bankroll_rule_violations').insert({
-    user_id: userId,
-    rule_id: ruleId,
-    ledger_entry_id: ledgerEntryId,
-    violation_type: violationType,
-    rule_value: ruleValue,
-    actual_value: actualValue,
-  });
 }
