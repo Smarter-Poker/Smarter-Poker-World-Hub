@@ -3,82 +3,26 @@
  * 4 clickable icon cards routing to dedicated sub-pages
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
+import { useTokePrefs } from '../../../src/components/bankroll/toke/useTokePrefs';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { TokeDestinations, TokeWorkspace } from '../../../src/components/bankroll/toke/TokeWorkspace';
-import { supabase } from '../../../src/lib/supabase';
 
 export default function TokeTrackerLanding() {
     const { user } = useAvatar();
     const userId = user?.id;
     const [mounted, setMounted] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
-    const [tokePrefs, setTokePrefs] = useState({
-        shiftNotifications: true,
-        autoSaveShifts: true,
-        downTimerAlerts: true
-    });
 
     useEffect(() => { setMounted(true); }, []);
 
-    // Load preferences from Supabase
-    useEffect(() => {
-        if (!userId) return;
-        supabase.from('profiles').select('settings').eq('id', userId).maybeSingle()
-            .then(({ data }) => {
-                if (data?.settings?.tokeTracker) {
-                    setTokePrefs(prev => ({ ...prev, ...data.settings.tokeTracker }));
-                }
-            })
-            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-    }, [userId]);
-
-    // Save preference to Supabase + emit bus event
-    const updatePref = useCallback(async (key, value) => {
-        let newPrefs;
-        setTokePrefs(prev => {
-            newPrefs = { ...prev, [key]: value };
-            return newPrefs;
-        });
-        await new Promise(r => setTimeout(r, 0));
-        if (!newPrefs) return;
-        // Cross-tab sync
-        window.dispatchEvent(new CustomEvent('toke-settings-sync', { detail: newPrefs }));
-        // Persist to localStorage
-        try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch (e) { console.warn('[App] Handled exception:', e); }
-        // Persist to Supabase
-        if (!userId) return;
-        try {
-
-            const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).maybeSingle();
-            const settings = profile?.settings || {};
-            settings.tokeTracker = newPrefs;
-            const { error: err_profiles_i27c1 } = await supabase.from('profiles').update({ settings }).eq('id', userId);
-            if (err_profiles_i27c1) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_i27c1.message);
-        } catch (err) {
-            console.warn('[TokeTracker] Failed to save preference:', err);
-        }
-    }, [userId]);
-
-    // Listen for cross-tab sync
-    useEffect(() => {
-        const handler = (e) => {
-            if (e.detail) setTokePrefs(e.detail);
-        };
-        window.addEventListener('toke-settings-sync', handler);
-        return () => window.removeEventListener('toke-settings-sync', handler);
-    }, []);
-
-    const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, {
-        setShiftNotifications: (v) => updatePref('shiftNotifications', v),
-        setAutoSaveShifts: (v) => updatePref('autoSaveShifts', v),
-        setDownTimerAlerts: (v) => updatePref('downTimerAlerts', v)
-    });
+    const { prefs: tokePrefs, handlers: prefHandlers } = useTokePrefs(userId);
+    const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, prefHandlers);
 
     // AEO phase 3 (2026-09-18): the head used to sit below this guard.
     // The guard is true on the server, so the branch a crawler always
