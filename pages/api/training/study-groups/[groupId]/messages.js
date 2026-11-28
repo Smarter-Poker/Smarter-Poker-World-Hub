@@ -10,6 +10,7 @@ function db() {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export default async function handler(req, res) {
+  try {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   res.setHeader('Vary', 'Authorization');
 
@@ -61,4 +62,8 @@ export default async function handler(req, res) {
 
   res.setHeader('Allow', 'GET, POST');
   return res.status(405).json({ success: false, error: 'Method not allowed' });
+  } catch (err) {
+    console.error('[study-groups/messages] unhandled error:', err?.message || err);
+    return res.status(500).json({ success: false, error: 'Study group messages request failed' });
+  }
 }

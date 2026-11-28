@@ -3096,7 +3096,7 @@ function GodModeArenaInner({
                         .map((st) => {
                           const data = streetAccuracy[st];
                           const streetColors = {
-                            preflop: '#a78bfa',
+                            preflop: '#38bdf8',
                             flop: '#4ade80',
                             turn: '#fb923c',
                             river: '#f87171',
@@ -3695,7 +3695,7 @@ function GodModeArenaInner({
                   blunder: '#ef4444',
                 };
                 const streetColors = {
-                  preflop: '#a78bfa',
+                  preflop: '#38bdf8',
                   flop: '#4ade80',
                   turn: '#fb923c',
                   river: '#f87171',

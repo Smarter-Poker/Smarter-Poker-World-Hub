@@ -187,3 +187,20 @@ test('every tournament Supabase read error fails closed with an explicit non-200
     });
   }
 });
+
+test('non-UUID tournamentId PostgreSQL 22P02 syntax errors return clean 404 instead of 503', async () => {
+  const uuidError = Object.assign(new Error('invalid input syntax for type uuid: "daily-turbo"'), { code: '22P02' });
+  const response = await request(
+    makeClient({
+      tournamentDetail: { data: null, error: uuidError },
+      tournamentEntries: { data: null, error: uuidError },
+    }),
+    { tournamentId: 'daily-turbo' },
+  );
+  assert.equal(response.statusCode, 404);
+  assert.deepEqual(response.body, {
+    success: false,
+    error: 'Tournament not found',
+    code: 'TOURNAMENT_NOT_FOUND',
+  });
+});
