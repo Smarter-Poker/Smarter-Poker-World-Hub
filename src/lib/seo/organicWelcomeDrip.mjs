@@ -1,9 +1,10 @@
 /**
- * Intent-Personalized Day-0 / Day-1 Organic Activation Email Composer
+ * Intent-Personalized Day-0 / Day-1 / Day-3 Organic Activation & Series Reminder Email Composer
  *
  * Pure, zero-PII, Resend-ready HTML + plain-text email builder that tailors
- * Day-0 activation and Day-1 behavioral re-engagement to the player's organic
- * entry intent (`gto-ranges`, `odds-calculator`, `gto-leak-finder`,
+ * Day-0 activation, Day-1 behavioral re-engagement, Day-3 unverified VIP
+ * urgency nudges, and saved tournament series event reminders to the player's
+ * organic entry intent (`gto-ranges`, `odds-calculator`, `gto-leak-finder`,
  * `series-reminder`, `live-venues`, or `general-hub`).
  *
  * Standards enforced:
@@ -45,6 +46,9 @@ const TRACK_CONFIG = Object.freeze({
       'You started sharpening your preflop ranges yesterday. Put that range discipline to the test in a 60-second solver decision.',
     day1SpotLine:
       '100bb Cash: CO opens 2.5bb, Hero 3-bets BTN with A5s, CO calls. Flop comes K-7-2 rainbow. What is the highest-EV solver play?',
+    day3BenefitTitle: 'Unlock Full GTO Preflop Ranges + 500 Diamonds',
+    day3BenefitBody:
+      'Verify your phone in 15 seconds to claim Free 30-Day VIP + 500 Diamonds On Phone Verify and unlock full 100bb cash, MTT, and 3-bet solver range charts with unlimited saved spots.',
   },
   'odds-calculator': {
     label: 'Poker Odds & Equity Calculator',
@@ -62,6 +66,9 @@ const TRACK_CONFIG = Object.freeze({
       'Yesterday you ran equity numbers in the Smarter.Poker calculator. Now see if your intuition matches the solver in a real 3-bet pot.',
     day1SpotLine:
       '100bb Cash: Hero holds A5s on the BTN after a CO open and 3-bet. On K-7-2 rainbow, do you range c-bet small, size up, or check back?',
+    day3BenefitTitle: 'Unlock Unlimited Equity Studies + 500 Diamonds',
+    day3BenefitBody:
+      'Verify your phone in 15 seconds to claim Free 30-Day VIP + 500 Diamonds On Phone Verify and unlock saved hand-vs-range matchups, multi-street EV tracking, and full solver tools.',
   },
   'gto-leak-finder': {
     label: 'GTO Leak Finder',
@@ -79,6 +86,9 @@ const TRACK_CONFIG = Object.freeze({
       'Yesterday you ran a GTO Leak Finder check. One of the highest-EV leaks at 100bb is BTN 3-bet pot flop strategy - test your read in 60 seconds.',
     day1SpotLine:
       '100bb Cash: BTN 3-bet pot vs CO call on K-7-2 rainbow with A5s. Lock in your action and compare EV against the solver immediately.',
+    day3BenefitTitle: 'Unlock Full GTO Leak Finder Drills + 500 Diamonds',
+    day3BenefitBody:
+      'Verify your phone in 15 seconds to claim Free 30-Day VIP + 500 Diamonds On Phone Verify and unlock full Personal Assistant leak audits, targeted drill playlists, and solver reviews.',
   },
   'series-reminder': {
     label: 'Live Tournament Series Alerts',
@@ -96,6 +106,9 @@ const TRACK_CONFIG = Object.freeze({
       'Before your next tournament flight starts, warm up your decision-making with a 1-minute solver challenge built for live grinders.',
     day1SpotLine:
       'BTN 3-Bet Spot: Facing a CO open and call on K-7-2 rainbow with A5s, pick the solver-approved line in under 60 seconds.',
+    day3BenefitTitle: 'Unlock Live Series Alerts & MTT Solver Tools + 500 Diamonds',
+    day3BenefitBody:
+      'Verify your phone in 15 seconds to claim Free 30-Day VIP + 500 Diamonds On Phone Verify and unlock synced series alerts, ICM warmup drills, and full MTT solver access.',
   },
   'live-venues': {
     label: 'Live Poker Rooms Near You',
@@ -113,6 +126,9 @@ const TRACK_CONFIG = Object.freeze({
       'Heading to a live poker room soon? Sharpen your 3-bet pot instincts before you sit down with a quick 1-minute solver spot.',
     day1SpotLine:
       'Live Cash Warmup: You 3-bet A5s on the BTN against a CO open and see K-7-2 rainbow. Can you match the solver frequency?',
+    day3BenefitTitle: 'Unlock Live Room Alerts & Cash Solver Warmups + 500 Diamonds',
+    day3BenefitBody:
+      'Verify your phone in 15 seconds to claim Free 30-Day VIP + 500 Diamonds On Phone Verify and unlock live room alerts, bankroll tracking, and full cash-game GTO warmup packs.',
   },
   'general-hub': {
     label: 'Smarter.Poker Hub',
@@ -130,6 +146,9 @@ const TRACK_CONFIG = Object.freeze({
       'Ready for your first quick training rep? Spend 60 seconds in GTO Hand Lab and see how closely your instincts track the solver.',
     day1SpotLine:
       'BTN 3-Bet Spot: CO opens 2.5bb, Hero 3-bets A5s on the BTN, CO calls, flop is K-7-2 rainbow. Pick your play and inspect instant EV.',
+    day3BenefitTitle: 'Unlock Full Smarter.Poker Hub VIP + 500 Diamonds',
+    day3BenefitBody:
+      'Verify your phone in 15 seconds to claim Free 30-Day VIP + 500 Diamonds On Phone Verify and unlock GTO Hand Lab, Preflop Charts, 42+ Free Calculators, and Live Series Alerts.',
   },
 });
 
@@ -173,6 +192,47 @@ function normalizeSiteUrl(siteUrl) {
     return `${parsed.origin}${parsed.pathname}`.replace(/\/+$/, '');
   } catch {
     return DEFAULT_SITE_URL;
+  }
+}
+
+function normalizeOrigin(siteUrl) {
+  const candidate = typeof siteUrl === 'string' && siteUrl.trim() ? siteUrl.trim() : DEFAULT_SITE_URL;
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return DEFAULT_SITE_URL;
+    return parsed.origin;
+  } catch {
+    return DEFAULT_SITE_URL;
+  }
+}
+
+function cleanInlineText(value, maxLen = 140) {
+  return stripEmDashes(value)
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLen);
+}
+
+function formatEventDateLabel(rawDate) {
+  if (typeof rawDate !== 'string' || !rawDate.trim()) return 'Upcoming';
+  const parsedMs = Date.parse(rawDate.trim());
+  if (!Number.isFinite(parsedMs)) {
+    return cleanInlineText(rawDate, 64) || 'Upcoming';
+  }
+  try {
+    const formatted = new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'UTC',
+      timeZoneName: 'short',
+    }).format(new Date(parsedMs));
+    return cleanInlineText(formatted, 64);
+  } catch {
+    return new Date(parsedMs).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
   }
 }
 
@@ -234,6 +294,7 @@ function renderEmailShell({
   primaryCtaUrl,
   secondaryCtaLabel,
   secondaryCtaUrl,
+  rewardBannerEyebrow = 'Phone Verification Bonus',
   rewardBannerText,
 }) {
   const crestUrl = `${cleanSite}/api/news/email-image?brand=crest`;
@@ -270,7 +331,7 @@ ${secondaryCtaUrl ? `<a href="${escapeHtml(secondaryCtaUrl)}" style="display:inl
 </table>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0f1824;border:1px solid #1e3246;border-radius:10px;margin-bottom:18px;">
 <tr><td style="padding:14px 18px;">
-<div style="color:#60a5fa;font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;">Phone Verification Bonus</div>
+<div style="color:#60a5fa;font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;">${escapeHtml(rewardBannerEyebrow)}</div>
 <div style="color:#ffffff;font-size:13.5px;font-weight:700;margin-top:4px;line-height:1.5;">${escapeHtml(rewardBannerText)}</div>
 </td></tr>
 </table>
@@ -300,7 +361,7 @@ ${secondaryCtaUrl ? `<a href="${escapeHtml(secondaryCtaUrl)}" style="display:inl
     `${primaryCtaLabel}: ${primaryCtaUrl}`,
     ...(secondaryCtaUrl ? [`${secondaryCtaLabel}: ${secondaryCtaUrl}`] : []),
     '',
-    `Phone Verification Bonus: ${rewardBannerText}`,
+    `${rewardBannerEyebrow}: ${rewardBannerText}`,
     '',
     `Email Preferences: ${prefsUrl}`,
     `Weekly Wire Archive: ${wireUrl}`,
@@ -416,5 +477,135 @@ export function buildDay1ActivationNudgeEmail({
     text,
     ctaUrl,
     track: resolvedTrack,
+  };
+}
+
+/**
+ * Day-3 VIP urgency nudge for unverified organic users reminding them their
+ * Free 30-Day VIP + 500 Diamonds On Phone Verify welcome package is waiting
+ * and takes 15 seconds to claim, with track-contextualized benefits.
+ */
+export function buildDay3VipUrgencyEmail({
+  track,
+  firstName = '',
+  siteUrl = DEFAULT_SITE_URL,
+} = {}) {
+  const origin = normalizeOrigin(siteUrl);
+  const resolvedTrack = TRACK_SET.has(track) ? track : 'general-hub';
+  const cfg = TRACK_CONFIG[resolvedTrack];
+  const greetingName = sanitizeFirstName(firstName);
+
+  const subject = 'Your Free 30-Day VIP + 500 Diamonds Welcome Package Is Waiting';
+  const previewText = stripEmDashes(
+    `Takes 15 seconds: verify your phone to claim Free 30-Day VIP + 500 Diamonds On Phone Verify (${cfg.label}).`,
+  );
+
+  const ctaUrl = `${origin}/hub/verify-phone?welcome=1&src=organic-day3-vip`;
+  const secondaryUrl = `${origin}${cfg.defaultNextPath}?src=organic-day3-vip`;
+  const rewardBannerText =
+    'Takes 15 seconds: claim Free 30-Day VIP + 500 Diamonds On Phone Verify before your welcome package expires.';
+
+  const { html, text } = renderEmailShell({
+    cleanSite: origin,
+    subject,
+    previewText,
+    eyebrow: `Smarter.Poker | ${cfg.label}`,
+    heading: 'Claim Your Free 30-Day VIP + 500 Diamonds In 15 Seconds',
+    greetingName,
+    intro:
+      'your Free 30-Day VIP + 500 Diamonds welcome package is still waiting in your Smarter.Poker account. Phone verification takes 15 seconds and immediately unlocks your full toolkit.',
+    cardEyebrow: `Day-3 VIP Reminder | ${cfg.label}`,
+    cardTitle: cfg.day3BenefitTitle,
+    cardBody: cfg.day3BenefitBody,
+    primaryCtaLabel: 'Claim Free 30-Day VIP + 500 Diamonds (15 Seconds)',
+    primaryCtaUrl: ctaUrl,
+    secondaryCtaLabel: cfg.day0SecondaryLabel,
+    secondaryCtaUrl: secondaryUrl,
+    rewardBannerEyebrow: 'Welcome Package Waiting',
+    rewardBannerText,
+  });
+
+  return {
+    track: resolvedTrack,
+    subject,
+    previewText,
+    html,
+    text,
+    ctaUrl,
+  };
+}
+
+/**
+ * Upcoming tournament reminder email for a saved `sp_saved_spots_v1` entry
+ * (`kind === 'series-reminder'`). Safely escapes all untrusted HTML inputs,
+ * enforces zero em/en dashes, links back to the saved event path, and includes
+ * a secondary Bankroll Manager session-tracking CTA.
+ */
+export function buildSeriesEventReminderEmail({
+  spot = {},
+  firstName = '',
+  siteUrl = DEFAULT_SITE_URL,
+} = {}) {
+  const origin = normalizeOrigin(siteUrl);
+  const greetingName = sanitizeFirstName(firstName);
+
+  const rawSpot = spot && typeof spot === 'object' ? spot : {};
+  const eventLabel =
+    cleanInlineText(rawSpot.label || rawSpot.summaryText || rawSpot.eventName || '', 120) ||
+    'Saved Tournament Event';
+  const seriesName = cleanInlineText(rawSpot.seriesName || '', 100);
+  const venue = cleanInlineText(rawSpot.venue || '', 100);
+  const eventDateLabel = formatEventDateLabel(rawSpot.eventDate || rawSpot.startDate || '');
+
+  let locationLine = 'Live Tournament Series';
+  if (seriesName && venue && seriesName.toLowerCase() !== venue.toLowerCase()) {
+    locationLine = `${seriesName} at ${venue}`;
+  } else if (venue) {
+    locationLine = venue;
+  } else if (seriesName) {
+    locationLine = seriesName;
+  }
+
+  const safePath =
+    sanitizeLandingPath(rawSpot.path) ||
+    sanitizeLandingPath(rawSpot.url) ||
+    '/hub/poker-series';
+  const ctaUrl = `${origin}${safePath}`;
+  const bankrollUrl = `${origin}/hub/bankroll-manager?src=series-reminder`;
+
+  const subject = stripEmDashes(`Tournament Reminder: ${eventLabel} Starts Soon`).slice(0, 140);
+  const previewText = stripEmDashes(
+    `${eventLabel} (${eventDateLabel}) - ${locationLine}. View event details and track your buy-in free.`,
+  );
+
+  const cardBody = `${eventLabel} is scheduled for ${eventDateLabel} (${locationLine}). Review event structures, late registration, and seating details before cards go in the air, then log your buy-in and results free in Bankroll Manager.`;
+
+  const { html, text } = renderEmailShell({
+    cleanSite: origin,
+    subject,
+    previewText,
+    eyebrow: 'Smarter.Poker Tournament Event Reminder',
+    heading: 'Your Saved Tournament Event Starts Soon',
+    greetingName,
+    intro: `here is your reminder for ${eventLabel} (${eventDateLabel}) at ${locationLine}.`,
+    cardEyebrow: `Upcoming Event | ${eventDateLabel}`,
+    cardTitle: eventLabel,
+    cardBody,
+    primaryCtaLabel: 'Open Saved Event Schedule',
+    primaryCtaUrl: ctaUrl,
+    secondaryCtaLabel: 'Log Your Buy-In & Track Your Session Free',
+    secondaryCtaUrl: bankrollUrl,
+    rewardBannerEyebrow: 'Free Bankroll Session Tracking',
+    rewardBannerText:
+      'Track your buy-ins, re-entries, cashes, and live tournament ROI free inside Smarter.Poker Bankroll Manager.',
+  });
+
+  return {
+    subject,
+    previewText,
+    html,
+    text,
+    ctaUrl,
+    bankrollUrl,
   };
 }
