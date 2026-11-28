@@ -406,7 +406,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                     startLabel="Start Simulated Practice"
                     footer={matchHistory.length > 0 && (
                         <div style={{ marginTop: 18, textAlign: 'left' }}>
-                            <div className="preflop-sd-kicker" style={{ marginBottom: 8 }}>This Session&apos;s Practice Runs</div>
+                            <div className="preflop-sd-kicker" style={{ marginBottom: 8 }}>Practice Runs This Session</div>
                             <div style={{ display: 'grid', gap: 6 }}>
                                 {matchHistory.slice(-5).reverse().map((match, idx) => (
                                     <div key={idx} className="preflop-sd-row" style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
