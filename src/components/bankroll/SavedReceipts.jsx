@@ -8,14 +8,15 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Image, X, Trash2, Calendar, DollarSign, FileText, RefreshCw } from 'lucide-react';
+import { Image, X, Trash2, Calendar, FileText, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
 import { parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
 import { receiptCards, mediaWithout, RECEIPT_UNASSIGN } from '../../lib/bankroll/receiptGallery.mjs';
 import { METAL } from './metalStyles';
+import { formatCurrencyWithSign } from '../../lib/bankroll/currencyUtils';
 
-export default function SavedReceipts({ userId }) {
+export default function SavedReceipts({ userId, displayEUR = false }) {
     const [receipts, setReceipts] = useState([]);
     const [loading, setLoading] = useState(true);
     // A failed load is said, not shown as "No Saved Receipts": an empty grid
@@ -174,8 +175,7 @@ export default function SavedReceipts({ userId }) {
                                         ...styles.metaItem,
                                         color: r.netResult >= 0 ? '#22c55e' : '#ef4444',
                                     }}>
-                                        <DollarSign size={10} />
-                                        {r.netResult >= 0 ? '+' : '-'}{Math.abs(r.netResult).toLocaleString()}
+                                        {formatCurrencyWithSign(r.netResult, displayEUR)}
                                     </span>
                                 )}
                             </div>

@@ -2,11 +2,12 @@ import React, { memo, useState } from 'react';
 import { CalendarDays, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import shift from './ShiftConsole.module.css';
 import controls from './TokeForm.module.css';
+import { formatCurrency } from '../../../lib/bankroll/currencyUtils';
 
-const money = value => (value || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 const date = value => new Date(value + 'T12:00:00').toLocaleDateString();
 
-function CompletedEventsList({ completedGigs, isLoading, loadError, onRetry, onViewReport, onSaveEdit, onDeleteGig }) {
+function CompletedEventsList({ completedGigs, isLoading, loadError, onRetry, onViewReport, onSaveEdit, onDeleteGig, displayEUR = false }) {
+    const money = value => formatCurrency(value || 0, displayEUR, { cents: true });
     const [editing, setEditing] = useState(null);
     const [form, setForm] = useState({});
     const [saving, setSaving] = useState(false);

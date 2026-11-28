@@ -58,14 +58,14 @@ export default function AdjustBankrollModal({ userId, currentBalance, onComplete
         <button type="button" className="sd-button" aria-pressed={type === 'deposit'} onClick={() => setType('deposit')}><ArrowDownLeft size={16} aria-hidden="true" />Deposit</button>
         <button type="button" className="sd-button" aria-pressed={type === 'withdrawal'} onClick={() => setType('withdrawal')}><ArrowUpRight size={16} aria-hidden="true" />Withdraw</button>
       </fieldset>
-      <label className={styles.field}>Amount
+      <label className={styles.field}>Amount (USD)
         <span className={styles.amount}><span aria-hidden="true">{type === 'deposit' ? '+' : '−'}$</span>
           <input type="text" inputMode="decimal" autoComplete="off" value={amount} placeholder="0.00"
             onChange={e => { if (/^\d*(?:\.\d{0,2})?$/.test(e.target.value)) setAmount(e.target.value); }} disabled={saving} />
         </span>
       </label>
       {knownBalance && <p className={styles.adjustPreview} aria-live="polite">
-        <span>Current Balance <strong>{formatCents(balanceCents)}</strong></span>
+        <span>Current Balance (USD) <strong>{formatCents(balanceCents)}</strong></span>
         {valid && <span>After {type === 'deposit' ? 'Deposit' : 'Withdrawal'} <strong>{formatCents(afterCents)}</strong></span>}
       </p>}
       <label className={styles.field}>Note (Optional)<input type="text" value={reason} maxLength={200} onChange={e => setReason(e.target.value)} disabled={saving} /></label>

@@ -7,7 +7,7 @@
 
 import { GRADIENTS, METAL } from './metalStyles';
 import React from 'react';
-import { formatCurrency } from '../../lib/bankroll/currencyUtils';
+import { formatCurrency, formatCurrencyWithSign } from '../../lib/bankroll/currencyUtils';
 import { parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
 import { tripContribution } from '../../lib/bankroll/tripMath.mjs';
 import TripROICalculator from './TripROICalculator';
@@ -21,10 +21,10 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
-const orDash = (value) => (value == null ? '-' : formatCurrency(value));
+const orDash = (value, displayEUR) => (value == null ? '-' : formatCurrency(value, displayEUR));
 const signColor = (value) => (value == null ? '#fff' : value >= 0 ? '#10b981' : '#ef4444');
 
-function TripReport({ report, onBack, onReopen, kind = 'trip' }) {
+function TripReport({ report, onBack, onReopen, kind = 'trip', displayEUR = false }) {
     const { trip, stats, categoryBreakdown, dailyBreakdown, entries = [] } = report;
     const noun = kind === 'series' ? 'Series' : 'Trip';
 
@@ -50,19 +50,19 @@ function TripReport({ report, onBack, onReopen, kind = 'trip' }) {
 
             {/* Summary Stats Grid */}
             <div style={styles.statsGrid}>
-                <StatBox label="Total P/L" value={formatCurrency(stats.totalNet)} color={stats.totalNet >= 0 ? '#10b981' : '#ef4444'} large />
-                <StatBox label="Gaming Net" value={formatCurrency(stats.totalGrossNet)} color={signColor(stats.totalGrossNet)} />
-                <StatBox label="Expenses" value={formatCurrency(stats.totalExpenses)} color="#ef4444" />
+                <StatBox label="Total P/L" value={formatCurrency(stats.totalNet, displayEUR)} color={stats.totalNet >= 0 ? '#10b981' : '#ef4444'} large />
+                <StatBox label="Gaming Net" value={formatCurrency(stats.totalGrossNet, displayEUR)} color={signColor(stats.totalGrossNet)} />
+                <StatBox label="Expenses" value={formatCurrency(stats.totalExpenses, displayEUR)} color="#ef4444" />
                 <StatBox label="Sessions" value={stats.sessionCount} />
                 <StatBox label="Win Rate" value={`${stats.winRate}%`} color={stats.winRate >= 50 ? '#10b981' : '#ef4444'} />
                 <StatBox label="Duration" value={`${stats.durationDays} ${stats.durationDays === 1 ? 'Day' : 'Days'}`} />
-                <StatBox label="Avg/Day" value={formatCurrency(stats.avgPerDay)} color={stats.avgPerDay >= 0 ? '#10b981' : '#ef4444'} />
-                <StatBox label="Avg/Session" value={formatCurrency(stats.avgPerSession)} color={stats.avgPerSession >= 0 ? '#10b981' : '#ef4444'} />
-                <StatBox label="Best Session" value={orDash(stats.biggestWin)} color={signColor(stats.biggestWin)} />
-                <StatBox label="Worst Session" value={orDash(stats.biggestLoss)} color={signColor(stats.biggestLoss)} />
+                <StatBox label="Avg/Day" value={formatCurrency(stats.avgPerDay, displayEUR)} color={stats.avgPerDay >= 0 ? '#10b981' : '#ef4444'} />
+                <StatBox label="Avg/Session" value={formatCurrency(stats.avgPerSession, displayEUR)} color={stats.avgPerSession >= 0 ? '#10b981' : '#ef4444'} />
+                <StatBox label="Best Session" value={orDash(stats.biggestWin, displayEUR)} color={signColor(stats.biggestWin)} />
+                <StatBox label="Worst Session" value={orDash(stats.biggestLoss, displayEUR)} color={signColor(stats.biggestLoss)} />
             </div>
 
-            <TripROICalculator report={report} />
+            <TripROICalculator report={report} displayEUR={displayEUR} />
 
             {/* Category Breakdown */}
             {Object.keys(categoryBreakdown || {}).length > 0 && (
@@ -76,7 +76,7 @@ function TripReport({ report, onBack, onReopen, kind = 'trip' }) {
                                     ...styles.catNet,
                                     color: data.net >= 0 ? '#10b981' : '#ef4444',
                                 }}>
-                                    {formatCurrency(data.net)}
+                                    {formatCurrency(data.net, displayEUR)}
                                 </div>
                                 <div style={styles.catMeta}>
                                     {data.count} {data.count === 1 ? 'entry' : 'entries'}
@@ -101,7 +101,7 @@ function TripReport({ report, onBack, onReopen, kind = 'trip' }) {
                                         ...styles.dailyNet,
                                         color: net >= 0 ? '#10b981' : '#ef4444',
                                     }}>
-                                        {net >= 0 ? '+' : ''}{formatCurrency(net)}
+                                        {formatCurrencyWithSign(net, displayEUR)}
                                     </span>
                                 </div>
                             ))}
@@ -131,7 +131,7 @@ function TripReport({ report, onBack, onReopen, kind = 'trip' }) {
                                     ...styles.entryNet,
                                     color: tripContribution(entry) >= 0 ? '#10b981' : '#ef4444',
                                 }}>
-                                    {formatCurrency(tripContribution(entry))}
+                                    {formatCurrency(tripContribution(entry), displayEUR)}
                                 </span>
                             </div>
                         ))}

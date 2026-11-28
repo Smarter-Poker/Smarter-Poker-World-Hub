@@ -13,11 +13,12 @@ import LedgerTimeline from './LedgerTimeline';
 import LeakAlertPanel from './LeakAlertPanel';
 import BankrollRulesCard from './BankrollRulesCard';
 import LogEntryModal from './LogEntryModal';
+import { formatCurrency, formatCurrencyWithSign } from '../../lib/bankroll/currencyUtils';
 
 
 const TIME_FILTERS = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year', 'All Time'];
 
-function StatCard({ title, value, change, suffix, isRisk, isLoading }) {
+function StatCard({ title, value, change, suffix, isRisk, isLoading, displayEUR = false }) {
   const getRiskColor = (risk) => {
     if (risk === 'HIGH') return '#ef4444';
     if (risk === 'MEDIUM') return '#61d0e8';
@@ -42,7 +43,7 @@ function StatCard({ title, value, change, suffix, isRisk, isLoading }) {
                 color: change >= 0 ? '#22c55e' : '#ef4444',
               }}
             >
-              {change >= 0 ? '+' : ''}${Math.abs(change).toLocaleString()}
+              {formatCurrencyWithSign(change, displayEUR)}
               {change < 0 && <span style={styles.downArrow}>▼</span>}
             </span>
           )}
@@ -53,7 +54,7 @@ function StatCard({ title, value, change, suffix, isRisk, isLoading }) {
   );
 }
 
-export default function BankrollDashboard({ userId }) {
+export default function BankrollDashboard({ userId, displayEUR = false }) {
   const [stats, setStats] = useState(null);
   const [entries, setEntries] = useState([]);
   const [trips, setTrips] = useState([]);
@@ -290,15 +291,16 @@ export default function BankrollDashboard({ userId }) {
           <div style={styles.statsGrid}>
             <StatCard
               title="Total Bankroll"
-              value={stats ? `$${stats.totalBankroll.toLocaleString()}` : '-'}
+              value={stats ? formatCurrency(stats.totalBankroll, displayEUR) : '-'}
               change={stats?.allInNet}
+              displayEUR={displayEUR}
               isLoading={isLoading}
             />
             <StatCard
               title="All-In Net"
               value={
                 stats
-                  ? `${stats.allInNet < 0 ? '-' : ''}$${Math.abs(stats.allInNet).toLocaleString()}`
+                  ? formatCurrency(stats.allInNet, displayEUR)
                   : '-'
               }
               isLoading={isLoading}
@@ -313,7 +315,7 @@ export default function BankrollDashboard({ userId }) {
               title="Travel ROI"
               value={
                 stats
-                  ? `${stats.travelROI < 0 ? '-' : ''}$${Math.abs(stats.travelROI).toLocaleString()}`
+                  ? formatCurrency(stats.travelROI, displayEUR)
                   : '-'
               }
               suffix="Last Trip"
@@ -327,6 +329,7 @@ export default function BankrollDashboard({ userId }) {
 
             {/* Ledger Timeline — flat chronological list */}
             <LedgerTimeline
+              displayEUR={displayEUR}
               entries={entries}
               isLoading={isLoading}
               onEdit={handleEditEntry}
@@ -347,11 +350,10 @@ export default function BankrollDashboard({ userId }) {
                           color: trip.totalNet >= 0 ? '#22c55e' : '#ef4444',
                         }}
                       >
-                        {trip.totalNet >= 0 ? '+' : '~-'}$
-                        {Math.abs(trip.totalNet || 0).toLocaleString()}
+                        {formatCurrencyWithSign(trip.totalNet || 0, displayEUR)}
                       </span>
                       <span style={styles.tripExpenses}>
-                        Net / ${(trip.totalExpenses || 0).toLocaleString()} Expenses
+                        Net / {formatCurrency(trip.totalExpenses || 0, displayEUR)} Expenses
                       </span>
                     </div>
                     <span style={styles.tripArrow}>›</span>
@@ -372,7 +374,7 @@ export default function BankrollDashboard({ userId }) {
           />
 
           {/* Bankroll Rules */}
-          <BankrollRulesCard userId={userId} />
+          <BankrollRulesCard userId={userId} displayEUR={displayEUR} />
 
           {/* Log Today's Session Button */}
           <button style={styles.logTodayButton} onClick={() => setShowLogModal(true)}>

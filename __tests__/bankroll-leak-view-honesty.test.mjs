@@ -32,7 +32,8 @@ test('leak amounts are formatted in the display currency with the sign in front'
   assert.equal(leakValueText({ hourly: -24.4, value: '$-24/hr' }, false), '-$24/hr');
   assert.equal(leakValueText({ hourly: -24.4 }, true), '-€22/hr');
   assert.equal(leakValueText({ amount: -180 }, false), '-$180');
-  assert.equal(leakValueText({ amount: -180 }, true), '-€166');
+  // -180 x 0.9127 (ECB reference rate, 2026-11-27) = -164.29
+  assert.equal(leakValueText({ amount: -180 }, true), '-€164');
   assert.equal(leakValueText({ amount: -1234.6 }, false), '-$1,235');
   // A finding from an older shape still shows its text.
   assert.equal(leakValueText({ value: '-$50' }, true), '-$50');
