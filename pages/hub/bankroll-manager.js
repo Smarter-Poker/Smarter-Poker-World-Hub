@@ -163,6 +163,7 @@ const BankrollBadges = lazySection(() => import('../../src/components/bankroll/B
 const SocialStakingProfile = lazySection(() => import('../../src/components/bankroll/SocialStakingProfile'));
 const TournamentCalendar = lazySection(() => import('../../src/components/bankroll/TournamentCalendar'));
 const LeakAnalysisView = lazySection(() => import('../../src/components/bankroll/LeakAnalysisView'));
+const RecentlyDeleted = lazySection(() => import('../../src/components/bankroll/RecentlyDeleted'));
 import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollModal';
 import { hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
 import GeofenceService from '../../src/lib/geofence';
@@ -203,6 +204,7 @@ const SIDEBAR_SECTIONS = [
   { id: 'staking-profile', label: 'Staking Profile', icon: '' },
   { id: 'tournament-calendar', label: 'Tournament Calendar', icon: '' },
   { id: 'reports', label: 'Reports', icon: '' },
+  { id: 'recently-deleted', label: 'Recently Deleted', icon: '' },
 ];
 
 // These sections are available from the World Hub menu.
@@ -245,7 +247,7 @@ const CATEGORY_LABELS = {
 const EMPTY_LEDGER = [];
 
 // Header artwork for views that have none of their own.
-const HEADER_ART = { dashboard: 'bankroll', badges: 'goals', leaks: 'jarvis', 'hand-review': 'reports' };
+const HEADER_ART = { dashboard: 'bankroll', badges: 'goals', leaks: 'jarvis', 'hand-review': 'reports', 'recently-deleted': 'reports' };
 
 function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick, tutorialId, displayEUR = false }) {
   const getRiskColor = (risk) => {
@@ -2268,6 +2270,13 @@ export default function BankrollManagerPage() {
                 </BankrollProGate>
               )}
 
+              {activeSection === 'recently-deleted' && (
+                <div className={`sd-panel ${layout.panel}`}>
+                  <h2 className="sd-section-title">Recently Deleted</h2>
+                  <RecentlyDeleted userId={userId} displayEUR={preferences.currencyEUR} />
+                </div>
+              )}
+
               {/* Goals View (from hamburger menu) */}
               {activeSection === 'goals' && (
                 <div className={`sd-panel ${layout.panel}`}>
@@ -2735,6 +2744,7 @@ export default function BankrollManagerPage() {
               defaultPrefillData={defaultReceiptData}
               livePrefill={livePrefill}
               onStartLiveSession={(category) => { closeLogModal(); setLiveStart(category || true); }}
+              displayEUR={preferences.currencyEUR}
               onClose={closeLogModal}
               onSubmit={(entry, saved) => {
                 const receiptId = receiptAwaitingEntryRef.current;

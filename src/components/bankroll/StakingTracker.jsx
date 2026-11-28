@@ -9,6 +9,7 @@ import { GRADIENTS, METAL } from './metalStyles';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePendingDeletes, scheduleDelete } from './usePendingDeletes';
 import { withoutHidden } from '../../lib/bankroll/pendingDeletes.mjs';
+import StakingSharePanel from './StakingSharePanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     fetchStakingArrangements,
@@ -486,6 +487,8 @@ export default function StakingTracker({ userId, refreshTrigger, displayEUR = fa
                             </AnimatePresence>
                         )}
                     </div>
+
+                    <StakingSharePanel userId={userId} arrangement={activeArrangement} sessionCount={sessions.length} />
                 </div>
             ) : (
                 <div style={styles.emptyState}>

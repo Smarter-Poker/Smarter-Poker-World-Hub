@@ -55,6 +55,7 @@ const SECTIONS: Array<{ view: string; title: string; query?: string }> = [
   { view: 'settings', title: 'Settings' },
   { view: 'leaks', title: 'Leak Analysis' },
   { view: 'hand-review', title: 'Hand Review' },
+  { view: 'recently-deleted', title: 'Recently Deleted' },
   // Category dashboards reached from the World Hub menu (?type=).
   { view: 'type-cash', title: 'Cash Games', query: 'type=cash' },
   { view: 'type-tournament', title: 'Tournaments', query: 'type=tournament' },

@@ -169,9 +169,26 @@ const STAY_USD = [
   'src/lib/bankroll/ledgerReport.mjs',
 ];
 
+// The session form is a form: what the player types is never run through
+// Display EUR. Since 2026-11-28 it hosts the entry's History disclosure, a
+// display surface, so it receives displayEUR for that one purpose and passes
+// it straight through. Typing a session in another currency (entry currency)
+// lives in entryCurrency.mjs / EntryCurrencyFields.jsx, not in currencyUtils.
+const PASS_THROUGH = {
+  // Exact text; every other displayEUR in the file still fails the check.
+  'src/components/bankroll/LogEntryModal.jsx': [
+    'onClose, onSubmit, displayEUR = false })',
+    '<LedgerEntryHistory userId={userId} entryId={editEntry.id} displayEUR={displayEUR} />',
+  ],
+};
+
 test('tax, exports and entry forms never convert', () => {
   for (const file of STAY_USD) {
-    const src = code(file);
+    let src = code(file);
+    for (const allowed of PASS_THROUGH[file] || []) {
+      assert.ok(read(file).includes(allowed), `${file} passes displayEUR through as written: ${allowed}`);
+      src = src.split(allowed).join('');
+    }
     assert.doesNotMatch(src, /currencyUtils|displayEUR|currencyEUR|convertCurrency|USD_TO_EUR|'EUR'|€/, file);
   }
   // The scanner used to print "EUR " in front of an unconverted US amount.

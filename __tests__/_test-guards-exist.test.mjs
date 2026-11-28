@@ -181,6 +181,7 @@ import './bankroll-staking-math.test.mjs';
 import './bankroll-toke-report.test.mjs';
 import './bankroll-ledger-math.test.mjs';
 import './bankroll-club-arena-sessions.test.mjs';
+import './bankroll-history-currency-backer.test.mjs';
 import './bankroll-lib-w3.test.mjs';
 import './bankroll-db-rpc-fallback.test.mjs';
 import './bankroll-totals-sql-matches-ledger-math.test.mjs';

@@ -18,6 +18,12 @@ import toast from '../../stores/toastStore';
 import { ClubArenaSessionsPanel } from './ClubArenaSessions';
 import { requireOnlineNow } from '../../hooks/useOnlineStatus';
 import { uploadBankrollImage } from '../../lib/bankroll/receiptStorage';
+import {
+  amountUnit, applyEntryCurrency, entryInOwnCurrency, initialCurrencyState, isForeignCurrency,
+  noteMoney, rateProblem, usdSavedPreview,
+} from '../../lib/bankroll/entryCurrency.mjs';
+import EntryCurrencyFields from './EntryCurrencyFields';
+import LedgerEntryHistory from './LedgerEntryHistory';
 
 // Clean SmarterPoker-style categories (no emojis)
 const CATEGORIES = [
@@ -68,18 +74,20 @@ function tournamentAmounts(form, previouslyRecordedBounties) {
   return { buyIn, rebuys, addOn, bounties, swap, staking, sold, stake: buyIn * (1 + rebuys) + addOn, payout };
 }
 
-function tournamentSummary(stake, rebuys, addOn, bounties) {
+// Amounts in the summary are in the currency the entry was typed in
+// (US dollars keep the exact form older rows carry).
+function tournamentSummary(stake, rebuys, addOn, bounties, currency = 'USD') {
   const parts = [];
-  if (rebuys > 0) parts.push(`Rebuys: ${rebuys} (Total Buy-In: $${Number(stake).toLocaleString()})`);
-  if (addOn > 0) parts.push(`Add-On: $${addOn}`);
-  if (bounties > 0) parts.push(`Bounties: $${bounties}`);
+  if (rebuys > 0) parts.push(`Rebuys: ${rebuys} (Total Buy-In: ${noteMoney(currency, stake, { grouped: true })})`);
+  if (addOn > 0) parts.push(`Add-On: ${noteMoney(currency, addOn)}`);
+  if (bounties > 0) parts.push(`Bounties: ${noteMoney(currency, bounties)}`);
   return parts.join(' | ');
 }
 
 function withTournamentSummary(notes, original, summary) {
   const lines = notes ? notes.split('\n') : [];
   if (original) {
-    const previous = tournamentSummary(original.gross_in, original.reentry_count, original.add_on_amount, original.bounties_collected);
+    const previous = tournamentSummary(original.gross_in, original.reentry_count, original.add_on_amount, original.bounties_collected, original.entry_currency);
     if (previous && (original.notes || '').split('\n').includes(previous)) {
       const index = lines.lastIndexOf(previous);
       if (index >= 0) {
@@ -92,10 +100,16 @@ function withTournamentSummary(notes, original, summary) {
   return lines.join('\n') || null;
 }
 
-function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, defaultMediaUrls, defaultPrefillData, livePrefill, onStartLiveSession, onClose, onSubmit }) {
+function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, defaultMediaUrls, defaultPrefillData, livePrefill, onStartLiveSession, onClose, onSubmit, displayEUR = false }) {
   const formId = useId();
   const fieldId = (name) => `${formId}-${name}`;
   const isEditMode = !!editEntry;
+  // The entry as the player typed it: a session typed in euros is edited in
+  // euros (original_gross_*), never in the US dollars it is stored as.
+  const editView = isEditMode ? entryInOwnCurrency(editEntry) : null;
+  const [currencyState, setCurrencyState] = useState(() => initialCurrencyState(editEntry));
+  const unit = amountUnit(currencyState.currency);
+  const typedForeign = isForeignCurrency(currencyState.currency);
   // Phone back gesture closes the sheet instead of leaving the page (mobile
   // phase 0a). The modal is mounted only while open, so isOpen is constant;
   // the hook pops our history entry on unmount so an X-close never leaves a
@@ -161,7 +175,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   // Form state
   const buildInitialFormData = () => {
     if (isEditMode) {
-      const e = editEntry;
+      const e = editView;
       const extractTime = (dt) => dt ? dt.split('T')[1]?.substring(0, 5) || '' : '';
       const startRaw = extractTime(e.start_time);
       const endRaw = extractTime(e.end_time);
@@ -414,7 +428,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   const calculateNetResult = () => {
     const grossOut = parseFloat(formData.gross_out) || 0;
     if (category === 'poker_mtt') {
-      const { stake, payout } = tournamentAmounts(formData, editEntry?.bounties_collected);
+      const { stake, payout } = tournamentAmounts(formData, editView?.bounties_collected);
       return payout - stake;
     }
     const grossIn = parseFloat(formData.gross_in) || 0;
@@ -438,6 +452,8 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
     }
     if (formData.start_time_text && !to24h(formData.start_time_text, formData.start_period)) return 'Enter A Valid Start Time';
     if (formData.end_time_text && !to24h(formData.end_time_text, formData.end_period)) return 'Enter A Valid End Time';
+    const badRate = rateProblem(currencyState.rate, currencyState.currency);
+    if (badRate) return badRate;
     if (category === 'expense') {
       if (!(toCents(formData.gross_in) > 0)) return 'Enter The Expense Amount';
     } else if (category !== 'poker_mtt') {
@@ -513,7 +529,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         const expLabel = formData.inline_expense_type
           ? formData.inline_expense_type.charAt(0).toUpperCase() + formData.inline_expense_type.slice(1).replace('_', ' ')
           : 'Expense';
-        const expNote = `${expLabel}: -$${inlineExp.toFixed(2)}`;
+        const expNote = `${expLabel}: -${noteMoney(currencyState.currency, inlineExp.toFixed(2))}`;
         entry.notes = entry.notes ? `${entry.notes}\n${expNote}` : expNote;
       }
 
@@ -533,21 +549,21 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         const {
           stake: totalBuyIn, payout, rebuys: rebuyCount, addOn: addOnAmt,
           bounties, swap: swapAmt, staking: stakerAmt, sold: actionAmt,
-        } = tournamentAmounts(formData, editEntry?.bounties_collected);
+        } = tournamentAmounts(formData, editView?.bounties_collected);
         entry.gross_in = totalBuyIn;
         entry.gross_out = payout;
         entry.notes = withTournamentSummary(
-          entry.notes, editEntry, tournamentSummary(totalBuyIn, rebuyCount, addOnAmt, bounties)
+          entry.notes, editView, tournamentSummary(totalBuyIn, rebuyCount, addOnAmt, bounties, currencyState.currency)
         );
         if (swapAmt > 0 || stakerAmt > 0 || actionAmt > 0) {
           // Append swap/staking/action details to notes
           const parts = [];
-          if (swapAmt > 0) parts.push(`Swap: ${formData.swap_player || 'Unknown'} - $${swapAmt}`);
-          if (stakerAmt > 0) parts.push(`Staked by: ${formData.staker_name || 'Unknown'} - $${stakerAmt}`);
+          if (swapAmt > 0) parts.push(`Swap: ${formData.swap_player || 'Unknown'} - ${noteMoney(currencyState.currency, swapAmt)}`);
+          if (stakerAmt > 0) parts.push(`Staked by: ${formData.staker_name || 'Unknown'} - ${noteMoney(currencyState.currency, stakerAmt)}`);
           if (actionAmt > 0) {
             const pct = formData.action_percentage ? `${formData.action_percentage}%` : '';
             const mkup = formData.action_markup ? ` @ ${formData.action_markup}% markup` : '';
-            parts.push(`Sold Action: ${formData.action_buyer || 'Unknown'} - ${pct}${mkup} - $${actionAmt}`);
+            parts.push(`Sold Action: ${formData.action_buyer || 'Unknown'} - ${pct}${mkup} - ${noteMoney(currencyState.currency, actionAmt)}`);
           }
           const extra = parts.join(' | ');
           entry.notes = entry.notes ? `${entry.notes}\n${extra}` : extra;
@@ -600,6 +616,13 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         entry.gross_in = Math.abs(parseFloat(formData.gross_in) || 0);
         entry.gross_out = 0;
       }
+
+      // Every amount above is in the currency the player typed. The ledger
+      // stores US dollars: a foreign entry keeps what was typed in
+      // original_gross_* with its rate, and gross_in / gross_out (and the
+      // tournament money fields) become US dollars, exact to the cent. A US
+      // dollar entry clears the foreign columns (entryCurrency.mjs).
+      Object.assign(entry, applyEntryCurrency(entry, { currency: currencyState.currency, rate: currencyState.rate }));
 
       // The saved row comes back so the caller knows the ledger id. A scanned
       // receipt that opened this modal is marked assigned to that id, which
@@ -698,14 +721,25 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
     const netResult = calculateNetResult();
     const isExpense = category === 'expense';
     const buyInField = category === 'poker_mtt' ? 'buy_in_amount' : 'gross_in';
+    const typedLegs = category === 'poker_mtt'
+      ? (() => { const t = tournamentAmounts(formData, editView?.bounties_collected); return { grossIn: t.stake, grossOut: t.payout }; })()
+      : { grossIn: parseFloat(formData.gross_in) || 0, grossOut: isExpense ? 0 : parseFloat(formData.gross_out) || 0 };
+    const savedPreview = usdSavedPreview({ currency: currencyState.currency, rate: currencyState.rate, ...typedLegs, isExpense });
 
     return (
       <form onSubmit={handleSubmit} style={styles.form}>
         {/* Amount Fields */}
         <div style={styles.amountSection}>
+          <EntryCurrencyFields
+            value={currencyState}
+            onChange={setCurrencyState}
+            entryDay={formData.entry_date}
+            editEntry={editEntry}
+            idPrefix={fieldId('money')}
+          />
           {isExpense ? (
             <div style={styles.formGroup}>
-              <label htmlFor={fieldId('amount')} style={styles.label}>Amount ($)</label>
+              <label htmlFor={fieldId('amount')} style={styles.label}>Amount ({unit})</label>
               <input
                 id={fieldId('amount')}
                 type="number"
@@ -722,7 +756,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           ) : (
             <div style={styles.amountRow}>
               <div style={styles.formGroup}>
-                <label htmlFor={fieldId('buy-in')} style={styles.label}>Buy-In ($)</label>
+                <label htmlFor={fieldId('buy-in')} style={styles.label}>Buy-In ({unit})</label>
                 <input
                   id={fieldId('buy-in')}
                   type="number"
@@ -737,7 +771,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 />
               </div>
               <div style={styles.formGroup}>
-                <label htmlFor={fieldId('cash-out')} style={styles.label}>Cash-Out ($)</label>
+                <label htmlFor={fieldId('cash-out')} style={styles.label}>Cash-Out ({unit})</label>
                 <input
                   id={fieldId('cash-out')}
                   type="number"
@@ -762,9 +796,16 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 color: netResult >= 0 ? '#22c55e' : '#ef4444',
               }}
             >
-              {/* Entry form: the preview is the stored US dollar result, never converted. */}
-              Net (USD): {netResult >= 0 ? '+' : '-'}${Math.abs(netResult).toLocaleString()}
+              {/* Entry form: the preview is the result as typed. A US dollar entry
+                  is stored as shown; a foreign one also shows the US dollar
+                  amount it is saved as (EntryCurrencyFields), never Display EUR. */}
+              {typedForeign
+                ? `Net (${currencyState.currency}): ${netResult >= 0 ? '+' : '-'}${Math.abs(netResult).toLocaleString()}`
+                : <>Net (USD): {netResult >= 0 ? '+' : '-'}${Math.abs(netResult).toLocaleString()}</>}
             </div>
+          )}
+          {savedPreview && (
+            <p data-testid="entry-usd-preview" style={{ margin: '8px 0 0', fontSize: 13, fontWeight: 600, color: '#94e7ff', textAlign: 'center' }}>{savedPreview}</p>
           )}
         </div>
 
@@ -862,7 +903,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
             {/* Bounties Collected - only for bounty types */}
             {['bounty', 'mystery_bounty', 'pko'].includes(formData.tournament_type) && (
               <div style={styles.formGroup}>
-                <label htmlFor={fieldId('bounties')} style={{ ...styles.label, color: '#22c55e' }}>Bounties Collected ($)</label>
+                <label htmlFor={fieldId('bounties')} style={{ ...styles.label, color: '#22c55e' }}>Bounties Collected ({unit})</label>
                 <input
                   id={fieldId('bounties')}
                   type="number"
@@ -936,7 +977,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 </div>
               </div>
               <div style={styles.formGroup}>
-                <label htmlFor={fieldId('add-on')} style={styles.label}>Add-On ($)</label>
+                <label htmlFor={fieldId('add-on')} style={styles.label}>Add-On ({unit})</label>
                 <input
                   id={fieldId('add-on')}
                   type="number"
@@ -953,13 +994,13 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
 
             {/* Total Buy-In Display */}
             {(() => {
-              const { buyIn, rebuys, addOn, stake: totalBuyIn } = tournamentAmounts(formData, editEntry?.bounties_collected);
+              const { buyIn, rebuys, addOn, stake: totalBuyIn } = tournamentAmounts(formData, editView?.bounties_collected);
               if (buyIn > 0 && (rebuys > 0 || addOn > 0)) {
                 return (
                   <div style={{ padding: '8px 12px', background: 'rgba(55, 127, 194,0.1)', border: '1px solid rgba(55, 127, 194,0.3)', borderRadius: 8, fontSize: 13, color: '#377fc2', textAlign: 'center', marginBottom: 8 }}>
-                    Total Buy-In: <strong>${totalBuyIn.toLocaleString()}</strong>
-                    {rebuys > 0 && <span> ({1 + rebuys} Bullets × ${buyIn.toLocaleString()}{addOn > 0 ? ` + $${addOn.toLocaleString()} add-on` : ''})</span>}
-                    {rebuys === 0 && addOn > 0 && <span> (${buyIn.toLocaleString()} + ${addOn.toLocaleString()} Add-On)</span>}
+                    Total Buy-In: <strong>{noteMoney(currencyState.currency, totalBuyIn, { grouped: true })}</strong>
+                    {rebuys > 0 && <span> ({1 + rebuys} Bullets × {noteMoney(currencyState.currency, buyIn, { grouped: true })}{addOn > 0 ? ` + ${noteMoney(currencyState.currency, addOn, { grouped: true })} add-on` : ''})</span>}
+                    {rebuys === 0 && addOn > 0 && <span> ({noteMoney(currencyState.currency, buyIn, { grouped: true })} + {noteMoney(currencyState.currency, addOn, { grouped: true })} Add-On)</span>}
                   </div>
                 );
               }
@@ -1023,7 +1064,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       )}
                     </div>
                     <div style={styles.formGroup}>
-                      <label htmlFor={fieldId('swap-amount')} style={styles.label}>Swap Amount ($)</label>
+                      <label htmlFor={fieldId('swap-amount')} style={styles.label}>Swap Amount ({unit})</label>
                       <input
                         id={fieldId('swap-amount')}
                         type="number"
@@ -1098,7 +1139,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       )}
                     </div>
                     <div style={styles.formGroup}>
-                      <label htmlFor={fieldId('staker-amount')} style={styles.label}>Amount Paid ($)</label>
+                      <label htmlFor={fieldId('staker-amount')} style={styles.label}>Amount Paid ({unit})</label>
                       <input
                         id={fieldId('staker-amount')}
                         type="number"
@@ -1167,7 +1208,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                       />
                     </div>
                     <div style={styles.formGroup}>
-                      <label htmlFor={fieldId('action-amount')} style={styles.label}>Amount Received ($)</label>
+                      <label htmlFor={fieldId('action-amount')} style={styles.label}>Amount Received ({unit})</label>
                       <input
                         id={fieldId('action-amount')}
                         type="number"
@@ -1508,7 +1549,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 </select>
               </div>
               <div style={styles.formGroup}>
-                <label htmlFor={fieldId('expense-amount')} style={styles.label}>Amount ($)</label>
+                <label htmlFor={fieldId('expense-amount')} style={styles.label}>Amount ({unit})</label>
                 <input
                   id={fieldId('expense-amount')}
                   type="number"
@@ -1585,6 +1626,10 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           />
         </div>
 
+
+        {isEditMode && editEntry.id && (
+          <LedgerEntryHistory userId={userId} entryId={editEntry.id} displayEUR={displayEUR} />
+        )}
 
         {/* Actions: sticky above the keyboard-safe bottom of the sheet */}
         <div className="bankroll-modal-footer" style={styles.actions}>
