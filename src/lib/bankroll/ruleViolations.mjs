@@ -67,15 +67,15 @@ export function evaluateRuleViolations({ rules, entry, monthEntries, bankrollCen
     switch (rule.rule_type) {
       case 'stop_loss_session':
         if (sessionCents < 0 && -sessionCents >= limitCents)
-          violations.push({ rule: 'Session Stop-Loss', limit: formatCents(limitCents), actual: formatCents(sessionCents), severity: 'high' });
+          violations.push({ rule: 'Session Stop-Loss', limit: formatCents(limitCents), actual: formatCents(sessionCents), limitCents, actualCents: sessionCents, severity: 'high' });
         break;
       case 'stop_loss_day':
         if (dayCents < 0 && -dayCents >= limitCents)
-          violations.push({ rule: 'Daily Stop-Loss', limit: formatCents(limitCents), actual: formatCents(dayCents), severity: 'high' });
+          violations.push({ rule: 'Daily Stop-Loss', limit: formatCents(limitCents), actual: formatCents(dayCents), limitCents, actualCents: dayCents, severity: 'high' });
         break;
       case 'stop_loss_month':
         if (monthCents < 0 && -monthCents >= limitCents)
-          violations.push({ rule: 'Monthly Stop-Loss', limit: formatCents(limitCents), actual: formatCents(monthCents), severity: 'high' });
+          violations.push({ rule: 'Monthly Stop-Loss', limit: formatCents(limitCents), actual: formatCents(monthCents), limitCents, actualCents: monthCents, severity: 'high' });
         break;
       case 'max_buyin_percent': {
         // Judged against the roll the player sat down with, not the roll the
@@ -89,7 +89,7 @@ export function evaluateRuleViolations({ rules, entry, monthEntries, bankrollCen
       }
       case 'win_goal_session':
         if (sessionCents > 0 && sessionCents >= limitCents)
-          violations.push({ rule: 'Session Win Goal Reached', limit: formatCents(limitCents), actual: '+' + formatCents(sessionCents), severity: 'info' });
+          violations.push({ rule: 'Session Win Goal Reached', limit: formatCents(limitCents), actual: '+' + formatCents(sessionCents), limitCents, actualCents: sessionCents, signedActual: true, severity: 'info' });
         break;
       case 'time_limit_session': {
         const hours = sessionHours(entry.start_time, entry.end_time);

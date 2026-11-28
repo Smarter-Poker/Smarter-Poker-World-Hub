@@ -276,7 +276,12 @@ test('the device copy is released only after the row exists', () => {
     const from = page.indexOf('const resumeHeldScan');
     const resume = page.slice(from, page.indexOf('}, [', from));
     assert.ok(resume.length > 40 && resume.length < 1200, 'the slice must be one function');
-    assert.ok(!/releaseHeld\(/.test(resume),
+    // The one release allowed here is for a scan whose row ALREADY exists
+    // (saved last time, tab closed before the device copy went). Cut that
+    // branch out, then nothing else in resume may release.
+    const savedBranch = /if \(alreadySavedRow\(record, recentHashes\)\) \{[\s\S]*?return;\n\s*\}/;
+    assert.match(resume, savedBranch, 'an already-saved scan is released, not re-sent');
+    assert.ok(!/releaseHeld\(/.test(resume.replace(savedBranch, '')),
         'resuming must not release: the upload has not happened yet');
 });
 
@@ -356,4 +361,27 @@ test('the device copy survives a send that did not land', () => {
     const sender = page.slice(page.indexOf('{autoFlushing && ('), page.indexOf('{(heldScans.length > 0'));
     assert.match(sender, /finishAutoFlush\(autoFlushing, Boolean\(id\)\)/,
         'a null row id must not count as filed');
+});
+
+test('a held scan that already saved its row is released, never sent twice', async () => {
+    const { alreadySavedRow } = await import('../src/lib/bankroll/receiptHold.mjs');
+    const taken = Date.parse('2026-11-28T03:00:00Z');
+    const record = { id: 'h1', imageHash: 'abcd1234abcd1234', capturedAt: taken };
+    const savedAfter = { id: 'r1', image_hash: 'abcd1234abcd1234', created_at: '2026-11-28T03:00:05Z' };
+    const savedBefore = { id: 'r0', image_hash: 'abcd1234abcd1234', created_at: '2026-11-27T20:00:00Z' };
+    const nearMiss = { id: 'r2', image_hash: 'abcd1234abcd1235', created_at: '2026-11-28T03:00:05Z' };
+    assert.equal(alreadySavedRow(record, [nearMiss, savedAfter]).id, 'r1');
+    assert.equal(alreadySavedRow(record, [savedBefore]), null, 'an older identical photo is the duplicate warning, not this');
+    assert.equal(alreadySavedRow(record, [nearMiss]), null, "a near match is the player's call");
+    assert.equal(alreadySavedRow({ id: 'h2', imageHash: null }, [savedAfter]), null);
+    assert.equal(alreadySavedRow(record, null), null);
+});
+
+test('the page checks stored hashes before a held scan sends itself or is sent', () => {
+    const page = readFileSync(new URL('../pages/hub/bankroll-manager.js', import.meta.url), 'utf8');
+    const auto = page.slice(page.indexOf('A HELD SCAN SENDS ITSELF'));
+    assert.ok(auto.indexOf('if (!recentHashesLoaded) return;') > -1);
+    assert.ok(auto.indexOf('alreadySavedRow(next, recentHashes)') < auto.indexOf('setAutoFlushing(next)'));
+    const manual = page.slice(page.indexOf('const resumeHeldScan'));
+    assert.ok(manual.indexOf('alreadySavedRow(record, recentHashes)') < manual.indexOf('setShowScanner(true)'));
 });

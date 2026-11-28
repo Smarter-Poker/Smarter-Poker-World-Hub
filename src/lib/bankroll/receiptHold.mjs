@@ -122,6 +122,26 @@ export function withoutAlreadyFiled(records, filedHashes) {
     return records.filter((r) => !(r.imageHash && filed.has(r.imageHash)));
 }
 
+/**
+ * The stored receipt row this held scan already became, or null.
+ *
+ * A held scan can upload and save its row and then lose the tab before the
+ * device copy is released. Sent again, it would file the same paper twice.
+ * Only an EXACT hash match saved at or after the moment the scan was taken
+ * counts: a near match is a different photograph of possibly the same paper,
+ * which is the player's call (the duplicate warning), never ours.
+ */
+export function alreadySavedRow(record, storedRows) {
+    if (!record || !record.imageHash || !Array.isArray(storedRows)) return null;
+    const takenAt = Number(record.capturedAt) || 0;
+    for (const row of storedRows) {
+        if (!row || row.image_hash !== record.imageHash) continue;
+        const savedAt = Date.parse(row.created_at);
+        if (!takenAt || (Number.isFinite(savedAt) && savedAt >= takenAt)) return row;
+    }
+    return null;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
  * The IndexedDB half. Thin on purpose: every decision above is pure, so the
  * only thing that needs a browser is opening a database and moving rows.
