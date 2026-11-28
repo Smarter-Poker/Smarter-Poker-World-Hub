@@ -37,7 +37,7 @@ export default function StudyStatus({ refreshKey = 0 }) {
         return () => { active = false; clearTimeout(deadline); controller.abort(); };
     }, [ownerId, refreshKey, revision]);
     // Three centred readouts; how the streak is counted lives behind the
-    // library's "?" help (VIDEO_LIBRARY_HELP_STEPS, step "study"), Dan 2026-11-27.
+    // library's "?" help (src/lib/videoLibraryHelpSteps.mjs, step "study"), Dan 2026-11-27.
     return <section className="vl-study-status" aria-label="Diamond Study Streak" data-video-library-study-status data-tutorial="study">
         <h2>Diamond Study Streak</h2>
         {!ownerId ? <p><Link href="/auth/login?redirect=%2Fhub%2Fvideo-library" rel="nofollow" prefetch={false}>Sign In To See Your Study Streak</Link></p> : current?.status === 'ready' ? <div className="vl-study-readouts">

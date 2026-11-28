@@ -169,8 +169,12 @@ test.describe('Phase 7 Poker Learning', () => {
         await expect(page.getByRole('heading', { name: 'Daniel Negreanu', exact: true })).toBeVisible();
         await expect(page.getByRole('heading', { name: 'Videos Naming Daniel Negreanu', exact: true })).toBeVisible();
         await expect(page.getByText('Unrelated River Decision', { exact: true })).toHaveCount(0);
-        // That explanation lives behind the player page's "?" now (Dan, 2026-11-27), not in the body.
-        await expect(page.getByText('Videos Whose Published Titles Or Tags Name This Player.', { exact: true })).toHaveCount(0);
+        // The page explanation lives behind the mast's chrome "?" (src/lib/videoLibraryHelpSteps.mjs).
+        await expect(page.getByText(/Videos Whose Published Titles Or Tags Name This Player/)).toHaveCount(0);
+        await page.getByRole('button', { name: 'Page Help', exact: true }).click();
+        await expect(page.getByText('Videos Whose Published Titles Or Tags Name This Player. A Mention Does Not Establish Participation Or Results.', { exact: true })).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(page.getByText(/Videos Whose Published Titles Or Tags Name This Player/)).toHaveCount(0);
         const link = page.getByRole('link', { name: `Watch ${TITLE}`, exact: true });
         await expect(link).toHaveAttribute('href', `/hub/video-library/watch/${VIDEO_ID}/daniel-negreanu-poker-decision`);
         expect((await link.boundingBox())?.height).toBeGreaterThanOrEqual(44);

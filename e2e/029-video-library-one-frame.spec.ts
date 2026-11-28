@@ -4,7 +4,8 @@ import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
 // #SmarterDesign (Dan, 2026-11-27): ONE thin chrome frame per section, never a
 // framed card inside a framed section. A frame is any element under <main>
 // whose computed border-image-source is not 'none'. Allowed inside a frame:
-// controls (buttons, inputs, selects, pill buttons) and the stat readout tiles.
+// controls (buttons, inputs, selects, pill buttons, owner tool link buttons)
+// and the stat readout tiles.
 // The shared SEO conversion panel is owned by another team and is skipped.
 //
 // Runs against the compiled build with the isolated learning catalog through
@@ -55,7 +56,8 @@ async function nestedFrames(page: Page): Promise<{ frames: number; nested: Neste
     return page.evaluate(() => {
         const main = document.querySelector('main');
         if (!main) throw new Error('No <main> landmark on this page.');
-        const controls = 'button, input, select, textarea, .vl-pill-button';
+        // .vl-console-tool is an owner-tool link styled as a button ("Open Sources").
+        const controls = 'button, input, select, textarea, .vl-pill-button, .vl-console-tool';
         const tiles = '.vl-console-stat, .vl-console-controls li, .vl-study-readout';
         const isSeoPanel = (el: Element) => Boolean(el.closest('[class*="SmarterSeoKit"], [class*="sd-conv"]'));
         const describe = (el: Element) => {
