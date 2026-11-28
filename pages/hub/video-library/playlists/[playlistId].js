@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import HubPageShell from '../../../../src/components/ui/HubPageShell';
 import VideoLibraryWorkspaceHeader from '../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
+import { VIDEO_LIBRARY_HELP_STEPS } from '../../../../src/lib/videoLibraryHelpSteps.mjs';
 import SmarterAccountUnlockGate from '../../../../src/components/seo/SmarterAccountUnlockGate';
 import { useAvatar } from '../../../../src/contexts/AvatarContext';
 import { getAuthUserId } from '../../../../src/lib/authUtils';
@@ -20,11 +21,8 @@ const HamburgerMenu = dynamic(() => import('../../../../src/components/ui/Hambur
 import { LEGACY_VIDEO_ID_ALIASES } from '../../../../src/data/videoLibraryCompatibility';
 const canonicalId = id => LEGACY_VIDEO_ID_ALIASES[id] || id;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-// Page explanations live behind the mast's chrome "?" (Dan, 2026-11-27).
-const PLAYLIST_HELP_STEPS = Object.freeze([
-    { id: 'play', title: 'Play All Or Shuffle', body: 'Plays Your Playlist In Order Or Shuffled. The Playback Queue Is Saved For This Browser Session Only.', target: 'playlist-overview' },
-    { id: 'order', title: 'Playlist Order', body: 'Move A Video Up Or Down To Reorder The Playlist. Each Change Is Saved To Your Profile.', target: 'playlist-videos' },
-]);
+// Help steps live in the shared Video Library help standard (src/lib/videoLibraryHelpSteps.mjs).
+const PLAYLIST_HELP_STEPS = VIDEO_LIBRARY_HELP_STEPS.playlist;
 
 export default function VideoPlaylistPage() {
     const router = useRouter();

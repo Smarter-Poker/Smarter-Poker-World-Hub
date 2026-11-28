@@ -49,6 +49,7 @@ import SmarterAccountUnlockGate from '../../../../../src/components/seo/SmarterA
 import DeferUntilNear from '../../../../../src/components/video-library/DeferUntilNear';
 import HubPageShell from '../../../../../src/components/ui/HubPageShell';
 import VideoLibraryWorkspaceHeader from '../../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
+import { VIDEO_LIBRARY_HELP_STEPS } from '../../../../../src/lib/videoLibraryHelpSteps.mjs';
 import { getMenuConfig } from '../../../../../src/config/hamburgerMenus';
 import {
     BLOCKED_VIDEO_LIBRARY_IDS,
@@ -82,15 +83,8 @@ import { creatorChapters } from '../../../../../src/lib/videoLibraryChapters.mjs
 const UniversalHeader = dynamic(() => import('../../../../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../../../../src/components/ui/HamburgerMenu'), { ssr: false });
 
-// Page explanations live behind the title mast's chrome "?" (Dan, 2026-11-27).
-const WATCH_HELP_STEPS = Object.freeze([
-    { id: 'player', title: 'Video Player', body: 'The Privacy-Enhanced YouTube Player. Mini-Player Keeps It On Screen While You Scroll, And Autoplay Next Opens The Next Video When This One Ends.', target: 'watch-player' },
-    { id: 'timeline', title: 'Hand Timeline', body: 'The Timeline Becomes Available When Playback Starts. Hand Markers Last For This Viewing Session.', target: 'watch-player' },
-    { id: 'pause-quiz', title: 'What Would You Do?', body: 'Pause A Hand, Choose Your Action, Then Watch What Happens. Your Decision, Not A Solver Answer. It Is Available When The Player Reports Its Timeline, And Choices And Notes Last For This Viewing Session.', target: 'watch-player' },
-    { id: 'progress', title: 'Watch Progress', body: 'Signed In, Your Watch Progress Saves While You Watch And Verified Watch Time Can Earn A Diamond Reward.', target: 'watch-title' },
-    { id: 'actions', title: 'Video Actions', body: 'Share To Your Feed, Queue The Next Video, Save It To Playlists And Training, Or Watch On YouTube.', target: 'watch-actions' },
-    { id: 'more', title: 'More To Watch', body: 'More From This Channel And Related Videos Are Picked From The Verified Library.', target: 'watch-more' },
-]);
+// Help steps live in the shared Video Library help standard (src/lib/videoLibraryHelpSteps.mjs).
+const WATCH_HELP_STEPS = VIDEO_LIBRARY_HELP_STEPS.watch;
 
 const RELATED_LIMIT = 8;
 const CHANNEL_LIMIT = 6;
