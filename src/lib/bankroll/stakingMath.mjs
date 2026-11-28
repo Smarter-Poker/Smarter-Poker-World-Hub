@@ -128,11 +128,23 @@ export function stakingRowsToRewrite(stored = [], replayed = []) {
   });
 }
 
-/** A ledger entry can be linked when it is a played session inside the deal window and unlinked anywhere. */
+/**
+ * A backer stakes poker play: cash games and tournaments. Slots, sports and
+ * table games are not part of a staking deal (the Staking Profile counts poker
+ * only), and deposits, withdrawals and expenses are not sessions at all, so
+ * none of them may be linked. Links already stored are left as they are.
+ */
+export const STAKEABLE_CATEGORIES = Object.freeze(['poker_cash', 'poker_mtt']);
+
+export function isStakeableEntry(entry) {
+  return Boolean(entry) && STAKEABLE_CATEGORIES.includes(entry.category);
+}
+
+/** A ledger entry can be linked when it is a poker session inside the deal window and unlinked anywhere. */
 export function linkableStakingEntries(entries = [], { startDate, endDate, linkedIds = new Set() } = {}) {
   return entries.filter(
     (entry) =>
-      entry.category !== 'expense' &&
+      isStakeableEntry(entry) &&
       !linkedIds.has(entry.id) &&
       (!startDate || String(entry.entry_date) >= startDate) &&
       (!endDate || String(entry.entry_date) <= endDate)
