@@ -896,6 +896,15 @@ jobs:
       # of not-visibly-bounded .in() lists may only go down.
       - name: "CHECK 27: No new unbatched .in() lists"
         run: node scripts/ci/check-unbatched-in-lists.mjs
+      # Poker Near Me #SmarterDesign (2026-11-28): no text-transform uppercase,
+      # no gold/amber/orange/yellow or violet/purple/pink/magenta colour
+      # literal outside a short reasoned exemption list, and no new reference
+      # to the retired painted chassis (a per-file ratchet that only goes
+      # down). The rendered half is e2e/pnm-smarterdesign-render.spec.ts.
+      - name: "CHECK 30: Poker Near Me #SmarterDesign CSS cannot regress"
+        run: |
+          node scripts/ci/check-pnm-smarterdesign-css.mjs --self-test
+          node scripts/ci/check-pnm-smarterdesign-css.mjs
       - name: "CHECK 10: Diamond economy invariants"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
