@@ -5,7 +5,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { entryCents, formatSignedCents, isMovementRow, sessionHours, toCents } from '../../lib/bankroll/ledgerMath.mjs';
+import { entryCents, isMovementRow, sessionHours, toCents } from '../../lib/bankroll/ledgerMath.mjs';
+import { formatCentsCurrency } from '../../lib/bankroll/currencyUtils';
 
 const CATEGORY_COLORS = {
   poker_cash: '#22c55e',
@@ -139,7 +140,7 @@ function rowCents(entry) {
   return entryCents(entry);
 }
 
-function EntryRow({ entry, index, onEdit: editHandler, onDelete: deleteHandler }) {
+function EntryRow({ entry, index, onEdit: editHandler, onDelete: deleteHandler, displayEUR = false }) {
   const { edit: onEdit, remove: onDelete } = rowActions(entry, editHandler, deleteHandler);
   const cents = rowCents(entry);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -200,7 +201,7 @@ function EntryRow({ entry, index, onEdit: editHandler, onDelete: deleteHandler }
             color: cents >= 0 ? '#22c55e' : '#ef4444',
           }}
         >
-          {formatSignedCents(cents)}
+          {formatCentsCurrency(cents, displayEUR, { signed: true })}
         </span>
         {entry._isTripSummary && (
           <span style={styles.entryDuration}>({entry._sessionCount} Sessions)</span>
@@ -276,7 +277,7 @@ function EntryRow({ entry, index, onEdit: editHandler, onDelete: deleteHandler }
   );
 }
 
-export default function LedgerTimeline({ entries, isLoading, onEdit, onDelete }) {
+export default function LedgerTimeline({ entries, isLoading, onEdit, onDelete, displayEUR = false }) {
   if (isLoading) {
     return (
       <div style={styles.loadingContainer}>
@@ -308,7 +309,7 @@ export default function LedgerTimeline({ entries, isLoading, onEdit, onDelete })
   return (
     <div style={styles.timeline}>
       {entries.map((entry, index) => (
-        <EntryRow key={entry.id} entry={entry} index={index} onEdit={onEdit} onDelete={onDelete} />
+        <EntryRow key={entry.id} entry={entry} index={index} onEdit={onEdit} onDelete={onDelete} displayEUR={displayEUR} />
       ))}
     </div>
   );

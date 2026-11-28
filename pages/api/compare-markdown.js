@@ -3,12 +3,14 @@ import {
   renderCompareIndexMarkdown,
   renderComparePageMarkdown,
 } from '../../src/lib/seo/markdownIngestion.mjs';
+import { renderWithLiveVenueStats } from '../../src/lib/server/venueStats.mjs';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const { slug } = req.query;
 
   if (!slug || slug === 'index') {
-    const md = renderCompareIndexMarkdown();
+    // The index states the room count: this read, the figure /api/ai/facts serves.
+    const md = await renderWithLiveVenueStats(renderCompareIndexMarkdown);
     res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.setHeader('Vary', 'Accept');

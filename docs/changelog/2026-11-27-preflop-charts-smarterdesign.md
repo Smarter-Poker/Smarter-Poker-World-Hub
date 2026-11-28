@@ -19,3 +19,15 @@ No behaviour, data reads, scoring, timers, routes or keyboard shortcuts changed.
 ## Guard
 
 `__tests__/preflop-charts-smarterdesign.law.test.mjs` pins the layer order, the banned hues on every Preflop Charts surface, the shared game kit, the subpage header order and the no-emoji rule. `__tests__/daily-challenges-casino-realism.test.mjs` now requires Preflop Charts to carry no gold token (the later #SmarterDesign colour rule), the same way it already treats Daily Trivia.
+
+## Signed-in pass (follow-up)
+
+Checked the signed-in views locally with a synthetic session and fixture data (Smart Practice with weak spots, Jarvis suggestions, the VIP AI Mode overlay, My Stats with archived runs, Awards with unlocked rows). What that surfaced is fixed:
+
+- **My Stats copy:** "LEGACY LOCAL ARCHIVE", "LAST 12 LOCAL ARCHIVE RUNS" and "Recent trend" are Title Case. Focus Stations read "5 Archived RunS" because React split "Run" and "s" into two text nodes under an inherited capitalize; it is one string now. Session times read "40S" for the same reason; they render in `.preflop-session-time` with `text-transform: none`.
+- **Last gold and violet tokens:** the hue scan found fourteen left in `memory-games.css` (archive notice, session accuracy, trend, weak-spot bar, award progress and text, daily streak and card, no-match level label, a gold primary button, the violet Jarvis button, rank and pool-filter tints, an amber warning). They are ice, cobalt, orange or the steel control now.
+- **Charts-in-words block:** `PreflopReference` headings ("Facing A Three Bet" and the rest) were Orbitron; they use the condensed SmarterDesign face, each block sits in the `chrome-row` rim on ink navy, labels are ice and no longer upper case.
+- **FAQ:** the shared `FaqSection` sets no font family, so on this page it fell back to Times New Roman. The layer now sets the condensed face on questions and the body face on answers, scoped to Preflop Charts only.
+- **Archive notice and Focus Stations:** chrome readout surface, ice label and steel button; rows padded off the rim with the bar inset inside it.
+
+The law test pins every one of these.

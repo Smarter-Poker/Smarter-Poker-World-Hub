@@ -15,6 +15,9 @@
  * than the last verified read. CI compares that snapshot with live data.
  *
  * One query per process per CACHE_MS: the listed set is a few hundred rows.
+ *
+ * Synchronous renderers (the AI markdown corpus, the .md and llms-*.txt
+ * routes) state the same read through renderWithLiveVenueStats() below.
  */
 import {
   GAME_COUNT_TAGS,
@@ -22,6 +25,7 @@ import {
   buildVenueStats,
 } from '../venueCount.mjs';
 import { applyListedRoomFilter, isListedRoom } from '../poker-near-me/listedRooms.mjs';
+import { withVenueStats } from '../venueClaims.mjs';
 
 export const VENUE_STATS_CACHE_MS = 5 * 60 * 1000;
 export const VENUE_STATS_TIMEOUT_MS = 5000;
@@ -34,6 +38,7 @@ const MAX_ROWS = 10_000;
 
 let cache = null; // { at, rows, stats }
 let inflight = null;
+let clientOverride = null;
 
 /** Test hook: forget the cached read. */
 export function resetVenueStatsCache() {
@@ -41,7 +46,18 @@ export function resetVenueStatsCache() {
   inflight = null;
 }
 
+/**
+ * Test hook: the client the default (argument-free) read uses, so a test can
+ * drive a whole route handler against a mocked database. Pass null to restore
+ * the environment client. Also forgets the cached read.
+ */
+export function setVenueStatsClientForTests(client) {
+  clientOverride = client || null;
+  resetVenueStatsCache();
+}
+
 async function defaultClient() {
+  if (clientOverride) return clientOverride;
   const { createClient } = await import('../supabaseServerClient.js');
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -133,6 +149,18 @@ export async function getVenueStats({ client, onFallback } = {}) {
     if (typeof onFallback === 'function') onFallback(error);
     return SNAPSHOT_VENUE_STATS;
   }
+}
+
+/**
+ * Read the stats (live, or the snapshot when the database cannot answer) and
+ * run the synchronous `render` with them as the current read, so every count
+ * the AI corpus renders (src/lib/seo/markdownIngestion.mjs, the content
+ * guides, the page summaries) states this read: the figure /api/ai/facts
+ * serves. See src/lib/venueClaims.mjs.
+ */
+export async function renderWithLiveVenueStats(render, opts) {
+  const stats = await getVenueStats(opts);
+  return withVenueStats(stats, render);
 }
 
 function rankRooms(a, b) {

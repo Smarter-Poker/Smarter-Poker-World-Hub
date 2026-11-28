@@ -9,12 +9,11 @@ import { useModalHistory } from '../../hooks/useModalHistory';
 import { useScrimDismiss } from '../../hooks/useScrimDismiss';
 import { motion } from 'framer-motion';
 import { getFreshAccessToken } from '../../lib/authUtils';
-import { formatUsd } from '../../lib/bankroll/ledgerReport.mjs';
+import { formatCurrency, formatCurrencyWithSign } from '../../lib/bankroll/currencyUtils';
 
-const usd = (value) => formatUsd(value, { cents: false });
-const signedUsd = (value) => (value > 0 ? '+' : '') + usd(value);
-
-export default function BankrollProjection({ userId, currentBankroll = 0, onClose }) {
+export default function BankrollProjection({ userId, currentBankroll = 0, onClose, displayEUR = false }) {
+    const money = (value) => formatCurrency(value, displayEUR);
+    const signedMoney = (value) => formatCurrencyWithSign(value, displayEUR);
     const [isLoading, setIsLoading] = useState(false);
     const [projection, setProjection] = useState(null);
     const [error, setError] = useState(null);
@@ -103,7 +102,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                             <div style={styles.formRow}>
                                 <label style={styles.label}>Current Bankroll</label>
                                 <div style={styles.inputValue}>
-                                    {usd(currentBankroll)}
+                                    {money(currentBankroll)}
                                 </div>
                             </div>
 
@@ -180,19 +179,19 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                                 <div style={styles.rangeLabel}>
                                     <span style={styles.rangeLabelTitle}>Pessimistic</span>
                                     <span style={{ color: '#ef4444' }}>
-                                        {usd(projection.projection.pessimistic)}
+                                        {money(projection.projection.pessimistic)}
                                     </span>
                                 </div>
                                 <div style={styles.rangeLabel}>
                                     <span style={styles.rangeLabelTitle}>Expected</span>
                                     <span style={{ color: '#22c55e', fontWeight: 700, fontSize: 20 }}>
-                                        {usd(projection.projection.expected)}
+                                        {money(projection.projection.expected)}
                                     </span>
                                 </div>
                                 <div style={styles.rangeLabel}>
                                     <span style={styles.rangeLabelTitle}>Best Case</span>
                                     <span style={{ color: '#92cfff' }}>
-                                        {usd(projection.projection.bestCase)}
+                                        {money(projection.projection.bestCase)}
                                     </span>
                                 </div>
                             </div>
@@ -205,7 +204,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                                 ...styles.gainValue,
                                 color: projection.projection.expectedGain >= 0 ? '#22c55e' : '#ef4444'
                             }}>
-                                {signedUsd(projection.projection.expectedGain)}
+                                {signedMoney(projection.projection.expectedGain)}
                                 <span style={styles.gainPercent}>
                                     ({projection.projection.expectedGainPercent}%)
                                 </span>
@@ -226,7 +225,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                             </div>
                             <div style={styles.probBox}>
                                 <span style={styles.probValue}>
-                                    {usd(projection.projection.avgMaxDrawdown)}
+                                    {money(projection.projection.avgMaxDrawdown)}
                                 </span>
                                 <span style={styles.probLabel}>Avg Max Drawdown</span>
                             </div>
@@ -235,10 +234,10 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                         {/* Inputs Used */}
                         <div style={styles.inputsUsed}>
                             <span style={styles.inputItem}>
-                                Avg Session: {signedUsd(projection.inputs.avgSessionResult)}
+                                Avg Session: {signedMoney(projection.inputs.avgSessionResult)}
                             </span>
                             <span style={styles.inputItem}>
-                                Std Dev: ±{usd(projection.inputs.sessionStdDev)}
+                                Std Dev: ±{money(projection.inputs.sessionStdDev)}
                             </span>
                             <span style={styles.inputItem}>
                                 Based On {projection.inputs.historicalSessions} Sessions · {projection.projection.sessionsSimulated} Simulated

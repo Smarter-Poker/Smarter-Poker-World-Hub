@@ -10,7 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { localDay, parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
 import { fetchReportLedger } from '../../lib/bankroll/bankrollSelectors';
-import { formatCents, formatSignedCents, resultsCents, toCents } from '../../lib/bankroll/ledgerMath.mjs';
+import { resultsCents, toCents } from '../../lib/bankroll/ledgerMath.mjs';
+import { formatCentsCurrency } from '../../lib/bankroll/currencyUtils';
 import toast from '../../stores/toastStore';
 
 const PERIOD_OPTIONS = [
@@ -24,7 +25,7 @@ const PERIOD_OPTIONS = [
 // or withdrawals) between the goal's own start and end days. It used to come
 // from a periodPL prop fed by stats.monthlyPL, a field getBankrollStats never
 // returned, so every goal sat at $0 and 0% however the player was doing.
-export default function BankrollGoals({ userId }) {
+export default function BankrollGoals({ userId, displayEUR = false }) {
     const [goals, setGoals] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [loadFailed, setLoadFailed] = useState(false);
@@ -247,7 +248,7 @@ export default function BankrollGoals({ userId }) {
                                 {PERIOD_OPTIONS.find(p => p.id === activeGoal.period)?.label || 'Goal'}
                             </span>
                             <span style={styles.goalTarget}>
-                                {formatCents(targetCents)}
+                                {formatCentsCurrency(targetCents, displayEUR)}
                             </span>
                         </div>
                         <button
@@ -282,7 +283,7 @@ export default function BankrollGoals({ userId }) {
                             }}>
                                 {progress.failed && progress.goalId === activeGoal.id
                                     ? 'Progress Unavailable'
-                                    : earnedCents === null ? 'Loading...' : formatSignedCents(earnedCents) + ' Of ' + formatCents(targetCents)}
+                                    : earnedCents === null ? 'Loading...' : formatCentsCurrency(earnedCents, displayEUR, { signed: true }) + ' Of ' + formatCentsCurrency(targetCents, displayEUR)}
                             </span>
                             <span style={styles.progressPercent}>
                                 {Math.round(calculateProgress(activeGoal))}%

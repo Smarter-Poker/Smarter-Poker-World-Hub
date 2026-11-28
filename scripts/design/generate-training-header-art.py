@@ -183,9 +183,14 @@ def main():
             i += 1
         seals[slug] = order[i % len(order)]
         i += 1
+    # Seals are purpose-made emblems now (scripts/design/render-training-seals.mjs);
+    # this script only writes the scenes. Pass --crop-seals to regenerate the
+    # retired scene-crop seals for comparison.
+    crop_seals = '--crop-seals' in sys.argv
     for slug in scenes:
         scene(scenes[slug], os.path.join(OUT, f'{slug}-scene.webp'))
-        seal(seals[slug], os.path.join(OUT, f'{slug}-seal.webp'))
+        if crop_seals:
+            seal(seals[slug], os.path.join(OUT, f'{slug}-seal.webp'))
     print(f'{len(scenes)} headers written ({len(fresh)} unused seal sources available)')
 
 

@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -509,6 +510,16 @@ export default function RakeCalculatorPage({
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="rake-calculator"
+            toolName="Live Cash Rake Calculator"
+            eyebrow="Free Rake Study Sync"
+            title="Save This Live Rake & Time-Charge Comparison Free"
+            description="Save Room Drop Caps, Timed Seat Comparisons & Effective BB/100 Drag To Your Free Cloud Account."
+            ctaLabel="Save Rake Spot Free"
+            summaryText={`$${metrics.safeBb} BB Live Cash: Drop Rake $${metrics.hourlyPotRakeDollars}/Hr Vs Timed Seat $${metrics.hourlyTimeChargeDollars}/Hr (${metrics.cheaperModel})`}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-rake-calculator"

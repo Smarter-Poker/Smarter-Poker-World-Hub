@@ -208,7 +208,7 @@ test('the ROI view reads the ledger, not a table that does not exist', () => {
   const roi = src('src/components/bankroll/TripROICalculator.jsx');
   assert.doesNotMatch(roi, /from\('trips'\)/);
   assert.doesNotMatch(roi, /supabase/);
-  assert.match(src('src/components/bankroll/TripReport.jsx'), /<TripROICalculator report=\{report\} \/>/);
+  assert.match(src('src/components/bankroll/TripReport.jsx'), /<TripROICalculator report=\{report\}( displayEUR=\{displayEUR\})? \/>/);
 });
 
 test('the Tournament Calendar reads the live series schedule', () => {

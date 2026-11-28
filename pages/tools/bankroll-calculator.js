@@ -16,6 +16,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -273,6 +274,16 @@ export default function BankrollCalculatorPage({
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="bankroll-calculator"
+            toolName="Bankroll & Risk Of Ruin Calculator"
+            eyebrow="Free Bankroll Cloud Sync"
+            title="Save This Bankroll & Risk Of Ruin Plan Free"
+            description="Keep Winrate, Standard Deviation & Buy-In Thresholds Synced With Your Free Bankroll Manager."
+            ctaLabel="Save Bankroll Plan Free"
+            summaryText={`${stats.bi} Buy-Ins ($${stats.totalBankrollDollars}) At ${stats.wr} BB/100 (${stats.sd} SD): Risk Of Ruin ${stats.rorPct}%, 1% Threshold ${stats.buyInsForOnePctRor} Buy-Ins`}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-bankroll-calculator"

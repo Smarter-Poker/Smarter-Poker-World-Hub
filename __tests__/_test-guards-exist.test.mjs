@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import './reels-seo.test.mjs';
+import './training-header-seals-are-emblems.test.mjs';
 import './video-library-breadcrumbs.test.mjs';
 import './video-library-mobile-phase8-delivery.test.mjs';
 import './video-library-mobile-phase8-integration.test.mjs';
@@ -171,19 +172,23 @@ import './bankroll-analytics-view.test.mjs';
 import './toke-tracker-pages.test.mjs';
 import './bankroll-live-suite.test.mjs';
 import './bankroll-shell-wiring.test.mjs';
+import './bankroll-leak-view-honesty.test.mjs';
 import './bankroll-staking-math.test.mjs';
 import './bankroll-toke-report.test.mjs';
 import './bankroll-ledger-math.test.mjs';
+import './bankroll-lib-w3.test.mjs';
 import './bankroll-receipts-are-read-kept-and-sent.test.mjs';
 import './bankroll-trip-math.test.mjs';
 import './bankroll-tournament-schedule.test.mjs';
 import './bankroll-reports-audit.test.mjs';
 import './bankroll-local-dates.test.mjs';
 import './bankroll-api-routes.test.mjs';
+import './bankroll-w3-apireview.test.mjs';
 import './bankroll-deleted-entry-frees-receipts.test.mjs';
 import './bankroll-jarvis-session-insights.test.mjs';
 import './toke-dealer-reference.test.mjs';
 import './bankroll-mobile-upgrades.test.mjs';
+import './bankroll-display-eur-everywhere.test.mjs';
 import './club-stats-maintenance-runtime-budget.test.mjs';
 // 2026-09-22: the same route schedules only its periodic steps. Runs the real
 // handler through vm.SourceTextModule (CHECK 8 passes --experimental-vm-modules).
@@ -986,6 +991,8 @@ import './unlock-gate-shows-no-fabricated-data.law.test.mjs';
 import './the-room-count-is-real.law.test.mjs';
 import './the-venue-claims-are-real.law.test.mjs';
 import './the-room-counts-maintain-themselves.law.test.mjs';
+// The AI corpus (.md routes, llms-*.txt, markdownIngestion) states the live room count (2026-11-28).
+import './the-ai-corpus-room-count-is-live.law.test.mjs';
 import './the-research-figures-are-real.law.test.mjs';
 import './phase3-conversion-funnel-fortress-20261127.law.test.mjs';
 import './phase4-seo-ctr-and-activation-fortress-20261127.law.test.mjs';
@@ -1023,6 +1030,11 @@ import './otc-tier5-overlay-and-pwa-peak-20261128.law.test.mjs';
 import './otc-tier5-metered-calc-and-magic-link-20261128.law.test.mjs';
 import './otc-tier5-glossary-rules-bridges-20261128.law.test.mjs';
 import './otc-tier5-day1-drip-and-bofu-switchers-20261128.law.test.mjs';
+import './otc-tier6-calculator-ecosystem-20261128.law.test.mjs';
+import './otc-tier6-day3-and-event-reminders-20261128.law.test.mjs';
+import './otc-tier6-venue-video-conversion-20261128.law.test.mjs';
+import './otc-tier6-attribution-and-full-funnel-20261128.law.test.mjs';
+import './otc-forensic-all-phases-hardening-20261128.law.test.mjs';
 import './site-wide-payload-budget.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {

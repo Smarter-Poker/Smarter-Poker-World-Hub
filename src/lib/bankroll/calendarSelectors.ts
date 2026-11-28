@@ -7,6 +7,7 @@
 
 import { supabase } from '../supabase';
 import { monthBounds } from './tournamentSchedule.mjs';
+import { fetchAllRows } from './ledgerReport.mjs';
 
 export interface CalendarEvent {
     id: string;
@@ -29,16 +30,22 @@ export interface NewCalendarEvent {
     alert_enabled?: boolean;
 }
 
-/** Fetch all calendar events for a user */
+/**
+ * Fetch all calendar events for a user, a page at a time. Oldest first, so a
+ * single read capped at PostgREST's 1,000 rows dropped the newest events,
+ * the upcoming ones the calendar is for.
+ */
 export async function fetchCalendarEvents(userId: string): Promise<CalendarEvent[]> {
-    const { data, error } = await supabase
-        .from('dealer_calendar_events')
-        .select('*')
-        .eq('user_id', userId)
-        .order('event_date', { ascending: true });
-
-    if (error) throw new Error(error.message);
-    return data || [];
+    try {
+        return await fetchAllRows(() => supabase
+            .from('dealer_calendar_events')
+            .select('*')
+            .eq('user_id', userId)
+            .order('event_date', { ascending: true })
+            .order('id', { ascending: true }));
+    } catch (error: any) {
+        throw new Error(error?.message || 'Could not read calendar events');
+    }
 }
 
 /** Create a new calendar event */

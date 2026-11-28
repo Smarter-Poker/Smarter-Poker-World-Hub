@@ -180,7 +180,13 @@ test('map-bearing results keep discovery before subordinate content without losi
     assert.match(page, /<details className="pnm-map-directory-filters">/);
     assert.ok(page.indexOf('<details className="pnm-map-directory-filters">') < page.indexOf('<VenueMap'));
   }
-  assert.ok(venue.indexOf('<MapSurfaceFrame') < venue.indexOf('<DeepRouteSignalDeck'));
+  // Venue detail (2026-11-28): the room's name (the DeepRouteSignalDeck hero, its H1)
+  // and the venue-header panel come first; the Location map follows them, so a phone
+  // reader is not shown a street map with no room name for a whole screen of scroll.
+  assert.ok(venue.indexOf('<DeepRouteSignalDeck') > 0);
+  assert.ok(venue.indexOf('<DeepRouteSignalDeck') < venue.indexOf('className="venue-header"'));
+  assert.ok(venue.indexOf('className="venue-header"') < venue.indexOf('<section className="map-section">'));
+  assert.ok(venue.indexOf('<section className="map-section">') < venue.indexOf('<MapSurfaceFrame'));
   assert.ok(planner.indexOf('<MapSurfaceFrame') < planner.indexOf('className="rtp-stats-bar"'));
   assert.ok(search.indexOf('className="pnm-global-search-map gso-map"') < search.indexOf('className="gso-summary"'));
   assert.match(search, /mapTitle=\{nameMatchFallback \? 'Closest Published Name Matches' : missingFilterCoverage > 0 \? 'Published Matches, Coverage Incomplete'/);
@@ -396,7 +402,7 @@ test('painted map dossiers keep truth labels and delegated actions as live HTML'
   }
   assert.match(popup, /data-cash-truth="modeled"/);
   assert.match(popup, /approx\. 3/);
-  assert.match(tourPopup, />UPCOMING</);
+  assert.match(tourPopup, />Upcoming</);
 });
 
 test('painted map stylesheet is globally wired, native-ratio, responsive and free of drawn surface effects', async () => {
@@ -547,7 +553,7 @@ test('saved rooms, legend and tour status tell the truth without drawn chrome', 
   );
 
   const running = buildPokerTourPopupHtml({ tour_code: 'WPT', tour_name: 'World Poker Tour', is_running: true });
-  assert.match(running, />IN PROGRESS</);
+  assert.match(running, />In Progress</);
   assert.doesNotMatch(running, /LIVE NOW/);
 });
 

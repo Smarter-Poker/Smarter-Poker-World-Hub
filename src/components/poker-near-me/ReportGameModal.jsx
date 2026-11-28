@@ -430,7 +430,7 @@ export default function ReportGameModal({
     // ─── Render: Venue Selector ───────────────────────────────────────────────
     const renderVenueSelector = () => (
         <div style={{ marginBottom: 20, position: 'relative' }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'rgba(110,231,239,0.8)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'rgba(110,231,239,0.8)', letterSpacing: '0.08em', marginBottom: 8 }}>
                 Select Venue *
             </label>
             <div style={{ position: 'relative' }}>
@@ -586,7 +586,7 @@ export default function ReportGameModal({
                 <div style={{ paddingTop: 4 }}>
                     {/* Overall Rating */}
                     <div style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.07em', marginBottom: 8 }}>
                             Overall Rating *
                         </div>
                         <StarRow rating={reviewForm.rating} size={28} onChange={val => handleReviewChange('rating', val)} />
@@ -597,7 +597,7 @@ export default function ReportGameModal({
 
                     {/* Category Ratings */}
                     <div style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.07em', marginBottom: 10 }}>
                             Category Ratings (Optional)
                         </div>
                         {REVIEW_CATEGORIES.map(cat => (
@@ -619,7 +619,7 @@ export default function ReportGameModal({
 
                     {/* Review Text */}
                     <div style={{ marginBottom: 4 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.07em', marginBottom: 8 }}>
                             Your Review *
                         </div>
                         <textarea
@@ -671,16 +671,18 @@ export default function ReportGameModal({
                         <h2 id="rgm-title" style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
                             Report Live Game
                         </h2>
-                        <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(110,231,239,0.6)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(110,231,239,0.6)', fontWeight: 600, letterSpacing: '0.08em' }}>
                             Geo-Verified · Members Only
                         </p>
                     </div>
                     <button type="button" className="sp-icon-btn" onClick={onClose} aria-label="Close report game dialog" style={{ '--sp-btn-size': '44px',
                         background: 'transparent', border: 0,
-                        borderRadius: 0, width: 44, height: 44, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#9fb0bf', cursor: 'pointer', touchAction: 'manipulation',
+                        borderRadius: 0, minWidth: 44, minHeight: 44, padding: '0 10px', gap: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#f2f7ff', font: '700 15px/1 var(--font-rajdhani), Rajdhani, Inter, system-ui, sans-serif',
+                        cursor: 'pointer', touchAction: 'manipulation', boxSizing: 'border-box',
                     }}>
                         <PokerNearMeConsoleIcon name="close" />
+                        <span>Close</span>
                     </button>
                 </div>
 
@@ -737,7 +739,7 @@ export default function ReportGameModal({
                                 </div>
                                 {gameForm.stakes === 'custom' && (
                                     <input
-                                        type="text" placeholder="e.g., 3/6, 20/40"
+                                        type="text" placeholder="Like 3/6 Or 20/40"
                                         value={gameForm.customStakes}
                                         onChange={e => handleGameChange('customStakes', e.target.value)}
                                         style={inputStyle}
@@ -865,7 +867,7 @@ export default function ReportGameModal({
 // ─── Shared micro-styles ──────────────────────────────────────────────────────
 const labelStyle = {
     display: 'block', fontSize: 12, fontWeight: 600,
-    color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.5)',
     letterSpacing: '0.07em', marginBottom: 7,
 };
 

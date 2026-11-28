@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 import styles from './DealerAnalytics.module.css';
+import { formatCurrencyCompact } from '../../../lib/bankroll/currencyUtils';
 
 // ── Tooltip wrapper ────────────────────────────────────────────
 function TT({ children }) {
@@ -24,12 +25,6 @@ function TT({ children }) {
     );
 }
 
-const fmtK = (v) => {
-    const abs = Math.abs(v);
-    if (abs >= 1000) return `$${(v / 1000).toFixed(1)}K`;
-    return `$${v.toLocaleString()}`;
-};
-
 function EmptyChart({ msg }) {
     return (
         <div role="status" className={styles.emptyChart}>
@@ -38,7 +33,10 @@ function EmptyChart({ msg }) {
     );
 }
 
-export default function TokeEarningsChart({ activeChart, trendData, monthlyData, donutData, totalDowns, fmt }) {
+export default function TokeEarningsChart({ activeChart, trendData, monthlyData, donutData, totalDowns, fmt, displayEUR = false }) {
+    // Axis ticks plot US dollar values; the label converts once, like every
+    // other on-screen figure.
+    const fmtK = (v) => formatCurrencyCompact(v, displayEUR);
     // ── Chart renderers ──────────────────────────────────────
     const renderTrend = () => {
         if (!trendData.length) return <EmptyChart msg="Complete Your First Event To See The Trend" />;

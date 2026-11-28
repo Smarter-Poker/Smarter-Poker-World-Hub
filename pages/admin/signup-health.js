@@ -569,9 +569,25 @@ function LiveOrganicFunnelScorecard({ seoFunnel }) {
         ? seoFunnel.window_days
         : 7;
     const stages = isAvailable ? seoFunnel.stages : null;
+    const events = isAvailable && seoFunnel.events && typeof seoFunnel.events === 'object'
+        ? seoFunnel.events
+        : {};
     const rates = isAvailable && seoFunnel.rates && typeof seoFunnel.rates === 'object'
         ? seoFunnel.rates
         : {};
+    const viralShares = Number(stages?.viralShares || 0);
+
+    const tierEventCards = stages ? [
+        { key: 'seo_local_action_bar_click', label: 'Local Action Clicks', stage: 'Engaged', accent: '#00D4FF' },
+        { key: 'seo_calc_milestone_click', label: 'Calculator Milestone Clicks', stage: 'Engaged', accent: '#00D4FF' },
+        { key: 'seo_quick_signup_magic_link_sent', label: 'Magic Link Emails Sent', stage: 'Auth Intent', accent: '#0ea5e9' },
+        { key: 'seo_concept_bridge_click', label: 'Concept Bridge Clicks', stage: 'Engaged', accent: '#00D4FF' },
+        { key: 'seo_calculator_share_click', label: 'Calculator Spot Shares', stage: 'Viral Shares', accent: '#65e8aa' },
+        { key: 'seo_mini_gto_drill_share', label: 'GTO Drill Shares', stage: 'Viral Shares', accent: '#65e8aa' },
+        { key: 'seo_member_referral_link_copied', label: 'Member Referral Copies', stage: 'Viral Shares', accent: '#65e8aa' },
+        { key: 'seo_venue_follow_signup_click', label: 'Venue Follow Signups', stage: 'Engaged', accent: '#00D4FF' },
+        { key: 'seo_video_bridge_click', label: 'Video Bridge Clicks', stage: 'Engaged', accent: '#00D4FF' },
+    ] : [];
 
     const stageRows = stages ? [
         {
@@ -719,6 +735,34 @@ function LiveOrganicFunnelScorecard({ seoFunnel }) {
                             <div style={S.attrValue}>{formatFunnelRate(rates.authIntentToActivatedPct)}</div>
                             <div style={S.attrMeta}>Stage 3 To Stage 4 Rate</div>
                         </div>
+                        <div
+                            className={consoleStyles.metric}
+                            style={{ ...S.attrCard, borderLeft: '3px solid #65e8aa' }}
+                            data-funnel-metric="viralShares"
+                        >
+                            <div style={S.attrLabel}>Viral Shares</div>
+                            <div style={S.attrValue}>{viralShares.toLocaleString('en-US')}</div>
+                            <div style={S.attrMeta}>Spot Shares And Day 0 Referrals</div>
+                        </div>
+                    </div>
+
+                    <h3 style={S.attrSubhead}>Tier 4-6 Organic Event Counters</h3>
+                    <div style={S.attrProviderGrid} data-section="tier46-event-counters">
+                        {tierEventCards.map((item) => {
+                            const count = Number(events[item.key] || 0);
+                            return (
+                                <div
+                                    key={item.key}
+                                    className={consoleStyles.metric}
+                                    style={{ ...S.attrCard, borderLeft: `3px solid ${item.accent}` }}
+                                    data-event-counter={item.key}
+                                >
+                                    <div style={S.attrLabel}>{item.label}</div>
+                                    <div style={S.attrValue}>{count.toLocaleString('en-US')}</div>
+                                    <div style={S.attrMeta}>Stage: {item.stage}</div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </>
             )}

@@ -750,7 +750,8 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 color: netResult >= 0 ? '#22c55e' : '#ef4444',
               }}
             >
-              Net: {netResult >= 0 ? '+' : '-'}${Math.abs(netResult).toLocaleString()}
+              {/* Entry form: the preview is the stored US dollar result, never converted. */}
+              Net (USD): {netResult >= 0 ? '+' : '-'}${Math.abs(netResult).toLocaleString()}
             </div>
           )}
         </div>

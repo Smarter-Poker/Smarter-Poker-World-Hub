@@ -109,7 +109,7 @@ const RECEIPT_TONE_COLORS = {
   ATTACH: '#60a5fa',
   LATER: '#a5b7cc',
 };
-import { formatCurrency, formatCurrencyWithSign, convertCurrency } from '../../src/lib/bankroll/currencyUtils';
+import { formatCurrency, formatCurrencyWithSign, eurRateNote } from '../../src/lib/bankroll/currencyUtils';
 
 // Bankroll components. Eager: the dashboard's first paint (trend chart,
 // Jarvis insights, rules card, stat cards). Everything below the fold or
@@ -235,7 +235,7 @@ const EMPTY_LEDGER = [];
 // Header artwork for views that have none of their own.
 const HEADER_ART = { dashboard: 'bankroll', badges: 'goals', leaks: 'jarvis', 'hand-review': 'reports' };
 
-function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick, tutorialId }) {
+function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick, tutorialId, displayEUR = false }) {
   const getRiskColor = (risk) => {
     if (risk === 'HIGH') return '#ef4444';
     if (risk === 'MEDIUM') return '#61d0e8';
@@ -268,7 +268,7 @@ function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick, tu
                 color: change >= 0 ? '#22c55e' : '#ef4444',
               }}
             >
-              {change >= 0 ? '+' : ''}${Math.abs(change).toLocaleString()}
+              {formatCurrencyWithSign(change, displayEUR)}
               {change < 0 && <span style={styles.downArrow}>▼</span>}
             </span>
           )}
@@ -538,9 +538,6 @@ export default function BankrollManagerPage() {
     }
     return { count, net, winRate: count ? Math.round(wins / count * 100) : 0, average: count ? net / count : 0 };
   }, [gamingSessions]);
-  const reportCurrency = new Intl.NumberFormat('en-US', {
-    style: 'currency', currency: preferences.currencyEUR ? 'EUR' : 'USD', signDisplay: 'exceptZero',
-  });
   const filteredAnalyticsEntries = useMemo(
     () => gamingSessions.filter(entry => gameTypeFilter.includes(entry.category)),
     [gamingSessions, gameTypeFilter],
@@ -1587,6 +1584,7 @@ export default function BankrollManagerPage() {
               {activeSection === 'dashboard' && categoryFilter !== 'all' && (
                 <HubErrorBoundary name="Category Overview">
                   <CategoryOverview
+                    displayEUR={preferences.currencyEUR}
                     userId={userId}
                     categoryFilter={categoryFilter}
                     onAddEntry={handleLogClick}
@@ -2069,6 +2067,7 @@ export default function BankrollManagerPage() {
 
                     {/* Ledger Timeline - always shows last 5 */}
                     <LedgerTimeline
+                      displayEUR={preferences.currencyEUR}
                       entries={entries.slice(0, 5)}
                       isLoading={isLoading}
                       onEdit={handleEditEntry}
@@ -2152,6 +2151,7 @@ export default function BankrollManagerPage() {
                         {/* Scrollable Content */}
                         <div className="bankroll-modal-body" style={{ overflowY: 'auto', padding: '12px 20px 20px' }}>
                           <LedgerTimeline
+                            displayEUR={preferences.currencyEUR}
                             entries={entries}
                             isLoading={isLoading}
                             onEdit={handleEditEntry}
@@ -2169,6 +2169,7 @@ export default function BankrollManagerPage() {
               {activeSection === 'trips' && (
                 <HubErrorBoundary name="Trip Tracker">
                   <TripTracker
+                    displayEUR={preferences.currencyEUR}
                     userId={userId}
                     onOpenLog={handleLogClick}
                     onEditEntry={handleEditEntry}
@@ -2183,6 +2184,7 @@ export default function BankrollManagerPage() {
               {activeSection === 'series' && (
                 <HubErrorBoundary name="Series Tracker">
                   <SeriesTracker
+                    displayEUR={preferences.currencyEUR}
                     userId={userId}
                     onOpenLog={handleLogClick}
                     onEditEntry={handleEditEntry}
@@ -2206,7 +2208,7 @@ export default function BankrollManagerPage() {
               {/* Session Hand Review (sidebar Hand Review, ?view=hand-review) */}
               {activeSection === 'hand-review' && (
                 <BankrollProGate userId={userId}>
-                  <SessionHandReview userId={userId} />
+                  <SessionHandReview userId={userId} displayEUR={preferences.currencyEUR} />
                 </BankrollProGate>
               )}
 
@@ -2214,7 +2216,7 @@ export default function BankrollManagerPage() {
               {activeSection === 'goals' && (
                 <div className={`sd-panel ${layout.panel}`}>
                   <h2 className="sd-section-title">Bankroll Goals</h2>
-                  <BankrollGoals userId={userId} />
+                  <BankrollGoals userId={userId} displayEUR={preferences.currencyEUR} />
                 </div>
               )}
 
@@ -2227,6 +2229,12 @@ export default function BankrollManagerPage() {
               {activeSection === 'reports' && (
                 <div className={`sd-panel ${layout.panel}`}>
                   <h2 className="sd-section-title">Performance Reports</h2>
+                  {/* The page keeps the dashboard's Location and Time filters
+                      across views now (it is no longer remounted per view),
+                      so these totals say which slice they cover. */}
+                  <p data-testid="reports-scope" style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+                    {locationFilter ? `At ${selectedLocationName}` : 'All Locations'} · {timeFilter}
+                  </p>
 
                   {failedScope === reportScope && (
                     <p role="alert">Could Not Refresh Reports. <button type="button" className="sd-button" onClick={loadData}>Retry</button></p>
@@ -2235,9 +2243,10 @@ export default function BankrollManagerPage() {
                   {reportReady && <dl className={layout.reportMetrics}>
                     <div className={layout.reportMetric}><dt>Total Sessions</dt><dd><strong>{report.count}</strong></dd></div>
                     <div className={layout.reportMetric}><dt>Win Rate</dt><dd><strong>{report.winRate}%</strong></dd></div>
-                    <div className={layout.reportMetric}><dt>Net P/L</dt><dd><strong>{reportCurrency.format(convertCurrency(report.net, preferences.currencyEUR))}</strong></dd></div>
-                    <div className={layout.reportMetric}><dt>Avg Session</dt><dd><strong>{reportCurrency.format(convertCurrency(report.average, preferences.currencyEUR))}</strong></dd></div>
+                    <div className={layout.reportMetric}><dt>Net P/L</dt><dd><strong>{formatCurrencyWithSign(report.net, preferences.currencyEUR, { cents: true })}</strong></dd></div>
+                    <div className={layout.reportMetric}><dt>Avg Session</dt><dd><strong>{formatCurrencyWithSign(report.average, preferences.currencyEUR, { cents: true })}</strong></dd></div>
                   </dl>}
+                  {preferences.currencyEUR && <p data-testid="exports-stay-usd" style={styles.settingHint}>Exports Stay In US Dollars.</p>}
                   <BankrollExportFormats />
                 </div>
               )}
@@ -2251,7 +2260,8 @@ export default function BankrollManagerPage() {
                     <label style={styles.settingRow}>
                       <span style={{ minWidth: 0 }}>
                         <span style={{ display: 'block', fontSize: 14, color: '#fff' }}>Display EUR</span>
-                        <span style={styles.settingHint}>Show Every Amount In Euros. Your Ledger Stays In Dollars.</span>
+                        <span style={styles.settingHint}>Show Bankroll Results, Balances, Totals And Averages In Euros.</span>
+                        <span data-testid="eur-rate-note" style={styles.settingHint}>{eurRateNote()}</span>
                       </span>
                       <input type="checkbox" checked={Boolean(preferences.currencyEUR)} onChange={(e) => updatePreference('currencyEUR', e.target.checked)} style={styles.settingCheck} />
                     </label>
@@ -2293,14 +2303,14 @@ export default function BankrollManagerPage() {
               {/* Bankroll Rules View */}
               {activeSection === 'rules' && (
                 <div>
-                  <BankrollRulesCard userId={userId} />
+                  <BankrollRulesCard userId={userId} displayEUR={preferences.currencyEUR} />
                 </div>
               )}
 
               {/* Saved Receipts View */}
               {activeSection === 'receipts' && (
                 <div>
-                  <SavedReceipts userId={userId} />
+                  <SavedReceipts userId={userId} displayEUR={preferences.currencyEUR} />
                 </div>
               )}
 
@@ -2333,6 +2343,7 @@ export default function BankrollManagerPage() {
                   )}
                   <BankrollProGate userId={userId}>
                     <div style={{ padding: 16 }}>
+                      {preferences.currencyEUR && <p data-testid="tax-stays-usd" style={{ ...styles.settingHint, margin: '0 0 12px' }}>Tax Reports Stay In US Dollars.</p>}
                       <HubErrorBoundary name="State Tax Report">
                         <AdvancedTaxReport entries={analysisEntries} userId={userId} />
                       </HubErrorBoundary>
@@ -2351,7 +2362,7 @@ export default function BankrollManagerPage() {
                 <div>
                   <BankrollProGate userId={userId}>
                     <HubErrorBoundary name="Staking Tracker">
-                      <StakingTracker userId={userId} refreshTrigger={refreshTrigger} />
+                      <StakingTracker userId={userId} refreshTrigger={refreshTrigger} displayEUR={preferences.currencyEUR} />
                     </HubErrorBoundary>
                   </BankrollProGate>
                 </div>
@@ -2360,7 +2371,7 @@ export default function BankrollManagerPage() {
               {/* Toke Tracker - Dealer Income & Expense Tracking */}
               {activeSection === 'toke-tracker' && (
                 <div>
-                  <TokeTracker userId={userId} refreshTrigger={refreshTrigger} />
+                  <TokeTracker userId={userId} refreshTrigger={refreshTrigger} displayEUR={preferences.currencyEUR} />
                 </div>
               )}
 
@@ -2378,7 +2389,7 @@ export default function BankrollManagerPage() {
               {activeSection === 'tournament-calendar' && (
                 <div>
                   <HubErrorBoundary name="Tournament Calendar">
-                    <TournamentCalendar bankrollTotal={stats?.totalBankroll || 0} />
+                    <TournamentCalendar bankrollTotal={stats?.totalBankroll || 0} displayEUR={preferences.currencyEUR} />
                   </HubErrorBoundary>
                 </div>
               )}
@@ -2619,7 +2630,7 @@ export default function BankrollManagerPage() {
                               </div>
                             </div>
                             <span style={{ fontSize: 15, fontWeight: 600, color: isPositive ? '#22c55e' : '#ef4444', flexShrink: 0, marginLeft: 8 }}>
-                              {isPositive ? '+' : '-'}${Math.abs(entry.net_result).toLocaleString()}
+                              {formatCurrencyWithSign(entry.net_result, preferences.currencyEUR)}
                             </span>
                           </button>
                         );
@@ -2887,6 +2898,7 @@ export default function BankrollManagerPage() {
           <BankrollProjection
             userId={userId}
             currentBankroll={stats?.totalBankroll || 0}
+            displayEUR={preferences.currencyEUR}
             onClose={() => { clearActionView('projection'); setShowProjection(false); }}
           />
         )}

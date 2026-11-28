@@ -30,7 +30,7 @@ export const TRAINING_IMAGE_HEADERS = {
   'training-hand-lab': { title: 'Hand Lab', help: 'Choose A Game, Fill Your Hand And Set A Board. Analyze Compares Your Hand Against The Displayed Opponent.' },
   'training-icm-simulator': { title: 'ICM Simulator', help: 'Simulate A Tournament Decision Under ICM. Set The Stacks And Payouts, Then Compare The Equity Of Each Option.' },
   'training-jarvis': { title: 'Jarvis Insights', help: 'Jarvis Reviews Your Recorded Training And Points Out The Spots Costing You The Most, With A Drill For Each.' },
-  'training-live-hud-sync': { title: 'Hand History Import', help: 'Import Hand Histories From Your Tracker. Imported Hands Appear In Your Reports Once They Are Processed.' },
+  'training-live-hud-sync': { title: 'Live HUD Sync', help: 'Where Live HUD Sync Stands: Physical Beacon And Bluetooth Pairing Are Not Connected Yet. Use Hand History Import To Bring Hands Into Your Reports.' },
   'training-mental-journal': { title: 'Mental Journal', help: 'Write A Short Entry After A Session: How You Felt, What Went Well And What Tilted You. Past Entries Stay Private To You.' },
   'training-milestones': { title: 'Milestones', help: 'Milestones Mark Training Volume And Accuracy Thresholds. Recorded Milestones Show Here As Snapshots.' },
   'training-multi-table': { title: 'Multi-Table Practice', help: 'Practice Decisions On Several Tables At Once. Act On Whichever Table Is Waiting; Each Decision Is Graded.' },

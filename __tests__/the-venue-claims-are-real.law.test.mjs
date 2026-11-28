@@ -92,7 +92,7 @@ const STATE_COUNT = /\b(\d{1,2})\s+(?:US\s+|U\.S\.\s+)?States\b|\b(\d{1,2})\s+(?
 
 // The directory claimed rooms outside the US.
 const NON_US_DIRECTORY = [
-  /\$?\{VENUE_COUNT_LABEL\}\s+(?:\w+\s+){0,3}?(?:North American|International)\b/g,
+  /\$?\{(?:VENUE_COUNT_LABEL|currentRoomLabel\(\)|label)\}\s+(?:\w+\s+){0,3}?(?:North American|International)\b/g,
   /\b\d{3}\+\s+(?:\w+\s+){0,3}?(?:North American|International)\s+(?:Live\s+)?(?:Poker\s+)?(?:Rooms|Venues|Cardrooms)\b/gi,
   /\bInternational\s+(?:Live\s+)?(?:Poker\s+)?(?:Venues|Cardrooms|Card Rooms)\b/g,
 ];
@@ -188,7 +188,8 @@ test('no claim places directory rooms outside the US', () => {
       for (const re of NON_US_DIRECTORY) {
         for (const m of line.matchAll(re)) violations.push(`${rel}:${i + 1}: "${m[0]}"`);
       }
-      if (/VENUE_COUNT_LABEL|VENUE_COUNT\b/.test(line) && NON_US_SAME_LINE.test(line)) {
+      // currentRoomLabel() is the same count read at render time (src/lib/venueClaims.mjs).
+      if (/VENUE_COUNT_LABEL|VENUE_COUNT\b|currentRoomLabel\(\)|currentVenueStats\(\)\.label/.test(line) && NON_US_SAME_LINE.test(line)) {
         violations.push(`${rel}:${i + 1}: the room count shares a line with a non-US claim`);
       }
     });

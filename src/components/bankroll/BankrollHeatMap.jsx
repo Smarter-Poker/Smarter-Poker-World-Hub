@@ -4,8 +4,9 @@
  */
 
 import { useState, useMemo } from 'react';
+import { formatCurrencyCompact, formatCurrencyWithSign } from '../../lib/bankroll/currencyUtils';
 
-export default function BankrollHeatMap({ entries = [] }) {
+export default function BankrollHeatMap({ entries = [], displayEUR = false }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
     const monthData = useMemo(() => {
@@ -56,11 +57,11 @@ export default function BankrollHeatMap({ entries = [] }) {
         const pl = monthData[dateStr];
         const color = getColorForPL(pl);
         days.push(
-            <div key={day} style={{ ...styles.day, background: color }} title={pl !== undefined ? `${dateStr}: $${pl.toLocaleString()}` : dateStr}>
+            <div key={day} style={{ ...styles.day, background: color }} title={pl !== undefined ? `${dateStr}: ${formatCurrencyWithSign(pl, displayEUR)}` : dateStr}>
                 <span style={styles.dayNum}>{day}</span>
                 {pl !== undefined && (
                     <span style={{ ...styles.dayPL, color: pl >= 0 ? '#22c55e' : '#ef4444' }}>
-                        {pl >= 0 ? '+' : ''}{pl > 999 ? `${(pl / 1000).toFixed(1)}k` : pl}
+                        {pl > 0 ? '+' : ''}{formatCurrencyCompact(pl, displayEUR)}
                     </span>
                 )}
             </div>

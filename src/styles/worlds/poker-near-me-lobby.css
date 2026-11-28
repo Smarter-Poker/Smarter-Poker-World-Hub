@@ -386,7 +386,6 @@ body.world-poker-near-me .pnm-lobby-toast__copy {
 body.world-poker-near-me .pnm-lobby-toast__label {
   font: 800 12px/1.2 var(--font-rajdhani), Rajdhani, Inter, sans-serif;
   letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 body.world-poker-near-me .pnm-lobby-toast__value {

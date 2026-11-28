@@ -149,7 +149,7 @@ function VerifiedBadge({ size = 14 }) {
             padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 700,
             background: T.greenDim, color: T.green,
             border: '1px solid rgba(34,197,94,0.25)',
-            letterSpacing: '0.3px', textTransform: 'uppercase',
+            letterSpacing: '0.3px',
         }}>
             <svg width={size - 2} height={size - 2} viewBox="0 0 24 24" fill="none" stroke={T.green} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -405,7 +405,7 @@ export default function VenueReviews({ venueId, venueName, defaultOpen = false }
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={T.star} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                     </svg>
-                    Player Reviews & Ratings
+                    Player Reviews And Ratings
                 </h2>
                 {currentUser && (
                     <button
@@ -432,7 +432,9 @@ export default function VenueReviews({ venueId, venueName, defaultOpen = false }
             {/* ═══════════════════════════════════════ */}
             <div className="vr-summary-panel">
                 <div className="vr-summary-left">
-                    <div className="vr-big-rating">{summary.avg_rating > 0 ? summary.avg_rating.toFixed(1) : '-'}</div>
+                    <div className={`vr-big-rating${summary.total_reviews > 0 ? '' : ' vr-big-rating--empty'}`}>
+                        {summary.total_reviews > 0 && summary.avg_rating > 0 ? summary.avg_rating.toFixed(1) : 'No Reviews Yet'}
+                    </div>
                     <StarRating rating={Math.round(summary.avg_rating)} size={18} />
                     <div className="vr-total-count">
                         {summary.total_reviews} {summary.total_reviews === 1 ? 'Review' : 'Reviews'}
@@ -675,7 +677,7 @@ export default function VenueReviews({ venueId, venueName, defaultOpen = false }
                     display: flex; align-items: center; gap: 8px; margin: 0;
                 }
                 .vr-write-btn {
-                    padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
+                    min-height: 44px; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
                     cursor: pointer; transition: all 0.2s; border: 1px solid;
                     background: ${T.accentDim}; color: ${T.accent}; border-color: rgba(0,212,255,0.25);
                 }
@@ -691,10 +693,13 @@ export default function VenueReviews({ venueId, venueName, defaultOpen = false }
                 }
 
                 /* Summary Panel */
+                /* #SmarterDesign: the reviews section owns the one rim; the summary,
+                   the category breakdown, the form and its category block are
+                   rimless groups divided by a hairline, never a frame in a frame. */
                 .vr-summary-panel {
-                    display: flex; gap: 24px; padding: 20px;
-                    background: rgba(255,255,255,0.02); border: 1px solid ${T.border};
-                    border-radius: 12px; margin-bottom: 12px;
+                    display: flex; gap: 24px; padding: 16px 0;
+                    background: none; border: 0; border-top: 1px solid rgba(170,184,196,0.22);
+                    border-radius: 0; margin-bottom: 0;
                 }
                 .vr-summary-left {
                     display: flex; flex-direction: column; align-items: center;
@@ -702,7 +707,10 @@ export default function VenueReviews({ venueId, venueName, defaultOpen = false }
                 }
                 .vr-big-rating {
                     font-size: 40px; font-weight: 800; color: ${T.star}; line-height: 1;
-                    text-shadow: 0 0 20px rgba(212,168,83,0.2);
+                    text-shadow: 0 0 20px rgba(134,218,255,0.2);
+                }
+                .vr-big-rating--empty {
+                    font-size: 16px; font-weight: 700; color: ${T.textSec}; text-shadow: none;
                 }
                 .vr-total-count {
                     font-size: 12px; color: ${T.textMuted}; text-align: center;
@@ -717,8 +725,8 @@ export default function VenueReviews({ venueId, venueName, defaultOpen = false }
 
                 /* Category Panel */
                 .vr-category-panel {
-                    padding: 16px; background: rgba(255,255,255,0.02);
-                    border: 1px solid ${T.border}; border-radius: 10px; margin-bottom: 12px;
+                    padding: 16px 0; background: none;
+                    border: 0; border-top: 1px solid rgba(170,184,196,0.22); border-radius: 0; margin-bottom: 0;
                 }
                 .vr-category-title {
                     margin: 0 0 10px; font-size: 14px; font-weight: 700; color: ${T.text};
@@ -726,8 +734,8 @@ export default function VenueReviews({ venueId, venueName, defaultOpen = false }
 
                 /* Form */
                 .vr-form {
-                    padding: 20px; background: rgba(0,212,255,0.03);
-                    border: 1px solid rgba(0,212,255,0.12); border-radius: 12px;
+                    padding: 16px 0; background: none;
+                    border: 0; border-top: 1px solid rgba(170,184,196,0.22); border-radius: 0;
                     margin-bottom: 16px; animation: slideIn 0.3s ease;
                 }
                 .vr-form-title {
@@ -736,7 +744,7 @@ export default function VenueReviews({ venueId, venueName, defaultOpen = false }
                 .vr-form-group { margin-bottom: 14px; }
                 .vr-form-label {
                     display: block; font-size: 12px; font-weight: 600;
-                    color: ${T.textSec}; margin-bottom: 6px; text-transform: uppercase;
+                    color: ${T.textSec}; margin-bottom: 6px;
                     letter-spacing: 0.3px;
                 }
                 .vr-form-textarea {
@@ -751,9 +759,10 @@ export default function VenueReviews({ venueId, venueName, defaultOpen = false }
                     text-align: right; font-size: 11px; color: ${T.textMuted}; margin-top: 4px;
                 }
                 .vr-form-categories {
-                    margin-bottom: 16px; padding: 12px;
-                    background: rgba(0,0,0,0.15); border-radius: 8px;
-                    border: 1px solid ${T.border};
+                    margin-bottom: 16px; padding: 12px 0;
+                    background: none; border-radius: 0; border: 0;
+                    border-top: 1px solid rgba(170,184,196,0.22);
+                    border-bottom: 1px solid rgba(170,184,196,0.22);
                 }
                 .vr-form-cat-row {
                     display: flex; align-items: center; justify-content: space-between;

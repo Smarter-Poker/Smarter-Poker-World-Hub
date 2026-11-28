@@ -370,7 +370,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                         <div className="pnm-reviews__summary">
                             <div className="pnm-reviews__score">
                                 <span className="pnm-reviews__score-value">{avgRating.toFixed(1)}</span>
-                                <StarRating rating={Math.round(avgRating)} label="Average rating" />
+                                <StarRating rating={Math.round(avgRating)} label="Average Rating" />
                                 <span className="pnm-reviews__total">{`${totalReviews} Review${totalReviews !== 1 ? 's' : ''}`}</span>
                             </div>
                             <div className="pnm-reviews__distribution">
@@ -426,7 +426,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                             <div className="pnm-reviews__form">
                                 <div className="pnm-reviews__field">
                                     <span className="pnm-console-dialog__label">Overall Rating (Required)</span>
-                                    <StarRating rating={newRating} interactive label="Overall rating" onChange={setNewRating} />
+                                    <StarRating rating={newRating} interactive label="Overall Rating" onChange={setNewRating} />
                                 </div>
 
                                 <div className="pnm-reviews__field">

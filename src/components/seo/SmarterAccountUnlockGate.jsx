@@ -164,6 +164,9 @@ export default function SmarterAccountUnlockGate({
   context = 'seo-unlock-gate',
   eyebrow,
   title,
+  // Heading for a signed-in member. A "With A Free Account" pitch reads wrong
+  // under "Member Access Active", so a page may give the member its own title.
+  signedInTitle,
   subtitle,
   ctaLabel,
   benefits,
@@ -218,7 +221,7 @@ export default function SmarterAccountUnlockGate({
         <div className={styles.unlockHeader}>
           <div>
             <span className={styles.eyebrowTag}>Member Access Active</span>
-            <h2 className={styles.unlockTitle}>{resolvedTitle}</h2>
+            <h2 className={styles.unlockTitle}>{signedInTitle || resolvedTitle}</h2>
             <p className={styles.unlockSubtitle}>
               Your Smarter.Poker Account Is Signed In. Launch The Live Interactive Tool Directly Below.
             </p>

@@ -920,7 +920,7 @@ body.world-preflop-charts .preflop-board-rank {
     padding: 16px;
     border: 2px solid #00D4FF;
     border-radius: 12px;
-    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(138, 43, 226, 0.15));
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(12, 85, 192, 0.18));
 }
 
 body.world-preflop-charts .preflop-board-rank span {
@@ -959,9 +959,9 @@ body.world-preflop-charts .preflop-board-empty {
 }
 
 body.world-preflop-charts .preflop-board-empty.is-warning {
-    border: 1px solid rgba(255, 165, 0, 0.3);
+    border: 1px solid rgba(255, 138, 61, 0.35);
     border-radius: 16px;
-    background: rgba(255, 165, 0, 0.1);
+    background: rgba(255, 138, 61, 0.08);
 }
 
 body.world-preflop-charts .preflop-board-empty h3 {
@@ -1628,7 +1628,7 @@ body.world-preflop-charts .preflop-circuit-stat.is-mastery {
 
 body.world-preflop-charts .preflop-circuit-stat.is-pool.has-filters {
     color: #9fe0ff;
-    background: rgba(128, 77, 212, 0.055);
+    background: rgba(12, 85, 192, 0.08);
 }
 
 body.world-preflop-charts .preflop-level-grid {
@@ -1660,7 +1660,7 @@ body.world-preflop-charts .preflop-game-notice button {
     border: 1px solid rgba(134, 218, 255, 0.32);
     border-radius: 2px;
     background: rgba(0, 0, 0, 0.2);
-    color: #f0d98d;
+    color: #86daff;
     font: 700 12px/1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -1737,7 +1737,7 @@ body.world-preflop-charts .preflop-daily-card-copy h2 { margin: 6px 0 0; color: 
 body.world-preflop-charts .preflop-daily-card-streak {
     display: grid;
     justify-items: end;
-    color: #c9ab5a;
+    color: #bdd0e2;
 }
 
 body.world-preflop-charts .preflop-daily-card-streak strong { color: #86daff; font: 800 18px/1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; }
@@ -1775,7 +1775,7 @@ body.world-preflop-charts .preflop-daily-card-complete {
     border: 1px solid rgba(134, 218, 255, 0.5);
     border-radius: 2px;
     background: rgba(10, 40, 70, 0.44);
-    color: #f0da99;
+    color: #f2f7ff;
     font: 700 12px/1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
     text-transform: uppercase;
     cursor: pointer;
@@ -1940,7 +1940,7 @@ body.world-preflop-charts .preflop-level-state.is-mastered {
 
 body.world-preflop-charts .preflop-level-state.is-no-match {
     border-color: rgba(59, 143, 255, 0.46);
-    color: #c4a6ff;
+    color: #86daff;
 }
 
 body.world-preflop-charts .preflop-level-copy h3 {
@@ -2399,14 +2399,14 @@ body.world-preflop-charts .preflop-vip-panel > button {
     justify-content: center;
     gap: 7px;
     padding: 11px 18px;
-    border: 1px solid #ffdc72;
+    border: 1px solid #5fb6ff;
     border-radius: 2px;
-    background: linear-gradient(180deg, #d69d21, #78500b);
-    color: #fff7db;
+    background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+    color: #f2f7ff;
     font-size: 13px;
     font-weight: 900;
     cursor: pointer;
-    box-shadow: inset 0 0 15px rgba(255, 230, 153, 0.17), 0 0 18px rgba(203, 144, 23, 0.2);
+    box-shadow: inset 0 0 15px rgba(134, 218, 255, 0.17), 0 0 18px rgba(25, 129, 236, 0.25);
 }
 
 body.world-preflop-charts .preflop-vip-notice {
@@ -3765,8 +3765,8 @@ body.world-preflop-charts .preflop-lab-coach-button {
 
 body.world-preflop-charts .preflop-lab-jarvis-button {
     margin-top: 16px;
-    border: 1px solid rgba(139, 92, 246, 0.5);
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));
+    border: 1px solid rgba(25, 129, 236, 0.55);
+    background: linear-gradient(135deg, rgba(12, 85, 192, 0.35), rgba(59, 130, 246, 0.3));
 }
 
 body.world-preflop-charts .preflop-lab-coach-button {
@@ -4283,7 +4283,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
     padding: 10px 12px;
     border: 1px solid rgba(134, 218, 255, 0.38);
     background: rgba(6, 34, 62, 0.22);
-    color: #edd99a;
+    color: #86daff;
     font-size: 12px;
 }
 
@@ -4306,9 +4306,9 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-user-rank small,
 .preflop-daily-signal small { color: #bdd0e2; font: 700 12px/1.2 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; letter-spacing: 0.08em; }
 .preflop-user-rank strong,
-.preflop-daily-signal strong { color: #f1e4b5; font-size: 14px; }
+.preflop-daily-signal strong { color: #f2f7ff; font-size: 14px; }
 .preflop-daily-signal span { color: #9bb0bd; font-size: 12px; }
-.preflop-daily-signal > a { flex: 1 0 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(134, 218, 255, 0.35); background: rgba(121, 83, 12, 0.2); color: #f1d57e; font: 700 12px/1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; text-decoration: none; text-transform: uppercase; }
+.preflop-daily-signal > a { flex: 1 0 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(134, 218, 255, 0.35); background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c); color: #f2f7ff; font: 700 12px/1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; text-decoration: none; text-transform: uppercase; }
 
 .preflop-podium {
     display: grid;
@@ -4389,11 +4389,11 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-session-list article > div { display: grid; gap: 4px; }
 .preflop-session-list article > div span { color: #c3d4dd; font-size: 12px; }
 .preflop-session-list small { color: #7590a1; font-size: 12px; }
-.preflop-session-list strong { color: #dfb85a; font: 800 12px/1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; }
+.preflop-session-list strong { color: #bdd0e2; font: 800 12px/1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; }
 .preflop-session-list strong[data-pass='true'] { color: #55d6a1; }
 .preflop-session-list article > span { color: #8399a8; font-size: 12px; }
 
-.preflop-performance-signal .preflop-panel-heading > strong { color: #d48a6b; font: 800 13px/1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; }
+.preflop-performance-signal .preflop-panel-heading > strong { color: #ff8a3d; font: 800 13px/1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; }
 .preflop-performance-signal .preflop-panel-heading > strong[data-positive='true'] { color: #4ed5a1; }
 .preflop-signal-chart { padding: 2px 15px 14px; }
 .preflop-signal-chart svg { width: 100%; height: 150px; overflow: visible; border-bottom: 1px solid rgba(107, 210, 255, 0.12); background: repeating-linear-gradient(to bottom, transparent 0 36px, rgba(107, 210, 255, 0.06) 37px); }
@@ -4404,7 +4404,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-weak-signal article > div { display: grid; gap: 4px; }
 .preflop-weak-signal article strong { color: #dcecf3; font-size: 13px; }
 .preflop-weak-signal article small { color: #7590a1; font-size: 12px; }
-.preflop-weak-signal article i { position: absolute; left: 0; bottom: 0; width: var(--weak-accuracy); height: 2px; background: linear-gradient(90deg, #2d6d94, #d29658); }
+.preflop-weak-signal article i { position: absolute; left: 0; bottom: 0; width: var(--weak-accuracy); height: 2px; background: linear-gradient(90deg, #0c55c0, #86daff); }
 
 .preflop-auth-gate { margin-top: 12px; border: 1px solid var(--ps-line); background: rgba(5, 16, 26, 0.94); }
 .preflop-auth-gate a,
@@ -4418,9 +4418,9 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-award-progress small { color: #bdd0e2; font: 700 12px/1.2 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; letter-spacing: 0.08em; }
 .preflop-award-progress strong { color: #e8dfc2; }
 .preflop-award-progress [role='progressbar'] { height: 7px; overflow: hidden; background: rgba(255,255,255,0.06); }
-.preflop-award-progress [role='progressbar'] i { display: block; width: var(--award-progress); height: 100%; background: linear-gradient(90deg, #a97b19, var(--ps-gold)); }
+.preflop-award-progress [role='progressbar'] i { display: block; width: var(--award-progress); height: 100%; background: linear-gradient(90deg, #0c55c0, var(--ps-gold)); }
 .preflop-award-progress > span { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; border-top: 1px solid rgba(134, 218, 255, 0.11); color: #9b8f6f; font-size: 12px; }
-.preflop-award-progress > span strong { color: #c6b987; }
+.preflop-award-progress > span strong { color: #f2f7ff; }
 
 .preflop-award-grid { display: grid; gap: 8px; }
 .preflop-award-grid article { min-height: 148px; display: grid; align-content: start; grid-template-columns: auto 1fr; gap: 8px 10px; padding: 15px; border: 1px solid rgba(107, 210, 255, 0.14); background: rgba(5, 15, 24, 0.92); opacity: 0.6; }
@@ -4432,7 +4432,7 @@ body.world-preflop-charts .preflop-range-lab :is(button, [tabindex='0']):focus-v
 .preflop-award-grid article > small { color: #7590a1; font: 700 12px/1.2 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif; }
 .preflop-award-grid h2 { grid-column: 1 / -1; margin: 7px 0 0; color: #dbeaf1; font-size: 17px; }
 .preflop-award-grid p { grid-column: 1 / -1; margin: 0; color: #8098a6; font-size: 12px; line-height: 1.5; }
-.preflop-award-grid time { grid-column: 1 / -1; color: #b89d57; font-size: 12px; }
+.preflop-award-grid time { grid-column: 1 / -1; color: #bdd0e2; font-size: 12px; }
 
 /* Guide page: the eight tour steps as stacked articles (always displayed),
    the feedback legend, the shortcut map, and the CTA to the interactive tour. */

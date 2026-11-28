@@ -107,10 +107,10 @@ test('discovery status rail distinguishes live, modeled, and offline data', () =
   const rail = read('src/components/poker-near-me/DiscoveryStatusRail.jsx');
   assert.match(rail, /aria-label="Discovery data status"/);
   assert.match(rail, /aria-live="polite"/);
-  assert.match(rail, /Live observations/);
-  assert.match(rail, /Observed \+ modeled/);
-  assert.match(rail, /Modeled coverage/);
-  assert.match(rail, /Feed offline/);
+  assert.match(rail, /Live Observations/);
+  assert.match(rail, /Observed \+ Modeled/);
+  assert.match(rail, /Modeled Coverage/);
+  assert.match(rail, /Feed Offline/);
   assert.match(rail, /'Pending'/);
 
   const page = read('pages/hub/poker-near-me/[pnmTab].js');

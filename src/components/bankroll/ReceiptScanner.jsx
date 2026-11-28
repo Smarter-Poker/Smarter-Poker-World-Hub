@@ -54,7 +54,6 @@ const UPLOAD_ATTEMPTS = 3;
 export default function ReceiptScanner({
     onScanComplete,
     userId,
-    displayEUR = false,
     tripId = null,
     onPendingChange,
     /**
@@ -801,7 +800,8 @@ export default function ReceiptScanner({
                                         AMOUNT {parseFloat(extractedData.amount) <= 0 && <span style={{ color: '#f87171', fontSize: 12 }}>REVIEW</span>}
                                     </span>
                                     <span style={{ ...styles.dataValue, color: '#4ade80' }}>
-                                        {displayEUR ? 'EUR ' : '$'}{parseFloat(extractedData.amount).toFixed(2)}
+                                        {/* A scan fills an entry form: stored and shown in US dollars, never converted. */}
+                                        ${parseFloat(extractedData.amount).toFixed(2)}
                                     </span>
                                 </div>
                             )}

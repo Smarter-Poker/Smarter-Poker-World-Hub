@@ -88,7 +88,7 @@ export default function MemoryGamesStats() {
           {error && <div className="preflop-subpage-error" role="alert"><span>{error}</span><button type="button" onClick={fetchStats}><RefreshCw size={15} aria-hidden /> Retry</button></div>}
           <section className="preflop-daily-signal" aria-label="Local archive authority notice">
             <Archive size={22} aria-hidden />
-            <div><small>LEGACY LOCAL ARCHIVE</small><strong>No Verified Rank Or Reward</strong><span>These Rows Remain Visible For Personal Reference Only And Cannot Change Your Account.</span></div>
+            <div><small>Legacy Local Archive</small><strong>No Verified Rank Or Reward</strong><span>These Rows Remain Visible For Personal Reference Only And Cannot Change Your Account.</span></div>
             <Link href="/hub/preflop-charts">Practice Locally <ArrowRight size={14} aria-hidden /></Link>
           </section>
           <section className="preflop-stat-grid" aria-label="Training summary">
@@ -98,17 +98,17 @@ export default function MemoryGamesStats() {
             <Stat icon={Clock3} label="Average Time" value={`${Math.round(metrics.averageTime)}s`} detail="per archived drill" />
             <Stat icon={Sigma} label="Local Score Total" value={metrics.totalScore.toLocaleString()} detail="not a ranked score" />
             <Stat icon={Layers3} label="Highest Local Level" value={metrics.highestLevel ? `L${metrics.highestLevel}` : '-'} detail="furthest archived station" />
-            <Stat icon={TrendingUp} label="Recent trend" value={`${performance.delta >= 0 ? '+' : ''}${performance.delta.toFixed(1)}%`} detail="recent half vs prior half" />
+            <Stat icon={TrendingUp} label="Recent Trend" value={`${performance.delta >= 0 ? '+' : ''}${performance.delta.toFixed(1)}%`} detail="recent half vs prior half" />
           </section>
 
           <div className="preflop-analytics-layout">
             <section className="preflop-subpage-panel preflop-performance-signal" aria-labelledby="performance-signal-title">
-              <div className="preflop-panel-heading"><div><span>LAST 12 LOCAL ARCHIVE RUNS</span><h2 id="performance-signal-title">Accuracy Signal</h2></div><strong data-positive={performance.delta >= 0}>{performance.delta >= 0 ? '+' : ''}{performance.delta.toFixed(1)}%</strong></div>
+              <div className="preflop-panel-heading"><div><span>Last 12 Local Archive Runs</span><h2 id="performance-signal-title">Accuracy Signal</h2></div><strong data-positive={performance.delta >= 0}>{performance.delta >= 0 ? '+' : ''}{performance.delta.toFixed(1)}%</strong></div>
               {performance.chronological.length > 1 ? <div className="preflop-signal-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Accuracy trend across recent completed sessions"><defs><linearGradient id="preflopSignalArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#37d6ff" stopOpacity="0.35"/><stop offset="1" stopColor="#37d6ff" stopOpacity="0"/></linearGradient></defs><polygon points={`0,100 ${performance.points} 100,100`} fill="url(#preflopSignalArea)"/><polyline points={performance.points} fill="none" stroke="#62ddff" strokeWidth="2" vectorEffect="non-scaling-stroke"/></svg><div><span>Older</span><span>Recent</span></div></div> : <EmptyInline />}
             </section>
             <section className="preflop-subpage-panel preflop-weak-signal" aria-labelledby="weak-signal-title">
               <div className="preflop-panel-heading"><div><span>Lowest Recorded Accuracy</span><h2 id="weak-signal-title">Focus Stations</h2></div></div>
-              {weakSpots.length ? <div>{weakSpots.map((spot) => <article key={spot.level}><span>L{spot.level}</span><div><strong>{spot.accuracy.toFixed(1)}%</strong><small>{spot.attempts} Archived run{spot.attempts === 1 ? '' : 's'}</small></div><i style={{ '--weak-accuracy': `${spot.accuracy}%` }} /></article>)}</div> : <EmptyInline />}
+              {weakSpots.length ? <div>{weakSpots.map((spot) => <article key={spot.level}><span>L{spot.level}</span><div><strong>{spot.accuracy.toFixed(1)}%</strong><small>{`${spot.attempts} Archived ${spot.attempts === 1 ? 'Run' : 'Runs'}`}</small></div><i style={{ '--weak-accuracy': `${spot.accuracy}%` }} /></article>)}</div> : <EmptyInline />}
             </section>
           </div>
 
@@ -117,7 +117,7 @@ export default function MemoryGamesStats() {
             <section className="preflop-subpage-panel" aria-labelledby="mode-title"><div className="preflop-panel-heading"><div><span>Mode Distribution</span><h2 id="mode-title">Training Mix</h2></div></div>{modes.length ? <div className="preflop-mode-metrics">{modes.map((mode) => <div key={mode.key}><span>{MODE_LABELS[mode.key] || mode.key.replaceAll('_', ' ')}</span><strong>{mode.average.toFixed(1)}%</strong><small>{mode.attempts} Sessions · Best {mode.best}%</small></div>)}</div> : <EmptyInline />}</section>
           </div>
 
-          <section className="preflop-subpage-panel" aria-labelledby="recent-title"><div className="preflop-panel-heading"><div><span>Recent Local Signals</span><h2 id="recent-title">Last 10 Archived Runs</h2></div>{loading && <span>Loading…</span>}</div>{sessions.length ? <div className="preflop-session-list">{sessions.slice(0, 10).map((session) => <article key={session.id}><div><span>{MODE_LABELS[session.game_mode] || session.game_mode || 'Range Lab'}</span><small>{new Date(session.created_at).toLocaleDateString()} · Level {session.level || 1}</small></div><strong data-pass={session.accuracyPercent >= 85}>{session.accuracyPercent.toFixed(1)}%</strong><span>{session.time_taken || 0}s</span></article>)}</div> : !loading && <EmptyInline />}</section>
+          <section className="preflop-subpage-panel" aria-labelledby="recent-title"><div className="preflop-panel-heading"><div><span>Recent Local Signals</span><h2 id="recent-title">Last 10 Archived Runs</h2></div>{loading && <span>Loading…</span>}</div>{sessions.length ? <div className="preflop-session-list">{sessions.slice(0, 10).map((session) => <article key={session.id}><div><span>{MODE_LABELS[session.game_mode] || session.game_mode || 'Range Lab'}</span><small>{new Date(session.created_at).toLocaleDateString()} · Level {session.level || 1}</small></div><strong data-pass={session.accuracyPercent >= 85}>{session.accuracyPercent.toFixed(1)}%</strong><span className="preflop-session-time">{`${session.time_taken || 0}s`}</span></article>)}</div> : !loading && <EmptyInline />}</section>
         </>}
       </PreflopSubpageShell>
     </>

@@ -154,7 +154,6 @@
     color: #3fb950;
     font-weight: 700;
     font-size: 12px;
-    text-transform: uppercase;
     letter-spacing: 0.8px;
 }
 .pnm-location-city {
@@ -365,7 +364,6 @@
 .pnm-filter-label {
     font-size: 12px;
     font-weight: 800;
-    text-transform: uppercase;
     letter-spacing: 1px;
     color: rgba(148,163,184,0.45);
     text-align: center;
@@ -765,7 +763,6 @@
 .sidebar-section-title {
     font-size: 12px;
     font-weight: 800;
-    text-transform: uppercase;
     letter-spacing: 1.5px;
     color: rgba(148,163,184,0.4);
     margin-bottom: 10px;
@@ -881,7 +878,6 @@
     color: rgba(255,255,255,0.5);
     margin-bottom: 4px;
     padding: 0 2px;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 .sidebar-chips {
@@ -1032,7 +1028,6 @@
     .mobile-gps-label-text {
         font-size: 12px;
         font-weight: 700;
-        text-transform: uppercase;
         letter-spacing: 1px;
         color: rgba(74,222,128,0.7);
     }
@@ -1337,7 +1332,6 @@
     box-shadow:
         inset 0 1px 0 rgba(255,255,255,0.06),
         0 2px 4px rgba(0,0,0,0.3);
-    text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 .sub-tab-btn:hover,
@@ -1660,7 +1654,6 @@
     border-radius: 4px;
     font-size: 12px;
     font-weight: 700;
-    text-transform: uppercase;
     letter-spacing: 0.4px;
     border: 1px solid transparent;
 }
@@ -1675,7 +1668,7 @@
 .vc3-live-dot { width: 5px; height: 5px; background: #ef4444; border-radius: 50%; }
 @keyframes vc3livePulse { 0%, 100% { box-shadow: 0 0 6px rgba(239,68,68,0.15); } 50% { box-shadow: 0 0 12px rgba(239,68,68,0.3); } }
 .vc3-badge-tourney { background: rgba(59,130,246,0.10); color: #60a5fa; border-color: rgba(59,130,246,0.2); }
-.vc3-badge-checkin { background: rgba(230,81,0,0.10); color: #fb923c; border-color: rgba(230,81,0,0.2); cursor: pointer; }
+.vc3-badge-checkin { background: rgba(134,218,255,0.10); color: #bfe6ff; border-color: rgba(134,218,255,0.28); cursor: pointer; }
 
 /* Data zone */
 .vc3-data-zone { flex: 1; display: flex; flex-direction: column;
@@ -1883,7 +1876,6 @@
     border-radius: 6px;
     font-size: 12px;
     font-weight: 600;
-    text-transform: uppercase;
 }
 .badge.venue-type {
     background: rgba(59,130,246,0.2);
@@ -2139,7 +2131,6 @@
     font-size: 12px;
     color: rgba(148,163,184,0.6);
     font-weight: 600;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
 }
@@ -2450,7 +2441,6 @@
     border-radius: 5px;
     font-size: 12px;
     font-weight: 700;
-    text-transform: uppercase;
     letter-spacing: 0.4px;
 }
 .live-badge { background: rgba(239,68,68,0.18); color: #ef4444; border: 1px solid rgba(239,68,68,0.4); box-shadow: 0 0 8px rgba(239,68,68,0.2); animation: livePulse 2s ease-in-out infinite; }
@@ -3145,7 +3135,6 @@
     font-size: 12px;
     font-weight: 600;
     color: rgba(148,163,184,0.55);
-    text-transform: uppercase;
     letter-spacing: 0.3px;
     transition: color 0.25s;
 }
@@ -3700,7 +3689,6 @@
     font-weight: 500;
     color: rgba(255,255,255,0.5);
     margin-bottom: 8px;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 .sidebar-chips {
@@ -4002,7 +3990,6 @@
     color: #818cf8;
     font-size: 12px;
     font-weight: 600;
-    text-transform: uppercase;
 }
 
 /* GPS button loading animation */
@@ -4089,7 +4076,6 @@
     font-weight: 700;
     color: #fff;
     margin: 0;
-    text-transform: uppercase;
     letter-spacing: 0.05em;
     line-height: 1.2;
 }
@@ -4097,7 +4083,6 @@
     font-size: 0.75rem;
     font-family: 'Orbitron', sans-serif;
     color: #00D4FF;
-    text-transform: uppercase;
     letter-spacing: 0.1em;
     margin-bottom: 4px;
     opacity: 0.8;
@@ -4140,7 +4125,6 @@
     font-size: 0.75rem;
     padding: 2px 6px;
     border-radius: 4px;
-    text-transform: uppercase;
     font-weight: 600;
 }
 .metal-series-card .series-footer {
@@ -4160,7 +4144,6 @@
     font-family: 'Orbitron', sans-serif;
     font-size: 0.75rem;
     font-weight: 700;
-    text-transform: uppercase;
     transition: all 0.3s ease;
 }
 .metal-series-card .hex-btn-small:hover,
@@ -4199,7 +4182,6 @@
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.16em;
-    text-transform: uppercase;
 }
 
 .pnm-ssr-directory-heading h2 {
@@ -4217,7 +4199,6 @@
     color: #d6e2ea;
     font-size: 0.78rem;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
 }
 
 .pnm-ssr-directory-grid {
@@ -4408,7 +4389,6 @@ body.world-poker-near-me .pnm-filter-select.pnm-filter-select {
     font-weight: 800;
     color: #ffffff;
     letter-spacing: 1px;
-    text-transform: uppercase;
 }
 .pnm-section__hint {
     flex-basis: 100%;
@@ -4431,7 +4411,6 @@ body.world-poker-near-me .pnm-filter-select.pnm-filter-select {
     font-weight: 700;
     color: rgba(226,232,240,0.9);
     letter-spacing: 0.4px;
-    text-transform: uppercase;
 }
 /* Sub-anchor rows (events sub-surfaces, discovery tools): wrap, never scroll. */
 .pnm-sub-tabs {

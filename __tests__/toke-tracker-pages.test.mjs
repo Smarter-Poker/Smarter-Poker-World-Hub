@@ -160,7 +160,7 @@ test('the vault page does not pass a failed gig read off as no events', () => {
 
 test('a vault upload whose record fails takes its file back out', () => {
   const vault = read('src/components/bankroll/DealerVault.jsx');
-  assert.match(vault, /if \(dbError\) \{\s*\/\/[^\n]*\n[^\n]*\n\s*await removeBankrollObject\(supabase, fileUrl\);/);
+  assert.match(vault, /if \(dbError\) \{\s*(\/\/[^\n]*\n\s*)*const removed = await removeBankrollObject\(supabase, fileUrl\);/);
   assert.doesNotMatch(vault, /\{doc\.amount && /, 'an amount of 0 rendered a stray 0');
 });
 

@@ -17,6 +17,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -599,6 +600,16 @@ export default function VarianceCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="variance-calculator"
+              toolName="Poker Variance Simulator"
+              eyebrow="Free Variance Cloud Sync"
+              title="Save This Variance & Downswing Simulation Free"
+              description="Store Winrate Confidence Intervals, Loss Probability & Downswing Benchmarks In Your Free Account."
+              ctaLabel="Save Variance Spot Free"
+              summaryText={`${metrics.safeWr} BB/100 (${metrics.safeSd} SD) Over ${metrics.safeHands.toLocaleString('en-US')} Hands: Mean EV ${metrics.expectedEvBb.toLocaleString('en-US')} BB, Loss Risk ${metrics.probLossPct}%`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-variance-calculator"

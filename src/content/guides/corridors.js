@@ -10,7 +10,9 @@
  * House style: Title Case, zero em dashes.
  */
 
-import { listedVenueLabel } from '../../lib/venueCount.mjs';
+// Per-state counts are getters reading the current read (src/lib/venueClaims.mjs),
+// so a server render states the live figure and a browser render the snapshot.
+import { currentStateRoomLabel } from '../../lib/venueClaims.mjs';
 
 export const CORRIDORS_AS_OF = '2026-11-24';
 export const CORRIDORS_BASE_PATH = '/poker-rooms/corridors';
@@ -312,8 +314,9 @@ export const POKER_TRAVEL_CORRIDORS = [
     originCoords: { lat: 47.6062, lng: -122.3321 },
     bestForPersona: 'Pacific Northwest Players Comparing Washington\'s State-Mandated $300-$400 Single-Bet Cap Cardrooms Against Oregon\'s Zero-Pot-Rake Social Door-Fee Poker Clubs And Pendleton Tribal Stops.',
     ifThenBecause: 'If You Are In The Seattle-Tacoma Metro Area And Want Immediate Cash Action With Massive Bad Beat Jackpots, Play At Fortune Poker In Renton Or Caribbean Cardroom In Kirkland ( noting Washington\'s Statutory $300-$400 Single-Wager Limit); If You Want Uncapped True No-Limit Tournament Series And Zero-Pot-Rake Cash Games, Take I-5 South 170 Miles To Portland Meadows / Final Table Poker Club In Portland Oregon.',
-    summary:
-      `The I-5 Pacific Northwest Poker Corridor Connects Two Unusual Regulatory Regimes: Washington State (0% State Income Tax, ${listedVenueLabel('WA')} In The Smarter.Poker Directory, Statutory Single-Wager Limits) And Portland, Oregon (Zero-Rake Social Door-Fee Clubs With True Uncapped No-Limit Play).`,
+    get summary() {
+      return `The I-5 Pacific Northwest Poker Corridor Connects Two Unusual Regulatory Regimes: Washington State (0% State Income Tax, ${currentStateRoomLabel('WA')} In The Smarter.Poker Directory, Statutory Single-Wager Limits) And Portland, Oregon (Zero-Rake Social Door-Fee Clubs With True Uncapped No-Limit Play).`;
+    },
     driveOptions: [
       {
         venueName: 'Fortune Poker (Renton) & Caribbean Cardroom (Kirkland)',

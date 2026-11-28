@@ -1214,7 +1214,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
         <main data-pnm-secondary-foundation="interaction-v1">
 
         <DeepRouteSignalDeck
-          eyebrow="Private game network"
+          eyebrow="Private Game Network"
           title={page.name}
           description={group.description || page.description || `A player-led poker community${page.city ? ` in ${page.city}, ${page.state}` : ''}.`}
           image={page.cover_url || page.avatar_url}
@@ -1222,17 +1222,17 @@ export default function PublicHomeGamePage({ data, serverError }) {
           kind="home_game"
           breadcrumbs={[
             { label: 'Poker Near Me', href: '/hub/poker-near-me/lobby' },
-            { label: 'Home games', href: '/hub/home-games/near-me' },
+            { label: 'Home Games', href: '/hub/home-games/near-me' },
             { label: page.name },
           ]}
           status={upcoming_games.length > 0 ? `${upcoming_games.length} upcoming ${upcoming_games.length === 1 ? 'game' : 'games'}` : 'Community profile available'}
           statusTone={upcoming_games.length > 0 ? 'live' : 'neutral'}
-          freshness={{ label: 'Current public community record' }}
+          freshness={{ label: 'Current Public Community Record' }}
           metrics={[
             { label: 'Location', value: page.city ? `${page.city}, ${page.state}` : 'Location shared by host' },
             { label: 'Members', value: group.member_count || 0 },
             { label: 'Followers', value: followerCount },
-            { label: 'Games hosted', value: group.games_hosted || 0 },
+            { label: 'Games Hosted', value: group.games_hosted || 0 },
             { label: 'Cadence', value: FREQUENCY_LABELS[group.frequency] || group.frequency || 'Host scheduled' },
           ]}
           actions={(
@@ -1892,15 +1892,15 @@ const pageStyles = `
 .hgs-body{max-width:1100px;margin:30px auto 0;padding:0 20px;display:grid;grid-template-columns:1fr 320px;gap:24px}
 @media (max-width: 900px){.hgs-body{grid-template-columns:1fr}}
 .hgs-section{background:rgba(15,23,42,.55);border:1px solid rgba(148,163,184,.12);border-radius:14px;padding:20px;margin-bottom:18px}
-.hgs-section h2{font-size:14px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.55);margin:0 0 14px;font-weight:800}
+.hgs-section h2{font-size:14px;letter-spacing:1.5px;color:rgba(255,255,255,.55);margin:0 0 14px;font-weight:800}
 .hgs-section p{color:rgba(255,255,255,.5);font-size:13px;font-style:italic;line-height:1.55;margin:0;white-space:pre-wrap}
 .hgs-empty{color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:14px}
 .hgs-games-list{display:flex;flex-direction:column;gap:10px}
 .hgs-game-card{display:flex;align-items:stretch;gap:14px;padding:14px;background:rgba(0,0,0,.25);border:1px solid rgba(148,163,184,.1);border-radius:10px}
 .hgs-game-date{flex-shrink:0;width:72px;padding:8px;background:linear-gradient(135deg,#0ea5e9,#0369a1);border-radius:8px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.hgs-game-mon{font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;opacity:.85}
+.hgs-game-mon{font-size:12px;letter-spacing:1px;font-weight:700;opacity:.85}
 .hgs-game-day{font-size:24px;font-weight:900;line-height:1}
-.hgs-game-dow{font-size:12px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-top:2px}
+.hgs-game-dow{font-size:12px;letter-spacing:.5px;opacity:.85;margin-top:2px}
 .hgs-game-body{flex:1;min-width:0}
 .hgs-game-body h3{font-size:16px;font-weight:700;margin:0 0 4px}
 .hgs-game-meta{font-size:13px;color:rgba(255,255,255,.55);display:flex;gap:6px;flex-wrap:wrap}
