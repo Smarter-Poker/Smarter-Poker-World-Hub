@@ -19,7 +19,7 @@
     "persistenceFiles": 100,
     "realtimeFiles": 7,
     "tests": 209,
-    "markerCandidates": 408,
+    "markerCandidates": 407,
     "possibleUnwiredFunctions": 523,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
@@ -48372,14 +48372,6 @@
           "kind": "SIMULATE",
           "line": 1259,
           "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
-          "disposition": "domain-simulation",
-          "review": "accepted",
-          "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
-        },
-        {
-          "kind": "SIMULATED",
-          "line": 1461,
-          "excerpt": "`The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across ${VENUE_COUNT_LABEL} US Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simulated ",
           "disposition": "domain-simulation",
           "review": "accepted",
           "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
@@ -126443,15 +126435,6 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1461,
-        "excerpt": "`The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across ${VENUE_COUNT_LABEL} US Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simulated ",
-        "disposition": "domain-simulation",
-        "review": "accepted",
-        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
-      },
-      {
-        "file": "src/components/seo/HubPageSummary.js",
-        "kind": "SIMULATED",
         "line": 1464,
         "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
         "disposition": "domain-simulation",
@@ -137680,9 +137663,14 @@
         "externalReferenceFiles": [
           "__tests__/poker-near-me-console-discovery.test.mjs",
           "__tests__/structured-data-matches-the-page.law.test.mjs",
+          "__tests__/the-research-figures-are-real.law.test.mjs",
           "__tests__/the-room-counts-maintain-themselves.law.test.mjs",
           "__tests__/the-venue-claims-are-real.law.test.mjs",
+          "pages/poker-rooms/guides/index.js",
           "pages/poker-rooms/states/[state].js",
+          "src/content/guides/corridors.js",
+          "src/content/guides/markets.js",
+          "src/content/guides/states.js",
           "src/lib/seo/markdownIngestion.mjs"
         ]
       },
@@ -139027,15 +139015,6 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1461,
-        "excerpt": "`The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across ${VENUE_COUNT_LABEL} US Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simulated ",
-        "disposition": "domain-simulation",
-        "review": "accepted",
-        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
-      },
-      {
-        "file": "src/components/seo/HubPageSummary.js",
-        "kind": "SIMULATED",
         "line": 1464,
         "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
         "disposition": "domain-simulation",
@@ -150264,9 +150243,14 @@
         "externalReferenceFiles": [
           "__tests__/poker-near-me-console-discovery.test.mjs",
           "__tests__/structured-data-matches-the-page.law.test.mjs",
+          "__tests__/the-research-figures-are-real.law.test.mjs",
           "__tests__/the-room-counts-maintain-themselves.law.test.mjs",
           "__tests__/the-venue-claims-are-real.law.test.mjs",
+          "pages/poker-rooms/guides/index.js",
           "pages/poker-rooms/states/[state].js",
+          "src/content/guides/corridors.js",
+          "src/content/guides/markets.js",
+          "src/content/guides/states.js",
           "src/lib/seo/markdownIngestion.mjs"
         ]
       },
