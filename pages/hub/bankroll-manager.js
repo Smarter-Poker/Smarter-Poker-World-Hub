@@ -332,7 +332,9 @@ function DayPassCountdown({ expiresAt }) {
 
 export default function BankrollManagerPage() {
   const router = useRouter();
-  const { user } = useAvatar();
+  // `initializing` stays true until Supabase restores the session (or a 5s
+  // fallback): until then a missing user is unknown, not signed out.
+  const { user, initializing: authInitializing } = useAvatar();
   const userId = user?.id;
   const haptic = useHaptics();
   const online = useOnlineStatus();
@@ -562,6 +564,11 @@ export default function BankrollManagerPage() {
   // Load all data
   const loadData = useCallback(async () => {
     const request = ++latestLoad.current;
+    // While the session is still being restored, a missing user is not a
+    // signed-out visitor: keep the skeleton. Clearing it here painted an empty
+    // dashboard ("No Data For This Period", "-" tiles) for every signed-in
+    // load before the real numbers arrived.
+    if (!userId && authInitializing) return;
     // Fix: Set isLoading false even when no user (prevents infinite skeleton)
     if (!userId) {
       setAnalysisLedger(null);
@@ -580,7 +587,12 @@ export default function BankrollManagerPage() {
       // picker: if it cannot be read, the last list stays and the ledger still
       // loads. (Leak analysis used to run here on every load for a view no
       // address reached; LeakAnalysisView now reads it while it is open.)
-      const [statsData, entriesData, tripsData, locationsData] = await Promise.all([
+      // Series feed the dashboard banner and Recent Activity. If they cannot
+      // be read, their rows are still grouped (never shown loose), because
+      // buildRecentActivity treats an unknown trip as possibly active. They
+      // are read in the same batch: awaited after it, they held the tiles and
+      // the chart for one more round trip (about a second on a phone radio).
+      const [statsData, entriesData, tripsData, locationsData, seriesList] = await Promise.all([
         getBankrollStats(userId, dateRange.startDate, dateRange.endDate, locationFilter),
         fetchReportLedger(userId, {
           locationId: locationFilter,
@@ -593,23 +605,16 @@ export default function BankrollManagerPage() {
           console.warn('Could not load venues:', error);
           return null;
         }),
+        fetchSeries(userId).catch((e) => {
+          console.warn('Could not load series:', e);
+          return [];
+        }),
       ]);
 
       if (request !== latestLoad.current || !isMountedRef.current) return;
       setStats(statsData);
       setTrips(tripsData);
       if (locationsData) setLocations(locationsData);
-
-      // Series feed the dashboard banner and Recent Activity. If they cannot
-      // be read, their rows are still grouped (never shown loose), because
-      // buildRecentActivity treats an unknown trip as possibly active.
-      var seriesList = [];
-      try {
-        seriesList = await fetchSeries(userId);
-      } catch (e) {
-        console.warn('Could not load series:', e);
-      }
-      if (request !== latestLoad.current || !isMountedRef.current) return;
       setActiveSeries(seriesList.find(function (s) { return s.status === 'active'; }) || null);
 
       // Rows of an active trip or series stay hidden until it is completed;
@@ -630,7 +635,7 @@ export default function BankrollManagerPage() {
         }
       }
     }
-  }, [userId, locationFilter, timeFilter, reportScope]);
+  }, [userId, authInitializing, locationFilter, timeFilter, reportScope]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // TIER 3 REALTIME: Bankroll Data Sync

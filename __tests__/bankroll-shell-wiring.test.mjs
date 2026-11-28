@@ -119,7 +119,7 @@ test('a save reloads the dashboard once', () => {
   const submit = PAGE.slice(PAGE.indexOf('const handleLogSubmit'), PAGE.indexOf('// Bankroll Rules are judged against the row just saved'));
   assert.doesNotMatch(submit, /loadData\(\)/, 'the handler does not read the ledger a second time');
   // The dashboard no longer runs the leak analysis on every load.
-  const load = PAGE.slice(PAGE.indexOf('const loadData = useCallback'), PAGE.indexOf('}, [userId, locationFilter, timeFilter, reportScope]);'));
+  const load = PAGE.slice(PAGE.indexOf('const loadData = useCallback'), PAGE.indexOf('}, [userId, authInitializing, locationFilter, timeFilter, reportScope]);'));
   assert.doesNotMatch(load, /runLeakAnalysis/);
   assert.match(load, /getUserLocations\(userId\)\.catch\(/, 'a venue-list failure does not blank the dashboard');
   assert.match(PAGE, /failedScope === reportScope && \(\s*<div role="alert"[^>]*data-testid="bankroll-load-failed"/);
