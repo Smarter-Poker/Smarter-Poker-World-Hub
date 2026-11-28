@@ -28,6 +28,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
 import { APP_ORIGIN, classifyRequest, describeRequest, normaliseSha } from './fixtures/bankrollLiveGuard.mjs';
+import { FIXTURE_LOW_CENTS, FIXTURE_PEAK_CENTS, isFixtureRow, isTestRow, missingFixtureSessions } from './fixtures/bankrollWriteGuard.mjs';
+import { buildTrend } from '../src/lib/bankroll/analyticsView.mjs';
 
 const EXPECTED_SHA = normaliseSha(process.env.BANKROLL_LIVE_EXPECTED_SHA);
 const RECEIPT_DIR = path.resolve(__dirname, '../test-results/bankroll-live/sections');
@@ -330,3 +332,71 @@ for (const chart of CHART_TYPES) {
     }
   });
 }
+
+/** "+$29,217" / "\u2212$14,363" -> cents. */
+function trendCents(text: string): number {
+  const t = String(text).replace(/\s/g, '');
+  const m = /([+\-\u2212]?)[$\u20ac]([\d,]+(?:\.\d{1,2})?)/.exec(t);
+  if (!m) throw new Error(`no amount in "${text}"`);
+  const value = Math.round(Number(m[2].replace(/,/g, '')) * 100);
+  return m[1] === '-' || m[1] === '\u2212' ? -value : value;
+}
+
+// When the bankroll-write-live fixture is on the service account, the All Time
+// trend must show its peak and low (READ-ONLY: GETs as the signed-in user).
+test('dashboard All Time trend shows the fixture peak and low', async ({ page }, info) => {
+  const guard = await guardPage(page);
+  let supabase: string | null = null, apikey: string | null = null;
+  page.on('request', (request) => {
+    if (!apikey && /\.supabase\.co\/rest\/v1\//.test(request.url()) && request.headers().apikey) {
+      supabase = new URL(request.url()).origin;
+      apikey = request.headers().apikey;
+    }
+  });
+  const extra: Record<string, unknown> = {};
+  try {
+    await page.goto('/hub/bankroll-manager?view=dashboard', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await waitForSection(page, 'Bankroll Manager');
+    await assertSignedIn(page);
+    const session = await page.evaluate(() => JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}'));
+    expect(supabase && apikey, 'no Supabase read seen').toBeTruthy();
+    const rows: any[] = [];
+    for (let from = 0; ; from += 1000) {
+      const response = await fetch(`${supabase}/rest/v1/bankroll_ledger?select=id,category,entry_date,gross_in,gross_out,net_result,notes&user_id=eq.${session.user.id}&is_revision=eq.false&order=id.asc`, {
+        headers: { apikey: apikey!, Authorization: `Bearer ${session.access_token}`, Range: `${from}-${from + 999}`, 'Range-Unit': 'items' },
+      });
+      expect(response.ok, 'ledger read').toBe(true);
+      const batch = await response.json();
+      rows.push(...batch);
+      if (batch.length < 1000) break;
+    }
+    const fixturePresent = missingFixtureSessions(rows).length === 0;
+    extra.fixturePresent = fixturePresent;
+    if (!fixturePresent) {
+      extra.passed = 'fixture absent: nothing to compare';
+      return;
+    }
+    const foreign = rows.filter((r) => !isFixtureRow(r) && !isTestRow(r) && r.category !== 'deposit' && r.category !== 'withdrawal');
+    const all = buildTrend(rows, '2000-01-01', '2099-12-31');
+    const expected = foreign.length ? { peak: all.high, low: all.low } : { peak: FIXTURE_PEAK_CENTS, low: FIXTURE_LOW_CENTS };
+    extra.foreignResultRows = foreign.length;
+    await pickFromDropdown(page, /^(Line Chart|Bar Chart|Donut Chart|Stacked Bar|Histogram|Heatmap)/, 'Line Chart');
+    await pickFromDropdown(page, /^(Last 7 Days|Last 30 Days|Last 90 Days|This Year|All Time)/, 'All Time');
+    const region = page.getByRole('region', { name: 'Bankroll Trend' });
+    await expect(region).toHaveAttribute('aria-busy', 'false', { timeout: 30_000 });
+    const curve = region.locator('path.recharts-area-curve').first();
+    await expect(curve, 'the line chart drew no curve').toBeAttached({ timeout: 20_000 });
+    const ys = ((await curve.getAttribute('d')) || '').match(/-?\d+(?:\.\d+)?/g)?.map(Number).filter((_, i) => i % 2 === 1) || [];
+    const peak = trendCents(await region.locator('dl div').filter({ hasText: 'Peak Net' }).locator('dd').innerText());
+    const low = trendCents(await region.locator('dl div').filter({ hasText: 'Lowest Net' }).locator('dd').innerText());
+    Object.assign(extra, { points: ys.length, peak, low, expected });
+    expect(ys.length, 'the line has no more than two points').toBeGreaterThan(2);
+    expect(Math.max(...ys), 'the line is flat').not.toBe(Math.min(...ys));
+    expect(peak, 'Peak Net').toBe(expected.peak);
+    expect(low, 'Lowest Net').toBe(expected.low);
+    expect(guard.writes, 'the dashboard attempted a write').toEqual([]);
+    extra.passed = true;
+  } finally {
+    finish(info, guard, extra);
+  }
+});

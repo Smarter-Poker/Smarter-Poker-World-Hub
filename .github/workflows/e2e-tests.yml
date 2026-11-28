@@ -41,7 +41,7 @@ on:
       suite:
         description: Verification suite to run
         type: choice
-        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-draft-autosave-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live, messenger-calls-live, messenger-calls-webkit, messenger-calls-device, messenger-calls-ring, messenger-calls-notify, messenger-calls-upgrade, messenger-calls-clubarena, bankroll-live]
+        options: [full, horses-phase9-postgrest, messenger-live, messenger-send-live, messenger-continuity-live, messenger-draft-autosave-live, messenger-deletion-live, reels-live, video-operations-live, social-card-live, social-feed-normal-live, reels-reconciliation-audit, reels-reconciliation-apply, home-games-phase3-live, pnm-contributions-phase4-live, pnm-player-planning-phase5-live, pnm-launch-phase6-live, reels-qa-setup, reels-enhancements-live, messenger-calls-live, messenger-calls-webkit, messenger-calls-device, messenger-calls-ring, messenger-calls-notify, messenger-calls-upgrade, messenger-calls-clubarena, bankroll-live, bankroll-write-live]
         default: full
       reels_qa_setup_run:
         description: Exact private Reels QA setup run (successful for live checks, retained partial receipt for setup recovery)
@@ -1509,6 +1509,65 @@ jobs:
         with:
           name: bankroll-live-receipt
           path: test-results/bankroll-live/
+          if-no-files-found: error
+          retention-days: 7
+
+  # WRITE-PATH signed-in verification of the published Bankroll Manager
+  # (e2e/bankroll-write-live.spec.ts, playwright.bankroll-write-live.config.ts).
+  # Same sign-in and SHA pinning as bankroll-live: the platform service account
+  # (TEST_USER_EMAIL repository variable, never Dan's account), expected_sha
+  # checked against /api/health before and after. Every write goes through the
+  # app's own UI as that account; e2e/fixtures/bankrollWriteGuard.mjs aborts
+  # and fails any write that is not to the suite's own marked rows for the
+  # signed-in user. It keeps a marked trend fixture ("bankroll-live fixture")
+  # and removes every row a write step creates. No service-role key is used.
+  bankroll-write-live:
+    name: Published Bankroll Manager Write-Path Verification
+    if: ${{ inputs.suite == 'bankroll-write-live' }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 40
+    concurrency:
+      group: bankroll-write-live
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - name: Require the full deployed SHA
+        env:
+          DEPLOYED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          echo "$DEPLOYED_SHA" | grep -Eq '^[0-9a-f]{40}$' || { echo "expected_sha must be the full 40-character deployed commit SHA from /api/health"; exit 1; }
+      - name: Verify bankroll-write-live write guard
+        run: node --test __tests__/bankroll-write-live-suite.test.mjs __tests__/bankroll-live-suite.test.mjs
+      - name: Restore locked dependencies
+        id: bankroll-write-live-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: Install locked dependencies
+        if: steps.bankroll-write-live-nm-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+      - name: Install verification browser
+        run: |
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium; else npx playwright install --with-deps chromium; fi
+      - name: Exercise the published Bankroll Manager write paths with the designated test account
+        run: npx playwright test --config=playwright.bankroll-write-live.config.ts
+        env:
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          BANKROLL_LIVE_EXPECTED_SHA: ${{ inputs.expected_sha }}
+      - name: Retain sanitized Bankroll Manager write receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bankroll-write-live-receipt
+          path: test-results/bankroll-write-live/
           if-no-files-found: error
           retention-days: 7
 

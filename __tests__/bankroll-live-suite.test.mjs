@@ -45,7 +45,7 @@ test('receipts carry method and path only, and SHAs are exact', () => {
 
 test('the workflow runs bankroll-live signed in as the service account and pinned to the deployment', () => {
   const wf = readFileSync(new URL('../.github/workflows/e2e-tests.yml', import.meta.url), 'utf8');
-  assert.match(wf, /options: \[[^\]]*\bbankroll-live\]/);
+  assert.match(wf, /options: \[[^\]]*\bbankroll-live\b[^\]]*\]/);
   const job = wf.match(/^  bankroll-live:\n[\s\S]*?(?=^  [a-zA-Z0-9_-]+:\n|(?![\s\S]))/m)?.[0] || '';
   assert.ok(job, 'bankroll-live job missing');
   assert.match(job, /if: \$\{\{ inputs\.suite == 'bankroll-live' \}\}/);
