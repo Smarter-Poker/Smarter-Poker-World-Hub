@@ -189,6 +189,8 @@ import './bankroll-jarvis-session-insights.test.mjs';
 import './toke-dealer-reference.test.mjs';
 import './bankroll-mobile-upgrades.test.mjs';
 import './bankroll-display-eur-everywhere.test.mjs';
+import './bankroll-live-session.test.mjs';
+import './bankroll-undo-delete.test.mjs';
 import './club-stats-maintenance-runtime-budget.test.mjs';
 // 2026-09-22: the same route schedules only its periodic steps. Runs the real
 // handler through vm.SourceTextModule (CHECK 8 passes --experimental-vm-modules).

@@ -8,8 +8,10 @@ import BankrollHeaderAdd from './BankrollHeaderAdd';
  */
 
 import { GRADIENTS, METAL } from './metalStyles';
-import React, { memo, useCallback, useEffect, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePendingDeletes } from './usePendingDeletes';
+import { withoutHidden } from '../../lib/bankroll/pendingDeletes.mjs';
 import {
     getActiveSeries,
     fetchSeries,
@@ -40,7 +42,10 @@ const CATEGORY_LABELS = {
 function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger, openSeriesId, displayEUR = false }) {
     const [activeSeries, setActiveSeries] = useState(null);
     const [completedSeries, setCompletedSeries] = useState([]);
-    const [seriesEntries, setSeriesEntries] = useState([]);
+    const [loadedSeriesEntries, setSeriesEntries] = useState([]);
+    // A deleted entry disappears at once and returns on Undo (usePendingDeletes).
+    const { hidden: hiddenDeletes } = usePendingDeletes(userId);
+    const seriesEntries = useMemo(() => withoutHidden(loadedSeriesEntries, hiddenDeletes), [loadedSeriesEntries, hiddenDeletes]);
     const [locations, setLocations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);

@@ -86,7 +86,7 @@ import {
   sanitizeTimeFilter, sanitizeChartType, sanitizeGameTypes, toggleGameType as toggleGameTypeIn,
 } from '../../src/lib/bankroll/dashboardFilters.mjs';
 import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
-import { fetchReportLedger, fetchTrips, fetchSeries, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
+import { fetchReportLedger, fetchTrips, fetchSeries, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
 import { buildRecentActivity, tripDayLabel, withoutActiveTripRows } from '../../src/lib/bankroll/tripMath.mjs';
 import {
   receiptActions, tripFromReceipt, w2gRowFromReceipt, receiptRowFromScan, ledgerCategoryFor,
@@ -126,11 +126,16 @@ import BankrollProGate from '../../src/components/bankroll/BankrollProGate';
 import BankrollFilterMenu from '../../src/components/bankroll/BankrollFilterMenu';
 import ManageVenuesModal from '../../src/components/bankroll/ManageVenuesModal';
 import { requestPageTutorial, TUTORIAL_WILL_OPEN_EVENT } from '../../src/tutorials';
+import BankrollDock, { UndoDeleteToasts } from '../../src/components/bankroll/BankrollDock';
+import { usePendingDeletes, scheduleLedgerDelete } from '../../src/components/bankroll/usePendingDeletes';
+import { hiddenRowsIn, withoutHidden, withoutHiddenFromStats } from '../../src/lib/bankroll/pendingDeletes.mjs';
+import { finishLiveSession } from '../../src/lib/bankroll/liveSession.mjs';
 
 const SectionSkeleton = () => <div className="bankroll-skel" style={{ height: 300 }} />;
 const lazySection = (loader) => dynamic(loader, { ssr: false, loading: SectionSkeleton });
 
 const LogEntryModal = dynamic(() => import('../../src/components/bankroll/LogEntryModal'), { ssr: false });
+const LiveSession = dynamic(() => import('../../src/components/bankroll/LiveSession'), { ssr: false });
 const BankrollExportFormats = lazySection(() => import('../../src/components/bankroll/BankrollExportFormats'));
 const LedgerTimeline = lazySection(() => import('../../src/components/bankroll/LedgerTimeline'));
 const LocationAnalytics = lazySection(() => import('../../src/components/bankroll/LocationAnalytics'));
@@ -396,6 +401,9 @@ export default function BankrollManagerPage() {
     void router.push({ pathname: '/hub/bankroll-manager', query }, undefined, { shallow: true, scroll: true });
   }, [router]);
   const [showLogModal, setShowLogModal] = useState(false);
+  // A live session's prefill for the Log form, and the Start Session sheet.
+  const [livePrefill, setLivePrefill] = useState(null);
+  const [liveStart, setLiveStart] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showProjection, setShowProjection] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -452,6 +460,7 @@ export default function BankrollManagerPage() {
     // Cancelled without saving: the receipt stays in Receipts Waiting.
     receiptAwaitingEntryRef.current = null;
     setShowLogModal(false);
+    setLivePrefill(null);
     setEditEntry(null);
     setDefaultReceiptCategory(null);
     setDefaultReceiptMedia(null);
@@ -482,13 +491,25 @@ export default function BankrollManagerPage() {
   const filterMenuToggle = (id) => (open) => setOpenFilter(open ? id : null);
 
   // Data
-  const [stats, setStats] = useState(null);
-  const [entries, setEntries] = useState([]);
+  const [loadedStats, setStats] = useState(null);
+  const [loadedEntries, setEntries] = useState([]);
   const reportScope = JSON.stringify([userId, timeFilter, locationFilter]);
   const [analysisLedger, setAnalysisLedger] = useState(null);
   const [failedScope, setFailedScope] = useState(null);
   const reportReady = analysisLedger?.scope === reportScope;
-  const analysisEntries = reportReady ? analysisLedger.rows : EMPTY_LEDGER;
+  // A deleted row is hidden at once and its delete sent when the undo window
+  // closes (src/lib/bankroll/pendingDeletes.mjs). Lists, totals and the chart
+  // read through the hidden set, so they update now and come back on Undo.
+  const { hidden: hiddenDeletes } = usePendingDeletes(userId);
+  const entries = useMemo(() => withoutHidden(loadedEntries, hiddenDeletes), [loadedEntries, hiddenDeletes]);
+  const analysisEntries = useMemo(
+    () => withoutHidden(reportReady ? analysisLedger.rows : EMPTY_LEDGER, hiddenDeletes),
+    [reportReady, analysisLedger, hiddenDeletes],
+  );
+  const stats = useMemo(
+    () => withoutHiddenFromStats(loadedStats, hiddenRowsIn([loadedEntries, analysisLedger?.rows], hiddenDeletes)),
+    [loadedStats, loadedEntries, analysisLedger, hiddenDeletes],
+  );
   const latestLoad = useRef(0);
   const [trips, setTrips] = useState([]);
   const [activeSeries, setActiveSeries] = useState(null);
@@ -638,6 +659,15 @@ export default function BankrollManagerPage() {
   // TIER 3 REALTIME: Bankroll Data Sync
 
 
+  // A delete that has actually been sent: the trip and series views, staking
+  // and Receipts Waiting (its receipt is back there now) reload, as they did
+  // when the delete was immediate.
+  useEffect(() => {
+    const bump = () => setRefreshTrigger(prev => prev + 1);
+    window.addEventListener('bankroll-entry-deleted', bump);
+    return () => window.removeEventListener('bankroll-entry-deleted', bump);
+  }, []);
+
   useEffect(() => {
     loadData();
     window.addEventListener('bankroll-updated', loadData);
@@ -743,6 +773,15 @@ export default function BankrollManagerPage() {
     return true;
   }, [userId, bankrollInitialized, guardAction, requireOnline]);
 
+  // An ended live session opens the Log form through the same gates.
+  const openLiveLog = useCallback(async (prefill) => {
+    setEditEntry(null);
+    setLivePrefill(prefill);
+    const opened = await handleLogClick();
+    if (!opened) setLivePrefill(null);
+  }, [handleLogClick]);
+  const closeLiveStart = useCallback(() => setLiveStart(false), []);
+
   // A deep link must use the exact same authorization and initialization gates
   // as the visible Log button. Navigating away also closes stale modal state.
   useEffect(() => {
@@ -758,6 +797,7 @@ export default function BankrollManagerPage() {
       return;
     }
     setShowLogModal(false);
+    setLivePrefill(null);
   }, [router.asPath, router.isReady]);
 
   // Check starting bankroll on mount
@@ -788,18 +828,12 @@ export default function BankrollManagerPage() {
       openTripSummary({ _tripId: entryId.slice('trip-summary-'.length), _tripType: (entries.find(e => e.id === entryId) || {})._tripType });
       return;
     }
-    // Optimistic removal - entry disappears immediately
-    setEntries(prev => prev.filter(e => e.id !== entryId));
-    try {
-      await deleteLedgerEntry(userId, entryId);
-      toast.success('Entry Deleted');
-      setRefreshTrigger(prev => prev + 1);
-      await loadData(); // Full refresh to sync stats
-    } catch (err) {
-      console.warn('Delete failed:', err);
-      toast.error('Failed To Delete Entry');
-      await loadData(); // Re-fetch to restore if delete failed
-    }
+    // Hidden at once, with Undo for eight seconds; the delete itself is sent
+    // when the window closes, or at once if the page is left. Totals, the
+    // chart and every list read through the hidden set, and a failed delete
+    // brings the row back with the error (usePendingDeletes).
+    const entry = entries.find(e => e.id === entryId) || { id: entryId };
+    scheduleLedgerDelete(userId, entry);
   };
 
   const openAdjustModal = () => {
@@ -2417,6 +2451,11 @@ export default function BankrollManagerPage() {
               redirectPath="/hub/bankroll-manager"
             />
           </div>
+          <BankrollDock>
+            <UndoDeleteToasts userId={userId} />
+            <LiveSession userId={userId} displayEUR={preferences.currencyEUR} balance={stats ? stats.totalBankroll : null}
+              startOpen={liveStart} onStartClose={closeLiveStart} onLog={openLiveLog} />
+          </BankrollDock>
         </FeatureGate>
       </div>
       </PullToRefresh>
@@ -2674,6 +2713,8 @@ export default function BankrollManagerPage() {
               defaultCategory={defaultReceiptCategory || (!editEntry && categoryFilter !== 'all' ? categoryFilter : null)}
               defaultMediaUrls={defaultReceiptMedia}
               defaultPrefillData={defaultReceiptData}
+              livePrefill={livePrefill}
+              onStartLiveSession={(category) => { closeLogModal(); setLiveStart(category || true); }}
               onClose={closeLogModal}
               onSubmit={(entry, saved) => {
                 const receiptId = receiptAwaitingEntryRef.current;
@@ -2682,6 +2723,7 @@ export default function BankrollManagerPage() {
                   markReceiptAssigned(receiptId, RECEIPT_TARGETS.LEDGER_ENTRY, saved.id);
                   capture(FunnelEvents.BANKROLL_RECEIPT_FILED, { destination: entry && entry.category === 'expense' ? 'expense' : 'session', bulk: false });
                 }
+                if (livePrefill) { finishLiveSession(window.localStorage, userId, livePrefill.sessionId); setLivePrefill(null); }
                 handleLogSubmit(saved && saved.id ? saved : null); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); setDefaultReceiptData(null);
               }}
             />

@@ -7,8 +7,10 @@ import BankrollHeaderAdd from './BankrollHeaderAdd';
  */
 
 import { GRADIENTS, METAL } from './metalStyles';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePendingDeletes } from './usePendingDeletes';
+import { withoutHidden } from '../../lib/bankroll/pendingDeletes.mjs';
 import {
     getActiveTrip,
     fetchTrips,
@@ -40,7 +42,10 @@ const CATEGORY_LABELS = {
 export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger, openTripId, displayEUR = false }) {
     const [activeTrip, setActiveTrip] = useState(null);
     const [completedTrips, setCompletedTrips] = useState([]);
-    const [tripEntries, setTripEntries] = useState([]);
+    const [loadedTripEntries, setTripEntries] = useState([]);
+    // A deleted entry disappears at once and returns on Undo (usePendingDeletes).
+    const { hidden: hiddenDeletes } = usePendingDeletes(userId);
+    const tripEntries = useMemo(() => withoutHidden(loadedTripEntries, hiddenDeletes), [loadedTripEntries, hiddenDeletes]);
     const [locations, setLocations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
