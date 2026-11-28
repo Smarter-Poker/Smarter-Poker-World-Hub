@@ -18,22 +18,22 @@
   /* Metallic Chrome */
   --cmd-chrome-light: #C0CDE0;
   --cmd-chrome-mid: #7A8EA8;
-  --cmd-chrome-dark: #4A5E78;
+  --cmd-chrome-dark: #445E77;
   --cmd-chrome-shadow: #2A3A50;
 
   /* Accent Glow */
   --cmd-glow-cyan: #22D3EE;
   --cmd-glow-blue: #3B82F6;
-  --cmd-accent-blue: #1877F2;
+  --cmd-accent-blue: #1981EC;
 
   /* Text */
   --cmd-text-white: #FFFFFF;
   --cmd-text-light: #CBD5E1;
-  --cmd-text-muted: #64748B;
+  --cmd-text-muted: #9FB3C8;
 
   /* Status */
   --cmd-success: #10B981;
-  --cmd-warning: #F59E0B;
+  --cmd-warning: #22D3EE;
   --cmd-error: #EF4444;
 }
 
@@ -62,7 +62,7 @@
   min-height: 100vh;
   background: var(--cmd-bg-deep);
   background-image:
-    radial-gradient(ellipse at 50% 0%, rgba(24, 119, 242, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 0%, rgba(25, 129, 236, 0.08) 0%, transparent 60%),
     linear-gradient(180deg, var(--cmd-bg-deep) 0%, #0A1220 100%);
   font-family: var(--font-inter), sans-serif;
   color: var(--cmd-text-white);
@@ -486,17 +486,17 @@ select.cmd-input option {
 }
 
 .cmd-badge-primary {
-  background: rgba(24, 119, 242, 0.15);
+  background: rgba(25, 129, 236, 0.15);
   color: var(--cmd-glow-blue);
   border-color: rgba(59, 130, 246, 0.5);
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
 }
 
 .cmd-badge-warning {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(34, 211, 238, 0.15);
   color: var(--cmd-warning);
-  border-color: rgba(245, 158, 11, 0.5);
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+  border-color: rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
 }
 
 .cmd-badge-error {
@@ -624,8 +624,8 @@ select.cmd-input option {
    with brighter edge colors for maximum visual definition
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Exterior panels: bg-[#242526] with border-[#3A3B3C] ── */
-[class*="border-[#3A3B3C]"] {
+/* ── Exterior panels: bg-[#0A1829] with border-[#445E77] ── */
+[class*="border-[#445E77]"] {
   border-width: 2px !important;
   border-color: #4A5568 !important;
 }
@@ -638,40 +638,40 @@ select.cmd-input option {
 }
 
 /* ── Input & select borders ── */
-[class*="border-[#4A4B4C]"],
+[class*="border-[#5A7590]"],
 [class*="border-[#555]"] {
   border-width: 2px !important;
   border-color: #5A5F68 !important;
 }
 
 /* ── Rounded panel cards (interior boxes) ── */
-[class*="rounded-xl"][class*="border"][class*="bg-[#242526]"],
-[class*="rounded-2xl"][class*="border"][class*="bg-[#242526]"],
-[class*="rounded-lg"][class*="border"][class*="bg-[#242526]"] {
+[class*="rounded-xl"][class*="border"][class*="bg-[#0A1829]"],
+[class*="rounded-2xl"][class*="border"][class*="bg-[#0A1829]"],
+[class*="rounded-lg"][class*="border"][class*="bg-[#0A1829]"] {
   border-width: 2px !important;
   border-color: #4A5568 !important;
   box-shadow: 0 0 8px rgba(74, 85, 104, 0.15), 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 /* ── Section dividers (border-b, border-t, border-y) ── */
-[class*="border-b"][class*="border-[#3A3B3C]"],
-[class*="border-t"][class*="border-[#3A3B3C]"],
-[class*="border-y"][class*="border-[#3A3B3C]"] {
+[class*="border-b"][class*="border-[#445E77]"],
+[class*="border-t"][class*="border-[#445E77]"],
+[class*="border-y"][class*="border-[#445E77]"] {
   border-width: 0 !important;
   border-bottom-width: 2px !important;
   border-color: #4A5568 !important;
 }
-[class*="border-y"][class*="border-[#3A3B3C]"] {
+[class*="border-y"][class*="border-[#445E77]"] {
   border-top-width: 2px !important;
   border-bottom-width: 2px !important;
 }
-[class*="border-t"][class*="border-[#3A3B3C]"] {
+[class*="border-t"][class*="border-[#445E77]"] {
   border-top-width: 2px !important;
   border-bottom-width: 0 !important;
 }
 
 /* ── Icon containers (small rounded boxes) ── */
-[class*="rounded-lg"][class*="flex"][class*="items-center"][class*="justify-center"][class*="bg-[#1877F2]"],
+[class*="rounded-lg"][class*="flex"][class*="items-center"][class*="justify-center"][class*="bg-[#0C55C0]"],
 [class*="rounded-xl"][class*="flex"][class*="items-center"][class*="justify-center"] {
   border: 2px solid rgba(255, 255, 255, 0.12) !important;
 }
@@ -689,7 +689,7 @@ select.cmd-input option {
 
 /* ── Modal panels ── */
 [class*="rounded-2xl"][class*="border"][class*="bg-[#1A1B1E]"],
-[class*="rounded-2xl"][class*="border"][class*="bg-[#18191A]"] {
+[class*="rounded-2xl"][class*="border"][class*="bg-[#040D18]"] {
   border-width: 2px !important;
   border-color: #4A5568 !important;
 }
@@ -726,4 +726,212 @@ select.cmd-input option {
 
 .cmd-header-full {
   border-bottom-width: 5px !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   #SMARTERDESIGN LAYER (Dan, 2026-11-27)
+   "CLUB COMMANDER NEEDS THE SAME #SMARTERDESIGN UPGRADE TO EVERY SINGLE PAGE,
+   SUBPAGE, BUTTON AND EVERYTHING ELSE, EXACTLY LIKE WE'VE DONE FOR EVERY OTHER
+   WORLD HUB PAGE."
+   Every /hub/commander/* page is built from the classes above. This layer
+   turns them into docs/SMARTERDESIGN.md: one steel rim per surface, the page
+   image header (seal, live title, scene from CommanderPageShell's
+   --sd-scene, painted "?"), cobalt primary actions, the chrome row for
+   secondary actions, ink inputs. Rivets, corner lights, glow strips and pipes
+   are the retired decoration and never render.
+   ══════════════════════════════════════════════════════════════════════════ */
+.cmd-page {
+  background: radial-gradient(ellipse at 50% -10%, #12304f 0, transparent 55%), #040d18;
+  color: #f2f7ff;
+  font-variant-numeric: tabular-nums;
+}
+.cmd-rivet, .cmd-rivet-sm, .cmd-light, .cmd-glow-strip, .cmd-pipe, .cmd-pipe-h { display: none !important; }
+
+/* Page image header */
+.cmd-header-full,
+.cmd-header-full.sticky,
+header.cmd-header-bar,
+header.cmd-header-bar.sticky {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin: clamp(8px, 1.6vw, 16px) clamp(8px, 2vw, 24px) clamp(8px, 1.4vw, 14px);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: radial-gradient(ellipse at 20% 102%, #233f63 0, #102337 38%, #07121e 78%);
+  box-shadow: none;
+}
+.cmd-header-full.sticky,
+header.cmd-header-bar.sticky { position: relative; top: auto; }
+/* A sub-page title bar that is the page's <header> is the page image header too:
+   the retired hexagonal-plate geometry (inline-flex, 28px padding, radius) does
+   not apply to it. */
+header.cmd-header-bar { display: block; padding: 0; border-radius: 0; }
+.cmd-header-full::before,
+header.cmd-header-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 0 auto;
+  left: auto;
+  bottom: 0;
+  width: 57%;
+  height: auto;
+  z-index: -1;
+  background: var(--sd-scene, none) 63% 53% / cover no-repeat;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #0002 18%, #0006 43%, #0009 68%, #000);
+  mask-image: linear-gradient(90deg, transparent, #0002 18%, #0006 43%, #0009 68%, #000);
+  pointer-events: none;
+}
+.cmd-header-full::after,
+header.cmd-header-bar::after { display: none; }
+/* Reserve the upper-right corner for the painted "?" - on the page's own
+   children only. The "?" is a child of the header too; padding it squeezed
+   its 36px icon out of its own 44px box and it rendered nothing. */
+.cmd-header-full > *:not(.sd-header-help),
+header.cmd-header-bar > *:not(.sd-header-help) { padding-right: 52px; }
+.cmd-header-full h1,
+header.cmd-header-bar h1 {
+  color: #f3f7fc !important;
+  -webkit-text-fill-color: #f3f7fc;
+  font-family: var(--sd-type, 'Arial Narrow'), sans-serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: clamp(1.7rem, 4.2vw, 2.9rem) !important;
+  line-height: 1.04;
+  letter-spacing: -.025em !important;
+  text-transform: none;
+  text-shadow: 0 2px 3px #020911, 0 0 8px #061321;
+}
+.cmd-header-full p,
+header.cmd-header-bar p { color: #bdd0e2 !important; }
+
+/* Return link: directly above the image header, left aligned, never inside
+   it (.agent/skills/smarterdesign/SKILL.md rule: "Never put Back To
+   Dashboard, or any other return link, inside the image header"). */
+.cmd-back-row {
+  display: flex;
+  margin: clamp(8px, 1.6vw, 16px) clamp(8px, 2vw, 24px) 0;
+}
+.cmd-back-row + .cmd-header-full,
+.cmd-back-row + header.cmd-header-bar { margin-top: 6px; }
+.cmd-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px 0 10px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box;
+  color: #f2f7ff;
+  font-family: var(--sd-type, 'Arial Narrow'), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+}
+.cmd-back-link svg { color: #bdd0e2; }
+.cmd-back-link:focus-visible { outline: 2px solid #9ee3ff; outline-offset: 2px; }
+
+/* Seals and icon boxes: a circular chrome frame */
+.cmd-icon-box,
+.cmd-icon-box-square {
+  border: 0 !important;
+  border-radius: 50% !important;
+  color: #e9f6ff !important;
+  background: radial-gradient(circle at 35% 30%, #2e5a85, #0b2238 70%) !important;
+  box-shadow: 0 0 0 1px #09121c, 0 0 0 2px #92aac0, 0 2px 9px #01060fbb !important;
+}
+.cmd-icon-box::before, .cmd-icon-box::after { display: none !important; }
+.cmd-header-full .cmd-icon-box,
+header.cmd-header-bar .cmd-icon-box {
+  box-shadow: 0 0 0 1px #09121c, 0 0 0 3px #a6c8e0, 0 0 0 4px #234968, 0 2px 9px #01060fbb !important;
+}
+
+/* Surfaces */
+.cmd-panel {
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  box-shadow: none;
+}
+.cmd-panel::before { display: none; }
+.cmd-panel .cmd-panel { border-image: none; border-width: 1px; border-color: #445e77; background: #0a1829; }
+.cmd-inset { background: #071420; border: 1px solid #1d3550; box-shadow: none; }
+.cmd-header-bar:not(header) {
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  box-shadow: none;
+}
+.cmd-text-glow { text-shadow: 0 2px 3px #020911; }
+.cmd-text-chrome { background: none; -webkit-text-fill-color: currentColor; color: #f2f7ff; }
+.cmd-divider { background: #1d3550; box-shadow: none; }
+
+/* Actions */
+.cmd-btn-primary {
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box;
+  color: #fff;
+  box-shadow: none;
+  font-family: var(--sd-type, 'Arial Narrow'), sans-serif;
+  letter-spacing: .02em;
+}
+.cmd-btn-secondary {
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
+  box-shadow: none;
+}
+.cmd-btn { min-height: 44px; }
+.cmd-btn:focus-visible, .cmd-input:focus-visible { outline: 2px solid #9ee3ff; outline-offset: 2px; }
+
+/* Tabs and filter chips: the chrome row, cobalt bevel when selected
+   (docs/SMARTERDESIGN.md: "cobalt for the selected control"). Pages put
+   `cmd-tab` on every tab and add `cmd-tab--active` to the selected one. */
+.cmd-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+  color: #bdd0e2 !important;
+  box-shadow: none !important;
+}
+.cmd-tab:focus-visible { outline: 2px solid #9ee3ff; outline-offset: 2px; }
+.cmd-tab--active {
+  border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box !important;
+  color: #fff !important;
+}
+
+/* Title Case, never forced capitals. The retired chrome set buttons, badges,
+   stat labels and section bars in all caps, and pages add Tailwind's
+   `uppercase`; every label reads in Title Case instead (data such as a
+   lowercase status is capitalised the same way). */
+.cmd-page .uppercase,
+.cmd-btn,
+.cmd-badge,
+.cmd-stat-label,
+.cmd-header-bar-text {
+  text-transform: capitalize;
+  letter-spacing: .01em;
+}
+
+/* Badges: hairline pills, never yellow */
+.cmd-badge { box-shadow: none; }
+.cmd-badge-warning { color: #86daff; border-color: #22d3ee66; background: #22d3ee14; }
+
+/* Inputs */
+.cmd-input { background: #071420; border-color: #445e77; color: #f2f7ff; box-shadow: none; }
+.cmd-input:focus { border-color: #86daff; box-shadow: 0 0 0 2px #86daff55; }
+@media (prefers-reduced-motion: reduce) {
+  .cmd-page *, .cmd-page *::before, .cmd-page *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }

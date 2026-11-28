@@ -35,14 +35,14 @@ function SquadCard({ squad, onView }) {
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="font-bold text-white">{squad.name || 'Squad'}</h3>
-          <p className="text-sm text-[#64748B]">{squad.venue_name}</p>
+          <p className="text-sm text-[#9FB3C8]">{squad.venue_name}</p>
         </div>
         <span className={statusColors[squad.status] || statusColors.forming}>
           {squad.status}
         </span>
       </div>
 
-      <div className="flex items-center gap-4 text-sm text-[#64748B] mb-3">
+      <div className="flex items-center gap-4 text-sm text-[#9FB3C8] mb-3">
         <span className="font-medium text-white">{squad.stakes} {squad.game_type?.toUpperCase()}</span>
         <span className="flex items-center gap-1">
           <Users className="w-4 h-4" />
@@ -52,7 +52,7 @@ function SquadCard({ squad, onView }) {
 
       {squad.status === 'waiting' && squad.position && (
         <div className="flex items-center justify-between text-sm">
-          <span className="text-[#64748B]">Position #{squad.position}</span>
+          <span className="text-[#9FB3C8]">Position #{squad.position}</span>
           <span className="flex items-center gap-1 text-[#22D3EE]">
             <Clock className="w-4 h-4" />
             ~{squad.estimated_wait || '--'} Min
@@ -61,7 +61,7 @@ function SquadCard({ squad, onView }) {
       )}
 
       {squad.status === 'forming' && (
-        <div className="text-sm text-[#F59E0B]">
+        <div className="text-sm text-[#22D3EE]">
           Waiting For {memberCount - confirmedCount} Member(S) To Confirm
         </div>
       )}
@@ -76,7 +76,7 @@ function EmptyState({ onCreateSquad }) {
         <Users className="w-8 h-8" />
       </div>
       <h3 className="font-bold text-white mb-2">No Active Squads</h3>
-      <p className="text-[#64748B] mb-6">
+      <p className="text-[#9FB3C8] mb-6">
         Create A Squad To Join A Waitlist With Friends And Get Seated Together.
       </p>
       <button
@@ -170,7 +170,6 @@ export default function SquadsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">Squads</h1>
-                <p className="text-[#64748B] text-sm">Join Waitlists With Friends</p>
               </div>
               <button
                 onClick={handleCreateSquad}
@@ -189,7 +188,7 @@ export default function SquadsPage() {
               {invitations.length > 0 && (
                 <section>
                   <h2 className="font-bold text-white uppercase tracking-wide text-sm mb-3 flex items-center gap-2">
-                    <UserPlus className="w-5 h-5 text-[#F59E0B]" />
+                    <UserPlus className="w-5 h-5 text-[#22D3EE]" />
                     Squad Invitations
                   </h2>
                   <div className="space-y-3">
@@ -197,18 +196,18 @@ export default function SquadsPage() {
                       <div
                         key={invitation.id}
                         className="cmd-panel"
-                        style={{ borderColor: 'rgba(245, 158, 11, 0.5)', boxShadow: '0 0 15px rgba(245, 158, 11, 0.2), 0 8px 32px rgba(0, 0, 0, 0.5)' }}
+                        style={{ borderColor: 'rgba(34, 211, 238, 0.5)', boxShadow: '0 0 15px rgba(34, 211, 238, 0.2), 0 8px 32px rgba(0, 0, 0, 0.5)' }}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h3 className="font-medium text-white">{invitation.name}</h3>
-                            <p className="text-sm text-[#64748B]">{invitation.venue_name}</p>
+                            <p className="text-sm text-[#9FB3C8]">{invitation.venue_name}</p>
                           </div>
-                          <span className="text-sm text-[#64748B]">
+                          <span className="text-sm text-[#9FB3C8]">
                             {invitation.member_count} Members
                           </span>
                         </div>
-                        <p className="text-sm text-[#64748B] mb-3">
+                        <p className="text-sm text-[#9FB3C8] mb-3">
                           {invitation.leader_name} Invited You To Join For {invitation.stakes} {invitation.game_type?.toUpperCase()}
                         </p>
                         <div className="flex gap-2">
@@ -254,7 +253,7 @@ export default function SquadsPage() {
               {/* How It Works */}
               <section className="cmd-inset rounded-xl p-4">
                 <h3 className="font-bold text-white uppercase tracking-wide text-sm mb-3">How Squads Work</h3>
-                <ul className="space-y-2 text-sm text-[#64748B]">
+                <ul className="space-y-2 text-sm text-[#9FB3C8]">
                   <li className="flex items-start gap-2">
                     <span className="w-5 h-5 bg-[#132240] border border-[#22D3EE] text-[#22D3EE] rounded-full flex items-center justify-center text-xs flex-shrink-0">1</span>
                     Create A Squad And Invite Friends

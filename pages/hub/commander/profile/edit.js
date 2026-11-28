@@ -84,11 +84,14 @@ export default function ProfileEditPage() {
                 noindex={true}
             />
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="cmd-back-row">
+          <button type="button" className="cmd-back-link" onClick={() => router.back()}>
+            <ArrowLeft size={20} className="text-[#9FB3C8]" aria-hidden="true" />
+            <span>Back</span>
+          </button>
+        </div>
         <header className="cmd-header-bar">
           <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-4">
-            <button onClick={() => router.back()} className="p-2 rounded-lg hover:bg-[#132240]">
-              <ArrowLeft size={20} className="text-[#64748B]" />
-            </button>
             <h1 className="text-lg font-bold text-white">Edit Profile</h1>
           </div>
         </header>
@@ -97,11 +100,11 @@ export default function ProfileEditPage() {
           {/* Avatar */}
           <div className="flex justify-center">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-[#132240] border-2 border-[#4A5E78] flex items-center justify-center overflow-hidden">
+              <div className="w-24 h-24 rounded-full bg-[#132240] border-2 border-[#445E77] flex items-center justify-center overflow-hidden">
                 {formData.avatar_url ? (
                   <img src={formData.avatar_url} alt="" className="w-24 h-24 rounded-full object-cover"  loading="lazy" />
                 ) : (
-                  <User size={40} className="text-[#64748B]" />
+                  <User size={40} className="text-[#9FB3C8]" />
                 )}
               </div>
               <div className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#22D3EE] flex items-center justify-center">
@@ -113,7 +116,7 @@ export default function ProfileEditPage() {
           {/* Form */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[#94A3B8] mb-1.5">
+              <label className="block text-sm font-medium text-[#A9BDD1] mb-1.5">
                 Display Name <span className="text-[#EF4444]">*</span>
               </label>
               <input
@@ -125,7 +128,7 @@ export default function ProfileEditPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#94A3B8] mb-1.5">Email</label>
+              <label className="block text-sm font-medium text-[#A9BDD1] mb-1.5">Email</label>
               <input
                 type="email"
                 value={formData.email}
@@ -135,7 +138,7 @@ export default function ProfileEditPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#94A3B8] mb-1.5">Phone</label>
+              <label className="block text-sm font-medium text-[#A9BDD1] mb-1.5">Phone</label>
               <input
                 type="tel"
                 value={formData.phone}
@@ -145,7 +148,7 @@ export default function ProfileEditPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#94A3B8] mb-1.5">Bio</label>
+              <label className="block text-sm font-medium text-[#A9BDD1] mb-1.5">Bio</label>
               <textarea
                 value={formData.bio}
                 onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
@@ -153,7 +156,7 @@ export default function ProfileEditPage() {
                 placeholder="Tell Us About Yourself..."
                 maxLength={250}
               />
-              <p className="text-xs text-[#4A5E78] mt-1 text-right">{formData.bio.length}/250</p>
+              <p className="text-xs text-[#8FA6BE] mt-1 text-right">{formData.bio.length}/250</p>
             </div>
           </div>
 

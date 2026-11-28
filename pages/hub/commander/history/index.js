@@ -28,7 +28,7 @@ function SessionCard({ session }) {
           <p className="font-semibold text-white">
             {session.venue_name || 'Poker Room'}
           </p>
-          <p className="text-sm text-[#64748B]">
+          <p className="text-sm text-[#9FB3C8]">
             {checkIn.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
@@ -43,7 +43,7 @@ function SessionCard({ session }) {
 
       <div className="grid grid-cols-3 gap-4 text-sm">
         <div>
-          <p className="text-[#64748B] flex items-center gap-1">
+          <p className="text-[#9FB3C8] flex items-center gap-1">
             <Clock className="w-4 h-4" />
             Duration
           </p>
@@ -52,7 +52,7 @@ function SessionCard({ session }) {
           </p>
         </div>
         <div>
-          <p className="text-[#64748B] flex items-center gap-1">
+          <p className="text-[#9FB3C8] flex items-center gap-1">
             <DollarSign className="w-4 h-4" />
             Buy-In
           </p>
@@ -61,7 +61,7 @@ function SessionCard({ session }) {
           </p>
         </div>
         <div>
-          <p className="text-[#64748B] flex items-center gap-1">
+          <p className="text-[#9FB3C8] flex items-center gap-1">
             <TrendingUp className="w-4 h-4" />
             Games
           </p>
@@ -72,8 +72,8 @@ function SessionCard({ session }) {
       </div>
 
       {session.stakes && (
-        <div className="mt-3 pt-3 border-t border-[#4A5E78]">
-          <span className="text-sm text-[#64748B]">
+        <div className="mt-3 pt-3 border-t border-[#445E77]">
+          <span className="text-sm text-[#9FB3C8]">
             {session.stakes} {session.game_type?.toUpperCase() || 'NLHE'}
           </span>
         </div>
@@ -145,19 +145,19 @@ export default function PlayerHistoryPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
               <div className="cmd-inset rounded-lg p-3">
-                <p className="text-[#64748B] text-sm">Total Sessions</p>
+                <p className="text-[#9FB3C8] text-sm">Total Sessions</p>
                 <p className="text-2xl font-bold text-white">{stats.totalSessions}</p>
               </div>
               <div className="cmd-inset rounded-lg p-3">
-                <p className="text-[#64748B] text-sm">Hours Played</p>
+                <p className="text-[#9FB3C8] text-sm">Hours Played</p>
                 <p className="text-2xl font-bold text-white">{stats.totalHours}h</p>
               </div>
               <div className="cmd-inset rounded-lg p-3">
-                <p className="text-[#64748B] text-sm">Total Buy-Ins</p>
+                <p className="text-[#9FB3C8] text-sm">Total Buy-Ins</p>
                 <p className="text-2xl font-bold text-white">${stats.totalBuyins.toLocaleString()}</p>
               </div>
               <div className="cmd-inset rounded-lg p-3">
-                <p className="text-[#64748B] text-sm">Avg Session</p>
+                <p className="text-[#9FB3C8] text-sm">Avg Session</p>
                 <p className="text-2xl font-bold text-white">{stats.avgSession}h</p>
               </div>
             </div>
@@ -177,8 +177,8 @@ export default function PlayerHistoryPage() {
                 key={value}
                 onClick={() => setFilter(value)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filter === value
-                  ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
-                  : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78]'
+                  ? 'cmd-tab cmd-tab--active'
+                  : 'cmd-tab'
                   }`}
               >
                 {label}
@@ -192,8 +192,8 @@ export default function PlayerHistoryPage() {
               <div className="cmd-icon-box mx-auto mb-3">
                 <History className="w-6 h-6" />
               </div>
-              <p className="text-[#64748B]">No Sessions Found</p>
-              <p className="text-sm text-[#64748B] mt-1">
+              <p className="text-[#9FB3C8]">No Sessions Found</p>
+              <p className="text-sm text-[#9FB3C8] mt-1">
                 Check In At A Venue To Start Tracking
               </p>
             </div>
