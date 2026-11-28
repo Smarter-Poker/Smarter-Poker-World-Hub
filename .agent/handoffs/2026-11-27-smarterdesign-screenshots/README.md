@@ -24,3 +24,8 @@ Production art (committed, served by the site):
 `before-all-393/` was regenerated: the first set was mostly the Turbopack error overlay. `after-all-393/`
 now exists for all 91 routes (same file names), `after-1280/` holds desktop samples, and
 `sheets/rollout/` holds the 11 before/after sheets. The page list is `../2026-11-27-smarterdesign-page-list.md`.
+
+## Update (integration onto main, PR #3204)
+`after-all-393/` and `sheets/rollout/` were re-shot from the tree integrated with current main: the lobby is
+the approved featured lobby from #3165 (its "?" now the shared chrome icon), the header "?" is #3168's
+`SD_HEADER_HELP_ICON`, and game entry pages keep the clickable game cover inside the briefing panel.
