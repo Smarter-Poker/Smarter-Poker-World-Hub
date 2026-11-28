@@ -103,10 +103,12 @@ test('the real resolveBuildCpus gives 4 on an 8-core builder and 1 on a 2-core b
 // ceiling that works. Raise it only with the machine.
 //
 // 2026-11-28: the app outgrew that margin. Four production builds in a row
-// (#3299 to #3329) were SIGKILLed during the webpack compile with the heap at
-// 4096. The ceiling moved to 3584 (still above the 3072 that was measured to
-// build) and next.config.js turned on experimental.webpackMemoryOptimizations,
-// the documented Next.js switch for a lower peak.
+// (#3299 to #3329) were SIGKILLed by the 8 GB container during the webpack
+// compile with the heap at 4096. The heap itself is no longer the slack: CI's
+// parity build at a 3584 ceiling died of V8 heap exhaustion with about 3.46 GB
+// live, so 4096 stays. next.config.js turns on
+// experimental.webpackMemoryOptimizations, the documented Next.js switch that
+// lowers the whole process tree's peak instead.
 
 test('build:vercel caps the heap for an 8 GB build machine', () => {
   const pkg = JSON.parse(read('package.json'));

@@ -652,7 +652,8 @@ const nextConfig = {
     // enough room as the app grows. This is the documented Next.js switch for
     // exactly this (node_modules/next/dist/docs/01-app/02-guides/memory-usage.md:
     // "reduces max memory usage", "considered to be low-risk"); it trades a
-    // little compile time for a lower peak.
+    // little compile time for a lower peak. The heap ceiling is not the lever:
+    // the live heap now needs most of its 4096 MB (a 3584 ceiling ran out).
     webpackMemoryOptimizations: true,
     // instrumentationHook removed — no longer an experimental key in Next.js 16.
     // instrumentation.js is loaded by default; the old flag is ignored (causes
