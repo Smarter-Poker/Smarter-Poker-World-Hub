@@ -13,6 +13,8 @@ import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness } from '../utils/weaknessTracker';
 import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
 import PowerUpBar from '../components/training/PowerUpBar';
+import { Puzzle } from 'lucide-react';
+import { GameFrame, GameTopBar, GameIntro, GameResult, GameWeakness, GameNote, GameActions, GameShare, GameCoachTip, GameSuggestedNext, GameNextButton, gradeTone } from '../components/memory-games/PreflopGameKit';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch (e) { console.warn('[App] Handled exception:', e); } }
 
@@ -120,7 +122,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         if (!currentPattern) return null;
         const { visibleHands, solution } = currentPattern;
         return (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 2, width: 350, margin: '0 auto 24px', background: 'rgba(0,0,0,0.4)', padding: 8, borderRadius: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 2, width: '100%', maxWidth: 350, margin: '0 auto 24px', background: '#040b14', padding: 8, border: '3px solid transparent', borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch" }}>
                 {RANKS.map((r1, i) =>
                     RANKS.map((r2, j) => {
                         const hand = i < j ? `${r1}${r2}s` : i > j ? `${r2}${r1}o` : `${r1}${r2}`;
@@ -128,7 +130,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                         const action = solution[hand];
                         const color = action === 'raise' ? '#EF4444' : action === 'call' ? '#10B981' : 'rgba(100,100,100,0.3)';
                         return (
-                            <div key={hand} style={{ width: 24, height: 24, background: isVisible ? color : 'rgba(255,255,255,0.05)', borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: isVisible ? '#fff' : 'rgba(255,255,255,0.2)', fontWeight: 600 }}>
+                            <div key={hand} style={{ width: '100%', aspectRatio: '1', minWidth: 0, background: isVisible ? color : 'rgba(255,255,255,0.05)', borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: isVisible ? '#fff' : 'rgba(255,255,255,0.2)', fontWeight: 600 }}>
                                 {isVisible ? hand.substring(0, 2) : '?'}
                             </div>
                         );
@@ -139,23 +141,15 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
     };
 
     return (
-        <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <button onClick={onExit} style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>← Exit</button>
-                <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 28, fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    {streak > 1 && <div style={{ padding: '4px 10px', background: 'linear-gradient(135deg, #3B82F6, #0088ff)', borderRadius: 16, fontWeight: 700, fontSize: 13, color: '#fff' }}>{streak}x</div>}
-                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{round}/{maxRounds}</div>
-                </div>
-            </div>
+        <GameFrame style={{ textAlign: 'center' }}>
+            <GameTopBar onExit={onExit} score={score} streak={streak}>
+                <span style={{ fontSize: 14, color: '#bdd0e2', fontWeight: 600 }}>{round}/{maxRounds}</span>
+            </GameTopBar>
 
             {gameState === 'ready' && (
-                <div style={{ marginTop: 60 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>{'\uD83E\uDDE9'}</div>
-                    <h1 style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 32, color: '#00D4FF', marginBottom: 16 }}>PATTERN RECOGNITION</h1>
-                    <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>See A Partial Range → Identify The Dominant Action!<br />Is This A RAISING Range, CALLING Range, Or FOLDING Range?<br />8 Patterns. Test Your GTO Intuition!</p>
-                    <button onClick={startGame} style={{ padding: '16px 48px', fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #00D4FF, #0088ff)', color: '#fff', border: 'none', borderRadius: 50, cursor: 'pointer' }}>START [SPACE]</button>
-                </div>
+                <GameIntro icon={Puzzle} kicker="Free Local Practice" title="Pattern Recognition" onStart={startGame}>
+                    See A Partial Range And Identify The Dominant Action. Is It A Raising, Calling, Folding Or Mixed Range? Eight Patterns To Test Your Range Reading.
+                </GameIntro>
             )}
 
             {(gameState === 'playing' || gameState === 'revealed') && currentPattern && (
@@ -170,13 +164,13 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                             compact
                         />
                     )}
-                    <div style={{ fontSize: 16, color: '#00D4FF', marginBottom: 12, fontWeight: 600 }}>{currentPattern.scenario.title}</div>
-                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>What Action Does This Range Primarily Represent?</div>
+                    <div style={{ fontSize: 18, color: '#f2f7ff', marginBottom: 8, fontWeight: 700, fontFamily: "var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif" }}>{currentPattern.scenario.title}</div>
+                    <div style={{ fontSize: 14, color: '#bdd0e2', marginBottom: 16 }}>What Action Does This Range Primarily Represent?</div>
                     {renderMiniGrid()}
                     {gameState === 'revealed' && (
                         <div style={{ marginBottom: 16 }}>
                             <div style={{ fontSize: 18, fontWeight: 700, color: userAnswer === currentPattern.correctAnswer ? '#00ff88' : '#ff4444', marginBottom: 12 }}>
-                                {userAnswer === currentPattern.correctAnswer ? ` Correct! This is a ${currentPattern.correctAnswer.toUpperCase()} range` : `✗ Wrong! This is a ${currentPattern.correctAnswer.toUpperCase()} range`}
+                                {userAnswer === currentPattern.correctAnswer ? `Correct. This Is A ${currentPattern.correctAnswer.replace(/^\w/, (c) => c.toUpperCase())} Range` : `Not Quite. This Is A ${currentPattern.correctAnswer.replace(/^\w/, (c) => c.toUpperCase())} Range`}
                             </div>
                             {userAnswer !== currentPattern.correctAnswer && (
                                 <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/gto-panels/panels/gto_${(currentPattern.scenario?.position || 'utg').toLowerCase()}_${currentPattern.correctAnswer}_${currentPattern.scenario?.stackDepth || 100}bb.png`}
@@ -186,7 +180,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                     )}
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                         {['fold', 'call', 'raise', 'mixed'].map((action, idx) => {
-                            const colors = { fold: { bg: 'rgba(100,100,100,0.3)', border: '#666', color: '#fff', label: 'FOLD Range' }, call: { bg: 'rgba(16,185,129,0.3)', border: '#10B981', color: '#10B981', label: 'CALL Range' }, raise: { bg: 'rgba(239,68,68,0.3)', border: '#EF4444', color: '#EF4444', label: 'RAISE Range' }, mixed: { bg: 'rgba(14,165,233,0.25)', border: '#38BDF8', color: '#7DD3FC', label: 'MIXED Range' } };
+                            const colors = { fold: { bg: 'rgba(100,100,100,0.3)', border: '#666', color: '#fff', label: 'Fold Range' }, call: { bg: 'rgba(16,185,129,0.3)', border: '#10B981', color: '#10B981', label: 'Call Range' }, raise: { bg: 'rgba(239,68,68,0.3)', border: '#EF4444', color: '#EF4444', label: 'Raise Range' }, mixed: { bg: 'rgba(14,165,233,0.25)', border: '#38BDF8', color: '#7DD3FC', label: 'Mixed Range' } };
                             const c = colors[action];
                             const isEliminated = eliminatedOption === action;
                             return (
@@ -198,9 +192,9 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                         })}
                     </div>
                     {gameState === 'revealed' && (
-                        <button type="button" onClick={nextRound} style={{ width: '100%', minHeight: 52, marginTop: 18, borderRadius: 0, border: '1px solid #9beeff', background: 'linear-gradient(180deg, #23465b, #07121b)', color: '#fff', fontSize: 15, fontWeight: 900, cursor: 'pointer', boxShadow: 'inset 0 1px rgba(255,255,255,0.26), 0 8px 18px rgba(0,0,0,0.38)' }}>
+                        <GameNextButton onClick={nextRound}>
                             Next Question →
-                        </button>
+                        </GameNextButton>
                     )}
                 </>
             )}
@@ -209,88 +203,30 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                 const accuracy = Math.round((correctAnswers / maxRounds) * 100);
                 const diamondReward = correctAnswers * 2 + Math.floor(score / 100);
                 const grade = accuracy >= 90 ? 'S' : accuracy >= 80 ? 'A' : accuracy >= 65 ? 'B' : accuracy >= 50 ? 'C' : 'D';
-                const gradeColor = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' }[grade];
+                const posCounts = {};
+                mistakesRef.current.forEach(m => { posCounts[m.position] = (posCounts[m.position] || 0) + 1; });
+                const weakRows = Object.entries(posCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
                 return (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} style={{ marginTop: 20 }}>
-                        {/* Performance Hero Card */}
-                        <div style={{
-                            background: `linear-gradient(135deg, ${gradeColor}15, ${gradeColor}05)`,
-                            border: `1px solid ${gradeColor}40`,
-                            borderRadius: 20, padding: 28, marginBottom: 20, textAlign: 'center'
-                        }}>
-                            <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
-                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} style={{ marginTop: 12 }}>
+                        <GameResult grade={grade} metrics={[
+                            { label: 'Score', value: score.toLocaleString() },
+                            { label: 'Correct', value: `${correctAnswers}/${maxRounds}` },
+                            { label: 'Best Streak', value: maxStreak },
+                        ]} />
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
-                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
-                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
-                                </div>
-                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
-                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>BEST STREAK</div>
-                                </div>
-                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 24, fontWeight: 800, color: '#A78BFA' }}>{correctAnswers}/{maxRounds}</div>
-                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>CORRECT</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Animated Accuracy Bar */}
                         <AnimatedAccuracyBar accuracy={accuracy} grade={grade} />
 
-                        {/* Position Weakness Heatmap */}
                         <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={maxRounds} />
 
-                        {/* Weakness Analysis */}
-                        {mistakesRef.current.length > 0 && (() => {
-                            const posCounts = {};
-                            mistakesRef.current.forEach(m => { posCounts[m.position] = (posCounts[m.position] || 0) + 1; });
-                            const sorted = Object.entries(posCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
-                            return (
-                                <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#EF4444', letterSpacing: 1.5, marginBottom: 10 }}>{'\u26A0\uFE0F'} WEAKNESS DETECTED</div>
-                                    {sorted.map(([pos, count], i) => (
-                                        <div key={pos} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < sorted.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>{pos}</span>
-                                            <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 700 }}>{count} mistake{count > 1 ? 's' : ''}</span>
-                                        </div>
-                                    ))}
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Focus On These Spots In Your Next Session</div>
-                                </div>
-                            );
-                        })()}
+                        <GameWeakness rows={weakRows} />
 
-                        {/* Diamond Reward */}
                         {!userId && diamondReward > 0 && (
-                            <div style={{
-                                background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
-                                border: '1px solid rgba(0,255,136,0.3)',
-                                borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
-                            }}>
-                                <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
-                                    +{diamondReward} Local Practice Diamonds
-                                </div>
-                            </div>
+                            <GameNote tone="good">+{diamondReward} Local Practice Diamonds</GameNote>
                         )}
 
-                        {/* Actions */}
-                        <div style={{ display: 'flex', gap: 12 }}>
-                            <button onClick={startGame} style={{
-                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 700,
-                                background: 'linear-gradient(135deg, #00D4FF, #0088ff)', color: '#fff',
-                                border: 'none', borderRadius: 12, cursor: 'pointer'
-                            }}>PLAY AGAIN</button>
-                            <button onClick={onExit} style={{
-                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 600,
-                                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                                borderRadius: 12, color: '#fff', cursor: 'pointer'
-                            }}>BACK TO MENU</button>
-                        </div>
+                        <GameActions onReplay={startGame} onExit={onExit} />
 
-                        {/* Share Result */}
-                        <button onClick={() => shareResult({
+                        <GameShare onShare={() => shareResult({
                             gameTitle: 'PATTERN RECOGNITION',
                             grade,
                             score,
@@ -300,39 +236,15 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                                 { label: 'Correct', value: `${correctAnswers}/${maxRounds}` },
                                 { label: 'Accuracy', value: accuracy + '%' },
                             ],
-                            color: '#00D4FF',
-                        })} style={{
-                            width: '100%', marginTop: 12, padding: '12px 0', fontSize: 13, fontWeight: 600,
-                            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer'
-                        }}>{'\uD83D\uDCF4'} Share Result</button>
+                            color: gradeTone(grade),
+                        })} />
 
-                        {/* Coaching Tip */}
-                        <div style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: 10, padding: '12px 16px', marginTop: 12, textAlign: 'left' }}>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: '#00D4FF', letterSpacing: 1.5, marginBottom: 4 }}>{'\uD83C\uDFAF'} COACH TIP</div>
-                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{getCoachingTip(grade)}</div>
-                        </div>
+                        <GameCoachTip>{getCoachingTip(grade)}</GameCoachTip>
 
-                        {/* Suggested Next Game */}
-                        {(() => {
-                            const suggestion = getNextGameSuggestion('pattern-recognition', grade);
-                            if (!suggestion) return null;
-                            return (
-                                <div style={{
-                                    background: `${suggestion.color}10`, border: `1px solid ${suggestion.color}30`,
-                                    borderRadius: 10, padding: 14, marginTop: 10, textAlign: 'center', cursor: 'pointer'
-                                }} onClick={onExit}>
-                                    <div style={{ fontSize: 10, color: suggestion.color, fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>
-                                        {suggestion.icon} SUGGESTED NEXT
-                                    </div>
-                                    <div style={{ fontSize: 14, color: '#fff', fontWeight: 700 }}>{suggestion.title}</div>
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{suggestion.reason}</div>
-                                </div>
-                            );
-                        })()}
+                        <GameSuggestedNext suggestion={getNextGameSuggestion('pattern-recognition', grade)} onSelect={onExit} />
                     </motion.div>
                 );
             })()}
-        </div>
+        </GameFrame>
     );
 }

@@ -29,6 +29,7 @@ import '../src/styles/worlds/memory-games.css';
 import '../src/styles/worlds/personal-assistant.css';
 import '../src/styles/worlds/bankroll.css';
 import '../styles/smarterdesign.css';
+import '../src/styles/worlds/preflop-smarterdesign.css';
 import '../src/styles/worlds/training-lobby-arena.css';
 import '../src/styles/tutorial.css';
 import '../src/styles/worlds/trivia.css';
