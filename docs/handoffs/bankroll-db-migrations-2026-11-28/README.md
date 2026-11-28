@@ -16,6 +16,7 @@ by md5 with comment and blank lines ignored, 2026-11-28). Never edit them.
 | 20261128101901 | bankroll_ledger_external_ref | (coordinator) external reference column and partial unique index | see its header |
 | 20261128102249 | bankroll_new_tables_explicit_boundary | Revokes service_role's implicit ALL on the two new tables and client use of the history id sequence | none |
 | 20261128102637 | bankroll_new_tables_service_role_read | Grants service_role SELECT only on the two new tables (CHECK 17 reads the schema through the service key's OpenAPI) | none |
+| 20261128103322 | fn_bankroll_totals_expense_rule | R5 follows #3289: expense = -\|gross_out - gross_in\| (an expense typed in gross_out is a cost, not a gain). Pinned by `__tests__/bankroll-totals-sql-matches-ledger-math.test.mjs`, which fails if ledgerMath's rule and the newest function migration disagree | `calculations.ts` getBankrollStats |
 
 Client fallbacks: #3296 shipped the client before 2 and 3 existed, falling
 back to the old paths on PGRST202. With both installed and verified (the

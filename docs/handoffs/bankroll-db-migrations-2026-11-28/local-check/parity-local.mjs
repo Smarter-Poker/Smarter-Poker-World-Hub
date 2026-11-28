@@ -3,6 +3,7 @@ import { diffTotals, totalsFromRows } from '../../../../src/lib/bankroll/bankrol
 const psql = (sql) => execFileSync('psql', ['-h','/tmp/pgw4','-p','55432','-U','postgres','-d','w4','-tAq','-v','ON_ERROR_STOP=1'], { input: sql, encoding: 'utf8', maxBuffer: 1e8 }).trim();
 const U = '33333333-3333-3333-3333-333333333333';
 const L = ['aaaaaaaa-0000-0000-0000-000000000002','aaaaaaaa-0000-0000-0000-000000000003'];
+psql(`INSERT INTO auth.users VALUES ('${U}') ON CONFLICT DO NOTHING; INSERT INTO public.profiles(id) VALUES ('${U}') ON CONFLICT DO NOTHING`);
 psql(`INSERT INTO public.bankroll_locations(id,user_id,name) VALUES ('${L[0]}','${U}','x'),('${L[1]}','${U}','y') ON CONFLICT DO NOTHING`);
 psql(`INSERT INTO public.bankroll_segments(user_id,segment_type,initial_deposit) VALUES ('${U}','poker',250.55),('${U}','casino',10),('${U}','life',77)`);
 let seed = 42; const r = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);

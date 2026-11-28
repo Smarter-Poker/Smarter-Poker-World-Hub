@@ -180,6 +180,7 @@ import './bankroll-ledger-math.test.mjs';
 import './bankroll-club-arena-sessions.test.mjs';
 import './bankroll-lib-w3.test.mjs';
 import './bankroll-db-rpc-fallback.test.mjs';
+import './bankroll-totals-sql-matches-ledger-math.test.mjs';
 import './bankroll-receipts-are-read-kept-and-sent.test.mjs';
 import './bankroll-one-number-everywhere.test.mjs';
 import './bankroll-trip-math.test.mjs';

@@ -4,7 +4,8 @@
 // getBankrollStats (calculations.ts) has always returned.
 //
 // The function's rules are listed in its migration header
-// (supabase/migrations/20261128101707_fn_bankroll_totals.sql, R1-R12). totalsFromRows is the client-side statement of the same rules,
+// (supabase/migrations/20261128101707_fn_bankroll_totals.sql, R1-R12; R5 became
+// expense = -|gross_out - gross_in| in 20261128103322_fn_bankroll_totals_expense_rule.sql). totalsFromRows is the client-side statement of the same rules,
 // built only from ledgerMath.mjs and bankrollStats.mjs, so a disagreement
 // between the two is a bug in one of them, never a matter of taste.
 
