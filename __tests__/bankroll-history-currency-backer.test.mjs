@@ -338,15 +338,26 @@ test('statement totals are summed in cents and makeup is the last session\'s', (
 
 test('the statement read uses the publishable key and says unavailable for zero rows', async () => {
   const calls = [];
-  const fetchImpl = async (url, init) => { calls.push([url, init]); return { ok: true, json: async () => [] }; };
+  const fetchImpl = async (url, init) => { calls.push([url, init]); return { ok: true, json: async () => (url.endsWith('fn_staking_link_is_active') ? false : []) }; };
   const env = { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: '' };
   assert.deepEqual(await readStakingStatement(TOKEN, fetchImpl, env), { status: 'unavailable', rows: [] });
   assert.equal(calls[0][0], 'https://example.supabase.co/rest/v1/rpc/fn_staking_statement');
   assert.deepEqual(JSON.parse(calls[0][1].body), { p_token: TOKEN });
   assert.ok(!('Authorization' in calls[0][1].headers), 'no user session is sent');
+  assert.equal(calls[1][0], 'https://example.supabase.co/rest/v1/rpc/fn_staking_link_is_active');
   assert.deepEqual(await readStakingStatement('bad', fetchImpl, env), { status: 'unavailable', rows: [] });
-  assert.equal(calls.length, 1, 'a malformed token never reaches the database');
+  assert.equal(calls.length, 2, 'a malformed token never reaches the database');
   await assert.rejects(() => readStakingStatement(TOKEN, async () => ({ ok: false, status: 500 }), env), /fn_staking_statement 500/);
+});
+
+test('a live link on a deal with no sessions reads as empty, not expired', async () => {
+  const env = { NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: '' };
+  const live = async (url) => ({ ok: true, json: async () => (url.endsWith('fn_staking_link_is_active') ? true : []) });
+  assert.deepEqual(await readStakingStatement(TOKEN, live, env), { status: 'empty', rows: [] });
+  const failing = async (url) => (url.endsWith('fn_staking_link_is_active') ? { ok: false, status: 503 } : { ok: true, json: async () => [] });
+  await assert.rejects(() => readStakingStatement(TOKEN, failing, env), /fn_staking_link_is_active 503/);
+  const view = read('src/components/bankroll/StakingStatementView.jsx');
+  assert.match(view, /status === 'empty'[\s\S]{0,200}No Sessions Linked Yet/);
 });
 
 // ---------------------------------------------------------------------------

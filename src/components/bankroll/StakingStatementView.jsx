@@ -68,11 +68,19 @@ export default function StakingStatementView({ status, rows = [] }) {
                         </p>
                     </>
                 )}
-                {!found && status !== 'error' && (
+                {status === 'empty' && (
+                    <div style={styles.empty} data-testid="statement-empty">
+                        <h2 style={styles.emptyTitle}>No Sessions Linked Yet</h2>
+                        <p style={styles.emptyText}>
+                            This Link Is Active. Sessions Appear Here As The Player Links Them To The Deal.
+                        </p>
+                    </div>
+                )}
+                {!found && status !== 'error' && status !== 'empty' && (
                     <div style={styles.empty} data-testid="statement-unavailable">
                         <h2 style={styles.emptyTitle}>This Link Has Expired Or Was Revoked</h2>
                         <p style={styles.emptyText}>
-                            Ask The Player For A New Link. A Link That Was Just Made Shows Nothing Until A Session Is Linked To The Deal.
+                            Ask The Player For A New Link.
                         </p>
                     </div>
                 )}

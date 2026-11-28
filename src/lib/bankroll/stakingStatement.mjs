@@ -98,8 +98,9 @@ export function statementTotals(rows) {
 
 /**
  * Read a statement with the publishable key (server side).
- * Returns { status: 'found', rows } | { status: 'unavailable' } (no rows: the
- * link is revoked, expired or never existed). Throws when the database could
+ * Returns { status: 'found', rows } | { status: 'empty' } (a live link on a
+ * deal with no sessions linked yet) | { status: 'unavailable' } (the link is
+ * revoked, expired or never existed). Throws when the database could
  * not be asked, so the page can say "could not load" instead of "expired".
  */
 export async function readStakingStatement(token, fetchImpl = fetch, env = process.env) {
@@ -114,5 +115,16 @@ export async function readStakingStatement(token, fetchImpl = fetch, env = proce
     });
     if (!res.ok) throw new Error(`fn_staking_statement ${res.status}`);
     const rows = cleanStatementRows(await res.json());
-    return rows.length ? { status: 'found', rows } : { status: 'unavailable', rows: [] };
+    if (rows.length) return { status: 'found', rows };
+    // No rows: either the link is not live, or it is live on a deal with no
+    // sessions linked yet. fn_staking_link_is_active (migration
+    // 20261128120608) answers only that yes/no, so a fresh link no longer
+    // reads as expired and revoked/expired/never-existed stay indistinguishable.
+    const active = await fetchImpl(`${url}/rest/v1/rpc/fn_staking_link_is_active`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: key, Accept: 'application/json' },
+        body: JSON.stringify({ p_token: t }),
+    });
+    if (!active.ok) throw new Error(`fn_staking_link_is_active ${active.status}`);
+    return (await active.json()) === true ? { status: 'empty', rows: [] } : { status: 'unavailable', rows: [] };
 }
