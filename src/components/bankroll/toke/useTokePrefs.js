@@ -80,7 +80,7 @@ export function useTokePrefs(userId) {
     window.dispatchEvent(new CustomEvent(TOKE_PREFS_EVENT, { detail: next }));
     if (!userId) return;
     try {
-      await saveTokePrefsToAccount(supabase, userId, next);
+      await saveTokePrefsToAccount(supabase, next);
     } catch (err) {
       console.warn('[TokeTracker] Preference could not be saved to the account:', err?.message || err);
     }

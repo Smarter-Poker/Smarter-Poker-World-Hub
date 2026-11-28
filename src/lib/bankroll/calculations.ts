@@ -14,9 +14,7 @@ import { supabase } from '../supabase';
 import { withRetry } from './retryUtils';
 import { bankrollBalanceCents, centsToDollars, resultsCents } from './ledgerMath.mjs';
 import { fetchAllRows } from './ledgerReport.mjs';
-import { periodStats } from './bankrollStats.mjs';
 import { statsFromTotals } from './bankrollTotals.mjs';
-import { rpcOrFallback } from './rpcFallback.mjs';
 
 export interface BankrollStats {
   totalBankroll: number;
@@ -81,43 +79,22 @@ async function latestTripNet(userId: string): Promise<number> {
 }
 
 /**
- * The period figures and balance read row by row (paged), summed here. This is
- * the path until fn_bankroll_totals is installed, and stays as its fallback.
- */
-async function clientSideStats(
-  userId: string,
-  startDate?: string,
-  endDate?: string,
-  locationId?: string
-): Promise<Omit<BankrollStats, 'travelROI'>> {
-  const [totalBankroll, entries] = await Promise.all([
-    calculateTotalBankroll(userId),
-    fetchAllRows(() => {
-      let query = supabase
-        .from('bankroll_ledger')
-        .select('id, category, gross_in, gross_out, start_time, end_time')
-        .eq('user_id', userId)
-        .eq('is_revision', false)
-        .not('category', 'in', '("deposit","withdrawal")');
-      if (startDate) query = query.gte('entry_date', startDate);
-      if (endDate) query = query.lte('entry_date', endDate);
-      if (locationId) query = query.eq('location_id', locationId);
-      return query.order('id', { ascending: true });
-    }),
-  ]);
-  return { totalBankroll, ...periodStats(entries) } as Omit<BankrollStats, 'travelROI'>;
-}
-
-/**
  * Get full bankroll stats. Every period figure covers the same rows: the
  * chosen dates and venue.
  *
- * The database function fn_bankroll_totals (draft on branch
- * bookmark/bankroll-db-migrations-2026-11-28, docs/handoffs/.../03_fn_bankroll_totals.sql)
- * computes the same figures in one round trip for the signed-in player
- * (auth.uid(), which is the userId the dashboard passes). Only when PostgREST
- * says it does not exist yet does this read the rows itself; any other rpc
- * failure is thrown, never replaced by the fallback or by zeros.
+ * One call to fn_bankroll_totals (supabase/migrations/20261128101707_fn_bankroll_totals.sql,
+ * installed 2026-11-28) computes them in the database for the signed-in
+ * player, auth.uid(), in integer cents by the same rules as ledgerMath.mjs and
+ * bankrollStats.mjs (the migration header lists them, R1-R12; bankrollTotals.mjs
+ * totalsFromRows is the client-side statement of the same rules and
+ * scripts/bankroll-totals-parity.mjs compares the two). Under RLS the paged
+ * read it replaced could only ever see auth.uid()'s rows too, so the userId
+ * the dashboard passes (the signed-in player) names the same ledger.
+ *
+ * The temporary fallback to that paged read on PGRST202 (#3296) covered only
+ * the hours before the function was installed and was removed once it was
+ * installed and verified on production. A failed call throws: the dashboard
+ * shows its error state, never zeros.
  */
 export async function getBankrollStats(
   userId: string,
@@ -126,20 +103,15 @@ export async function getBankrollStats(
   locationId?: string
 ): Promise<BankrollStats> {
   return withRetry(async () => {
-    const [{ data: figures }, travelROI] = await Promise.all([
-      rpcOrFallback(
-        async () => {
-          const response = await supabase.rpc('fn_bankroll_totals', {
-            p_from: startDate || null,
-            p_to: endDate || null,
-            p_location_id: locationId || null,
-          });
-          return response.error ? response : { ...response, data: statsFromTotals(response.data) };
-        },
-        () => clientSideStats(userId, startDate, endDate, locationId)
-      ),
+    const [{ data, error }, travelROI] = await Promise.all([
+      supabase.rpc('fn_bankroll_totals', {
+        p_from: startDate || null,
+        p_to: endDate || null,
+        p_location_id: locationId || null,
+      }),
       latestTripNet(userId),
     ]);
-    return { ...figures, travelROI } as BankrollStats;
+    if (error) throw error;
+    return { ...statsFromTotals(data), travelROI } as BankrollStats;
   });
 }

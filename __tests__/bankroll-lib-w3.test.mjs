@@ -136,7 +136,9 @@ test('a venue name only matches itself in the case-insensitive lookup', () => {
 
 test('the dashboard stats read every row and throw on failure', () => {
   const calc = read('src/lib/bankroll/calculations.ts');
-  assert.match(calc, /periodStats\(entries\)/);
+  // Since 2026-11-28 the period figures come from fn_bankroll_totals, by the
+  // same rules (bankroll-db-rpc-fallback.test.mjs proves the mapping).
+  assert.match(calc, /statsFromTotals\(data\)/);
   assert.match(calc, /bankrollBalanceCents\(/);
   assert.doesNotMatch(calc, /net_result/, 'results come from gross_in/gross_out via ledgerMath, as the Net Results tile does');
   assert.doesNotMatch(calc, /const \{ (data|count)[^}]*\} = await supabase\s*\n\s*\.from\('bankroll_ledger'\)/);
