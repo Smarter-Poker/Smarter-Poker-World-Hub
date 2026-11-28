@@ -299,11 +299,27 @@ test('resolveWeeklyWireRecipients and renderWeeklyWireEmail segment Promo CTAs a
     assert.equal(resolved.recipients.length, 3);
     assert.deepEqual(resolved.segmentCounts, { non_account: 1, inactive_21d: 1, active_member: 1 });
 
-    const leadBlock = buildPromoBlockForSegment('non_account', { siteUrl: 'https://smarter.poker' });
-    const inactiveBlock = buildPromoBlockForSegment('inactive_21d', {
-        userId: 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
-        siteUrl: 'https://smarter.poker',
-    });
+    // Hermetic signing key (2026-11-28). The signup link (pt=) and the
+    // welcome-back link (wb=) carry a signed token only when a signing key
+    // exists, and this case had none of its own: it passed in CI only because
+    // a sibling suite imported into the same process by _test-guards-exist
+    // (alertmanager-page sets CRON_SECRET at module scope) had already set one,
+    // and failed when run alone. A fixture key, restored afterwards, makes the
+    // token assertions below depend on this test and nothing else.
+    const previousPromoSecret = process.env.PROMO_SIGNUP_SECRET;
+    process.env.PROMO_SIGNUP_SECRET = 'weekly-wire-test-fixture-signing-key';
+    let leadBlock;
+    let inactiveBlock;
+    try {
+        leadBlock = buildPromoBlockForSegment('non_account', { siteUrl: 'https://smarter.poker' });
+        inactiveBlock = buildPromoBlockForSegment('inactive_21d', {
+            userId: 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
+            siteUrl: 'https://smarter.poker',
+        });
+    } finally {
+        if (previousPromoSecret === undefined) delete process.env.PROMO_SIGNUP_SECRET;
+        else process.env.PROMO_SIGNUP_SECRET = previousPromoSecret;
+    }
     const activeBlock = buildPromoBlockForSegment('active_member', { siteUrl: 'https://smarter.poker' });
 
     assert.match(leadBlock.ctaUrl, /\/auth\/signup\?.*pt=/);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { fetchShared } from '../../lib/poker-near-me/sharedGet';
 import dynamic from 'next/dynamic';
 import { supabase } from '../../lib/supabase';
 import { haversineMiles, timeAgo, getHeatLevel, parseMinStake, getVenueLogoUrl, getVenueLogoFallback, estimateWaitTime, saveFilters, loadFilters, isStaleData, getInitialsColor } from './pnm-utils';
@@ -38,6 +39,9 @@ function decodeHtmlEntities(str) {
 const VenueMap = dynamic(() => import('./VenueMap'), { ssr: false });
 
 const LIVE_REFRESH_MS = 2 * 60 * 1000; // 2 minutes
+// Realtime-triggered refetches never run more often than the live-tables
+// API's CDN window (s-maxage=60).
+const LIVE_REALTIME_FLOOR_MS = 60 * 1000;
 const COLLAPSE_THRESHOLD = 5; // Show first N games, collapse rest
 const STALE_THRESHOLD_MS = 3 * 60 * 60 * 1000;
 
@@ -368,7 +372,7 @@ function LiveGamesFeed({
     const [expandedBreakdowns, setExpandedBreakdowns] = useState({});
     
     const debounceTimerRef = useRef(null);
-    const busEmitDebounceRef = useRef(null);
+    const lastLiveFetchAtRef = useRef(0);
     const countdownRef = useRef(null);
     // FIX: locationAppliedRef was used in handleResetFilters (line 699) but never declared.
     // Without this, handleResetFilters() throws a ReferenceError in strict mode / React 18.
@@ -382,6 +386,7 @@ function LiveGamesFeed({
 
     // ─── FETCH LIVE DATA ───
     const fetchGlobalLiveData = useCallback(async (isRealtimeEvent = false) => {
+        lastLiveFetchAtRef.current = Date.now();
         if (!isRealtimeEvent) setLiveLoading(true);
         if (isRealtimeEvent) setIsRefreshing(true);
         const preserveFreshnessQualifiedCache = () => {
@@ -414,7 +419,8 @@ function LiveGamesFeed({
             // CDN answer keeps the feed at most one minute behind, which is
             // already the API's own freshness contract. Realtime events trigger
             // this contracted fetch instead of bypassing provenance checks.
-            const res = await fetch('/api/poker/live-tables');
+            // Coalesced with the page's own mount read of the same feed.
+            const res = await fetchShared('/api/poker/live-tables');
             if (res.ok) {
                 const json = await res.json();
                 const mapping = {};
@@ -558,20 +564,29 @@ function LiveGamesFeed({
                 // Never merge raw realtime rows directly into UI state. That bypassed
                 // batch selection, staleness, and provenance rules and could promote a
                 // simulator insert to a live observation. Re-fetch the contracted API.
-                if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-                debounceTimerRef.current = setTimeout(() => fetchGlobalLiveData(true), 2000);
-                // Notify rest of platform (Game Trends & Heatmaps) of instantaneous change via EventBus
-                // DEBOUNCED: Prevents DDOSing companion API routes during rapid batch mutations
-                if (busEmitDebounceRef.current) clearTimeout(busEmitDebounceRef.current);
-                busEmitDebounceRef.current = setTimeout(() => {
-                    busEmit.dataMutated('live_tables');
-                }, 1500);
+                // REQUEST FLOOD FIX (2026-11-28): this was a 2-second DEBOUNCE, so a
+                // steady trickle of row events (a modelled-history publish writes
+                // rows continuously) refetched every few seconds for as long as the
+                // trickle lasted, and every refetch re-announced live_tables to the
+                // heatmap. It is now a THROTTLE: at most one refetch per
+                // LIVE_REALTIME_FLOOR_MS (the API's own s-maxage, so a sooner fetch
+                // only returns the same cached answer), and a pending refetch is
+                // never pushed back by later events. fetchGlobalLiveData announces
+                // live_tables itself once the new data is in, so the event no
+                // longer announces it a second time.
+                if (debounceTimerRef.current) return;
+                const sinceLast = Date.now() - lastLiveFetchAtRef.current;
+                const wait = Math.max(2000, LIVE_REALTIME_FLOOR_MS - sinceLast);
+                debounceTimerRef.current = setTimeout(() => {
+                    debounceTimerRef.current = null;
+                    fetchGlobalLiveData(true);
+                }, wait);
             })
             .subscribe();
 
         return () => { 
             if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-            if (busEmitDebounceRef.current) clearTimeout(busEmitDebounceRef.current);
+            debounceTimerRef.current = null;
             if (liveChannel) supabase.removeChannel(liveChannel);
         };
     }, [fetchGlobalLiveData]);

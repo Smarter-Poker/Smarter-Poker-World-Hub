@@ -104,8 +104,12 @@ export function isPrivateOrReservedHost(hostname) {
  *
  * Shared by the up-front check on the caller's URL and by every redirect hop,
  * which is the part the platform used to decide for us.
+ *
+ * `lookup` defaults to the system resolver. It is injectable so a test can
+ * judge a NAME against an answer it controls; the judgement itself (every
+ * resolved address through isBlockedAddress) is never skipped.
  */
-export async function assertFetchableUrl(parsed) {
+export async function assertFetchableUrl(parsed, { lookup = dns.lookup } = {}) {
     if (!CONFIG.ALLOWED_PROTOCOLS.includes(parsed.protocol)) return false;
     const host = String(parsed.hostname || '').trim().toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
     if (!host) return false;
@@ -120,7 +124,7 @@ export async function assertFetchableUrl(parsed) {
 
     let addrs;
     try {
-        addrs = await dns.lookup(host, { all: true, verbatim: true });
+        addrs = await lookup(host, { all: true, verbatim: true });
     } catch {
         // A name that will not resolve cannot be fetched anyway. Refusing here
         // keeps the failure on the safe side rather than handing it to fetch.
@@ -136,7 +140,7 @@ export async function assertFetchableUrl(parsed) {
  * The platform used to follow them for us, which made the check above run once,
  * on the URL the caller supplied, and then follow wherever that host pointed.
  */
-export async function fetchGuarded(startUrl, options, maxHops = 5) {
+export async function fetchGuarded(startUrl, options, maxHops = 5, { lookup = dns.lookup } = {}) {
     let current = startUrl;
     // hop < maxHops, so maxHops=5 means at most 5 outbound requests, not 6.
     for (let hop = 0; hop < maxHops; hop++) {
@@ -157,7 +161,7 @@ export async function fetchGuarded(startUrl, options, maxHops = 5) {
             err.code = 'BAD_REDIRECT';
             throw err;
         }
-        if (!(await assertFetchableUrl(next))) {
+        if (!(await assertFetchableUrl(next, { lookup }))) {
             const err = new Error('Redirect pointed at an address that is not allowed');
             err.code = 'BLOCKED_REDIRECT';
             throw err;

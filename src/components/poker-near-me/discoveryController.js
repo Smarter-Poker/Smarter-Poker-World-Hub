@@ -412,3 +412,60 @@ export function venueMatchesStakes(venue, stakes) {
 export function getCurrentDay(date = new Date()) {
   return DAYS_OF_WEEK[date.getDay()];
 }
+
+// ─── Map directory merge (2026-11-28 request flood fix) ───
+// The page folds each fresh `venues` fetch into the map directory
+// (`allVenuesForMap`). It used to build a NEW array, with a new object for
+// every venue the fetch returned, on every run, even when nothing differed.
+// Every consumer of the directory keys an effect on it (the map, the geofence
+// watcher, Near Me Now, the Social Feed, the Road Trip and Trip Cost tools),
+// so each venue poll, live-data merge and GPS refresh restarted all of them
+// and re-sent their requests. This merge keeps every unchanged venue object
+// and returns `prev` itself when the result is element-for-element the same.
+function isSyntheticMapEntry(venue) {
+  return String(venue?.id).startsWith('sp-') || !!venue?.is_home_group;
+}
+
+// A fetch rebuilds nested arrays and objects (games, stakes, live_data), so
+// those compare by content; scalars compare by value.
+function sameFieldValue(a, b) {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+  try { return JSON.stringify(a) === JSON.stringify(b); } catch { return false; }
+}
+
+function freshFieldsAlreadyApplied(current, fresh) {
+  for (const key of Object.keys(fresh)) {
+    if (!sameFieldValue(current[key], fresh[key])) return false;
+  }
+  return true;
+}
+
+export function mergeLiveVenuesIntoMapDirectory(prev, venues) {
+  const previous = Array.isArray(prev) ? prev : [];
+  const list = Array.isArray(venues) ? venues : [];
+  const socialWithCoords = list.filter((v) => v && v.is_social_page && v.latitude && v.longitude);
+  const homeGroupsWithCoords = list.filter((v) => v && v.is_home_group && v.latitude && v.longitude);
+  const liveUpdates = new Map();
+  for (const v of list) {
+    if (v && !v.is_social_page && !v.is_home_group && v.id) liveUpdates.set(String(v.id), v);
+  }
+
+  const previousSynthetic = new Map();
+  const next = [];
+  for (const v of previous) {
+    if (isSyntheticMapEntry(v)) { previousSynthetic.set(String(v.id), v); continue; }
+    const fresh = liveUpdates.get(String(v.id));
+    next.push(fresh && !freshFieldsAlreadyApplied(v, fresh) ? { ...v, ...fresh } : v);
+  }
+  // Social pages and home groups are replaced wholesale by each fetch; an
+  // entry whose fields did not change keeps its previous object.
+  for (const fresh of [...socialWithCoords, ...homeGroupsWithCoords]) {
+    const old = previousSynthetic.get(String(fresh.id));
+    const same = old && Object.keys(old).length === Object.keys(fresh).length && freshFieldsAlreadyApplied(old, fresh);
+    next.push(same ? old : fresh);
+  }
+
+  if (next.length === previous.length && next.every((v, i) => v === previous[i])) return previous;
+  return next;
+}

@@ -19,6 +19,7 @@ async function loadBoundedTrainingModule() {
     fetch,
     setTimeout,
   });
+  assert.ok(vm.SourceTextModule, 'run with node --experimental-vm-modules, as build-safety-gate CHECK 8 does');
   const module = new vm.SourceTextModule(
     read('src/lib/training/boundedTrainingFetch.js'),
     { context },
@@ -50,6 +51,7 @@ async function loadAuthedFetch(fetchImpl, { immediateDeadline = false } = {}) {
       ? (callback) => { queueMicrotask(callback); return 1; }
       : setTimeout,
   });
+  assert.ok(vm.SourceTextModule, 'run with node --experimental-vm-modules, as build-safety-gate CHECK 8 does');
   const boundedModule = new vm.SourceTextModule(
     read('src/lib/training/boundedTrainingFetch.js'),
     { context },
@@ -70,6 +72,7 @@ async function loadAuthedFetch(fetchImpl, { immediateDeadline = false } = {}) {
     },
     { context },
   );
+  assert.ok(vm.SourceTextModule, 'run with node --experimental-vm-modules, as build-safety-gate CHECK 8 does');
   const authModule = new vm.SourceTextModule(read('src/lib/authUtils.js'), { context });
   await authModule.link((specifier) => {
     if (specifier === 'react') return reactModule;

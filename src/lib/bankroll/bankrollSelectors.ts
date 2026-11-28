@@ -8,7 +8,6 @@ import { supabase } from '../supabase';
 import { withRetry } from './retryUtils';
 import {
   BANKROLL_RULE_CREATE_ONLY,
-  BANKROLL_RULE_UPSERT,
   BANKROLL_SEGMENT_CREATE_ONLY,
 } from './naturalKeys.mjs';
 import { RECEIPT_UNASSIGN } from './receiptGallery.mjs';
@@ -22,6 +21,7 @@ import {
 } from './stakingMath.mjs';
 import { bankrollBalanceCents, centsToDollars, toCents } from './ledgerMath.mjs';
 import { fetchAllRows } from './ledgerReport.mjs';
+import { noteSessionLogged, noteStartingBankrollSet, noteTripStarted } from './funnelSteps.mjs';
 import {
   buildTripReport,
   cleanDay,
@@ -207,33 +207,6 @@ export async function fetchReportLedger(
 }
 
 /**
- * Fetch a single ledger entry by ID
- */
-export async function fetchLedgerEntry(
-  userId: string,
-  entryId: string
-): Promise<LedgerEntry | null> {
-  const { data, error } = await supabase
-    .from('bankroll_ledger')
-    .select(
-      `
-      *,
-      bankroll_locations(name)
-    `
-    )
-    .eq('user_id', userId)
-    .eq('id', entryId)
-    .maybeSingle();
-
-  if (error || !data) return null;
-
-  return {
-    ...data,
-    location_name: data.bankroll_locations?.name || null,
-  };
-}
-
-/**
  * Map ledger category to bankroll segment type
  */
 function categoryToSegment(category: string): string {
@@ -377,6 +350,9 @@ export async function createLedgerEntry(
   } catch (segError) {
     console.warn('[Bankroll] Failed to update segment balance:', segError);
   }
+
+  // Funnel: the account's second gaming session (fire-and-forget).
+  if (data) void noteSessionLogged(supabase, userId, data);
 
   return data;
 }
@@ -617,6 +593,8 @@ export async function createTrip(
     .maybeSingle();
 
   if (error || !data) throw error || new Error('Failed to create trip');
+  // Funnel: the account's first trip (fire-and-forget), whichever screen started it.
+  void noteTripStarted(supabase, userId);
   return data;
 }
 
@@ -803,49 +781,6 @@ export async function fetchBankrollRules(userId: string): Promise<BankrollRule[]
 }
 
 /**
- * Update a bankroll rule
- */
-export async function updateBankrollRule(
-  userId: string,
-  ruleType: string,
-  value: number,
-  isStrict: boolean = false
-): Promise<BankrollRule> {
-  const { data, error } = await supabase
-    .from('bankroll_rules')
-    .upsert({
-      user_id: userId,
-      rule_type: ruleType,
-      value,
-      is_strict: isStrict,
-      is_active: true,
-      updated_at: new Date().toISOString(),
-    }, BANKROLL_RULE_UPSERT)
-    .select()
-    .maybeSingle();
-
-  if (error || !data) throw error || new Error('Failed to create alert');
-  return data;
-}
-
-/**
- * Fetch unread alerts
- */
-export async function fetchUnreadAlerts(userId: string): Promise<BankrollAlert[]> {
-  const { data, error } = await supabase
-    .from('bankroll_alerts')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('is_read', false)
-    .eq('is_dismissed', false)
-    .order('severity', { ascending: false })
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data || [];
-}
-
-/**
  * Mark alert as read
  */
 export async function markAlertRead(userId: string, alertId: string): Promise<void> {
@@ -855,18 +790,6 @@ export async function markAlertRead(userId: string, alertId: string): Promise<vo
     .eq('user_id', userId)
     .eq('id', alertId);
   if (err_bankroll_alerts_lyies) console.warn('[Supabase] Silent mutation failed in bankroll_alerts:', err_bankroll_alerts_lyies.message);
-}
-
-/**
- * Dismiss an alert
- */
-export async function dismissAlert(userId: string, alertId: string): Promise<void> {
-  const { error: err_bankroll_alerts_15ab5 } = await supabase
-    .from('bankroll_alerts')
-    .update({ is_dismissed: true })
-    .eq('user_id', userId)
-    .eq('id', alertId);
-  if (err_bankroll_alerts_15ab5) console.warn('[Supabase] Silent mutation failed in bankroll_alerts:', err_bankroll_alerts_15ab5.message);
 }
 
 /**
@@ -995,6 +918,9 @@ export async function setStartingBankroll(userId: string, amount: number): Promi
   // would count the same money twice. (The insert that used to sit here named
   // the generated net_result column and was refused on every call, so no such
   // row was ever written; the balance never depended on one.)
+
+  // Funnel: the starting bankroll was saved. The amount is not sent.
+  noteStartingBankrollSet();
 }
 
 /**
@@ -1343,18 +1269,3 @@ export async function unlinkStakingSession(sessionId: string): Promise<void> {
 }
 
 /** @deprecated kept for callers outside the tracker: totals now come from loadStakingDeal. */
-export async function getStakingStats(arrangementId: string): Promise<{
-  totalGrossResult: number;
-  playerShare: number;
-  backerShare: number;
-  sessionCount: number;
-}> {
-  const sessions = await fetchStakingSessions(arrangementId);
-  const cents = (key: string) => sessions.reduce((sum, s: any) => sum + Math.round(Number(s[key] || 0) * 100), 0) / 100;
-  return {
-    totalGrossResult: cents('gross_result'),
-    playerShare: cents('player_share'),
-    backerShare: cents('backer_share'),
-    sessionCount: sessions.length,
-  };
-}

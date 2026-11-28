@@ -18,7 +18,7 @@ const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8')
 const code = (p) => read(p).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
 const {
-  clientDay, exportRequest, geofenceVisitRequest, guardBankrollRequest, ledgerDay,
+  clientDay, exportRequest, guardBankrollRequest, ledgerDay,
   nearbyPoint, pdfExportRequest, requestErrorMessage, taxReportRequest,
 } = apiGuard;
 
@@ -69,10 +69,7 @@ test('export, pdf and tax inputs are checked before they reach a query', () => {
     'no year means the player\'s own year, not the server clock');
 });
 
-test('geofence inputs: a uuid venue, a bounded name, a coarse position', () => {
-  assert.ok(geofenceVisitRequest({ venueId: 42 }).error, 'directory ids are integers; the column is uuid');
-  assert.deepEqual(geofenceVisitRequest({ venueId: USER.id, venueName: '  ' }), { venueId: USER.id, venueName: 'Poker Venue' });
-  assert.equal(geofenceVisitRequest({ venueId: USER.id, venueName: 'x'.repeat(500) }).venueName.length, 120);
+test('geofence inputs: a coarse position', () => {
   assert.equal(nearbyPoint({}), null);
   assert.deepEqual(nearbyPoint({ lat: '36.11472', lng: '-115.17281' }), { lat: 36.11, lng: -115.17 });
   assert.ok(nearbyPoint({ lat: '91', lng: '0' }).error);
@@ -284,26 +281,6 @@ test('linked venues: private, token-only, directory coordinates, nearby by posit
   assert.ok(nearby.some((c) => c[0] === 'gte' && c[1] === 'latitude'), 'nearby venues are bounded by position');
 });
 
-test('geofence visit: uuid venue, no crash on an empty insert, failed check is an error', async (t) => {
-  let insertRow = { id: 'visit-1' };
-  const db = fakeDb((table, calls) => {
-    if (calls.some((c) => c[0] === 'insert')) return { data: insertRow, error: null };
-    return { data: [], error: null };
-  });
-  const handler = loadRoute('pages/api/bankroll/geofence-visit.js', { db });
-  if (!handler) return t.skip('@babel/core is not installed here; CI runs this');
-  assert.equal((await call(handler, { method: 'GET', headers: { authorization: TOKEN } })).statusCode, 405);
-  assert.equal((await call(handler, { method: 'POST', body: { venueId: USER.id } })).statusCode, 401);
-  assert.equal((await call(handler, { method: 'POST', headers: { authorization: TOKEN }, body: { venueId: 12 } })).statusCode, 400);
-  const ok = await call(handler, { method: 'POST', headers: { authorization: TOKEN }, body: { venueId: USER.id, venueName: 'Room' } });
-  assert.equal(ok.statusCode, 200);
-  assert.equal(ok.body.visitId, 'visit-1');
-  insertRow = null;
-  const empty = await call(handler, { method: 'POST', headers: { authorization: TOKEN }, body: { venueId: USER.id } });
-  assert.equal(empty.statusCode, 500);
-  assert.equal(empty.body.error, 'Failed to record visit');
-});
-
 test('readers: POST only, token first, no internal detail in a failure', async (t) => {
   const db = fakeDb(() => ({ data: [], error: null }));
   const boom = { parseReceiptText: () => { throw new Error('secret stack at /var/task/x.js'); } };
@@ -355,7 +332,8 @@ test('callers send the token and never name the player in a URL', () => {
 
 test('every bankroll route uses the guard, keeps answers private and leaks nothing', () => {
   const routes = fs.readdirSync(new URL('../pages/api/bankroll/', import.meta.url)).filter((f) => f.endsWith('.js'));
-  assert.ok(routes.length >= 8);
+  // Seven since the uncalled geofence-visit route was removed (2026-11-28).
+  assert.ok(routes.length >= 7);
   for (const f of routes) {
     const src = code('pages/api/bankroll/' + f);
     assert.match(src, /guardBankrollRequest\(req, res, \{/, `${f} must use the shared guard`);

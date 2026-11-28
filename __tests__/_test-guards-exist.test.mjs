@@ -1046,6 +1046,7 @@ import './otc-tier8-hand-paste-teaser-and-link-mesh-20261128.law.test.mjs';
 import './otc-tier9-auth-og-sitemap-and-parity-20261128.law.test.mjs';
 import './site-wide-payload-budget.test.mjs';
 import './an-internal-link-reaches-a-page.law.test.mjs';
+import './bankroll-w4-cleanup.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
