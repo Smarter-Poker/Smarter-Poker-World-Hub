@@ -221,7 +221,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             toast.success('Session linked to staking arrangement');
         } catch (err) {
             console.warn('Error linking entry:', err);
-            toast.error(err?.message?.startsWith('That Session') ? err.message : 'Failed to link session');
+            toast.error(err?.message?.startsWith('That Session') || err?.message?.startsWith('Only Poker') ? err.message : 'Failed to link session');
         } finally {
             setBusyId(null);
             loadData();
@@ -448,7 +448,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
 
                     {sessions.length === 0 && unlinkedEntries.length === 0 && (
                         <p style={styles.noSessions}>
-                            No Sessions Logged Since {shortDay(activeArrangement.start_date, true)} Yet. Log A Session And Link It Here.
+                            No Poker Sessions Logged Since {shortDay(activeArrangement.start_date, true)} Yet. Log A Cash Game Or Tournament And Link It Here.
                         </p>
                     )}
 
