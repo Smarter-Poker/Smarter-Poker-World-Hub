@@ -443,7 +443,7 @@ export default function UniversalHeader({
 
   // 🛡️ INSTANT UI: Mark mounted for hydration-safe gates.
   // Cache read is now synchronous in _cachedHeader above - no extra effect needed.
-  useIsomorphicLayoutEffect(() => {
+  useEffect(() => {
     setIsMounted(true);
     // Seed diamond balance from cache (hook needs explicit init)
     if (_cachedHeader?.diamonds !== undefined) {
