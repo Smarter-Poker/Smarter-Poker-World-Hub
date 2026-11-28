@@ -14,6 +14,7 @@ import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness, recordHandResult } from '../utils/weaknessTracker';
 import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
 import PowerUpBar from '../components/training/PowerUpBar';
+import PreflopGuestSavePrompt from '../components/memory-games/PreflopGuestSavePrompt';
 import { Bomb } from 'lucide-react';
 import { GameFrame, GameTopBar, GameIntro, GameResult, GameWeakness, GameNote, GameActions, GameShare, GameCoachTip, GameSuggestedNext, GameNextButton, gradeTone } from '../components/memory-games/PreflopGameKit';
 let _confetti = null;
@@ -295,6 +296,8 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
 
                         <AnimatedAccuracyBar accuracy={accuracy} grade={grade} />
 
+                        <PreflopGuestSavePrompt mode="pressure-cooker" accuracy={accuracy} />
+
                         <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={handsCompleted} />
 
                         <GameWeakness rows={weakRows} />
@@ -340,6 +343,8 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                         ]} />
 
                         <AnimatedAccuracyBar accuracy={accuracy} grade={grade} />
+
+                        <PreflopGuestSavePrompt mode="pressure-cooker" accuracy={accuracy} />
 
                         <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={handsCompleted} />
 

@@ -1066,6 +1066,7 @@ import './site-wide-payload-budget.test.mjs';
 import './jarvis-photo-reader-removed.test.mjs';
 import './an-internal-link-reaches-a-page.law.test.mjs';
 import './every-internal-link-reaches-a-page-before-merge.law.test.mjs';
+import './preflop-guest-save-prompt.law.test.mjs';
 import './bankroll-w4-cleanup.test.mjs';
 import './world-roots-fetch-only-their-own-page.law.test.mjs';
 

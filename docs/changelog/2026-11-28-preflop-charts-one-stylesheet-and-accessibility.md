@@ -25,3 +25,11 @@ Not changed on purpose: the six Range Lab action colours and the Call / Raise ac
 ## Guard
 
 `__tests__/preflop-charts-smarterdesign.law.test.mjs` requires one stylesheet after `styles/smarterdesign.css`, no doubled body class, `memory-games.css` gone, and the three sections in order. `__tests__/preflop-accessibility-phase7.test.mjs` pins the focus ring, the reduced-motion rule and its JavaScript counterparts, locked-award opacity, 44px power-up keys and the gradeTone module.
+
+## Follow-up: guest save prompt
+
+A signed-out player who finishes a strong run (80% or better, or a new best of at least 50% for that mode on this device) sees one chrome-framed offer under the result: "This Run Is Saved On This Device Only. A Free Account Keeps Your Next Runs, Level Progress And Weak Spots Across Devices." **Create Free Account** opens the site's quick-signup sheet (source `preflop-charts-<mode>-result`, unlock `preflop-charts-progress`), **Not Now** closes it. It is shown at most once per browser session, never to a signed-in player and never while sign-in is still resolving, and it claims no prizes or rewards. Shown, clicked and dismissed are tracked through the existing SEO funnel telemetry.
+
+It appears on Speed Drill, both Pressure Cooker endings, Pattern Recognition, Local VS and the Range Lab result (`src/components/memory-games/PreflopGuestSavePrompt.jsx`; loaded on demand on the page). Mixed Strategy opens the Training player and is not covered. Pinned by `__tests__/preflop-guest-save-prompt.law.test.mjs`.
+
+On splitting the page further: the game screens, review panel, Jarvis dialog, scenario filter and combo popup were already loaded on demand. What still loads with the menu is needed for its first paint (scenario counts on the level cards, the server-rendered reference and FAQ) or is the VIP checkout flow, which was not restructured here. The one clean cut, keeping the game kit and framer-motion out of the first load, shipped above through the `gradeTone` module.

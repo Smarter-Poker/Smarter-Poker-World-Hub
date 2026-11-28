@@ -14,6 +14,7 @@ import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness, recordHandResult } from '../utils/weaknessTracker';
 import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
 import PowerUpBar from '../components/training/PowerUpBar';
+import PreflopGuestSavePrompt from '../components/memory-games/PreflopGuestSavePrompt';
 import { Heart, ShieldCheck, Zap } from 'lucide-react';
 import { GameFrame, GameTopBar, GameIntro, GameResult, GameWeakness, GameNote, GameActions, GameShare, GameCoachTip, GameSuggestedNext, GameNextButton, gradeTone } from '../components/memory-games/PreflopGameKit';
 // confetti loaded lazily
@@ -325,6 +326,8 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                         />
 
                         <AnimatedAccuracyBar accuracy={accuracy} grade={grade} personalBest={(() => { try { const pb = JSON.parse(localStorage.getItem('pb_speed-drill') || 'null'); return pb?.score ? Math.round((pb.score / (handsPlayed * 110)) * 100) : null; } catch { return null; } })()} />
+
+                        <PreflopGuestSavePrompt mode="speed-drill" accuracy={accuracy} />
 
                         <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={handsPlayed} />
 
