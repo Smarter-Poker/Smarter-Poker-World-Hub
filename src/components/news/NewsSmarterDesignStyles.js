@@ -688,6 +688,19 @@ export default function NewsSmarterDesignStyles() {
                 line-height: 1;
             }
 
+            /* ---------- "N New Stories" key: fixed under the global header ---------- */
+            .news-hub.smarterdesign .news-new-stories {
+                position: fixed;
+                top: calc(46px + env(safe-area-inset-top, 0px));
+                left: 50%;
+                z-index: 60;
+                transform: translateX(-50%);
+                min-height: 44px;
+                padding: 6px 18px;
+                font-size: 1rem;
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+            }
+
             /* ---------- Scroll aids ---------- */
             .news-hub.smarterdesign .scroll-progress {
                 background: linear-gradient(90deg, #1981ec, #86daff) !important;
