@@ -11,3 +11,7 @@ The post-deploy Live SEO Contract (`scripts/ci/check-live-seo-contract.mjs`) fai
 ## Guard
 
 `__tests__/an-internal-link-reaches-a-page.law.test.mjs` fails if a World footer or menu item points at a page that only redirects, if rules render `relatedTerms` unfiltered, or if the series page builds the state link without checking the directory. `/hub/marketplace` is the one recorded exception: it is the Marketplace world's address, answered by a permanent 308 in `next.config.js`, and the footer route matrix requires the physical page.
+
+## Follow-up: the series breadcrumb
+
+Checking a Missouri series on production after #3277 showed the visible link was gone but the page's BreadcrumbList structured data still cited `/hub/poker-near-me/in/mo` (404). `seriesSchema` in `src/lib/poker-near-me/seriesSeo.mjs` now uses the same server-confirmed `stateDirectoryPath`, and skips the state crumb when the directory has no rooms. The law test covers both cases.

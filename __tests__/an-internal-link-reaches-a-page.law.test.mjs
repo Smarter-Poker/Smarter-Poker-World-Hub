@@ -80,3 +80,14 @@ test('a series page links its state directory only when that directory has rooms
   assert.doesNotMatch(page, /poker-near-me\/in\/\$\{stateCode\}/, 'no link built from the bare state code');
   assert.match(page, /<a href=\{stateDirectoryPath\}>/);
 });
+
+test('the series breadcrumb names the state only when its directory has rooms', async () => {
+  const { seriesSchema } = await import('../src/lib/poker-near-me/seriesSeo.mjs');
+  const crumbs = (series) => seriesSchema(series)
+    .find((node) => node['@type'] === 'BreadcrumbList')
+    .itemListElement.map((item) => item.item);
+  const base = { id: 'test-1', name: 'Fall Classic', state: 'MO', city: 'St. Louis' };
+  assert.ok(!crumbs(base).some((url) => url.includes('/poker-near-me/in/')), 'no state crumb without a confirmed directory');
+  assert.ok(!crumbs({ ...base, stateDirectoryPath: null }).some((url) => url.includes('/poker-near-me/in/')));
+  assert.ok(crumbs({ ...base, state: 'NV', stateDirectoryPath: '/hub/poker-near-me/in/nv' }).includes('https://smarter.poker/hub/poker-near-me/in/nv'));
+});
