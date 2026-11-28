@@ -178,7 +178,10 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
 /* -- Styles -- */
 const s = {
     overlay: {
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999,
+        // Above the fixed global header (10050), level with the other dialogs that
+        // must clear it, below the toasts (100000). Pinned by
+        // __tests__/the-log-sheet-sits-above-the-global-header.law.test.mjs.
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10100,
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
     },
     modal: {

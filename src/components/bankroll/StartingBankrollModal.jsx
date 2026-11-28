@@ -147,7 +147,10 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000,
+        // Above the fixed global header (10050), level with the other dialogs that
+        // must clear it, below the toasts (100000). Pinned by
+        // __tests__/the-log-sheet-sits-above-the-global-header.law.test.mjs.
+        zIndex: 10100,
         padding: 20,
     },
     modal: {
