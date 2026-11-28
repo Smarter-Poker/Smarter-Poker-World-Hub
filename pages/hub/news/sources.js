@@ -14,6 +14,10 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { getNewsPreferences, updateNewsPreferences } from '../../../src/services/newsPreferences';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import BankrollImageHeader from '../../../src/components/bankroll/BankrollImageHeader';
+
+// The image header prints the page's single h1 through this component.
+const PageTitle = (props) => <h1 {...props} />;
 import { swrFallback, catalogueCacheHeaders } from '../../../src/lib/seo/swrFallback.mjs';
 import { originFrom } from '../../../src/lib/poker-near-me/seriesSeo.mjs';
 
@@ -170,140 +174,82 @@ export default function NewsSources({ initialSources = [] }) {
             />
 
             <PageTransition disableInitialAnimation>
-                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#000407' }}>
+                <div className="smarterdesign news-sources-page" style={{ minHeight: '100vh', paddingBottom: 90, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#040d18' }}>
                     <UniversalHeader pageDepth={2} />
 
-                    <div style={{ padding: '120px 20px 40px', maxWidth: '800px', margin: '0 auto' }}>
-
-                        <h1 style={{ fontFamily: 'Arial Narrow, Arial, sans-serif', textTransform: 'uppercase', letterSpacing: '-0.02em', fontSize: 'clamp(36px, 8vw, 58px)', fontWeight: 'bold', color: '#e4edf1', marginBottom: '12px' }}>
-                            News Sources
-                        </h1>
-                        <p style={{ color: '#9ca3af', marginBottom: '40px' }}>
-                            Manage Which News Sources Appear In Your Feed
-                        </p>
+                    <div className="news-sources-body">
+                        {/* #SMARTERDESIGN image header (Dan, 2026-11-27): the same
+                            News seal and press scene as /hub/news, the page name in
+                            live white lettering and the painted chrome "?" holding
+                            the explanation. Back To News sits ABOVE the frame. */}
+                        <BankrollImageHeader
+                            art="news"
+                            section="news-sources"
+                            title="News Sources"
+                            parent="Poker News"
+                            heading={PageTitle}
+                            back={{ href: '/hub/news', label: 'Back To News' }}
+                            className="news-sources-header"
+                            helpContent={(
+                                <>
+                                    <p>Choose Which Outlets Appear In Your Poker News Feed. Turn A Source Off To Hide Its Stories; Turn It Back On At Any Time.</p>
+                                    <p>Each Row Shows The Latest Headline The Feed Read From That Outlet. Stories Are A Headline, A Summary And A Link Back To The Original.</p>
+                                    <p>Signed In, Your Choices Save To Your Account. Otherwise They Are Saved On This Device.</p>
+                                </>
+                            )}
+                        />
 
                         {loading && (
-                            <div style={{ display: 'grid', gap: '16px' }} aria-hidden="true">
+                            <div className="news-sources-list" aria-hidden="true">
                                 {[0, 1, 2, 3, 4].map((i) => (
-                                    <div
-                                        key={i}
-                                        className="src-skel"
-                                        style={{
-                                            height: '84px',
-                                            borderRadius: '12px',
-                                            border: '1px solid rgba(255,255,255,0.06)',
-                                            animationDelay: `${i * 0.08}s`
-                                        }}
-                                    />
+                                    <div key={i} className="news-source-row src-skel" style={{ height: '84px', animationDelay: `${i * 0.08}s` }} />
                                 ))}
                             </div>
                         )}
 
                         {!loading && error && (
-                            <div
-                                role="alert"
-                                style={{
-                                    background: 'rgba(239,68,68,0.06)',
-                                    border: '1px solid rgba(239,68,68,0.25)',
-                                    borderRadius: '12px',
-                                    padding: '24px',
-                                    textAlign: 'center'
-                                }}
-                            >
-                                <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '8px' }}>
-                                    Could Not Load News Sources
-                                </div>
-                                <div style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '16px' }}>{error}</div>
-                                <button
-                                    type="button"
-                                    onClick={() => fetchSources()}
-                                    style={{
-                                        background: 'rgba(0,212,255,0.12)',
-                                        border: '1px solid rgba(0,212,255,0.4)',
-                                        color: '#00d4ff',
-                                        borderRadius: '8px',
-                                        padding: '10px 24px',
-                                        fontSize: '14px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                    }}
-                                >
+                            <div role="alert" className="sd-panel news-sources-state">
+                                <div className="news-sources-state-title">Could Not Load News Sources</div>
+                                <div className="news-sources-state-copy">{error}</div>
+                                <button type="button" className="sd-button sd-primary" onClick={() => fetchSources()}>
                                     Try Again
                                 </button>
                             </div>
                         )}
 
                         {!loading && !error && sources.length === 0 && (
-                            <div
-                                style={{
-                                    background: 'rgba(255,255,255,0.03)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    borderRadius: '12px',
-                                    padding: '32px',
-                                    textAlign: 'center',
-                                    color: '#9ca3af'
-                                }}
-                            >
-                                No News Sources Available Right Now. Check Back Soon.
+                            <div className="sd-panel news-sources-state">
+                                <div className="news-sources-state-copy">No News Sources Available Right Now. Check Back Soon.</div>
                             </div>
                         )}
 
                         {!loading && !error && sources.length > 0 && (
-                            <div style={{ display: 'grid', gap: '16px' }}>
+                            <div className="news-sources-list">
                                 {sources.map((source) => {
                                     const enabled = !muted.has(source.name);
                                     const latestDate = formatDate(source.latestAt);
                                     return (
-                                        <div
-                                            key={source.id}
-                                            style={{
-                                                background: '#061018',
-                                                border: '1px solid #345468',
-                                                borderRadius: '4px',
-                                                padding: '20px',
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
-                                                gap: '16px',
-                                                opacity: enabled ? 1 : 0.6,
-                                                transition: 'opacity 0.2s'
-                                            }}
-                                        >
+                                        <div key={source.id} className={`news-source-row ${enabled ? '' : 'is-off'}`}>
                                             <div style={{ minWidth: 0 }}>
-                                                <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '4px' }}>
-                                                    {source.name}
-                                                </div>
+                                                <div className="news-source-name">{source.name}</div>
                                                 {source.latestTitle ? (
-                                                    <div
-                                                        style={{
-                                                            color: '#9ca3af',
-                                                            fontSize: '14px',
-                                                            overflow: 'hidden',
-                                                            textOverflow: 'ellipsis',
-                                                            whiteSpace: 'nowrap'
-                                                        }}
-                                                    >
+                                                    <div className="news-source-latest">
                                                         Latest: {source.latestTitle}
                                                         {latestDate ? ` - ${latestDate}` : ''}
                                                     </div>
                                                 ) : (
-                                                    <div style={{ color: '#6b7280', fontSize: '14px' }}>
-                                                        Awaiting New Articles
-                                                    </div>
+                                                    <div className="news-source-latest">Awaiting New Articles</div>
                                                 )}
                                             </div>
 
-                                            <label style={{ minHeight: 44, padding: '4px 0', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flexShrink: 0 }}>
+                                            <label className={`sd-button news-source-toggle ${enabled ? 'active' : ''}`}>
                                                 <input
                                                     type="checkbox"
                                                     checked={enabled}
                                                     onChange={() => toggleSource(source.name)}
                                                     aria-label={`${enabled ? 'Disable' : 'Enable'} ${source.name} in your feed`}
-                                                    style={{ width: '24px', height: '24px', cursor: 'pointer', accentColor: '#31c2ff' }}
                                                 />
-                                                <span style={{ color: enabled ? '#10b981' : '#9ca3af', minWidth: '64px' }}>
-                                                    {enabled ? 'Enabled' : 'Disabled'}
-                                                </span>
+                                                <span>{enabled ? 'Enabled' : 'Disabled'}</span>
                                             </label>
                                         </div>
                                     );
@@ -312,15 +258,98 @@ export default function NewsSources({ initialSources = [] }) {
                         )}
 
                         {!loading && !error && sources.length > 0 && (
-                            <p style={{ color: '#6b7280', fontSize: '13px', marginTop: '24px' }}>
+                            <p className="news-sources-note">
                                 {userId
-                                    ? 'Your source preferences are saved to your account.'
-                                    : 'Sign in to sync source preferences across devices. For now they are saved on this device.'}
+                                    ? 'Your Source Preferences Are Saved To Your Account.'
+                                    : 'Sign In To Sync Source Preferences Across Devices. For Now They Are Saved On This Device.'}
                             </p>
                         )}
                     </div>
 
                     <style jsx>{`
+                        .news-sources-body {
+                            box-sizing: border-box;
+                            max-width: 800px;
+                            margin: 0 auto;
+                            padding: 84px 12px 40px;
+                        }
+                        .news-sources-body :global(.news-sources-header) {
+                            margin-bottom: 14px;
+                        }
+                        .news-sources-list {
+                            display: grid;
+                            gap: 8px;
+                        }
+                        .news-source-row {
+                            box-sizing: border-box;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            gap: 14px;
+                            padding: 12px 12px 12px 16px;
+                            border: 3px solid transparent;
+                            border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+                            background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+                            transition: opacity 0.2s;
+                        }
+                        .news-source-row.is-off {
+                            opacity: 0.66;
+                        }
+                        .news-source-name {
+                            margin-bottom: 3px;
+                            color: #f2f7ff;
+                            font: 700 1.15rem/1.15 var(--sd-type);
+                        }
+                        .news-source-latest {
+                            overflow: hidden;
+                            color: #bdd0e2;
+                            font-size: 14px;
+                            text-overflow: ellipsis;
+                            white-space: nowrap;
+                        }
+                        .news-source-toggle {
+                            position: relative;
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            flex-shrink: 0;
+                            min-width: 112px;
+                            min-height: 44px;
+                        }
+                        .news-source-toggle input {
+                            position: absolute;
+                            inset: 0;
+                            width: 100%;
+                            height: 100%;
+                            margin: 0;
+                            opacity: 0;
+                            cursor: pointer;
+                        }
+                        .news-source-toggle:focus-within {
+                            outline: 2px solid #9ee3ff;
+                            outline-offset: 2px;
+                        }
+                        .news-sources-state {
+                            display: grid;
+                            justify-items: center;
+                            gap: 10px;
+                            padding: 22px;
+                            text-align: center;
+                        }
+                        .news-sources-state-title {
+                            color: #ff8a93;
+                            font: 700 1.15rem/1.2 var(--sd-type);
+                        }
+                        .news-sources-state-copy {
+                            color: #bdd0e2;
+                            font-size: 14px;
+                        }
+                        .news-sources-note {
+                            margin-top: 18px;
+                            color: #bdd0e2;
+                            font-size: 13px;
+                            text-align: center;
+                        }
                         @keyframes src-shimmer {
                             0% {
                                 background-position: -800px 0;
@@ -332,9 +361,9 @@ export default function NewsSources({ initialSources = [] }) {
                         .src-skel {
                             background-image: linear-gradient(
                                 90deg,
-                                rgba(255, 255, 255, 0.04) 0%,
-                                rgba(255, 255, 255, 0.1) 50%,
-                                rgba(255, 255, 255, 0.04) 100%
+                                rgba(134, 218, 255, 0.04) 0%,
+                                rgba(134, 218, 255, 0.1) 50%,
+                                rgba(134, 218, 255, 0.04) 100%
                             );
                             background-size: 800px 100%;
                             animation: src-shimmer 1.4s ease-in-out infinite;
