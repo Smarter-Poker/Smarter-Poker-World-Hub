@@ -263,6 +263,10 @@ function LeaderboardEntry({
   accuracy,
   isCurrentUser,
 }) {
+  // TRAIN-LEADERBOARD-A11Y-1: ranks 1-3 once rendered empty strings where the
+  // stripped medal emoji had been. Every rank, podium included, now shows its
+  // number in a labelled steel badge (podium ranks get the cobalt rim), and the
+  // page title is the plain "Training Leaderboard" in the image header.
   const podium = rank >= 1 && rank <= 3 ? String(rank) : undefined;
   const initial = String(username || '?').trim().charAt(0).toUpperCase() || '?';
   return (
