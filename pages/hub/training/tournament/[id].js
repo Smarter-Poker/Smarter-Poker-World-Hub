@@ -195,8 +195,8 @@ export default function TrainingTournamentDetail() {
                 style={{
                   padding: '12px 14px',
                   borderRadius: 10,
-                  background: 'rgba(255,215,0,0.07)',
-                  border: '1px solid rgba(255,215,0,0.22)',
+                  background: 'rgba(86, 216, 255,0.07)',
+                  border: '1px solid rgba(86, 216, 255,0.22)',
                   marginBottom: 16,
                 }}
               >
@@ -225,7 +225,7 @@ export default function TrainingTournamentDetail() {
                   fontWeight: 800,
                   fontSize: 15,
                   cursor: 'not-allowed',
-                  background: 'linear-gradient(135deg,#ffd700,#f0a500)',
+                  background: 'linear-gradient(135deg, #51c9ff, #0648e2)',
                   color: '#1a1a1a',
                   marginBottom: 8,
                   opacity: 0.62,
@@ -288,8 +288,8 @@ export default function TrainingTournamentDetail() {
                       padding: '8px 10px',
                       borderRadius: 8,
                       marginBottom: 4,
-                      background: mine ? 'rgba(255,215,0,0.10)' : 'rgba(255,255,255,0.03)',
-                      border: mine ? '1px solid rgba(255,215,0,0.3)' : '1px solid transparent',
+                      background: mine ? 'rgba(86, 216, 255,0.10)' : 'rgba(255,255,255,0.03)',
+                      border: mine ? '1px solid rgba(86, 216, 255,0.3)' : '1px solid transparent',
                     }}
                   >
                     <span style={{ minWidth: 42, opacity: 0.7, fontSize: 13 }}>

@@ -307,8 +307,8 @@ export default function WeaknessScannerPage() {
                           flex: medCount,
                           padding: '8px 10px',
                           borderRadius: 8,
-                          background: 'rgba(251,191,36,0.06)',
-                          border: '1px solid rgba(251,191,36,0.12)',
+                          background: 'rgba(86, 216, 255,0.06)',
+                          border: '1px solid rgba(86, 216, 255,0.12)',
                           textAlign: 'center',
                         }}
                       >
@@ -399,7 +399,7 @@ export default function WeaknessScannerPage() {
                       borderRadius: 12,
                       marginBottom: 12,
                       background: 'rgba(0,0,0,0.2)',
-                      border: `1px solid ${leak.sev === 'High' ? 'rgba(239,68,68,0.3)' : leak.sev === 'Medium' ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.05)'}`,
+                      border: `1px solid ${leak.sev === 'High' ? 'rgba(239,68,68,0.3)' : leak.sev === 'Medium' ? 'rgba(86, 216, 255,0.3)' : 'rgba(255,255,255,0.05)'}`,
                     }}
                   >
                     <div
@@ -423,7 +423,7 @@ export default function WeaknessScannerPage() {
                                 leak.sev === 'High'
                                   ? 'rgba(239,68,68,0.1)'
                                   : leak.sev === 'Medium'
-                                    ? 'rgba(251,191,36,0.1)'
+                                    ? 'rgba(86, 216, 255,0.1)'
                                     : 'rgba(255,255,255,0.05)',
                               color:
                                 leak.sev === 'High'

@@ -227,8 +227,8 @@ export default function RakeSolutionsPage() {
             style={{
               padding: 14,
               marginBottom: 20,
-              border: '1px solid rgba(251,191,36,0.28)',
-              background: 'rgba(251,191,36,0.06)',
+              border: '1px solid rgba(86, 216, 255,0.28)',
+              background: 'rgba(86, 216, 255,0.06)',
               color: 'var(--sp-fg-muted)',
               fontSize: 12,
               lineHeight: 1.6,
@@ -471,8 +471,8 @@ export default function RakeSolutionsPage() {
               marginTop: 24,
               padding: 20,
               borderRadius: 16,
-              background: 'rgba(251,191,36,0.05)',
-              border: '1px solid rgba(251,191,36,0.15)',
+              background: 'rgba(86, 216, 255,0.05)',
+              border: '1px solid rgba(86, 216, 255,0.15)',
             }}
           >
             <div

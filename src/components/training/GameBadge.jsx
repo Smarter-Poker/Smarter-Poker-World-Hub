@@ -13,9 +13,9 @@ import { motion } from 'framer-motion';
 export const PLAY_STATUS = {
     NEW: { id: 'new', label: 'NEW', color: '#00D4FF', glow: 'rgba(0, 212, 255, 0.5)' },
     LOCKED: { id: 'locked', label: '■', color: '#666', glow: 'none' },
-    IN_PROGRESS: { id: 'in_progress', label: 'PLAYING', color: '#86daff', glow: 'rgba(255, 215, 0, 0.5)' },
+    IN_PROGRESS: { id: 'in_progress', label: 'PLAYING', color: '#86daff', glow: 'rgba(86, 216, 255, 0.5)' },
     COMPLETED: { id: 'completed', label: '✓', color: '#4CAF50', glow: 'rgba(76, 175, 80, 0.5)' },
-    MASTERED: { id: 'mastered', label: '', color: '#86daff', glow: 'rgba(255, 215, 0, 0.6)' },
+    MASTERED: { id: 'mastered', label: '', color: '#86daff', glow: 'rgba(86, 216, 255, 0.6)' },
     BOSS_DEFEATED: { id: 'boss_defeated', label: '', color: '#FF6B35', glow: 'rgba(255, 107, 53, 0.6)' },
 };
 

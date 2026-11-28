@@ -421,7 +421,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV, actionPr
                     {isMixed && (
                         <span style={{
                             fontSize: 12, color: '#86daff',
-                            background: 'rgba(251, 191, 36, 0.15)',
+                            background: 'rgba(86, 216, 255, 0.15)',
                             padding: '2px 8px', borderRadius: 20, fontWeight: 600,
                         }}>
                             MIXED

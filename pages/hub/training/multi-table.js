@@ -1332,12 +1332,12 @@ export default function MultiTablePage() {
                       border: isFocusedTable
                         ? '1px solid rgba(0, 212, 255, 0.65)'
                         : isPendingDecision
-                          ? '1px solid rgba(251, 191, 36, 0.45)'
+                          ? '1px solid rgba(86, 216, 255, 0.45)'
                           : '1px solid rgba(255, 255, 255, 0.12)',
                       background: isFocusedTable
                         ? 'rgba(0, 212, 255, 0.18)'
                         : isPendingDecision
-                          ? 'rgba(251, 191, 36, 0.1)'
+                          ? 'rgba(86, 216, 255, 0.1)'
                           : 'rgba(255, 255, 255, 0.04)',
                       color: isFocusedTable ? '#67e8f9' : '#e2e8f0',
                     }}

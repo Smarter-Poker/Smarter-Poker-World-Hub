@@ -279,7 +279,7 @@ export default function GlossaryPage() {
                 borderRadius: 10,
                 marginBottom: 4,
                 background: 'rgba(0,0,0,0.15)',
-                border: `1px solid ${favorites.has(t.term) ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)'}`,
+                border: `1px solid ${favorites.has(t.term) ? 'rgba(86, 216, 255,0.15)' : 'rgba(255,255,255,0.04)'}`,
                 cursor: 'pointer',
               }}
             >

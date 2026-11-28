@@ -619,7 +619,7 @@ const styles = {
     minHeight: '44px',
     padding: '12px',
     background: 'linear-gradient(180deg, #0c1820, #050c10)',
-    border: '1px solid #f2b84b',
+    border: '1px solid #56d8ff',
     borderRadius: '2px',
     color: '#86daff',
     fontSize: '14px',

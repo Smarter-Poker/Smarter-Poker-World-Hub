@@ -499,7 +499,7 @@ export default function MyPlaybookPage() {
                   transition={{ delay: i * 0.05 }}
                   style={{
                     background: 'rgba(0,0,0,0.2)',
-                    border: `1px solid ${p.pinned ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.05)'}`,
+                    border: `1px solid ${p.pinned ? 'rgba(86, 216, 255,0.15)' : 'rgba(255,255,255,0.05)'}`,
                     borderRadius: 16,
                     overflow: 'hidden',
                   }}

@@ -792,18 +792,21 @@ export default function GtoNewsPage() {
               </div>
               <button
                 type="button"
+                data-training-raw-control="true"
                 aria-expanded={expanded === a.id}
                 aria-label={`${a.title}${a.isSample ? ' (Sample Content)' : ''}${readArticles.has(a.id) ? ' (Read)' : ''}`}
                 onClick={() => handleExpand(a.id)}
                 style={{
                   display: 'block',
                   width: '100%',
-                  padding: 0,
+                  padding: '6px 0',
                   border: 'none',
                   background: 'transparent',
-                  fontSize: 14,
+                  boxShadow: 'none',
+                  fontSize: 15,
                   fontWeight: 700,
-                  color: readArticles.has(a.id) ? 'var(--sp-fg-muted)' : 'var(--sp-fg)',
+                  lineHeight: 1.4,
+                  color: readArticles.has(a.id) ? 'var(--sp-fg-muted)' : '#eef8ff',
                   marginBottom: expanded === a.id ? 8 : 0,
                   textAlign: 'left',
                   cursor: 'pointer',

@@ -526,8 +526,8 @@ export default function QREExplorerPage() {
             style={{
               padding: 20,
               borderRadius: 16,
-              background: 'rgba(251,191,36,0.05)',
-              border: '1px solid rgba(251,191,36,0.15)',
+              background: 'rgba(86, 216, 255,0.05)',
+              border: '1px solid rgba(86, 216, 255,0.15)',
             }}
           >
             <div

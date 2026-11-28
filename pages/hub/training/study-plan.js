@@ -764,7 +764,7 @@ export default function StudyPlanPage() {
                 alignItems: 'center',
                 padding: '0 16px',
                 borderRadius: 8,
-                border: '1px solid #fbbf24',
+                border: '1px solid #56d8ff',
                 background: 'linear-gradient(180deg, rgba(217, 119, 6, 0.48), rgba(146, 64, 14, 0.72))',
                 color: '#86daff',
                 fontSize: 12,
