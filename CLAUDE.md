@@ -720,6 +720,19 @@ GitHub's environment to execute:
   all seven repos without either, and CHECK 6 had been failing on `main` ever
   since, which is one of the two reasons Pre-Deploy Safety Checks could not be
   made a required check.
+  **Correction (2026-11-27): this entry is NOT inactive.** `agent-autopilot.yml`
+  still runs on `pull_request_target`, and together with
+  `agent-branch-proposal.yml` and `agent-open-pr.yml` it opens a PR for a pushed
+  agent branch and squash auto-merges it once required checks pass. That chain
+  merged a handoff bookmark (`bookmark/video-library-smarterdesign-2026-11-27`,
+  PR #3170) into production without owner approval. Since #3182 all three call
+  `.github/scripts/unfinished-work-guard.sh`: a branch with a `bookmark`,
+  `handoff` or `wip` path segment, a head commit subject starting `wip` or
+  containing "bookmark" or "unfinished", and any draft PR never get a PR or
+  auto-merge. Pinned by `tests/unfinished-work-is-never-auto-merged.test.mjs`.
+  To park work without shipping it, push it under `bookmark/`, `handoff/` or
+  `wip/`, or keep its PR in draft. A push to any other agent branch should be
+  treated as a release.
 - **Historical, inactive release entry:** `publish-watchdog.yml` — formerly every 15 minutes, compared `main`'s HEAD against the
   short sha `/api/health` reports and raises a self-closing issue when they
   diverge past a 20-minute budget. It cannot live in Open Claw: it asks GitHub

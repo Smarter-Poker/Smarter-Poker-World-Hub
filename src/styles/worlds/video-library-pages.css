@@ -839,7 +839,21 @@
 }
 
 /* One frame per section (Dan, 2026-11-27): the watch meta line separates its
-   facts with a hairline divider, not a chip frame. */
+   facts with a hairline divider, not a chip frame. On a phone the three facts
+   would wrap and strand a divider at the start of a line, so below 520px they
+   stack centred with no divider. */
 .vl-console-page.vl-watch-page .vl-console-watch-meta > span + span {
     border-left: 1px solid #354f64;
+}
+
+@media (max-width: 519px) {
+    .vl-console-page.vl-watch-page .vl-console-watch-meta {
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .vl-console-page.vl-watch-page .vl-console-watch-meta > span + span {
+        border-left: 0;
+    }
 }
