@@ -231,33 +231,33 @@ export default function TournamentRegisterPage() {
             />
 
       <div className="cmd-page">
-        {/* Hero */}
-        <div className="cmd-header-full text-white p-6 pb-12">
-          <div className="max-w-lg mx-auto">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="cmd-icon-box bg-white/10">
-                <Trophy className="w-6 h-6" />
+        {/* #SMARTERDESIGN page image header (scene, hamburger and painted help from CommanderPageShell) */}
+        <header className="cmd-header-full text-white">
+          <div className="max-w-lg mx-auto px-4 py-4 sm:py-5">
+            <div className="flex items-center gap-3">
+              <div className="cmd-icon-box w-11 h-11 flex items-center justify-center shrink-0">
+                <Trophy className="w-6 h-6" aria-hidden="true" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold">{tournament.name}</h1>
-                <p className="text-white/80">{tournament.venue?.name}</p>
+              <div className="min-w-0">
+                <h1>{tournament.name}</h1>
+                {tournament.venue?.name && <p>{tournament.venue.name}</p>}
               </div>
             </div>
           </div>
-        </div>
+        </header>
 
         {/* Content */}
-        <main className="max-w-lg mx-auto px-4 -mt-6">
+        <main className="max-w-lg mx-auto px-4">
           {/* Main Card */}
           <div className="cmd-panel overflow-hidden">
             {/* Status Badge */}
-            <div className="p-4 border-b border-[#4A5E78]">
+            <div className="p-4 border-b border-[#445E77]">
               <div className="flex items-center justify-between">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   tournament.status === 'registering' ? 'bg-[#22D3EE]/10 text-[#22D3EE]' :
                   tournament.status === 'running' ? 'bg-[#10B981]/10 text-[#10B981]' :
-                  tournament.status === 'completed' ? 'bg-[#4A5E78]/20 text-[#64748B]' :
-                  'bg-[#F59E0B]/10 text-[#F59E0B]'
+                  tournament.status === 'completed' ? 'bg-[#445E77]/20 text-[#9FB3C8]' :
+                  'bg-[#22D3EE]/10 text-[#22D3EE]'
                 }`}>
                   {tournament.status === 'registering' ? 'Registration Open' :
                    tournament.status === 'running' ? 'In Progress' :
@@ -266,7 +266,7 @@ export default function TournamentRegisterPage() {
                 </span>
                 {registered && (
                   isAlternate ? (
-                    <span className="flex items-center gap-1 text-[#F59E0B] text-sm font-medium">
+                    <span className="flex items-center gap-1 text-[#22D3EE] text-sm font-medium">
                       <Users className="w-4 h-4" />
                       On Alternates List
                     </span>
@@ -317,14 +317,14 @@ export default function TournamentRegisterPage() {
             )}
 
             {/* Action */}
-            <div className="p-4 border-t border-[#4A5E78]">
+            <div className="p-4 border-t border-[#445E77]">
               {registered ? (
                 <div className="space-y-3">
                   {isAlternate ? (
-                    <div className="p-4 bg-[#F59E0B]/10 rounded-lg text-center">
-                      <Users className="w-8 h-8 text-[#F59E0B] mx-auto mb-2" />
-                      <p className="font-semibold text-[#F59E0B]">You Are On The Alternates List</p>
-                      <p className="text-sm text-[#F59E0B]/80 mt-1">
+                    <div className="p-4 bg-[#22D3EE]/10 rounded-lg text-center">
+                      <Users className="w-8 h-8 text-[#22D3EE] mx-auto mb-2" />
+                      <p className="font-semibold text-[#22D3EE]">You Are On The Alternates List</p>
+                      <p className="text-sm text-[#22D3EE]/80 mt-1">
                         {successMessage
                           || 'Field Is Full. You Will Be Seated Automatically As Seats Open.'}
                       </p>
@@ -360,9 +360,9 @@ export default function TournamentRegisterPage() {
               ) : canRegister ? (
                 <div className="space-y-3">
                   {isFull && (
-                    <div className="p-3 bg-[#F59E0B]/10 rounded-lg text-center">
-                      <p className="font-medium text-[#F59E0B]">Tournament Full</p>
-                      <p className="text-sm text-[#F59E0B]/80 mt-1">
+                    <div className="p-3 bg-[#22D3EE]/10 rounded-lg text-center">
+                      <p className="font-medium text-[#22D3EE]">Tournament Full</p>
+                      <p className="text-sm text-[#22D3EE]/80 mt-1">
                         Join The Alternates List And You Will Be Seated Automatically As Seats Open.
                       </p>
                     </div>
@@ -392,7 +392,7 @@ export default function TournamentRegisterPage() {
                 </div>
               ) : (
                 <div className="p-4 bg-[#0D192E] rounded-lg text-center">
-                  <p className="font-medium text-[#64748B]">Registration Closed</p>
+                  <p className="font-medium text-[#9FB3C8]">Registration Closed</p>
                 </div>
               )}
             </div>
@@ -417,10 +417,10 @@ export default function TournamentRegisterPage() {
                     <div
                       key={idx}
                       className={`flex items-center justify-between py-2 px-3 rounded-lg ${
-                        level.is_break ? 'bg-[#F59E0B]/10' : 'bg-[#0D192E]'
+                        level.is_break ? 'bg-[#22D3EE]/10' : 'bg-[#0D192E]'
                       }`}
                     >
-                      <span className="text-sm text-[#64748B]">
+                      <span className="text-sm text-[#9FB3C8]">
                         {level.is_break ? 'BREAK' : `Level ${displayNumber}`}
                       </span>
                       <span className="text-sm font-medium text-white">
@@ -431,7 +431,7 @@ export default function TournamentRegisterPage() {
                     </div>
                   ))}
                   {blinds.length > 10 && (
-                    <p className="text-xs text-[#4A5E78] text-center pt-2">
+                    <p className="text-xs text-[#8FA6BE] text-center pt-2">
                       +{blinds.length - 10} More Levels
                     </p>
                   )}
@@ -449,7 +449,7 @@ export default function TournamentRegisterPage() {
 function DetailRow({ icon: Icon, label, value }) {
   return (
     <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3 text-[#64748B]">
+      <div className="flex items-center gap-3 text-[#9FB3C8]">
         <Icon className="w-5 h-5" />
         <span className="text-sm">{label}</span>
       </div>

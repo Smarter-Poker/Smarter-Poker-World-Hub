@@ -146,7 +146,7 @@ export default function PlayerCheckInPage() {
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-[#EF4444] mx-auto mb-3" />
           <p className="text-white font-medium">Venue Not Found</p>
-          <p className="text-sm text-[#64748B] mt-1">Please Check The QR Code And Try Again</p>
+          <p className="text-sm text-[#9FB3C8] mt-1">Please Check The QR Code And Try Again</p>
         </div>
       </div>
     );
@@ -167,10 +167,10 @@ export default function PlayerCheckInPage() {
               <CheckCircle className="w-10 h-10 text-[#10B981]" />
             </div>
             <h1 className="text-3xl font-extrabold tracking-wider mb-2" style={{ textShadow: '0 0 15px rgba(16, 185, 129, 0.5), 0 0 30px rgba(16, 185, 129, 0.2)' }}>You're Checked In!</h1>
-            <p className="text-[#64748B] mb-6">Welcome To {venue.name}</p>
+            <p className="text-[#9FB3C8] mb-6">Welcome To {venue.name}</p>
 
             <div className="cmd-panel mb-6" style={{ borderColor: '#10B981', boxShadow: '0 0 20px rgba(16, 185, 129, 0.15), 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(16, 185, 129, 0.15), inset 0 -2px 0 rgba(0,0,0,0.3)' }}>
-              <p className="text-sm text-[#64748B] mb-1">Your Session Has Started</p>
+              <p className="text-sm text-[#9FB3C8] mb-1">Your Session Has Started</p>
               <p className="text-lg font-semibold text-[#10B981]" style={{ textShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }}>{new Date().toLocaleTimeString()}</p>
             </div>
 
@@ -206,7 +206,7 @@ export default function PlayerCheckInPage() {
             </div>
             <h1 className="text-xl font-extrabold text-white tracking-wider">{venue.name}</h1>
             {venue.city && (
-              <p className="text-[#64748B] mt-1">{venue.city}, {venue.state}</p>
+              <p className="text-[#9FB3C8] mt-1">{venue.city}, {venue.state}</p>
             )}
           </div>
         </header>
@@ -222,7 +222,7 @@ export default function PlayerCheckInPage() {
           {/* Check-in Button */}
           <div className="cmd-panel text-center">
             <h2 className="font-bold text-white uppercase tracking-wide text-sm mb-2">Ready To Play?</h2>
-            <p className="text-sm text-[#64748B] mb-4">
+            <p className="text-sm text-[#9FB3C8] mb-4">
               Check In To Start Tracking Your Session And Earn Rewards
             </p>
             <button
@@ -244,20 +244,20 @@ export default function PlayerCheckInPage() {
           {/* Live Games */}
           {activeGames.length > 0 && (
             <div className="cmd-panel overflow-hidden !p-0">
-              <div className="p-4 border-b border-[#4A5E78]">
+              <div className="p-4 border-b border-[#445E77]">
                 <h3 className="font-bold text-white uppercase tracking-wide text-sm flex items-center gap-2">
                   <Users className="w-5 h-5 text-[#22D3EE]" />
                   Live Games ({activeGames.length})
                 </h3>
               </div>
-              <div className="divide-y divide-[#4A5E78]">
+              <div className="divide-y divide-[#445E77]">
                 {activeGames.slice(0, 5).map((game) => (
                   <div key={game.id} className="p-4 flex items-center justify-between">
                     <div>
                       <p className="font-medium text-white">
                         {game.stakes} {game.game_type?.toUpperCase()}
                       </p>
-                      <p className="text-sm text-[#64748B]">
+                      <p className="text-sm text-[#9FB3C8]">
                         Table {game.table_number}
                       </p>
                     </div>
@@ -265,7 +265,7 @@ export default function PlayerCheckInPage() {
                       <p className="font-medium text-white">
                         {game.player_count || 0}/{game.max_players}
                       </p>
-                      <p className="text-sm text-[#64748B]">Players</p>
+                      <p className="text-sm text-[#9FB3C8]">Players</p>
                     </div>
                   </div>
                 ))}
@@ -284,19 +284,19 @@ export default function PlayerCheckInPage() {
           {/* Active Promotions */}
           {activePromos.length > 0 && (
             <div className="cmd-panel overflow-hidden !p-0">
-              <div className="p-4 border-b border-[#4A5E78]">
+              <div className="p-4 border-b border-[#445E77]">
                 <h3 className="font-bold text-white uppercase tracking-wide text-sm flex items-center gap-2">
-                  <Gift className="w-5 h-5 text-[#F59E0B]" />
+                  <Gift className="w-5 h-5 text-[#22D3EE]" />
                   Active Promotions
                 </h3>
               </div>
-              <div className="divide-y divide-[#4A5E78]">
+              <div className="divide-y divide-[#445E77]">
                 {activePromos.slice(0, 3).map((promo) => (
                   <div key={promo.id} className="p-4">
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="font-medium text-white">{promo.name}</p>
-                        <p className="text-sm text-[#64748B]">{promo.frequency}</p>
+                        <p className="text-sm text-[#9FB3C8]">{promo.frequency}</p>
                       </div>
                       <span className="text-lg font-bold text-[#10B981]" style={{ textShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }}>
                         ${promo.prize_amount}
@@ -309,7 +309,7 @@ export default function PlayerCheckInPage() {
           )}
 
           {/* Info */}
-          <div className="text-center text-sm text-[#64748B]">
+          <div className="text-center text-sm text-[#9FB3C8]">
             <p>By Checking In, You Agree To The Venue's Terms And Conditions.</p>
             <p className="mt-1">Need Help? Ask Any Staff Member.</p>
           </div>

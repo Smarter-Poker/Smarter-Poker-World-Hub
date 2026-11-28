@@ -298,7 +298,6 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/admin/autofix',
   '/hub/admin/daily-content',
   '/hub/admin/diamond-liability',
-  '/hub/commander',
   '/hub/email-preferences',
   '/hub/godmode',
   '/hub/gto-trainer',

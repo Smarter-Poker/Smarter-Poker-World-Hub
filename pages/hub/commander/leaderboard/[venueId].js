@@ -24,7 +24,7 @@ function PromotionCard({ promo }) {
     <div className={`cmd-panel ${isActive ? 'border-[#10B981]' : ''}`}>
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-[#F59E0B]" />
+          <Trophy className="w-5 h-5 text-[#22D3EE]" />
           <h3 className="font-semibold text-white">{promo.name}</h3>
         </div>
         {isActive && (
@@ -38,7 +38,7 @@ function PromotionCard({ promo }) {
         ${promo.prize_amount?.toLocaleString() || 0}
       </p>
 
-      <div className="flex items-center gap-4 text-sm text-[#64748B]">
+      <div className="flex items-center gap-4 text-sm text-[#9FB3C8]">
         <span className="flex items-center gap-1">
           <Clock className="w-4 h-4" />
           {promo.frequency}
@@ -49,7 +49,7 @@ function PromotionCard({ promo }) {
       </div>
 
       {promo.description && (
-        <p className="text-sm text-[#64748B] mt-2">{promo.description}</p>
+        <p className="text-sm text-[#9FB3C8] mt-2">{promo.description}</p>
       )}
     </div>
   );
@@ -158,7 +158,7 @@ export default function LeaderboardPage() {
           {promotions.length > 0 && (
             <div>
               <h2 className="font-bold text-white uppercase tracking-wide text-sm mb-3 flex items-center gap-2">
-                <Star className="w-5 h-5 text-[#F59E0B]" />
+                <Star className="w-5 h-5 text-[#22D3EE]" />
                 Active Promotions
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
@@ -185,18 +185,18 @@ export default function LeaderboardPage() {
                     )}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedLeaderboard?.id === lb.id
                         ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
-                        : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78] hover:text-white'
+                        : 'bg-[#0F1C32] text-[#9FB3C8] border-2 border-[#445E77] hover:text-white'
                       }`}
                   >
                     <span>{lb.name}</span>
                     {lb.period_type && (
-                      <span className="text-xs text-[#4A5E78] ml-1">({lb.period_type})</span>
+                      <span className="text-xs text-[#8FA6BE] ml-1">({lb.period_type})</span>
                     )}
                   </button>
                 ))}
               </div>
               {selectedLeaderboard?.description && (
-                <p className="text-sm text-[#64748B] mt-2">{selectedLeaderboard.description}</p>
+                <p className="text-sm text-[#9FB3C8] mt-2">{selectedLeaderboard.description}</p>
               )}
             </div>
           )}
@@ -210,7 +210,7 @@ export default function LeaderboardPage() {
                   onClick={() => setPeriod(p)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${period === p
                       ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
-                      : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78] hover:text-white'
+                      : 'bg-[#0F1C32] text-[#9FB3C8] border-2 border-[#445E77] hover:text-white'
                     }`}
                 >
                   {p === 'all' ? 'All Time' : p}
@@ -225,7 +225,7 @@ export default function LeaderboardPage() {
                   onClick={() => setMetric(value)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${metric === value
                       ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
-                      : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78] hover:text-white'
+                      : 'bg-[#0F1C32] text-[#9FB3C8] border-2 border-[#445E77] hover:text-white'
                     }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -239,7 +239,7 @@ export default function LeaderboardPage() {
           {(loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="leaderboard" rows={8} /></div>) : leaderboard.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
               <Trophy className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-              <p className="text-[#64748B]">No Leaderboard Data Available</p>
+              <p className="text-[#9FB3C8]">No Leaderboard Data Available</p>
             </div>
           ) : (
             <LeaderboardDisplay
