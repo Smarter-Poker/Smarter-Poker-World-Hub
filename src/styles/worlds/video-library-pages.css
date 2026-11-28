@@ -11,13 +11,15 @@
  * off `.vl-console-page`, which only those pages carry, so the library index and
  * its shared components are untouched. The frame slices are the same Club Arena
  * console art the Player Stats page paints with (chrome-readout / chrome-row /
- * chrome-stat from the shared mast, chrome-active for the lit control).
+ * chrome-stat, chrome-active for the lit control), read from the one shared
+ * copy in public/images/smarterdesign/ that the SEO kit on the same page also
+ * paints with, so each slice is one request site-wide.
  */
 .vl-console-page {
-    --vlc-readout: url('/assets/video-library/mast/chrome-readout.webp');
-    --vlc-row: url('/assets/video-library/mast/chrome-row.webp');
-    --vlc-stat: url('/assets/video-library/mast/chrome-stat.webp');
-    --vlc-active: url('/assets/video-library/console-pages/chrome-active.webp');
+    --vlc-readout: url('/images/smarterdesign/chrome-readout.webp');
+    --vlc-row: url('/images/smarterdesign/chrome-row.webp');
+    --vlc-stat: url('/images/smarterdesign/chrome-stat.webp');
+    --vlc-active: url('/images/smarterdesign/chrome-active.webp');
     --vlc-panel:
         radial-gradient(ellipse at 87% 0%, #19374f 0%, transparent 65%),
         linear-gradient(154deg, #11263a, #07131e 56%, #081927);

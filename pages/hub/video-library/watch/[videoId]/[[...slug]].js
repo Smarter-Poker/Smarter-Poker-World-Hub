@@ -11,7 +11,11 @@ import ThumbnailImage from '../../../../../src/components/video-library/VideoThu
  * runs no JavaScript reads the title, channel, date, length and the related
  * videos, and Google reads a VideoObject. The visible privacy-enhanced
  * YouTube player is present in server HTML with autoplay disabled, so search
- * crawlers can discover it without clicking a facade.
+ * crawlers can discover it without clicking a facade. A click-to-play facade
+ * was measured and rejected on 2026-11-27: Google's video guidance is not to
+ * load primary content on user interaction, and indexing each video is why
+ * these pages exist. Phone weight is cut elsewhere instead (shared chrome
+ * slices, deferred account panels); see video-library-watch-performance.test.
  *
  * Rules carried over from the library: only rows that pass the catalog's
  * availability gate render (blocked, stale, non-embeddable or taken-down
@@ -42,6 +46,7 @@ import dynamic from 'next/dynamic';
 import SEOHead from '../../../../../src/components/video-library/VideoLibrarySEOHead';
 import SmarterConversionCta from '../../../../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../../../../src/components/seo/SmarterAccountUnlockGate';
+import DeferUntilNear from '../../../../../src/components/video-library/DeferUntilNear';
 import HubPageShell from '../../../../../src/components/ui/HubPageShell';
 import VideoLibraryWorkspaceHeader from '../../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
 import { getMenuConfig } from '../../../../../src/config/hamburgerMenus';
@@ -473,14 +478,16 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                         {views && <div><dt>Views On YouTube</dt><dd>{views.replace(/\s*Views$/i, '')}</dd></div>}
                                     </dl>
                                 </section>
-                                <div style={{ marginTop: 18 }}>
+                                {/* Below-the-fold account panels mount near the viewport, so
+                                    their painted plates are not fetched before a phone scrolls. */}
+                                <DeferUntilNear style={{ marginTop: 18 }} placeholderHeight={740}>
                                     <SmarterAccountUnlockGate
                                         variant="video-drill"
                                         context="video-library-watch"
                                         redirectPath={watchPath(video)}
                                     />
-                                </div>
-                                <div style={{ marginTop: 18 }}>
+                                </DeferUntilNear>
+                                <DeferUntilNear style={{ marginTop: 18 }} placeholderHeight={390}>
                                     <SmarterConversionCta
                                         compact
                                         eyebrow="Free Smarter.Poker Account"
@@ -491,7 +498,7 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                         secondaryLabel="Sign In"
                                         secondaryHref={`/auth/login?redirect=${encodeURIComponent(watchPath(video))}`}
                                     />
-                                </div>
+                                </DeferUntilNear>
                             </div>
 
                             <aside className="vl-watch-page-side" data-tutorial="watch-more">
