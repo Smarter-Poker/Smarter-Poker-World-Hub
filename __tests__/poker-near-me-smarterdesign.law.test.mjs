@@ -69,6 +69,7 @@ test('no painted plate button, input well or three-slice panel remains in Poker 
     'pages/hub/events-calendar.js', 'pages/hub/poker-tours.js', 'pages/hub/poker-series.js', 'pages/hub/daily-tournaments.js',
     'pages/hub/home-games.js', 'pages/hub/series/[id].js', 'pages/hub/tours/[code].js', 'pages/hub/home-games/[slug].js',
   ];
+  assert.ok(files.length >= 50, `found ${files.length} Poker Near Me sources`);
   const left = [];
   for (const file of files) {
     const src = stripComments(read(file));
@@ -110,6 +111,7 @@ test('no gold, amber, yellow, purple or pink colour survives in Poker Near Me so
     const [h, s, l] = hls(r, g, b);
     return s >= 0.35 && l >= 0.18 && l <= 0.97 && ((h >= 28 && h <= 68) || (h >= 255 && h <= 345));
   };
+  assert.ok(files.length >= 50, `found ${files.length} Poker Near Me sources`);
   for (const file of files) {
     const src = read(file);
     for (const m of src.matchAll(/#([0-9a-fA-F]{6})\b/g)) {
