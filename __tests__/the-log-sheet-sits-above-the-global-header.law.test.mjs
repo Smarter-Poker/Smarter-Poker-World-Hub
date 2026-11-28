@@ -14,6 +14,21 @@ const src = readFileSync(new URL('../src/components/bankroll/LogEntryModal.jsx',
 const header = readFileSync(new URL('../src/components/ui/UniversalHeader.js', import.meta.url), 'utf8');
 const toasts = readFileSync(new URL('../src/components/ui/ToastContainer.js', import.meta.url), 'utf8');
 
+test('every Bankroll modal overlay paints above the global header and below the toasts', () => {
+  // The same defect, next to arrive: Bankroll Projection's overlay sat at 100
+  // and e2e/029 "A bookmarked projection opens its popup" could not click its
+  // Close either. Every component that draws .bankroll-modal-overlay clears it.
+  const headerZ = Number(header.match(/\.approved-global-header \{[^}]*z-index: (\d+);/)?.[1]);
+  const toastZ = Number(toasts.match(/zIndex: (\d+),/)?.[1]);
+  for (const file of ['LogEntryModal.jsx', 'BankrollProjection.jsx', 'StartingBankrollModal.jsx', 'ManageVenuesModal.jsx']) {
+    const text = readFileSync(new URL('../src/components/bankroll/' + file, import.meta.url), 'utf8');
+    assert.match(text, /className="bankroll-modal-overlay"/, file + ' draws the shared overlay');
+    const z = Number(text.match(/overlay: \{[\s\S]{0,900}?zIndex: (\d+),/)?.[1]);
+    assert.ok(z > headerZ, `${file} overlay ${z} must beat the ${headerZ} global header`);
+    assert.ok(z < toastZ, `${file} overlay ${z} must stay under the ${toastZ} toast layer`);
+  }
+});
+
 test('the Log sheet overlay paints above the global header and below the toasts', () => {
   const overlay = src.match(/const styles = \{\s*overlay: \{[\s\S]*?zIndex: (\d+),/);
   assert.ok(overlay, 'LogEntryModal declares its overlay zIndex');

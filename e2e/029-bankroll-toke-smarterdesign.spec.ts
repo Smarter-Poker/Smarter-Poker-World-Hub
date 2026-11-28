@@ -2,7 +2,6 @@ import { verifyBankrollHeader } from './fixtures/verifyBankrollHeader';
 import { captureBankrollPanel } from './fixtures/bankrollPanelCapture';
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
-import { totalsFromRows } from '../src/lib/bankroll/bankrollTotals.mjs';
 
 test.use({ storageState: { cookies: [], origins: [] }, serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } });
 
@@ -171,6 +170,10 @@ async function installInitialisedProBankroll(page: Page, userId: string) {
 // fn_bankroll_totals answered from fixture rows, by the client-side statement
 // of the function's rules (totalsFromRows), with the period the page asked for.
 async function answerBankrollTotals(page: Page, ledgerRows: Record<string, unknown>[], segments: Record<string, unknown>[] = []) {
+  // Loaded as native ESM, like the other bankroll .mjs this spec imports at
+  // runtime: a static import here was transpiled to CommonJS and its cached
+  // ledgerMath.mjs then broke sessionInsights.mjs's named imports.
+  const { totalsFromRows } = await import('../src/lib/bankroll/bankrollTotals.mjs');
   await page.route('**/rest/v1/rpc/fn_bankroll_totals*', route => {
     const args = route.request().postDataJSON() || {};
     return route.fulfill({ json: totalsFromRows({ ledgerRows, segments, from: args.p_from, to: args.p_to, locationId: args.p_location_id }) });
