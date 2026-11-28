@@ -166,6 +166,8 @@ import './pg17-parallel-and-build-parity.law.test.mjs';
 import './api-routes-exist.test.mjs';
 import './bankroll-export-download.test.mjs';
 import './bankroll-analytics-view.test.mjs';
+import './bankroll-staking-math.test.mjs';
+import './bankroll-toke-report.test.mjs';
 import './bankroll-local-dates.test.mjs';
 import './bankroll-jarvis-session-insights.test.mjs';
 import './toke-dealer-reference.test.mjs';

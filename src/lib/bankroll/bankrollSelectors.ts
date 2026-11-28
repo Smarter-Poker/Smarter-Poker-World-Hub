@@ -12,6 +12,12 @@ import {
   BANKROLL_SEGMENT_CREATE_ONLY,
 } from './naturalKeys.mjs';
 import { localDay, localDayOffset } from './localDates.mjs';
+import {
+  linkableStakingEntries,
+  replayStakingDeal,
+  splitStakingSession,
+  stakingRowsToRewrite,
+} from './stakingMath.mjs';
 
 export interface LedgerEntry {
   id: string;
@@ -1324,11 +1330,11 @@ export async function createStakingArrangement(
       backer_name: arrangement.backer_name,
       backer_email: arrangement.backer_email || null,
       backer_phone: arrangement.backer_phone || null,
-      split_percentage: arrangement.split_percentage || 50,
+      split_percentage: arrangement.split_percentage ?? 50,
       markup_percentage: arrangement.markup_percentage || 0,
       starting_makeup: arrangement.starting_makeup || 0,
       current_makeup: arrangement.starting_makeup || 0,
-      start_date: arrangement.start_date || new Date().toISOString().split('T')[0],
+      start_date: arrangement.start_date || localDay(),
       end_date: arrangement.end_date || null,
       is_active: true,
       notes: arrangement.notes || null,
@@ -1392,92 +1398,158 @@ export async function fetchStakingSessions(arrangementId: string): Promise<Staki
   return (data || []) as StakingSession[];
 }
 
-/** Create a staking session (link a ledger entry to an arrangement with calculated splits) */
-export async function createStakingSession(
-  session: {
-    arrangement_id: string;
-    ledger_entry_id: string;
-    gross_result: number;
-    split_percentage: number;
-    current_makeup?: number;
-  }
-): Promise<StakingSession> {
-  const { arrangement_id, ledger_entry_id, gross_result, split_percentage, current_makeup = 0 } = session;
-
-  // Calculate shares
-  const playerPct = split_percentage / 100;
-  const backerPct = 1 - playerPct;
-
-  let playerShare: number;
-  let backerShare: number;
-  const makeupBefore = current_makeup;
-  let makeupAfter = current_makeup;
-
-  if (gross_result > 0) {
-    // Winning session — pay off makeup first, then split profits
-    if (current_makeup > 0) {
-      // Player is in makeup — profits go to reduce it
-      const makeupPayoff = Math.min(gross_result, current_makeup);
-      const remaining = gross_result - makeupPayoff;
-      playerShare = remaining * playerPct;
-      backerShare = remaining * backerPct + makeupPayoff;
-      makeupAfter = current_makeup - makeupPayoff;
-    } else {
-      playerShare = gross_result * playerPct;
-      backerShare = gross_result * backerPct;
-    }
-  } else {
-    // Losing session — backer covers it, adds to makeup
-    playerShare = 0;
-    backerShare = gross_result; // backer absorbs the loss
-    makeupAfter = current_makeup + Math.abs(gross_result);
-  }
-
+/** Ledger entry ids already linked to ANY of the user's deals (a session is staked once). */
+async function fetchLinkedLedgerIds(arrangementIds: string[]): Promise<Set<string>> {
+  if (!arrangementIds.length) return new Set();
   const { data, error } = await supabase
     .from('staking_sessions')
-    .insert({
-      arrangement_id,
-      ledger_entry_id,
-      gross_result,
-      player_share: Math.round(playerShare * 100) / 100,
-      backer_share: Math.round(backerShare * 100) / 100,
-      makeup_before: Math.round(makeupBefore * 100) / 100,
-      makeup_after: Math.round(makeupAfter * 100) / 100,
-    })
-    .select()
-    .maybeSingle();
-
-  if (error || !data) throw error || new Error('Failed to record staking session');
-
-  // Update the arrangement's current_makeup
-  const { error: err_staking_arrangements_fheez } = await supabase
-    .from('staking_arrangements')
-    .update({ current_makeup: Math.round(makeupAfter * 100) / 100, updated_at: new Date().toISOString() })
-    .eq('id', arrangement_id);
-  if (err_staking_arrangements_fheez) console.warn('[Supabase] Silent mutation failed in staking_arrangements:', err_staking_arrangements_fheez.message);
-
-  return data as StakingSession;
+    .select('ledger_entry_id')
+    // in-list: bounded by one player's own staking deals
+    .in('arrangement_id', arrangementIds);
+  if (error) throw error;
+  return new Set((data || []).map((row: any) => row.ledger_entry_id));
 }
 
-/** Get aggregated staking stats for an arrangement */
+/** The ledger rows behind a deal's linked sessions (date, game, current result). */
+async function fetchLedgerRowsById(userId: string, ids: string[]): Promise<Map<string, any>> {
+  const byId = new Map<string, any>();
+  if (!ids.length) return byId;
+  for (let start = 0; start < ids.length; start += 100) {
+    const { data, error } = await supabase
+      .from('bankroll_ledger')
+      .select('id, entry_date, start_time, category, net_result, gross_in, gross_out, stakes, tournament_name')
+      .eq('user_id', userId)
+      .in('id', ids.slice(start, start + 100));
+    if (error) throw error;
+    for (const row of data || []) byId.set(row.id, row);
+  }
+  return byId;
+}
+
+export interface StakingDeal {
+  sessions: (StakingSession & { entry_date?: string; category?: string })[];
+  totals: { totalGrossResult: number; playerShare: number; backerShare: number; sessionCount: number };
+  currentMakeup: number;
+  linkable: LedgerEntry[];
+  syncFailed: boolean;
+}
+
+/**
+ * Load a deal and replay it in the order the sessions were played, using each
+ * ledger entry's CURRENT result (an edited session updates the deal). Stored
+ * rows and the arrangement's current_makeup that disagree with the replay are
+ * rewritten so every reader of the tables sees the same numbers.
+ */
+export async function loadStakingDeal(
+  userId: string,
+  arrangement: StakingArrangement,
+  allArrangementIds: string[] = [arrangement.id]
+): Promise<StakingDeal> {
+  const stored = await fetchStakingSessions(arrangement.id);
+  const [entriesById, linkedAnywhere, candidates] = await Promise.all([
+    fetchLedgerRowsById(userId, stored.map((s) => s.ledger_entry_id)),
+    fetchLinkedLedgerIds(allArrangementIds),
+    fetchLedgerEntries(userId, {
+      startDate: arrangement.start_date || undefined,
+      endDate: arrangement.end_date || undefined,
+      limit: 200,
+    }),
+  ]);
+
+  const replay = replayStakingDeal({
+    startingMakeup: arrangement.starting_makeup,
+    splitPercentage: arrangement.split_percentage,
+    sessions: stored.map((s) => {
+      const entry = entriesById.get(s.ledger_entry_id);
+      return {
+        ...s,
+        entry_date: entry?.entry_date,
+        start_time: entry?.start_time,
+        category: entry?.category,
+        gross_result: entry ? entry.net_result ?? (entry.gross_out || 0) - (entry.gross_in || 0) : s.gross_result,
+      };
+    }),
+  });
+
+  let syncFailed = false;
+  try {
+    for (const row of stakingRowsToRewrite(stored, replay.sessions)) {
+      const { error } = await supabase
+        .from('staking_sessions')
+        .update({
+          gross_result: row.gross_result,
+          player_share: row.player_share,
+          backer_share: row.backer_share,
+          makeup_before: row.makeup_before,
+          makeup_after: row.makeup_after,
+        })
+        .eq('id', row.id);
+      if (error) throw error;
+    }
+    if (Math.round(Number(arrangement.current_makeup || 0) * 100) !== Math.round(replay.currentMakeup * 100)) {
+      const { error } = await supabase
+        .from('staking_arrangements')
+        .update({ current_makeup: replay.currentMakeup, updated_at: new Date().toISOString() })
+        .eq('id', arrangement.id);
+      if (error) throw error;
+    }
+  } catch (err) {
+    // The replay shown is still correct; the next load retries the write.
+    syncFailed = true;
+    console.warn('[Staking] Could not store the replayed deal:', err?.message || err);
+  }
+
+  return {
+    sessions: [...replay.sessions].reverse(),
+    totals: replay.totals,
+    currentMakeup: replay.currentMakeup,
+    linkable: linkableStakingEntries(candidates, {
+      startDate: arrangement.start_date,
+      endDate: arrangement.end_date,
+      linkedIds: linkedAnywhere,
+    }),
+    syncFailed,
+  };
+}
+
+/**
+ * Link a ledger entry to a deal. The split stored here is provisional: the
+ * caller reloads the deal, which replays every session in played order.
+ */
+export async function linkStakingSession(arrangement: StakingArrangement, entry: LedgerEntry): Promise<void> {
+  const split = splitStakingSession({
+    grossResult: entry.net_result ?? (entry.gross_out || 0) - (entry.gross_in || 0),
+    splitPercentage: arrangement.split_percentage,
+    makeupBefore: arrangement.current_makeup || 0,
+  });
+  const { error } = await supabase
+    .from('staking_sessions')
+    .insert({ arrangement_id: arrangement.id, ledger_entry_id: entry.id, ...split });
+  if (error) {
+    if (error.code === '23505') throw new Error('That Session Is Already Linked To This Deal.');
+    throw error;
+  }
+}
+
+/** Remove a session from a deal (the ledger entry itself is untouched). */
+export async function unlinkStakingSession(sessionId: string): Promise<void> {
+  const { error } = await supabase.from('staking_sessions').delete().eq('id', sessionId);
+  if (error) throw error;
+}
+
+/** @deprecated kept for callers outside the tracker: totals now come from loadStakingDeal. */
 export async function getStakingStats(arrangementId: string): Promise<{
   totalGrossResult: number;
   playerShare: number;
   backerShare: number;
   sessionCount: number;
 }> {
-  const { data, error } = await supabase
-    .from('staking_sessions')
-    .select('gross_result, player_share, backer_share')
-    .eq('arrangement_id', arrangementId);
-
-  if (error) throw error;
-
-  const sessions = data || [];
+  const sessions = await fetchStakingSessions(arrangementId);
+  const cents = (key: string) => sessions.reduce((sum, s: any) => sum + Math.round(Number(s[key] || 0) * 100), 0) / 100;
   return {
-    totalGrossResult: sessions.reduce((sum, s) => sum + (s.gross_result || 0), 0),
-    playerShare: sessions.reduce((sum, s) => sum + (s.player_share || 0), 0),
-    backerShare: sessions.reduce((sum, s) => sum + (s.backer_share || 0), 0),
+    totalGrossResult: cents('gross_result'),
+    playerShare: cents('player_share'),
+    backerShare: cents('backer_share'),
     sessionCount: sessions.length,
   };
 }
