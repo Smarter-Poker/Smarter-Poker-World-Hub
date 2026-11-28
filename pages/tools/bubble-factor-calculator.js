@@ -20,6 +20,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { computeMalmuthHarvilleIcm, useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -452,6 +453,16 @@ export default function BubbleFactorCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="bubble-factor-calculator"
+              toolName="Final Table Bubble Factor Matrix"
+              eyebrow="Free ICM Bubble Cloud Sync"
+              title="Save This Final-Table Bubble Factor Matrix Free"
+              description="Sync Pairwise Risk Premiums, ICM Calling Thresholds & Payout Pressure Spots Across Devices."
+              ctaLabel="Save Bubble Matrix Free"
+              summaryText={summaryText}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-bubble-factor-calculator"

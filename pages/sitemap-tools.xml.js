@@ -3,7 +3,7 @@
  *  INTERACTIVE POKER TOOLS & SOLVERS SITEMAP -- /sitemap-tools.xml
  * ═══════════════════════════════════════════════════════════════════════════════
  * Dedicated segmented sitemap for all interactive browser-native poker math
- * calculators, GTO preflop range matrices, GTO leak finder, top 100 hand-vs-hand
+ * calculators, GTO preflop range matrices, GTO leak finder, top 150 hand-vs-hand
  * equity pages, and webmaster embed widgets.
  * Serves at https://smarter.poker/sitemap-tools.xml
  */

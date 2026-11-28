@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -552,6 +553,16 @@ export default function LateRegCalculatorPage() {
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="late-reg-calculator"
+            toolName="Tournament Late-Reg ICM EV Calculator"
+            eyebrow="Free MTT Cloud Sync"
+            title="Save This Late-Registration ICM EV Spot Free"
+            description="Store Late-Entry Equity Boosts, Starting Stack Depths & Tournament ROI Projections Free."
+            ctaLabel="Save Late-Reg Spot Free"
+            summaryText={summaryText}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-late-reg-calculator"

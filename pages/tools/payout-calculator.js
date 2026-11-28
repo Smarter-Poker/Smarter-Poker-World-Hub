@@ -17,6 +17,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -584,6 +585,16 @@ export default function PayoutCalculatorPage({
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="payout-calculator"
+            toolName="Tournament Payout & Prize Pool Calculator"
+            eyebrow="Free Payout Cloud Sync"
+            title="Save This Tournament Payout Structure Free"
+            description="Store Net Prize Pools, Places Paid & Top-Heavy Payout Curves In Your Free Cloud Account."
+            ctaLabel="Save Payout Plan Free"
+            summaryText={`${payoutData.safeEntries} Entries (+${payoutData.safeRebuys} Rebuys) @ ${payoutData.safeBuyIn}: Net Prize Pool = ${payoutData.netPrizePool.toLocaleString('en-US')} | ${payoutData.placesPaid} Places Paid | 1st Place = ${payoutData.firstPrize.toLocaleString('en-US')} | Min-Cash = ${payoutData.minCashPrize.toLocaleString('en-US')}`}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-payout-calculator"

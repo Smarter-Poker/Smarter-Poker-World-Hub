@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -550,6 +551,16 @@ export default function HomeGameKitPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="home-game-kit"
+              toolName="Home Game Chip Set & Setup Calculator"
+              eyebrow="Free Chip Kit Cloud Sync"
+              title="Save This Home Game Chip Breakdown Free"
+              description="Keep Starting Stack Denominations, Bank Reserves & Rebuy Chip Counts Synced In Your Free Account."
+              ctaLabel="Save Chip Kit Free"
+              summaryText={`${kitMetrics.activePreset.label} (${kitMetrics.safePlayers} Players, ${kitMetrics.safeSetSize} Chip Set): ${kitMetrics.chipsPerPlayer} Chips/Player (${kitMetrics.totalStartingChipsIssued} Issued, ${kitMetrics.remainingBankReserveChips} Reserve)`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-home-game-kit"

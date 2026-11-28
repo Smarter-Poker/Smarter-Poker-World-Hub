@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -469,6 +470,16 @@ export default function IsoCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="iso-calculator"
+              toolName="Pre-Flop Isolation Raise Sizing Calculator"
+              eyebrow="Free Preflop Cloud Sync"
+              title="Save This Isolation Raise Sizing Spot Free"
+              description="Sync Limper Adjustments, In-Position ISO Sizings & Resulting Flop SPR Plans Across Devices."
+              ctaLabel="Save ISO Spot Free"
+              summaryText={`ISO Vs ${metrics.safeLimpers} Limper(s) (${metrics.isIp ? 'In Position' : 'Out Of Position'}, ${metrics.safeBb} BB): Optimal ISO = ${metrics.optimalIsoBb} BB (${metrics.optimalIsoDollars}) | Flop SPR = ${metrics.flopSpr}`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-iso-calculator"

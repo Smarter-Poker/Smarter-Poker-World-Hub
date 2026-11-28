@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -496,6 +497,16 @@ export default function OutsCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="outs-calculator"
+              toolName="Poker Outs & Draw Probability Calculator"
+              eyebrow="Free Draw Math Cloud Sync"
+              title="Save This Poker Outs & Draw Odds Spot Free"
+              description="Sync Clean Outs, Exact Hypergeometric Hit Rates & Break-Even Calling Odds Across Devices."
+              ctaLabel="Save Outs Spot Free"
+              summaryText={`${metrics.safeOuts} Clean Outs On ${metrics.isTurn ? 'Turn' : 'Flop'}: Exact Hit Equity = ${metrics.activeExactPct}% Vs Required Pot Odds = ${metrics.requiredBreakEvenPct}%`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-outs-calculator"
