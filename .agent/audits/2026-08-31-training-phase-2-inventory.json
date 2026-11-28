@@ -54519,7 +54519,7 @@
         {
           "element": "button",
           "name": "`View All ${group.label} Games`",
-          "line": 55,
+          "line": 89,
           "handler": "() => onViewAll(group)",
           "destination": null,
           "type": "button",
@@ -54529,7 +54529,7 @@
         {
           "element": "button",
           "name": "`Previous ${group.label} Games`",
-          "line": 68,
+          "line": 102,
           "handler": "() => goTo(position.page - 1)",
           "destination": null,
           "type": "button",
@@ -54539,7 +54539,7 @@
         {
           "element": "button",
           "name": "`${group.label} Page ${page + 1}`",
-          "line": 72,
+          "line": 106,
           "handler": "() => goTo(page)",
           "destination": null,
           "type": "button",
@@ -54549,7 +54549,7 @@
         {
           "element": "button",
           "name": "`Next ${group.label} Games`",
-          "line": 76,
+          "line": 110,
           "handler": "() => goTo(position.page + 1)",
           "destination": null,
           "type": "button",
@@ -54588,8 +54588,16 @@
       },
       "functions": [
         {
+          "name": "useAfterFirstPaint",
+          "line": 19,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "TrainingGameShelf",
-          "line": 6,
+          "line": 38,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -54597,7 +54605,7 @@
         },
         {
           "name": "goTo",
-          "line": 41,
+          "line": 75,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -96630,11 +96638,11 @@
       "effectRef": "src/components/training/lobby/TrainingGamePreviewSheet.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGameShelf.jsx:55:1",
+      "id": "src/components/training/lobby/TrainingGameShelf.jsx:89:1",
       "file": "src/components/training/lobby/TrainingGameShelf.jsx",
       "element": "button",
       "name": "`View All ${group.label} Games`",
-      "line": 55,
+      "line": 89,
       "handler": "() => onViewAll(group)",
       "destination": null,
       "type": "button",
@@ -96643,11 +96651,11 @@
       "effectRef": "src/components/training/lobby/TrainingGameShelf.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGameShelf.jsx:68:2",
+      "id": "src/components/training/lobby/TrainingGameShelf.jsx:102:2",
       "file": "src/components/training/lobby/TrainingGameShelf.jsx",
       "element": "button",
       "name": "`Previous ${group.label} Games`",
-      "line": 68,
+      "line": 102,
       "handler": "() => goTo(position.page - 1)",
       "destination": null,
       "type": "button",
@@ -96656,11 +96664,11 @@
       "effectRef": "src/components/training/lobby/TrainingGameShelf.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGameShelf.jsx:72:3",
+      "id": "src/components/training/lobby/TrainingGameShelf.jsx:106:3",
       "file": "src/components/training/lobby/TrainingGameShelf.jsx",
       "element": "button",
       "name": "`${group.label} Page ${page + 1}`",
-      "line": 72,
+      "line": 106,
       "handler": "() => goTo(page)",
       "destination": null,
       "type": "button",
@@ -96669,11 +96677,11 @@
       "effectRef": "src/components/training/lobby/TrainingGameShelf.jsx"
     },
     {
-      "id": "src/components/training/lobby/TrainingGameShelf.jsx:76:4",
+      "id": "src/components/training/lobby/TrainingGameShelf.jsx:110:4",
       "file": "src/components/training/lobby/TrainingGameShelf.jsx",
       "element": "button",
       "name": "`Next ${group.label} Games`",
-      "line": 76,
+      "line": 110,
       "handler": "() => goTo(position.page + 1)",
       "destination": null,
       "type": "button",
@@ -132392,7 +132400,7 @@
       {
         "file": "src/components/training/lobby/TrainingGameShelf.jsx",
         "name": "TrainingGameShelf",
-        "line": 6,
+        "line": 38,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -144982,7 +144990,7 @@
       {
         "file": "src/components/training/lobby/TrainingGameShelf.jsx",
         "name": "TrainingGameShelf",
-        "line": 6,
+        "line": 38,
         "references": 1,
         "exported": true,
         "defaultExport": true,
