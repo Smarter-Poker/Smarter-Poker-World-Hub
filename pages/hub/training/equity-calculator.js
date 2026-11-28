@@ -240,6 +240,8 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
                     <button
                       type="button"
                       key={card}
+                      data-training-raw-control="true"
+                      aria-label={`Select ${card}`}
                       onClick={() => !used && handlePick(rank, suit)}
                       disabled={used}
                       style={{
@@ -445,6 +447,8 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                     <button
                       type="button"
                       key={card}
+                      data-training-raw-control="true"
+                      aria-label={`Select ${card}`}
                       onClick={() => !used && handlePick(rank, suit)}
                       disabled={used}
                       style={{

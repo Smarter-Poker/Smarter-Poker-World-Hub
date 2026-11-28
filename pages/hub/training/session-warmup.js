@@ -16,7 +16,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 
 // TRAIN-CSS-MOTION-ADOPT-8 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -145,6 +145,7 @@ export default function SessionWarmupPage() {
       const count = parseInt(localStorage.getItem('warmup-count') || '0', 10);
       setCompletionCount(count);
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    if (!getAccessToken()) return;
     authedFetch('/api/training/tool-records?tool_id=session-warmup&limit=25')
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {

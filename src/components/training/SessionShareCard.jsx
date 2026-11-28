@@ -23,9 +23,9 @@ function generateCardSVG({ gameName, level, gtowScore, totalQuestions, correctCo
     const scoreColor = getArenaScoreColor(gtowScore);
     const grade = gtowScore >= 80 ? 'S' : gtowScore >= 60 ? 'A' : gtowScore >= 40 ? 'B' : gtowScore >= 20 ? 'C' : gtowScore >= 0 ? 'D' : 'F';
 
-    // Classification bars
+    // Classification bars (#SMARTERDESIGN compliant — no forbidden amber/gold/purple)
     const classKeys = ['best', 'correct', 'inaccuracy', 'wrong', 'blunder'];
-    const classColors = { best: '#22c55e', correct: '#3b82f6', inaccuracy: '#fbbf24', wrong: '#f97316', blunder: '#ef4444' };
+    const classColors = { best: '#22c55e', correct: '#3b82f6', inaccuracy: '#8de6ff', wrong: '#688299', blunder: '#ef4444' };
     const total = classKeys.reduce((sum, k) => sum + (classificationCounts?.[k] || 0), 0) || 1;
 
     const barY = 245;
@@ -54,9 +54,9 @@ function generateCardSVG({ gameName, level, gtowScore, totalQuestions, correctCo
     <svg xmlns="http://www.w3.org/2000/svg" width="${CARD_WIDTH}" height="${CARD_HEIGHT}" viewBox="0 0 ${CARD_WIDTH} ${CARD_HEIGHT}">
         <defs>
             <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#0f172a"/>
-                <stop offset="50%" style="stop-color:#1e1b4b"/>
-                <stop offset="100%" style="stop-color:#0f172a"/>
+                <stop offset="0%" style="stop-color:#0c2031"/>
+                <stop offset="50%" style="stop-color:#06131f"/>
+                <stop offset="100%" style="stop-color:#020a12"/>
             </linearGradient>
             <linearGradient id="scoreGlow" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" style="stop-color:${scoreColor};stop-opacity:0.3"/>
@@ -95,7 +95,7 @@ function generateCardSVG({ gameName, level, gtowScore, totalQuestions, correctCo
         <text x="200" y="200" text-anchor="middle" font-family="Inter, monospace" font-size="20" font-weight="800" fill="#00d4ff">${totalQuestions}</text>
         <text x="200" y="215" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#64748b">HANDS</text>
 
-        <text x="320" y="200" text-anchor="middle" font-family="Inter, monospace" font-size="20" font-weight="800" fill="#fbbf24">${bestStreak || 0}</text>
+        <text x="320" y="200" text-anchor="middle" font-family="Inter, monospace" font-size="20" font-weight="800" fill="#8de6ff">${bestStreak || 0}</text>
         <text x="320" y="215" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#64748b">BEST STREAK</text>
 
         <text x="440" y="200" text-anchor="middle" font-family="Inter, monospace" font-size="20" font-weight="800" fill="${hasMeasuredEV ? (totalEVLoss > 5 ? '#ef4444' : '#22c55e') : '#64748b'}">${evPerDecision}</text>
@@ -174,8 +174,15 @@ export default function SessionShareCard({
         }
     }, [gameName, level, gtowScore, totalQuestions, correctCount, totalEVLoss, measuredEVDecisions, bestStreak, classificationCounts, sessionMistakes]);
 
-    // Auto-generate on mount
+    // Auto-generate on mount + Escape dismiss
     React.useEffect(() => { generateImage(); }, [generateImage]);
+    React.useEffect(() => {
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') onClose?.();
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [onClose]);
 
     const handleDownload = useCallback(() => {
         if (!imageUrl) return;
@@ -249,20 +256,24 @@ export default function SessionShareCard({
                 onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
             >
                 <motion.div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Share Session Results"
+                    className="sp-training-modal-surface"
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.9, opacity: 0 }}
                     style={styles.card}
                 >
                     {/* Close button */}
-                    <button onClick={onClose} style={styles.closeBtn}>✕</button>
+                    <button type="button" aria-label="Close Share Card" onClick={onClose} style={styles.closeBtn}>✕</button>
 
                     {/* Preview */}
                     {status === 'generating' && (
                         <motion.div
                             animate={{ opacity: [0.4, 1, 0.4] }}
                             transition={{ duration: 1.5, repeat: Infinity }}
-                            style={{ color: '#64748b', fontSize: 13, textAlign: 'center', padding: 40 }}
+                            style={{ color: '#c4d2df', fontSize: 13, textAlign: 'center', padding: 40 }}
                         >
                             Generating Share Card...
                         </motion.div>
@@ -279,13 +290,13 @@ export default function SessionShareCard({
                     {/* Action buttons */}
                     {(status === 'ready' || status === 'copied' || status === 'downloaded') && (
                         <div style={styles.actions}>
-                            <button onClick={handleNativeShare} style={{ ...styles.actionBtn, ...styles.primaryBtn }}>
+                            <button type="button" className="sd-button sd-primary" onClick={handleNativeShare} style={{ ...styles.actionBtn, ...styles.primaryBtn }}>
                                 {typeof navigator !== 'undefined' && navigator.share ? 'Share' : 'Copy'}
                             </button>
-                            <button onClick={handleDownload} style={styles.actionBtn}>
+                            <button type="button" className="sd-button" onClick={handleDownload} style={styles.actionBtn}>
                                 {status === 'downloaded' ? '✓ Saved!' : 'Download PNG'}
                             </button>
-                            <button onClick={handleCopyImage} style={styles.actionBtn}>
+                            <button type="button" className="sd-button" onClick={handleCopyImage} style={styles.actionBtn}>
                                 {status === 'copied' ? '✓ Copied!' : 'Copy Image'}
                             </button>
                         </div>
@@ -311,33 +322,35 @@ const styles = {
     },
     card: {
         position: 'relative',
-        background: '#0f172a', borderRadius: 16,
-        border: '1px solid rgba(255,255,255,0.1)',
-        padding: 16, maxWidth: 640, width: '100%',
+        background: 'linear-gradient(165deg, #0c2031 0%, #040d18 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 7%, #e6f7ff 14%, #17222a 25%, #a2b5bf 40%, #ffffff 49%, #4c6470 59%, #101a22 72%, #e6f4fa 88%, #718691 100%) border-box',
+        borderRadius: 18,
+        border: '3px solid transparent',
+        padding: 18, maxWidth: 640, width: '100%',
     },
     closeBtn: {
-        position: 'absolute', top: 8, right: 8,
-        background: 'rgba(255,255,255,0.05)', border: 'none',
-        borderRadius: 8, width: 32, height: 32,
-        color: '#64748b', fontSize: 14, cursor: 'pointer',
+        position: 'absolute', top: 10, right: 10,
+        background: 'linear-gradient(180deg, #34434c 0%, #0d1b25 12%, #030a0e 52%, #07151d 86%, #142e3b 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 18%, #e6f7ff 45%, #4c6470 72%, #e6f4fa 100%) border-box',
+        border: '2px solid transparent',
+        borderRadius: 10, width: 44, height: 44, minWidth: 44, minHeight: 44,
+        color: '#f3f7fb', fontSize: 16, fontWeight: 700, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
     },
     preview: {
         width: '100%', borderRadius: 12,
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid #688299',
     },
     actions: {
-        display: 'flex', gap: 8, marginTop: 12,
+        display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap',
     },
     actionBtn: {
-        flex: 1, padding: '10px 0', borderRadius: 8,
-        border: '1px solid rgba(255,255,255,0.1)',
-        background: 'rgba(255,255,255,0.04)',
-        color: '#e2e8f0', fontSize: 12, fontWeight: 700,
+        flex: 1, minHeight: 44, padding: '10px 12px', borderRadius: 10,
+        border: '2px solid transparent',
+        background: 'linear-gradient(180deg, #34434c 0%, #0d1b25 12%, #030a0e 52%, #07151d 86%, #142e3b 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 18%, #e6f7ff 45%, #4c6470 72%, #e6f4fa 100%) border-box',
+        color: '#f3f7fb', fontSize: 13, fontWeight: 700,
         cursor: 'pointer', transition: 'all 0.15s',
     },
     primaryBtn: {
-        background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-        border: 'none', color: '#fff',
+        background: 'linear-gradient(180deg, #51c9ff 0%, #0873ff 10%, #0648e2 38%, #022695 82%, #0b71c4 100%) padding-box, linear-gradient(135deg, #fbffff 0%, #647988 18%, #e6f7ff 45%, #4c6470 72%, #e6f4fa 100%) border-box',
+        border: '2px solid transparent', color: '#ffffff',
     },
 };

@@ -18,7 +18,7 @@ import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
-import { authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
 // TRAIN-WIRE-EMPTY-3d — adoption: shared empty-state primitive
 
 // SAMPLE FALLBACK ONLY — these twenty tips are fixed editorial examples, not
@@ -346,6 +346,7 @@ export default function GtoNewsPage() {
       const savedRead = localStorage.getItem('gto-news-read');
       if (savedRead) setReadArticles(new Set(JSON.parse(savedRead)));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    if (!getAccessToken()) return;
     authedFetch('/api/training/tool-records?tool_id=gto-news&limit=5')
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
