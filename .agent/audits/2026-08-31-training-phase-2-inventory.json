@@ -5474,6 +5474,7 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
+            "e2e/020-hamburger.spec.ts",
             "e2e/03-training-gto.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
@@ -5545,6 +5546,7 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
+            "e2e/020-hamburger.spec.ts",
             "e2e/03-training-gto.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
@@ -5607,6 +5609,7 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
+            "e2e/020-hamburger.spec.ts",
             "e2e/03-training-gto.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
@@ -5646,6 +5649,7 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
+            "e2e/020-hamburger.spec.ts",
             "e2e/03-training-gto.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
@@ -5686,6 +5690,7 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
+            "e2e/020-hamburger.spec.ts",
             "e2e/03-training-gto.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
@@ -5733,6 +5738,7 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
+            "e2e/020-hamburger.spec.ts",
             "e2e/03-training-gto.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
@@ -5763,6 +5769,7 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
+            "e2e/020-hamburger.spec.ts",
             "e2e/03-training-gto.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
@@ -5797,6 +5804,7 @@
             "__tests__/training-session-config-contract.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-surface-inventory.test.mjs",
+            "e2e/020-hamburger.spec.ts",
             "e2e/03-training-gto.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
@@ -5820,6 +5828,7 @@
         "__tests__/training-session-config-contract.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-surface-inventory.test.mjs",
+        "e2e/020-hamburger.spec.ts",
         "e2e/03-training-gto.spec.ts",
         "e2e/global-footer-visual.spec.ts"
       ],
@@ -18204,9 +18213,9 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
         },
@@ -18260,9 +18269,9 @@
             "src/utils/v2Matrix.js"
           ],
           "tests": [
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
         },
@@ -18307,9 +18316,9 @@
             "src/utils/trainingSounds.js"
           ],
           "tests": [
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
         },
@@ -18331,9 +18340,9 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
         },
@@ -18356,9 +18365,9 @@
             "src/lib/training/solverMatrixTrust.js"
           ],
           "tests": [
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
         },
@@ -18388,9 +18397,9 @@
             "src/utils/v2Matrix.js"
           ],
           "tests": [
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
         },
@@ -18403,9 +18412,9 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
         },
@@ -18422,17 +18431,17 @@
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
           "tests": [
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-simplification-mtt-design.test.mjs",
-            "e2e/020-hamburger.spec.ts",
             "e2e/global-footer-visual.spec.ts"
           ]
         }
       },
       "existingTests": [
+        "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs",
-        "e2e/020-hamburger.spec.ts",
         "e2e/global-footer-visual.spec.ts"
       ],
       "uncoveredStates": []
@@ -27645,6 +27654,7 @@
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -27682,6 +27692,7 @@
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -27725,6 +27736,7 @@
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -27754,6 +27766,7 @@
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -27791,6 +27804,7 @@
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -27833,6 +27847,7 @@
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -27855,6 +27870,7 @@
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -27885,6 +27901,7 @@
             "__tests__/aeo-ai-agent-api.test.mjs",
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+            "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
             "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
@@ -27902,6 +27919,7 @@
         "__tests__/aeo-ai-agent-api.test.mjs",
         "__tests__/aeo-dynamic-og-cards.test.mjs",
         "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+        "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
         "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
         "__tests__/gsc-series4-phase3.test.mjs",
         "__tests__/markdown-ingestion.test.mjs",
@@ -89728,6 +89746,7 @@
     "__tests__/aeo-tool-schemas.test.mjs",
     "__tests__/aeo-traffic-expansion-master.test.mjs",
     "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+    "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
     "__tests__/backlink-embed-citation-engine.test.mjs",
     "__tests__/business-hub-guide-render.test.mjs",
     "__tests__/business-hub-guide.test.mjs",
@@ -115978,6 +115997,7 @@
         "__tests__/aeo-ai-agent-api.test.mjs",
         "__tests__/aeo-dynamic-og-cards.test.mjs",
         "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+        "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
         "__tests__/gsc-audit-remediation-20261126.law.test.mjs",
         "__tests__/gsc-series4-phase3.test.mjs",
         "__tests__/markdown-ingestion.test.mjs",
@@ -125580,6 +125600,7 @@
         "__tests__/aeo-tool-schemas.test.mjs",
         "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
+        "__tests__/an-internal-link-reaches-a-page.law.test.mjs",
         "__tests__/backlink-embed-citation-engine.test.mjs",
         "__tests__/business-hub-guide.test.mjs",
         "__tests__/every-glossary-term-has-a-page.law.test.mjs",
