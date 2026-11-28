@@ -245,6 +245,9 @@ export async function getServerSideProps({ req, res }) {
 // every new article) is gone. The story list itself is refreshed from page 0
 // on the same 15-minute clock (see NEWS_REFRESH_MS in NewsHub).
 const NEWS_REFRESH_MS = 15 * 60 * 1000;
+// Below this scroll depth the reader is reading; a refresh waits behind the
+// "N New Stories" key instead of reordering the list under them.
+const NEWS_READING_DEPTH_PX = 400;
 const NEWS_REFRESH_POLICY = {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
@@ -887,15 +890,42 @@ function NewsHub() {
     // refreshNewsFeed (not the raw SWR mutate): with offset pagination a plain
     // revalidate would only refresh whichever page is currently in the SWR key.
     // A hidden tab waits; the next tick after it is visible again refreshes it.
+    //
+    // A READER IS NEVER MOVED. Near the top of the page the list refreshes in
+    // place. Further down, the first page is checked in the background and, if
+    // it holds stories the reader has not been shown, a "N New Stories" key
+    // appears under the header; tapping it scrolls up and brings them in. The
+    // list under someone reading is never reordered by the clock.
     const refreshNewsRef = useRef(null);
     refreshNewsRef.current = refreshNewsFeed;
+    const newsParamsRef = useRef('');
+    newsParamsRef.current = newsParams.toString();
+    const loadedIdsRef = useRef([]);
+    loadedIdsRef.current = loadedNews.map(a => a?.id).filter(Boolean);
+    const [newStoriesWaiting, setNewStoriesWaiting] = useState(0);
     useEffect(() => {
-        const timer = setInterval(() => {
+        let cancelled = false;
+        const timer = setInterval(async () => {
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-            refreshNewsRef.current?.();
+            if (typeof window === 'undefined' || window.scrollY < NEWS_READING_DEPTH_PX) {
+                refreshNewsRef.current?.();
+                return;
+            }
+            const firstPage = new URLSearchParams(newsParamsRef.current);
+            firstPage.set('offset', '0');
+            const res = await fetchNewsJson(`/api/news/articles?${firstPage}`).catch(() => null);
+            if (cancelled || !res || res.success !== true || !Array.isArray(res.data)) return;
+            const known = new Set(loadedIdsRef.current);
+            const fresh = res.data.filter(a => a?.id && !known.has(a.id)).length;
+            if (fresh > 0) setNewStoriesWaiting(fresh);
         }, NEWS_REFRESH_MS);
-        return () => clearInterval(timer);
+        return () => { cancelled = true; clearInterval(timer); };
     }, []);
+    const showNewStories = () => {
+        setNewStoriesWaiting(0);
+        if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+        refreshNewsRef.current?.();
+    };
 
     // Load preferences and bookmarks from Supabase on mount
     useEffect(() => {
@@ -1645,6 +1675,12 @@ function NewsHub() {
                             </div>
 
                             {/* Breaking News Ticker */}
+                            {newStoriesWaiting > 0 && (
+                                <button type="button" className="news-new-stories sd-button sd-primary" onClick={showNewStories}>
+                                    {newStoriesWaiting} New {newStoriesWaiting === 1 ? 'Story' : 'Stories'}
+                                </button>
+                            )}
+
                             {breakingNews && (
                                 <div
                                     className="breaking-ticker"

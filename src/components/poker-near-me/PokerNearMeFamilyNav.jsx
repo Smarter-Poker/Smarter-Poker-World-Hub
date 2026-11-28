@@ -10,7 +10,7 @@ const FAMILY_LINKS = [
   { label: 'Events', href: '/hub/events-calendar', matches: ['/hub/events-calendar', '/hub/daily-tournaments', '/hub/poker-near-me/events', '/hub/poker-near-me/daily-tournaments', '/hub/poker-near-me/events-calendar', '/hub/poker-near-me/daily', '/hub/poker-near-me/calendar'] },
   { label: 'Series', href: '/hub/poker-near-me/series', matches: ['/hub/poker-near-me/series', '/hub/poker-series', '/hub/series'] },
   { label: 'Tours', href: '/hub/poker-tours', matches: ['/hub/poker-tours', '/hub/tours', '/hub/poker-near-me/tours'] },
-  { label: 'Home games', href: '/hub/home-games', matches: ['/hub/home-games'] },
+  { label: 'Home Games', href: '/hub/home-games', matches: ['/hub/home-games'] },
   { label: 'Saved', href: '/hub/poker-near-me/saved', matches: ['/hub/poker-near-me/saved'] },
 ];
 

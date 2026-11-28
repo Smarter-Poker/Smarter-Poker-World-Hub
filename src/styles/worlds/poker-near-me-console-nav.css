@@ -1,15 +1,23 @@
-/* Poker Near Me family navigation: painted blank plates with live DOM labels. */
+/* Poker Near Me family navigation, #SMARTERDESIGN (Dan, 2026-11-27).
+ *
+ * Thin chrome tabs (chrome-row rim, cobalt chrome-active-v2 for the current
+ * page) with live Title Case labels. Every destination is visible at once: the
+ * rail WRAPS into rows instead of scrolling sideways, because a sideways rail
+ * cut "Locations" to "Locati..." and hid Events, Series, Tours, Home Games and
+ * Saved off the right edge of a phone (Dan's screenshot, 2026-11-27).
+ *
+ * The old painted plate buttons are the retired
+ * #ClubArenaConsole style; they are not used here.
+ */
 
 .pnm-console-family-nav {
-  position: sticky;
-  top: var(--sp-header-height, 56px);
-  z-index: 1350;
+  position: relative;
+  z-index: 2;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 4px max(8px, env(safe-area-inset-right)) 4px max(8px, env(safe-area-inset-left));
-  overflow: hidden;
-  background: #020407;
+  padding: 8px max(8px, env(safe-area-inset-right)) 8px max(8px, env(safe-area-inset-left));
+  background: transparent;
 }
 
 .pnm-console-family-nav--standalone {
@@ -18,133 +26,80 @@
 
 .pnm-console-family-nav__label {
   display: none;
-  width: min(100%, 1080px);
-  margin: 0 auto 3px;
-  overflow: hidden;
-  color: #8fa6b8;
-  font: 700 12px/1.2 var(--font-premium-body, Inter, sans-serif);
-  letter-spacing: 0.14em;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .pnm-console-family-nav__rail {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
   width: min(100%, 1080px);
   max-width: 100%;
   margin: 0 auto;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  scrollbar-color: #42586b #020407;
-  scroll-padding-inline: 8px;
 }
 
 .pnm-console-family-nav__link {
   position: relative;
   display: flex;
-  min-width: 96px;
+  min-width: 0;
   min-height: 44px;
-  flex: 1 0 96px;
   box-sizing: border-box;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  padding: 0 9px;
-  overflow: hidden;
-  color: #b7c6d2;
-  background-color: transparent;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png');
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-  font: 750 12px/1 var(--font-premium-body, Inter, sans-serif);
-  letter-spacing: 0.055em;
+  padding: 4px 2px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box;
+  color: #e6eef7;
+  font: 700 clamp(11.5px, 3.2vw, 15px)/1.05 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+  letter-spacing: 0;
   text-align: center;
   text-decoration: none;
-  white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .pnm-console-family-nav__link.is-active {
-  color: #f5fbff;
-  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png');
+  color: #ffffff;
+  border-image-source: url('/images/smarterdesign/chrome-active-v2.webp');
+  border-image-slice: 11;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) padding-box;
 }
 
 .pnm-console-family-nav__link:focus-visible {
-  color: #ffffff;
-  filter: brightness(1.2) saturate(1.08);
-  outline: 2px solid #dff7ff;
-  outline-offset: -5px;
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  outline: 2px solid #9ee3ff;
+  outline-offset: 2px;
 }
 
 .pnm-console-family-nav__link:active {
-  filter: brightness(1.12);
+  filter: brightness(0.89);
 }
 
 .pnm-console-family-nav__text {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .pnm-console-family-nav__live-signal {
-  width: 5px;
-  height: 5px;
-  flex: 0 0 5px;
-  background: #ff4050;
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: #ff4d5e;
+  box-shadow: 0 0 6px #ff4d5e99;
 }
 
-@media (max-width: 900px) {
+@media (min-width: 760px) {
   .pnm-console-family-nav__rail {
-    width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .pnm-console-family-nav {
-    padding-right: max(6px, env(safe-area-inset-right));
-    padding-left: max(6px, env(safe-area-inset-left));
-  }
-
-  .pnm-console-family-nav__rail {
-    gap: 3px;
-  }
-
-  .pnm-console-family-nav__link {
-    padding-right: 5px;
-    padding-left: 5px;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
   }
 }
 
-/* A short landscape viewport cannot afford two sticky control rows. Keep the
-   full route set in one physical 44px deck and return the deck to document
-   flow so it never masks the map or discovery canvas. */
-@media (orientation: landscape) and (min-width: 700px) and (max-height: 520px) {
-  .pnm-console-family-nav,
-  .pnm-console-family-nav--standalone {
-    position: relative;
-    top: auto;
-    padding: 4px max(6px, env(safe-area-inset-right)) 4px max(6px, env(safe-area-inset-left));
-  }
-
-  .pnm-console-family-nav__label {
-    display: none;
-  }
-
+@media (max-width: 360px) {
   .pnm-console-family-nav__rail {
-    gap: 2px;
-  }
-
-  .pnm-console-family-nav__link {
-    gap: 3px;
-    padding-right: 2px;
-    padding-left: 2px;
-    letter-spacing: 0.02em;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -152,4 +107,12 @@
   .pnm-console-family-nav__link {
     transition: none;
   }
+}
+
+/* A site-wide 16px minimum for links won over the tab size above and pushed
+   "Locations" past its tab at 393px. The tab text is a deliberate 13px
+   condensed label (still above the 12px floor), set with enough weight to
+   hold. */
+nav.pnm-console-family-nav .pnm-console-family-nav__link {
+  font-size: clamp(12.5px, 3.3vw, 15px) !important;
 }

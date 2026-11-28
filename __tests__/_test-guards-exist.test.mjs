@@ -169,6 +169,8 @@ import './bankroll-export-download.test.mjs';
 import './bankroll-analytics-view.test.mjs';
 import './bankroll-staking-math.test.mjs';
 import './bankroll-toke-report.test.mjs';
+import './bankroll-ledger-math.test.mjs';
+import './bankroll-receipts-are-read-kept-and-sent.test.mjs';
 import './bankroll-local-dates.test.mjs';
 import './bankroll-jarvis-session-insights.test.mjs';
 import './toke-dealer-reference.test.mjs';
@@ -379,6 +381,7 @@ import './training-reference-is-public-a.test.mjs';
 import './training-hub-progressive-grid.test.mjs';
 import './training-arena-lobby-ui.test.mjs';
 import './training-global-smarterdesign-click-cards.test.mjs';
+import './preflop-charts-smarterdesign.law.test.mjs';
 import './training-surface-inventory.test.mjs';
 // Training reference pages open to everyone (Dan, 2026-10-12: "THEY SHOULD
 // OPEN TO EVERYONE"): anonymous reads, signed-in writes, no anonymous writes.
@@ -983,6 +986,7 @@ import './trivia-phase3-enhancements.test.mjs';
 import './smarterdesign-standard.test.mjs';
 import './diamond-store-smarterdesign.test.mjs';
 import './trivia-hardening-audit.test.mjs';
+import './jarvis-hand-vision.test.mjs';
 import './trivia-phase4-polish.test.mjs';
 import './a-dropped-connection-is-not-a-stale-build.law.test.mjs';
 

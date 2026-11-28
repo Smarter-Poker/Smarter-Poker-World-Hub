@@ -14,6 +14,8 @@ import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness, recordHandResult } from '../utils/weaknessTracker';
 import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
 import PowerUpBar from '../components/training/PowerUpBar';
+import { Heart, ShieldCheck, Zap } from 'lucide-react';
+import { GameFrame, GameTopBar, GameIntro, GameResult, GameWeakness, GameNote, GameActions, GameShare, GameCoachTip, GameSuggestedNext, GameNextButton, gradeTone } from '../components/memory-games/PreflopGameKit';
 // confetti loaded lazily
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch (e) { console.warn('[App] Handled exception:', e); } }
@@ -222,33 +224,23 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
     }, [gameState, handleAnswer, startGame, onExit]);
 
     const timerPercent = (timeRemaining / currentTimeLimit) * 100;
-    const timerColor = timerPercent > 50 ? '#00ff88' : timerPercent > 25 ? '#ffaa00' : '#ff4444';
+    const timerColor = timerPercent > 50 ? '#00ff88' : timerPercent > 25 ? '#ff8a3d' : '#ff4444';
 
     return (
-        <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <button onClick={onExit} style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>← Exit</button>
-                <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 28, fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</div>
-                {streak > 0 && <div style={{ padding: '6px 12px', background: 'linear-gradient(135deg, #ff6b00, #ff0066)', borderRadius: 20, fontWeight: 700, color: '#fff' }}>{streak}x</div>}
-            </div>
+        <GameFrame style={{ textAlign: 'center' }}>
+            <GameTopBar onExit={onExit} score={score} streak={streak} />
 
             {gameState === 'ready' && (
-                <div style={{ marginTop: 60 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>{'\u26A1'}</div>
-                    <h1 style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 36, color: '#FFD700', marginBottom: 16 }}>SPEED DRILL</h1>
-                    <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
-                        Flash A Hand → Pick The Action → Build Streaks!<br />
-                        Time Gets Shorter The Better You Do.<br />
-                        3 Lives. Don't Lose Them!
-                    </p>
-                    <button onClick={startGame} style={{ padding: '16px 48px', fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#000', border: 'none', borderRadius: 50, cursor: 'pointer' }}>START [SPACE]</button>
-                </div>
+                <GameIntro icon={Zap} kicker="Free Local Practice" title="Speed Drill" onStart={startGame}>
+                    Flash A Hand, Pick The Action, Build Streaks. Time Gets Shorter The Better You Do. Three Lives, So Do Not Lose Them.
+                </GameIntro>
             )}
 
             {(gameState === 'playing' || gameState === 'revealed') && currentHand && (
                 <>
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 8 }}>
-                        {[0, 1, 2].map(i => (<span key={i} style={{ fontSize: 24, opacity: i < lives ? 1 : 0.3 }}>{i < lives && streakFreezeAvailable && i === lives - 1 ? '🛡️' : '❤️'}</span>))}
+                        <span className="sr-only">{lives} Lives Left</span>
+                        {[0, 1, 2].map(i => (<span key={i} aria-hidden="true" style={{ display: 'inline-flex', color: i < lives ? '#ff5c74' : '#40576c' }}>{i < lives && streakFreezeAvailable && i === lives - 1 ? <ShieldCheck size={24} color="#86daff" /> : <Heart size={24} fill={i < lives ? '#ff5c74' : 'none'} />}</span>))}
                     </div>
                     <PowerUpBar
                         powerUps={availablePowerUps}
@@ -258,7 +250,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                         diamondBalance={DiamondEngine?.getBalance() || 0}
                         compact
                     />
-                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 16 }}>{currentHand.scenario.title}</div>
+                    <div style={{ fontSize: 15, color: '#bdd0e2', marginBottom: 16, fontWeight: 600 }}>{currentHand.scenario.title}</div>
                     <CircularTimer
                         percent={timerPercent}
                         color={timerColor}
@@ -267,7 +259,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                         isLow={timerPercent < 25}
                     >
                     <div style={{
-                        width: 140, height: 100, background: 'linear-gradient(145deg, #1a1a2e, #16213e)',
+                        width: 140, height: 100, background: 'linear-gradient(180deg, #0f2236, #050e18)',
                         border: `3px solid ${gameState === 'revealed' ? (lastAnswerCorrect ? '#00ff88' : '#ff4444') : '#00D4FF'}`,
                         borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                         boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
@@ -297,7 +289,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                         {[{ action: 'fold', bg: 'rgba(100,100,100,0.3)', border: '#666', color: '#fff', label: 'FOLD', key: '1' },
                           { action: 'call', bg: 'rgba(16,185,129,0.3)', border: '#10B981', color: '#10B981', label: 'CALL', key: '2' },
                           { action: 'raise', bg: 'rgba(239,68,68,0.3)', border: '#EF4444', color: '#EF4444', label: 'RAISE', key: '3' },
-                          { action: 'allin', bg: 'rgba(168,85,247,0.3)', border: '#A855F7', color: '#D8B4FE', label: 'ALL-IN', key: '4' }].map(btn => {
+                          { action: 'allin', bg: 'rgba(168,85,247,0.3)', border: '#A855F7', color: '#f2f7ff', label: 'ALL-IN', key: '4' }].map(btn => {
                             const isElim = eliminatedAction === btn.action;
                             return (
                                 <button key={btn.action} onClick={() => !isElim && handleAnswer(btn.action)} disabled={gameState !== 'playing' || isElim} style={{ flex: '1 1 80px', minHeight: 52, padding: '14px 20px', fontSize: 16, fontWeight: 700, background: isElim ? 'rgba(50,50,50,0.2)' : btn.bg, border: `2px solid ${isElim ? 'rgba(255,255,255,0.05)' : btn.border}`, borderRadius: 12, color: isElim ? 'rgba(255,255,255,0.15)' : btn.color, cursor: (gameState === 'playing' && !isElim) ? 'pointer' : 'default', opacity: isElim ? 0.25 : (gameState === 'playing' ? 1 : 0.5), position: 'relative', touchAction: 'manipulation', textDecoration: isElim ? 'line-through' : 'none' }}>
@@ -307,9 +299,9 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                         })}
                     </div>
                     {gameState === 'revealed' && (
-                        <button type="button" onClick={handleNext} style={{ width: '100%', minHeight: 52, marginTop: 18, borderRadius: 0, border: '1px solid #9beeff', background: 'linear-gradient(180deg, #23465b, #07121b)', color: '#fff', fontSize: 15, fontWeight: 900, cursor: 'pointer', boxShadow: 'inset 0 1px rgba(255,255,255,0.26), 0 8px 18px rgba(0,0,0,0.38)' }}>
+                        <GameNextButton onClick={handleNext}>
                             {lives <= 0 ? 'View Results →' : 'Next Hand →'}
-                        </button>
+                        </GameNextButton>
                     )}
                 </>
             )}
@@ -318,134 +310,54 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                 const accuracy = handsPlayed > 0 ? Math.round((score / (handsPlayed * 110)) * 100) : 0;
                 const diamondReward = Math.floor(score / 100);
                 const grade = accuracy >= 90 ? 'S' : accuracy >= 80 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 50 ? 'C' : 'D';
-                const gradeColor = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' }[grade];
+                const posCounts = {};
+                mistakesRef.current.forEach(m => { posCounts[m.position] = (posCounts[m.position] || 0) + 1; });
+                const weakRows = Object.entries(posCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
                 return (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} style={{ marginTop: 20 }}>
-                        {/* Score Hero Card */}
-                        <div style={{
-                            background: `linear-gradient(135deg, ${gradeColor}15, ${gradeColor}05)`,
-                            border: `1px solid ${gradeColor}40`,
-                            borderRadius: 20, padding: 28, marginBottom: 20, textAlign: 'center'
-                        }}>
-                            <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
-                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} style={{ marginTop: 12 }}>
+                        <GameResult
+                            grade={grade}
+                            metrics={[
+                                { label: 'Score', value: score.toLocaleString() },
+                                { label: 'Best Streak', value: maxStreak },
+                                { label: 'Hands', value: handsPlayed },
+                            ]}
+                        />
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
-                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
-                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
-                                </div>
-                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
-                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>BEST STREAK</div>
-                                </div>
-                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
-                                    <div style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontSize: 24, fontWeight: 800, color: '#A78BFA' }}>{handsPlayed}</div>
-                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>HANDS</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Animated Accuracy Bar */}
                         <AnimatedAccuracyBar accuracy={accuracy} grade={grade} personalBest={(() => { try { const pb = JSON.parse(localStorage.getItem('pb_speed-drill') || 'null'); return pb?.score ? Math.round((pb.score / (handsPlayed * 110)) * 100) : null; } catch { return null; } })()} />
 
-                        {/* Position Weakness Heatmap */}
                         <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={handsPlayed} />
 
-                        {/* Weakness Analysis */}
-                        {mistakesRef.current.length > 0 && (() => {
-                            const posCounts = {};
-                            mistakesRef.current.forEach(m => { posCounts[m.position] = (posCounts[m.position] || 0) + 1; });
-                            const sorted = Object.entries(posCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
-                            return (
-                                <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#EF4444', letterSpacing: 1.5, marginBottom: 10 }}>{'\u26A0\uFE0F'} WEAKNESS DETECTED</div>
-                                    {sorted.map(([pos, count], i) => (
-                                        <div key={pos} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < sorted.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>{pos}</span>
-                                            <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 700 }}>{count} mistake{count > 1 ? 's' : ''}</span>
-                                        </div>
-                                    ))}
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Focus On These Spots In Your Next Session</div>
-                                </div>
-                            );
-                        })()}
+                        <GameWeakness rows={weakRows} />
 
-                        {/* Diamond Reward */}
                         {!userId && diamondReward > 0 && (
-                            <div style={{
-                                background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
-                                border: '1px solid rgba(0,255,136,0.3)',
-                                borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
-                            }}>
-                                <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
-                                    +{diamondReward} Local Practice Diamonds
-                                </div>
-                            </div>
+                            <GameNote tone="good">+{diamondReward} Local Practice Diamonds</GameNote>
                         )}
 
-                        {/* Actions */}
-                        <div style={{ display: 'flex', gap: 12 }}>
-                            <button onClick={startGame} style={{
-                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 700,
-                                background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#000',
-                                border: 'none', borderRadius: 12, cursor: 'pointer'
-                            }}>PLAY AGAIN</button>
-                            <button onClick={onExit} style={{
-                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 600,
-                                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                                borderRadius: 12, color: '#fff', cursor: 'pointer'
-                            }}>BACK TO MENU</button>
-                        </div>
+                        <GameActions onReplay={startGame} onExit={onExit} />
 
-                        {/* Share */}
-                        <div style={{ textAlign: 'center', marginTop: 12 }}>
-                            <button onClick={() => shareResult({
-                                gameTitle: 'Speed Drill',
-                                grade,
-                                score,
-                                scoreLabel: 'SCORE',
-                                color: '#FFD700',
-                                subtitle: `${handsPlayed} hands \u2022 ${maxStreak} streak`,
-                                stats: [
-                                    { label: 'SCORE', value: score.toLocaleString() },
-                                    { label: 'STREAK', value: maxStreak },
-                                    { label: 'HANDS', value: handsPlayed },
-                                    { label: 'ACCURACY', value: `${accuracy}%` },
-                                ],
-                            })} style={{
-                                padding: '8px 20px', fontSize: 11, fontWeight: 600,
-                                background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: 8, color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
-                            }}>{'\uD83D\uDCF7'} Share Result</button>
-                        </div>
+                        <GameShare onShare={() => shareResult({
+                            gameTitle: 'Speed Drill',
+                            grade,
+                            score,
+                            scoreLabel: 'SCORE',
+                            color: gradeTone(grade),
+                            subtitle: `${handsPlayed} hands \u2022 ${maxStreak} streak`,
+                            stats: [
+                                { label: 'SCORE', value: score.toLocaleString() },
+                                { label: 'STREAK', value: maxStreak },
+                                { label: 'HANDS', value: handsPlayed },
+                                { label: 'ACCURACY', value: `${accuracy}%` },
+                            ],
+                        })} />
 
-                        {/* Coaching Tip */}
-                        <div style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: 10, padding: '12px 16px', marginTop: 12, textAlign: 'left' }}>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: '#00D4FF', letterSpacing: 1.5, marginBottom: 4 }}>{'\uD83C\uDFAF'} COACH TIP</div>
-                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{getCoachingTip(grade)}</div>
-                        </div>
+                        <GameCoachTip>{getCoachingTip(grade)}</GameCoachTip>
 
-                        {/* Suggested Next Game */}
-                        {(() => {
-                            const suggestion = getNextGameSuggestion('speed-drill', grade);
-                            if (!suggestion) return null;
-                            return (
-                                <div style={{
-                                    background: `${suggestion.color}10`, border: `1px solid ${suggestion.color}30`,
-                                    borderRadius: 10, padding: 14, marginTop: 10, textAlign: 'center', cursor: 'pointer'
-                                }} onClick={onExit}>
-                                    <div style={{ fontSize: 10, color: suggestion.color, fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>
-                                        {suggestion.icon} SUGGESTED NEXT
-                                    </div>
-                                    <div style={{ fontSize: 14, color: '#fff', fontWeight: 700 }}>{suggestion.title}</div>
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{suggestion.reason}</div>
-                                </div>
-                            );
-                        })()}
+                        <GameSuggestedNext suggestion={getNextGameSuggestion('speed-drill', grade)} onSelect={onExit} />
                     </motion.div>
                 );
             })()}
-        </div>
+
+        </GameFrame>
     );
 }

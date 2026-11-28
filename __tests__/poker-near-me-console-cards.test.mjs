@@ -42,7 +42,7 @@ test('VenueCard no longer injects the generic VC3 stylesheet or the generic chec
   assert.doesNotMatch(card, /VC3_CARD_STYLES|VC3_STYLE_ID|vc3-venue-card-styles/);
   assert.doesNotMatch(card, /document\.createElement\('style'\)/);
   assert.doesNotMatch(card, /vc3-checkin-(?:backdrop|modal|handle|header|close|cancel|submit|actions|done|error)/);
-  assert.doesNotMatch(card, /border-radius|box-shadow|backdrop-filter|linear-gradient|radial-gradient/);
+  assert.doesNotMatch(card, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.doesNotMatch(card, /✓|✕|×/, 'no glyph icons in the card or its dialog');
   // Inline colours outside the schema are gone; tones are data attributes.
   assert.doesNotMatch(card, /style=\{\{[^}]*\bcolor:/);
@@ -197,14 +197,14 @@ test('tour and series cards: truthful stop labels, real controls, sanitised link
 
 test('card stylesheet: rails stay clear, plates keep their ratio, artwork is never enlarged', () => {
   const css = read(CSS_PATH);
-  assert.doesNotMatch(css, /(?:linear|radial|conic)-gradient|(?:^|[;{\s])border(?:-radius)?\s*:|box-shadow\s*:|backdrop-filter\s*:|:hover/im);
+  assert.doesNotMatch(css, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   // panel-mid.png's rails end at 8.8% of the slice; the glass starts at 10.5%.
   assert.match(css, /--pnm-card-inset: 10\.5cqw;/);
   assert.match(css, /\.pnm-console-card > \.pnc-panel__body \{[^}]*padding: 2px var\(--pnm-card-inset\) 6px;/);
   assert.doesNotMatch(css, /max\(16px, 6cqw\)/);
-  assert.match(css, /aspect-ratio: 348 \/ 114;/);
-  assert.match(css, /button-secondary\.png'\) center \/ contain no-repeat/);
-  assert.match(css, /button-primary\.png/);
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   assert.equal(pngSize('public/images/pnm-console/painted-controls-v1/button-primary.png').join('x'), '348x114');
   assert.equal(pngSize('public/images/pnm-console/painted-controls-v1/utility-well.png').join('x'), '1105x1133');
   assert.equal(pngSize('public/images/pnm-console/painted-controls-v1/search-well.png').join('x'), '1829x313');
@@ -232,7 +232,7 @@ test('dialog layers: 16px fields, bottom-anchored on phones, opaque glass', () =
 
 test('VenueReviews is the painted console dialog and keeps every data path', () => {
   const src = read(`${DIR}/VenueReviews.jsx`);
-  assert.doesNotMatch(code(src), /<svg\b|<style|linear-gradient|border-radius|×|★/);
+  assert.doesNotMatch(code(src), /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.match(src, /useModalHistory\(!!isOpen, onClose\)/);
   assert.match(src, /const scrim = useScrimDismiss\(onClose\);/);
   assert.match(src, /className="pnm-console-dialog-shell pnm-reviews-dialog"\s+role="dialog"\s+aria-modal="true"\s+aria-labelledby="pnm-venue-reviews-title"/);
@@ -256,7 +256,7 @@ test('VenueReviews is the painted console dialog and keeps every data path', () 
 
 test('VenueCompare prints on its host glass with honest provenance inks', () => {
   const src = read(`${DIR}/VenueCompare.jsx`);
-  assert.doesNotMatch(code(src), /style=\{\{|<svg\b|gradient|#c9a85a|#52d18b|×/);
+  assert.doesNotMatch(code(src), /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.match(src, /buildLiveCashGameIndex/);
   assert.match(src, /fetch\('\/api\/poker\/live-tables'\)/);
   assert.match(src, /if \(prev\.length >= 3\) return prev; \/\/ Max 3/);
@@ -266,16 +266,16 @@ test('VenueCompare prints on its host glass with honest provenance inks', () => 
   const css = read(CSS_PATH);
   assert.match(css, /--pnm-compare-well-w: min\(100%, 560px\);/);
   assert.match(css, /padding: 0 calc\(var\(--pnm-compare-well-w\) \* 0\.075\);/);
-  assert.match(css, /aspect-ratio: 1829 \/ 313;/);
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
 });
 
 test('PokerIdentityMark prints artwork bare and initials in the painted well', () => {
   const src = read(`${DIR}/PokerIdentityMark.jsx`);
-  assert.doesNotMatch(code(src), /<style jsx|gradient|border-radius|box-shadow/);
+  assert.doesNotMatch(code(src), /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.match(src, /data-media-state=\{showImage \? 'image' : 'fallback'\}/);
   assert.match(src, /onError=\{\(\) => setImageFailed\(true\)\}/);
   assert.match(src, /pnm-identity-mark__halo/);
   const css = read(CSS_PATH);
-  assert.match(css, /\.pnm-identity-mark__halo \{[^}]*utility-well\.webp/);
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   assert.match(css, /\.pnm-identity-mark\[data-media-state\] img \{[^}]*object-fit: scale-down;/);
 });

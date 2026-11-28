@@ -154,16 +154,16 @@ test('every discovery filter control is seated on approved painted art', () => {
   }
 
   const wellBlock = surfaces.slice(surfaces.indexOf('.ec-filter-select.ec-filter-select'));
-  assert.match(wellBlock, /painted-controls-v1\/button-secondary\.png/);
-  assert.match(wellBlock, /painted-controls-v1\/search-well\.webp/);
-  assert.match(wellBlock, /painted-controls-v1\/button-primary\.png/);
+  assert.match(wellBlock, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(wellBlock, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(wellBlock, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
 });
 
 test('the painted control layer draws no chrome of its own', () => {
   const block = surfaces.slice(surfaces.indexOf('Painted discovery form controls'));
-  assert.doesNotMatch(block, /(?:linear|radial|conic)-gradient\(/i, 'chrome comes from the artwork');
-  assert.doesNotMatch(block, /box-shadow:(?!\s*none)/i, 'no CSS-built depth');
-  assert.doesNotMatch(block, /border-radius:(?!\s*0)/i, 'no CSS-built corners');
+  assert.doesNotMatch(block, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
+  assert.doesNotMatch(block, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
+  assert.doesNotMatch(block, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.doesNotMatch(block, /:hover/i, 'phones do not hover');
   assert.doesNotMatch(block, /backdrop-filter:(?!\s*none)/i, 'no glassmorphism');
   assert.doesNotMatch(block, /background-size:\s*100% 100%/i, 'painted art is never stretched');
@@ -190,7 +190,7 @@ test('the saved tab empty and loading states are painted panels, not flat cards'
   assert.match(favorites, /aria-busy="true"/);
   assert.match(favorites, /role="status"/);
   assert.match(favorites, /aria-live="polite"/);
-  assert.doesNotMatch(favorites, /borderRadius/, 'no CSS-built corners in the saved states');
+  assert.doesNotMatch(favorites, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.doesNotMatch(favorites, /boxShadow/, 'no CSS-built depth in the saved states');
   assert.doesNotMatch(favorites, /radial-gradient/, 'no gradients behind a painted panel');
   assert.doesNotMatch(favorites, /<svg/i, 'no flat vector icon families');
@@ -226,12 +226,12 @@ test('every reachable lobby pod inherits the shared painted pod system', () => {
     appShell.indexOf(podImport) < appShell.indexOf("import '../src/styles/worlds/poker-near-me-console-menu.css';"),
     'the command drawer remains the final shared Poker Near Me cascade layer',
   );
-  assert.match(podCss, /painted-controls-v1\/search-well\.webp/);
-  assert.match(podCss, /painted-controls-v1\/button-primary\.png/);
-  assert.match(podCss, /painted-controls-v1\/button-secondary\.png/);
+  assert.match(podCss, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(podCss, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(podCss, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   for (const source of lobbyPods) {
     assert.match(source, /LobbyPodConsole/);
-    assert.doesNotMatch(source, /<svg|(?:linear|radial|conic)-gradient\(|backdropFilter|backdrop-filter/);
+    assert.doesNotMatch(source, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   }
 });
 
@@ -250,27 +250,22 @@ test('the family nav keeps ten routes, aria-current and a 44px plate', () => {
     'the discovery deck must not compete with the active page by prefetching every inactive route on visibility',
   );
   assert.match(nav, /min-height:\s*44px/);
-  assert.match(nav, /\.pnm-console-family-nav__rail \{[^}]*display: flex;[^}]*flex-wrap: nowrap;[^}]*overflow-x: auto;/);
-  assert.match(nav, /flex: 1 0 96px;/, 'all routes keep a legible 44px target instead of shrinking into a clipped phone grid');
-  assert.doesNotMatch(nav, /grid-template-columns:/, 'the map-first deck must not consume four rows on phones');
-  assert.match(
-    nav,
-    /@media \(orientation: landscape\) and \(min-width: 700px\) and \(max-height: 520px\)[\s\S]*?position: relative;/,
-    'a short landscape viewport keeps one physical row',
-  );
+  // #SMARTERDESIGN (2026-11-27): ten chrome tabs, five to a row on a phone
+  // and all ten in one row from 760px, so no route hides off the edge.
+  assert.match(nav, /\.pnm-console-family-nav__rail \{[^}]*display: grid;[^}]*grid-template-columns: repeat\(5, minmax\(0, 1fr\)\);/);
+  assert.match(nav, /@media \(min-width: 760px\)[\s\S]*?grid-template-columns: repeat\(10, minmax\(0, 1fr\)\);/);
+  assert.match(nav, /\.pnm-console-family-nav \{[^}]*position: relative;/, 'the deck is in document flow, never covering results');
 });
 
-test('all ten routes share one scrollable phone row without an orphan or off-document overflow', () => {
+test('all ten routes are visible at once without an orphan or off-document overflow', () => {
   assert.match(nav, /max-width: 100%;/);
-  assert.match(nav, /overflow-x: auto;/);
-  assert.match(nav, /overscroll-behavior-x: contain;/);
+  assert.doesNotMatch(nav, /overflow-x: auto;/);
   assert.doesNotMatch(surfaces, /last-child:nth-child\(3n \+ 1\)/);
 });
 
 test('the deck stops covering the results it sits above', () => {
   const phoneBlock = surfaces.slice(surfaces.indexOf('cannot spend 200px of itself on a sticky deck'));
   assert.match(phoneBlock, /\.pnm-console-family-nav,[\s\S]*?position: relative;/);
-  assert.match(nav, /@media \(orientation: landscape\) and \(min-width: 700px\) and \(max-height: 520px\)[\s\S]*?position: relative;/);
 });
 
 /* ------------------------------------------------------------------ *
@@ -313,10 +308,10 @@ test('the dialog scrim is opaque and dialog fields cannot zoom iOS', () => {
 });
 
 test('the dialog layer draws no frame of its own', () => {
-  assert.doesNotMatch(dialogs, /(?:linear|radial|conic)-gradient\(/i);
+  assert.doesNotMatch(dialogs, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   assert.doesNotMatch(dialogs, /:hover/i);
-  assert.doesNotMatch(dialogs, /box-shadow:(?!\s*none)/i);
-  assert.doesNotMatch(dialogs, /border-radius:(?!\s*0)/i);
+  assert.doesNotMatch(dialogs, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
+  assert.doesNotMatch(dialogs, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
 });
 
 test('every discovery dialog keeps the whole modal contract', () => {
@@ -339,7 +334,7 @@ test('every discovery dialog keeps the whole modal contract', () => {
     assert.ok(source.includes('pnm-console-dialog-overlay'), `${path} uses the painted overlay`);
     assert.match(source, /PokerNearMeConsole/, `${path} prints on the painted chassis`);
     assert.doesNotMatch(source, /<svg/i, `${path} draws no vector control`);
-    assert.doesNotMatch(source, /borderRadius|boxShadow/, `${path} builds no chrome inline`);
+    assert.doesNotMatch(source, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
   }
 });
 

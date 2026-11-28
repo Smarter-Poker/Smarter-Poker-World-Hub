@@ -12,7 +12,7 @@ body.world-poker-near-me {
   --pnm-v2-gunmetal: #26323c;
   --pnm-v2-chrome: #aab8c4;
   --pnm-v2-energy: #48c7ff;
-  --pnm-v2-gold: #c9a85a;
+  --pnm-v2-gold: #5aa4c9;
   --pnm-v2-edge: rgba(170, 184, 196, 0.28);
   --pnm-v2-inset: inset 0 1px 0 rgba(255, 255, 255, 0.055), inset 0 0 0 1px rgba(0, 0, 0, 0.8);
 }
@@ -118,14 +118,14 @@ body.world-poker-near-me .vc3-badge-live {
 
 body.world-poker-near-me .vc3-badge-modeled,
 body.world-poker-near-me .vc3-cash-count[data-modeled='true'] {
-  color: #ead5a8 !important;
-  border-color: rgba(201, 168, 90, 0.44) !important;
+  color: #a8d4ea !important;
+  border-color: rgba(90, 164, 201, 0.44) !important;
   background: rgba(64, 47, 16, 0.42) !important;
 }
 
 body.world-poker-near-me .vc3-badge-modeled .vc3-live-dot {
   background: var(--pnm-v2-gold) !important;
-  box-shadow: 0 0 8px rgba(201, 168, 90, 0.52) !important;
+  box-shadow: 0 0 8px rgba(90, 164, 201, 0.52) !important;
 }
 
 body.world-poker-near-me .vc3-cash-count {
@@ -140,8 +140,8 @@ body.world-poker-near-me .vc3-cash-count {
 }
 
 body.world-poker-near-me .pnm-location-card__cash[data-modeled='true'] {
-  color: #ead5a8;
-  border-color: rgba(201, 168, 90, 0.42);
+  color: #a8d4ea;
+  border-color: rgba(90, 164, 201, 0.42);
   background: rgba(64, 47, 16, 0.36);
 }
 

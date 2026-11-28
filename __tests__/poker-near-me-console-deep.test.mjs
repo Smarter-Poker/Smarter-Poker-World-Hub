@@ -126,7 +126,7 @@ test('venue map and premium actions retain full painted touch targets', () => {
   const owner = css.match(/body\.world-poker-near-me \.map-actions :is\(\.directions-btn, \.viewmap-btn\),\s*body\.world-poker-near-me \.peak-analytics-upgrade \{([^}]+)\}/);
   assert.ok(owner, 'both map actions and the premium overlay share the painted control owner');
   assert.match(owner[1], /min-height: 52px/);
-  assert.match(owner[1], /button-secondary\.png/);
+  assert.match(owner[1], /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   assert.match(owner[1], /max-width: 100%/);
   assert.match(read('pages/hub/venues/[id].js'), /className="peak-analytics-upgrade"/);
 });
@@ -183,8 +183,8 @@ test('venue schedule and live report states use complete painted panels without 
   assert.match(page, /disabled=\{reportSubmitting \|\| !reportForm.stakes.trim\(\)\}/);
   assert.match(page, /venue.schedule_read_error \? 'Tournament Schedule Could Not Be Loaded/);
   const css = read('src/styles/worlds/poker-near-me-console-deep.css');
-  assert.match(css, /\.venue-console-body[\s\S]*button-primary\.png/);
-  assert.match(css, /\.venue-console-body[\s\S]*utility-well\.webp/);
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
 });
 
 test('observed intelligence carries painted rails in loading, empty and populated states', () => {
@@ -346,9 +346,9 @@ test('the series directory row is painted, not a CSS card', () => {
   assert.doesNotMatch(page, /\.tour-card-premium:hover/);
   assert.match(page, /body\.world-poker-near-me \.pnc-panel\.tour-card-premium \{[\s\S]*?background-image: none !important/);
   assert.match(page, /body\.world-poker-near-me \.pnc-panel\.tour-card-premium \{[\s\S]*?border-radius: 0 !important/);
-  assert.match(page, /painted-controls-v1\/button-primary\.png/);
-  assert.match(page, /painted-controls-v1\/button-secondary\.png/);
-  assert.doesNotMatch(page, /\.tour-action-btn\.primary \{\s*background: linear-gradient/);
+  assert.match(page, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(page, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.doesNotMatch(page, /painted-controls-v1\/(?:button-(?:primary|secondary)\.png|search-well\.webp)/, 'no retired painted plate or well (2026-11-27)');
 });
 
 test('the save control clears the room-type label and meets the target floor', () => {
@@ -399,8 +399,8 @@ test('the series detail page is on the painted chassis, not on glass cards', () 
   const closed = (page.match(/<\/PokerNearMePanelShell>/g) || []).length;
   assert.equal(opened, closed);
   assert.ok(opened >= 6, 'expected at least six painted panels, found ' + opened);
-  assert.match(page, /painted-controls-v1\/button-primary\.png/);
-  assert.match(page, /painted-controls-v1\/button-secondary\.png/);
+  assert.match(page, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
+  assert.match(page, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   // A missing series keeps the branch it already had.
   assert.match(page, /title="Series Not Found"/);
   assert.match(page, /noindex=\{true\}/);

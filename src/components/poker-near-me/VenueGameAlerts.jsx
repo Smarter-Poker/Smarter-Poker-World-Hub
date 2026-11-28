@@ -312,13 +312,13 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
             const state = getRunningState(alert.venue_name, alert.game_type);
             const running = state === 'live';
             const estimated = state === 'estimated';
-            const dot = running ? '#4ade80' : estimated ? '#fbbf24' : '#64748b';
+            const dot = running ? '#4ade80' : estimated ? '#bfe6ff' : '#64748b';
             return (
               <div key={alert.id} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '10px 12px', borderRadius: 10,
-                background: running ? 'rgba(34,197,94,0.06)' : estimated ? 'rgba(251,191,36,0.05)' : 'rgba(255,255,255,0.03)',
-                border: running ? '1px solid rgba(34,197,94,0.15)' : estimated ? '1px solid rgba(251,191,36,0.15)' : '1px solid transparent',
+                background: running ? 'rgba(34,197,94,0.06)' : estimated ? 'rgba(191,230,255,0.05)' : 'rgba(255,255,255,0.03)',
+                border: running ? '1px solid rgba(34,197,94,0.15)' : estimated ? '1px solid rgba(191,230,255,0.15)' : '1px solid transparent',
               }}>
                 <div style={{
                   width: 8, height: 8, borderRadius: '50%',
@@ -338,8 +338,8 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
                     )}
                     {estimated && (
                       <span style={{
-                        fontSize: 12, color: '#fbbf24', fontWeight: 700,
-                        background: 'rgba(251,191,36,0.12)', padding: '1px 6px', borderRadius: 4,
+                        fontSize: 12, color: '#bfe6ff', fontWeight: 700,
+                        background: 'rgba(191,230,255,0.12)', padding: '1px 6px', borderRadius: 4,
                       }} title="Modelled from historical activity, not a live count">LIKELY RUNNING (EST.)</span>
                     )}
                   </div>
@@ -373,12 +373,12 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
             {liveGameTypes.map(({ game, count, estimated }) => (
               <div key={game} style={{
                 padding: '4px 10px', borderRadius: 6, fontSize: 12,
-                background: estimated ? 'rgba(251,191,36,0.07)' : 'rgba(0,212,255,0.08)',
-                border: `1px solid ${estimated ? 'rgba(251,191,36,0.18)' : 'rgba(0,212,255,0.15)'}`,
+                background: estimated ? 'rgba(191,230,255,0.07)' : 'rgba(0,212,255,0.08)',
+                border: `1px solid ${estimated ? 'rgba(191,230,255,0.18)' : 'rgba(0,212,255,0.15)'}`,
                 color: '#94a3b8', cursor: 'default',
               }} title={estimated ? 'Estimated from historical activity' : 'Reported table count'}>
                 {game}{' '}
-                <span style={{ color: estimated ? '#fbbf24' : '#00d4ff', fontWeight: 600 }}>
+                <span style={{ color: estimated ? '#bfe6ff' : '#00d4ff', fontWeight: 600 }}>
                   ({count}{estimated ? ' est.' : ''})
                 </span>
               </div>
