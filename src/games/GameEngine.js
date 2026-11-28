@@ -174,6 +174,8 @@ export const EffectsEngine = {
     // Particle burst (CSS-based)
     particles(x, y, count = 10, color = '#00ff88') {
         if (typeof document === 'undefined') return;
+        // No particle burst for players who ask for less motion.
+        if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
         for (let i = 0; i < count; i++) {
             const particle = document.createElement('div');
             particle.style.cssText = `

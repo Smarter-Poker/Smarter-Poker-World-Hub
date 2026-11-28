@@ -14,7 +14,7 @@ const SHELL = read('src/components/memory-games/PreflopSubpageShell.jsx');
 const NAV = read('src/components/memory-games/PreflopSubpageNav.jsx');
 const MAIN = read('pages/hub/memory-games.js');
 const SESSION_SERVICE = read('src/services/GameSessionService.js');
-const CSS = read('src/styles/worlds/memory-games.css');
+const CSS = read('src/styles/worlds/preflop-smarterdesign.css');
 
 test('all canonical subpages share the responsive command shell', () => {
   for (const page of [LEADERBOARD, STATS, ACHIEVEMENTS, TUTORIAL]) assert.match(page, /PreflopSubpageShell/);

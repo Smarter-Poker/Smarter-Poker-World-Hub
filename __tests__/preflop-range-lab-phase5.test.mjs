@@ -6,7 +6,7 @@ import test from 'node:test';
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const PAGE = read('pages/hub/memory-games.js');
-const CSS = read('src/styles/worlds/memory-games.css');
+const CSS = read('src/styles/worlds/preflop-smarterdesign.css');
 const DIAMOND_ENGINE = read('src/services/DiamondEngine.js');
 
 test('the page relies on shared service clients and follows authenticated user changes', () => {

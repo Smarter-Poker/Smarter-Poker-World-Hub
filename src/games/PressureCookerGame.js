@@ -239,7 +239,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                             <div style={{ fontSize: 36, fontFamily: "var(--font-rajdhani), 'Rajdhani'", fontWeight: 900, color: '#fff' }}>{currentHand.hand}</div>
                             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{currentHand.hand.length === 2 ? 'Pair' : currentHand.hand.endsWith('s') ? 'Suited' : 'Offsuit'}</div>
                         </div>
-                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{handsCompleted}/{handsRequired} Hands</div>
+                        <div style={{ fontSize: 12, color: '#bdd0e2', marginTop: 4 }}>{handsCompleted}/{handsRequired} Hands</div>
                     </CircularTimer>
                     {gameState === 'revealed' && (
                         <div aria-live="assertive" style={{ marginBottom: 16, border: `2px solid ${lastAnswerCorrect ? '#00ff88' : '#ff5c74'}`, background: lastAnswerCorrect ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,92,0.12)', padding: 14, borderRadius: 0 }}>

@@ -130,7 +130,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                         const action = solution[hand];
                         const color = action === 'raise' ? '#EF4444' : action === 'call' ? '#10B981' : 'rgba(100,100,100,0.3)';
                         return (
-                            <div key={hand} style={{ width: '100%', aspectRatio: '1', minWidth: 0, background: isVisible ? color : 'rgba(255,255,255,0.05)', borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: isVisible ? '#fff' : 'rgba(255,255,255,0.2)', fontWeight: 600 }}>
+                            <div key={hand} style={{ width: '100%', aspectRatio: '1', minWidth: 0, background: isVisible ? color : 'rgba(255,255,255,0.05)', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: isVisible ? '#fff' : 'rgba(189,208,226,0.75)', fontWeight: 600 }}>
                                 {isVisible ? hand.substring(0, 2) : '?'}
                             </div>
                         );

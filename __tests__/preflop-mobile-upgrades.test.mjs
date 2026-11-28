@@ -23,7 +23,7 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const EM_DASH = String.fromCharCode(0x2014);
 
 const PAGE = 'pages/hub/memory-games.js';
-const CSS = 'src/styles/worlds/memory-games.css';
+const CSS = 'src/styles/worlds/preflop-smarterdesign.css';
 const TUTORIAL = 'src/tutorials/preflop-charts.js';
 const COMPONENT_DIR = 'src/components/memory-games';
 const SUBPAGES = ['achievements', 'leaderboard', 'stats', 'tutorial'].map((p) => `pages/hub/memory-games/${p}.js`);
@@ -126,7 +126,7 @@ test('no rail, no snap, no hidden scrollbar: the mode grid and section nav wrap'
   assert.match(rail, /tabIndex=\{selected === item\.key \? 0 : -1\}/, 'roving tabindex kept');
 });
 
-test('memory-games.css uses only the 900 / 768 / 600 boundaries', () => {
+test('the Preflop stylesheet uses only the 900 / 768 / 600 boundaries', () => {
   const css = read(CSS);
   const queries = [...css.matchAll(/@media\s*\(([^)]+)\)/g)].map((m) => m[1].trim());
   const widths = queries.filter((q) => /width/.test(q));

@@ -6,7 +6,8 @@
  * WORLD HUB PAGE."
  *
  * Pins the parts of that upgrade a later change could quietly undo:
- *   - the chrome layer loads after memory-games.css and styles/smarterdesign.css;
+ *   - one stylesheet (memory-games.css folded in) loads after styles/smarterdesign.css
+ *     and needs no doubled body class;
  *   - every Preflop Charts surface, subpage and game screen is free of gold,
  *     amber, yellow, violet, purple, pink and magenta TYPE (docs/SMARTERDESIGN.md,
  *     Color). The six Range Lab action colours are data fills and are allowed;
@@ -26,7 +27,7 @@ const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 const APP = read('pages/_app.js');
 const LAYER = read('src/styles/worlds/preflop-smarterdesign.css');
-const MEMORY_CSS = read('src/styles/worlds/memory-games.css');
+const MEMORY_CSS = read('src/styles/worlds/preflop-smarterdesign.css');
 const PAGE = read('pages/hub/memory-games.js');
 const SHELL = read('src/components/memory-games/PreflopSubpageShell.jsx');
 const KIT = read('src/components/memory-games/PreflopGameKit.jsx');
@@ -54,7 +55,7 @@ const SURFACE_FILES = [
   'src/components/training/PositionWeaknessHeatmap.jsx',
   'src/components/training/PowerUpBar.jsx',
   'src/utils/powerUps.js',
-  'src/styles/worlds/memory-games.css',
+  'src/styles/worlds/preflop-smarterdesign.css',
   'src/styles/worlds/preflop-smarterdesign.css',
   ...GAME_FILES,
   'src/games/SpotTrainerGame.jsx',
@@ -74,12 +75,17 @@ const DATA_ONLY = /raise_big|'3bet'|ALL IN|all_in|allin|RAISE BIG/;
 // and arrows are text glyphs (CLAUDE.md: "Use plain text or Unicode symbols").
 const EMOJI = /[\u{1F300}-\u{1FAFF}\u{FE0F}]|\\uD83[CDE]|\\uFE0F/u;
 
-test('the Preflop Charts chrome layer loads after the base styles', () => {
-  const memory = APP.indexOf("import '../src/styles/worlds/memory-games.css';");
+test('Preflop Charts has one stylesheet, loaded after the shared #SMARTERDESIGN styles', () => {
+  // memory-games.css was folded in on 2026-11-28; a second Preflop file would
+  // bring back the override war the doubled body class used to fight.
+  assert.ok(!fs.existsSync(path.join(ROOT, 'src/styles/worlds/memory-games.css')), 'memory-games.css stays retired');
+  assert.doesNotMatch(APP, /memory-games\.css/);
   const sd = APP.indexOf("import '../styles/smarterdesign.css';");
   const layer = APP.indexOf("import '../src/styles/worlds/preflop-smarterdesign.css';");
-  assert.ok(memory > 0 && sd > 0 && layer > 0, 'all three stylesheets are imported');
-  assert.ok(layer > memory && layer > sd, 'the layer comes after the styles it overrides');
+  assert.ok(sd > 0 && layer > sd, 'the Preflop stylesheet comes after styles/smarterdesign.css');
+  assert.doesNotMatch(LAYER, /world-preflop-charts\.world-preflop-charts/, 'no doubled body class');
+  assert.ok(LAYER.indexOf('═══ 1. STRUCTURE') < LAYER.indexOf('═══ 2. #SMARTERDESIGN DRESS'), 'structure, then dress');
+  assert.ok(LAYER.indexOf('═══ 2. #SMARTERDESIGN DRESS') < LAYER.indexOf('═══ 3. ACCESSIBILITY'), 'dress, then accessibility');
   for (const asset of ['chrome-readout.webp', 'chrome-row.webp', 'chrome-stat.webp', 'chrome-active-v2.webp']) {
     assert.match(LAYER, new RegExp(asset.replace('.', '\\.')), `${asset} rims the surfaces`);
     assert.ok(fs.existsSync(path.join(ROOT, 'public/images/smarterdesign', asset)), `${asset} exists`);
@@ -169,7 +175,7 @@ test('signed-in pass: no leftover gold or violet tokens, chrome SEO block, FAQ i
   assert.match(reference, /chrome-row\.webp/, 'each reference block sits in the chrome row rim');
   // The shared FaqSection sets no font family, so on this page it fell back to
   // the browser serif. The fix is scoped to Preflop Charts in the layer.
-  assert.match(LAYER, /body\.world-preflop-charts\.world-preflop-charts \.faq-section/);
+  assert.match(LAYER, /body\.world-preflop-charts \.faq-section/);
   assert.match(LAYER, /\.preflop-session-time\s*\{[^}]*text-transform:\s*none/);
   const stats = read('pages/hub/memory-games/stats.js');
   assert.doesNotMatch(stats, /LEGACY LOCAL ARCHIVE|LAST 12 LOCAL ARCHIVE RUNS|Recent trend/, 'My Stats copy is Title Case');

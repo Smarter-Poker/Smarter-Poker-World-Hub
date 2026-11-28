@@ -69,7 +69,7 @@ export default function PowerUpBar({
                                     : `1px solid ${canAfford ? pu.color + '40' : 'rgba(255,255,255,0.08)'}`,
                             borderRadius: 0,
                             borderImage: isActive ? 'none' : "url('/images/smarterdesign/chrome-stat.webp') 11 / 3px stretch",
-                            minHeight: 36,
+                            minHeight: 44,
                             cursor: isDisabled ? 'default' : 'pointer',
                             opacity: isDisabled ? 0.35 : 1,
                             transition: 'all 0.2s ease',
