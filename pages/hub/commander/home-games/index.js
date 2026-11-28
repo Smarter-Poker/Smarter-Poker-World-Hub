@@ -15,7 +15,7 @@ import GameCalendar from '../../../../src/components/commander/home-games/GameCa
 import { supabase } from '../../../../src/lib/supabase';
 import { usePersistedFilters } from '../../../../src/hooks/usePersistedFilters';
 import { getAccessToken, ensureAuthReady } from '../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import useAccessibleDialog from '../../../../src/hooks/useAccessibleDialog';
 
 /* Inline HomeGameCard replaced by shared GroupCard component */
@@ -648,3 +648,5 @@ export default function PlayerHomeGamesHub() {
     </CommanderPageShell>
   );
 }
+
+PlayerHomeGamesHub.getLayout = commanderPageLayout;

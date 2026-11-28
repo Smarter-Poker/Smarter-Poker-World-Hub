@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, Users, Clock, CreditCard, Globe } from 'lucide-react';
 import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
-import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../src/components/commander/CommanderPageShell';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 // NOTE: PushNotificationProvider removed - _app.js OneSignalProvider covers all pages globally
@@ -499,3 +499,5 @@ export default function CommanderHub() {
     </>
   );
 }
+
+CommanderHub.getLayout = commanderPageLayout;

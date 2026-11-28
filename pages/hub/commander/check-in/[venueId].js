@@ -9,7 +9,7 @@ import Head from 'next/head';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
 import { getFreshAccessToken } from '../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import { publicPromotionsUrl, publicVenueGamesUrl, normalizePublicPromotion, normalizePublicGame } from '../../../../src/lib/commanderPublicReads';
 import {
   CheckCircle,
@@ -319,3 +319,5 @@ export default function PlayerCheckInPage() {
     </CommanderPageShell>
   );
 }
+
+PlayerCheckInPage.getLayout = commanderPageLayout;

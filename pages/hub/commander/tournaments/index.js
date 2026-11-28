@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken, ensureAuthReady } from '../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 function TournamentCard({ tournament, onRegister, isRegistered, isAlternate }) {
   const router = useRouter();
@@ -363,3 +363,5 @@ export default function PlayerTournamentsHub() {
     </CommanderPageShell>
   );
 }
+
+PlayerTournamentsHub.getLayout = commanderPageLayout;

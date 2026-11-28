@@ -11,16 +11,16 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 55,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 428,
-    "componentFiles": 73,
+    "dependencyFiles": 429,
+    "componentFiles": 74,
     "hookFiles": 16,
-    "ctas": 501,
+    "ctas": 502,
     "dialogs": 26,
     "persistenceFiles": 100,
     "realtimeFiles": 7,
-    "tests": 213,
+    "tests": 215,
     "markerCandidates": 408,
-    "possibleUnwiredFunctions": 522,
+    "possibleUnwiredFunctions": 523,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
     "routeStateUnassignedGaps": 0,
@@ -5135,6 +5135,7 @@
         "pages/hub/training/hand-history-upload.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -5258,6 +5259,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/hand-history-upload.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -5850,6 +5852,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -6199,6 +6202,7 @@
           "evidence": [
             "src/components/gates/FeatureGatePopup.jsx",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -6438,6 +6442,7 @@
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -6841,6 +6846,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
@@ -6952,6 +6958,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -7237,6 +7244,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -7315,6 +7323,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -7600,6 +7609,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -8032,6 +8042,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -8284,6 +8295,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
@@ -8631,6 +8643,7 @@
         "pages/hub/training/coach-mode.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -8744,6 +8757,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/hooks/useTrainingFeedback.js",
@@ -8818,6 +8832,7 @@
         "pages/hub/training/community-leaderboard.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -8921,6 +8936,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -8983,6 +8999,7 @@
         "pages/hub/training/custom-rake.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -9077,6 +9094,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -9141,6 +9159,7 @@
         "pages/hub/training/custom-solve.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -9327,6 +9346,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -9418,6 +9438,7 @@
         "src/components/poker/FeedbackCard.jsx",
         "src/components/poker/QuizAnswer.jsx",
         "src/components/seo/CitationBacklinkBox.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -9563,6 +9584,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/daily-challenge.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/hooks/useTrainingFeedback.js",
@@ -9808,6 +9830,7 @@
         "pages/hub/training/drill-builder.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -9922,6 +9945,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -10376,6 +10400,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -10661,6 +10686,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -10735,6 +10761,7 @@
         "pages/hub/training/famous-finals.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -10825,6 +10852,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -10892,6 +10920,7 @@
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -11300,6 +11329,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
@@ -11412,6 +11442,7 @@
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/poker/ProgressStrip.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -11581,6 +11612,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/flashcards.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -11653,6 +11685,7 @@
         "pages/hub/training/focus-timer.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -11745,6 +11778,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/focus-timer.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -11809,6 +11843,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -12094,6 +12129,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -12339,6 +12375,7 @@
         "pages/hub/training/gto-news.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -12443,6 +12480,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/gto-news.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -12507,6 +12545,7 @@
         "pages/hub/training/gto-preloader.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -12619,6 +12658,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -12980,6 +13020,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -13265,6 +13306,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -13340,6 +13382,7 @@
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/poker/PlayingCard.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -13426,6 +13469,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/hand-comparison.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -13482,6 +13526,7 @@
         "pages/hub/training/hand-history-upload.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -13623,6 +13668,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/hand-history-upload.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -13714,6 +13760,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -13976,6 +14023,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
@@ -14363,6 +14411,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -14658,6 +14707,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -14740,6 +14790,7 @@
         "pages/hub/training/icm-simulator.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -14910,6 +14961,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -14988,6 +15040,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -15221,6 +15274,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
@@ -15322,6 +15376,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -15594,6 +15649,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/leaderboard.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
@@ -16229,6 +16285,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -16514,6 +16571,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -16591,6 +16649,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -16905,6 +16964,7 @@
           "evidence": [
             "pages/hub/training/multi-table.js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -17007,6 +17067,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -17292,6 +17353,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -17366,6 +17428,7 @@
         "pages/hub/training/multiway-preflop.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -17456,6 +17519,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -17638,6 +17702,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -17923,6 +17988,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -18911,6 +18977,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -19206,6 +19273,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -19288,6 +19356,7 @@
         "pages/hub/training/position-mastery.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -19390,6 +19459,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -19460,6 +19530,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -19745,6 +19816,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -19823,6 +19895,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -20108,6 +20181,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -20182,6 +20256,7 @@
         "pages/hub/training/preflop-charts.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -20351,6 +20426,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -21127,6 +21203,7 @@
         "pages/hub/training/qre-explorer.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -21222,6 +21299,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -21291,6 +21369,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -21591,6 +21670,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -21677,6 +21757,7 @@
         "pages/hub/training/quiz-builder.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -21865,6 +21946,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/quiz-builder.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -22330,6 +22412,7 @@
         "pages/hub/training/rake-solutions.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -22414,6 +22497,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -22474,6 +22558,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -22759,6 +22844,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -22833,6 +22919,7 @@
         "pages/hub/training/range-builder.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -22939,6 +23026,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -23012,6 +23100,7 @@
         "pages/hub/training/range-explorer.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -23153,6 +23242,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -23594,6 +23684,7 @@
         "pages/hub/training/risk-analyzer.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -23682,6 +23773,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/risk-analyzer.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -23741,6 +23833,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/QuizAnswer.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -23833,6 +23926,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/hooks/useTrainingFeedback.js",
@@ -24188,6 +24282,7 @@
         "pages/hub/training/session-warmup.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -24275,6 +24370,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/session-warmup.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -24332,6 +24428,7 @@
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/poker/QuizAnswer.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -24431,6 +24528,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/hooks/useTrainingFeedback.js",
@@ -24492,6 +24590,7 @@
         "pages/hub/training/skill-tree.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -24610,6 +24709,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -24684,6 +24784,7 @@
       },
       "reachableFiles": [
         "pages/hub/training/solutions.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -24847,6 +24948,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/hooks/usePersistedFilters.js",
@@ -24949,6 +25051,7 @@
         "pages/hub/training/spot-trainer.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -25084,6 +25187,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -25177,6 +25281,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -25472,6 +25577,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -26172,6 +26278,7 @@
         "pages/hub/training/study-group-finder.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -26285,6 +26392,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -26757,6 +26865,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -27042,6 +27151,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -27116,6 +27226,7 @@
         "pages/hub/training/tilt-guard.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -27221,6 +27332,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -27288,6 +27400,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -27502,6 +27615,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
@@ -27974,6 +28088,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -28253,6 +28368,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/tournaments.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/store/DiamondWalletModal.jsx",
@@ -28520,6 +28636,7 @@
         "pages/hub/training/training-feed.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -28638,6 +28755,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -28712,6 +28830,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -28997,6 +29116,7 @@
           "evidence": [
             "pages/hub/training/arena/[gameId].js",
             "src/components/poker/PokerSoundManager.js",
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/GTOQuestionCard.jsx",
@@ -29071,6 +29191,7 @@
         "pages/hub/training/weakness-scanner.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -29179,6 +29300,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/seo/Day0IntentRouter.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
@@ -48388,6 +48510,104 @@
       "markers": []
     },
     {
+      "file": "src/components/seo/Day0IntentRouter.jsx",
+      "imports": [
+        "src/lib/seo/seoFunnelTelemetry.js"
+      ],
+      "links": [
+        "/hub/training"
+      ],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [
+        {
+          "element": "link",
+          "name": "<dynamic>",
+          "line": 205,
+          "handler": "() => handleIntentSelect(tile)",
+          "destination": "tile.href",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        }
+      ],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": true,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "saveDay0Intent",
+          "line": 47,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "readDay0Intent",
+          "line": 64,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "TieredReferralMilestones",
+          "line": 78,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "Day0IntentRouter",
+          "line": 126,
+          "references": 1,
+          "exported": true,
+          "defaultExport": true,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "handleIntentSelect",
+          "line": 138,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "Day0IntentRouter"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/components/seo/HubPageSummary.js",
       "imports": [
         "src/components/seo/SmarterConversionCta.jsx",
@@ -49110,6 +49330,7 @@
     {
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "imports": [
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/supabase.js"
       ],
@@ -49124,7 +49345,7 @@
         {
           "element": "link",
           "name": "Claim 30-Day VIP + 500 Diamonds",
-          "line": 597,
+          "line": 619,
           "handler": "() => dismiss('claim-vip')",
           "destination": "/hub/verify-phone?welcome=1",
           "type": null,
@@ -49134,7 +49355,7 @@
         {
           "element": "link",
           "name": "Launch 107 GTO Games",
-          "line": 605,
+          "line": 627,
           "handler": "() => dismiss('launch-training')",
           "destination": "/hub/training",
           "type": null,
@@ -49144,7 +49365,7 @@
         {
           "element": "button",
           "name": "Dismiss Account Unlocked Banner",
-          "line": 613,
+          "line": 635,
           "handler": "() => dismiss('dismiss')",
           "destination": null,
           "type": "button",
@@ -49154,7 +49375,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 670,
+          "line": 699,
           "handler": "() => markDay0Win(item.id)",
           "destination": "item.href",
           "type": null,
@@ -49164,7 +49385,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 732,
+          "line": 761,
           "handler": "() => dismiss(`gravity-${link.href}`)",
           "destination": "link.href",
           "type": null,
@@ -49174,7 +49395,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 769,
+          "line": 808,
           "handler": "handleCopyInviteLink",
           "destination": null,
           "type": "button",
@@ -49254,7 +49475,7 @@
         },
         {
           "name": "buildDay0ChecklistState",
-          "line": 240,
+          "line": 241,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -49262,7 +49483,7 @@
         },
         {
           "name": "resolveHubGravityLinks",
-          "line": 268,
+          "line": 269,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -49270,7 +49491,7 @@
         },
         {
           "name": "readLocalSavedSpotCount",
-          "line": 321,
+          "line": 322,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -49278,7 +49499,7 @@
         },
         {
           "name": "readCompletedDay0Wins",
-          "line": 333,
+          "line": 334,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -49286,7 +49507,7 @@
         },
         {
           "name": "hasStoredAuthSession",
-          "line": 345,
+          "line": 346,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -49294,7 +49515,7 @@
         },
         {
           "name": "readStoredMemberIdentity",
-          "line": 357,
+          "line": 358,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -49302,7 +49523,7 @@
         },
         {
           "name": "recordPendingSeoUnlock",
-          "line": 392,
+          "line": 393,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -49310,7 +49531,7 @@
         },
         {
           "name": "promotePendingSeoUnlock",
-          "line": 407,
+          "line": 408,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -49318,7 +49539,7 @@
         },
         {
           "name": "resolveWelcomeBody",
-          "line": 432,
+          "line": 433,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -49326,7 +49547,7 @@
         },
         {
           "name": "SmarterUnlockedWelcomeBanner",
-          "line": 443,
+          "line": 444,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -49334,14 +49555,6 @@
         },
         {
           "name": "handleCopyInviteLink",
-          "line": 507,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "markDay0Win",
           "line": 529,
           "references": 2,
           "exported": false,
@@ -49349,8 +49562,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "markDay0Win",
+          "line": 551,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "dismiss",
-          "line": 550,
+          "line": 572,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -88143,6 +88364,10 @@
       "to": "src/lib/seo/solvedSpotEngine.js"
     },
     {
+      "from": "src/components/seo/Day0IntentRouter.jsx",
+      "to": "src/lib/seo/seoFunnelTelemetry.js"
+    },
+    {
       "from": "src/components/seo/HubPageSummary.js",
       "to": "src/components/seo/SmarterConversionCta.jsx"
     },
@@ -88193,6 +88418,10 @@
     {
       "from": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "to": "src/lib/supabase.js"
+    },
+    {
+      "from": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
+      "to": "src/components/seo/Day0IntentRouter.jsx"
     },
     {
       "from": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -89709,6 +89938,7 @@
     "src/components/sandbox/paTokens.js",
     "src/components/seo/AiPromptLauncher.js",
     "src/components/seo/CitationBacklinkBox.js",
+    "src/components/seo/Day0IntentRouter.jsx",
     "src/components/seo/HubPageSummary.js",
     "src/components/seo/SEOHead.js",
     "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -89829,6 +90059,8 @@
     "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
     "__tests__/otc-tier6-calculator-ecosystem-20261128.law.test.mjs",
     "__tests__/otc-tier7-all-calculators-savebar-20261128.law.test.mjs",
+    "__tests__/otc-tier8-hand-paste-teaser-and-link-mesh-20261128.law.test.mjs",
+    "__tests__/otc-tier8-returning-guest-and-day0-onboarding-20261128.law.test.mjs",
     "__tests__/owner-only-hub-cards.test.mjs",
     "__tests__/pa-forensic-review-auth.law.test.mjs",
     "__tests__/pa-review-workstation.test.mjs",
@@ -94253,6 +94485,19 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
+      "id": "src/components/seo/Day0IntentRouter.jsx:205:1",
+      "file": "src/components/seo/Day0IntentRouter.jsx",
+      "element": "link",
+      "name": "<dynamic>",
+      "line": 205,
+      "handler": "() => handleIntentSelect(tile)",
+      "destination": "tile.href",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "src/components/seo/Day0IntentRouter.jsx"
+    },
+    {
       "id": "src/components/seo/HubPageSummary.js:1658:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
@@ -94448,11 +94693,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:597:1",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:619:1",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "Claim 30-Day VIP + 500 Diamonds",
-      "line": 597,
+      "line": 619,
       "handler": "() => dismiss('claim-vip')",
       "destination": "/hub/verify-phone?welcome=1",
       "type": null,
@@ -94461,11 +94706,11 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:605:2",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:627:2",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "Launch 107 GTO Games",
-      "line": 605,
+      "line": 627,
       "handler": "() => dismiss('launch-training')",
       "destination": "/hub/training",
       "type": null,
@@ -94474,11 +94719,11 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:613:3",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:635:3",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "button",
       "name": "Dismiss Account Unlocked Banner",
-      "line": 613,
+      "line": 635,
       "handler": "() => dismiss('dismiss')",
       "destination": null,
       "type": "button",
@@ -94487,11 +94732,11 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:670:4",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:699:4",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 670,
+      "line": 699,
       "handler": "() => markDay0Win(item.id)",
       "destination": "item.href",
       "type": null,
@@ -94500,11 +94745,11 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:732:5",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:761:5",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 732,
+      "line": 761,
       "handler": "() => dismiss(`gravity-${link.href}`)",
       "destination": "link.href",
       "type": null,
@@ -94513,11 +94758,11 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:769:6",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:808:6",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 769,
+      "line": 808,
       "handler": "handleCopyInviteLink",
       "destination": null,
       "type": "button",
@@ -102514,6 +102759,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -103025,6 +103271,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -103409,6 +103656,7 @@
         "pages/hub/training/bluff-catcher.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -103478,6 +103726,7 @@
         "pages/hub/training/bounty-trainer.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -103972,6 +104221,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -104703,6 +104953,7 @@
         "pages/hub/training/coach-mode.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -104807,6 +105058,7 @@
         "pages/hub/training/community-leaderboard.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -104912,6 +105164,7 @@
         "pages/hub/training/custom-rake.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -104987,6 +105240,7 @@
         "pages/hub/training/custom-solve.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -105226,6 +105480,7 @@
         "src/components/poker/FeedbackCard.jsx",
         "src/components/poker/QuizAnswer.jsx",
         "src/components/seo/CitationBacklinkBox.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -105417,6 +105672,7 @@
         "pages/hub/training/drill-builder.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -105744,6 +106000,7 @@
         "pages/hub/training/ev-trainer.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -105813,6 +106070,7 @@
         "pages/hub/training/famous-finals.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -105890,6 +106148,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -106275,6 +106534,7 @@
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/poker/ProgressStrip.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -106517,6 +106777,7 @@
         "pages/hub/training/focus-timer.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -106629,6 +106890,7 @@
         "pages/hub/training/frequency-locking.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -106770,6 +107032,7 @@
         "pages/hub/training/gto-news.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -106884,6 +107147,7 @@
         "pages/hub/training/gto-preloader.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -107088,6 +107352,7 @@
         "pages/hub/training/gto-vs-exploitative.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -107158,6 +107423,7 @@
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/poker/PlayingCard.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -107231,6 +107497,7 @@
         "pages/hub/training/hand-history-upload.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -107357,6 +107624,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -107813,6 +108081,7 @@
         "pages/hub/training/icm-final-table.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -107884,6 +108153,7 @@
         "pages/hub/training/icm-simulator.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -108116,6 +108386,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -108518,6 +108789,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -109390,6 +109662,7 @@
         "pages/hub/training/mixed-strategy-lab.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -109462,6 +109735,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -109879,6 +110153,7 @@
         "pages/hub/training/multiway-postflop.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -109948,6 +110223,7 @@
         "pages/hub/training/multiway-preflop.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -110087,6 +110363,7 @@
         "pages/hub/training/nodelocking.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -110575,6 +110852,7 @@
         "pages/hub/training/player-profiles.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -110644,6 +110922,7 @@
         "pages/hub/training/position-mastery.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -110748,6 +111027,7 @@
         "pages/hub/training/pot-geometry.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -110817,6 +111097,7 @@
         "pages/hub/training/preflop-advisor.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -110886,6 +111167,7 @@
         "pages/hub/training/preflop-charts.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -111809,6 +112091,7 @@
         "pages/hub/training/qre-explorer.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -111889,6 +112172,7 @@
         "src/components/poker/ActionButton.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/PokerSoundManager.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -112292,6 +112576,7 @@
         "pages/hub/training/quiz-builder.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -112567,6 +112852,7 @@
         "pages/hub/training/rake-solutions.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -112641,6 +112927,7 @@
         "pages/hub/training/range-advisor.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -112710,6 +112997,7 @@
         "pages/hub/training/range-builder.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -112973,6 +113261,7 @@
         "pages/hub/training/risk-analyzer.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -113049,6 +113338,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/poker/QuizAnswer.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -113299,6 +113589,7 @@
         "pages/hub/training/session-warmup.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -113411,6 +113702,7 @@
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/poker/QuizAnswer.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -113528,6 +113820,7 @@
         "pages/hub/training/skill-tree.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -113636,6 +113929,7 @@
       "file": "pages/hub/training/solutions.js",
       "reachableFiles": [
         "pages/hub/training/solutions.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -113775,6 +114069,7 @@
         "pages/hub/training/spot-trainer.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -113883,6 +114178,7 @@
         "pages/hub/training/spr-trainer.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -114302,6 +114598,7 @@
         "pages/hub/training/study-group-finder.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -115154,6 +115451,7 @@
         "pages/hub/training/three-way-postflop.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -115223,6 +115521,7 @@
         "pages/hub/training/tilt-guard.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -115330,6 +115629,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -116074,6 +116374,7 @@
         "src/components/bankroll/BankrollImageHeader.jsx",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -116542,6 +116843,7 @@
         "pages/hub/training/training-feed.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -116652,6 +116954,7 @@
         "pages/hub/training/villain-range.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -116721,6 +117024,7 @@
         "pages/hub/training/weakness-scanner.js",
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
@@ -117106,8 +117410,34 @@
       ]
     },
     {
+      "file": "src/components/seo/Day0IntentRouter.jsx",
+      "reachableFiles": [
+        "src/components/seo/Day0IntentRouter.jsx",
+        "src/lib/seo/seoFunnelTelemetry.js"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/lib/seo/seoFunnelTelemetry.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 1,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": [
+        "__tests__/otc-tier8-returning-guest-and-day0-onboarding-20261128.law.test.mjs"
+      ]
+    },
+    {
       "file": "src/components/seo/HubPageSummary.js",
       "reachableFiles": [
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/HubPageSummary.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -117199,6 +117529,7 @@
     {
       "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
       "reachableFiles": [
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SmarterAccountUnlockGate.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -117255,6 +117586,7 @@
     {
       "file": "src/components/seo/SmarterConversionCta.jsx",
       "reachableFiles": [
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
@@ -117311,6 +117643,7 @@
     {
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "reachableFiles": [
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "src/lib/acquisition/firstTouch.mjs",
@@ -117365,6 +117698,7 @@
     {
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "reachableFiles": [
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/supabase.js"
@@ -117398,7 +117732,9 @@
       ],
       "realtime": [],
       "tests": [
-        "__tests__/otc-tier2-leak-finder-and-activation-20261127.law.test.mjs"
+        "__tests__/otc-tier2-leak-finder-and-activation-20261127.law.test.mjs",
+        "__tests__/otc-tier8-hand-paste-teaser-and-link-mesh-20261128.law.test.mjs",
+        "__tests__/otc-tier8-returning-guest-and-day0-onboarding-20261128.law.test.mjs"
       ]
     },
     {
@@ -118745,6 +119081,7 @@
       "reachableFiles": [
         "src/components/bankroll/BankrollHelp.jsx",
         "src/components/bankroll/BankrollImageHeader.jsx",
+        "src/components/seo/Day0IntentRouter.jsx",
         "src/components/seo/SEOHead.js",
         "src/components/seo/SmarterConversionCta.jsx",
         "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -125673,6 +126010,8 @@
         "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
         "__tests__/otc-tier2-leak-finder-and-activation-20261127.law.test.mjs",
         "__tests__/otc-tier7-all-calculators-savebar-20261128.law.test.mjs",
+        "__tests__/otc-tier8-hand-paste-teaser-and-link-mesh-20261128.law.test.mjs",
+        "__tests__/otc-tier8-returning-guest-and-day0-onboarding-20261128.law.test.mjs",
         "__tests__/pa-forensic-review-auth.law.test.mjs",
         "__tests__/pa-review-workstation.test.mjs",
         "__tests__/page-tutorials.test.mjs",
@@ -125867,7 +126206,8 @@
       "tests": [
         "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
-        "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs"
+        "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+        "__tests__/otc-tier8-returning-guest-and-day0-onboarding-20261128.law.test.mjs"
       ]
     }
   ],
@@ -131659,6 +131999,21 @@
         ]
       },
       {
+        "file": "src/components/seo/Day0IntentRouter.jsx",
+        "name": "Day0IntentRouter",
+        "line": 126,
+        "references": 1,
+        "exported": true,
+        "defaultExport": true,
+        "namedFunctionExpression": false,
+        "disposition": "imported-default-entrypoint",
+        "review": "accepted",
+        "rationale": "Default export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
+        ]
+      },
+      {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummarySchema",
         "line": 1598,
@@ -132111,6 +132466,7 @@
         "externalReferenceFiles": [
           "pages/glossary/[term].js",
           "pages/hub/bankroll-manager.js",
+          "pages/hub/tournaments/this-weekend.js",
           "pages/hub/venues/[id].js",
           "pages/hub/video-library/watch/[videoId]/[[...slug]].js",
           "pages/learn/hands/[hand].js",
@@ -132120,11 +132476,14 @@
           "pages/poker-rooms/states/[state].js",
           "pages/rules/[slug].js",
           "pages/tools/gto-leak-finder/index.js",
+          "pages/tools/preflop-ranges/[position].js",
           "src/components/seo/GuestConversionBar.jsx",
+          "src/components/seo/ReturningGuestSyncPill.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterConversionCta.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
+          "src/components/seo/SmarterHandPasteTeaser.jsx",
           "src/components/seo/SmarterMiniGtoDrill.jsx",
           "src/components/seo/SmarterSeoMasthead.jsx",
           "src/components/tools/CalculatorShareAndPresets.js"
@@ -132148,7 +132507,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "recordPendingSeoUnlock",
-        "line": 392,
+        "line": 393,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132164,7 +132523,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "promotePendingSeoUnlock",
-        "line": 407,
+        "line": 408,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132181,7 +132540,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "SmarterUnlockedWelcomeBanner",
-        "line": 443,
+        "line": 444,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -135011,6 +135370,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/glossary/[term].js",
+          "pages/hub/tournaments/this-weekend.js",
           "pages/hub/venues/[id].js",
           "pages/hub/video-library/watch/[videoId]/[[...slug]].js",
           "pages/poker-rooms/by-game/[game].js",
@@ -135018,10 +135378,15 @@
           "pages/poker-rooms/guides/[city].js",
           "pages/poker-rooms/states/[state].js",
           "pages/rules/[slug].js",
+          "pages/tools/embeds.js",
           "pages/tools/gto-leak-finder/index.js",
+          "pages/tools/preflop-ranges/[position].js",
+          "src/components/seo/Day0IntentRouter.jsx",
+          "src/components/seo/ReturningGuestSyncPill.jsx",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
           "src/components/seo/SmarterGoogleOneTap.jsx",
+          "src/components/seo/SmarterHandPasteTeaser.jsx",
           "src/components/seo/SmarterMiniGtoDrill.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx",
           "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
@@ -144249,6 +144614,21 @@
         ]
       },
       {
+        "file": "src/components/seo/Day0IntentRouter.jsx",
+        "name": "Day0IntentRouter",
+        "line": 126,
+        "references": 1,
+        "exported": true,
+        "defaultExport": true,
+        "namedFunctionExpression": false,
+        "disposition": "imported-default-entrypoint",
+        "review": "accepted",
+        "rationale": "Default export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
+        ]
+      },
+      {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummarySchema",
         "line": 1598,
@@ -144701,6 +145081,7 @@
         "externalReferenceFiles": [
           "pages/glossary/[term].js",
           "pages/hub/bankroll-manager.js",
+          "pages/hub/tournaments/this-weekend.js",
           "pages/hub/venues/[id].js",
           "pages/hub/video-library/watch/[videoId]/[[...slug]].js",
           "pages/learn/hands/[hand].js",
@@ -144710,11 +145091,14 @@
           "pages/poker-rooms/states/[state].js",
           "pages/rules/[slug].js",
           "pages/tools/gto-leak-finder/index.js",
+          "pages/tools/preflop-ranges/[position].js",
           "src/components/seo/GuestConversionBar.jsx",
+          "src/components/seo/ReturningGuestSyncPill.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterConversionCta.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
+          "src/components/seo/SmarterHandPasteTeaser.jsx",
           "src/components/seo/SmarterMiniGtoDrill.jsx",
           "src/components/seo/SmarterSeoMasthead.jsx",
           "src/components/tools/CalculatorShareAndPresets.js"
@@ -144738,7 +145122,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "recordPendingSeoUnlock",
-        "line": 392,
+        "line": 393,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -144754,7 +145138,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "promotePendingSeoUnlock",
-        "line": 407,
+        "line": 408,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -144771,7 +145155,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "SmarterUnlockedWelcomeBanner",
-        "line": 443,
+        "line": 444,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -147601,6 +147985,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/glossary/[term].js",
+          "pages/hub/tournaments/this-weekend.js",
           "pages/hub/venues/[id].js",
           "pages/hub/video-library/watch/[videoId]/[[...slug]].js",
           "pages/poker-rooms/by-game/[game].js",
@@ -147608,10 +147993,15 @@
           "pages/poker-rooms/guides/[city].js",
           "pages/poker-rooms/states/[state].js",
           "pages/rules/[slug].js",
+          "pages/tools/embeds.js",
           "pages/tools/gto-leak-finder/index.js",
+          "pages/tools/preflop-ranges/[position].js",
+          "src/components/seo/Day0IntentRouter.jsx",
+          "src/components/seo/ReturningGuestSyncPill.jsx",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
           "src/components/seo/SmarterGoogleOneTap.jsx",
+          "src/components/seo/SmarterHandPasteTeaser.jsx",
           "src/components/seo/SmarterMiniGtoDrill.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx",
           "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"

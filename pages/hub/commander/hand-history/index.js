@@ -17,7 +17,7 @@ import {
   Spade
 } from 'lucide-react';
 import { getAccessToken } from '../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 function CardDisplay({ cards }) {
   if (!cards || cards.length === 0) return null;
@@ -366,3 +366,5 @@ export default function HandHistoryPage() {
     </CommanderPageShell>
   );
 }
+
+HandHistoryPage.getLayout = commanderPageLayout;

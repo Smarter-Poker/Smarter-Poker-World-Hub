@@ -44,6 +44,7 @@ const SEO_UNLOCK_PREFIXES = [
     '/hub/venues/',
     '/hub/poker-near-me',
     '/hub/tours/',
+    '/hub/tournaments/',
     '/hub/video-library/watch/',
     '/poker-rooms/',
     '/glossary/',
@@ -135,6 +136,9 @@ export function describePendingDestination(nextPath) {
     }
     if (pathname === '/hub/tours' || pathname.startsWith('/hub/tours/')) {
         return 'Your Live Poker Tour Schedule';
+    }
+    if (pathname === '/hub/tournaments' || pathname.startsWith('/hub/tournaments/')) {
+        return 'Your Upcoming Tournament Reminders';
     }
     return 'Your Smarter.Poker Destination';
 }

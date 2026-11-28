@@ -13,7 +13,7 @@ import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 const NOTIFICATION_ICONS = {
   seat_available: Users,
@@ -313,3 +313,5 @@ export default function PlayerNotificationsPage() {
     </CommanderPageShell>
   );
 }
+
+PlayerNotificationsPage.getLayout = commanderPageLayout;

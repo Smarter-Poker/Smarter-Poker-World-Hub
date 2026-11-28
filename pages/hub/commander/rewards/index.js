@@ -16,7 +16,7 @@ import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken, getAuthUser } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 const REWARD_CATEGORIES = [
   { id: 'food', label: 'Food & Beverage', icon: Utensils, color: '#22D3EE' },
@@ -365,3 +365,5 @@ export default function PlayerRewardsPage() {
     </CommanderPageShell>
   );
 }
+
+PlayerRewardsPage.getLayout = commanderPageLayout;

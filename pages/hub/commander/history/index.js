@@ -12,7 +12,7 @@ import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 function SessionCard({ session }) {
   const checkIn = new Date(session.check_in_at);
@@ -210,3 +210,5 @@ export default function PlayerHistoryPage() {
     </CommanderPageShell>
   );
 }
+
+PlayerHistoryPage.getLayout = commanderPageLayout;

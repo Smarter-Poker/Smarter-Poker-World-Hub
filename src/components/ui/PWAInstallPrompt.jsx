@@ -90,6 +90,7 @@ const PEAK_UTILITY_GTO_KEYS = new Set([
     'calc-session-milestone',
     'video-practice',
     'video-bookmark',
+    'returning-guest-sync',
 ]);
 
 export function resolvePeakUtilityPwaCopy(unlockKey) {
