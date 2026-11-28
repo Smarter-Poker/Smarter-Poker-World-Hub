@@ -21,8 +21,6 @@ import '../src/styles/worlds/social-hub.css';
 import '../src/styles/worlds/training.css';
 import '../src/styles/worlds/marketplace.css';
 import '../src/styles/worlds/news.css';
-import '../src/styles/worlds/video-library.css';
-import '../src/styles/worlds/video-library-pages.css';
 import '../src/styles/worlds/poker-near-me.css';
 import '../src/styles/worlds/poker-near-me-lobby.css';
 import '../src/styles/worlds/memory-games.css';
