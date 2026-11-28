@@ -27,7 +27,10 @@ Brief: /home/claude/swarm-brief.md. This notes file must NOT ship in the final P
 ## Quick Log decision
 REMOVE src/components/bankroll/QuickLogWidget.jsx and its export in src/components/bankroll/index.js. It duplicates LOG (Add +, footer Log, trip banner Add Entry already exist) and writes rows with no location, times or trip that venue/hourly analytics need, and it would bypass the starting-bankroll/Pro gates.
 
-## Left
+## Status (latest)
+All 14 items implemented, tests in __tests__/bankroll-shell-wiring.test.mjs (12 pass), e2e/029 nav count 14->16, funnel law test relaxed to allow no reload in handleLogSubmit. Rendered at 375 and 1100 in /tmp/rh/shell (build.mjs, shot.cjs, server on :8765). Now squashing onto fix/bankroll-shell-wiring and shipping.
+
+## Left (original plan)
 Page edits for items 1-14, tests (__tests__/bankroll-shell-wiring.test.mjs + import in __tests__/_test-guards-exist.test.mjs), render at 375px (/tmp/rh/shell, reuse /tmp/rh/ledger/build.mjs + fakeSupabase), recompute sha256 of page in docs/business-hub-guide-review.json, commit with Smarter-Poker author, push fix branch, PR via REST, checks, merge, Vercel READY + /api/health.
 
 ## Next exact command

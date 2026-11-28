@@ -116,7 +116,7 @@ export default function BankrollFilterMenu({
           role="group"
           aria-label={label}
           className="bankroll-dropdown-menu"
-          style={{ ...styles.menu, minWidth, ...(align === 'right' ? { right: 0, left: 'auto' } : { left: 0 }) }}
+          style={{ ...styles.menu, minWidth: `max(${minWidth}px, 100%)`, ...(align === 'right' ? { right: 0, left: 'auto' } : { left: 0 }) }}
           onKeyDown={onListKeyDown}
         >
           {options.map((option) => (

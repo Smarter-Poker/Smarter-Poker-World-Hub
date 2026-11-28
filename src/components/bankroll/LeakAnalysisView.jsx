@@ -18,9 +18,9 @@ import { runLeakAnalysis } from '../../lib/bankroll/leakDetection';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 
 const RISK_TONE = {
-  HIGH: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', word: 'Alert' },
-  MEDIUM: { color: '#61d0e8', background: 'rgba(97, 208, 232, 0.1)', word: 'Warning' },
-  LOW: { color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)', word: 'OK' },
+  HIGH: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', word: 'Alert', label: 'High Risk' },
+  MEDIUM: { color: '#61d0e8', background: 'rgba(97, 208, 232, 0.1)', word: 'Warning', label: 'Medium Risk' },
+  LOW: { color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)', word: 'OK', label: 'Low Risk' },
 };
 
 export default function LeakAnalysisView({ userId, locationId = null, locationName = null, displayEUR = false, analyze = runLeakAnalysis }) {
@@ -82,7 +82,7 @@ export default function LeakAnalysisView({ userId, locationId = null, locationNa
           <div style={{ ...styles.risk, background: tone.background }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: tone.color }}>{tone.word}</span>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: tone.color }}>{analysis.leakRisk} Risk</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: tone.color }}>{tone.label}</div>
               <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
                 Total Leak Amount: {formatCurrency(analysis.totalLeakAmount || 0, displayEUR)}
               </div>

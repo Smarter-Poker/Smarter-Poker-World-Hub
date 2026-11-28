@@ -111,23 +111,23 @@ export default function CategoryOverview({ userId, categoryFilter, onAddEntry, o
                 <div style={styles.statCard}>
                     <span style={styles.statLabel}>Total P&L</span>
                     <span style={{ ...styles.statValue, color: totalCents >= 0 ? '#22c55e' : '#ef4444' }}>
-                        {loadFailed || isLoading ? '-' : formatSignedCents(totalCents)}
+                        {!userId || loadFailed || isLoading ? '-' : formatSignedCents(totalCents)}
                     </span>
                 </div>
                 <div style={styles.statCard}>
                     <span style={styles.statLabel}>Sessions</span>
-                    <span style={styles.statValue}>{loadFailed || isLoading ? '-' : totalSessions}</span>
+                    <span style={styles.statValue}>{!userId || loadFailed || isLoading ? '-' : totalSessions}</span>
                 </div>
                 <div style={styles.statCard}>
                     <span style={styles.statLabel}>Avg Result</span>
                     <span style={{ ...styles.statValue, color: avgCents >= 0 ? '#22c55e' : '#ef4444' }}>
-                        {loadFailed || isLoading ? '-' : formatSignedCents(avgCents)}
+                        {!userId || loadFailed || isLoading ? '-' : formatSignedCents(avgCents)}
                     </span>
                 </div>
                 {categoryFilter !== 'expense' && (
                     <div style={styles.statCard}>
                         <span style={styles.statLabel}>Win Rate</span>
-                        <span style={styles.statValue}>{loadFailed || isLoading ? '-' : winRate + '%'}</span>
+                        <span style={styles.statValue}>{!userId || loadFailed || isLoading ? '-' : winRate + '%'}</span>
                     </div>
                 )}
             </div>
@@ -135,7 +135,7 @@ export default function CategoryOverview({ userId, categoryFilter, onAddEntry, o
             {/* Entry List */}
             <div style={styles.entriesSection}>
                 <h2 style={styles.sectionTitle}>
-                    All {meta.label}{loadFailed || isLoading ? '' : ` (${totalSessions})`}
+                    All {meta.label}{!userId || loadFailed || isLoading ? '' : ` (${totalSessions})`}
                 </h2>
 
                 {isLoading ? (
