@@ -478,7 +478,9 @@ for (const format of ['CSV', 'JSON', 'PDF']) {
       const app = window as Window & { next?: { router?: { isReady: boolean; pathname: string } } };
       return app.next?.router?.isReady && app.next.router.pathname === '/hub/bankroll-manager/export';
     });
-    await expect(page.locator('link[rel="preload"][as="image"][href="/default-avatar.png"]').first()).toBeAttached();
+    // The header preloads its portrait only after mount; with no saved portrait
+    // that is the hashed default avatar (HEADER_DEFAULT_AVATAR, #3252).
+    await expect(page.locator('link[rel="preload"][as="image"][href^="/images/global-header/header-default-avatar-"]').first()).toBeAttached();
     const button = page.getByRole('button', { name: 'Export ' + format, exact: true });
     await expect(button).toBeVisible();
     await context.setOffline(true);
