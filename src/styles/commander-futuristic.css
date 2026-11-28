@@ -802,6 +802,35 @@ header.cmd-header-bar h1 {
 .cmd-header-full p,
 header.cmd-header-bar p { color: #bdd0e2 !important; }
 
+/* Return link: directly above the image header, left aligned, never inside
+   it (.agent/skills/smarterdesign/SKILL.md rule: "Never put Back To
+   Dashboard, or any other return link, inside the image header"). */
+.cmd-back-row {
+  display: flex;
+  margin: clamp(8px, 1.6vw, 16px) clamp(8px, 2vw, 24px) 0;
+}
+.cmd-back-row + .cmd-header-full,
+.cmd-back-row + header.cmd-header-bar { margin-top: 6px; }
+.cmd-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px 0 10px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box;
+  color: #f2f7ff;
+  font-family: var(--sd-type, 'Arial Narrow'), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+}
+.cmd-back-link svg { color: #bdd0e2; }
+.cmd-back-link:focus-visible { outline: 2px solid #9ee3ff; outline-offset: 2px; }
+
 /* Seals and icon boxes: a circular chrome frame */
 .cmd-icon-box,
 .cmd-icon-box-square {

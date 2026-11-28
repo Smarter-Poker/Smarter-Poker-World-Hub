@@ -199,15 +199,16 @@ export default function VenueDetail() {
         )}
 
         {/* Header */}
+        <div className="cmd-back-row">
+          <Link className="cmd-back-link"
+            href="/hub/commander"
+            >
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+            Back
+          </Link>
+        </div>
         <header className="cmd-header-full">
           <div className="max-w-3xl mx-auto px-4 py-4">
-            <Link
-              href="/hub/commander"
-              className="inline-flex items-center gap-2 text-[#9FB3C8] hover:text-[#22D3EE] mb-3"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </Link>
 
             <h1 className="text-xl font-bold text-white">{venue.name}</h1>
 

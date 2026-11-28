@@ -653,16 +653,18 @@ export default function CreateHomeGamePage() {
             header-overlap): the image header scrolls with the page like every
             other #SMARTERDESIGN page, and the step progress sits directly
             under it, so nothing is pinned over the form. */}
+        <div className="cmd-back-row">
+          <button className="cmd-back-link"
+            type="button"
+            onClick={() => router.back()}
+            aria-label="Back"
+            >
+            <ArrowLeft className="w-5 h-5 text-[#BDD0E2]" aria-hidden="true" />
+            <span>Back</span>
+          </button>
+        </div>
         <header className="cmd-header-full">
           <div className="max-w-2xl mx-auto px-4 py-4 sm:py-5 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              aria-label="Back"
-              className="p-2 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-[#BDD0E2]" aria-hidden="true" />
-            </button>
             <div className="min-w-0">
               <h1>Host A Home Game</h1>
               <p className="text-sm">

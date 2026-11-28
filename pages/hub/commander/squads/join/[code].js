@@ -102,11 +102,14 @@ export default function SquadJoinPage() {
     <>
       {pageHead}
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="cmd-back-row">
+          <button type="button" className="cmd-back-link" onClick={() => router.push('/hub/commander/squads')}>
+            <ArrowLeft size={20} className="text-[#9FB3C8]" aria-hidden="true" />
+            <span>Back</span>
+          </button>
+        </div>
         <header className="cmd-header-bar">
           <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-4">
-            <button onClick={() => router.push('/hub/commander/squads')} className="p-2 rounded-lg hover:bg-[#132240]">
-              <ArrowLeft size={20} className="text-[#9FB3C8]" />
-            </button>
             <h1 className="text-lg font-bold text-white">Join Squad</h1>
           </div>
         </header>

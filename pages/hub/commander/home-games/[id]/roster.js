@@ -250,12 +250,15 @@ export default function HomeGameRosterPage() {
     <>
       <SEOHead title="Roster | Commander" noindex={true} />
       <div className="cmd-page" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
+        <div className="cmd-back-row">
+          <button type="button" className="cmd-back-link" onClick={() => router.push(`/hub/commander/home-games/${id}/manage`)}>
+            <ArrowLeft className="w-5 h-5 text-[#9FB3C8]" aria-hidden="true" />
+            <span>Back</span>
+          </button>
+        </div>
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => router.push(`/hub/commander/home-games/${id}/manage`)} className="p-2 hover:bg-[#132240] rounded-lg transition-colors">
-                <ArrowLeft className="w-5 h-5 text-[#9FB3C8]" />
-              </button>
               <div>
                 <h1 className="font-bold text-white">Database Of Players</h1>
                 <p className="text-sm text-[#9FB3C8]">{group?.name}</p>

@@ -244,15 +244,16 @@ export default function VenueDetailPage({ seoVenue = null }) {
 
       <div className="cmd-page">
         {/* Header */}
+        <div className="cmd-back-row">
+          <button type="button" className="cmd-back-link"
+            onClick={() => router.back()}
+            >
+            <ArrowLeft className="w-5 h-5" aria-hidden="true" />
+            Back
+          </button>
+        </div>
         <header className="cmd-header-full text-white">
           <div className="max-w-lg mx-auto px-4 py-4">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center gap-2 text-white/80 hover:text-white mb-4"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Back
-            </button>
 
             <h1 className="text-2xl font-bold">{venue.name}</h1>
             <p className="text-white/80 flex items-center gap-1 mt-1">

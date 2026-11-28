@@ -159,3 +159,20 @@ test('no static description sentence under a header title', () => {
   }
   assert.deepEqual(offenders, []);
 });
+
+test('no return link inside an image header; it sits directly above it', () => {
+  const inside = [];
+  for (const file of walk(PAGES_DIR).filter((f) => f.endsWith('.js'))) {
+    const src = read(file);
+    for (const header of src.matchAll(/<header className="(?:cmd-header-full|cmd-header-bar)[^"]*">([\s\S]*?)<\/header>/g)) {
+      if (/<(?:ArrowLeft|ChevronLeft)\b|router\.back\(\)/.test(header[1])) inside.push(file);
+    }
+    for (const row of src.matchAll(/<div className="cmd-back-row">[\s\S]*?<\/div>\s*([\s\S]{0,400})/g)) {
+      assert.match(row[1], /^(?:\{\/\*[\s\S]*?\*\/\}\s*)?<header className="(?:cmd-header-full|cmd-header-bar)/, `${file}: the back row must sit directly above the image header`);
+    }
+  }
+  assert.deepEqual(inside, []);
+  const css = read(CSS);
+  assert.match(css, /\.cmd-back-row \{/);
+  assert.match(css, /\.cmd-back-link \{[\s\S]*?min-height: 44px;[\s\S]*?chrome-row\.webp/);
+});

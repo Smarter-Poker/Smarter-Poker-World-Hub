@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import { Users, MapPin, Loader2, ChevronDown, ChevronUp, X, Globe, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Users, MapPin, Loader2, ChevronDown, ChevronUp, X, Globe, CheckCircle } from 'lucide-react';
 import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
@@ -376,27 +376,17 @@ export default function PlayerWaitlistPage() {
       />
 
       <div className="cmd-page" style={S.page}>
+        <div className="cmd-back-row">
+          <button type="button" className="cmd-back-link" onClick={() => router.back()} aria-label={`Back To ${venue.name}`}>
+            <ArrowLeft className="w-5 h-5" aria-hidden="true" />
+            <span>Back</span>
+          </button>
+        </div>
         {/* #SMARTERDESIGN page image header (scene + painted help from CommanderPageShell) */}
         <header className="cmd-header-full">
           <div style={S.headerTop}>
             <div style={S.headerLeft}>
-              <button
-                onClick={() => router.back()}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px 0',
-                  WebkitTapHighlightColor: 'transparent',
-                }}
-                aria-label={`Back to ${venue.name}`}
-              >
-                <span style={S.backArrow}>←</span>
-                <span style={S.clubName}>{venue.name}</span>
-              </button>
+              <span style={S.clubName}>{venue.name}</span>
             </div>
             <h1 style={S.headerTitle}>Poker Waiting List</h1>
             <div style={S.headerRight}>
@@ -669,11 +659,6 @@ const S = {
     gap: 8,
     minWidth: 0,
     flex: '0 1 auto',
-  },
-  backArrow: {
-    color: '#86DAFF',
-    fontSize: 18,
-    fontWeight: 700,
   },
   clubName: {
     color: '#86DAFF',

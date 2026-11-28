@@ -327,16 +327,18 @@ export default function SquadDetailPage() {
         )}
 
         {/* Header */}
+        <div className="cmd-back-row">
+          <button type="button" className="cmd-back-link"
+            onClick={() => router.push('/hub/commander/squads')}
+            >
+            <ChevronLeft className="w-5 h-5 text-[#9FB3C8]" aria-hidden="true" />
+            <span>Back</span>
+          </button>
+        </div>
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-lg mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => router.push('/hub/commander/squads')}
-                  className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5 text-[#9FB3C8]" />
-                </button>
                 <div>
                   <h1 className="text-xl font-bold text-white">{squad?.name || 'Squad'}</h1>
                   <span className={`text-xs px-2 py-0.5 rounded capitalize ${statusColors[squad?.group_status] || statusColors.forming}`}>

@@ -681,17 +681,19 @@ export default function HomeGameDetailPage() {
 
       <div className="cmd-page" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         {/* Header */}
+        <div className="cmd-back-row">
+          <button className="cmd-back-link"
+            type="button"
+            onClick={() => router.push('/hub/commander/home-games')}
+            aria-label="Back to Home Games"
+            >
+            <ArrowLeft className="w-5 h-5 text-[#9FB3C8]" aria-hidden="true" />
+            <span>Back</span>
+          </button>
+        </div>
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => router.push('/hub/commander/home-games')}
-                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
-                aria-label="Back to Home Games"
-              >
-                <ArrowLeft className="w-5 h-5 text-[#9FB3C8]" />
-              </button>
               <div>
                 <h1 className="font-bold text-white">{group.name}</h1>
                 <p className="text-sm text-[#9FB3C8]">{members.length} Members</p>

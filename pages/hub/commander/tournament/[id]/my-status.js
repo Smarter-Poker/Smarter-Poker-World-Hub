@@ -340,11 +340,14 @@ export default function MyTournamentStatus() {
             <SEOHead title={`${t.name} - My Status`} description="Your Tournament Status" noindex={true} />
             <div className="cmd-page min-h-screen bg-[#040D18] text-[#F2F7FF] font-['Inter'] pb-20">
                 {/* #SMARTERDESIGN page image header (scene + painted help from CommanderPageShell) */}
+                <div className="cmd-back-row">
+                  <button className="cmd-back-link" type="button" onClick={() => router.back()} aria-label="Back">
+                    <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+                    <span>Back</span>
+                  </button>
+                </div>
                 <header className="cmd-header-full px-4 py-4 sm:px-6 sm:py-5">
                     <div className="flex items-center gap-3">
-                        <button type="button" onClick={() => router.back()} aria-label="Back" className="text-[#BDD0E2] active:text-white p-1">
-                            <ChevronLeft className="w-5 h-5" aria-hidden="true" />
-                        </button>
                         <div className="flex-1 min-w-0">
                             <h1 className="truncate">{t.name}</h1>
                             <p className="text-xs text-[#BDD0E2]">

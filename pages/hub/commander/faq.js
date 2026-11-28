@@ -407,12 +407,15 @@ export default function PlayerFAQPage() {
 
       <div className="cmd-page min-h-screen">
         {/* Header */}
+        <div className="cmd-back-row">
+          <Link className="cmd-back-link" href="/hub/commander" aria-label="Back To Live Poker">
+            <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+            <span>Back</span>
+          </Link>
+        </div>
         <header className="cmd-header-bar sticky top-0 z-20">
           <div className="max-w-4xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-4">
-              <Link href="/hub/commander" aria-label="Back To Live Poker" className="text-[#9FB3C8] hover:text-white">
-                <ChevronLeft className="w-5 h-5" />
-              </Link>
               <div className="flex items-center gap-2">
                 <HelpCircle className="w-6 h-6 text-[#22D3EE]" />
                 <h1 className="text-xl font-bold text-white">FAQ</h1>

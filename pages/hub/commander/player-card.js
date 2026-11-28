@@ -105,11 +105,14 @@ export default function PlayerCard() {
         noindex={true}
       />
       <div className="cmd-page min-h-screen">
+        <div className="cmd-back-row">
+          <button className="cmd-back-link" type="button" onClick={() => router.push('/hub/commander')} aria-label="Back To Live Poker">
+            <ArrowLeft size={22} aria-hidden="true" />
+            <span>Back</span>
+          </button>
+        </div>
         <header className="cmd-header-full">
           <div className="flex items-center gap-3 px-4 py-4 sm:px-6 sm:py-5">
-            <button type="button" onClick={() => router.push('/hub/commander')} aria-label="Back To Live Poker" className="text-white p-1">
-              <ArrowLeft size={22} aria-hidden="true" />
-            </button>
             <div className="cmd-icon-box w-11 h-11 flex items-center justify-center shrink-0">
               <QrCode size={22} aria-hidden="true" />
             </div>
