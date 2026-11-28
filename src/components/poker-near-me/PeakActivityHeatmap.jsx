@@ -19,6 +19,9 @@ function intensityColor(intensity) {
   return 'rgba(34, 197, 94, 0.8)';
 }
 
+// Matches /api/poker/peak-activity's s-maxage=300.
+export const HEATMAP_REFRESH_FLOOR_MS = 5 * 60 * 1000;
+
 export default function PeakActivityHeatmap({ venueFilter, gameType }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -29,8 +32,10 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
     let mounted = true;
     const controller = new AbortController();
 
-    const fetchHeatmap = () => {
-      setLoading(true);
+    let lastFetchAt = 0;
+    const fetchHeatmap = ({ silent = false } = {}) => {
+      lastFetchAt = Date.now();
+      if (!silent) setLoading(true);
       let url = '/api/poker/peak-activity';
       const params = [];
       if (venueFilter) params.push(`venue=${encodeURIComponent(venueFilter)}`);
@@ -51,9 +56,14 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
 
     // Listen for live data mutations via global bus
     const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
-      if (e?.payload?.entity === 'live_tables') {
-        fetchHeatmap();
-      }
+      // REQUEST FLOOD FIX (2026-11-28): the live feed announces live_tables
+      // after EVERY refresh (its two-minute poll and each realtime burst), and
+      // each announcement re-requested this heatmap with a skeleton flash.
+      // Peak activity is weeks of observed history and its API is cached for
+      // five minutes, so a refresh more often than that returns the same grid.
+      if (e?.payload?.entity !== 'live_tables') return;
+      if (Date.now() - lastFetchAt < HEATMAP_REFRESH_FLOOR_MS) return;
+      fetchHeatmap({ silent: true });
     });
 
     return () => {
