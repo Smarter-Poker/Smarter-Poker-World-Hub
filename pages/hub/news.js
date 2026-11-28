@@ -36,6 +36,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
+import useNearViewport from '../../src/hooks/useNearViewport';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../src/hooks/useYouTubeErrorManager';
 import { getYouTubeVideoId } from '../../src/lib/socialHelpers';
 import useSWR, { SWRConfig } from 'swr';
@@ -245,6 +246,8 @@ export async function getServerSideProps({ req, res }) {
 // every new article) is gone. The story list itself is refreshed from page 0
 // on the same 15-minute clock (see NEWS_REFRESH_MS in NewsHub).
 const NEWS_REFRESH_MS = 15 * 60 * 1000;
+// The MSPT box shows its six newest items; the rest are one tap away in the feed.
+const MSPT_SIDEBAR_ITEMS = 6;
 // Below this scroll depth the reader is reading; a refresh waits behind the
 // "N New Stories" key instead of reordering the list under them.
 const NEWS_READING_DEPTH_PX = 400;
@@ -365,6 +368,18 @@ function NewsHub() {
         router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
     };
 
+    // "All MSPT Stories": open the News section filtered to MSPT and bring
+    // the search row into view so the filter is visible and easy to clear.
+    const showAllMspt = () => {
+        selectSection('news');
+        setSearchQuery('MSPT');
+        if (typeof window !== 'undefined') {
+            window.requestAnimationFrame(() => {
+                document.querySelector('.search-view-row')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+    };
+
     const handleSectionKeyDown = (event, section) => {
         const currentIndex = NAV_SECTION_TABS.indexOf(section);
         let nextIndex = currentIndex;
@@ -441,25 +456,33 @@ function NewsHub() {
         }));
     }, [rawSourceBoxes]);
 
+    // Side feeds load only when they are about to be seen: videos with the
+    // Videos tab, reels with the Reels tab or when the reels preview nears the
+    // screen, and the sidebar widgets (MSPT, Player Of The Year, Events) as the
+    // sidebar approaches. On a wide screen the sidebar is in view at once, so
+    // it loads at once; on a phone it sits below the feed and waits.
+    const [sidebarRef, sidebarNear] = useNearViewport();
+    const [reelsPreviewRef, reelsPreviewNear] = useNearViewport();
+
     // Videos feed — backs the ?tab=videos section. Real data only; an empty list
     // renders the section's own empty state rather than fabricated placeholders.
-    const { data: videosData, error: videosError, isLoading: videosLoading, mutate: refreshVideos } = useSWR('/api/news/videos?limit=20', fetchNewsJson);
+    const { data: videosData, error: videosError, isLoading: videosLoading, mutate: refreshVideos } = useSWR(activeSection === 'videos' ? '/api/news/videos?limit=20' : null, fetchNewsJson);
     const videos = (videosData?.success && Array.isArray(videosData.data)) ? videosData.data : [];
 
-    const { data: reelsData, error: reelsError, isLoading: reelsLoading, mutate: refreshReels } = useSWR('/api/news/reels?limit=20&sort=recent', fetchNewsJson);
+    const { data: reelsData, error: reelsError, isLoading: reelsLoading, mutate: refreshReels } = useSWR((activeSection === 'reels' || reelsPreviewNear) ? '/api/news/reels?limit=20&sort=recent' : null, fetchNewsJson);
     const reels = (reelsData?.success && reelsData.data?.length) ? reelsData.data : [];
 
-    const { data: leaderboardData, error: leaderboardError, isLoading: leaderboardLoading } = useSWR('/api/news/leaderboard?limit=5', fetchNewsJson);
+    const { data: leaderboardData, error: leaderboardError, isLoading: leaderboardLoading } = useSWR(sidebarNear ? '/api/news/leaderboard?limit=5' : null, fetchNewsJson);
     const leaderboard = (leaderboardData?.success && Array.isArray(leaderboardData.data)) ? leaderboardData.data : [];
 
     const eventsKey = nearbyLocation
         ? `/api/news/events?limit=25&radius=100&lat=${encodeURIComponent(nearbyLocation.lat)}&lng=${encodeURIComponent(nearbyLocation.lng)}`
         : '/api/news/events?limit=25';
-    const { data: eventsData, error: eventsError, isLoading: eventsLoading, mutate: refreshEvents } = useSWR(eventsKey, fetchNewsJson);
+    const { data: eventsData, error: eventsError, isLoading: eventsLoading, mutate: refreshEvents } = useSWR((activeSection === 'events' || sidebarNear) ? eventsKey : null, fetchNewsJson);
     const events = (eventsData?.success && eventsData.data?.length) ? eventsData.data : [];
     const sidebarEvents = events.slice(0, 3);
 
-    const { data: msptData } = useSWR('/api/news/articles?search=MSPT&limit=10', fetchNewsJson);
+    const { data: msptData } = useSWR(sidebarNear ? '/api/news/articles?search=MSPT&limit=10' : null, fetchNewsJson);
     const msptNews = (msptData?.success && msptData.data?.length)
         ? msptData.data.map(a => ({ id: a.id, title: a.title, source_url: a.source_url || null, published_at: a.published_at, prize_pool: a.prize_pool || null }))
         : FALLBACK_MSPT;
@@ -1594,9 +1617,10 @@ function NewsHub() {
                                 className="news-image-header"
                                 parent={(
                                     <span className="news-desk-kicker">
-                                        Live Intelligence Wire · {filteredNews.length} Stories
-                                        {newArticleCount > 0 ? ` · ${newArticleCount} New` : ''}
-                                        {lastRefreshed && hasMounted ? ` · Updated ${timeAgo(lastRefreshed)}` : ''}
+                                        <span>Live Intelligence Wire</span>
+                                        <span>{`· ${filteredNews.length} Stories`}</span>
+                                        {newArticleCount > 0 ? <span>{`· ${newArticleCount} New`}</span> : null}
+                                        {lastRefreshed && hasMounted ? <span>{`· Updated ${timeAgo(lastRefreshed)}`}</span> : null}
                                     </span>
                                 )}
                                 helpContent={(
@@ -2087,6 +2111,7 @@ function NewsHub() {
                                     </section>
 
                                     {/* CLUB ARENA NEWS REELS PREVIEW START */}
+                                    <div ref={reelsPreviewRef} className="news-reels-preview-anchor" aria-hidden="true" />
                                     <VideoLibraryConsole
                                         as="section"
                                         className="news-reels-console news-reels-console--preview"
@@ -2341,12 +2366,12 @@ function NewsHub() {
                         </main>
 
                         {/* Right Sidebar */}
-                        <aside className="sidebar" aria-label="News intelligence">
+                        <aside className="sidebar" aria-label="News intelligence" ref={sidebarRef}>
                             {/* MSPT News & Updates - Dedicated Box */}
                             <div className="widget mspt">
                                 <h4><Trophy size={14} /> MSPT News & Updates{msptNews[0]?.is_fallback && <span className="sample-tag">Sample</span>}</h4>
                                 <ul className="mspt-list">
-                                    {msptNews.map((item) => {
+                                    {msptNews.slice(0, MSPT_SIDEBAR_ITEMS).map((item) => {
                                         const clickable = !!(item.source_url && item.source_url !== '#');
                                         // Route through openArticle so MSPT items get the same
                                         // reader modal, read-state, and view tracking as the feed
@@ -2372,6 +2397,11 @@ function NewsHub() {
                                         );
                                     })}
                                 </ul>
+                                {msptNews.length > MSPT_SIDEBAR_ITEMS && !msptNews[0]?.is_fallback && (
+                                    <button type="button" className="mspt-more sd-button" onClick={showAllMspt}>
+                                        All MSPT Stories
+                                    </button>
+                                )}
                                 <a
                                     href="https://msptpoker.com"
                                     target="_blank"
@@ -2414,6 +2444,35 @@ function NewsHub() {
                                 </ul>
                             </div>
 
+                            {/* Phase 3: Reading History Widget — most recently read first
+                                (readArticles is append-ordered, so reverse = recency order) */}
+                            {readArticles.length > 0 && (
+                                <div className="widget reading-history">
+                                    <h4><Eye size={14} /> Recently Read</h4>
+                                    <ul className="history-list">
+                                        {[...readArticles].reverse()
+                                            .map(id => news.find(a => a.id === id))
+                                            .filter(Boolean)
+                                            .slice(0, 5)
+                                            .map(a => (
+                                                <li
+                                                    key={a.id}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() => openArticle(a)}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openArticle(a); } }}
+                                                >
+                                                    <CheckCircle size={10} style={{ color: '#22c55e', flexShrink: 0 }} />
+                                                    <span>{a.title?.slice(0, 50)}{a.title?.length > 50 ? '...' : ''}</span>
+                                                </li>
+                                            ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {/* Desktop: these three stay docked in view while the feed scrolls.
+                                At 1000px and below the dock dissolves (display: contents) and
+                                they join the sidebar grid as before. */}
+                            <div className="sidebar-dock">
                             {/* Player of the Year */}
                             <div className="widget leaderboard">
                                 <h4>
@@ -2437,7 +2496,7 @@ function NewsHub() {
                                     </>
                                 ) : (
                                     <div className="widget-empty" role="status">
-                                        {leaderboardLoading ? 'Loading current standings…' : leaderboardError ? 'Standings are temporarily unavailable.' : 'Licensed GPI standings are not connected yet.'}
+                                        {(leaderboardLoading || !leaderboardData) && !leaderboardError ? 'Loading Current Standings…' : leaderboardError ? 'Standings are temporarily unavailable.' : 'Licensed GPI standings are not connected yet.'}
                                     </div>
                                 )}
                             </div>
@@ -2467,7 +2526,7 @@ function NewsHub() {
                                         ))}
                                     </ul>
                                     {eventsLoading && <div className="widget-empty" role="status">Loading Tournaments…</div>}
-                                    {!eventsLoading && !eventsError && sidebarEvents.length === 0 && (
+                                    {eventsData && !eventsLoading && !eventsError && sidebarEvents.length === 0 && (
                                         <div className="widget-empty">No Tournaments found{nearbyLocation ? ' within 100 miles' : ''}.</div>
                                     )}
                                     {eventsError && <div className="widget-empty">Tournament Feed Is Temporarily Unavailable.</div>}
@@ -2500,32 +2559,8 @@ function NewsHub() {
                                 )}
                                 {subscribeError && <div className="error" role="alert">{subscribeError}</div>}
                             </div>
+                            </div>
 
-                            {/* Phase 3: Reading History Widget — most recently read first
-                                (readArticles is append-ordered, so reverse = recency order) */}
-                            {readArticles.length > 0 && (
-                                <div className="widget reading-history">
-                                    <h4><Eye size={14} /> Recently Read</h4>
-                                    <ul className="history-list">
-                                        {[...readArticles].reverse()
-                                            .map(id => news.find(a => a.id === id))
-                                            .filter(Boolean)
-                                            .slice(0, 5)
-                                            .map(a => (
-                                                <li
-                                                    key={a.id}
-                                                    role="button"
-                                                    tabIndex={0}
-                                                    onClick={() => openArticle(a)}
-                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openArticle(a); } }}
-                                                >
-                                                    <CheckCircle size={10} style={{ color: '#22c55e', flexShrink: 0 }} />
-                                                    <span>{a.title?.slice(0, 50)}{a.title?.length > 50 ? '...' : ''}</span>
-                                                </li>
-                                            ))}
-                                    </ul>
-                                </div>
-                            )}
                         </aside>
                     </div>
 
