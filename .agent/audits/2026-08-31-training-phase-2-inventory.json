@@ -56300,7 +56300,7 @@
         {
           "element": "button",
           "name": "resolvedHeaderWorld\n              ? `Open ${resolvedHeaderWorld.label} Command Menu`\n              : 'Open Menu'",
-          "line": 1807,
+          "line": 1815,
           "handler": "() => (\n              onMenuClick && !ownsCanonicalMenu\n                ? onMenuClick()\n                : setCommandMenuOpen(true)\n            )",
           "destination": null,
           "type": "button",
@@ -56310,7 +56310,7 @@
         {
           "element": "button",
           "name": "Go Back",
-          "line": 1825,
+          "line": 1833,
           "handler": "onBackClick || handleBack",
           "destination": null,
           "type": "button",
@@ -56320,7 +56320,7 @@
         {
           "element": "button",
           "name": "Go To The Hub",
-          "line": 1832,
+          "line": 1840,
           "handler": "() => router.push('/hub')",
           "destination": null,
           "type": "button",
@@ -56330,7 +56330,7 @@
         {
           "element": "button",
           "name": "My Profile",
-          "line": 1839,
+          "line": 1847,
           "handler": "goToProfile",
           "destination": null,
           "type": "button",
@@ -56340,7 +56340,7 @@
         {
           "element": "button",
           "name": "Diamond Wallet",
-          "line": 1860,
+          "line": 1868,
           "handler": "() => setIsWalletOpen(true)",
           "destination": null,
           "type": "button",
@@ -56350,7 +56350,7 @@
         {
           "element": "button",
           "name": "safeIsVip ? 'VIP Membership Active' : 'VIP Membership Inactive'",
-          "line": 1867,
+          "line": 1875,
           "handler": "() => router.push('/hub/vip-membership')",
           "destination": null,
           "type": "button",
@@ -56360,7 +56360,7 @@
         {
           "element": "button",
           "name": "Messages",
-          "line": 1877,
+          "line": 1885,
           "handler": "() => router.push('/hub/messenger')",
           "destination": null,
           "type": "button",
@@ -56370,7 +56370,7 @@
         {
           "element": "button",
           "name": "Notifications",
-          "line": 1890,
+          "line": 1898,
           "handler": "() => openOverlay('notifications')",
           "destination": null,
           "type": "button",
@@ -56509,14 +56509,14 @@
         {
           "name": "warm",
           "line": 652,
-          "references": 8,
+          "references": 10,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "fetchUnreadCount",
-          "line": 805,
+          "line": 813,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -56524,7 +56524,7 @@
         },
         {
           "name": "handleVipChange",
-          "line": 902,
+          "line": 910,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56532,7 +56532,7 @@
         },
         {
           "name": "handleProfileUpdate",
-          "line": 911,
+          "line": 919,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56540,7 +56540,7 @@
         },
         {
           "name": "write",
-          "line": 1013,
+          "line": 1021,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -56548,7 +56548,7 @@
         },
         {
           "name": "handleBack",
-          "line": 1031,
+          "line": 1039,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56556,7 +56556,7 @@
         },
         {
           "name": "renderHeader",
-          "line": 1052,
+          "line": 1060,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56625,7 +56625,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 692,
+          "line": 696,
           "excerpt": "// Final fallback: direct REST API call (not Supabase client)",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56633,7 +56633,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 699,
+          "line": 703,
           "excerpt": "// If the env is not configured we skip the fallback instead.",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56641,7 +56641,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 704,
+          "line": 708,
           "excerpt": "'[UniversalHeader] REST fallback skipped - Supabase env not configured'",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56649,7 +56649,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 748,
+          "line": 752,
           "excerpt": "// Cache the REST fallback data too - lowercase username",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56657,7 +56657,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 793,
+          "line": 801,
           "excerpt": "console.debug('[UniversalHeader] Direct REST fallback SUCCESS:', {",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56665,7 +56665,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 798,
+          "line": 806,
           "excerpt": "console.warn('[UniversalHeader] Direct REST fallback failed:', e);",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56673,7 +56673,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 828,
+          "line": 836,
           "excerpt": "// 500/1000/2000ms backoff plus a REST fallback) can easily outlive the",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -56681,7 +56681,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1588,
+          "line": 1596,
           "excerpt": "placeholder silhouette. That ring is the \"thick broken frame\": the live",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -97280,11 +97280,11 @@
       "effectRef": "src/components/ui/ReportBugWidget.jsx"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1807:1",
+      "id": "src/components/ui/UniversalHeader.js:1815:1",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "resolvedHeaderWorld\n              ? `Open ${resolvedHeaderWorld.label} Command Menu`\n              : 'Open Menu'",
-      "line": 1807,
+      "line": 1815,
       "handler": "() => (\n              onMenuClick && !ownsCanonicalMenu\n                ? onMenuClick()\n                : setCommandMenuOpen(true)\n            )",
       "destination": null,
       "type": "button",
@@ -97293,11 +97293,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1825:2",
+      "id": "src/components/ui/UniversalHeader.js:1833:2",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Go Back",
-      "line": 1825,
+      "line": 1833,
       "handler": "onBackClick || handleBack",
       "destination": null,
       "type": "button",
@@ -97306,11 +97306,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1832:3",
+      "id": "src/components/ui/UniversalHeader.js:1840:3",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Go To The Hub",
-      "line": 1832,
+      "line": 1840,
       "handler": "() => router.push('/hub')",
       "destination": null,
       "type": "button",
@@ -97319,11 +97319,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1839:4",
+      "id": "src/components/ui/UniversalHeader.js:1847:4",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "My Profile",
-      "line": 1839,
+      "line": 1847,
       "handler": "goToProfile",
       "destination": null,
       "type": "button",
@@ -97332,11 +97332,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1860:5",
+      "id": "src/components/ui/UniversalHeader.js:1868:5",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Diamond Wallet",
-      "line": 1860,
+      "line": 1868,
       "handler": "() => setIsWalletOpen(true)",
       "destination": null,
       "type": "button",
@@ -97345,11 +97345,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1867:6",
+      "id": "src/components/ui/UniversalHeader.js:1875:6",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "safeIsVip ? 'VIP Membership Active' : 'VIP Membership Inactive'",
-      "line": 1867,
+      "line": 1875,
       "handler": "() => router.push('/hub/vip-membership')",
       "destination": null,
       "type": "button",
@@ -97358,11 +97358,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1877:7",
+      "id": "src/components/ui/UniversalHeader.js:1885:7",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Messages",
-      "line": 1877,
+      "line": 1885,
       "handler": "() => router.push('/hub/messenger')",
       "destination": null,
       "type": "button",
@@ -97371,11 +97371,11 @@
       "effectRef": "src/components/ui/UniversalHeader.js"
     },
     {
-      "id": "src/components/ui/UniversalHeader.js:1890:8",
+      "id": "src/components/ui/UniversalHeader.js:1898:8",
       "file": "src/components/ui/UniversalHeader.js",
       "element": "button",
       "name": "Notifications",
-      "line": 1890,
+      "line": 1898,
       "handler": "() => openOverlay('notifications')",
       "destination": null,
       "type": "button",
@@ -127039,7 +127039,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 692,
+        "line": 696,
         "excerpt": "// Final fallback: direct REST API call (not Supabase client)",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127048,7 +127048,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 699,
+        "line": 703,
         "excerpt": "// If the env is not configured we skip the fallback instead.",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127057,7 +127057,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 704,
+        "line": 708,
         "excerpt": "'[UniversalHeader] REST fallback skipped - Supabase env not configured'",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127066,7 +127066,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 748,
+        "line": 752,
         "excerpt": "// Cache the REST fallback data too - lowercase username",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127075,7 +127075,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 793,
+        "line": 801,
         "excerpt": "console.debug('[UniversalHeader] Direct REST fallback SUCCESS:', {",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127084,7 +127084,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 798,
+        "line": 806,
         "excerpt": "console.warn('[UniversalHeader] Direct REST fallback failed:', e);",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127093,7 +127093,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 828,
+        "line": 836,
         "excerpt": "// 500/1000/2000ms backoff plus a REST fallback) can easily outlive the",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -127102,7 +127102,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "PLACEHOLDER",
-        "line": 1588,
+        "line": 1596,
         "excerpt": "placeholder silhouette. That ring is the \"thick broken frame\": the live",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139629,7 +139629,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 692,
+        "line": 696,
         "excerpt": "// Final fallback: direct REST API call (not Supabase client)",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139638,7 +139638,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 699,
+        "line": 703,
         "excerpt": "// If the env is not configured we skip the fallback instead.",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139647,7 +139647,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 704,
+        "line": 708,
         "excerpt": "'[UniversalHeader] REST fallback skipped - Supabase env not configured'",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139656,7 +139656,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 748,
+        "line": 752,
         "excerpt": "// Cache the REST fallback data too - lowercase username",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139665,7 +139665,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 793,
+        "line": 801,
         "excerpt": "console.debug('[UniversalHeader] Direct REST fallback SUCCESS:', {",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139674,7 +139674,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 798,
+        "line": 806,
         "excerpt": "console.warn('[UniversalHeader] Direct REST fallback failed:', e);",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139683,7 +139683,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "FALLBACK",
-        "line": 828,
+        "line": 836,
         "excerpt": "// 500/1000/2000ms backoff plus a REST fallback) can easily outlive the",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -139692,7 +139692,7 @@
       {
         "file": "src/components/ui/UniversalHeader.js",
         "kind": "PLACEHOLDER",
-        "line": 1588,
+        "line": 1596,
         "excerpt": "placeholder silhouette. That ring is the \"thick broken frame\": the live",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
