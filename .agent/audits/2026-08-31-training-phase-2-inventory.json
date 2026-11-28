@@ -14,13 +14,13 @@
     "dependencyFiles": 424,
     "componentFiles": 70,
     "hookFiles": 16,
-    "ctas": 562,
+    "ctas": 564,
     "dialogs": 22,
     "persistenceFiles": 100,
     "realtimeFiles": 7,
-    "tests": 205,
+    "tests": 207,
     "markerCandidates": 408,
-    "possibleUnwiredFunctions": 514,
+    "possibleUnwiredFunctions": 515,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
     "routeStateUnassignedGaps": 0,
@@ -13222,6 +13222,7 @@
             "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarter-poker-magazine.law.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -13258,6 +13259,7 @@
             "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarter-poker-magazine.law.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -13299,6 +13301,7 @@
             "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarter-poker-magazine.law.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -13325,6 +13328,7 @@
             "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarter-poker-magazine.law.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -13362,6 +13366,7 @@
             "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarter-poker-magazine.law.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -13404,6 +13409,7 @@
             "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarter-poker-magazine.law.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -13427,6 +13433,7 @@
             "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarter-poker-magazine.law.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -13453,6 +13460,7 @@
             "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarter-poker-magazine.law.test.mjs",
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
@@ -13466,6 +13474,7 @@
         "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
         "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+        "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
         "__tests__/smarter-poker-magazine.law.test.mjs",
         "__tests__/training-global-smarterdesign-click-cards.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
@@ -26497,6 +26506,7 @@
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26531,6 +26541,7 @@
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26572,6 +26583,7 @@
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26599,6 +26611,7 @@
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26634,6 +26647,7 @@
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26673,6 +26687,7 @@
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26693,6 +26708,7 @@
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26720,6 +26736,7 @@
             "__tests__/markdown-ingestion.test.mjs",
             "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+            "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
             "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26735,6 +26752,7 @@
         "__tests__/markdown-ingestion.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
         "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+        "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
         "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
         "__tests__/training-authored-surface-authority.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs"
@@ -48232,7 +48250,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 211,
+          "line": 226,
           "handler": null,
           "destination": "preset.unlockedHref",
           "type": null,
@@ -48242,7 +48260,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 276,
+          "line": 291,
           "handler": "handleOpenQuickSheet",
           "destination": "signupHref",
           "type": null,
@@ -48252,7 +48270,7 @@
         {
           "element": "link",
           "name": "Sign In To Existing Account",
-          "line": 284,
+          "line": 299,
           "handler": null,
           "destination": "loginHref",
           "type": null,
@@ -48300,7 +48318,7 @@
         },
         {
           "name": "SmarterAccountUnlockGate",
-          "line": 147,
+          "line": 162,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -48308,7 +48326,7 @@
         },
         {
           "name": "handleOpenQuickSheet",
-          "line": 182,
+          "line": 197,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48437,7 +48455,7 @@
         {
           "element": "button",
           "name": "Close Quick Signup Dialog",
-          "line": 329,
+          "line": 348,
           "handler": "close",
           "destination": null,
           "type": "button",
@@ -48447,7 +48465,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 396,
+          "line": 415,
           "handler": "() => handleOAuthOneTap('google')",
           "destination": null,
           "type": "button",
@@ -48457,7 +48475,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 406,
+          "line": 425,
           "handler": "() => handleOAuthOneTap('facebook')",
           "destination": null,
           "type": "button",
@@ -48467,7 +48485,7 @@
         {
           "element": "button",
           "name": "Create Free Account With Email",
-          "line": 437,
+          "line": 456,
           "handler": null,
           "destination": null,
           "type": "submit",
@@ -48477,8 +48495,8 @@
         {
           "element": "link",
           "name": "Open Full Registration Form Directly",
-          "line": 447,
-          "handler": "() => {\n              try {\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                  experiment_variant: experimentVariant,\n                  ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
+          "line": 466,
+          "handler": "() => {\n              try {\n                recordUnlockIntent({\n                  unlockKey: payload.unlockKey,\n                  source: payload.source,\n                  experimentVariant,\n                  aiEngine: aiWelcome?.engine || '',\n                });\n                recordPendingSeoUnlock({\n                  unlockKey: payload.unlockKey,\n                  source: payload.source,\n                  redirectPath: payload.redirectPath,\n                });\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                  experiment_variant: experimentVariant,\n                  ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
           "destination": "signupHref",
           "type": null,
           "disabled": null,
@@ -48487,7 +48505,7 @@
         {
           "element": "link",
           "name": "Sign In",
-          "line": 492,
+          "line": 522,
           "handler": "close",
           "destination": "loginHref",
           "type": null,
@@ -48527,7 +48545,7 @@
       "functions": [
         {
           "name": "parsePlatformCountsResponse",
-          "line": 26,
+          "line": 27,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48535,7 +48553,7 @@
         },
         {
           "name": "fetchCachedPlatformProof",
-          "line": 47,
+          "line": 48,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48543,7 +48561,7 @@
         },
         {
           "name": "trackFunnelEvent",
-          "line": 78,
+          "line": 79,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -48551,7 +48569,7 @@
         },
         {
           "name": "sanitizeRedirect",
-          "line": 87,
+          "line": 88,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48559,7 +48577,7 @@
         },
         {
           "name": "openQuickSignup",
-          "line": 95,
+          "line": 96,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -48567,7 +48585,7 @@
         },
         {
           "name": "buildSignupUrl",
-          "line": 105,
+          "line": 106,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -48575,7 +48593,7 @@
         },
         {
           "name": "SmarterQuickSignupSheet",
-          "line": 118,
+          "line": 119,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -48583,7 +48601,7 @@
         },
         {
           "name": "onOpen",
-          "line": 136,
+          "line": 137,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48591,7 +48609,7 @@
         },
         {
           "name": "onKeyDown",
-          "line": 196,
+          "line": 203,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48599,7 +48617,7 @@
         },
         {
           "name": "handleOAuthOneTap",
-          "line": 217,
+          "line": 224,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48607,7 +48625,7 @@
         },
         {
           "name": "handleEmailFormSubmit",
-          "line": 271,
+          "line": 284,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48621,7 +48639,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 431,
+          "line": 450,
           "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -48645,7 +48663,7 @@
         {
           "element": "link",
           "name": "Claim 30-Day VIP + 500 Diamonds",
-          "line": 282,
+          "line": 423,
           "handler": "() => dismiss('claim-vip')",
           "destination": "/hub/verify-phone?welcome=1",
           "type": null,
@@ -48655,7 +48673,7 @@
         {
           "element": "link",
           "name": "Launch 107 GTO Games",
-          "line": 290,
+          "line": 431,
           "handler": "() => dismiss('launch-training')",
           "destination": "/hub/training",
           "type": null,
@@ -48665,12 +48683,32 @@
         {
           "element": "button",
           "name": "Dismiss Account Unlocked Banner",
-          "line": 298,
+          "line": 439,
           "handler": "() => dismiss('dismiss')",
           "destination": null,
           "type": "button",
           "disabled": null,
           "wiring": "handler"
+        },
+        {
+          "element": "link",
+          "name": "<dynamic>",
+          "line": 496,
+          "handler": "() => markDay0Win(item.id)",
+          "destination": "item.href",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "<dynamic>",
+          "line": 558,
+          "handler": "() => dismiss(`gravity-${link.href}`)",
+          "destination": "link.href",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
         }
       ],
       "dialogs": {
@@ -48690,7 +48728,7 @@
       },
       "persistenceWrites": {
         "localStorage": 0,
-        "sessionStorage": 2,
+        "sessionStorage": 3,
         "inserts": 0,
         "updates": 0,
         "deletes": 0,
@@ -48705,7 +48743,7 @@
       "functions": [
         {
           "name": "readStoredAccessToken",
-          "line": 25,
+          "line": 26,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48713,7 +48751,7 @@
         },
         {
           "name": "sanitizeGuestSpots",
-          "line": 37,
+          "line": 38,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48721,15 +48759,47 @@
         },
         {
           "name": "syncGuestSavedSpotsToCloud",
-          "line": 63,
+          "line": 64,
           "references": 2,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "buildDay0ChecklistState",
+          "line": 143,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "resolveHubGravityLinks",
+          "line": 171,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "readLocalSavedSpotCount",
+          "line": 224,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "readCompletedDay0Wins",
+          "line": 236,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "hasStoredAuthSession",
-          "line": 140,
+          "line": 248,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48737,7 +48807,7 @@
         },
         {
           "name": "recordPendingSeoUnlock",
-          "line": 152,
+          "line": 260,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -48745,7 +48815,7 @@
         },
         {
           "name": "promotePendingSeoUnlock",
-          "line": 167,
+          "line": 275,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -48753,7 +48823,7 @@
         },
         {
           "name": "resolveWelcomeBody",
-          "line": 192,
+          "line": 300,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48761,16 +48831,24 @@
         },
         {
           "name": "SmarterUnlockedWelcomeBanner",
-          "line": 203,
+          "line": 311,
           "references": 1,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
+          "name": "markDay0Win",
+          "line": 355,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "dismiss",
-          "line": 243,
-          "references": 8,
+          "line": 376,
+          "references": 9,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -62591,7 +62669,7 @@
         "authExpiry": false
       },
       "persistenceWrites": {
-        "localStorage": 2,
+        "localStorage": 4,
         "sessionStorage": 0,
         "inserts": 0,
         "updates": 0,
@@ -62607,7 +62685,7 @@
       "functions": [
         {
           "name": "hostMatches",
-          "line": 59,
+          "line": 81,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -62615,7 +62693,7 @@
         },
         {
           "name": "classifyReferrer",
-          "line": 63,
+          "line": 85,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -62623,31 +62701,39 @@
         },
         {
           "name": "isSafeSegment",
-          "line": 99,
+          "line": 121,
           "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
-          "name": "sanitizeLandingPath",
-          "line": 103,
+          "name": "isPublicLandingPath",
+          "line": 125,
           "references": 2,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "sanitizeLandingPath",
+          "line": 137,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "cleanTag",
-          "line": 121,
-          "references": 5,
+          "line": 155,
+          "references": 13,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "parseFirstTouch",
-          "line": 128,
+          "line": 162,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -62655,15 +62741,39 @@
         },
         {
           "name": "readStored",
-          "line": 158,
+          "line": 192,
           "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "readStoredLanding",
+          "line": 205,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "recordUnlockIntent",
+          "line": 221,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "readUnlockIntent",
+          "line": 247,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "recordFirstTouch",
-          "line": 172,
+          "line": 277,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -62671,7 +62781,7 @@
         },
         {
           "name": "firstTouchMetadata",
-          "line": 186,
+          "line": 302,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -62679,7 +62789,7 @@
         },
         {
           "name": "newNonce",
-          "line": 209,
+          "line": 336,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -62687,7 +62797,7 @@
         },
         {
           "name": "beginOAuthAttribution",
-          "line": 223,
+          "line": 350,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -62695,7 +62805,7 @@
         },
         {
           "name": "withAttributionNonce",
-          "line": 237,
+          "line": 364,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -62703,7 +62813,7 @@
         },
         {
           "name": "consumeIntent",
-          "line": 242,
+          "line": 369,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -62711,7 +62821,7 @@
         },
         {
           "name": "attributionForNewAccount",
-          "line": 268,
+          "line": 395,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -62719,6 +62829,7 @@
         }
       ],
       "possibleUnwiredFunctions": [
+        "recordUnlockIntent",
         "recordFirstTouch",
         "beginOAuthAttribution",
         "withAttributionNonce",
@@ -88599,6 +88710,8 @@
     "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
     "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
     "__tests__/no-slide-to-see.law.test.mjs",
+    "__tests__/otc-tier2-leak-finder-and-activation-20261127.law.test.mjs",
+    "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
     "__tests__/owner-only-hub-cards.test.mjs",
     "__tests__/pa-forensic-review-auth.law.test.mjs",
     "__tests__/pa-review-workstation.test.mjs",
@@ -89237,7 +89350,7 @@
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "writes": {
         "localStorage": 0,
-        "sessionStorage": 2,
+        "sessionStorage": 3,
         "inserts": 0,
         "updates": 0,
         "deletes": 0,
@@ -89467,7 +89580,7 @@
     {
       "file": "src/lib/acquisition/firstTouch.mjs",
       "writes": {
-        "localStorage": 2,
+        "localStorage": 4,
         "sessionStorage": 0,
         "inserts": 0,
         "updates": 0,
@@ -93956,11 +94069,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:211:1",
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:226:1",
       "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 211,
+      "line": 226,
       "handler": null,
       "destination": "preset.unlockedHref",
       "type": null,
@@ -93969,11 +94082,11 @@
       "effectRef": "src/components/seo/SmarterAccountUnlockGate.jsx"
     },
     {
-      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:276:2",
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:291:2",
       "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 276,
+      "line": 291,
       "handler": "handleOpenQuickSheet",
       "destination": "signupHref",
       "type": null,
@@ -93982,11 +94095,11 @@
       "effectRef": "src/components/seo/SmarterAccountUnlockGate.jsx"
     },
     {
-      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:284:3",
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:299:3",
       "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
       "element": "link",
       "name": "Sign In To Existing Account",
-      "line": 284,
+      "line": 299,
       "handler": null,
       "destination": "loginHref",
       "type": null,
@@ -94021,11 +94134,11 @@
       "effectRef": "src/components/seo/SmarterConversionCta.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:329:1",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:348:1",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "Close Quick Signup Dialog",
-      "line": 329,
+      "line": 348,
       "handler": "close",
       "destination": null,
       "type": "button",
@@ -94034,11 +94147,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:396:2",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:415:2",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 396,
+      "line": 415,
       "handler": "() => handleOAuthOneTap('google')",
       "destination": null,
       "type": "button",
@@ -94047,11 +94160,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:406:3",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:425:3",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 406,
+      "line": 425,
       "handler": "() => handleOAuthOneTap('facebook')",
       "destination": null,
       "type": "button",
@@ -94060,11 +94173,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:437:4",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:456:4",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "Create Free Account With Email",
-      "line": 437,
+      "line": 456,
       "handler": null,
       "destination": null,
       "type": "submit",
@@ -94073,12 +94186,12 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:447:5",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:466:5",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "link",
       "name": "Open Full Registration Form Directly",
-      "line": 447,
-      "handler": "() => {\n              try {\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                  experiment_variant: experimentVariant,\n                  ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
+      "line": 466,
+      "handler": "() => {\n              try {\n                recordUnlockIntent({\n                  unlockKey: payload.unlockKey,\n                  source: payload.source,\n                  experimentVariant,\n                  aiEngine: aiWelcome?.engine || '',\n                });\n                recordPendingSeoUnlock({\n                  unlockKey: payload.unlockKey,\n                  source: payload.source,\n                  redirectPath: payload.redirectPath,\n                });\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                  experiment_variant: experimentVariant,\n                  ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
       "destination": "signupHref",
       "type": null,
       "disabled": null,
@@ -94086,11 +94199,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:492:6",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:522:6",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "link",
       "name": "Sign In",
-      "line": 492,
+      "line": 522,
       "handler": "close",
       "destination": "loginHref",
       "type": null,
@@ -94099,11 +94212,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:282:1",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:423:1",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "Claim 30-Day VIP + 500 Diamonds",
-      "line": 282,
+      "line": 423,
       "handler": "() => dismiss('claim-vip')",
       "destination": "/hub/verify-phone?welcome=1",
       "type": null,
@@ -94112,11 +94225,11 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:290:2",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:431:2",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "Launch 107 GTO Games",
-      "line": 290,
+      "line": 431,
       "handler": "() => dismiss('launch-training')",
       "destination": "/hub/training",
       "type": null,
@@ -94125,16 +94238,42 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:298:3",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:439:3",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "button",
       "name": "Dismiss Account Unlocked Banner",
-      "line": 298,
+      "line": 439,
       "handler": "() => dismiss('dismiss')",
       "destination": null,
       "type": "button",
       "disabled": null,
       "wiring": "handler",
+      "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
+    },
+    {
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:496:4",
+      "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
+      "element": "link",
+      "name": "<dynamic>",
+      "line": 496,
+      "handler": "() => markDay0Win(item.id)",
+      "destination": "item.href",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
+    },
+    {
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:558:5",
+      "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
+      "element": "link",
+      "name": "<dynamic>",
+      "line": 558,
+      "handler": "() => dismiss(`gravity-${link.href}`)",
+      "destination": "link.href",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
@@ -99383,6 +99522,7 @@
       "tests": [
         "__tests__/business-hub-guide-render.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
+        "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
         "__tests__/training-request-deadline.test.mjs"
       ]
     },
@@ -102192,7 +102332,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -102279,7 +102419,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -102627,7 +102767,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -102736,7 +102876,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -102936,7 +103076,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -102946,7 +103086,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -102999,7 +103139,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -103009,7 +103149,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -103558,7 +103698,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -103667,7 +103807,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -104213,7 +104353,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -104234,7 +104374,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -104317,7 +104457,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -104327,7 +104467,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -104406,7 +104546,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -104416,7 +104556,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -104512,7 +104652,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -104522,7 +104662,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -104726,7 +104866,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -104747,7 +104887,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -104903,7 +105043,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -104913,7 +105053,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -105204,7 +105344,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -105214,7 +105354,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -105270,7 +105410,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -105280,7 +105420,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -105336,7 +105476,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -105346,7 +105486,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -105451,7 +105591,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -105461,7 +105601,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -105656,7 +105796,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -105666,7 +105806,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -105744,7 +105884,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -105754,7 +105894,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -105893,7 +106033,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -105903,7 +106043,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -105997,7 +106137,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106007,7 +106147,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -106173,7 +106313,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106183,7 +106323,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -106239,7 +106379,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106249,7 +106389,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -106326,7 +106466,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106336,7 +106476,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -106505,7 +106645,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106625,7 +106765,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -106873,7 +107013,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106883,7 +107023,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -106976,7 +107116,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -106986,7 +107126,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -107245,7 +107385,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -107354,7 +107494,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -107639,7 +107779,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -107759,7 +107899,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -108409,7 +108549,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -108419,7 +108559,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -108607,7 +108747,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -108661,7 +108801,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -108885,7 +109025,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -108895,7 +109035,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -108951,7 +109091,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -108961,7 +109101,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -109075,7 +109215,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -109085,7 +109225,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -109556,7 +109696,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -109566,7 +109706,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -109629,7 +109769,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -109639,7 +109779,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -109717,7 +109857,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -109727,7 +109867,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -109780,7 +109920,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -109790,7 +109930,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -109887,7 +110027,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -109930,7 +110070,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -110751,7 +110891,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -110761,7 +110901,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -110943,7 +111083,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -110997,7 +111137,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -111270,7 +111410,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -111280,7 +111420,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -111489,7 +111629,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -111499,7 +111639,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -111555,7 +111695,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -111565,7 +111705,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -111640,7 +111780,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -111650,7 +111790,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -111867,7 +112007,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -111877,7 +112017,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -111945,7 +112085,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -111966,7 +112106,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -112186,7 +112326,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -112196,7 +112336,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -112287,7 +112427,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -112308,7 +112448,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -112399,7 +112539,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -112409,7 +112549,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -112521,7 +112661,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -112542,7 +112682,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -112637,7 +112777,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -112647,7 +112787,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -112729,7 +112869,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -112739,7 +112879,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -113148,7 +113288,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -113158,7 +113298,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -113965,7 +114105,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -113975,7 +114115,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -114040,7 +114180,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -114050,7 +114190,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -114202,7 +114342,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -114311,7 +114451,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -114826,6 +114966,7 @@
         "__tests__/markdown-ingestion.test.mjs",
         "__tests__/newsletter-v6-forensic-hardening.law.test.mjs",
         "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+        "__tests__/otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs",
         "__tests__/smarterdesign-organic-cro-20261127.law.test.mjs",
         "__tests__/training-authored-surface-authority.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs"
@@ -114941,7 +115082,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -115050,7 +115191,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -115334,7 +115475,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -115344,7 +115485,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -115424,7 +115565,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -115434,7 +115575,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -115504,7 +115645,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -115514,7 +115655,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -115865,7 +116006,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -115875,7 +116016,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -115949,7 +116090,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -115959,7 +116100,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -115981,6 +116122,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/otc-tier2-leak-finder-and-activation-20261127.law.test.mjs",
         "__tests__/unlock-gate-shows-no-fabricated-data.law.test.mjs"
       ]
     },
@@ -116005,7 +116147,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -116015,7 +116157,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -116059,7 +116201,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -116069,7 +116211,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -116108,7 +116250,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -116128,7 +116270,9 @@
         }
       ],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/otc-tier2-leak-finder-and-activation-20261127.law.test.mjs"
+      ]
     },
     {
       "file": "src/components/smarterdesign/headerHelp.js",
@@ -117486,7 +117630,7 @@
           "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
           "writes": {
             "localStorage": 0,
-            "sessionStorage": 2,
+            "sessionStorage": 3,
             "inserts": 0,
             "updates": 0,
             "deletes": 0,
@@ -117496,7 +117640,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -120756,7 +120900,7 @@
         {
           "file": "src/lib/acquisition/firstTouch.mjs",
           "writes": {
-            "localStorage": 2,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -125424,7 +125568,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "kind": "PLACEHOLDER",
-        "line": 431,
+        "line": 450,
         "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -130439,7 +130583,7 @@
       {
         "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
         "name": "SmarterAccountUnlockGate",
-        "line": 147,
+        "line": 162,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -130575,6 +130719,7 @@
           "pages/tools/embeds.js",
           "pages/tools/format-quiz.js",
           "pages/tools/geometric-bet-calculator.js",
+          "pages/tools/gto-leak-finder.js",
           "pages/tools/hand-converter.js",
           "pages/tools/heads-up-push-fold-calculator.js",
           "pages/tools/home-game-director.js",
@@ -130731,7 +130876,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "openQuickSignup",
-        "line": 95,
+        "line": 96,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -130742,6 +130887,7 @@
         "externalReferenceFiles": [
           "pages/hub/bankroll-manager.js",
           "pages/learn/hands/[hand].js",
+          "pages/tools/gto-leak-finder.js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
@@ -130755,7 +130901,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "SmarterQuickSignupSheet",
-        "line": 118,
+        "line": 119,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -130770,7 +130916,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "recordPendingSeoUnlock",
-        "line": 152,
+        "line": 260,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -130779,13 +130925,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "src/components/seo/SmarterGoogleOneTap.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx"
         ]
       },
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "promotePendingSeoUnlock",
-        "line": 167,
+        "line": 275,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -130795,13 +130942,14 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/auth/callback.js",
-          "pages/auth/signup.js"
+          "pages/auth/signup.js",
+          "src/components/seo/SmarterGoogleOneTap.jsx"
         ]
       },
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "SmarterUnlockedWelcomeBanner",
-        "line": 203,
+        "line": 311,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -132555,8 +132703,25 @@
       },
       {
         "file": "src/lib/acquisition/firstTouch.mjs",
+        "name": "recordUnlockIntent",
+        "line": 221,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/otc-tier1-overlay-attribution-onetap-20261127.law.test.mjs",
+          "src/components/seo/SmarterGoogleOneTap.jsx",
+          "src/components/seo/SmarterQuickSignupSheet.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/acquisition/firstTouch.mjs",
         "name": "recordFirstTouch",
-        "line": 172,
+        "line": 277,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132566,13 +132731,15 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/first-touch-attribution.test.mjs",
+          "__tests__/otc-tier1-overlay-attribution-onetap-20261127.law.test.mjs",
+          "src/components/seo/SmarterGoogleOneTap.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx"
         ]
       },
       {
         "file": "src/lib/acquisition/firstTouch.mjs",
         "name": "beginOAuthAttribution",
-        "line": 223,
+        "line": 350,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132590,7 +132757,7 @@
       {
         "file": "src/lib/acquisition/firstTouch.mjs",
         "name": "withAttributionNonce",
-        "line": 237,
+        "line": 364,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -132608,7 +132775,7 @@
       {
         "file": "src/lib/acquisition/firstTouch.mjs",
         "name": "attributionForNewAccount",
-        "line": 268,
+        "line": 395,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133303,6 +133470,7 @@
           "pages/tools/embeds.js",
           "pages/tools/format-quiz.js",
           "pages/tools/geometric-bet-calculator.js",
+          "pages/tools/gto-leak-finder.js",
           "pages/tools/hand-converter.js",
           "pages/tools/heads-up-push-fold-calculator.js",
           "pages/tools/home-game-director.js",
@@ -133434,6 +133602,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "src/components/seo/SmarterGoogleOneTap.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx"
         ]
       },
@@ -133450,6 +133619,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/seo/GuestConversionBar.jsx",
+          "src/components/seo/SmarterGoogleOneTap.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx"
         ]
       },
@@ -133465,8 +133635,10 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/tools/gto-leak-finder.js",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
+          "src/components/seo/SmarterGoogleOneTap.jsx",
           "src/components/seo/SmarterMiniGtoDrill.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx",
           "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
@@ -137768,7 +137940,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "kind": "PLACEHOLDER",
-        "line": 431,
+        "line": 450,
         "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -142783,7 +142955,7 @@
       {
         "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
         "name": "SmarterAccountUnlockGate",
-        "line": 147,
+        "line": 162,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -142919,6 +143091,7 @@
           "pages/tools/embeds.js",
           "pages/tools/format-quiz.js",
           "pages/tools/geometric-bet-calculator.js",
+          "pages/tools/gto-leak-finder.js",
           "pages/tools/hand-converter.js",
           "pages/tools/heads-up-push-fold-calculator.js",
           "pages/tools/home-game-director.js",
@@ -143075,7 +143248,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "openQuickSignup",
-        "line": 95,
+        "line": 96,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -143086,6 +143259,7 @@
         "externalReferenceFiles": [
           "pages/hub/bankroll-manager.js",
           "pages/learn/hands/[hand].js",
+          "pages/tools/gto-leak-finder.js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
@@ -143099,7 +143273,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "name": "SmarterQuickSignupSheet",
-        "line": 118,
+        "line": 119,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -143114,7 +143288,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "recordPendingSeoUnlock",
-        "line": 152,
+        "line": 260,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -143123,13 +143297,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "src/components/seo/SmarterGoogleOneTap.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx"
         ]
       },
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "promotePendingSeoUnlock",
-        "line": 167,
+        "line": 275,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -143139,13 +143314,14 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/auth/callback.js",
-          "pages/auth/signup.js"
+          "pages/auth/signup.js",
+          "src/components/seo/SmarterGoogleOneTap.jsx"
         ]
       },
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "SmarterUnlockedWelcomeBanner",
-        "line": 203,
+        "line": 311,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -144899,8 +145075,25 @@
       },
       {
         "file": "src/lib/acquisition/firstTouch.mjs",
+        "name": "recordUnlockIntent",
+        "line": 221,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/otc-tier1-overlay-attribution-onetap-20261127.law.test.mjs",
+          "src/components/seo/SmarterGoogleOneTap.jsx",
+          "src/components/seo/SmarterQuickSignupSheet.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/acquisition/firstTouch.mjs",
         "name": "recordFirstTouch",
-        "line": 172,
+        "line": 277,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -144910,13 +145103,15 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/first-touch-attribution.test.mjs",
+          "__tests__/otc-tier1-overlay-attribution-onetap-20261127.law.test.mjs",
+          "src/components/seo/SmarterGoogleOneTap.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx"
         ]
       },
       {
         "file": "src/lib/acquisition/firstTouch.mjs",
         "name": "beginOAuthAttribution",
-        "line": 223,
+        "line": 350,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -144934,7 +145129,7 @@
       {
         "file": "src/lib/acquisition/firstTouch.mjs",
         "name": "withAttributionNonce",
-        "line": 237,
+        "line": 364,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -144952,7 +145147,7 @@
       {
         "file": "src/lib/acquisition/firstTouch.mjs",
         "name": "attributionForNewAccount",
-        "line": 268,
+        "line": 395,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -145647,6 +145842,7 @@
           "pages/tools/embeds.js",
           "pages/tools/format-quiz.js",
           "pages/tools/geometric-bet-calculator.js",
+          "pages/tools/gto-leak-finder.js",
           "pages/tools/hand-converter.js",
           "pages/tools/heads-up-push-fold-calculator.js",
           "pages/tools/home-game-director.js",
@@ -145778,6 +145974,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "src/components/seo/SmarterGoogleOneTap.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx"
         ]
       },
@@ -145794,6 +145991,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/seo/GuestConversionBar.jsx",
+          "src/components/seo/SmarterGoogleOneTap.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx"
         ]
       },
@@ -145809,8 +146007,10 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/tools/gto-leak-finder.js",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
+          "src/components/seo/SmarterGoogleOneTap.jsx",
           "src/components/seo/SmarterMiniGtoDrill.jsx",
           "src/components/seo/SmarterQuickSignupSheet.jsx",
           "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"

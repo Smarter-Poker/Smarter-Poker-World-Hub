@@ -211,7 +211,7 @@ export function resolveHubGravityLinks(unlockKey = '', pathname = '') {
   ) {
     return [
       { href: '/tools/gto-leak-finder', label: '60-Second GTO Leak Finder', tag: '5-Hand Test' },
-      { href: '/hub/poker-near-me/lobby', label: 'Live Poker Near Me', tag: 'Verified Rooms' },
+      { href: '/hub/poker-near-me/lobby', label: 'Live Poker Near Me', tag: 'Listed Rooms' },
     ];
   }
 

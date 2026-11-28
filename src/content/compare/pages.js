@@ -1970,9 +1970,9 @@ export const COMPARE_PAGES = [
     title: 'Smarter.Poker Vs PokerAtlas',
     h1: 'Smarter.Poker Vs PokerAtlas',
     description:
-      'Smarter.Poker And PokerAtlas Compared On Verified Live Poker Venues, Tournament Series, Club Commander, 107 GTO Games, Bankroll Tracking And Odds Tools.',
+      'Smarter.Poker And PokerAtlas Compared On Listed Live Poker Venues, Tournament Series, Club Commander, 107 GTO Games, Bankroll Tracking And Odds Tools.',
     summary: p(
-      'PokerAtlas Is A Dedicated Live Poker Room Directory And Casino Tournament Listing Network Paired With Its Quote-Priced TableCaptain Venue System. Smarter.Poker Combines Verified Live Venues, Live Series Schedules And Free Club Commander Room Management With 107 GTO Training Games, Cloud Bankroll Tracking And Free Odds Calculators.',
+      'PokerAtlas Is A Dedicated Live Poker Room Directory And Casino Tournament Listing Network Paired With Its Quote-Priced TableCaptain Venue System. Smarter.Poker Combines Listed Live Venues, Live Series Schedules And Free Club Commander Room Management With 107 GTO Training Games, Cloud Bankroll Tracking And Free Odds Calculators.',
       ['pokeratlasSite', 'pokeratlasDirectory', 'tablecaptainPokerAtlas', 'spPokerNearMe', 'spPokerSeries', 'spCommander', 'spTraining', 'spBankroll', 'spOddsCalculator', 'spHome']
     ),
     intro: p(
