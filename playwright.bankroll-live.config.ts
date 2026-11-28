@@ -33,6 +33,7 @@ export default defineConfig({
     {
       name: 'bankroll-live-mobile-375',
       testMatch: /bankroll-live\.spec\.ts$/,
+      grepInvert: /phone speed:/,
       use: {
         ...devices['Pixel 5'],
         viewport: { width: 375, height: 812 },
@@ -43,9 +44,25 @@ export default defineConfig({
     {
       name: 'bankroll-live-desktop',
       testMatch: /bankroll-live\.spec\.ts$/,
+      grepInvert: /phone speed:/,
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1440, height: 900 },
+        storageState: 'playwright/.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
+    // Phone speed: the same 375px phone, throttled inside the test to
+    // Lighthouse's mobile reference (e2e/fixtures/bankrollPhoneSpeed.mjs).
+    // The workflow runs it on its own with --workers=1, before the section
+    // walk, so no other test shares the throttled CPU.
+    {
+      name: 'bankroll-live-phone-speed',
+      testMatch: /bankroll-live\.spec\.ts$/,
+      grep: /phone speed:/,
+      use: {
+        ...devices['Pixel 5'],
+        viewport: { width: 375, height: 812 },
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['setup'],
