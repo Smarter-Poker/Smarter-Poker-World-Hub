@@ -1707,7 +1707,7 @@ export default function EndlessModePage() {
                                             {toTitleCase(String(currentQuestion.category || 'Mixed').replaceAll('_', ' '))}
                                         </p>
                                         <h2 id="endless-question-title" className="trivia-challenge-question">
-                                            <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} />
+                                            <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} structured />
                                         </h2>
 
                                         <div className="trivia-challenge-options">
