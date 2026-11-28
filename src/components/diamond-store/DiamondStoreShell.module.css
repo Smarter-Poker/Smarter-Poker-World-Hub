@@ -1,15 +1,10 @@
+/* #SMARTERDESIGN Diamond Store shell. Every surface uses the original Club
+   Arena nine-slice chrome rims: chrome-readout for panels, chrome-stat for
+   wells and readouts, chrome-row for controls and chrome-active for the
+   selected or primary control. Type and figures stay live DOM. */
 .root {
-  --store-focus: #9bf4ff;
-  --store-line: #58758a;
-  --store-panel: #050a10;
-  --store-metal-high: #314653;
-  --store-metal-mid: #172832;
-  --store-metal-low: #050a10;
-  --store-cyan-edge: #63e7ff;
-  --store-copy-muted: #a8b8c2;
-  --store-void: #010306;
-  --store-gold: #d7aa31;
   font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
   text-transform: capitalize;
 }
 
@@ -45,13 +40,10 @@
   min-height: 280px;
   display: grid;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--store-cyan-edge) 42%, transparent);
-  background: #050a0f;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    inset 0 -4px 12px #000,
-    0 12px 26px #000;
-  color: #d8faff;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: #bdd0e2;
   font:
     700 13px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -71,8 +63,8 @@
     [role='button'],
     [tabindex]:not([tabindex='-1'])
   ):focus-visible {
-  outline: 2px solid var(--store-focus) !important;
-  outline-offset: 3px !important;
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }
 
 /* The store surface is a machined control panel. Keep this rule scoped to the
@@ -81,40 +73,27 @@
   border-radius: 0 !important;
 }
 
+/* One frame per surface: every section inside carries its own steel rim, so
+   the content shell is layout only and paints no frame of its own. */
 .contentShell {
   position: relative;
   isolation: isolate;
+  /* Same inner width as the showcase above it (1240px less its 26px gutters),
+     so section content lines up with the image header and tab rail. */
   width: calc(100% - 52px) !important;
-  max-width: 1240px !important;
-  margin: 34px auto 46px !important;
-  padding: 34px !important;
-  border: 1px solid #324b5b;
-  background: #03080d;
-  box-shadow:
-    inset 0 1px 0 rgba(238, 252, 255, 0.12),
-    0 18px 44px rgba(0, 0, 0, 0.48);
+  max-width: 1188px !important;
+  margin: 18px auto 46px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  clip-path: none;
 }
 
-.contentShell::before {
-  position: absolute;
-  z-index: -1;
-  inset: 16px 0 auto;
-  height: 220px;
-  border-top: 1px solid rgba(103, 151, 180, 0.22);
-  background: rgba(24, 46, 61, 0.18);
-  content: '';
-  pointer-events: none;
-}
-
+.contentShell::before,
 .contentShell::after {
   display: none;
-  z-index: -1;
-  inset: 8px 8px auto;
-  height: 3px;
-  background: transparent;
-  box-shadow: none;
-  content: '';
-  pointer-events: none;
+  content: none;
 }
 
 .contentShell[data-store-section='diamonds'] {
@@ -130,17 +109,57 @@
   background: transparent;
 }
 
-.contentShell[data-store-section='vip'] {
-  background: #080805;
-  border-color: #6c5b2d;
-}
-
-.contentShell[data-store-section='vip']::after {
-  display: none;
-}
-
 .contentShell :is(h2, h3) {
   text-wrap: balance;
+}
+
+/* Smarter Rewards VIP card seal: a round chrome-ringed frame, like a struck
+   seal, holding the VIP mark. Only circular seals are round. */
+.vipCrest {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  width: 84px;
+  height: 84px;
+  place-items: center;
+  padding: 5px;
+  box-sizing: border-box;
+  border-radius: 50% !important;
+  background: conic-gradient(
+    from 210deg,
+    #f4f8fc,
+    #7f93a6 12%,
+    #2a3a4a 24%,
+    #c9d6e2 37%,
+    #f7fbff 46%,
+    #5f7387 58%,
+    #1d2a38 70%,
+    #b4c4d3 83%,
+    #f4f8fc
+  );
+  box-shadow:
+    0 0 0 1px #050e18,
+    0 6px 14px rgba(0, 0, 0, 0.55);
+}
+
+.vipCrest::before {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 1px rgba(5, 14, 24, 0.85),
+    inset 0 2px 3px rgba(0, 0, 0, 0.6);
+  content: '';
+  pointer-events: none;
+}
+
+.vipCrest img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50% !important;
+  object-fit: cover;
+  background: #050e18;
 }
 
 .vipBenefits {
@@ -155,11 +174,11 @@
 .vipStatusBar {
   min-height: 82px;
   padding: 17px 26px !important;
-  border: 1px solid #79671d !important;
-  background: #171304 !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 241, 165, 0.34),
-    0 12px 24px rgba(0, 0, 0, 0.4) !important;
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  box-shadow: none !important;
+  color: #f2f7ff;
 }
 
 .vipStatusBar > div:first-child {
@@ -171,12 +190,11 @@
 .vipDiamondAction,
 .vipPrimaryFallback {
   min-height: 44px;
-  border: 1px solid #4a687a !important;
-  background: #0a151d !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 8px 18px rgba(0, 0, 0, 0.3) !important;
-  color: #e9faff !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) !important;
+  box-shadow: none !important;
+  color: #f2f7ff !important;
   font-family:
     var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
   font-weight: 800 !important;
@@ -188,7 +206,6 @@
   min-width: 240px;
   justify-content: center;
   padding: 14px 30px !important;
-  color: #fff0aa !important;
 }
 
 .vipTools {
@@ -207,8 +224,9 @@
 
 .vipDiamondAction,
 .vipPrimaryFallback {
-  border-color: #0bc5ec !important;
-  background: #063446 !important;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) !important;
+  color: #fff !important;
 }
 
 .vipDiamondAction {
@@ -216,20 +234,17 @@
   min-height: 54px;
   justify-content: center;
   padding: 13px 34px !important;
-  color: #ecfbff !important;
 }
 
 .vipPrimaryFallback {
   min-height: 92px;
 }
 
-/* A VIP benefit is a row of text and a value, so it is sized by its text.
-   It used to be a painted three-slice console housing with percentage
-   padding: 57.9px top and bottom and 52.1px left and right at 1440px, a
-   forced 220px floor, and overflow: hidden. The longest benefit measured
-   115px of content inside a 115.2px box, so it was one line away from being
-   cut off, and the other 23 cards carried that height as dead space. This is
-   the same restrained chrome the accepted Marketplace footer uses. */
+:is(.vipManageAction, .vipToolLink, .vipDiamondAction, .vipPrimaryFallback):active {
+  filter: brightness(0.89);
+}
+
+/* A VIP benefit is a row of text and a value, so it is sized by its text. */
 .premiumDataCard {
   position: relative;
   display: flex;
@@ -238,13 +253,14 @@
   min-height: 0;
   padding: 16px 18px !important;
   overflow: visible;
-  border: 1px solid #23394a !important;
-  background: #070e15 !important;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+  background: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%) !important;
+  box-shadow: none;
 }
 
 .premiumDataCard :is(h3, h4, strong) {
-  color: #eefaff !important;
+  color: #f2f7ff !important;
   font-family:
     var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
   font-weight: 800 !important;
@@ -265,20 +281,28 @@
 .vipBenefitJumpNav a {
   display: inline-flex;
   min-height: 44px;
+  box-sizing: border-box;
   align-items: center;
   padding: 10px 16px;
-  border: 1px solid #314b5c;
-  background: #09131b;
-  color: #9bf4ff;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
   font: 800 12px/1.2 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial,
     sans-serif;
   text-decoration: none;
 }
 
+.vipBenefitJumpNav a:is(:active, [aria-current='true'], [aria-current='location']) {
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  color: #fff;
+}
+
 .vipBenefitJumpNav a:focus-visible,
 .vipBenefitGroup summary:focus-visible {
-  outline: 3px solid #8befff !important;
-  outline-offset: 3px !important;
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }
 
 .vipBenefitGroup {
@@ -294,8 +318,8 @@
   gap: 16px;
   margin-bottom: 14px;
   padding: 12px 16px;
-  border-bottom: 1px solid #314b5c;
-  color: #eefaff;
+  border-bottom: 1px solid #445e77;
+  color: #f2f7ff;
   font: 800 14px/1.2 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial,
     sans-serif;
   list-style: none;
@@ -303,7 +327,7 @@
 }
 
 .vipBenefitGroup > summary span:last-child {
-  color: #70dfff;
+  color: #86daff;
   font-size: 12px;
 }
 
@@ -325,7 +349,7 @@
 
 .vipFaq > h2 {
   margin: 0 0 20px;
-  color: #effdff;
+  color: #f2f7ff;
   font:
     800 20px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -335,19 +359,13 @@
   text-align: center;
 }
 
-/* A question and its answer, not a painted console.
-
-   Each row used to be a wallet-row-shell plate locked to aspect-ratio
-   1800/386 with 24% left padding reserved for an empty octagonal slot that
-   held nothing, and overflow: hidden, so a long answer was cut off by a fixed
-   ratio rather than given room. Eleven of them stacked into a wall of
-   ornament for eleven short questions. The row is now sized by its content in
-   the same restrained chrome as the benefit cards. */
+/* A question and its answer, sized by content inside one steel rim. */
 .vipFaq details {
   margin-bottom: 8px;
-  border: 1px solid #23394a;
-  background: #070e15;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  box-shadow: none;
 }
 
 .vipFaq summary {
@@ -359,7 +377,7 @@
   padding: 12px 16px !important;
   border: 0 !important;
   background: transparent !important;
-  color: #eef6fb !important;
+  color: #f2f7ff !important;
   font:
     700 15px/1.35 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -370,14 +388,13 @@
   cursor: pointer;
 }
 
-/* The disclosure affordance is drawn from the row's own border colour, so it
-   is a control rather than an icon pasted over the surface. */
+/* The disclosure affordance is drawn in ice so it reads as a control. */
 .vipFaq summary::after {
   width: 9px;
   height: 9px;
   flex: none;
-  border-right: 2px solid #58bfe9;
-  border-bottom: 2px solid #58bfe9;
+  border-right: 2px solid #86daff;
+  border-bottom: 2px solid #86daff;
   margin-right: 2px;
   content: '';
   transform: rotate(45deg) translate(-2px, -2px);
@@ -387,22 +404,19 @@
   transform: rotate(-135deg) translate(-2px, -2px);
 }
 
-/* `summary` is not in the global reset's element list today, so this ring
-   paints without `!important`. It carries it anyway, so that widening that
-   reset later cannot silently take this one away too. */
 .vipFaq summary:focus-visible {
-  outline: 2px solid #9bf4ff !important;
+  outline: 2px solid #9ee3ff !important;
   outline-offset: -2px !important;
 }
 
 .vipFaq details[open] summary {
-  border-bottom: 1px solid #1b2c3a !important;
+  border-bottom: 1px solid #445e77 !important;
 }
 
 .vipFaq details > p {
   margin: 0;
   padding: 12px 16px 14px !important;
-  color: rgba(233, 243, 250, 0.78);
+  color: #bdd0e2;
   font:
     400 14px/1.55 var(--font-inter),
     Inter,
@@ -430,21 +444,23 @@
   content: none;
 }
 
+/* A merch card is one steel-rimmed surface. The photograph sits on the page
+   inside the rim; only the copy face takes the navy fill. */
 .merchSurface :global(article) {
-  border-color: #607a8b !important;
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
   background: transparent !important;
-  box-shadow:
-    inset 0 1px 0 rgba(236, 251, 255, 0.16),
-    0 14px 30px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: none !important;
+  clip-path: none !important;
 }
 
 .merchSurface :global(article) > div:last-child {
-  background: #050a0f !important;
+  background: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%) !important;
 }
 
 .merchSurface :global(article) > div:first-child {
   min-height: 250px;
-  border-bottom: 1px solid #526e80;
+  border-bottom: 1px solid #445e77;
   background: transparent !important;
 }
 
@@ -453,7 +469,7 @@
 }
 
 .merchSurface h3 {
-  color: #edfaff !important;
+  color: #f2f7ff !important;
   font-family:
     var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
   font-weight: 800 !important;
@@ -462,7 +478,7 @@
 
 .rewardsSurface [role='tablist'] {
   gap: 10px !important;
-  padding: 8px !important;
+  padding: 8px 0 !important;
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
@@ -470,76 +486,99 @@
 
 .rewardsSurface [role='tab'] {
   min-height: 46px;
-  border: 1px solid #314b5c !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
   border-radius: 0 !important;
-  background: #09131b !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
-  color: #9bb0bc !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) !important;
+  box-shadow: none !important;
+  color: #bdd0e2 !important;
   font-family:
     var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
   font-weight: 800 !important;
   letter-spacing: 0.025em;
+  cursor: pointer;
+}
+
+.rewardsSurface [role='tab']:active {
+  filter: brightness(0.89);
 }
 
 .rewardsSurface [role='tab'][aria-selected='true'] {
-  border-color: #25cff4 !important;
-  background: #082837 !important;
-  box-shadow: inset 0 -2px 0 #25cff4 !important;
-  color: #9bf4ff !important;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) !important;
+  box-shadow: none !important;
+  color: #fff !important;
 }
 
+/* The tab panel is layout only: its cards, readouts and rows carry the rims,
+   so a frame here would be a frame around frames. */
 .rewardsSurface [role='tabpanel'] {
   margin-top: 22px;
-  padding: 30px !important;
-  border: 1px solid #526d7e;
-  background: #010406;
-  box-shadow:
-    inset 0 1px 0 rgba(231, 250, 255, 0.12);
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .rewardsSurface [role='tabpanel'] > :is(div, section) {
   border-radius: 0 !important;
 }
 
-/* Three concentric painted rings and a drop shadow around ~140px of text.
-   `overflow: hidden` was a latent clip on a card whose height was already
-   pinned by a floor it did not need. One restrained frame instead. */
+.rewardsSurface [role='tabpanel'] > :is(h2, h3) {
+  color: #f2f7ff !important;
+}
+
+.rewardsSurface [role='tabpanel'] > p {
+  color: #bdd0e2 !important;
+}
+
+/* One steel-rimmed card per reward or overview block. */
 .casinoDataCard,
 .casinoProductCard {
   position: relative;
   overflow: visible;
-  border: 1px solid #23394a !important;
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
   border-radius: 0 !important;
-  background: #070e15 !important;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%) !important;
+  background: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%) !important;
+  box-shadow: none !important;
+  clip-path: none !important;
+  color: #f2f7ff;
 }
 
 .casinoDataCard img {
-  border: 1px solid #577180 !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
   border-radius: 0 !important;
-  box-shadow:
-    inset 0 0 0 4px #03080c,
-    0 12px 30px #000 !important;
+  box-shadow: none !important;
 }
 
 .casinoDataCard :is(h3, h4),
 .casinoProductCard :is(h3, h4) {
+  color: #f2f7ff !important;
   font-family:
     var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
   font-weight: 800 !important;
   letter-spacing: 0.012em;
 }
 
+.casinoDataCard p,
+.casinoProductCard p {
+  color: #bdd0e2 !important;
+}
+
 .rewardsBoostMarker {
   display: inline-grid;
+  box-sizing: border-box;
   width: 78px;
   min-width: 78px;
   min-height: 46px;
   place-items: center;
   padding: 8px 14px;
-  border: 1px solid #2e657b;
-  background: #071923;
-  color: #8feaff;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  color: #fff;
   font:
     800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -553,9 +592,38 @@
 .rewardsBoostLayout {
   min-height: 88px;
   padding: 18px 28px !important;
-  border: 1px solid #274555 !important;
-  background: #07131b !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  box-shadow: none !important;
+  clip-path: none !important;
+}
+
+/* Boost copy and tier plates are white, silver and ice. */
+.rewardsBoostCopy > div > div:first-child {
+  color: #f2f7ff !important;
+}
+
+.rewardsBoostCopy > div > div:last-child {
+  color: #bdd0e2 !important;
+}
+
+.rewardsBoostTiers > span {
+  display: inline-flex;
+  box-sizing: border-box;
+  min-height: 36px;
+  align-items: center;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  box-shadow: none !important;
+  color: #86daff !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.rewardsBoostTiers > span:last-child {
+  color: #67e8f9 !important;
 }
 
 /* Four stat tiles at a 148px floor plus gaps measure 646px across. The row is
@@ -573,8 +641,20 @@
   min-height: 82px;
   justify-content: center;
   padding: 16px 26px !important;
-  border: 1px solid #274555 !important;
-  background: #07131b !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  box-shadow: none !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.rewardsQuickStats > div > :first-child {
+  color: #f2f7ff !important;
+}
+
+.rewardsQuickStats > div > :last-child:not(:first-child) {
+  color: #bdd0e2 !important;
 }
 
 @media (max-width: 700px) {
@@ -587,17 +667,41 @@
 .rewardsCapBanner {
   min-height: 118px;
   padding: 25px 38px !important;
-  border: 1px solid #6d5d18 !important;
-  background: #171304 !important;
-  box-shadow: inset 0 1px 0 rgba(255, 232, 112, 0.1) !important;
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  box-shadow: none !important;
+  color: #f2f7ff !important;
+}
+
+.rewardsCapBanner :is(strong, h3, h4) {
+  color: #f2f7ff !important;
+}
+
+.rewardsCapBanner :is(span, p) {
+  color: #bdd0e2 !important;
+}
+
+.rewardsCapBanner div > span:first-child {
+  color: #f2f7ff !important;
+  font-variant-numeric: tabular-nums;
 }
 
 .rewardRow {
   min-height: 82px;
   padding: 16px 22px !important;
-  border: 1px solid #263944 !important;
-  background: #081116 !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  box-shadow: none !important;
+  color: #f2f7ff;
+}
+
+.rewardRow > :last-child {
+  color: #86daff !important;
+  font-variant-numeric: tabular-nums;
 }
 
 /* These anchors are the only route into the 100 reward detail pages and
@@ -611,29 +715,37 @@
   padding-block: 14px;
   margin-block: -14px;
   color: inherit;
-  text-decoration-color: rgba(112, 223, 255, 0.55);
+  text-decoration-color: rgba(134, 218, 255, 0.55);
 }
 
 .rewardRow :is(a, span) {
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
-/* The 210px floor held 67 Easter Egg cards open around 123-159px of content,
-   which measured 2,088px of dead vertical space at 1440 and about 2,393px at
-   390. Grid rows still equalise their own height, so the cards in a row stay
-   level without a pixel floor. */
-
 .clubShopSurface {
   padding-top: 8px;
 }
 
 .clubShopSurface :is(input, select, textarea) {
+  box-sizing: border-box;
   min-height: 44px;
-  border: 1px solid #324f60 !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
   border-radius: 0 !important;
-  background: #061019 !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
-  color: #e9f7fb !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) !important;
+  box-shadow: none !important;
+  color: #f2f7ff !important;
+  color-scheme: dark;
+}
+
+.clubShopSurface :is(input, textarea)::placeholder {
+  color: #bdd0e2;
+  opacity: 0.8;
+}
+
+.clubShopSurface :is(input, select, textarea):disabled {
+  color: #a7b7c8 !important;
+  background: #13202c !important;
 }
 
 .clubShopSurface :is(button, [role='button']) {
@@ -644,19 +756,31 @@
   letter-spacing: 0.015em;
 }
 
+/* View switches and category filters are chrome controls; the pressed one
+   is cobalt. */
 .clubShopSurface [role='group'] button {
+  box-sizing: border-box;
   min-width: 44px;
   min-height: 44px;
-  border: 1px solid #304b5c !important;
-  background: #09131b !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) !important;
+  box-shadow: none !important;
+  color: #bdd0e2 !important;
+  cursor: pointer;
 }
 
-.clubShopSurface [aria-pressed='true'] {
-  border-color: #86e9f9 !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.66),
-    inset 0 -3px 5px #000,
-    0 0 16px rgba(0, 202, 255, 0.22) !important;
+.clubShopSurface [role='group'] button:active {
+  filter: brightness(0.89);
+}
+
+.clubShopSurface [aria-pressed='true'],
+.clubShopSurface [role='group'] button[aria-pressed='true'] {
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) !important;
+  box-shadow: none !important;
+  color: #fff !important;
 }
 
 .clubRecoveryNotice {
@@ -665,10 +789,11 @@
   align-content: center;
   margin-bottom: 20px;
   padding: 18px 20px;
-  border: 1px solid #294757;
-  background: #07131b;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  color: #b8cbd5;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  box-shadow: none;
+  color: #bdd0e2;
   font:
     600 13px var(--font-inter),
     Inter,
@@ -678,7 +803,7 @@
 }
 
 .clubRecoveryNotice strong {
-  color: #8feaff;
+  color: #86daff;
   font:
     800 16px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -695,15 +820,18 @@
   margin-top: 4px;
 }
 
+/* A recovery slot is a read-only readout, so it takes the well rim. */
 .clubRecoverySlot {
   display: inline-flex;
+  box-sizing: border-box;
   min-height: 44px;
   align-items: center;
   justify-content: center;
   padding: 9px 20px;
-  border: 1px solid #304b5c;
-  background: #09131b;
-  color: #e7f9ff;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: #f2f7ff;
   font:
     800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -722,14 +850,13 @@
 .clubItemCard {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid #3e596a !important;
-  background: #04090d !important;
-  box-shadow:
-    inset 0 1px 0 rgba(236, 251, 255, 0.12),
-    0 14px 30px rgba(0, 0, 0, 0.46);
-  transition:
-    border-color 180ms ease,
-    box-shadow 180ms ease;
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%) !important;
+  box-shadow: none !important;
+  clip-path: none !important;
+  color: #f2f7ff;
 }
 
 .clubProductMedia {
@@ -740,7 +867,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-bottom: 1px solid #5e798b;
+  border-bottom: 1px solid #445e77;
   background: transparent !important;
 }
 
@@ -772,8 +899,8 @@
   display: grid;
   place-items: center;
   padding: 16px;
-  background: #02070b;
-  color: #b9cbd4;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: #bdd0e2;
   font:
     800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -786,16 +913,18 @@
   text-transform: capitalize;
 }
 
-/* A category label is a span, not a control. It wore the secondary button
-   plate, which is the same surface the real purchase buttons use. */
+/* A category label is a read-only tag, so it takes the well rim rather than
+   the control rim the purchase buttons use. */
 .clubItemCategory {
   position: absolute;
   top: 8px;
   right: 8px;
   padding: 6px 12px !important;
-  border: 1px solid #23394a !important;
-  background: #070e15 !important;
-  color: #cfe6f0 !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  color: #bdd0e2 !important;
   font:
     800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -809,13 +938,15 @@
 
 .productFallback {
   display: inline-grid;
+  box-sizing: border-box;
   min-width: 120px;
   min-height: 44px;
   place-items: center;
   padding: 8px 18px;
-  border: 1px solid #304b5c;
-  background: #09131b;
-  color: #b8eefa;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: #bdd0e2;
   font:
     800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -833,11 +964,7 @@
 }
 
 /* `margin-top: auto` inside the flex column of .clubItemBody is what pins the
-   price row to the foot of a Club Shop card. The class was taken off the title
-   and never put on the row it names, so it sat orphaned and the row floated
-   wherever the content left it. The former `align-items: flex-end !important`
-   is gone: it existed to out-rank an inline style on the title, and on the row
-   it would fight the inline centring that is already correct there. */
+   price row to the foot of a Club Shop card. */
 .clubPriceActions {
   gap: 14px;
   margin-top: auto;
@@ -845,7 +972,7 @@
 
 .cardEquivalent {
   margin-top: 5px;
-  color: #8da3b0;
+  color: #bdd0e2;
   font:
     700 12px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -862,19 +989,21 @@
   gap: 7px;
 }
 
+/* The first card action is the purchase and wears cobalt; the rest are
+   chrome secondary controls. */
 .clubItemActions button {
   display: inline-flex;
-  /* Was 42px and beaten to 44px by a later, more specific rule. Stating 44
-     here so the source says what production does. */
+  box-sizing: border-box;
   min-height: 44px;
   align-items: center;
   justify-content: center;
   gap: 6px;
   padding: 8px 12px;
-  border: 1px solid #18c9ee;
-  background: #063446;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  color: #edfaff;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  box-shadow: none;
+  color: #fff;
   font:
     800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -886,30 +1015,36 @@
   cursor: pointer;
 }
 
-.clubItemActions button:last-child {
-  border-color: #456174;
-  background: #0a151d;
-  color: #eafaff;
+.clubItemActions button:last-child:not(:first-child) {
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
+}
+
+.clubItemActions button:active {
+  filter: brightness(0.89);
 }
 
 .clubItemActions button:disabled {
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: #13202c;
+  color: #a7b7c8;
   cursor: not-allowed;
-  filter: grayscale(0.55);
-  opacity: 0.62;
+  filter: none;
 }
 
 .clubAdminCreateAction,
 .clubAdminActions button,
 .clubAdminManagedStatus {
   display: inline-flex;
+  box-sizing: border-box;
   align-items: center;
   justify-content: center;
-  border: 0;
-  background-color: transparent;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-  color: #edfaff;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
   font:
     800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -920,45 +1055,73 @@
   text-shadow: 0 1px 2px #000;
 }
 
+/* Operator report surfaces: one panel rim per report or form, a well rim per
+   stat and per item row. */
+.clubAdminCreatePanel {
+  position: relative;
+  overflow: hidden;
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  box-shadow: none !important;
+  color: #f2f7ff;
+}
+
 .clubAdminStat,
-.clubAdminCreatePanel,
 .clubAdminRow {
-  border: 1px solid rgba(174, 206, 224, 0.32) !important;
-  border-radius: 2px !important;
-  background: #02070b !important;
-  box-shadow:
-    inset 0 0 0 1px rgba(85, 214, 255, 0.065),
-    inset 0 1px rgba(255, 255, 255, 0.075),
-    0 12px 28px rgba(0, 0, 0, 0.34) !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  box-shadow: none !important;
+  color: #f2f7ff;
+  font-variant-numeric: tabular-nums;
 }
 
 .clubAdminStat {
   min-height: 94px;
 }
 
-.clubAdminCreatePanel {
-  position: relative;
-  overflow: hidden;
+.clubAdminStat > :first-child {
+  color: #f2f7ff !important;
 }
 
-.clubAdminCreatePanel :is(input, select) {
-  border: 1px solid rgba(169, 204, 224, 0.34) !important;
+.clubAdminStat > :last-child:not(:first-child) {
+  color: #bdd0e2 !important;
+}
+
+.clubAdminCreatePanel :is(input, select, textarea) {
+  box-sizing: border-box;
+  min-height: 44px;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
   border-radius: 0 !important;
-  background: #02070b !important;
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.06),
-    inset 0 -5px 12px rgba(0, 0, 0, 0.38);
-  color: #edfaff !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) !important;
+  box-shadow: none;
+  color: #f2f7ff !important;
 }
 
 .clubAdminRow {
   position: relative;
 }
 
+.clubAdminRow span:not(.clubAdminManagedStatus) {
+  border-radius: 0 !important;
+}
+
 .clubAdminOwnershipNotice {
-  border: 1px solid rgba(49, 201, 255, 0.2);
-  background: #02070b !important;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.04);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  box-shadow: none;
+  color: #bdd0e2 !important;
+}
+
+/* The legacy-history note inside the ownership notice is an
+   ice emphasis line now. */
+.clubAdminOwnershipNotice > span {
+  color: #86daff !important;
 }
 
 .clubAdminCreateAction {
@@ -966,16 +1129,26 @@
   max-width: 100%;
   min-height: 44px;
   padding: 10px 22px;
-  border: 1px solid #18c9ee;
-  background: #063446;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  color: #fff;
   cursor: pointer;
 }
 
+.clubAdminCreateAction:active,
+.clubAdminActions button:active,
+button.clubAdminManagedStatus:active {
+  filter: brightness(0.89);
+}
+
 .clubAdminCreateAction:disabled,
-.clubAdminActions button:disabled {
+.clubAdminActions button:disabled,
+button.clubAdminManagedStatus:disabled {
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: #13202c;
+  color: #a7b7c8;
   cursor: not-allowed;
-  filter: grayscale(0.55);
-  opacity: 0.62;
+  filter: none;
 }
 
 .clubAdminActions {
@@ -989,23 +1162,37 @@
   width: 142px;
   min-height: 44px;
   padding: 8px 16px;
-  border: 1px solid #18c9ee;
-  background: #063446;
   cursor: pointer;
 }
 
-.clubAdminActions button:last-child,
-.clubAdminManagedStatus {
-  border: 1px solid #456174;
-  background: #0a151d;
+.clubAdminActions button:is([type='submit'], [aria-pressed='true']) {
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  color: #fff;
 }
 
 .clubAdminManagedStatus {
   width: 190px;
   max-width: 100%;
-  aspect-ratio: 348 / 114;
+  min-height: 44px;
   padding: 8px 18px;
-  color: #bdeeff;
+}
+
+button.clubAdminManagedStatus {
+  cursor: pointer;
+}
+
+/* A read-only status badge is a readout, not a control. */
+span.clubAdminManagedStatus {
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: #bdd0e2;
+}
+
+button.clubAdminManagedStatus[aria-pressed='true'] {
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  color: #fff;
 }
 
 .planRail,
@@ -1028,13 +1215,20 @@
 
 .dialogPanel {
   border-radius: 0 !important;
-  border: 1px solid #7892a5 !important;
-  background: #080e14 !important;
-  box-shadow:
-    inset 0 1px 0 rgba(236, 251, 255, 0.68),
-    inset 0 0 0 5px #060c13,
-    inset 0 0 0 6px #38566a,
-    0 20px 55px #000 !important;
+  border: 5px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  box-shadow: 0 20px 55px #000 !important;
+  clip-path: none !important;
+  color: #f2f7ff;
+}
+
+.dialogPanel :is(h2, h3) {
+  color: #f2f7ff !important;
+}
+
+.dialogPanel p {
+  color: #bdd0e2;
 }
 
 .dialogProductRow {
@@ -1050,11 +1244,10 @@
   width: 96px;
   aspect-ratio: 1;
   overflow: hidden;
-  border: 1px solid #65869a;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
   background: transparent;
-  box-shadow:
-    inset 0 1px 0 rgba(235, 251, 255, 0.34),
-    inset 0 0 0 4px #02070b;
+  box-shadow: none;
 }
 
 .dialogProductImage,
@@ -1085,42 +1278,66 @@
 }
 
 .dialogMetric {
-  border: 1px solid #4c6c7f;
-  background: #02070b !important;
-  box-shadow:
-    inset 0 1px 0 rgba(235, 251, 255, 0.24),
-    inset 0 0 0 3px #02070b;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) !important;
+  box-shadow: none;
+  color: #f2f7ff;
+  font-variant-numeric: tabular-nums;
 }
 
 .dialogActions > button {
+  box-sizing: border-box;
   min-height: 48px;
-  border: 1px solid #456174 !important;
-  color: #e9f8fc !important;
-  background: #0a151d !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  border-radius: 0 !important;
+  color: #f2f7ff !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) !important;
+  box-shadow: none !important;
+  cursor: pointer;
 }
 
 .dialogSecondaryAction {
-  background: #0a151d !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) !important;
 }
 
-.dialogPrimaryAction {
-  border-color: #18c9ee !important;
-  background: #063446 !important;
+.dialogPrimaryAction,
+.dialogActions > button.dialogPrimaryAction {
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) !important;
+  color: #fff !important;
+}
+
+.dialogActions > button:active,
+.dialogPrimaryAction:active {
+  filter: brightness(0.89);
 }
 
 .dialogActions > button:disabled {
-  opacity: 0.52;
-  filter: saturate(0.45);
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  background: #13202c !important;
+  color: #a7b7c8 !important;
+  filter: none;
+  cursor: default;
 }
 
 .vipMarketplaceLink {
+  box-sizing: border-box;
   min-height: 50px;
   padding-inline: 34px !important;
-  border: 1px solid #927824 !important;
-  color: #f6df7a !important;
-  background: #171304 !important;
-  box-shadow: inset 0 1px 0 rgba(255, 232, 112, 0.12) !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch !important;
+  color: #fff !important;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba) !important;
+  box-shadow: none !important;
   text-shadow: 0 2px 3px #000;
+}
+
+.vipMarketplaceLink:active {
+  filter: brightness(0.89);
 }
 
 .visuallyHidden {
@@ -1142,12 +1359,8 @@
 
   .contentShell {
     width: calc(100% - 20px) !important;
-    margin: 18px auto 26px !important;
-    padding: 24px 14px 34px !important;
-  }
-
-  .contentShell::before {
-    inset-inline: 0;
+    margin: 12px auto 26px !important;
+    padding: 0 !important;
   }
 
   .dialogProductRow {
@@ -1156,6 +1369,11 @@
 
   .dialogProductMedia {
     width: 76px;
+  }
+
+  .vipCrest {
+    width: 72px;
+    height: 72px;
   }
 
   .planRail {
@@ -1186,6 +1404,7 @@
 
   .rewardsBoostLayout {
     align-items: flex-start !important;
+    padding: 14px 12px !important;
   }
 
   .rewardsBoostCopy {
@@ -1249,9 +1468,12 @@
   }
 
   .vipBenefits,
-  .vipFaq,
-  .rewardsSurface [role='tabpanel'] {
+  .vipFaq {
     padding: 20px 14px !important;
+  }
+
+  .rewardsSurface [role='tabpanel'] {
+    padding: 0 !important;
   }
 
   .premiumDataCard {
@@ -1266,8 +1488,6 @@
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
-  /* An answer is a paragraph, so it is not forced into a near-square painted
-     panel (aspect-ratio 1105/1133 with 18% padding) to be read on a phone. */
   .vipFaq summary {
     padding: 12px 14px !important;
     font-size: 14px;
@@ -1276,12 +1496,6 @@
   .vipFaq details > p {
     padding: 10px 14px 12px !important;
     font-size: 13px;
-  }
-
-  .merchSurface::before,
-  .rewardsSurface::before {
-    font-size: 12px;
-    line-height: 1.7;
   }
 
   .clubItemGrid {
@@ -1315,9 +1529,7 @@
   .vipBenefits .responsiveGrid {
     grid-template-columns: minmax(0, 1fr) !important;
   }
-}
 
-@media (min-width: 641px) and (max-width: 960px) {
   .clubItemGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
@@ -1332,4 +1544,12 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+/* Date range switches share their row instead of taking the 190px status
+   width, so both ranges stay inside the Sales panel on a phone. */
+.clubShopSurface [role='group'] > button.clubAdminManagedStatus {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 96px;
 }

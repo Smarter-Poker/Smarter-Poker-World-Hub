@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import { captureStoreEvent } from '../../lib/store/storeAnalytics';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
+import StoreImageHeader from './StoreImageHeader';
 import styles from './SmarterStoreShowcase.module.css';
 
 const TAB_LABELS = [
@@ -44,31 +45,57 @@ const PACKAGE_ART_CLASS_BY_ID = Object.freeze({
   whale: 'package5',
 });
 
-const SECTION_COPY = {
+/* Each store section's #SMARTERDESIGN image header. The former slogan copy
+   now lives in that section's help dialog. */
+export const SECTION_HEADERS = {
   diamonds: {
-    eyebrow: 'Diamond Exchange',
-    title: 'Play At Your Own Altitude.',
-    body: 'Fund Games, Enter Tournaments, And Unlock Premium Tools With One Balance Across Smarter.Poker.',
+    art: 'store-diamonds',
+    title: 'Diamond Store',
+    help: {
+      steps: [
+        'Fund Games, Enter Tournaments, And Unlock Premium Tools With One Diamond Balance Across Smarter.Poker.',
+        'Choose A Package, Then Complete Secure Card Checkout. 100 Diamonds Equal $1, And Purchases Of $100 Or More Include 5% More Diamonds.',
+      ],
+      faqs: [
+        { question: 'When Do My Diamonds Arrive?', answer: 'Diamonds Are Added To Your Balance As Soon As Checkout Confirms The Payment.' },
+        { question: 'Can Diamonds Be Cashed Out?', answer: 'No. Diamonds Are Virtual Currency With No Real-World Cash Value, And All Purchases Are Final.' },
+      ],
+    },
   },
   vip: {
-    eyebrow: 'VIP Membership',
-    title: 'Your Edge, Compounded.',
-    body: 'One Membership Sharpens Every Session: From Training And Table Access To Priority Support.',
+    art: 'vip',
+    title: 'VIP Membership',
+    help: { steps: ['One Membership Sharpens Every Session: From Training And Table Access To Priority Support.'] },
   },
   merch: {
-    eyebrow: 'Smarter.Poker Merch',
-    title: 'Built For The Long Session.',
-    body: 'Tournament-Grade Essentials Designed To Travel, Layer, And Perform At The Table.',
+    art: 'store-merch',
+    title: 'Merch Store',
+    help: {
+      steps: [
+        'Tournament-Grade Essentials Designed To Travel, Layer, And Perform At The Table.',
+        'Open A Product To Choose A Size, Add It To Your Cart Or Save It To Your Wishlist.',
+      ],
+    },
   },
   rewards: {
-    eyebrow: 'Smarter Rewards',
-    title: 'Make Every Hand Count.',
-    body: 'Earn Diamonds Through Play, Study Streaks, Referrals, And Community Contributions.',
+    art: 'store-rewards',
+    title: 'Smarter Rewards',
+    help: {
+      steps: [
+        'Earn Diamonds Through Play, Study Streaks, Referrals, And Community Contributions.',
+        'Open Diamond Rewards To See Each Reward And Its Progress. Daily Earnings Are Capped, And The Cap Resets Each Day.',
+      ],
+    },
   },
   'club-shop': {
-    eyebrow: 'Club Shop',
-    title: 'Your Game. Your Rules.',
-    body: 'Spend Diamonds On Time Banks And The Verified Platform All Throwables Pack.',
+    art: 'store-club-shop',
+    title: 'Club Shop',
+    help: {
+      steps: [
+        'Spend Diamonds On Time Banks And The Verified Platform All Throwables Pack.',
+        'Club Owners Can Open Manage Shop To Add Items, Review Purchases And Read Sales Analytics.',
+      ],
+    },
   },
 };
 
@@ -81,7 +108,7 @@ export default function SmarterStoreShowcase({
   busyPackageId = null,
   onBuy,
 }) {
-  const copy = SECTION_COPY[activeTab] || SECTION_COPY.diamonds;
+  const header = SECTION_HEADERS[activeTab] || SECTION_HEADERS.diamonds;
   const isDiamonds = activeTab === 'diamonds';
   const diamondImpressionRef = useRef(false);
   const starterPackages = packages.slice(0, Math.min(2, packages.length));
@@ -108,7 +135,9 @@ export default function SmarterStoreShowcase({
 
   return (
     <section className={`${styles.showcase} ${styles[activeTab] || ''}`}>
-      <nav className={styles.tabs} aria-label="Store Sections">
+      <StoreImageHeader art={header.art} title={header.title} help={header.help} />
+
+      <nav className={`sd-tabs ${styles.tabs}`} aria-label="Store Sections">
         {TAB_LABELS.map(([id, label]) => (
           <Link
             key={id}
@@ -123,15 +152,6 @@ export default function SmarterStoreShowcase({
         ))}
       </nav>
 
-      <div className={`${styles.hero} ${isDiamonds ? styles.diamondHero : styles.sectionHero}`}>
-        <div className={styles.heroCopy}>
-          <span>{copy.eyebrow}</span>
-          <h1>{copy.title}</h1>
-          <p>{copy.body}</p>
-          {isDiamonds && <strong>5% More Diamonds On Purchases Of $100 Or More</strong>}
-        </div>
-      </div>
-
       {isDiamonds && (
         <>
           <div className={styles.sectionBar}>
@@ -141,6 +161,7 @@ export default function SmarterStoreShowcase({
             </div>
             <div className={styles.sectionMeta}>
               <span className={styles.exchangeRate}>100 Diamonds = $1</span>
+              <span className={styles.bonusNote}>5% More Diamonds On Purchases Of $100 Or More</span>
               <span role="status" aria-live="polite">
                 {catalogState === 'database'
                   ? 'Current Pricing Verified'
@@ -186,6 +207,7 @@ export default function SmarterStoreShowcase({
                   <span data-package-price>${formatStoreUsd(pkg.price || 0)}</span>
                   <button
                     type="button"
+                    className="sd-button sd-primary"
                     onClick={() => onBuy(pkg)}
                     disabled={isProcessing || catalogState !== 'database'}
                     aria-busy={busyPackageId === pkg.id}
@@ -266,6 +288,7 @@ export default function SmarterStoreShowcase({
                     </div>
                     <button
                       type="button"
+                      className="sd-button sd-primary"
                       onClick={() => onBuy(pkg)}
                       disabled={isProcessing || catalogState !== 'database'}
                       aria-busy={busyPackageId === pkg.id}

@@ -311,6 +311,16 @@ export default function MerchProductDetail({ product }) {
       diamondPrice={diamondPrice}
       status={inventoryStatus}
       presentation="product"
+      header={{
+        art: 'store-merch',
+        title: 'Merch Store',
+        help: {
+          steps: [
+            'Choose Purchase Options To Pick A Size Or Variant, Then Add The Item To The Shared Cart.',
+            'Settle The Order In The Cart With Card Or Diamonds, Then Track It From The Orders Page.',
+          ],
+        },
+      }}
       actions={
         <>
           <Link href="#purchase-console">Choose Purchase Options</Link>

@@ -2,6 +2,14 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+
+import {
+  BANNED_TEXT_COLOUR,
+  SD_FILL,
+  SD_FRAME,
+  offStandardPaint,
+  ruleFor,
+} from './smarterdesign-standard.test.mjs';
 import { SourceTextModule, SyntheticModule } from 'node:vm';
 
 const ROOT = process.cwd();
@@ -229,13 +237,25 @@ test('marketplace account actions use restrained readable controls without chang
   assert.doesNotMatch(ACCOUNT_CONTROLS, /marketplace-console-v1|shark-panel|spade-console/);
   assert.match(ACCOUNT_CONTROLS, /\.action\s*\{[\s\S]*?min-height:\s*46px/);
   assert.match(ACCOUNT_CONTROLS, /\.action\.actionPrimary\s*\{/);
-  assert.match(ACCOUNT_CONTROLS, /\.action\.actionSecondary\s*\{/);
-  assert.match(ACCOUNT_CONTROLS, /\.action\.actionDanger\s*\{/);
+  // #SMARTERDESIGN: secondary and destructive actions share the steel control
+  // (the label carries the meaning), the primary is the cobalt control.
+  assert.match(ACCOUNT_CONTROLS, /\.action\.actionSecondary,\s*\.action\.actionDanger\s*\{/);
+  assert.match(ruleFor(ACCOUNT_CONTROLS, '.action'), SD_FRAME.control);
+  assert.match(ruleFor(ACCOUNT_CONTROLS, '.action'), SD_FILL);
+  assert.match(ruleFor(ACCOUNT_CONTROLS, '.action.actionPrimary'), SD_FRAME.active);
+  assert.match(ruleFor(ACCOUNT_CONTROLS, '.action.actionPrimary'), SD_FILL);
+  assert.deepEqual(offStandardPaint(ACCOUNT_CONTROLS), []);
+  assert.doesNotMatch(ACCOUNT_CONTROLS, /:hover/);
+  assert.doesNotMatch(ACCOUNT_CONTROLS, BANNED_TEXT_COLOUR);
   assert.match(ACCOUNT_CONTROLS, /\.panel,[\s\S]*?\.recordCard\s*\{/);
   assert.match(ACCOUNT_CONTROLS, /\.statusRow\s*\{/);
   assert.match(ACCOUNT_CONTROLS, /\.action:focus-visible,[\s\S]*\.field:focus-visible/);
   assert.match(ACCOUNT_CONTROLS, /\.action:disabled/);
-  assert.match(ACCOUNT_CONTROLS, /@media \(prefers-reduced-motion: reduce\)/);
+  // Any motion must honour reduced motion; the #SMARTERDESIGN controls carry
+  // none, so the guard only applies while a transition or animation exists.
+  if (/\b(?:transition|animation)\s*:/.test(ACCOUNT_CONTROLS)) {
+    assert.match(ACCOUNT_CONTROLS, /@media \(prefers-reduced-motion: reduce\)/);
+  }
   assert.match(ACCOUNT_CONTROLS, /border-radius:\s*0/);
 
   for (const source of [ORDERS, WISHLIST, RECEIPT]) {
@@ -283,18 +303,24 @@ test('account cards remain readable while informational detail frames are remove
   );
   assert.match(wishlistFrameStyles, /maxWidth:\s*900/);
   assert.match(wishlistFrameStyles, /overflow:\s*'visible'/);
-  assert.match(wishlistFrameStyles, /border:\s*'1px solid #23394a'/);
-  assert.match(wishlistFrameStyles, /backgroundColor:\s*'#070e15'/);
-  assert.match(wishlistFrameStyles, /boxShadow:\s*'inset 0 1px 0 rgb\(238 250 255 \/ 8%\)'/);
+  // One #SMARTERDESIGN readout frame (border before borderImage, so the
+  // shorthand cannot reset the nine-slice) over the standard card fill.
+  assert.match(
+    wishlistFrameStyles,
+    /border:\s*'5px solid transparent',\s*borderImage:\s*"url\('\/images\/smarterdesign\/chrome-readout\.webp'\) 21 \/ 8px stretch"/
+  );
+  assert.match(wishlistFrameStyles, /borderRadius:\s*0/);
+  assert.match(
+    wishlistFrameStyles,
+    /background:\s*'linear-gradient\(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%\)'/
+  );
   assert.match(wishlistFrameStyles, /padding:\s*'16px 20px'/);
   assert.doesNotMatch(
     wishlistFrameStyles,
     /aspectRatio|containerType|cqw|shark-panel\/(?:top|mid|bottom)\.png|repeat-y/
   );
-  assert.doesNotMatch(
-    wishlistFrameStyles,
-    /(?:linear|radial|repeating-linear)-gradient|borderLeft|border-left/
-  );
+  assert.deepEqual(offStandardPaint(wishlistFrameStyles), []);
+  assert.doesNotMatch(wishlistFrameStyles, /borderLeft|border-left/);
 
   const detailHeroStyles = DETAIL_CSS.slice(
     DETAIL_CSS.indexOf('.heroReward,'),

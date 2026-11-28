@@ -973,6 +973,8 @@ import './trivia-ops-perf-timeout-laws.test.mjs';
 import './trivia-wave5-spectator-club-laws.test.mjs';
 import './trivia-wave5-stats-calendar-laws.test.mjs';
 import './trivia-phase3-enhancements.test.mjs';
+import './smarterdesign-standard.test.mjs';
+import './diamond-store-smarterdesign.test.mjs';
 import './trivia-hardening-audit.test.mjs';
 import './a-dropped-connection-is-not-a-stale-build.law.test.mjs';
 

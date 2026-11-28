@@ -68,46 +68,56 @@ const UNAVAILABLE_REASON = {
   not_delivered: 'No Delivered Copy To Revoke.',
 };
 
+// #SMARTERDESIGN materials. `border` precedes `borderImage` in every object:
+// the border shorthand resets border-image.
+const SD_NAVY = 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)';
+
 const panelStyle = {
-  background: 'rgba(255,255,255,0.03)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 14,
+  background: SD_NAVY,
+  border: '5px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+  borderRadius: 0,
   padding: 20,
   marginBottom: 24,
+  color: '#f2f7ff',
+  fontVariantNumeric: 'tabular-nums',
 };
 
 const inputStyle = {
   flex: 1,
   minWidth: 0,
+  minHeight: 44,
+  boxSizing: 'border-box',
   padding: '10px 14px',
-  borderRadius: 10,
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(255,255,255,0.1)',
-  color: '#E4E6EB',
+  borderRadius: 0,
+  background: 'linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c)',
+  border: '3px solid transparent',
+  borderImage: "url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch",
+  color: '#f2f7ff',
   fontSize: 14,
-  outline: 'none',
 };
 
 const emptyStyle = {
   textAlign: 'center',
   padding: 32,
   fontSize: 14,
-  color: 'rgba(255,255,255,0.5)',
+  color: '#bdd0e2',
   fontWeight: 600,
 };
 
 const cellStyle = {
   padding: '10px 12px',
   fontSize: 12,
-  color: '#C8D5DD',
+  color: '#bdd0e2',
   textAlign: 'left',
   verticalAlign: 'middle',
-  borderBottom: '1px solid rgba(255,255,255,0.06)',
+  borderBottom: '1px solid #445e77',
+  fontVariantNumeric: 'tabular-nums',
 };
 
 const headCellStyle = {
   ...cellStyle,
-  color: 'rgba(255,255,255,0.45)',
+  color: '#f2f7ff',
   fontWeight: 700,
   whiteSpace: 'nowrap',
 };
@@ -163,7 +173,7 @@ export function ClubShopPurchaseLedgerView({
           marginBottom: 14,
         }}
       >
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: '#f2f7ff', margin: 0 }}>
           Purchase Ledger
         </h3>
         {/* A control is a control: the status-pill class is the read-only
@@ -198,8 +208,9 @@ export function ClubShopPurchaseLedgerView({
             gap: 12,
             marginBottom: 12,
             padding: '12px 14px',
-            border: '1px solid rgba(240,40,73,0.55)',
-            background: 'rgba(240,40,73,0.10)',
+            background: SD_NAVY,
+            border: '3px solid transparent',
+            borderImage: "url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch",
             color: '#FF5B6E',
             fontSize: 12,
             fontWeight: 700,
@@ -238,7 +249,7 @@ export function ClubShopPurchaseLedgerView({
                   captionSide: 'top',
                   textAlign: 'left',
                   fontSize: 12,
-                  color: 'rgba(255,255,255,0.45)',
+                  color: '#bdd0e2',
                   paddingBottom: 8,
                 }}
               >
@@ -276,7 +287,7 @@ export function ClubShopPurchaseLedgerView({
                     <td
                       data-preserve-case="true"
                       data-user-content="true"
-                      style={{ ...cellStyle, fontWeight: 700, color: '#E4E6EB' }}
+                      style={{ ...cellStyle, fontWeight: 700, color: '#f2f7ff' }}
                     >
                       {row.buyerName || 'Member'}
                     </td>
@@ -311,7 +322,7 @@ export function ClubShopPurchaseLedgerView({
                             style={{
                               display: 'block',
                               marginTop: 2,
-                              color: 'rgba(255,255,255,0.45)',
+                              color: '#bdd0e2',
                             }}
                           >
                             {UNAVAILABLE_REASON[row.status] || 'No Delivered Copy To Revoke.'}
@@ -333,7 +344,7 @@ export function ClubShopPurchaseLedgerView({
               gap: 12,
               marginTop: 12,
               fontSize: 12,
-              color: 'rgba(255,255,255,0.5)',
+              color: '#bdd0e2',
             }}
           >
             <button

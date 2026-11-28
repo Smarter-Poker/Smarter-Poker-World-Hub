@@ -294,7 +294,10 @@ test('accessible Marketplace shell copy is normalized before rendering or enteri
   assert.match(detail, /aria-label=\{`Inspect \$\{copyTitle\} Image Full Screen`\}/);
   assert.match(detail, /serializeStructuredData\(marketplaceStructuredData\(structuredData\)\)/);
   assert.match(subpage, /const copyDescription = marketplaceCopy\(description\)/);
-  assert.match(subpage, /<p>\{copyDescription\}<\/p>/);
+  // #SMARTERDESIGN: the normalized description is the first help step of the
+  // subpage's StoreImageHeader, beside the normalized title and eyebrow.
+  assert.match(subpage, /<StoreImageHeader[\s\S]*?parent=\{copyEyebrow\}[\s\S]*?title=\{copyTitle\}/);
+  assert.match(subpage, /steps: \[copyDescription, \.\.\.\(help\.steps \|\| \[\]\)\]\.filter\(Boolean\)/);
 });
 
 test('remote Marketplace inventory and account telemetry cannot reintroduce banned copy', async () => {

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import UniversalHeader from '../ui/UniversalHeader';
 import PageTransition from '../transitions/PageTransition';
 import MarketplaceCommerceNav from './MarketplaceCommerceNav';
+import StoreImageHeader from '../diamond-store/StoreImageHeader';
 import styles from './MarketplaceDetailExperience.module.css';
 import { marketplaceCopy, marketplaceStructuredData } from '../../lib/store/marketplaceCopy';
 
@@ -74,6 +75,7 @@ export default function MarketplaceDetailExperience({
   openGraphType = 'website',
   presentation = 'record',
   masthead = null,
+  header = null,
   children,
 }) {
   const safeImage = resolveMarketplaceImage(image);
@@ -182,7 +184,7 @@ export default function MarketplaceDetailExperience({
       <UniversalHeader pageDepth={2} />
       <PageTransition disableInitialAnimation>
         <main
-          className={styles.page}
+          className={`smarterdesign ${styles.page}`}
           data-marketplace-route={canonical}
           data-title-case-strategy="normalized"
         >
@@ -201,6 +203,12 @@ export default function MarketplaceDetailExperience({
               </span>
             ))}
           </nav>
+
+          {/* The store image header sits below the breadcrumbs (route links never
+              live inside it). A VIP masthead replaces both header and panel. */}
+          {!masthead && header && (
+            <StoreImageHeader heading="p" className={styles.imageHeader} {...header} />
+          )}
 
           {/* A product family with its own #SMARTERDESIGN masthead (VIP) supplies
               it whole; the generic command panel is then not drawn under it. */}

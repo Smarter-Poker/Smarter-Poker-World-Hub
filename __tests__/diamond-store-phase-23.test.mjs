@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
+import { BANNED_TEXT_COLOUR } from './smarterdesign-standard.test.mjs';
+
 const ROOT = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, ROOT), 'utf8');
 
@@ -152,7 +154,11 @@ test('checkout status classifies paid before expired and never claims unpaid com
 
 test('purchase assurance controls retain the approved cyan metal palette', async () => {
   const css = await read('src/components/diamond-store/CheckoutStatusPanel.module.css');
-  assert.match(css, /\.complete\s*\{\s*--seal:\s*#75eaff;\s*\}/);
+  // #SMARTERDESIGN cyan emphasis (#67e8f9) marks a completed purchase; never
+  // a green "success" hue and never gold.
+  assert.match(css, /\.complete\s*\{\s*--seal:\s*#67e8f9;\s*\}/);
+  assert.doesNotMatch(css, BANNED_TEXT_COLOUR);
+  assert.doesNotMatch(css, /:hover/);
   assert.doesNotMatch(css, /#72f6b3|#10b981|#22c55e|#16a34a/i);
   assert.match(css, /min-height: 44px/);
   assert.match(css, /border-radius: 0/);
