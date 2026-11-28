@@ -359,6 +359,16 @@ export const OEMBED_CALCULATORS = [
     creditAnchor: 'Smarter.Poker GTO Poker IQ Test',
   },
   {
+    id: 'gto-leak-finder',
+    title: '60-Second GTO Poker Leak Finder Diagnostic',
+    description: 'Interactive 5-hand 100BB cash and MTT ICM solver diagnostic estimating BB/100 EV loss across five core strategy pillars.',
+    embedUrl: 'https://smarter.poker/tools/gto-leak-finder?embed=true',
+    landerUrl: 'https://smarter.poker/tools/gto-leak-finder',
+    height: 820,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker 60-Second GTO Leak Finder',
+  },
+  {
     id: 'geometric-bet-calculator',
     title: 'Geometric Bet Sizing (2e & 3e) Street Calculator',
     description: 'Computes exact 1-street, 2-street (2e), and 3-street (3e) geometric pot-fraction bet sizing and villain MDF across flop, turn, and river.',

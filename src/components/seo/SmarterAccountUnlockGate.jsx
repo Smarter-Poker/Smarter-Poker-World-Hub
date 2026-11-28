@@ -127,6 +127,21 @@ const PRESETS = {
       'Access Free Bankroll Tracker, Training Games & Poker Clubs',
     ],
   },
+  'training-gto': {
+    eyebrow: 'Free GTO Training Access',
+    title: 'Unlock Your Full Leak Matrix & 107 Interactive GTO Games Free',
+    subtitle:
+      'Create A Free Smarter.Poker Account To Unlock Every Solver Breakdown, Save Your Leak Diagnostic Score, And Drill Your Weakest Spots Daily.',
+    ctaLabel: 'Unlock Full Leak Report & GTO Drills Free',
+    unlockedHref: '/hub/training',
+    unlockedLabel: 'Launch 107 GTO Games',
+    locked: ['Full GTO Leak Matrix', '107 GTO Drills', 'Saved Spots Sync', 'EV Loss Breakdown', 'Custom Drill Plan'],
+    benefits: [
+      'Unlock Your Complete GTO Leak Matrix & EV Breakdown',
+      'Train Directly On Your Weakest Spots Across 107 Free GTO Games',
+      'Zero Credit Card Needed - Instant Free Account Sync',
+    ],
+  },
   'editorial-wire': {
     eyebrow: 'Free Member Access',
     title: 'Unlock Interactive Weekly Hand Polls, Archives & Pro Alerts Free',

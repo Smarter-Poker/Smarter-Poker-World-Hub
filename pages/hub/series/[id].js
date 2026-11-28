@@ -43,6 +43,10 @@ import {
   buildSeriesFactKernel,
   buildSeriesPaaQuestions,
 } from '../../../src/lib/poker-near-me/venueAeo.mjs';
+import {
+  buildSeriesMetaDescription,
+  buildSeriesSubEventSchema,
+} from '../../../src/lib/seo/seriesEventSchema.mjs';
 import Link from 'next/link';
 import { useState, useEffect, Fragment, useRef, useCallback } from 'react';
 import useSWR from 'swr';
@@ -436,7 +440,7 @@ export async function getServerSideProps({ params, req, res }) {
  * the server HTML whether the browser data has arrived or not. A series with
  * nothing to index (missing, or no name) stays out of the index.
  */
-function SeriesHead({ series }) {
+function SeriesHead({ series, liveEvents = null }) {
   if (!isPublicSeries(series)) {
     return (
       <SEOHead
@@ -448,11 +452,37 @@ function SeriesHead({ series }) {
   }
   const geoRegion = series.state ? `US-${String(series.state).trim().toUpperCase()}` : null;
   const geoPlacename = [series.city, series.state].filter(Boolean).join(', ') || null;
+  const scheduledEvents = Array.isArray(liveEvents) && liveEvents.length > 0
+    ? liveEvents
+    : (Array.isArray(series.events) ? series.events : []);
+  const metaDescription = buildSeriesMetaDescription(series, scheduledEvents, { maxLength: 158 })
+    || seriesDescription(series);
+
+  if (Array.isArray(liveEvents) && liveEvents.length > 0 && (!Array.isArray(series.events) || series.events.length === 0)) {
+    const nodes = seriesSchema(series);
+    const subEvents = buildSeriesSubEventSchema(series, liveEvents);
+    if (subEvents.length > 0 && Array.isArray(nodes)) {
+      const eventNode = nodes.find((n) => n?.['@type'] === 'EventSeries' || n?.['@type'] === 'Event');
+      if (eventNode) eventNode.subEvent = subEvents;
+    }
+    return (
+      <SEOHead
+        title={seriesTitle(series)}
+        description={metaDescription}
+        canonical={seriesPath(series)}
+        ogImage={seriesOgImage(series) || series.logoUrl || null}
+        jsonLd={nodes}
+        geoRegion={geoRegion}
+        geoPlacename={geoPlacename}
+        markdownUrl={series?.id ? `https://smarter.poker/hub/series/${series.id}.md` : undefined}
+      />
+    );
+  }
 
   return (
     <SEOHead
       title={seriesTitle(series)}
-      description={seriesDescription(series)}
+      description={metaDescription}
       canonical={seriesPath(series)}
       ogImage={seriesOgImage(series) || series.logoUrl || null}
       jsonLd={seriesSchema(series)}

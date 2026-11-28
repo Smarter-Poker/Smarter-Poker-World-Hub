@@ -213,6 +213,12 @@
       anchor: 'Smarter.Poker GTO Poker IQ Test',
       height: 820
     },
+    'gto-leak-finder': {
+      path: '/tools/gto-leak-finder',
+      title: '60-Second GTO Poker Leak Finder Diagnostic',
+      anchor: 'Smarter.Poker 60-Second GTO Leak Finder',
+      height: 820
+    },
     'geometric-bet-calculator': {
       path: '/tools/geometric-bet-calculator',
       title: 'Geometric Bet Sizing (2e & 3e) Street Calculator',

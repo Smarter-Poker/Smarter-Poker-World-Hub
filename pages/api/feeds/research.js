@@ -52,6 +52,7 @@ const CALCULATOR_BADGE_VALUES = {
   'who-wins-calculator': 'Showdown & Kicker Resolver',
   'mixed-game-placards': 'Mixed-Game Rotation Tracker',
   'poker-iq-test': '10-Question GTO Poker IQ',
+  'gto-leak-finder': '60-Second GTO Poker Leak Finder',
   'geometric-bet-calculator': '2e & 3e Geometric Sizing',
   'late-reg-calculator': 'Late-Registration ICM Boost',
   'mtt-grind-planner': 'MTT Grind & ABI Planner',

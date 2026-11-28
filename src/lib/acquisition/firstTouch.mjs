@@ -20,8 +20,11 @@
  */
 
 export const FIRST_TOUCH_KEY = 'sp_first_touch_v1';
+export const FIRST_LANDING_KEY = 'sp_first_landing_v1';
+export const UNLOCK_INTENT_KEY = 'sp_unlock_intent_v1';
 const FIELDS = ['utm_source', 'utm_medium', 'utm_campaign'];
 const MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
+const UNLOCK_INTENT_MAX_AGE_MS = 60 * 60 * 1000;
 
 const SEO_SINGLE_PREFIXES = new Set([
   'tools',
@@ -35,6 +38,25 @@ const SEO_SINGLE_PREFIXES = new Set([
   'glossary',
 ]);
 const SEO_HUB_PREFIXES = new Set(['series', 'venues', 'poker-near-me']);
+const PUBLIC_LANDING_SINGLE_PREFIXES = new Set([
+  ...SEO_SINGLE_PREFIXES,
+  'poker-series',
+  'weekend-tournaments',
+  'press',
+  'facts',
+  'authors',
+]);
+const PUBLIC_LANDING_HUB_PREFIXES = new Set([
+  ...SEO_HUB_PREFIXES,
+  'wire',
+  'magazine',
+  'news',
+  'article',
+  'tours',
+  'poker-tools',
+  'training',
+  'video-library',
+]);
 const SAFE_SEGMENT_RE = /^[A-Za-z0-9_.-]{1,64}$/;
 const SAFE_FIRST_SEGMENT_RE = /^[A-Za-z0-9_.-]{1,40}$/;
 const GOOGLE_HOST_RE = /^(?:(?:m|encrypted|search)\.)?google\.[a-z]{2,3}(?:\.[a-z]{2})?$/;
@@ -100,13 +122,25 @@ function isSafeSegment(seg, re = SAFE_SEGMENT_RE) {
   return typeof seg === 'string' && seg !== '.' && seg !== '..' && re.test(seg);
 }
 
+function isPublicLandingPath(pathname) {
+  if (typeof pathname !== 'string') return false;
+  const rawSegments = pathname.split('/').filter(Boolean);
+  if (rawSegments.length === 0) return false;
+  const first = rawSegments[0];
+  if (PUBLIC_LANDING_SINGLE_PREFIXES.has(first)) return true;
+  if (first === 'hub' && rawSegments.length >= 2 && PUBLIC_LANDING_HUB_PREFIXES.has(rawSegments[1])) {
+    return true;
+  }
+  return false;
+}
+
 function sanitizeLandingPath(pathname) {
   if (typeof pathname !== 'string') return '/';
   const rawSegments = pathname.split('/').filter(Boolean);
   if (rawSegments.length === 0) return '/';
   const first = rawSegments[0];
-  const isSeoSingle = SEO_SINGLE_PREFIXES.has(first);
-  const isSeoHub = first === 'hub' && rawSegments.length >= 2 && SEO_HUB_PREFIXES.has(rawSegments[1]);
+  const isSeoSingle = PUBLIC_LANDING_SINGLE_PREFIXES.has(first);
+  const isSeoHub = first === 'hub' && rawSegments.length >= 2 && PUBLIC_LANDING_HUB_PREFIXES.has(rawSegments[1]);
   if (isSeoSingle || isSeoHub) {
     const kept = [];
     for (const seg of rawSegments.slice(0, 3)) {
@@ -168,10 +202,92 @@ function readStored(storage, now) {
   }
 }
 
+function readStoredLanding(storage, now) {
+  try {
+    const raw = storage.getItem(FIRST_LANDING_KEY);
+    if (!raw) return null;
+    const rec = JSON.parse(raw);
+    if (!rec || typeof rec.landing_path !== 'string' || !rec.landing_path.startsWith('/')) return null;
+    const captured = Date.parse(rec.captured_at || '');
+    if (!Number.isFinite(captured) || now - captured > MAX_AGE_MS) return null;
+    const safePath = sanitizeLandingPath(rec.landing_path);
+    return safePath && safePath !== '/' ? { landing_path: safePath, captured_at: rec.captured_at } : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Record recent SEO unlock intent (1-hour TTL, clean tag sanitization). */
+export function recordUnlockIntent(
+  { unlockKey = '', source = '', experimentVariant = '', aiEngine = '' } = {},
+  win = typeof window !== 'undefined' ? window : undefined,
+  now = Date.now(),
+) {
+  try {
+    if (!win || !win.localStorage) return null;
+    const rec = {};
+    const cleanUnlock = cleanTag(unlockKey);
+    const cleanSource = cleanTag(source);
+    const cleanVariant = cleanTag(experimentVariant);
+    const cleanAi = cleanTag(aiEngine);
+    if (cleanUnlock) rec.unlock_key = cleanUnlock;
+    if (cleanSource) rec.seo_source = cleanSource;
+    if (cleanVariant) rec.experiment_variant = cleanVariant;
+    if (cleanAi) rec.acquisition_ai_engine = cleanAi;
+    if (Object.keys(rec).length === 0) return null;
+    rec.captured_at = new Date(now).toISOString();
+    win.localStorage.setItem(UNLOCK_INTENT_KEY, JSON.stringify(rec));
+    return rec;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Read unexpired SEO unlock intent (1-hour TTL). */
+export function readUnlockIntent(
+  win = typeof window !== 'undefined' ? window : undefined,
+  now = Date.now(),
+) {
+  try {
+    if (!win || !win.localStorage) return null;
+    const raw = win.localStorage.getItem(UNLOCK_INTENT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const captured = Date.parse(parsed.captured_at || '');
+    if (!Number.isFinite(captured) || now - captured > UNLOCK_INTENT_MAX_AGE_MS || captured - now > FIRST_SIGN_IN_SKEW_MS) {
+      return null;
+    }
+    const out = {};
+    const unlockKey = cleanTag(parsed.unlock_key);
+    const seoSource = cleanTag(parsed.seo_source);
+    const experimentVariant = cleanTag(parsed.experiment_variant);
+    const aiEngine = cleanTag(parsed.acquisition_ai_engine);
+    if (unlockKey) out.unlock_key = unlockKey;
+    if (seoSource) out.seo_source = seoSource;
+    if (experimentVariant) out.experiment_variant = experimentVariant;
+    if (aiEngine) out.acquisition_ai_engine = aiEngine;
+    return Object.keys(out).length > 0 ? out : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 /** Record the first tagged or organic/AI landing. Never overwrites an unexpired record. */
 export function recordFirstTouch(win = typeof window !== 'undefined' ? window : undefined, now = Date.now()) {
   try {
     if (!win || !win.localStorage || !win.location) return null;
+    // Always capture the first sanitized public SEO landing path even when utm_source
+    // and document.referrer are empty (iOS Safari, Google App, dark-social landings).
+    if (!readStoredLanding(win.localStorage, now) && isPublicLandingPath(win.location.pathname)) {
+      const landingPath = sanitizeLandingPath(win.location.pathname);
+      if (landingPath && landingPath !== '/') {
+        win.localStorage.setItem(
+          FIRST_LANDING_KEY,
+          JSON.stringify({ landing_path: landingPath, captured_at: new Date(now).toISOString() }),
+        );
+      }
+    }
     const existing = readStored(win.localStorage, now);
     if (existing) return existing;
     const rec = parseFirstTouch(win.location.search, win.location.pathname, now, win.document?.referrer);
@@ -189,11 +305,22 @@ export function firstTouchMetadata(win = typeof window !== 'undefined' ? window 
     const rec =
       readStored(win.localStorage, now) ||
       parseFirstTouch(win.location?.search, win.location?.pathname, now, win.document?.referrer);
-    if (!rec) return {};
+    const landing = readStoredLanding(win.localStorage, now);
+    const unlock = readUnlockIntent(win, now);
     const out = {};
-    for (const f of FIELDS) if (rec[f]) out[`acquisition_${f}`] = rec[f];
-    out.acquisition_landing_path = rec.landing_path;
-    out.acquisition_captured_at = rec.captured_at;
+    if (rec) {
+      for (const f of FIELDS) if (rec[f]) out[`acquisition_${f}`] = rec[f];
+      out.acquisition_landing_path = rec.landing_path;
+      out.acquisition_captured_at = rec.captured_at;
+    } else if (landing?.landing_path) {
+      out.acquisition_landing_path = landing.landing_path;
+    }
+    if (unlock) {
+      if (unlock.unlock_key) out.unlock_key = unlock.unlock_key;
+      if (unlock.seo_source) out.seo_source = unlock.seo_source;
+      if (unlock.experiment_variant) out.experiment_variant = unlock.experiment_variant;
+      if (unlock.acquisition_ai_engine) out.acquisition_ai_engine = unlock.acquisition_ai_engine;
+    }
     return out;
   } catch (_) {
     return {};

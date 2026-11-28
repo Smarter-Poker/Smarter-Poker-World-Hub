@@ -306,9 +306,17 @@ function pctOf(count, total) {
 function AttributionScorecard({ attribution }) {
     const channels = attribution?.channels || null;
     const providers = attribution?.providers || null;
+    const aiEngines = attribution?.aiEngines && typeof attribution.aiEngines === 'object' ? attribution.aiEngines : {};
+    const experimentVariants = attribution?.experimentVariants && typeof attribution.experimentVariants === 'object'
+        ? attribution.experimentVariants
+        : {};
     const totalSignups = Number(attribution?.totalSignups || 0);
     const last24h = attribution?.last_24h || null;
     const last24hChannels = last24h?.channels || {};
+    const last24hAiEngines = last24h?.aiEngines && typeof last24h.aiEngines === 'object' ? last24h.aiEngines : {};
+    const last24hVariants = last24h?.experimentVariants && typeof last24h.experimentVariants === 'object'
+        ? last24h.experimentVariants
+        : {};
     const landingPages = Array.isArray(attribution?.landingPages) ? attribution.landingPages : [];
     const unlockKeys = Array.isArray(attribution?.unlockKeys) ? attribution.unlockKeys : [];
     const isAvailable = Boolean(attribution && attribution.available !== false && channels);
@@ -328,6 +336,43 @@ function AttributionScorecard({ attribution }) {
         { key: 'oauth_total', label: 'Total OAuth', value: Number(providers?.oauth_total || 0) },
         { key: 'email', label: 'Email', value: Number(providers?.email || 0) },
     ];
+
+    const extraVariantKeys = Object.keys(experimentVariants)
+        .filter((k) => k !== 'control-gto' && k !== 'welcome-vip-500' && Number(experimentVariants[k] || 0) > 0)
+        .sort();
+    const experimentCards = [
+        { key: 'control-gto', label: 'Control GTO (control-gto)', accent: '#38bdf8' },
+        { key: 'welcome-vip-500', label: 'Welcome VIP + 500 (welcome-vip-500)', accent: '#65e8aa' },
+        ...extraVariantKeys.map((key) => ({ key, label: `Variant (${key})`, accent: '#00D4FF' })),
+    ];
+    const totalExperimentSignups = experimentCards.reduce(
+        (sum, item) => sum + Number(experimentVariants[item.key] || 0),
+        0,
+    );
+
+    const aiEngineLabels = {
+        chatgpt: 'ChatGPT',
+        perplexity: 'Perplexity',
+        claude: 'Claude',
+        gemini: 'Gemini',
+        copilot: 'Copilot',
+        grok: 'Grok',
+        meta_ai: 'Meta AI',
+        deepseek: 'DeepSeek',
+        mistral: 'Mistral',
+        other_ai: 'Other AI',
+    };
+    const coreAiKeys = ['chatgpt', 'perplexity', 'claude', 'gemini'];
+    const extraAiKeys = Object.keys(aiEngines)
+        .filter((k) => !coreAiKeys.includes(k) && Number(aiEngines[k] || 0) > 0)
+        .sort();
+    const aiEngineCards = [...coreAiKeys, ...extraAiKeys].map((key) => ({
+        key,
+        label: aiEngineLabels[key] || key,
+        count: Number(aiEngines[key] || 0),
+        count24h: Number(last24hAiEngines[key] || 0),
+    }));
+    const totalAiEngineSignups = Number(channels?.organic_ai || 0) || aiEngineCards.reduce((s, item) => s + item.count, 0);
 
     return (
         <section
@@ -392,6 +437,50 @@ function AttributionScorecard({ attribution }) {
                                 <div style={S.attrLabel}>{item.label}</div>
                                 <div style={S.attrValue}>{item.value}</div>
                                 <div style={S.attrMeta}>{pctOf(item.value, totalSignups)} Share</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <h3 style={S.attrSubhead}>A/B Offer Experiment Breakdown (Control-GTO Vs Welcome-VIP-500)</h3>
+                    <div style={S.attrChannelGrid} data-section="experiment-variants">
+                        {experimentCards.map((item) => {
+                            const count = Number(experimentVariants[item.key] || 0);
+                            const count24h = Number(last24hVariants[item.key] || 0);
+                            return (
+                                <div
+                                    key={item.key}
+                                    className={consoleStyles.metric}
+                                    style={{
+                                        ...S.attrCard,
+                                        borderLeft: `3px solid ${item.accent}`,
+                                    }}
+                                >
+                                    <div style={S.attrLabel}>{item.label}</div>
+                                    <div style={S.attrValue}>{count}</div>
+                                    <div style={S.attrMeta}>
+                                        {pctOf(count, totalExperimentSignups || totalSignups)} Split | 24h: {count24h}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <h3 style={S.attrSubhead}>AI Search Engines</h3>
+                    <div style={S.attrProviderGrid} data-section="ai-search-engines">
+                        {aiEngineCards.map((item) => (
+                            <div
+                                key={item.key}
+                                className={consoleStyles.metric}
+                                style={{
+                                    ...S.attrCard,
+                                    borderLeft: '3px solid #65e8aa',
+                                }}
+                            >
+                                <div style={S.attrLabel}>{item.label}</div>
+                                <div style={S.attrValue}>{item.count}</div>
+                                <div style={S.attrMeta}>
+                                    {pctOf(item.count, totalAiEngineSignups || totalSignups)} AI Share | 24h: {item.count24h}
+                                </div>
                             </div>
                         ))}
                     </div>

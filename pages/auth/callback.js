@@ -39,6 +39,7 @@ import {
 } from '../../src/lib/authErrors';
 import { redeemPendingSignupCodes } from '../../src/lib/pendingSignupCodes.mjs';
 import { attributionForNewAccount } from '../../src/lib/acquisition/firstTouch.mjs';
+import { firstTouchMetadata, cleanTag } from '../../src/lib/acquisition/firstTouch.mjs';
 import {
     cleanPromoTokenShape,
     readPendingPromoSignupToken,
@@ -356,11 +357,58 @@ export default function AuthCallback() {
                 //      Email sign-up writes it at signUp; Google cannot, so a
                 //      fresh account with none gets it here. Never re-attributes
                 //      an existing player (src/lib/acquisition/firstTouch.mjs).
+                let wroteAttribution = null;
                 try {
                     const attrParam = Array.isArray(router.query.attr) ? router.query.attr[0] : router.query.attr;
                     const acquisition = attributionForNewAccount(user, window, Date.now(), attrParam || null);
                     if (acquisition) await supabase.auth.updateUser({ data: acquisition });
+                    wroteAttribution = acquisition;
                 } catch (_attrErr) { /* non-blocking */ }
+
+                // ── 6.42 SEO unlock intent & dark-social landing path persistence
+                //      for brand-new OAuth accounts (even when utm_source is absent
+                //      on iOS Safari / Google App / direct organic landings).
+                try {
+                    const oauthProvider = (user.app_metadata && user.app_metadata.provider) || '';
+                    const createdMs = Date.parse(user.created_at || '');
+                    const signedInMs = Date.parse(user.last_sign_in_at || '');
+                    const nowMs = Date.now();
+                    const isBrandNewOAuth =
+                        Boolean(oauthProvider) &&
+                        oauthProvider !== 'email' &&
+                        oauthProvider !== 'phone' &&
+                        Number.isFinite(createdMs) &&
+                        Number.isFinite(signedInMs) &&
+                        Math.abs(signedInMs - createdMs) <= 60 * 1000 &&
+                        nowMs - createdMs <= 10 * 60 * 1000 &&
+                        createdMs - nowMs <= 60 * 1000;
+
+                    if (isBrandNewOAuth) {
+                        const existingMeta = {
+                            ...(user.user_metadata || {}),
+                            ...(wroteAttribution || {}),
+                        };
+                        const ftMeta = firstTouchMetadata(window, nowMs) || {};
+                        const rawUnlock = Array.isArray(router.query.unlock) ? router.query.unlock[0] : router.query.unlock;
+                        const rawSrc = Array.isArray(router.query.src) ? router.query.src[0] : router.query.src;
+                        const candidates = {
+                            unlock_key: cleanTag(rawUnlock) || ftMeta.unlock_key || null,
+                            seo_source: cleanTag(rawSrc) || ftMeta.seo_source || null,
+                            experiment_variant: ftMeta.experiment_variant || null,
+                            acquisition_ai_engine: ftMeta.acquisition_ai_engine || null,
+                            acquisition_landing_path: ftMeta.acquisition_landing_path || null,
+                        };
+                        const seoAttrPatch = {};
+                        for (const [k, v] of Object.entries(candidates)) {
+                            if (v && !existingMeta[k]) {
+                                seoAttrPatch[k] = v;
+                            }
+                        }
+                        if (Object.keys(seoAttrPatch).length > 0) {
+                            await supabase.auth.updateUser({ data: seoAttrPatch });
+                        }
+                    }
+                } catch (_seoAttrErr) { /* non-blocking */ }
 
                 // ── 6.45 Promotional signup token persistence (Dan 2026-11-23).
                 //      Carry ?pt= into localStorage and new-account metadata so

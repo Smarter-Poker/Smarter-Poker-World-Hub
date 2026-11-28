@@ -40,7 +40,7 @@ export function trackSeoFunnelEvent(event, properties = {}) {
       return;
     }
 
-    const key = (process.env.NEXT_PUBLIC_POSTHOG_KEY || '').trim();
+    const key = (process.env.NEXT_PUBLIC_POSTHOG_KEY || process.env.NEXT_PUBLIC_GUIDE_POSTHOG_KEY || '').trim();
     if (!key) return;
 
     const body = JSON.stringify({

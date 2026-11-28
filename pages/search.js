@@ -247,6 +247,12 @@ const CALCULATOR_ITEMS = [
     summary: 'Ten-Question Quantitative Poker Assessment Grading Pot Odds, MDF, ICM, Bounties, Board Textures, And TDA Floor Rules.',
   },
   {
+    title: '60-Second GTO Poker Leak Finder Diagnostic',
+    href: '/tools/gto-leak-finder',
+    badge: '5-Hand Solver Test',
+    summary: 'Five-Hand 100BB Cash And MTT ICM Diagnostic Measuring GTO Accuracy, Estimated BB/100 Leak Rate, And Primary Strategy Leaks Free.',
+  },
+  {
     title: 'PLO Wrap, Redraw & Nut-Out Probability Analyzer',
     href: '/tools/plo-outs-calculator',
     badge: 'PLO Wrap Solver',
