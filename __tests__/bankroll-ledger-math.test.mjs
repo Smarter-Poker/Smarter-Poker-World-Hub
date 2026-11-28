@@ -16,9 +16,12 @@ import {
   toCents,
 } from '../src/lib/bankroll/ledgerMath.mjs';
 import { evaluateRuleViolations, monthBounds } from '../src/lib/bankroll/ruleViolations.mjs';
+import { BANKROLL_MANAGER_PAGE, bankrollManagerSource } from './helpers/bankroll-manager-source.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const read = (p) => readFileSync(join(ROOT, p), 'utf8');
+// The page reads as itself plus its section modules (the 2026-11-28 split;
+// __tests__/helpers/bankroll-manager-source.mjs).
+const read = (p) => (p === BANKROLL_MANAGER_PAGE ? bankrollManagerSource() : readFileSync(join(ROOT, p), 'utf8'));
 
 const session = (over) => ({ category: 'poker_cash', gross_in: 0, gross_out: 0, entry_date: '2026-11-20', ...over });
 

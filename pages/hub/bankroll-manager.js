@@ -1,4 +1,3 @@
-import { GRADIENTS, METAL } from '../../src/components/bankroll/metalStyles';
 import dynamic from 'next/dynamic';
 /**
  * BANKROLL MANAGER PAGE
@@ -7,7 +6,6 @@ import dynamic from 'next/dynamic';
  */
 
 import { useRouter } from 'next/router';
-import { VipUpgradePrompt } from '../../src/components/vip/VipKit';
 import layout from '../../styles/BankrollManager.module.css';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
@@ -58,7 +56,7 @@ const BANKROLL_SCHEMA = hubProductSchema({
 });
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import PageTransition from '../../src/components/transitions/PageTransition';
@@ -78,82 +76,50 @@ import { getBankrollPreferences, updateBankrollPreferences } from '../../src/ser
 
 // Bankroll library
 import { getBankrollStats, calculateTotalBankroll } from '../../src/lib/bankroll/calculations';
-import { centsToDollars, resultsCents, toCents } from '../../src/lib/bankroll/ledgerMath.mjs';
+import { toCents } from '../../src/lib/bankroll/ledgerMath.mjs';
 import { sessionReport } from '../../src/lib/bankroll/ledgerReport.mjs';
 import { evaluateRuleViolations, monthBounds } from '../../src/lib/bankroll/ruleViolations.mjs';
-import { parseLedgerDay } from '../../src/lib/bankroll/localDates.mjs';
 import {
-  TIME_FILTERS, CHART_TYPES, CHART_TYPE_LABELS, GAME_TYPES,
-  sanitizeTimeFilter, sanitizeChartType, sanitizeGameTypes, sanitizeLineAxis, toggleGameType as toggleGameTypeIn,
+  GAME_TYPES, sanitizeTimeFilter, sanitizeChartType, sanitizeGameTypes, sanitizeLineAxis, toggleGameType as toggleGameTypeIn,
 } from '../../src/lib/bankroll/dashboardFilters.mjs';
 import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
 import { fetchReportLedger, fetchTrips, fetchSeries, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
-import { buildRecentActivity, tripDayLabel, withoutActiveTripRows } from '../../src/lib/bankroll/tripMath.mjs';
+import { buildRecentActivity, withoutActiveTripRows } from '../../src/lib/bankroll/tripMath.mjs';
 import {
-  receiptActions, tripFromReceipt, w2gRowFromReceipt, receiptRowFromScan, ledgerCategoryFor,
-  matchLocationByName, findOpenSessionFor, rankEntriesForReceipt,
-  ledgerEntryFromReceipt, partitionForBulkFiling, entryHoldingImage, receiptNeedingTrip,
-  RECEIPT_ACTIONS, RECEIPT_TARGETS,
+  tripFromReceipt, w2gRowFromReceipt, receiptRowFromScan, ledgerCategoryFor, matchLocationByName, findOpenSessionFor, ledgerEntryFromReceipt, partitionForBulkFiling, entryHoldingImage, receiptNeedingTrip, RECEIPT_ACTIONS, RECEIPT_TARGETS,
 } from '../../src/lib/bankroll/receiptInbox.mjs';
 import { warmOcr } from '../../src/lib/docscan/ocr.mjs';
-import { duplicateOf } from '../../src/lib/bankroll/receiptHash.mjs';
 import toast from '../../src/stores/toastStore';
 import { removeBankrollObject } from '../../src/lib/bankroll/receiptStorage';
 import { capture, FunnelEvents } from '../../src/lib/analytics';
 import { noteBankrollOpened, noteReceiptFiled } from '../../src/lib/bankroll/funnelSteps.mjs';
 
-/** Colour of the tag on each Receipt Saved choice, by receiptActions() tone. */
-const RECEIPT_TONE_COLORS = {
-  VAULT: '#94e7ff',
-  TRIP: '#4ade80',
-  CLOSE: '#34d399',
-  EXPENSE: '#f87171',
-  ATTACH: '#60a5fa',
-  LATER: '#a5b7cc',
-};
-import { formatCurrency, formatCurrencyWithSign, eurRateNote } from '../../src/lib/bankroll/currencyUtils';
 
-// Bankroll components. Eager: the dashboard's first paint (trend chart,
-// Jarvis insights, rules card, stat cards). Everything below the fold or
+// Bankroll components. Eager: the dashboard's first paint (Jarvis insights,
+// rules card; the trend chart and stat cards are in DashboardSection, which
+// is imported statically below). Everything below the fold or
 // off the dashboard is lazy (mobile phase 1b, PERF): each chunk arrives
 // when its section mounts and shows the same shimmer block until it does.
 // Recharts is never imported at page top level (BankrollTrendChart loads
 // it with its own dynamic() calls).
 import BankrollRulesCard from '../../src/components/bankroll/BankrollRulesCard';
-import BankrollTrendChart from '../../src/components/bankroll/BankrollTrendChart';
 import JarvisLeakInsights from '../../src/components/bankroll/JarvisLeakInsights';
 import BankrollGoals from '../../src/components/bankroll/BankrollGoals';
 import BankrollProGate from '../../src/components/bankroll/BankrollProGate';
-import BankrollFilterMenu from '../../src/components/bankroll/BankrollFilterMenu';
 import ManageVenuesModal from '../../src/components/bankroll/ManageVenuesModal';
 import { requestPageTutorial, TUTORIAL_WILL_OPEN_EVENT } from '../../src/tutorials';
 
-const SectionSkeleton = () => <div className="bankroll-skel" style={{ height: 300 }} />;
-const lazySection = (loader) => dynamic(loader, { ssr: false, loading: SectionSkeleton });
 
 const LogEntryModal = dynamic(() => import('../../src/components/bankroll/LogEntryModal'), { ssr: false });
-const ClubArenaSessionsPrompt = dynamic(() => import('../../src/components/bankroll/ClubArenaSessions').then((m) => m.ClubArenaSessionsPrompt), { ssr: false });
-const BankrollExportFormats = lazySection(() => import('../../src/components/bankroll/BankrollExportFormats'));
-const LedgerTimeline = lazySection(() => import('../../src/components/bankroll/LedgerTimeline'));
-const LocationAnalytics = lazySection(() => import('../../src/components/bankroll/LocationAnalytics'));
 const BankrollProjection = lazySection(() => import('../../src/components/bankroll/BankrollProjection'));
-const StakeAffordability = dynamic(() => import('../../src/components/bankroll/StakeAffordability'), { ssr: false });
 const PlayerNotes = lazySection(() => import('../../src/components/bankroll/PlayerNotes'));
-const HistoricalComparison = lazySection(() => import('../../src/components/bankroll/HistoricalComparison'));
-const VarianceCalculator = lazySection(() => import('../../src/components/bankroll/VarianceCalculator'));
-const ReceiptScanner = lazySection(() => import('../../src/components/bankroll/ReceiptScanner'));
 const SavedReceipts = lazySection(() => import('../../src/components/bankroll/SavedReceipts'));
-const TaxReportPanel = lazySection(() => import('../../src/components/bankroll/TaxReportPanel'));
 const StakingTracker = lazySection(() => import('../../src/components/bankroll/StakingTracker'));
 const SeriesTracker = lazySection(() => import('../../src/components/bankroll/SeriesTracker'));
 const SessionHandReview = lazySection(() => import('../../src/components/bankroll/SessionHandReview'));
 const TripTracker = lazySection(() => import('../../src/components/bankroll/TripTracker'));
 const TokeTracker = lazySection(() => import('../../src/components/bankroll/TokeTracker'));
 const CategoryOverview = lazySection(() => import('../../src/components/bankroll/CategoryOverview'));
-const AdvancedTaxReport = lazySection(() => import('../../src/components/bankroll/AdvancedTaxReport'));
-const BankrollDataTools = lazySection(() => import('../../src/components/bankroll/BankrollDataTools'));
-const TaxPacketDownload = lazySection(() => import('../../src/components/bankroll/TaxPacketDownload'));
-const ImportSessionsPrompt = dynamic(() => import('../../src/components/bankroll/ImportSessionsPrompt'), { ssr: false });
 const BankrollBadges = lazySection(() => import('../../src/components/bankroll/BankrollBadges'));
 const SocialStakingProfile = lazySection(() => import('../../src/components/bankroll/SocialStakingProfile'));
 const TournamentCalendar = lazySection(() => import('../../src/components/bankroll/TournamentCalendar'));
@@ -170,9 +136,22 @@ import { listHeld, releaseHeld, noteAttempt } from '../../src/lib/bankroll/recei
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
-import { openQuickSignup } from '../../src/components/seo/SmarterQuickSignupSheet';
 import BankrollImageHeader from '../../src/components/bankroll/BankrollImageHeader';
 import { BankrollActionTarget } from '../../src/components/bankroll/BankrollHeaderAdd';
+// Section modules (2026-11-28 page split). The dashboard is the first paint
+// and is server-rendered with the page; every other view and sheet is
+// client-only (?view= is read from the router, which is empty while the
+// page is prerendered) and arrives as its own chunk when it mounts.
+import { styles } from '../../src/components/bankroll/sections/bankrollPageStyles';
+import { CATEGORY_LABELS } from '../../src/components/bankroll/sections/bankrollPageConstants';
+import { lazySection } from '../../src/components/bankroll/sections/lazySection';
+import DashboardSection from '../../src/components/bankroll/sections/DashboardSection';
+const ReportsSection = lazySection(() => import('../../src/components/bankroll/sections/ReportsSection'));
+const SettingsSection = lazySection(() => import('../../src/components/bankroll/sections/SettingsSection'));
+const TaxSection = lazySection(() => import('../../src/components/bankroll/sections/TaxSection'));
+const ReceiptScannerSheet = dynamic(() => import('../../src/components/bankroll/sections/ReceiptScannerSheet'), { ssr: false });
+const LogSignInPrompt = dynamic(() => import('../../src/components/bankroll/sections/LogSignInPrompt'), { ssr: false });
+const RuleViolationsPopup = dynamic(() => import('../../src/components/bankroll/sections/RuleViolationsPopup'), { ssr: false });
 const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
 
 // Clean SmarterPoker-style navigation (no emojis)
@@ -230,63 +209,10 @@ const TYPE_TO_CATEGORY = {
   expense: 'expense',
 };
 
-const CATEGORY_LABELS = {
-  poker_cash: 'Cash Games',
-  poker_mtt: 'Tournaments',
-  casino_table: 'Table Games',
-  slots: 'Slots',
-  sports: 'Sports Betting',
-  expense: 'Expenses',
-};
-
 const EMPTY_LEDGER = [];
 
 // Header artwork for views that have none of their own.
 const HEADER_ART = { dashboard: 'bankroll', badges: 'goals', leaks: 'jarvis', 'hand-review': 'reports', 'recently-deleted': 'reports' };
-
-function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick, tutorialId, displayEUR = false }) {
-  const getRiskColor = (risk) => {
-    if (risk === 'HIGH') return '#ef4444';
-    if (risk === 'MEDIUM') return '#61d0e8';
-    return '#22c55e';
-  };
-
-  return (
-    <div
-      className={`sd-metric ${layout.metric}`}
-      style={{ ...(onClick ? { cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', minHeight: 44 } : {}) }}
-      onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
-      data-tutorial={tutorialId}
-    >
-      <span style={styles.statTitle}>{title}</span>
-      {isLoading ? (
-        <div style={styles.statLoading}>-</div>
-      ) : (
-        <div style={styles.statValue}>
-          <span style={{ color: isRisk ? getRiskColor(value) : '#fff' }}>
-            {value}
-          </span>
-          {isRisk && value === 'HIGH' && <span style={styles.riskDot}>●</span>}
-          {change !== undefined && change !== null && !isRisk && (
-            <span
-              style={{
-                ...styles.statChange,
-                color: change >= 0 ? '#22c55e' : '#ef4444',
-              }}
-            >
-              {formatCurrencyWithSign(change, displayEUR)}
-              {change < 0 && <span style={styles.downArrow}>▼</span>}
-            </span>
-          )}
-          {suffix && <span style={styles.statSuffix}>{suffix}</span>}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function DayPassCountdown({ expiresAt }) {
   const [timeLeft, setTimeLeft] = useState('');
@@ -1500,6 +1426,69 @@ export default function BankrollManagerPage() {
     return () => subscription.unsubscribe();
   }, [loadData]);
 
+  // Step 3 of the scanner: attach the scanned image to an existing entry.
+  // Kept here, beside the other receipt writes, so the ledger update stays
+  // in the file the table-access review lists.
+  const attachScannerReceiptToEntry = async (entry) => {
+    if (!requireOnline()) return;
+    try {
+      // Append receipt URL to entry's media_urls
+      const existing = entry.media_urls || [];
+      const updated = [...existing, scannerImageUrl];
+      const { error: err_bankroll_ledger_chehe } = await supabase
+        .from('bankroll_ledger')
+        .update({ media_urls: updated })
+        .eq('id', entry.id);
+      if (err_bankroll_ledger_chehe) throw err_bankroll_ledger_chehe;
+      await markReceiptAssigned(scannerReceiptId, RECEIPT_TARGETS.LEDGER_ENTRY, entry.id);
+      await loadData();
+      closeScannerAfterChoice();
+      setScannerEntryId(null);
+    } catch (err) {
+      console.warn('Attach failed:', err);
+      toast.error('Could Not Attach The Receipt. It Is Kept In Receipts Waiting.');
+    }
+  };
+
+  // Each section module receives exactly the state and handlers it reads
+  // (src/components/bankroll/sections/).
+  const dashboardSectionProps = {
+    activeSeries, allEntriesScrim, autoFlushing, bulkFiling, chartEntries,
+    chartType, discardReceipt, discardingReceiptId, entries, failedScope,
+    fileAllSuggested, filterMenuToggle, filteredAnalyticsEntries, filters,
+    finishAutoFlush, gameTypeFilter, goToSection, handleDeleteEntry,
+    handleEditEntry, handleLogClick, haptic, hasLoadedOnce, heldScans,
+    isLoading, isVip, loadData, loadPendingReceipts, locationFilter,
+    locations, online, openAdjustModal, openFilter, pendingReceipts,
+    preferences, refreshTrigger, reportReady, reportScope, resumeHeldScan,
+    resumeReceipt, resumingHeld, saveReceiptRow, selectedLocationName,
+    setChartType, setLineAxis, setLocationFilter, setShowAllEntries,
+    setTimeFilter, showAllEntries, stats, timeFilter, toggleGameType, trips,
+    userId,
+  };
+  const reportsSectionProps = {
+    failedScope, loadData, locationFilter, preferences, report, reportReady,
+    reportScope, selectedLocationName, timeFilter, userId,
+  };
+  const settingsSectionProps = {
+    goToSection, haptic, preferences, setShowVenueModal, updatePreference,
+    userId,
+  };
+  const taxSectionProps = {
+    analysisEntries, pendingReceipts, preferences, resumeReceipt, userId,
+  };
+  const receiptScannerSheetProps = {
+    attachScannerReceiptToEntry, closeScanner, entries, handleReceiptAction,
+    loadPendingReceipts, preferences, receiptBusy, receiptSaving,
+    recentHashes, refreshHeldScans, releaseResumedScan, resumingHeld,
+    retryReceiptListing, saveReceiptRow, scannerDuplicate,
+    scannerImageHashRef, scannerImageUrl, scannerReadOutcomeRef,
+    scannerReceiptId, scannerRoute, scannerScrim, scannerStep,
+    setReceiptSaving, setScannerDuplicate, setScannerExtractedData,
+    setScannerHasUnsaved, setScannerImageUrl, setScannerReceiptId,
+    setScannerRoute, setScannerStep, trips, userId,
+  };
+
   return (
     <PageTransition>
       
@@ -1607,586 +1596,7 @@ export default function BankrollManagerPage() {
 
               {/* Dashboard View */}
               {activeSection === 'dashboard' && categoryFilter === 'all' && (
-                <>
-
-                  {/*
-                    HELD ON THIS DEVICE: photographed with no signal, never sent.
-                    Listed ABOVE Receipts Waiting because these are the ones at
-                    risk - a receipt in Receipts Waiting is already on the
-                    server, and one here exists nowhere else. Clearing the
-                    browser's data would take it.
-                  */}
-                  {/*
-                    THE SENDER. Mounted only while a held scan is on its way,
-                    and deliberately off-screen rather than in the modal: the
-                    player did not ask for a sheet to open, they asked for their
-                    receipt not to be lost. Progress is the banner below.
-
-                    It is the same component the visible scanner uses, so there
-                    is one upload path, one read through the paid route, and one
-                    set of numbers. autoConfirm only changes who presses
-                    Confirm.
-                  */}
-                  {autoFlushing && (
-                    <div aria-hidden="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
-                      <ReceiptScanner
-                        userId={userId}
-                        resumeScan={autoFlushing}
-                        autoConfirm
-                        onScanComplete={async ({ imageUrl, extractedData, route, documentType, imageHash, readOutcome, ocrConfidence }) => {
-                          const id = await saveReceiptRow({ imageUrl, extractedData, route, documentType, imageHash, readOutcome, ocrConfidence });
-                          await finishAutoFlush(autoFlushing, Boolean(id));
-                          if (id) {
-                            loadPendingReceipts();
-                            toast.success('A Scan You Took Offline Has Been Sent. It Is Waiting To Be Filed.');
-                          } else {
-                            // The row did not land, so the device copy STAYS.
-                            toast.error('A Held Scan Uploaded But Could Not Be Listed. It Is Still On This Device.');
-                          }
-                        }}
-                        onHeld={() => { finishAutoFlush(autoFlushing, false); }}
-                        onUploadFailed={() => { finishAutoFlush(autoFlushing, false); }}
-                      />
-                    </div>
-                  )}
-
-                  {(heldScans.length > 0 || autoFlushing) && (
-                    <div style={styles.receiptsWaiting} data-testid="scans-held-on-device">
-                      <div style={styles.receiptsWaitingHead}>
-                        <span>{autoFlushing ? 'Sending A Scan You Took Offline' : online ? 'Scans Waiting To Be Sent' : 'Scans Held On This Device'}</span>
-                        <span style={styles.receiptsWaitingCount}>{heldScans.length}</span>
-                      </div>
-                      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, margin: '2px 0 8px' }}>
-                        {autoFlushing
-                          ? 'Reading It And Saving It To Receipts Waiting. You Do Not Need To Do Anything.'
-                          : online
-                            ? 'These Were Taken With No Signal And Are Only On This Phone. Sending Them Now.'
-                            : 'Saved Here Until You Are Back Online. They Send Themselves When You Reconnect.'}
-                      </div>
-                      {heldScans.map((held) => (
-                        <button
-                          key={held.id}
-                          type="button"
-                          className="sp-btn"
-                          disabled={!online || Boolean(resumingHeld)}
-                          onClick={() => resumeHeldScan(held)}
-                          style={{ width: '100%', marginBottom: 6, textAlign: 'left' }}
-                        >
-                          {`Send Scan From ${new Date(held.capturedAt).toLocaleString()}`}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Receipts Waiting: scans not yet filed anywhere. Listed until they are. */}
-                  {pendingReceipts.length > 0 && (
-                    <div style={styles.receiptsWaiting} data-testid="receipts-waiting">
-                      <div style={styles.receiptsWaitingHead}>
-                        <span>Receipts Waiting To Be Filed</span>
-                        <span style={styles.receiptsWaitingCount}>{pendingReceipts.length}</span>
-                      </div>
-                      {partitionForBulkFiling(pendingReceipts).willFile.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={fileAllSuggested}
-                          disabled={bulkFiling}
-                          style={{ ...styles.receiptsWaitingBulk, opacity: bulkFiling ? 0.6 : 1 }}
-                        >
-                          {bulkFiling
-                            ? 'Filing...'
-                            : `File ${partitionForBulkFiling(pendingReceipts).willFile.length} Suggested`}
-                        </button>
-                      )}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {pendingReceipts.slice(0, 5).map((receipt) => (
-                          // A row, not a button. The discard control has to sit
-                          // inside it, and a button inside a button is invalid
-                          // HTML that browsers resolve by dropping one of them.
-                          <div key={receipt.id} style={styles.receiptsWaitingRow}>
-                            <button
-                              type="button"
-                              onClick={() => resumeReceipt(receipt)}
-                              style={styles.receiptsWaitingOpen}
-                            >
-                              <img src={receipt.image_url} alt="" loading="lazy" style={styles.receiptsWaitingThumb} />
-                              <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
-                                <div style={{ color: '#fff', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {receipt.summary || 'Receipt'}
-                                </div>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 2 }}>
-                                  {(receipt.route && receipt.route.label) || 'Choose Where This Goes'}
-                                </div>
-                              </div>
-                              <span style={{ color: '#60a5fa', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>FILE</span>
-                            </button>
-                            {/* The way out for a photograph of somebody's thumb.
-                                Without it the list only ever grows, and at
-                                twenty rows the junk pushes the real scans off
-                                the end. */}
-                            <button
-                              type="button"
-                              onClick={() => discardReceipt(receipt)}
-                              disabled={discardingReceiptId === receipt.id}
-                              aria-label={`Delete ${receipt.summary || 'this scan'}`}
-                              title="Not A Receipt"
-                              style={{
-                                ...styles.receiptsWaitingDiscard,
-                                opacity: discardingReceiptId === receipt.id ? 0.4 : 1,
-                              }}
-                            >
-                              {discardingReceiptId === receipt.id ? '...' : 'Delete'}
-                            </button>
-                          </div>
-                        ))}
-                        {pendingReceipts.length > 5 && (
-                          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>
-                            And {pendingReceipts.length - 5} More
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Active Trip Featured Banner */}
-                  {(() => {
-                    const activeTrip = trips.find(t => t.status === 'active' && t.trip_type !== 'series');
-                    if (!activeTrip) return null;
-                    const dayLabel = tripDayLabel(activeTrip.start_date);
-                    return (
-                      <div
-                        style={{
-                          background: 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(59,130,246,0.08) 100%)',
-                          border: '2px solid rgba(16,185,129,0.3)',
-                          borderRadius: 12,
-                          padding: '14px 16px',
-                          marginBottom: 12,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 14,
-                          cursor: 'pointer',
-                          touchAction: 'manipulation',
-                          minHeight: 44,
-                        }}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => { haptic('light'); goToSection('trips'); }}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToSection('trips'); } }}
-                      >
-                        <div style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: '50%',
-                          background: '#10b981',
-                          boxShadow: '0 0 8px rgba(16,185,129,0.6)',
-                          flexShrink: 0,
-                          animation: 'metalGlow 2s infinite',
-                        }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
-                            {activeTrip.name}
-                          </div>
-                          <div style={{ fontSize: 14, color: '#94a3b8' }}>
-                            {activeTrip.location_name && `${activeTrip.location_name} · `}
-                            {dayLabel} · {activeTrip.sessionCount || 0} Sessions
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{
-                            fontSize: 16,
-                            fontWeight: 700,
-                            color: (activeTrip.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
-                          }}>
-                            {formatCurrencyWithSign(activeTrip.totalNet || 0, preferences.currencyEUR)}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); haptic('light'); handleLogClick(); }}
-                          style={{
-                            background: '#3b82f6',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: 8,
-                            padding: '8px 14px',
-                            fontSize: 14,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            flexShrink: 0,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          + Add Entry
-                        </button>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Active Series Featured Banner */}
-                  {activeSeries && (() => {
-                    const dayLabel = tripDayLabel(activeSeries.start_date);
-                    return (
-                      <div
-                        style={{
-                          background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(169, 198, 230,0.08) 100%)',
-                          border: '2px solid rgba(59,130,246,0.3)',
-                          borderRadius: 12,
-                          padding: '14px 16px',
-                          marginBottom: 12,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 14,
-                          cursor: 'pointer',
-                          touchAction: 'manipulation',
-                          minHeight: 44,
-                        }}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => { haptic('light'); goToSection('series'); }}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToSection('series'); } }}
-                      >
-                        <div style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: '50%',
-                          background: '#3b82f6',
-                          boxShadow: '0 0 8px rgba(59,130,246,0.6)',
-                          flexShrink: 0,
-                          animation: 'metalGlow 2s infinite',
-                        }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
-                            {activeSeries.name}
-                          </div>
-                          <div style={{ fontSize: 14, color: '#94a3b8' }}>
-                            {activeSeries.location_name && `${activeSeries.location_name} · `}
-                            {dayLabel} · {activeSeries.sessionCount || 0} Sessions
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{
-                            fontSize: 16,
-                            fontWeight: 700,
-                            color: (activeSeries.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
-                          }}>
-                            {formatCurrencyWithSign(activeSeries.totalNet || 0, preferences.currencyEUR)}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); haptic('light'); goToSection('series'); }}
-                          style={{
-                            background: '#4795f3',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: 8,
-                            padding: '8px 14px',
-                            fontSize: 14,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            flexShrink: 0,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          View Series
-                        </button>
-                      </div>
-                    );
-                  })()}
-
-                  {/* First paint only: a skeleton that mirrors the dashboard
-                      (stats grid, chart block, three analytics cards). Background
-                      reloads never show it (isInitialLoad). */}
-                  {isLoading && !hasLoadedOnce && (
-                    <div className="bankroll-dashboard-skeleton" aria-busy="true" aria-label="Loading Bankroll">
-                      <div className="bankroll-skel-stats">
-                        <div className="bankroll-skel" style={{ height: 92 }} />
-                        <div className="bankroll-skel" style={{ height: 92 }} />
-                      </div>
-                      <div className="bankroll-skel" style={{ height: 260, marginBottom: 16 }} />
-                      <div className="bankroll-skel-analytics bankroll-analytics-grid">
-                        <div className="bankroll-skel" style={{ height: 180 }} />
-                        <div className="bankroll-skel" style={{ height: 180 }} />
-                        <div className="bankroll-skel" style={{ height: 180 }} />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* A failed read is not an empty bankroll: the tiles would
-                      show '-' and the chart nothing, as if no session had
-                      ever been logged. */}
-                  {failedScope === reportScope && (
-                    <div role="alert" className={`sd-panel ${layout.panel}`} data-testid="bankroll-load-failed" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                      <span style={{ color: '#fca5a5', fontSize: 14, fontWeight: 600 }}>Could Not Load Your Bankroll. Check Your Connection.</span>
-                      <button type="button" className="sd-button" onClick={loadData}>Retry</button>
-                    </div>
-                  )}
-
-                  {/* Finished Club Arena sessions not yet in the ledger. */}
-                  {userId && <ClubArenaSessionsPrompt userId={userId} />}
-
-                  {/* An empty ledger is offered Import Sessions (it checks the whole ledger itself). */}
-                  {hasLoadedOnce && failedScope !== reportScope && userId && <ImportSessionsPrompt userId={userId} />}
-
-                  {/* === Unified Dashboard Frame === */}
-                  {!(isLoading && !hasLoadedOnce) && (
-                  <div className={`sd-panel ${layout.dashboard}`}>
-
-                    {/* Stats Cards */}
-                    <div className="bankroll-stats-grid" data-tutorial="stats" style={styles.statsGrid}>
-                      <StatCard
-                        title="Bankroll Balance"
-                        value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '-'}
-                        isLoading={isLoading}
-                        onClick={openAdjustModal}
-                      />
-                      <StatCard
-                        title="Net Results"
-                        value={
-                          // Summed from the rows the trend chart plots, so the
-                          // tile and the chart's last point always agree.
-                          reportReady
-                            ? formatCurrency(centsToDollars(resultsCents(chartEntries)), preferences.currencyEUR)
-                            : stats
-                              ? formatCurrency(stats.allInNet, preferences.currencyEUR)
-                              : '-'
-                        }
-                        isLoading={isLoading}
-                      />
-                    </div>
-
-                    {/* Bankroll Trend Chart, filtered by gameTypeFilter, always include expenses */}
-                    <div data-tutorial="chart">
-                    <BankrollTrendChart displayEUR={preferences.currencyEUR} entries={chartEntries} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} lineAxis={sanitizeLineAxis(filters.lineAxis)} onLineAxisChange={setLineAxis} />
-
-                    {/* Filters Row. Two columns at phone width (bankroll.css),
-                        so the right column's menus open leftward to stay on
-                        a 375px screen. */}
-                    <div className="bankroll-filters-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
-                      <BankrollFilterMenu
-                        label="Location"
-                        buttonText={selectedLocationName}
-                        open={openFilter === 'location'}
-                        onOpenChange={filterMenuToggle('location')}
-                        onSelect={(value) => setLocationFilter(value === 'all' ? null : value)}
-                        options={[{ value: 'all', label: 'All Locations', selected: !locationFilter }]
-                          .concat(locations.map((loc) => ({ value: loc.id, label: loc.name, selected: locationFilter === loc.id })))}
-                      />
-                      <BankrollFilterMenu
-                        label="Time Range"
-                        buttonText={timeFilter}
-                        align="right"
-                        open={openFilter === 'time'}
-                        onOpenChange={filterMenuToggle('time')}
-                        onSelect={setTimeFilter}
-                        options={TIME_FILTERS.map((tf) => ({ value: tf, label: tf, selected: timeFilter === tf }))}
-                      />
-                      <BankrollFilterMenu
-                        label="Game Types"
-                        buttonText={`Game Type (${gameTypeFilter.length})`}
-                        multiple
-                        minWidth={200}
-                        open={openFilter === 'game'}
-                        onOpenChange={filterMenuToggle('game')}
-                        onSelect={toggleGameType}
-                        options={GAME_TYPES.map((cat) => ({ value: cat, label: CATEGORY_LABELS[cat], selected: gameTypeFilter.includes(cat) }))}
-                      />
-                      <BankrollFilterMenu
-                        label="Chart Type"
-                        buttonText={CHART_TYPE_LABELS[chartType]}
-                        align="right"
-                        open={openFilter === 'chart'}
-                        onOpenChange={filterMenuToggle('chart')}
-                        onSelect={setChartType}
-                        options={CHART_TYPES.map((ct) => ({ value: ct, label: CHART_TYPE_LABELS[ct], selected: chartType === ct }))}
-                      />
-                    </div>
-                    </div>
-
-                  </div>
-                  )}
-
-                  {/* Analytics grid */}
-                  {!(isLoading && !hasLoadedOnce) && (
-                  <div style={{ position: 'relative' }} data-tutorial="analytics">
-                    {!isVip && (
-                      <div style={{
-                        position: 'absolute',
-                        top: 0, left: 0, right: 0, bottom: 0,
-                        background: 'rgba(10, 12, 20, 0.85)',
-                        backdropFilter: 'blur(6px)',
-                        borderRadius: 12,
-                        zIndex: 10,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 12,
-                        padding: 12,
-                        overflowY: 'auto',
-                      }}>
-                        <VipUpgradePrompt
-                          accountId={userId || null}
-                          title="VIP Analytics"
-                          copy="Variance Analysis, Venue Intelligence And Historical Trends Require VIP."
-                          onNavigate={() => haptic('light')}
-                        />
-                      </div>
-                    )}
-                    {/* Analytics: a grid at every width. Three across on
-                        desktop, one column stacked on phones. Was a
-                        scroll-snap slider with 85% cards (slide to see). */}
-                    <div className={layout.analyticsGrid} style={{ filter: isVip ? 'none' : 'blur(3px)', pointerEvents: isVip ? 'auto' : 'none' }}>
-                      <div className={layout.analyticsCard}>
-                        <HubErrorBoundary name="Location Analytics">
-                          <LocationAnalytics displayEUR={preferences.currencyEUR} entries={filteredAnalyticsEntries} isLoading={isLoading} />
-                        </HubErrorBoundary>
-                      </div>
-                      <div className={layout.analyticsCard}>
-                        <HubErrorBoundary name="Variance Calculator">
-                          <VarianceCalculator displayEUR={preferences.currencyEUR} entries={filteredAnalyticsEntries} />
-                        </HubErrorBoundary>
-                      </div>
-                      <div className={layout.analyticsCard}>
-                        <HubErrorBoundary name="Historical Comparison">
-                          <HistoricalComparison displayEUR={preferences.currencyEUR} entries={filteredAnalyticsEntries} />
-                        </HubErrorBoundary>
-                      </div>
-                    </div>
-                  </div>
-                  )}
-
-                  {userId && !(isLoading && !hasLoadedOnce) && (
-                    <HubErrorBoundary name="Stake Affordability">
-                      <StakeAffordability userId={userId} bankroll={stats ? stats.totalBankroll : null} displayEUR={preferences.currencyEUR} refreshKey={refreshTrigger} />
-                    </HubErrorBoundary>
-                  )}
-
-                  {/* Recent Activity Section */}
-                  <div className={`sd-panel ${layout.panel}`}>
-                    <div
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}
-                    >
-                      <h2 className="sd-section-title">Recent Activity</h2>
-                      {entries.length > 5 && (
-                        <button
-                          type="button"
-                          onClick={() => { haptic('light'); setShowAllEntries(true); }}
-                          style={{
-                            minHeight: 44,
-                            touchAction: 'manipulation',
-                            background: 'rgba(59, 130, 246, 0.15)',
-                            border: '2px solid rgba(59, 130, 246, 0.3)',
-                            borderRadius: 6,
-                            padding: '6px 14px',
-                            color: '#3b82f6',
-                            fontSize: 14,
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          View All ({entries.length})
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Ledger Timeline - always shows last 5 */}
-                    <LedgerTimeline
-                      displayEUR={preferences.currencyEUR}
-                      entries={entries.slice(0, 5)}
-                      isLoading={isLoading}
-                      onEdit={handleEditEntry}
-                      onDelete={handleDeleteEntry}
-                    />
-                  </div>
-
-                  {/* Recent Activity Modal Popup */}
-                  {showAllEntries && (
-                    <div
-                      className="bankroll-modal-overlay"
-                      {...allEntriesScrim}
-                      style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'rgba(0, 0, 0, 0.85)',
-                        backdropFilter: 'blur(6px)',
-                        zIndex: 9999,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: 16,
-                      }}
-                    >
-                      <div
-                        className="bankroll-modal"
-                        role="dialog"
-                        aria-modal="true"
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                          width: '100%',
-                          maxWidth: 600,
-                          maxHeight: '80dvh',
-                          borderRadius: 16,
-                          overflow: 'hidden',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-                          boxSizing: 'border-box',
-                        }}
-                      >
-                        <div className="bankroll-sheet-handle" aria-hidden="true" />
-                        {/* Modal Header */}
-                        <div className="bankroll-modal-header" style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          padding: '12px 20px',
-                          borderBottom: '1px solid rgba(255,255,255,0.08)',
-                          flexShrink: 0,
-                        }}>
-                          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0 }}>Recent Activity</h2>
-                          <button
-                            type="button"
-                            aria-label="Close"
-                            className="bankroll-modal-close sp-icon-btn"
-                            onClick={() => setShowAllEntries(false)}
-                            style={{ '--sp-btn-size': '44px',
-                              background: 'rgba(255,255,255,0.1)',
-                              border: 'none',
-                              borderRadius: '50%',
-                              width: 44,
-                              height: 44,
-                              minWidth: 44,
-                              minHeight: 44,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#fff',
-                              fontSize: 18,
-                              cursor: 'pointer',
-                              touchAction: 'manipulation',
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                        {/* Scrollable Content */}
-                        <div className="bankroll-modal-body" style={{ overflowY: 'auto', padding: '12px 20px 20px' }}>
-                          <LedgerTimeline
-                            displayEUR={preferences.currencyEUR}
-                            entries={entries}
-                            isLoading={isLoading}
-                            onEdit={handleEditEntry}
-                            onDelete={handleDeleteEntry}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                </>
+                <DashboardSection {...dashboardSectionProps} />
               )}
 
               {/* Trip Tracker View */}
@@ -2258,70 +1668,12 @@ export default function BankrollManagerPage() {
 
               {/* Reports View */}
               {activeSection === 'reports' && (
-                <div className={`sd-panel ${layout.panel}`}>
-                  <h2 className="sd-section-title">Performance Reports</h2>
-                  {/* The page keeps the dashboard's Location and Time filters
-                      across views now (it is no longer remounted per view),
-                      so these totals say which slice they cover. */}
-                  <p data-testid="reports-scope" style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
-                    {locationFilter ? `At ${selectedLocationName}` : 'All Locations'} · {timeFilter}
-                  </p>
-
-                  {failedScope === reportScope && (
-                    <p role="alert">Could Not Refresh Reports. <button type="button" className="sd-button" onClick={loadData}>Retry</button></p>
-                  )}
-                  {!reportReady && failedScope !== reportScope && <p role="status">{userId ? 'Loading Reports…' : 'Sign In To View Reports'}</p>}
-                  {reportReady && <dl className={layout.reportMetrics}>
-                    <div className={layout.reportMetric}><dt>Total Sessions</dt><dd><strong>{report.count}</strong></dd></div>
-                    <div className={layout.reportMetric}><dt>Win Rate</dt><dd><strong>{report.winRate}%</strong></dd></div>
-                    <div className={layout.reportMetric}><dt>Net P/L</dt><dd><strong>{formatCurrencyWithSign(report.net, preferences.currencyEUR, { cents: true })}</strong></dd></div>
-                    <div className={layout.reportMetric}><dt>Avg Session</dt><dd><strong>{formatCurrencyWithSign(report.average, preferences.currencyEUR, { cents: true })}</strong></dd></div>
-                  </dl>}
-                  {preferences.currencyEUR && <p data-testid="exports-stay-usd" style={styles.settingHint}>Exports Stay In US Dollars.</p>}
-                  <BankrollExportFormats />
-                </div>
+                <ReportsSection {...reportsSectionProps} />
               )}
 
               {/* Settings View */}
               {activeSection === 'settings' && (
-                <div className={`sd-panel ${layout.panel}`}>
-                  <h2 className="sd-section-title">Bankroll Settings</h2>
-                  <div style={{ padding: 16, background: 'rgba(255,255,255,0.1)', borderRadius: 10, border: '2px solid rgba(255,255,255,0.15)', marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: '0 0 16px' }}>Preferences</h3>
-                    <label style={styles.settingRow}>
-                      <span style={{ minWidth: 0 }}>
-                        <span style={{ display: 'block', fontSize: 14, color: '#fff' }}>Display EUR</span>
-                        <span style={styles.settingHint}>Show Bankroll Results, Balances, Totals And Averages In Euros.</span>
-                        <span data-testid="eur-rate-note" style={styles.settingHint}>{eurRateNote()}</span>
-                      </span>
-                      <input type="checkbox" checked={Boolean(preferences.currencyEUR)} onChange={(e) => updatePreference('currencyEUR', e.target.checked)} style={styles.settingCheck} />
-                    </label>
-                    <label style={{ ...styles.settingRow, borderBottom: 'none' }}>
-                      <span style={{ minWidth: 0 }}>
-                        <span style={{ display: 'block', fontSize: 14, color: '#fff' }}>Venue Alerts</span>
-                        <span style={styles.settingHint}>Remind Me To Log A Session When I Arrive At A Saved Venue.</span>
-                      </span>
-                      <input type="checkbox" checked={preferences.notifications !== false} onChange={(e) => updatePreference('notifications', e.target.checked)} style={styles.settingCheck} />
-                    </label>
-                  </div>
-                  <BankrollDataTools userId={userId} />
-                  <button
-                    type="button"
-                    onClick={() => { haptic('light'); setShowVenueModal(true); }}
-                    style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}
-                  >
-                    Manage Venues
-                    <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { haptic('light'); goToSection('reports'); }}
-                    style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                  >
-                    Export Data
-                    <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                  </button>
-                </div>
+                <SettingsSection {...settingsSectionProps} />
               )}
 
               {/* Badges View (footer BADGES button) */}
@@ -2348,48 +1700,7 @@ export default function BankrollManagerPage() {
 
               {/* Tax Reports - dedicated view showing only Tax Report Generator */}
               {activeSection === 'tax' && (
-                <div style={styles.proToolsContainer}>
-                  {/* A scanned W-2G waits here rather than only in a list the
-                      Tax Reports reader never looks at. */}
-                  {pendingReceipts.filter(r => r.destination === 'tax').length > 0 && (
-                    <div style={{ ...styles.receiptsWaiting, margin: 16 }} data-testid="tax-receipts-waiting">
-                      <div style={styles.receiptsWaitingHead}>
-                        <span>W-2G Forms Waiting To Be Filed</span>
-                        <span style={styles.receiptsWaitingCount}>{pendingReceipts.filter(r => r.destination === 'tax').length}</span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {pendingReceipts.filter(r => r.destination === 'tax').map((receipt) => (
-                          <button key={receipt.id} type="button" onClick={() => resumeReceipt(receipt)} style={styles.receiptsWaitingRow}>
-                            <img src={receipt.image_url} alt="" loading="lazy" style={styles.receiptsWaitingThumb} />
-                            <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
-                              <div style={{ color: '#fff', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {receipt.summary || 'W-2G'}
-                              </div>
-                              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 2 }}>Add It To The Vault</div>
-                            </div>
-                            <span style={{ color: '#94e7ff', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>FILE</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  <BankrollProGate userId={userId}>
-                    <div style={{ padding: 16 }}>
-                      {preferences.currencyEUR && <p data-testid="tax-stays-usd" style={{ ...styles.settingHint, margin: '0 0 12px' }}>Tax Reports Stay In US Dollars.</p>}
-                      <HubErrorBoundary name="State Tax Report">
-                        <AdvancedTaxReport entries={analysisEntries} userId={userId} />
-                      </HubErrorBoundary>
-                      <div style={{ marginTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 24 }}>
-                        <HubErrorBoundary name="Tax Reports">
-                          <TaxReportPanel userId={userId} />
-                        </HubErrorBoundary>
-                        <HubErrorBoundary name="Tax Packet">
-                          <div style={{ marginTop: 16 }}><TaxPacketDownload /></div>
-                        </HubErrorBoundary>
-                      </div>
-                    </div>
-                  </BankrollProGate>
-                </div>
+                <TaxSection {...taxSectionProps} />
               )}
 
               {/* Staking Tracker - dedicated standalone view */}
@@ -2455,228 +1766,7 @@ export default function BankrollManagerPage() {
       {/* Receipt Scanner Modal */}
       {
         showScanner && (
-          <div className="bankroll-modal-overlay" style={styles.scannerModal} {...scannerScrim}>
-            <div className="bankroll-modal" role="dialog" aria-modal="true" style={styles.scannerModalContent} onClick={(e) => e.stopPropagation()}>
-              <div className="bankroll-sheet-handle" aria-hidden="true" />
-              <div className="bankroll-modal-header" style={styles.scannerModalHeader}>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#fff' }}>
-                  {scannerStep === 'scan' && 'Scan Receipt'}
-                  {scannerStep === 'post-capture' && 'Receipt Saved'}
-                  {scannerStep === 'pick-entry' && 'Select Entry'}
-                </h2>
-                <button
-                  type="button"
-                  aria-label="Close"
-                  className="bankroll-modal-close sp-icon-btn"
-                  onClick={closeScanner}
-                  style={styles.scannerCloseBtn}
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="bankroll-modal-body" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
-
-              {/* Step 1: Scan - camera captures first */}
-              {scannerStep === 'scan' && (
-                <div>
-                  <ReceiptScanner
-                    userId={userId}
-                    onPendingChange={setScannerHasUnsaved}
-                    resumeScan={resumingHeld}
-                    onHeld={({ held, dropped }) => {
-                      setScannerHasUnsaved(false);
-                      refreshHeldScans();
-                      // The player is told the true thing in both directions.
-                      // A hold that quietly forgets is the same bug as a scan
-                      // that quietly vanishes, so a dropped one is said out
-                      // loud rather than counted.
-                      if (dropped && dropped.length) {
-                        toast.error(`No Room To Hold ${dropped.length} Older Scan${dropped.length === 1 ? '' : 's'}. File What Is Waiting.`);
-                      }
-                      toast.success(`Saved On This Device. ${held} Waiting For A Signal.`);
-                    }}
-                    onScanComplete={async ({ imageUrl, extractedData, route, documentType, imageHash, readOutcome, ocrConfidence }) => {
-                      setScannerHasUnsaved(false);
-                      // It has an image URL and a row is about to exist, so the
-                      // device copy has done its job. Released only here.
-                      if (resumingHeld) await releaseResumedScan();
-                      setScannerImageUrl(imageUrl);
-                      setScannerExtractedData(extractedData);
-                      setScannerRoute(route ? { ...route, documentType } : null);
-                      setScannerReceiptId(null);
-                      scannerImageHashRef.current = imageHash || null;
-                      capture(FunnelEvents.BANKROLL_RECEIPT_SCANNED, {
-                        document_type: documentType || 'unknown',
-                        destination: (route && route.destination) || 'manual',
-                        auto_file: Boolean(route && route.autoFile),
-                      });
-                      // Shown, never acted on: the player decides whether this
-                      // is the same piece of paper.
-                      setScannerDuplicate(duplicateOf(imageHash, recentHashes));
-                      setReceiptSaving(true);
-                      setScannerStep('post-capture');
-                      // Rule 4: the row exists BEFORE a choice can be made. The
-                      // choices stay disabled until it does, and a failed
-                      // insert shows Retry Listing instead of a silent gap.
-                      scannerReadOutcomeRef.current = { outcome: readOutcome || null, ocrConfidence: ocrConfidence ?? null };
-                      const id = await saveReceiptRow({ imageUrl, extractedData, route, documentType, imageHash, readOutcome, ocrConfidence });
-                      setScannerReceiptId(id);
-                      setReceiptSaving(false);
-                      if (id) loadPendingReceipts();
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* Step 2: Post-capture - choose what to do */}
-              {scannerStep === 'post-capture' && scannerImageUrl && (
-                <div style={{ padding: 20 }}>
-                  {/* Receipt thumbnail */}
-                  <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                    <img
-                      src={scannerImageUrl}
-                      alt="Receipt"
-                      style={{ maxWidth: '100%', maxHeight: 180, objectFit: 'contain', borderRadius: 8, border: '2px solid rgba(255,255,255,0.1)' }}
-                      loading="lazy" />
-                  </div>
-
-                  {/* What it was read as, so the choice below is already made
-                      for the common case instead of being asked cold. */}
-                  {scannerRoute && (
-                    <div style={{
-                      marginBottom: 16, padding: 12, borderRadius: 10,
-                      background: 'rgba(35,116,225,0.08)', border: '1px solid #2374e1',
-                    }}>
-                      <div style={{ color: '#edf6ff', fontSize: 15, fontWeight: 600 }}>{scannerRoute.summary}</div>
-                      <div style={{ color: '#92cfff', fontSize: 14, marginTop: 2 }}>{scannerRoute.label}</div>
-                    </div>
-                  )}
-
-                  {scannerDuplicate && (
-                    <div style={styles.receiptDuplicate} role="alert">
-                      <div style={{ color: '#94e7ff', fontSize: 14, fontWeight: 700 }}>You May Have Scanned This Before</div>
-                      <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 3 }}>
-                        {scannerDuplicate.summary || 'A Receipt'}
-                        {scannerDuplicate.created_at ? ` on ${new Date(scannerDuplicate.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
-                        {scannerDuplicate.status === 'assigned' ? ', Already Filed' : ', Still Waiting'}
-                      </div>
-                      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 3 }}>
-                        Nothing Was Changed. Carry On If This Is A Different Receipt.
-                      </div>
-                    </div>
-                  )}
-
-                  {!receiptSaving && !scannerReceiptId && (
-                    <div style={styles.receiptNotListed} role="alert">
-                      <div style={{ color: '#fca5a5', fontSize: 14, fontWeight: 600 }}>This Receipt Is Not Listed Yet</div>
-                      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 2 }}>The Image Uploaded, But It Could Not Be Saved To Receipts Waiting.</div>
-                      <button type="button" onClick={retryReceiptListing} style={styles.receiptRetryBtn}>Retry Listing</button>
-                    </div>
-                  )}
-
-                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 0, marginBottom: 20, textAlign: 'center' }}>
-                    {receiptSaving ? 'Saving This Receipt...' : 'What Would You Like To Do With This Receipt?'}
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {receiptActions(scannerRoute, {
-                      activeTrip: trips.find(t => t.status === 'active' && t.trip_type !== 'series') || null,
-                      openSession: findOpenSessionFor(scannerRoute, entries),
-                    }).map((action) => (
-                      <button
-                        key={action.id}
-                        type="button"
-                        disabled={receiptBusy || receiptSaving}
-                        onClick={() => handleReceiptAction(action.id)}
-                        style={{
-                          ...styles.scannerChoiceBtn,
-                          ...(action.primary ? styles.scannerChoiceBtnPrimary : {}),
-                          opacity: receiptBusy || receiptSaving ? 0.6 : 1,
-                        }}
-                      >
-                        <span style={{ fontSize: 13, fontWeight: 700, color: RECEIPT_TONE_COLORS[action.tone] || '#93c5fd', minWidth: 58 }}>{action.tone}</span>
-                        <div style={{ textAlign: 'left' }}>
-                          <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>{action.title}</div>
-                          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginTop: 2 }}>{action.detail}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Pick existing entry to attach receipt */}
-              {scannerStep === 'pick-entry' && (
-                <div style={{ padding: '0 16px 16px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setScannerStep('post-capture')}
-                    style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 14, cursor: 'pointer', padding: '12px 4px', fontWeight: 500, minHeight: 44, touchAction: 'manipulation' }}
-                  >
-                    Back
-                  </button>
-                  {entries.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
-                      No Entries Yet. Create A New Expense Instead.
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 400, overflowY: 'auto' }}>
-                      {rankEntriesForReceipt(entries, scannerRoute).slice(0, 20).map((entry) => {
-                        const isPositive = entry.net_result >= 0;
-                        const dateStr = entry.entry_date
-                          ? parseLedgerDay(entry.entry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                          : '';
-                        const LABELS = { cash: 'Cash Game', tournament: 'Tournament', expense: 'Expense', deposit: 'Deposit', withdrawal: 'Withdrawal', sports_bet: 'Sports Bet' };
-                        return (
-                          <button
-                            key={entry.id}
-                            onClick={async () => {
-                              if (!requireOnline()) return;
-                              try {
-                                // Append receipt URL to entry's media_urls
-                                const existing = entry.media_urls || [];
-                                const updated = [...existing, scannerImageUrl];
-                                const { error: err_bankroll_ledger_chehe } = await supabase
-                                  .from('bankroll_ledger')
-                                  .update({ media_urls: updated })
-                                  .eq('id', entry.id);
-                                if (err_bankroll_ledger_chehe) throw err_bankroll_ledger_chehe;
-                                await markReceiptAssigned(scannerReceiptId, RECEIPT_TARGETS.LEDGER_ENTRY, entry.id);
-                                await loadData();
-                                closeScannerAfterChoice();
-                                setScannerEntryId(null);
-                              } catch (err) {
-                                console.warn('Attach failed:', err);
-                                toast.error('Could Not Attach The Receipt. It Is Kept In Receipts Waiting.');
-                              }
-                            }}
-                            style={styles.scannerEntryBtn}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-                              <div style={{ width: 36, height: 36, borderRadius: 8, background: isPositive ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
-                                {isPositive ? '✓' : '−'}
-                              </div>
-                              <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {LABELS[entry.category] || entry.category}
-                                </div>
-                                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
-                                  {dateStr}{entry.location_name ? ` · ${entry.location_name}` : ''}
-                                </div>
-                              </div>
-                            </div>
-                            <span style={{ fontSize: 15, fontWeight: 600, color: isPositive ? '#22c55e' : '#ef4444', flexShrink: 0, marginLeft: 8 }}>
-                              {formatCurrencyWithSign(entry.net_result, preferences.currencyEUR)}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-              </div>
-            </div>
-          </div>
+          <ReceiptScannerSheet {...receiptScannerSheetProps} />
         )
       }
 
@@ -2716,83 +1806,7 @@ export default function BankrollManagerPage() {
               }}
             />
           ) : (
-            <motion.div
-              role="presentation"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0, 0, 0, 0.8)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                // Above the header (100) and bottom nav (90): fixed overlays
-                // render at z >= 900 (mobile standard).
-                zIndex: 1000,
-              }}
-              {...signInScrim}
-            >
-              <motion.div
-                className="sd-panel"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="bankroll-sign-in-title"
-                aria-describedby="bankroll-sign-in-description"
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                style={{
-                  borderRadius: 16,
-                  padding: 'clamp(16px, 5vw, 28px)',
-                  textAlign: 'center',
-                  width: 'min(400px, calc(100% - 24px))',
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <h2 id="bankroll-sign-in-title" className="sd-section-title">Sign In Required</h2>
-                <p id="bankroll-sign-in-description" style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', margin: '0 0 24px' }}>
-                  Create A Free Account Or Sign In To Log Your Poker Sessions And Track Your Bankroll.
-                </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      closeLogModal();
-                      openQuickSignup({
-                        unlockKey: 'calculator-pro-bankroll-manager',
-                        source: 'bankroll-manager-log-modal',
-                        redirectPath: '/hub/bankroll-manager',
-                        eyebrow: 'Free Poker Bankroll Ledger',
-                        title: 'Log Sessions & Track Your Bankroll Free',
-                        subtitle: 'Create Your Free Smarter.Poker Account In 10 Seconds To Save Sessions, W-2G Tax Logs & Risk Of Ruin Across Devices.',
-                      });
-                    }}
-                    className="sd-button sd-primary"
-                  >
-                    Create Free Account
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => router.push('/auth/login?redirect=/hub/bankroll-manager')}
-                    className="sd-button"
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    type="button"
-                    onClick={closeLogModal}
-                    className="sd-button"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
+            <LogSignInPrompt closeLogModal={closeLogModal} router={router} signInScrim={signInScrim} />
           )
         )}
       </AnimatePresence>
@@ -2800,97 +1814,7 @@ export default function BankrollManagerPage() {
       {/* Rule Violation Notification Popup */}
       <AnimatePresence>
         {ruleViolations.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position: 'fixed', inset: 0,
-              background: 'rgba(0,0,0,0.75)',
-              backdropFilter: 'blur(6px)',
-              zIndex: 10000,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: 20,
-            }}
-            {...violationsScrim}
-          >
-            <motion.div
-              className="sd-panel"
-              initial={{ scale: 0.9, y: 30 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 30 }}
-              transition={{ type: 'spring', damping: 20, stiffness: 250 }}
-              style={{
-                padding: '24px 28px',
-                maxWidth: 420,
-                width: '100%',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-                <div style={{
-                  width: 42, height: 42, borderRadius: '50%',
-                  background: ruleViolations.some(v => v.severity === 'high') ? 'rgba(239,68,68,0.2)' : ruleViolations.some(v => v.severity === 'info') ? 'rgba(34,197,94,0.2)' : 'rgba(86, 200, 221,0.2)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 20,
-                }}>
-                  {ruleViolations.some(v => v.severity === 'high') ? '!' : ruleViolations.some(v => v.severity === 'info') ? '!' : '!'}
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#fff' }}>
-                    {ruleViolations.some(v => v.severity === 'info') ? 'Goal Reached!' : 'Rule Violation Alert'}
-                  </h3>
-                  <p style={{ margin: '2px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
-                    {ruleViolations.length} rule{ruleViolations.length > 1 ? 's' : ''} Triggered
-                  </p>
-                </div>
-              </div>
-
-              {/* Violations List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-                {ruleViolations.map((v, i) => (
-                  <div key={i} style={{
-                    background: v.severity === 'high' ? 'rgba(239,68,68,0.08)' : v.severity === 'info' ? 'rgba(34,197,94,0.08)' : 'rgba(86, 200, 221,0.08)',
-                    border: `2px solid ${v.severity === 'high' ? 'rgba(239,68,68,0.25)' : v.severity === 'info' ? 'rgba(34,197,94,0.25)' : 'rgba(86, 200, 221,0.25)'}`,
-                    borderRadius: 10,
-                    padding: '12px 14px',
-                  }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: v.severity === 'high' ? '#f87171' : v.severity === 'info' ? '#4ade80' : '#94e7ff', marginBottom: 4 }}>
-                      {v.rule}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
-                      <span>Limit: {v.limit}</span>
-                      <span style={{ fontWeight: 600, color: v.severity === 'high' ? '#ef4444' : v.severity === 'info' ? '#22c55e' : '#56c8dd' }}>
-                        Actual: {v.actual}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Dismiss */}
-              <button
-                type="button"
-                onClick={() => setRuleViolations([])}
-                style={{
-                  width: '100%',
-                  minHeight: 44,
-                  touchAction: 'manipulation',
-                  padding: '12px',
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '2px solid rgba(255,255,255,0.15)',
-                  borderRadius: 10,
-                  color: '#fff',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Got It
-              </button>
-            </motion.div>
-          </motion.div>
+          <RuleViolationsPopup ruleViolations={ruleViolations} setRuleViolations={setRuleViolations} violationsScrim={violationsScrim} />
         )}
       </AnimatePresence>
 
@@ -2945,512 +1869,3 @@ export default function BankrollManagerPage() {
     </PageTransition >
   );
 }
-
-const styles = {
-  settingRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    padding: '12px 0',
-    minHeight: 44,
-    borderBottom: '1px solid rgba(255,255,255,0.15)',
-    cursor: 'pointer',
-  },
-  settingHint: { display: 'block', fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 2 },
-  settingCheck: { accentColor: '#2374e1', width: 22, height: 22, flexShrink: 0 },
-  container: {
-    // The shell (HubPageShell) owns 100dvh, the 100vw clamp, overflow and
-    // the header. This is the themed column inside its feed column;
-    // bankroll.css scopes every rule under `.bankroll-page`.
-    background: '#06101e',
-    fontFamily: 'Inter, -apple-system, sans-serif',
-    position: 'relative',
-    // No paddingBottom here: pages/_app.js renders <BottomNavSpacer/> for
-    // every route in src/config/bottom-nav-routes.json (PR #766, #992). A
-    // page-owned 70 was ~34px short on home-indicator iPhones.
-    width: '100%',
-    boxSizing: 'border-box',
-  },
-  topBar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '8px 16px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-  },
-  topBarLeft: {
-    display: 'flex',
-    gap: 8,
-  },
-  topBarRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-  },
-  dropdownContainer: {
-    position: 'relative',
-    width: '100%',
-  },
-  dropdownButton: {
-    padding: '8px 16px',
-    minHeight: 44,
-    touchAction: 'manipulation',
-    background: GRADIENTS.metalButton,
-    border: `1px solid ${METAL.highlight}`,
-    borderRadius: 6,
-    color: '#edf6ff',
-    fontSize: 14,
-    cursor: 'pointer',
-    width: '100%',
-    textAlign: 'left',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dropdownArrow: {
-    fontSize: 14,
-    opacity: 0.6,
-  },
-  dropdownMenu: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    marginTop: 4,
-    background: GRADIENTS.darkPanel,
-    border: `1px solid ${METAL.highlight}`,
-    borderRadius: 8,
-    padding: 4,
-    minWidth: 150,
-    zIndex: 100,
-    maxHeight: 300,
-    overflowY: 'auto',
-  },
-  dropdownItem: {
-    display: 'block',
-    width: '100%',
-    padding: '10px 12px',
-    minHeight: 44,
-    touchAction: 'manipulation',
-    background: 'transparent',
-    border: 'none',
-    borderRadius: 4,
-    color: '#fff',
-    fontSize: 14,
-    cursor: 'pointer',
-    textAlign: 'left',
-  },
-  searchButton: {
-    width: 44,
-    height: 44,
-    minWidth: 44,
-    minHeight: 44,
-    borderRadius: '50%',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '2px solid rgba(255, 255, 255, 0.1)',
-    color: '#fff',
-    fontSize: 16,
-    cursor: 'pointer',
-  },
-  mainLayout: {
-    display: 'flex',
-    minHeight: 'calc(100dvh - 140px)',
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 12,
-    marginBottom: 24,
-  },
-  statTitle: {
-    display: 'block',
-    fontSize: 14,
-    color: '#b6c9dd',
-    marginBottom: 6,
-  },
-  statValue: {
-    display: 'flex',
-    alignItems: 'baseline',
-    gap: 8,
-    fontSize: 24,
-    fontWeight: 700,
-    color: '#fff',
-  },
-  statLoading: {
-    fontSize: 24,
-    fontWeight: 700,
-    color: 'rgba(255, 255, 255, 0.3)',
-  },
-  statChange: {
-    fontSize: 14,
-    fontWeight: 500,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statSuffix: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontWeight: 400,
-  },
-  riskDot: {
-    color: '#ef4444',
-    fontSize: 14,
-  },
-  downArrow: {
-    fontSize: 14,
-  },
-  filterTabs: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  filterTabsLeft: {
-    display: 'flex',
-    gap: 4,
-    flexWrap: 'wrap',
-  },
-  filterTab: {
-    padding: '8px 14px',
-    background: 'transparent',
-    border: '2px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: 6,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 14,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-  },
-  filterTabActive: {
-    background: '#2374e1',
-    borderColor: '#2374e1',
-    color: '#edf6ff',
-    fontWeight: 600,
-  },
-  expenseToggle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    cursor: 'pointer',
-  },
-  checkbox: {
-    accentColor: '#2374e1',
-  },
-  tripSection: {
-    marginTop: 24,
-  },
-  tripTitle: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#fff',
-    marginBottom: 12,
-  },
-  tripCard: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '14px 16px',
-    background: GRADIENTS.darkPanel,
-    border: `1px solid ${METAL.highlight}`,
-    borderRadius: 10,
-    cursor: 'pointer',
-    marginBottom: 8,
-  },
-  tripInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-  tripName: {
-    fontSize: 14,
-    fontWeight: 500,
-    color: '#fff',
-  },
-  tripNet: {
-    fontSize: 14,
-    fontWeight: 700,
-  },
-  tripExpenses: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-  tripArrow: {
-    fontSize: 20,
-    color: 'rgba(255, 255, 255, 0.3)',
-  },
-  // assistantPanel removed - right panel eliminated
-  scannerModal: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(0, 0, 0, 0.85)',
-
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 9000,
-    padding: 16,
-  },
-  scannerModalContent: {
-    borderRadius: 16,
-    maxWidth: 500,
-    width: '100%',
-    maxHeight: '90dvh',
-    display: 'flex',
-    flexDirection: 'column',
-    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-    boxSizing: 'border-box',
-  },
-  scannerModalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '12px 20px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-    flexShrink: 0,
-  },
-  scannerCloseBtn: {
-    background: 'rgba(255, 255, 255, 0.08)',
-    border: 'none',
-    borderRadius: '50%',
-    color: '#fff',
-    fontSize: 18,
-    cursor: 'pointer',
-    width: 44,
-    height: 44,
-    minWidth: 44,
-    minHeight: 44,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    touchAction: 'manipulation',
-    WebkitTapHighlightColor: 'transparent',
-  },
-  receiptNotListed: {
-    margin: '0 0 16px',
-    padding: 12,
-    borderRadius: 10,
-    background: 'rgba(239,68,68,0.08)',
-    border: '1px solid rgba(239,68,68,0.5)',
-  },
-  receiptRetryBtn: {
-    marginTop: 10,
-    minHeight: 44,
-    padding: '10px 16px',
-    borderRadius: 10,
-    background: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,255,255,0.2)',
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-    touchAction: 'manipulation',
-  },
-  scannerChoiceBtnPrimary: {
-    background: 'rgba(35,116,225,0.12)',
-    border: '2px solid #2374e1',
-  },
-  receiptsWaiting: {
-    margin: '0 0 16px',
-    padding: 14,
-    borderRadius: 14,
-    background: GRADIENTS.darkPanel,
-    border: `1px solid ${METAL.highlight}`,
-  },
-  receiptsWaitingHead: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    color: '#94e7ff',
-    fontSize: 13,
-    fontWeight: 700,
-    letterSpacing: '0.04em',
-    textTransform: 'uppercase',
-    marginBottom: 10,
-  },
-  receiptsWaitingCount: {
-    minWidth: 24,
-    padding: '2px 8px',
-    borderRadius: 999,
-    background: '#56c8dd',
-    color: '#111',
-    textAlign: 'center',
-  },
-  receiptsWaitingBulk: {
-    width: '100%',
-    minHeight: 44,
-    marginBottom: 10,
-    padding: '10px 14px',
-    borderRadius: 10,
-    background: 'rgba(74,222,128,0.12)',
-    border: '1px solid rgba(74,222,128,0.5)',
-    color: '#4ade80',
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: 'pointer',
-    touchAction: 'manipulation',
-  },
-  receiptDuplicate: {
-    margin: '0 0 16px',
-    padding: 12,
-    borderRadius: 10,
-    background: 'rgba(86, 200, 221,0.08)',
-    border: '1px solid rgba(86, 200, 221,0.5)',
-  },
-  sidebarBadge: {
-    marginLeft: 8,
-    minWidth: 20,
-    padding: '1px 7px',
-    borderRadius: 999,
-    background: '#56c8dd',
-    color: '#111',
-    fontSize: 12,
-    fontWeight: 700,
-  },
-  receiptsWaitingRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    width: '100%',
-    minHeight: 56,
-    padding: '8px 10px',
-    borderRadius: 10,
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    touchAction: 'manipulation',
-  },
-  // The row opens the receipt; the button inside it is what is pressed.
-  receiptsWaitingOpen: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-    minWidth: 0,
-    minHeight: 44,
-    padding: 0,
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    touchAction: 'manipulation',
-  },
-  // Quiet by design. Deleting a scan is rare and irreversible, so it should
-  // not compete with FILE for a thumb on a phone, and it keeps the 44px
-  // target every other control on this page has.
-  receiptsWaitingDiscard: {
-    flexShrink: 0,
-    minWidth: 60,
-    minHeight: 44,
-    padding: '0 10px',
-    borderRadius: 8,
-    background: 'transparent',
-    border: '1px solid rgba(255,255,255,0.14)',
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: '0.04em',
-    cursor: 'pointer',
-    touchAction: 'manipulation',
-  },
-  receiptsWaitingThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    objectFit: 'cover',
-    flexShrink: 0,
-    background: 'rgba(0,0,0,0.3)',
-  },
-  scannerChoiceBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 14,
-    minHeight: 44,
-    touchAction: 'manipulation',
-    padding: '16px 18px',
-    background: 'rgba(255, 255, 255, 0.04)',
-    border: '2px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    cursor: 'pointer',
-    transition: 'all 0.15s ease',
-    textAlign: 'left',
-  },
-  scannerEntryBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 44,
-    touchAction: 'manipulation',
-    padding: '10px 14px',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '2px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: 10,
-    cursor: 'pointer',
-    transition: 'all 0.15s ease',
-  },
-  logTodayButton: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    padding: '14px 18px',
-    background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
-    border: 'none',
-    borderRadius: 10,
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-    boxShadow: '0 4px 15px rgba(0, 212, 255, 0.3)',
-  },
-  logArrow: {
-    fontSize: 18,
-  },
-  // Pro Tools styles - Futuristic Metal UI
-  proToolsContainer: {
-    position: 'relative',
-    padding: 0,
-  },
-  proToolsHeader: {
-    position: 'relative',
-    padding: '24px 20px 16px',
-    background: 'linear-gradient(180deg, rgba(0,20,40,0.8) 0%, transparent 100%)',
-    borderBottom: '1px solid rgba(0,212,255,0.2)',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  proToolsLed: {
-    position: 'absolute',
-    top: 0,
-    left: '20%',
-    right: '20%',
-    height: 2,
-    background: '#2374e1',
-    boxShadow: '0 0 10px rgba(0,212,255,0.6), 0 0 20px rgba(0,212,255,0.3)',
-  },
-  proToolsTitle: {
-    fontFamily: "var(--font-orbitron), sans-serif",
-    fontSize: 20,
-    fontWeight: 700,
-    letterSpacing: '0.15em',
-    color: '#fff',
-    margin: '0 0 6px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  proToolsSubtitle: {
-    fontFamily: "'Rajdhani', sans-serif",
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
-    letterSpacing: '0.1em',
-    margin: 0,
-  },
-  proToolsGrid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 20,
-  },
-};

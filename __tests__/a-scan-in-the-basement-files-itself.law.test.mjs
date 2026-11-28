@@ -31,6 +31,7 @@ import {
     MAX_HELD, MAX_HELD_BYTES, applyCaps, heldRecord, isOfflineFailure,
     shouldHold, withoutAlreadyFiled,
 } from '../src/lib/bankroll/receiptHold.mjs';
+import { BANKROLL_MANAGER_PAGE, bankrollManagerSource } from './helpers/bankroll-manager-source.mjs';
 /**
  * The comment explaining why the gate is gone naturally writes the word
  * `requireOnline()`, and a law that reads its own explanation as the code it
@@ -48,7 +49,9 @@ const withoutLineComments = (src) => src
     .join('\n');
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
+// The page reads as itself plus its section modules (the 2026-11-28 split;
+// __tests__/helpers/bankroll-manager-source.mjs).
+const read = (rel) => (rel === BANKROLL_MANAGER_PAGE ? bankrollManagerSource() : readFileSync(join(ROOT, rel), 'utf8'));
 
 test('the scanner opens with no signal', () => {
     // The one gate that had to go, and only that one.
@@ -73,7 +76,9 @@ test('the nine page-owned actions keep their offline guards before their effects
         ['if (actionId === RECEIPT_ACTIONS.CLOSE_SESSION)', 'const open ='],
         ['if (actionId === RECEIPT_ACTIONS.FILE_W2G)', 'setReceiptBusy(true)'],
         ['const updatePreference', 'setPreferences('],
-        ['key={entry.id}', 'const existing = entry.media_urls'],
+        // Select Entry's attach: the handler moved out of the scanner sheet's
+        // JSX into the page (2026-11-28 split); the sheet calls it per row.
+        ['const attachScannerReceiptToEntry', 'const existing = entry.media_urls'],
     ];
     const guard = 'if (!requireOnline()) return;';
     for (const [action, effect] of actions) {

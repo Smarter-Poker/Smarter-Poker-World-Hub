@@ -385,8 +385,11 @@ test('the panel is wired: Log sheet and dashboard mount it, and it logs through 
   assert.match(component, /fetchLoggedMarkers\(supabase, userId\)/, 're-reads the ledger right before writing');
   const modal = readFileSync(new URL('../src/components/bankroll/LogEntryModal.jsx', import.meta.url), 'utf8');
   assert.match(modal, /<ClubArenaSessionsPanel userId=\{userId\}/);
+  // The dashboard view is its own module since the 2026-11-28 page split.
   const page = readFileSync(new URL('../pages/hub/bankroll-manager.js', import.meta.url), 'utf8');
-  assert.match(page, /<ClubArenaSessionsPrompt userId=\{userId\}/);
+  assert.match(page, /<DashboardSection \{\.\.\.dashboardSectionProps\} \/>/);
+  const dashboard = readFileSync(new URL('../src/components/bankroll/sections/DashboardSection.jsx', import.meta.url), 'utf8');
+  assert.match(dashboard, /<ClubArenaSessionsPrompt userId=\{userId\}/);
 });
 
 // external_ref (installed 2026-11-28): the import's own dedupe key.

@@ -14,9 +14,12 @@ import { FunnelEvents } from '../src/lib/analytics.js';
 import {
   noteBankrollOpened, noteReceiptFiled, noteSessionLogged, noteTripStarted, resetFunnelMemory, OPENED_SESSION_KEY,
 } from '../src/lib/bankroll/funnelSteps.mjs';
+import { BANKROLL_MANAGER_PAGE, bankrollManagerSource } from './helpers/bankroll-manager-source.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+// The page reads as itself plus its section modules (the 2026-11-28 split;
+// __tests__/helpers/bankroll-manager-source.mjs).
+const read = (rel) => (rel === BANKROLL_MANAGER_PAGE ? bankrollManagerSource() : fs.readFileSync(path.join(ROOT, rel), 'utf8'));
 const exists = (rel) => fs.existsSync(path.join(ROOT, rel));
 
 test('dead bankroll code is gone and nothing refers to it', () => {

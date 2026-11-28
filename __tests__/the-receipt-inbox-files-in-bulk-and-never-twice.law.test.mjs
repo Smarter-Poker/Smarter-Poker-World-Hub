@@ -26,9 +26,12 @@ import { fileURLToPath } from 'node:url';
 import { normaliseScan, routeScan } from '../src/lib/bankroll/receiptRouting.mjs';
 import { ledgerEntryFromReceipt, partitionForBulkFiling, w2gRowFromReceipt } from '../src/lib/bankroll/receiptInbox.mjs';
 import { hashFromLuma, hammingDistance, duplicateOf, DUPLICATE_MAX_DISTANCE } from '../src/lib/bankroll/receiptHash.mjs';
+import { BANKROLL_MANAGER_PAGE, bankrollManagerSource } from './helpers/bankroll-manager-source.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+// The page reads as itself plus its section modules (the 2026-11-28 split;
+// __tests__/helpers/bankroll-manager-source.mjs).
+const read = (rel) => (rel === BANKROLL_MANAGER_PAGE ? bankrollManagerSource() : fs.readFileSync(path.join(ROOT, rel), 'utf8'));
 const code = (rel) => read(rel).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
 const PAGE = 'pages/hub/bankroll-manager.js';

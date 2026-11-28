@@ -132623,7 +132623,6 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/glossary/[term].js",
-          "pages/hub/bankroll-manager.js",
           "pages/hub/tournaments/this-weekend.js",
           "pages/hub/venues/[id].js",
           "pages/hub/video-library/watch/[videoId]/[[...slug]].js",
@@ -132635,6 +132634,7 @@
           "pages/rules/[slug].js",
           "pages/tools/gto-leak-finder/index.js",
           "pages/tools/preflop-ranges/[position].js",
+          "src/components/bankroll/sections/LogSignInPrompt.jsx",
           "src/components/memory-games/PreflopGuestSavePrompt.jsx",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/ReturningGuestSyncPill.jsx",
@@ -145257,7 +145257,6 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "pages/glossary/[term].js",
-          "pages/hub/bankroll-manager.js",
           "pages/hub/tournaments/this-weekend.js",
           "pages/hub/venues/[id].js",
           "pages/hub/video-library/watch/[videoId]/[[...slug]].js",
@@ -145269,6 +145268,7 @@
           "pages/rules/[slug].js",
           "pages/tools/gto-leak-finder/index.js",
           "pages/tools/preflop-ranges/[position].js",
+          "src/components/bankroll/sections/LogSignInPrompt.jsx",
           "src/components/memory-games/PreflopGuestSavePrompt.jsx",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/ReturningGuestSyncPill.jsx",
