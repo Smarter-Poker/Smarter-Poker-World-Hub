@@ -87,18 +87,23 @@ test('the "?" sits 3px inside the painted rim, top and right, by arithmetic', as
   let opaque = 0;
   while (alphaAt(info.width >> 1, opaque) > 128) opaque += 1;
   assert.ok(Math.abs((opaque / 21) * 8 - 3.5) < 0.25, `painted rim is ${(opaque / 21) * 8}px, not the 3.5px default`);
-  // Training's generic button skin (square corners, bevel, 20px drop shadow)
-  // outranks the control's own `box-shadow: none`; both rules must skip it.
-  const training = read('src/styles/worlds/training.css');
-  for (const opener of [
-    "body.world-training .sp-training-page-stage :where(button, [role='button'], .sp-card, .sp-card-sm, .sp-card-lg):not(",
-    "body.world-training .sp-training-page-stage :where(button, [role='button']):not(",
-  ]) {
-    const start = training.indexOf(opener);
-    assert.ok(start >= 0, `training.css still has ${opener}`);
-    const selector = training.slice(start, training.indexOf('{', start));
-    assert.match(selector, /\.sd-header-help[,)]/, `${opener} must exclude .sd-header-help`);
+  // Training's page-wide button skins (square corners, bevels, drop shadows,
+  // the brushed-chrome hardware layer) outrank the control's own reset and
+  // boxed the icon twice. Every one of them must skip .sd-header-help.
+  const training = read('src/styles/worlds/training.css').replace(/\/\*[\s\S]*?\*\//g, '');
+  const skins = [...training.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map(([, selector, body]) => ({ selector: selector.trim(), body }))
+    .filter(({ selector, body }) => /\.sp-training-page-stage(?:\.sp-training-page-stage)? :where\(button, /.test(selector)
+      && !/:focus-visible/.test(selector)
+      && /(box-shadow|border-radius|background|border\s*:)/.test(body));
+  assert.ok(skins.length >= 4, `expected the Training button skins, found ${skins.length}`);
+  for (const { selector } of skins) {
+    assert.match(selector, /\.sd-header-help[,)]/, `Training button skin must exclude .sd-header-help: ${selector.slice(0, 140)}`);
   }
+  // Training repaints its mastheads with a 2px chrome border; the "?" there
+  // takes that frame's numbers so it stays 3px clear of it.
+  assert.match(training, /border: 2px solid transparent !important;[^}]*var\(--sd-training-chrome\) border-box/);
+  assert.match(training, /:where\(\.sd-panel, \.sd-masthead\)[^{]*\.sd-header-help \{\s*--sd-help-border: 2px;\s*--sd-help-rim: 2px;\s*\}/);
   assert.doesNotMatch(vipCss, /\n\.help \{/, 'the retired VIP help circle stays deleted');
   assert.doesNotMatch(read('src/components/bankroll/BankrollHelp.module.css'), /\.help\b/, 'the retired Bankroll help circle stays deleted');
 });
