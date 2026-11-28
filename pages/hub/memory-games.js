@@ -221,6 +221,7 @@ import { VIP_MEMBERSHIP } from '../../src/data/diamondStoreData';
 import PreflopRangeMatrix from '../../src/components/memory-games/PreflopRangeMatrix';
 import PreflopMatrixPrimer from '../../src/components/memory-games/PreflopMatrixPrimer';
 import PreflopSubpageNav from '../../src/components/memory-games/PreflopSubpageNav';
+import { gradeTone } from '../../src/components/memory-games/PreflopGameKit';
 import {
   accuracyToPercent,
   getUnlockedLevel,
@@ -2031,7 +2032,12 @@ export default function MemoryGamesPage() {
                             className="preflop-grade-chip"
                             aria-label={`Current memory grade ${memoryDashboard.current_grade}`}
                           >
-                            <span>{memoryDashboard.current_grade}</span>
+                            <span
+                              className="preflop-grade-letter"
+                              style={{ '--grade-tone': gradeTone(memoryDashboard.current_grade) }}
+                            >
+                              {memoryDashboard.current_grade}
+                            </span>
                             <span>{memoryDashboard.rolling_accuracy_pct}% Across Last 30 Days</span>
                             {memoryDashboard.mastered_levels_count > 0 && (
                               <span>{memoryDashboard.mastered_levels_count}/10 Mastered</span>
@@ -2691,7 +2697,7 @@ export default function MemoryGamesPage() {
                                       <span>Best {pct}%</span>
                                       {m.mastered && (
                                         <span className="preflop-level-mastered-label">
-                                          <ShieldCheck size={12} aria-hidden /> Mastered
+                                          <ShieldCheck size={12} aria-hidden /> 85% Gate Cleared
                                         </span>
                                       )}
                                     </div>
