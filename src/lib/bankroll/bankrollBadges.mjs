@@ -6,6 +6,7 @@
 // player recorded; nothing is stored or awarded server-side.
 
 import { SESSION_CATEGORIES } from './ledgerReport.mjs';
+import { sessionHours } from './ledgerMath.mjs';
 
 const HOUR = 3600000;
 
@@ -46,7 +47,8 @@ export function badgeMetrics(entries = [], { completedTrips = 0, w2gForms = 0 } 
     m.net += net;
     m.count++;
     months.set(month, m);
-    const elapsed = Date.parse(row.end_time) - Date.parse(row.start_time);
+    // Overnight rule shared with the dashboard (ledgerMath sessionHours).
+    const elapsed = sessionHours(row.start_time, row.end_time) * HOUR;
     // Ignore impossible spans (over 48 hours) so one mistyped date cannot award hour badges.
     if (Number.isFinite(elapsed) && elapsed > 0 && elapsed <= 48 * HOUR) timeMs += elapsed;
   }
