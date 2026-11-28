@@ -30,34 +30,53 @@ import { SD_HEADER_HELP_ICON } from '../smarterdesign/headerHelp';
  * page image header (styles in src/styles/commander-futuristic.css, the
  * #SMARTERDESIGN layer). The shell supplies the two parts a page cannot get
  * from CSS alone: its scene (longest route prefix below, World Hub header
- * library) and the one painted chrome "?" in the header's upper-right corner,
+ * library, each family on art that depicts it, chosen by looking at it) and the one painted chrome "?" in the header's upper-right corner,
  * which opens the Commander FAQ with a page-specific accessible name.
  */
 const SCENES = [
-  ['/hub/commander/check-in', 'players'],
+  ['/hub/commander', 'pnm-lobby'],
+  ['/hub/commander/check-in', 'toke-venues'],
   ['/hub/commander/faq', 'rules'],
-  ['/hub/commander/hand-history', 'poker_cash'],
-  ['/hub/commander/history', 'reports'],
-  ['/hub/commander/home-games', 'toke-home'],
-  ['/hub/commander/leaderboard', 'series'],
+  ['/hub/commander/hand-history', 'training-replay-theater'],
+  ['/hub/commander/hand-history/[handId]', 'training-hand-lab'],
+  ['/hub/commander/history', 'bankroll'],
+  ['/hub/commander/home-games', 'pnm-homegames'],
+  ['/hub/commander/home-games/[id]/manage', 'training-session-dashboard'],
+  ['/hub/commander/home-games/[id]/roster', 'training-position-mastery'],
+  ['/hub/commander/home-games/create', 'training-table-wizard'],
+  ['/hub/commander/leaderboard', 'preflop-leaderboard'],
   ['/hub/commander/leagues', 'series'],
-  ['/hub/commander/notifications', 'news'],
+  ['/hub/commander/leagues/[id]', 'training-community-leaderboard'],
+  ['/hub/commander/notifications', 'pnm-alerts'],
   ['/hub/commander/player-card', 'staking-profile'],
-  ['/hub/commander/profile', 'staking-profile'],
-  ['/hub/commander/rate-table', 'poker-odds'],
-  ['/hub/commander/responsible-gaming', 'rules'],
+  ['/hub/commander/profile', 'training-player-profiles'],
+  ['/hub/commander/profile/achievements', 'training-achievements'],
+  ['/hub/commander/profile/settings', 'settings'],
+  ['/hub/commander/rate-table', 'training-study-group'],
+  ['/hub/commander/responsible-gaming', 'training-tilt-guard'],
   ['/hub/commander/rewards', 'store-rewards'],
-  ['/hub/commander/services', 'toke-venues'],
-  ['/hub/commander/squads', 'players'],
-  ['/hub/commander/tournament', 'poker_mtt'],
-  ['/hub/commander/venue', 'toke-venues'],
-  ['/hub/commander/waitlist', 'players'],
-  ['/hub/commander', 'casino_table'],
+  ['/hub/commander/services', 'store-order-detail'],
+  ['/hub/commander/squads', 'training-study-group-finder'],
+  ['/hub/commander/squads/[id]', 'training-multiway-preflop'],
+  ['/hub/commander/tournament', 'training-tournaments'],
+  ['/hub/commander/tournament/[id]/clock', 'tournament-calendar'],
+  ['/hub/commander/tournament/[id]/register', 'preflop-tutorial'],
+  ['/hub/commander/tournaments', 'poker_mtt'],
+  ['/hub/commander/venue', 'pnm-venues'],
+  ['/hub/commander/venues', 'pnm-map'],
+  ['/hub/commander/venues/[id]', 'pnm-venues'],
+  ['/hub/commander/waitlist', 'pnm-live'],
 ];
 
+// The longest prefix that ends on a path segment wins, so /tournaments is not
+// /tournament and /venues is not /venue (2026-11-28: the old first-hit,
+// any-character match gave both families the other one's scene).
 export function sceneFor(pathname = '') {
-  const hit = SCENES.find(([prefix]) => pathname === prefix || pathname.startsWith(prefix + '/') || (prefix !== '/hub/commander' && pathname.startsWith(prefix)));
-  return hit ? hit[1] : 'casino_table';
+  let best = null;
+  for (const [prefix, art] of SCENES) {
+    if ((pathname === prefix || pathname.startsWith(prefix + '/')) && (!best || prefix.length > best[0].length)) best = [prefix, art];
+  }
+  return best ? best[1] : 'pnm-lobby';
 }
 
 function findHeader() {

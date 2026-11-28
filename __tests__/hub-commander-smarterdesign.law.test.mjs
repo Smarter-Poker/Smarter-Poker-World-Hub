@@ -208,3 +208,39 @@ test('every state of every player page renders inside the shell (page layout), n
     .filter((f) => !/\n\w+\.getLayout = commanderPageLayout;\n?$/.test(read(f)));
   assert.deepEqual(missing, []);
 });
+
+test('every player page resolves to a scene of its own family, and reuse only comes down', () => {
+  // 2026-11-28: 37 pages were on 13 scenes, first-hit and any-character
+  // matching gave /tournaments and /venues the /tournament and /venue art.
+  // sceneFor now takes the longest prefix that ends on a path segment.
+  const shell = maskComments(read(SHELL));
+  assert.match(shell, /pathname\.startsWith\(prefix \+ '\/'\)/, 'prefixes match on a path segment');
+  assert.doesNotMatch(shell, /pathname\.startsWith\(prefix\)\)/, 'no any-character prefix match');
+  const scenes = [...shell.matchAll(/\['(\/hub\/commander[^']*)', '([\w-]+)'\]/g)].map((m) => [m[1], m[2]]);
+  const sceneFor = (p) => {
+    let best = null;
+    for (const [prefix, art] of scenes) {
+      if ((p === prefix || p.startsWith(`${prefix}/`)) && (!best || prefix.length > best[0].length)) best = [prefix, art];
+    }
+    return best;
+  };
+  const routes = walk(PAGES_DIR)
+    .filter((f) => f.endsWith('.js'))
+    .map((f) => `/${f.replace(/^pages\//, '').replace(/\.js$/, '').replace(/\/index$/, '')}`);
+  assert.equal(routes.length, 37);
+  const byArt = new Map();
+  for (const route of routes) {
+    const hit = sceneFor(route);
+    assert.ok(hit, `${route} has no scene`);
+    if (route !== '/hub/commander') assert.notEqual(hit[0], '/hub/commander', `${route} falls back to the Commander home scene`);
+    if (!byArt.has(hit[1])) byArt.set(hit[1], new Set());
+    byArt.get(hit[1]).add(hit[0].split('/')[3] || '');
+  }
+  for (const [art, families] of byArt) {
+    const fams = [...families].map((f) => f.replace(/s$/, ''));
+    assert.equal(new Set(fams).size, 1, `${art} is shared across page families: ${[...families].join(', ')}`);
+  }
+  const reuse = routes.length - byArt.size;
+  assert.ok(reuse <= 7, `scene reuse ${reuse} (cap 7)`);
+  assert.equal(sceneFor('/hub/commander/tournaments')[1] === sceneFor('/hub/commander/tournament/[id]/my-status')[1], false);
+});
