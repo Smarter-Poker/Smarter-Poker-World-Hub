@@ -56,7 +56,7 @@ test('Contextual cross-linking to freerolls exists across tools, calculators, an
   assert.match(icmSrc, /href="\/compare"/);
 
   // Preflop ranges
-  const preflopSrc = read('pages/tools/preflop-ranges/index.js');
+  const preflopSrc = read('src/components/seo/PreflopRangeMatrixHub.jsx');
   assert.match(preflopSrc, /href="\/compare"/);
   assert.match(preflopSrc, /href="\/freerolls"/);
 

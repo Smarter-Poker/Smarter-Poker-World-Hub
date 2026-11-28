@@ -49,7 +49,7 @@ test('CRO Law 2: firstTouch captures organic Google/Bing/AI search referrals wit
 
 test('CRO Law 3: all top clicked organic page families render SmarterConversionCta', () => {
   const requiredFiles = [
-    'pages/tools/preflop-ranges/index.js',
+    'src/components/seo/PreflopRangeMatrixHub.jsx',
     'pages/tools/push-fold-calculator.js',
     'pages/hub/poker-tools.js',
     'pages/tools/plo-bet-calculator.js',

@@ -31,7 +31,7 @@ test('Phase 4.1 — SmarterCalculatorSaveBar exists and is wired into all 3 flag
   assert.doesNotMatch(barSrc, /lib\/analytics/, 'Save bar must never statically import analytics.js');
 
   for (const calcFile of [
-    'pages/tools/preflop-ranges/index.js',
+    'src/components/seo/PreflopRangeMatrixHub.jsx',
     'pages/tools/poker-odds-calculator.js',
     'pages/tools/icm-calculator.js',
   ]) {
@@ -47,7 +47,7 @@ test('Phase 4.2 — High-impression GSC pages carry CTR hooks, #SMARTERDESIGN ma
   assert.match(catSrc, /<SmarterSeoMasthead\b/, '/learn/category/[category] must render SmarterSeoMasthead');
   assert.match(catSrc, /fitMetaDescription/, '/learn/category/[category] must bound meta description to 158 chars');
 
-  const preflopSrc = read('pages/tools/preflop-ranges/index.js');
+  const preflopSrc = read('src/components/seo/PreflopRangeMatrixHub.jsx');
   assert.match(preflopSrc, /Free \$\{posData\.abbrev\} GTO Preflop Range Chart \(100BB\)/);
 
   const freerollsSrc = read('pages/freerolls.js');

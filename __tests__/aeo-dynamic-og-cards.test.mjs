@@ -102,7 +102,7 @@ test('all interactive tools, glossary terms, and about pages pass dynamic ogImag
   const icmCode = read('pages/hub/training/icm-calculator.js');
   assert.match(icmCode, /ogImage="\/api\/og\/tool-card\?tool=icm/);
 
-  const rangesCode = read('pages/tools/preflop-ranges/index.js');
+  const rangesCode = read('src/components/seo/PreflopRangeMatrixHub.jsx');
   assert.match(rangesCode, /ogImage=\{`\/api\/og\/tool-card\?tool=ranges/);
 
   const oddsCode = read('pages/hub/poker-tools.js');

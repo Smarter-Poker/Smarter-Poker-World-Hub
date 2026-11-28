@@ -784,7 +784,7 @@ test('LAW 16: Every calculator page in pages/tools/ and every authority hub page
     } else if (slug === 'icm-calculator') {
       effectiveSrc += '\n' + read('pages/hub/training/icm-calculator.js');
     } else if (slug === 'preflop-ranges') {
-      effectiveSrc += '\n' + read('pages/tools/preflop-ranges/index.js');
+      effectiveSrc += '\n' + read('src/components/seo/PreflopRangeMatrixHub.jsx');
     }
 
     assert.ok(
