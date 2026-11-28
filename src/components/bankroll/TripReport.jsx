@@ -9,6 +9,8 @@ import { GRADIENTS, METAL } from './metalStyles';
 import React from 'react';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 import { parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
+import { tripContribution } from '../../lib/bankroll/tripMath.mjs';
+import TripROICalculator from './TripROICalculator';
 
 const CATEGORY_LABELS = {
     poker_cash: 'Cash Games',
@@ -19,13 +21,21 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
-function TripReport({ report, onBack }) {
-    const { trip, stats, categoryBreakdown, dailyBreakdown, entries } = report;
+const orDash = (value) => (value == null ? '-' : formatCurrency(value));
+const signColor = (value) => (value == null ? '#fff' : value >= 0 ? '#10b981' : '#ef4444');
+
+function TripReport({ report, onBack, onReopen, kind = 'trip' }) {
+    const { trip, stats, categoryBreakdown, dailyBreakdown, entries = [] } = report;
+    const noun = kind === 'series' ? 'Series' : 'Trip';
 
     return (
         <div className="sd-panel" style={styles.container}>
-            {/* Back Button */}
-            <button onClick={onBack} style={styles.backBtn}>← Back To Trip Tracker</button>
+            <div style={styles.topActions}>
+                <button type="button" onClick={onBack} style={styles.backBtn}>← Back To {noun} Tracker</button>
+                {onReopen && (
+                    <button type="button" onClick={onReopen} style={styles.backBtn}>Reopen {noun}</button>
+                )}
+            </div>
 
             {/* Trip Header */}
             <div style={styles.header}>
@@ -41,16 +51,18 @@ function TripReport({ report, onBack }) {
             {/* Summary Stats Grid */}
             <div style={styles.statsGrid}>
                 <StatBox label="Total P/L" value={formatCurrency(stats.totalNet)} color={stats.totalNet >= 0 ? '#10b981' : '#ef4444'} large />
-                <StatBox label="Gross Win" value={formatCurrency(stats.totalGrossNet)} color="#10b981" />
+                <StatBox label="Gaming Net" value={formatCurrency(stats.totalGrossNet)} color={signColor(stats.totalGrossNet)} />
                 <StatBox label="Expenses" value={formatCurrency(stats.totalExpenses)} color="#ef4444" />
                 <StatBox label="Sessions" value={stats.sessionCount} />
                 <StatBox label="Win Rate" value={`${stats.winRate}%`} color={stats.winRate >= 50 ? '#10b981' : '#ef4444'} />
-                <StatBox label="Duration" value={`${stats.durationDays} days`} />
+                <StatBox label="Duration" value={`${stats.durationDays} ${stats.durationDays === 1 ? 'Day' : 'Days'}`} />
                 <StatBox label="Avg/Day" value={formatCurrency(stats.avgPerDay)} color={stats.avgPerDay >= 0 ? '#10b981' : '#ef4444'} />
                 <StatBox label="Avg/Session" value={formatCurrency(stats.avgPerSession)} color={stats.avgPerSession >= 0 ? '#10b981' : '#ef4444'} />
-                <StatBox label="Best Session" value={formatCurrency(stats.biggestWin)} color="#10b981" />
-                <StatBox label="Worst Session" value={formatCurrency(stats.biggestLoss)} color="#ef4444" />
+                <StatBox label="Best Session" value={orDash(stats.biggestWin)} color={signColor(stats.biggestWin)} />
+                <StatBox label="Worst Session" value={orDash(stats.biggestLoss)} color={signColor(stats.biggestLoss)} />
             </div>
+
+            <TripROICalculator report={report} />
 
             {/* Category Breakdown */}
             {Object.keys(categoryBreakdown || {}).length > 0 && (
@@ -84,7 +96,7 @@ function TripReport({ report, onBack }) {
                             .sort(([a], [b]) => a.localeCompare(b))
                             .map(([day, net]) => (
                                 <div key={day} style={styles.dailyRow}>
-                                    <span style={styles.dailyDate}>{new Date(day).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                                    <span style={styles.dailyDate}>{parseLedgerDay(day).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                                     <span style={{
                                         ...styles.dailyNet,
                                         color: net >= 0 ? '#10b981' : '#ef4444',
@@ -94,6 +106,12 @@ function TripReport({ report, onBack }) {
                                 </div>
                             ))}
                     </div>
+                </div>
+            )}
+
+            {entries.length === 0 && (
+                <div style={styles.section}>
+                    <p style={styles.notesText}>No Entries Were Logged To This {noun}.</p>
                 </div>
             )}
 
@@ -111,9 +129,9 @@ function TripReport({ report, onBack }) {
                                 </div>
                                 <span style={{
                                     ...styles.entryNet,
-                                    color: (entry.net_result || 0) >= 0 ? '#10b981' : '#ef4444',
+                                    color: tripContribution(entry) >= 0 ? '#10b981' : '#ef4444',
                                 }}>
-                                    {formatCurrency(entry.net_result || 0)}
+                                    {formatCurrency(tripContribution(entry))}
                                 </span>
                             </div>
                         ))}
@@ -124,7 +142,7 @@ function TripReport({ report, onBack }) {
             {/* Notes */}
             {trip.notes && (
                 <div style={styles.section}>
-                    <h3 style={styles.sectionTitle}>Trip Notes</h3>
+                    <h3 style={styles.sectionTitle}>{noun} Notes</h3>
                     <p style={styles.notesText}>{trip.notes}</p>
                 </div>
             )}
@@ -157,7 +175,12 @@ const styles = {
         color: '#edf6ff',
         fontSize: 14,
         cursor: 'pointer',
-        alignSelf: 'flex-start',
+    },
+    topActions: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        gap: 10,
     },
     header: {
         marginBottom: 4,
@@ -167,6 +190,7 @@ const styles = {
         fontWeight: 700,
         color: '#fff',
         margin: 0,
+        overflowWrap: 'anywhere',
     },
     tripMeta: {
         fontSize: 14,
@@ -177,7 +201,7 @@ const styles = {
     // Stats Grid
     statsGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 130px), 1fr))',
         gap: 10,
     },
     statBox: {
@@ -190,7 +214,7 @@ const styles = {
         gap: 4,
     },
     statBoxLarge: {
-        gridColumn: 'span 2',
+        gridColumn: '1 / -1',
         background: 'rgba(30, 58, 95, 0.5)',
         border: '2px solid rgba(59, 130, 246, 0.2)',
     },
@@ -225,7 +249,7 @@ const styles = {
     // Category Breakdown
     catGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 140px), 1fr))',
         gap: 8,
     },
     catCard: {
@@ -307,7 +331,7 @@ const styles = {
     },
     entryNotes: {
         fontSize: 14,
-        color: '#475569',
+        color: '#8193a8',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',

@@ -17,6 +17,7 @@ import {
     completeTrip,
     deleteTrip,
     getTripReport,
+    reopenTrip,
     fetchLedgerEntries,
 } from '../../lib/bankroll/bankrollSelectors';
 import { getUserLocations } from '../../lib/bankroll/locationMemory';
@@ -24,7 +25,8 @@ import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 import toast from '../../stores/toastStore';
 import TripReport from './TripReport';
 import VenueSelector from './VenueSelector';
-import { localDay } from '../../lib/bankroll/localDates.mjs';
+import { localDay, parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
+import { entryNet, tripDayLabel } from '../../lib/bankroll/tripMath.mjs';
 
 const CATEGORY_LABELS = {
     poker_cash: 'Cash Games',
@@ -35,12 +37,14 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
-export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger }) {
+export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger, openTripId }) {
     const [activeTrip, setActiveTrip] = useState(null);
     const [completedTrips, setCompletedTrips] = useState([]);
     const [tripEntries, setTripEntries] = useState([]);
     const [locations, setLocations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
+    const [entriesError, setEntriesError] = useState(false);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [selectedTripReport, setSelectedTripReport] = useState(null);
     const [confirmComplete, setConfirmComplete] = useState(false);
@@ -69,32 +73,47 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
             const [active, trips, locs] = await Promise.all([
                 getActiveTrip(userId),
                 fetchTrips(userId),
-                getUserLocations(userId),
+                getUserLocations(userId).catch(() => []),
             ]);
             setActiveTrip(active);
             setCompletedTrips(trips.filter(t => t.status === 'completed'));
             setLocations(locs || []);
+            setLoadError(false);
 
             // Fetch individual entries for active trip
             if (active && active.id) {
                 try {
-                    const entries = await fetchLedgerEntries(userId, { tripId: active.id, includeExpenses: true, limit: 100 });
+                    const entries = await fetchLedgerEntries(userId, { tripId: active.id, includeExpenses: true, limit: 500 });
                     setTripEntries(entries || []);
+                    setEntriesError(false);
                 } catch (entryErr) {
                     console.warn('Could not load trip entries:', entryErr);
                     setTripEntries([]);
+                    setEntriesError(true);
                 }
             } else {
                 setTripEntries([]);
+                setEntriesError(false);
             }
         } catch (err) {
             console.warn('Error loading trip data:', err);
+            setLoadError(true);
         } finally {
             setIsLoading(false);
         }
     }, [userId]);
 
     useEffect(() => { loadData(); }, [loadData, refreshTrigger]);
+
+    // Opened from a trip's summary row in Recent Activity: show its report.
+    useEffect(() => {
+        if (!userId || !openTripId) return;
+        let cancelled = false;
+        getTripReport(userId, openTripId)
+            .then(report => { if (!cancelled && report?.trip?.status === 'completed') setSelectedTripReport(report); })
+            .catch(err => console.warn('Could not open trip report:', err));
+        return () => { cancelled = true; };
+    }, [userId, openTripId]);
 
 
 
@@ -187,7 +206,18 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
             const report = await getTripReport(userId, tripId);
             setSelectedTripReport(report);
         } catch (err) {
-            toast.error('Failed to load trip report');
+            toast.error('Could Not Load The Trip Report. Please Try Again.');
+        }
+    };
+
+    const handleReopenTrip = async (tripId) => {
+        try {
+            await reopenTrip(userId, tripId);
+            toast.success('Trip Reopened');
+            setSelectedTripReport(null);
+            await loadData();
+        } catch (err) {
+            toast.error(err.message || 'Failed to reopen trip');
         }
     };
 
@@ -196,13 +226,14 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
             <TripReport
                 report={selectedTripReport}
                 onBack={() => setSelectedTripReport(null)}
+                onReopen={!activeTrip && selectedTripReport.trip?.status === 'completed'
+                    ? () => handleReopenTrip(selectedTripReport.trip.id)
+                    : null}
             />
         );
     }
 
-    const daysSinceStart = activeTrip
-        ? Math.max(1, Math.ceil((Date.now() - new Date(activeTrip.start_date).getTime()) / (1000 * 60 * 60 * 24)))
-        : 0;
+    const dayLabel = activeTrip ? tripDayLabel(activeTrip.start_date) : '';
 
     return (
         <div className="sd-panel" style={styles.container}>
@@ -216,9 +247,11 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                 >
                     {/* Delete X — upper right corner */}
                     <button
+                        type="button"
                         onClick={() => setConfirmDelete(true)}
                         style={styles.deleteX}
                         title="Delete Trip"
+                        aria-label="Delete Trip"
                     >✕</button>
 
                     <div style={styles.activeTripHeader}>
@@ -232,7 +265,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                             <h2 style={styles.activeTripName}>{activeTrip.name}</h2>
                             <p style={styles.activeTripMeta}>
                                 {activeTrip.location_name && `${activeTrip.location_name} · `}
-                                Started {new Date(activeTrip.start_date + 'T12:00:00').toLocaleDateString()} · Day {daysSinceStart}
+                                {dayLabel.startsWith('Day') ? 'Started' : 'Starts'} {parseLedgerDay(activeTrip.start_date).toLocaleDateString()}{dayLabel.startsWith('Day') ? ` · ${dayLabel}` : ''}
                             </p>
                         </>
                     ) : (
@@ -285,7 +318,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                             </div>
                             <div style={styles.runningStat}>
                                 <span style={styles.runningStatLabel}>Sessions</span>
-                                <span style={styles.runningStatValue}>{activeTrip.entryCount || 0}</span>
+                                <span style={styles.runningStatValue}>{activeTrip.sessionCount || 0}</span>
                             </div>
                             <div style={styles.runningStat}>
                                 <span style={styles.runningStatLabel}>Expenses</span>
@@ -307,19 +340,26 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                         </div>
                     )}
 
+                    {!editMode && entriesError && (
+                        <div role="alert" style={styles.inlineError}>
+                            Could Not Load This Trip's Entries.
+                            <button type="button" onClick={loadData} style={styles.retryBtn}>Retry</button>
+                        </div>
+                    )}
+
                     {/* --- TRIP ENTRIES LIST --- */}
                     {!editMode && tripEntries.length > 0 && (
                         <div style={styles.entriesSection}>
                             <h4 style={styles.entriesSectionTitle}>Trip Entries ({tripEntries.length})</h4>
                             <div style={styles.entriesScroll}>
                                 {tripEntries.map(entry => {
-                                    const net = (entry.gross_out || 0) - (entry.gross_in || 0);
+                                    const net = entry.category === 'expense' ? -Math.abs(entryNet(entry)) : entryNet(entry);
                                     const catLabel = CATEGORY_LABELS[entry.category] || entry.category || 'Entry';
                                     return (
                                         <div key={entry.id} style={styles.entryRow}>
                                             <div style={styles.entryInfo}>
                                                 <span style={styles.entryDate}>
-                                                    {entry.entry_date ? new Date(entry.entry_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}
+                                                    {entry.entry_date ? parseLedgerDay(entry.entry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}
                                                 </span>
                                                 <span style={styles.entryCat}>{catLabel}</span>
                                                 {entry.stakes && <span style={styles.entryStakes}>{entry.stakes}</span>}
@@ -331,9 +371,11 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                                                 <div style={styles.entryActions}>
                                                     {onEditEntry && (
                                                         <button
+                                                            type="button"
                                                             onClick={() => onEditEntry(entry)}
                                                             style={styles.entryEditBtn}
                                                             title="Edit Entry"
+                                                            aria-label={`Edit ${catLabel} Entry`}
                                                         >✏</button>
                                                     )}
                                                     {onDeleteEntry && (
@@ -343,8 +385,10 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                                                                     await onDeleteEntry(entry.id);
                                                                 }
                                                             }}
+                                                            type="button"
                                                             style={styles.entryDeleteBtn}
                                                             title="Delete Entry"
+                                                            aria-label={`Delete ${catLabel} Entry`}
                                                         >✕</button>
                                                     )}
                                                 </div>
@@ -501,6 +545,11 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                 <h3 style={styles.historyTitle}>Completed Trips</h3>
                 {isLoading ? (
                     <div style={styles.loadingPlaceholder}>Loading Trips...</div>
+                ) : loadError ? (
+                    <div role="alert" style={styles.emptyState}>
+                        Could Not Load Your Trips.
+                        <button type="button" onClick={loadData} style={styles.retryBtn}>Retry</button>
+                    </div>
                 ) : completedTrips.length === 0 ? (
                     <div style={styles.emptyState}>No Completed Trips Yet. Start Your First Trip Above!</div>
                 ) : (
@@ -523,13 +572,13 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                                 </span>
                                 <span style={styles.tripCardMeta}>
                                     {trip.location_name && <span>{trip.location_name}</span>}
-                                    <span>{new Date(trip.start_date + 'T12:00:00').toLocaleDateString()}</span>
-                                    {trip.end_date && (
-                                        <span> - {new Date(trip.end_date + 'T12:00:00').toLocaleDateString()}</span>
-                                    )}
+                                    <span>
+                                        {parseLedgerDay(trip.start_date).toLocaleDateString()}
+                                        {trip.end_date && ` - ${parseLedgerDay(trip.end_date).toLocaleDateString()}`}
+                                    </span>
                                 </span>
                                 <span style={styles.tripCardFooter}>
-                                    <span>{trip.entryCount || 0} Entries</span>
+                                    <span>{trip.sessionCount || 0} {trip.sessionCount === 1 ? 'Session' : 'Sessions'}</span>
                                     <span style={styles.viewReportLink}>View Report →</span>
                                 </span>
                             </motion.button>
@@ -582,6 +631,8 @@ const styles = {
         fontWeight: 700,
         color: '#fff',
         margin: '4px 0',
+        paddingRight: 36,
+        overflowWrap: 'anywhere',
     },
     activeTripMeta: {
         fontSize: 14,
@@ -840,8 +891,28 @@ const styles = {
     },
     confirmRow: {
         display: 'flex',
+        flexWrap: 'wrap',
         alignItems: 'center',
         gap: 8,
+    },
+    inlineError: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: 10,
+        fontSize: 14,
+        color: '#fca5a5',
+        marginBottom: 16,
+    },
+    retryBtn: {
+        background: 'transparent',
+        color: '#edf6ff',
+        border: `1px solid ${METAL.highlight}`,
+        borderRadius: 8,
+        padding: '6px 14px',
+        marginLeft: 10,
+        fontSize: 14,
+        cursor: 'pointer',
     },
     confirmText: {
         fontSize: 14,
@@ -996,6 +1067,7 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: 10,
         marginBottom: 6,
     },
     tripCardName: {
@@ -1003,6 +1075,8 @@ const styles = {
         fontWeight: 600,
         color: '#fff',
         margin: 0,
+        minWidth: 0,
+        overflowWrap: 'anywhere',
     },
     tripCardPL: {
         fontSize: 16,
@@ -1010,6 +1084,7 @@ const styles = {
     },
     tripCardMeta: {
         display: 'flex',
+        flexWrap: 'wrap',
         gap: 8,
         fontSize: 14,
         color: '#94a3b8',

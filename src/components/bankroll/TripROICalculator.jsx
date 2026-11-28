@@ -1,338 +1,167 @@
 /**
  * TRIP ROI CALCULATOR
- * Comprehensive expense breakdown and true ROI for poker trips
+ * True return on a trip or series: what it cost (buy-ins plus every expense
+ * logged to it) against what it made.
+ *
+ * Built from the trip's own ledger rows (see buildTripReport in
+ * src/lib/bankroll/tripMath.mjs). It used to keep a second, hand-typed expense
+ * list that it tried to save to a `trips` table that does not exist, and it
+ * read session times as clock strings when they are timestamps, so the hourly
+ * rate was always zero. Expenses belong in the ledger (Dan's receipt rules):
+ * log them as Expense entries on the trip and they appear here.
  */
 
-import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '../../lib/supabase';
+import React from 'react';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
-import { parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
 
-export default function TripROICalculator({ trip, userId, displayEUR = false }) {
-    const [expenses, setExpenses] = useState({
-        hotel: 0,
-        flights: 0,
-        food: 0,
-        transport: 0,
-        tips: 0,
-        other: 0
-    });
-    const [sessions, setSessions] = useState([]);
-    const [isEditing, setIsEditing] = useState(false);
+const EXPENSE_LABELS = {
+    flight: 'Flights',
+    hotel: 'Hotel',
+    airbnb: 'Airbnb',
+    gas: 'Gas',
+    rental_car: 'Rental Car',
+    rideshare: 'Rideshare',
+    meals: 'Meals',
+    tips: 'Tips',
+    tournament_fee: 'Tournament Fees',
+    series_fee: 'Series Fees',
+    visa: 'Visa',
+    other: 'Other',
+};
 
-    useEffect(() => {
-        if (trip?.id) {
-            loadTripData();
-        }
-    }, [trip?.id]);
+const signColor = (n) => (n >= 0 ? '#22c55e' : '#ef4444');
 
-    async function loadTripData() {
-        // Load trip expenses
-        if (trip.expenses) {
-            setExpenses({
-                hotel: trip.expenses.hotel || 0,
-                flights: trip.expenses.flights || 0,
-                food: trip.expenses.food || 0,
-                transport: trip.expenses.transport || 0,
-                tips: trip.expenses.tips || 0,
-                other: trip.expenses.other || 0
-            });
-        }
-
-        // Load sessions for this trip
-        const { data: tripSessions } = await supabase
-            .from('bankroll_ledger')
-            .select('id, entry_date, gross_in, gross_out, start_time, end_time')
-            .eq('trip_id', trip.id)
-            .order('entry_date', { ascending: true });
-
-        setSessions(tripSessions || []);
-    }
-
-    async function saveExpenses() {
-        const { error: err_trips_5ff5w } = await supabase
-          .from('trips')
-          .update({ expenses })
-            .eq('id', trip.id);
-        if (err_trips_5ff5w) console.warn('[Supabase] Silent mutation failed in trips:', err_trips_5ff5w.message);
-        setIsEditing(false);
-    }
-
-    // Calculations
-    const calculations = useMemo(() => {
-        const totalExpenses = Object.values(expenses || {}).reduce((a, b) => a + (Number(b) || 0), 0);
-        const grossWinnings = sessions.reduce((sum, s) => sum + ((s.gross_out || 0) - (s.gross_in || 0)), 0);
-        const netProfit = grossWinnings - totalExpenses;
-
-        // Calculate hours played
-        let totalHours = 0;
-        sessions.forEach(s => {
-            if (s.start_time && s.end_time) {
-                const start = new Date(`2000-01-01 ${s.start_time}`);
-                const end = new Date(`2000-01-01 ${s.end_time}`);
-                if (end > start) {
-                    totalHours += (end - start) / (1000 * 60 * 60);
-                }
-            }
-        });
-
-        // Days
-        const tripDays = trip.end_date && trip.start_date
-            ? Math.ceil((parseLedgerDay(trip.end_date) - parseLedgerDay(trip.start_date)) / (1000 * 60 * 60 * 24)) + 1
-            : 1;
-
-        return {
-            totalExpenses,
-            grossWinnings,
-            netProfit,
-            roi: totalExpenses > 0 ? ((netProfit / totalExpenses) * 100) : 0,
-            costPerDay: tripDays > 0 ? totalExpenses / tripDays : 0,
-            profitPerSession: sessions.length > 0 ? netProfit / sessions.length : 0,
-            hourlyRate: totalHours > 0 ? netProfit / totalHours : 0,
-            totalHours,
-            sessionCount: sessions.length,
-            tripDays
-        };
-    }, [expenses, sessions, trip]);
+export default function TripROICalculator({ report, displayEUR = false }) {
+    if (!report?.stats) return null;
+    const { stats } = report;
+    const expenses = Object.entries(report.expenseBreakdown || {}).sort(([, a], [, b]) => b - a);
+    const money = (n) => formatCurrency(n, displayEUR);
 
     return (
         <div style={styles.container}>
-            <div style={styles.header}>
-                <h3 style={styles.title}>Trip ROI Analysis</h3>
-                <button
-                    onClick={() => isEditing ? saveExpenses() : setIsEditing(true)}
-                    style={styles.editBtn}
-                >
-                    {isEditing ? 'Save' : 'Edit'}
-                </button>
-            </div>
+            <h3 style={styles.title}>Trip ROI</h3>
 
-            {/* Expense Breakdown */}
-            <div style={styles.section}>
-                <h4 style={styles.sectionTitle}>Expenses Breakdown</h4>
-                <div style={styles.expenseGrid}>
-                    {Object.entries(expenses || {}).map(([key, value]) => (
-                        <div key={key} style={styles.expenseItem}>
-                            <span style={styles.expenseLabel}>
-                                {key === 'hotel' ? 'Hotel' : key === 'flights' ? 'Flights' : key === 'food' ? 'Food' : key === 'transport' ? 'Transport' : key === 'tips' ? '' : 'Other'}
-                                {' '}{key.charAt(0).toUpperCase() + key.slice(1)}
-                            </span>
-                            {isEditing ? (
-                                <input
-                                    type="number"
-                                    value={value}
-                                    onChange={(e) => setExpenses(prev => ({ ...prev, [key]: Number(e.target.value) || 0 }))}
-                                    style={styles.expenseInput}
-                                />
-                            ) : (
-                                <span style={styles.expenseValue}>{formatCurrency(value, displayEUR)}</span>
-                            )}
+            <div style={styles.roiGrid}>
+                <Metric label="Buy-Ins" value={money(stats.buyIns)} />
+                <Metric label="Cash-Outs" value={money(stats.cashOuts)} />
+                <Metric label="Expenses" value={money(stats.totalExpenses)} />
+                <Metric label="Total Cost" value={money(stats.totalCost)} />
+                <Metric label="Net Profit" value={money(stats.totalNet)} color={signColor(stats.totalNet)} />
+                <Metric
+                    label="ROI"
+                    value={stats.roi == null ? '-' : `${stats.roi >= 0 ? '+' : ''}${stats.roi.toFixed(1)}%`}
+                    color={stats.roi == null ? undefined : signColor(stats.roi)}
+                />
+                <Metric label="Cost / Day" value={money(stats.costPerDay)} />
+                <Metric
+                    label="Hourly"
+                    value={stats.hourlyRate == null ? '-' : `${money(stats.hourlyRate)}/Hr`}
+                    color={stats.hourlyRate == null ? undefined : signColor(stats.hourlyRate)}
+                />
+            </div>
+            <p style={styles.note}>
+                ROI Is Net Profit Divided By Total Cost (Buy-Ins Plus Expenses).
+                {stats.totalHours > 0
+                    ? ` ${stats.totalHours.toFixed(1)} Hours Logged.`
+                    : ' Add Start And End Times To Sessions To See An Hourly Rate.'}
+            </p>
+
+            <h4 style={styles.sectionTitle}>Expenses By Type</h4>
+            {expenses.length === 0 ? (
+                <p style={styles.note}>No Expenses Logged To This Trip.</p>
+            ) : (
+                <div style={styles.expenseList}>
+                    {expenses.map(([type, amount]) => (
+                        <div key={type} style={styles.expenseRow}>
+                            <span style={styles.expenseLabel}>{EXPENSE_LABELS[type] || type}</span>
+                            <span style={styles.expenseValue}>{money(amount)}</span>
                         </div>
                     ))}
                 </div>
-            </div>
+            )}
+        </div>
+    );
+}
 
-            {/* ROI Stats */}
-            <div style={styles.section}>
-                <h4 style={styles.sectionTitle}>ROI Metrics</h4>
-                <div style={styles.roiGrid}>
-                    <div style={styles.roiItem}>
-                        <div style={styles.roiLabel}>Gross Winnings</div>
-                        <div style={{
-                            ...styles.roiValue,
-                            color: calculations.grossWinnings >= 0 ? '#22c55e' : '#ef4444'
-                        }}>
-                            {formatCurrency(calculations.grossWinnings, displayEUR)}
-                        </div>
-                    </div>
-                    <div style={styles.roiItem}>
-                        <div style={styles.roiLabel}>Total Expenses</div>
-                        <div style={styles.roiValue}>
-                            {formatCurrency(calculations.totalExpenses, displayEUR)}
-                        </div>
-                    </div>
-                    <div style={styles.roiItem}>
-                        <div style={styles.roiLabel}>Net Profit</div>
-                        <div style={{
-                            ...styles.roiValue,
-                            ...styles.roiHighlight,
-                            color: calculations.netProfit >= 0 ? '#22c55e' : '#ef4444'
-                        }}>
-                            {formatCurrency(calculations.netProfit, displayEUR)}
-                        </div>
-                    </div>
-                    <div style={styles.roiItem}>
-                        <div style={styles.roiLabel}>ROI %</div>
-                        <div style={{
-                            ...styles.roiValue,
-                            color: calculations.roi >= 0 ? '#22c55e' : '#ef4444'
-                        }}>
-                            {calculations.roi >= 0 ? '+' : ''}{calculations.roi.toFixed(1)}%
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Additional Stats */}
-            <div style={styles.section}>
-                <h4 style={styles.sectionTitle}>Efficiency Metrics</h4>
-                <div style={styles.statsRow}>
-                    <div style={styles.statItem}>
-                        <div style={styles.statLabel}>Cost/Day</div>
-                        <div style={styles.statValue}>{formatCurrency(calculations.costPerDay, displayEUR)}</div>
-                    </div>
-                    <div style={styles.statItem}>
-                        <div style={styles.statLabel}>Profit/Session</div>
-                        <div style={{
-                            ...styles.statValue,
-                            color: calculations.profitPerSession >= 0 ? '#22c55e' : '#ef4444'
-                        }}>
-                            {formatCurrency(calculations.profitPerSession, displayEUR)}
-                        </div>
-                    </div>
-                    <div style={styles.statItem}>
-                        <div style={styles.statLabel}>Hourly Rate</div>
-                        <div style={{
-                            ...styles.statValue,
-                            color: calculations.hourlyRate >= 0 ? '#22c55e' : '#ef4444'
-                        }}>
-                            {formatCurrency(calculations.hourlyRate, displayEUR)}/Hr
-                        </div>
-                    </div>
-                </div>
-                <div style={styles.statsRow}>
-                    <div style={styles.statItem}>
-                        <div style={styles.statLabel}>Sessions</div>
-                        <div style={styles.statValue}>{calculations.sessionCount}</div>
-                    </div>
-                    <div style={styles.statItem}>
-                        <div style={styles.statLabel}>Days</div>
-                        <div style={styles.statValue}>{calculations.tripDays}</div>
-                    </div>
-                    <div style={styles.statItem}>
-                        <div style={styles.statLabel}>Hours Played</div>
-                        <div style={styles.statValue}>{calculations.totalHours.toFixed(1)}</div>
-                    </div>
-                </div>
-            </div>
+function Metric({ label, value, color }) {
+    return (
+        <div style={styles.roiItem}>
+            <div style={styles.roiLabel}>{label}</div>
+            <div style={{ ...styles.roiValue, color: color || '#fff' }}>{value}</div>
         </div>
     );
 }
 
 const styles = {
     container: {
+        background: 'rgba(30, 58, 95, 0.2)',
+        border: '1px solid rgba(255,255,255,0.15)',
+        borderRadius: 10,
         padding: 16,
-        background: 'rgba(255, 255, 255, 0.02)',
-        border: '2px solid rgba(255, 255, 255, 0.06)',
-        borderRadius: 12,
-    },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
     },
     title: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#fff',
-        margin: 0,
-    },
-    editBtn: {
-        padding: '4px 12px',
-        background: 'rgba(0, 212, 255, 0.1)',
-        border: '2px solid rgba(0, 212, 255, 0.3)',
-        borderRadius: 6,
-        color: '#92cfff',
-        fontSize: 14,
-        cursor: 'pointer',
-    },
-    section: {
-        marginBottom: 16,
+        color: '#94a3b8',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        margin: '0 0 12px',
     },
     sectionTitle: {
         fontSize: 14,
         fontWeight: 600,
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: '#94a3b8',
         textTransform: 'uppercase',
-        margin: '0 0 10px',
+        letterSpacing: 0.5,
+        margin: '16px 0 8px',
     },
-    expenseGrid: {
+    roiGrid: {
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 130px), 1fr))',
         gap: 8,
     },
-    expenseItem: {
+    roiItem: {
+        padding: '10px 12px',
+        background: 'rgba(0,0,0,0.15)',
+        borderRadius: 8,
+        minWidth: 0,
+    },
+    roiLabel: {
+        fontSize: 14,
+        color: '#9aaec3',
+        marginBottom: 4,
+    },
+    roiValue: {
+        fontSize: 16,
+        fontWeight: 700,
+        overflowWrap: 'anywhere',
+    },
+    note: {
+        fontSize: 14,
+        color: '#9aaec3',
+        lineHeight: 1.5,
+        margin: '10px 0 0',
+    },
+    expenseList: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+    },
+    expenseRow: {
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 8,
-        background: 'rgba(255, 255, 255, 0.03)',
+        gap: 10,
+        padding: '8px 10px',
+        background: 'rgba(0,0,0,0.1)',
         borderRadius: 6,
     },
     expenseLabel: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.7)',
+        color: '#cbd5e1',
     },
     expenseValue: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#fff',
-    },
-    expenseInput: {
-        width: 70,
-        padding: '4px 8px',
-        background: 'rgba(255, 255, 255, 0.1)',
-        border: '2px solid rgba(255, 255, 255, 0.2)',
-        borderRadius: 4,
-        color: '#fff',
-        fontSize: 14,
-        textAlign: 'right',
-    },
-    roiGrid: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 10,
-    },
-    roiItem: {
-        padding: 10,
-        background: 'rgba(255, 255, 255, 0.03)',
-        borderRadius: 8,
-        textAlign: 'center',
-    },
-    roiLabel: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.5)',
-        marginBottom: 4,
-    },
-    roiValue: {
-        fontSize: 14,
-        fontWeight: 700,
-        color: '#fff',
-    },
-    roiHighlight: {
-        fontSize: 16,
-    },
-    statsRow: {
-        display: 'flex',
-        gap: 8,
-        marginBottom: 8,
-    },
-    statItem: {
-        flex: 1,
-        padding: 8,
-        background: 'rgba(255, 255, 255, 0.02)',
-        borderRadius: 6,
-        textAlign: 'center',
-    },
-    statLabel: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.5)',
-        marginBottom: 2,
-    },
-    statValue: {
-        fontSize: 14,
-        fontWeight: 600,
-        color: '#fff',
+        color: '#ef4444',
     },
 };
