@@ -15,6 +15,7 @@ import VenueSelector from './VenueSelector';
 import { sessionEndStamp, toCents } from '../../lib/bankroll/ledgerMath.mjs';
 import { localDay } from '../../lib/bankroll/localDates.mjs';
 import toast from '../../stores/toastStore';
+import { ClubArenaSessionsPanel } from './ClubArenaSessions';
 import { requireOnlineNow } from '../../hooks/useOnlineStatus';
 import { uploadBankrollImage } from '../../lib/bankroll/receiptStorage';
 
@@ -615,6 +616,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   };
 
   const renderCategorySelector = () => (
+    <>
     <div style={{ ...styles.categoryGrid, paddingBottom: 24 }}>
       {CATEGORIES.map((cat) => (
         <button
@@ -627,6 +629,8 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         </button>
       ))}
     </div>
+    {!isEditMode && <ClubArenaSessionsPanel userId={userId} />}
+    </>
   );
 
   // Image Upload State
