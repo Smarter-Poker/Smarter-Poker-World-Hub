@@ -7,6 +7,10 @@ import { useState, useEffect } from 'react';
 import { Link2, ExternalLink, Search, Loader2, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { METAL, GRADIENTS, ANIMATIONS } from './metalStyles';
+import { parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
+import { formatUsd, SESSION_CATEGORIES } from '../../lib/bankroll/ledgerReport.mjs';
+import { describeAction } from '../../lib/bankroll/handActions.mjs';
+
 
 export default function SessionHandReview({ userId }) {
     const [recentHands, setRecentHands] = useState([]);
@@ -16,6 +20,8 @@ export default function SessionHandReview({ userId }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [loadError, setLoadError] = useState(null);
+    const [linkError, setLinkError] = useState(null);
 
     useEffect(() => {
         if (userId) loadData();
@@ -23,6 +29,7 @@ export default function SessionHandReview({ userId }) {
 
     const loadData = async () => {
         setLoading(true);
+        setLoadError(null);
 
         // Fetch recent analyzed hands from Training Hub
         // 2026-08-15 CHECK 13 fix: this selected hand_id, created_at and
@@ -30,7 +37,7 @@ export default function SessionHandReview({ userId }) {
         // played_at, action_sequence) — so the query 42703'd and the recent
         // hands list was empty forever. Rows are mapped back to the names the
         // render code uses, same pattern as the bankroll_ledger fix below.
-        const { data: handsRaw } = await supabase
+        const { data: handsRaw, error: handsError } = await supabase
             .from('training_hand_history')
             .select('id, hand_number, played_at, position, action_sequence, result, notes, session_id')
             .eq('user_id', userId)
@@ -40,7 +47,7 @@ export default function SessionHandReview({ userId }) {
             ...h,
             hand_id: h.hand_number != null ? String(h.hand_number) : null,
             created_at: h.played_at,
-            action: h.action_sequence,
+            action: describeAction(h.action_sequence),
         }));
 
         // Fetch recent bankroll sessions.
@@ -49,12 +56,23 @@ export default function SessionHandReview({ userId }) {
         // query 42703'd and the session list was empty forever. Venue name
         // comes through the location_id FK embed; render fields keep the old
         // names via the map below.
-        const { data: sessions } = await supabase
+        // Gaming sessions only, current rows only: a deposit, an expense or a
+        // superseded revision is not a session a hand can be played in.
+        const { data: sessions, error: sessionsError } = await supabase
             .from('bankroll_ledger')
-            .select('id, net_result, entry_date, game_type, stakes, location:bankroll_locations(name)')
+            .select('id, net_result, entry_date, category, game_type, stakes, location:bankroll_locations(name)')
             .eq('user_id', userId)
+            .eq('is_revision', false)
+            // in-list: bounded by the five built-in session categories
+            .in('category', SESSION_CATEGORIES)
             .order('entry_date', { ascending: false })
-            .limit(10);
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+        if (handsError || sessionsError) {
+            console.warn('[SessionHandReview] Load error:', handsError || sessionsError);
+            setLoadError('Could Not Load Your Hands And Sessions');
+        }
 
         setRecentHands(hands || []);
         setRecentSessions((sessions || []).map(s => ({
@@ -71,17 +89,22 @@ export default function SessionHandReview({ userId }) {
     const handleLinkHand = async () => {
         if (!linkingHand || !selectedSession) return;
         setSaving(true);
+        setLinkError(null);
 
-        const { error: err_training_hand_history_vwcfa } = await supabase
+        const { error } = await supabase
+            .from('training_hand_history')
+            .update({ session_id: selectedSession })
+            .eq('id', linkingHand)
+            .eq('user_id', userId);
 
-          .from('training_hand_history')
+        if (error) {
+            // Keep the sheet open: the hand is not linked and must not say so.
+            console.warn('[SessionHandReview] Link failed:', error.message);
+            setLinkError('Could Not Link This Hand. Try Again.');
+            setSaving(false);
+            return;
+        }
 
-          .update({ session_id: selectedSession })
-            .eq('id', linkingHand);
-
-        if (err_training_hand_history_vwcfa) console.warn('[Supabase] Silent mutation failed in training_hand_history:', err_training_hand_history_vwcfa.message);
-
-        // Update local state
         setRecentHands(prev => prev.map(h =>
             h.id === linkingHand ? { ...h, session_id: selectedSession } : h
         ));
@@ -91,10 +114,12 @@ export default function SessionHandReview({ userId }) {
         setSaving(false);
     };
 
+    const closeLink = () => { setLinkingHand(null); setSelectedSession(null); setLinkError(null); };
+
+    const query = searchQuery.trim().toLowerCase();
     const filteredHands = recentHands.filter(h =>
-        !searchQuery ||
-        h.hand_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        h.position?.toLowerCase().includes(searchQuery.toLowerCase())
+        !query ||
+        [h.hand_id, h.position, h.action, h.notes].some(field => String(field || '').toLowerCase().includes(query))
     );
 
     const getPositionColor = (position) => {
@@ -140,6 +165,7 @@ export default function SessionHandReview({ userId }) {
             <div style={styles.searchSection}>
                 <Search size={14} style={styles.searchIcon} />
                 <input
+                    aria-label="Search Hands"
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Search Hands..."
@@ -149,7 +175,17 @@ export default function SessionHandReview({ userId }) {
 
             {/* Hands List */}
             <div style={styles.handsList}>
-                {filteredHands.length === 0 ? (
+                {loadError ? (
+                    <div style={styles.emptyState} role="alert">
+                        <p style={styles.emptyTitle}>{loadError}</p>
+                        <button type="button" onClick={loadData} style={styles.linkBtn}>RETRY</button>
+                    </div>
+                ) : filteredHands.length === 0 && query ? (
+                    <div style={styles.emptyState} role="status">
+                        <p style={styles.emptyTitle}>NO HANDS MATCH</p>
+                        <p style={styles.emptyHintText}>Search Covers Hand Number, Position, Action And Notes</p>
+                    </div>
+                ) : filteredHands.length === 0 ? (
                     <div style={styles.emptyState}>
                         <div style={styles.emptyIconContainer}>
                             <img src="/images/jarvis-avatar.webp" alt="Jarvis" style={{ width: 36, height: 36, borderRadius: '50%' }} />
@@ -192,6 +228,7 @@ export default function SessionHandReview({ userId }) {
                                     </span>
                                 ) : (
                                     <button
+                                        type="button"
                                         onClick={() => setLinkingHand(hand.id)}
                                         style={styles.linkBtn}
                                     >
@@ -206,8 +243,8 @@ export default function SessionHandReview({ userId }) {
 
             {/* Link Modal */}
             {linkingHand && (
-                <div style={styles.modalOverlay} onClick={() => setLinkingHand(null)}>
-                    <div className="sd-panel" style={styles.modal} onClick={e => e.stopPropagation()}>
+                <div style={styles.modalOverlay} onClick={closeLink}>
+                    <div className="sd-panel" style={styles.modal} role="dialog" aria-modal="true" aria-label="Link To Session" onClick={e => e.stopPropagation()}>
                         <div style={styles.modalLed} />
                         <h3 style={styles.modalTitle}>
                             <Link2 size={16} style={{ color: METAL.cyan }} />
@@ -219,8 +256,10 @@ export default function SessionHandReview({ userId }) {
                                 <div style={styles.noSessions}>No Recent Sessions</div>
                             ) : (
                                 recentSessions.map(session => (
-                                    <div
+                                    <button
+                                        type="button"
                                         key={session.id}
+                                        aria-pressed={selectedSession === session.id}
                                         onClick={() => setSelectedSession(session.id)}
                                         style={{
                                             ...styles.sessionOption,
@@ -232,25 +271,27 @@ export default function SessionHandReview({ userId }) {
                                                 {session.venue || session.game_type || 'Session'}
                                             </span>
                                             <span style={styles.sessionMeta}>
-                                                {session.stakes} • {new Date(session.date).toLocaleDateString()}
+                                                {[session.stakes, parseLedgerDay(session.date).toLocaleDateString()].filter(Boolean).join(' • ')}
                                             </span>
                                         </div>
                                         <span style={{
                                             ...styles.sessionResult,
                                             color: (session.result || 0) >= 0 ? METAL.success : METAL.danger
                                         }}>
-                                            {(session.result || 0) >= 0 ? '+' : ''}${session.result}
+                                            {session.result == null ? '-' : ((Number(session.result) > 0 ? '+' : '') + formatUsd(session.result))}
                                         </span>
-                                    </div>
+                                    </button>
                                 ))
                             )}
                         </div>
 
+                        {linkError && <p role="alert" style={{ color: METAL.danger, fontSize: 13, margin: '0 0 10px' }}>{linkError}</p>}
                         <div style={styles.modalActions}>
-                            <button onClick={() => setLinkingHand(null)} style={styles.cancelBtn}>
+                            <button type="button" onClick={closeLink} style={styles.cancelBtn}>
                                 CANCEL
                             </button>
                             <button
+                                type="button"
                                 onClick={handleLinkHand}
                                 disabled={!selectedSession || saving}
                                 style={{
@@ -551,6 +592,12 @@ const styles = {
         marginBottom: 8,
         cursor: 'pointer',
         transition: 'border-color 0.2s',
+        width: '100%',
+        boxSizing: 'border-box',
+        color: 'inherit',
+        font: 'inherit',
+        textAlign: 'left',
+        gap: 10,
     },
     sessionOptionSelected: {
         borderColor: METAL.cyan,

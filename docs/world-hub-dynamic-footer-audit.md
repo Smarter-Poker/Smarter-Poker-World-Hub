@@ -48,7 +48,7 @@ Every production hash matches its supplied source. The files are intentionally n
 | Poker Near Me | Nearby · Venues · Events · Games · Map · Saved |
 | Marketplace | Market · Diamonds · Merch · Clubs · VIP · Orders |
 
-The artwork is visual truth; the existing application routes are functional truth. For example, the supplied Bankroll artwork visibly says `BADGES`, while its previously wired fifth destination remains Bankroll Rules. This migration does not invent a new route merely from image text.
+The artwork is visual truth; the existing application routes are functional truth. For example, the supplied Bankroll artwork visibly says `BADGES`; that button was first wired to Bankroll Rules and, since 2026-11-27, opens the Bankroll Badges view (`/hub/bankroll-manager?view=badges`). Bankroll Rules stays in the Bankroll menu.
 
 ## Route coverage and exclusions
 
