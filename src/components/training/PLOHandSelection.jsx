@@ -63,7 +63,7 @@ export default function PLOHandSelection() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
           {tier.hands.map((h, i) => (
             <span key={i} style={{ padding: '4px 8px', borderRadius: 6, background: `${tier.color}15`, border: `1px solid ${tier.color}30`,
-              fontSize: 12, fontFamily: 'monospace', color: tier.color, fontWeight: 700 }}>{h}</span>
+              fontSize: 12, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', color: tier.color, fontWeight: 700 }}>{h}</span>
           ))}
         </div>
 

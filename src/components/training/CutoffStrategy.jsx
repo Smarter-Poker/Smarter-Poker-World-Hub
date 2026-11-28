@@ -53,7 +53,7 @@ export default function CutoffStrategy() {
         {Object.entries(section.range || {}).map(([key, val]) => (
           <div key={key} style={{ background: `${section.color}08`, borderRadius: 8, padding: 10, marginBottom: 6, borderLeft: `3px solid ${section.color}` }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: section.color, textTransform: 'uppercase' }}>{key}</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{val}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{val}</div>
           </div>
         ))}
       </motion.div>

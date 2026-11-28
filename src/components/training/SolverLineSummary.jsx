@@ -193,7 +193,7 @@ export default function SolverLineSummary({ gridData = {}, classificationGroups 
                 <span style={{
                     fontSize: 12, fontWeight: 800, color: '#00d4ff',
                     textTransform: 'uppercase', letterSpacing: 1,
-                    fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                    fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                 }}>
                     Solver Insight
                 </span>

@@ -199,7 +199,7 @@ function SessionGoalTracker() {
                 border: `1px solid ${s.completed >= s.total ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)'}`,
               }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>{s.date}</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{s.date}</span>
                   <span style={{ fontSize: 12, fontWeight: 600, color: s.completed >= s.total ? '#10b981' : s.completed >= s.total - 1 ? '#86daff' : '#ef4444' }}>
                     {s.completed}/{s.total} Goals
                   </span>

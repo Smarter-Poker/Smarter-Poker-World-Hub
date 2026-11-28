@@ -56,7 +56,7 @@ export default function ButtonPlayGuide() {
 
         <div style={{ background: `${section.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, borderLeft: `3px solid ${section.color}` }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: section.color }}>HANDS</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{section.hands}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{section.hands}</div>
         </div>
 
         <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 10 }}>

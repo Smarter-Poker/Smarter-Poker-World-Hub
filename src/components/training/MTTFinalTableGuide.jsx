@@ -63,7 +63,7 @@ export default function MTTFinalTableGuide() {
           <div style={{ fontSize: 12, fontWeight: 700, color: c.color }}>KEY PRINCIPLE</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.key}</div>
         </div>
-        <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'monospace' }}>
+        <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Example</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.example}</div>
         </div>

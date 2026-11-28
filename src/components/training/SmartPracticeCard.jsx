@@ -116,7 +116,7 @@ const styles = {
         fontSize: 18,
         fontWeight: 800,
         color: '#e2e8f0',
-        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+        fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
     },
     statLabel: {
         fontSize: 12,

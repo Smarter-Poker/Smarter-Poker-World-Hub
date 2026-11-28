@@ -58,10 +58,11 @@ export default function TournamentPrepPlanner() {
         const payload = await response.json();
         const saved = payload.records?.[0]?.data;
         if (active && saved) {
-          if (Number.isFinite(Number(saved.buyIn))) setBuyIn(Number(saved.buyIn));
-          if (Number.isFinite(Number(saved.startStack))) setStartStack(Number(saved.startStack));
-          if (Number.isFinite(Number(saved.blindLevelLength))) setBlindLevelLength(Number(saved.blindLevelLength));
-          if (Number.isFinite(Number(saved.currentLevel))) setCurrentLevel(Number(saved.currentLevel));
+          const isPositiveMetric = (v) => v !== null && v !== undefined && String(v).trim() !== '' && Number.isFinite(Number(v)) && Number(v) > 0;
+          if (isPositiveMetric(saved.buyIn)) setBuyIn(Number(saved.buyIn));
+          if (isPositiveMetric(saved.startStack)) setStartStack(Number(saved.startStack));
+          if (isPositiveMetric(saved.blindLevelLength)) setBlindLevelLength(Number(saved.blindLevelLength));
+          if (isPositiveMetric(saved.currentLevel)) setCurrentLevel(Number(saved.currentLevel));
         }
       } catch (error) {
         console.warn('Failed to load tournament plan:', error?.message || error);

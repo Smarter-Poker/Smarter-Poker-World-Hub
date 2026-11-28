@@ -176,13 +176,13 @@ const RangeStats = memo(({ range, solverRange }) => {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 12, color: '#64748b' }}>Combos</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>
                     {stats.combos}
                 </div>
             </div>
             <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 12, color: '#64748b' }}>Range %</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#3b82f6', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#3b82f6', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>
                     {((stats.combos / 1326) * 100).toFixed(1)}%
                 </div>
             </div>
@@ -190,19 +190,19 @@ const RangeStats = memo(({ range, solverRange }) => {
                 <>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 12, color: '#22c55e' }}>Match</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>
                             {stats.matching}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 12, color: '#ef4444' }}>Missing</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#ef4444', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>
                             {stats.missing}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 12, color: '#86daff' }}>Extra</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>
                             {stats.extra}
                         </div>
                     </div>
@@ -380,7 +380,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                     />
                     <span style={{
                         fontSize: 12, fontWeight: 700, color: '#22c55e',
-                        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", width: 35, textAlign: 'right',
+                        fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)", width: 35, textAlign: 'right',
                     }}>
                         {(brushWeight * 100).toFixed(0)}%
                     </span>
@@ -440,7 +440,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                         <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 2 }}>RANGE STRING</div>
                         <div style={{
                             fontSize: 12, color: '#94a3b8', wordBreak: 'break-all',
-                            fontFamily: "'Fira Code', monospace", lineHeight: 1.4,
+                            fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", lineHeight: 1.4,
                         }}>
                             {rangeString}
                         </div>

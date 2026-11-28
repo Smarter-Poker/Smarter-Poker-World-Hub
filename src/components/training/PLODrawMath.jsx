@@ -61,10 +61,10 @@ export default function PLODrawMath() {
           <span style={{ fontSize: 16, fontWeight: 800, color: d.color }}>{d.icon} {d.name}</span>
           <span style={{ padding: '4px 10px', borderRadius: 20, background: `${d.color}20`, fontSize: 13, fontWeight: 800, color: d.color }}>{d.outs} Outs</span>
         </div>
-        <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: 'monospace' }}>
+        <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: d.color }}>{d.example}</div>
         </div>
-        <div style={{ background: `${d.color}06`, borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'monospace', borderLeft: `3px solid ${d.color}` }}>
+        <div style={{ background: `${d.color}06`, borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', borderLeft: `3px solid ${d.color}` }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: d.color }}>MATH</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{d.math}</div>
         </div>

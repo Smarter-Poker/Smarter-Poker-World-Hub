@@ -54,7 +54,7 @@ export default function PLOBasicsGuide() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: b.color, marginBottom: 8 }}>{b.icon} {b.title}</div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{b.detail}</p>
-        <div style={{ background: `${b.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'monospace', borderLeft: `3px solid ${b.color}` }}>
+        <div style={{ background: `${b.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', borderLeft: `3px solid ${b.color}` }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: b.color }}>EXAMPLES</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{b.examples}</div>
         </div>

@@ -154,7 +154,7 @@ const QuizAnswer = React.forwardRef(function QuizAnswer(
     border: '1px solid rgba(255,255,255,0.1)',
     padding: '1px 5px',
     borderRadius: 4,
-    fontFamily: "'JetBrains Mono', 'SF Mono', Menlo, monospace",
+    fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     lineHeight: 1,
     pointerEvents: 'none',
   };

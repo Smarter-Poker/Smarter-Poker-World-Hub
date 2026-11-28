@@ -61,7 +61,7 @@ export default function HandCombinatorics() {
           <span style={{ fontSize: 24 }}>{topic.icon}</span>
           <span style={{ fontSize: 16, fontWeight: 800, color: topic.color }}>{topic.topic}</span>
         </div>
-        <div style={{ background: `${topic.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'monospace' }}>
+        <div style={{ background: `${topic.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Base Combos</div>
           <div style={{ fontSize: 12, color: topic.color }}>{topic.combos}</div>
         </div>

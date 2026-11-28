@@ -59,7 +59,7 @@ export default function ThinValueGuide() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: spot.color, marginBottom: 4 }}>{spot.spot}</div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-          <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, flex: 2, fontFamily: 'monospace' }}>
+          <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, flex: 2, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
             <div style={{ fontSize: 12, color: '#64748b' }}>Hand & Board</div>
             <div style={{ fontSize: 12, color: '#e2e8f0' }}>{spot.hand}</div>
           </div>

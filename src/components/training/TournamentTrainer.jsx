@@ -286,7 +286,7 @@ export default function TournamentTrainer() {
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 12 }}>
           <div style={{
             padding: '8px 16px', borderRadius: 8, background: 'rgba(0,0,0,0.3)',
-            color: '#f1f5f9', fontSize: 20, fontWeight: 800, fontFamily: 'monospace',
+            color: '#f1f5f9', fontSize: 20, fontWeight: 800, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
             letterSpacing: 2,
           }}>
             {scenario.hand}

@@ -58,7 +58,7 @@ export default function StackOffRanges() {
       <motion.div key={sprIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: spr.color, marginBottom: 4 }}>{spr.spr}</div>
-        <div style={{ background: `${spr.color}10`, borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'monospace' }}>
+        <div style={{ background: `${spr.color}10`, borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>Stack-Off Range</div>
           <div style={{ fontSize: 12, color: spr.color }}>{spr.stackOff}</div>
         </div>

@@ -68,7 +68,7 @@ export default function CashGameBuyIn() {
             <div style={{ fontSize: 12, fontWeight: 700, color: '#86daff' }}>WHEN</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.when}</div>
           </div>
-          <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6', fontFamily: 'monospace' }}>
+          <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>MATH</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.math}</div>
           </div>

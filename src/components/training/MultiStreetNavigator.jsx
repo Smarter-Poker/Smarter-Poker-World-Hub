@@ -87,7 +87,7 @@ const FreqBar = memo(({ action, freq, color = '#3b82f6' }) => (
         </div>
         <div style={{
             width: 35, fontSize: 12, fontWeight: 700, color: '#e2e8f0',
-            textAlign: 'right', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+            textAlign: 'right', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
         }}>
             {(freq * 100).toFixed(0)}%
         </div>
@@ -169,7 +169,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                 {potSize > 0 && (
                     <div style={{
                         fontSize: 12, fontWeight: 700, color: '#86daff',
-                        fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                        fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                     }}>
                         {potSize.toFixed(1)} BB
                     </div>
@@ -216,7 +216,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                     {handData.evLoss > 0 && (
                         <div style={{
                             marginLeft: 'auto', fontSize: 12, fontWeight: 700,
-                            color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                            color: '#ef4444', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                         }}>
                             -{handData.evLoss.toFixed(2)} BB
                         </div>
@@ -273,7 +273,7 @@ const SPRBadge = memo(({ potSize, effectiveStack = 100 }) => {
             background: `${sprColor}10`, border: `1px solid ${sprColor}22`,
         }}>
             <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>SPR</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: sprColor, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: sprColor, fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>
                 {spr.toFixed(1)}
             </span>
             <span style={{ fontSize: 12, color: sprColor, fontWeight: 600 }}>{sprLabel}</span>

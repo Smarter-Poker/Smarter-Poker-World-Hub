@@ -72,7 +72,7 @@ export default function ICMDealMaker() {
           ].map((r, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 6, padding: '6px 10px' }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>{r.label}</span>
-              <span style={{ fontSize: 12, color: '#cbd5e1', fontFamily: 'monospace' }}>{r.val}</span>
+              <span style={{ fontSize: 12, color: '#cbd5e1', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{r.val}</span>
             </div>
           ))}
         </div>

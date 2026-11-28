@@ -1411,7 +1411,7 @@ function GlobalStyle() {
     <style jsx global>{`
       .sp-skip { position: absolute; left: -9999px; }
       .sp-skip:focus { left: 16px; top: 16px; padding: 10px 14px; background: var(--sp-primary); color: var(--sp-primary-ink); border-radius: var(--sp-r-md); z-index: 1000; }
-      .sp-num { font-family: var(--font-orbitron), 'Orbitron', ui-monospace, monospace; font-feature-settings: 'tnum'; letter-spacing: 0.5px; }
+      .sp-num { font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif); font-feature-settings: 'tnum'; letter-spacing: 0.5px; }
       /* 2026-07-26 · VERIFIED ON SCREEN. Orbitron's zero is a squared glyph with
          a diagonal slash. At the 22px stat size it reads as a missing-glyph box,
          so a dashboard of zeroes looked like four broken tiles -- this was the
@@ -1481,7 +1481,7 @@ function GlobalStyle() {
 
       .sp-grade-card { background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); padding: 18px; }
       .sp-grade-row { display: flex; align-items: center; gap: 18px; }
-      .sp-grade-letter { font-family: var(--font-orbitron), 'Orbitron', ui-monospace, monospace; font-weight: 800; font-size: 56px; line-height: 1; color: var(--sp-good); width: 72px; text-align: center; }
+      .sp-grade-letter { font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif); font-weight: 800; font-size: 56px; line-height: 1; color: var(--sp-good); width: 72px; text-align: center; }
       .sp-grade-text { flex: 1; min-width: 0; }
       .sp-grade-label { font-size: 12px; color: var(--sp-ink-2); margin: 0 0 2px; }
       .sp-grade-value { font-size: 14px; color: var(--sp-ink-1); margin: 0 0 10px; }
@@ -1647,7 +1647,7 @@ function GlobalStyle() {
         box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 10px 24px rgba(0,0,0,.35);
       }
       .sp-section-title {
-        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
         font-size: 19px;
         font-weight: 600;
         letter-spacing: .02em;
@@ -1686,7 +1686,7 @@ function GlobalStyle() {
         width: fit-content;
         margin-bottom: 22px;
         color: #bcecff;
-        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
         font-size: 12px;
         font-weight: 700;
         letter-spacing: .18em;
@@ -1696,7 +1696,7 @@ function GlobalStyle() {
       .sp-hero-title {
         max-width: 720px;
         margin-bottom: 16px;
-        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
         font-size: clamp(35px, 4.5vw, 66px);
         font-weight: 500;
         line-height: 1.08;
@@ -1738,7 +1738,7 @@ function GlobalStyle() {
         box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 8px 20px rgba(0,0,0,.35);
       }
       .sp-preset-bar-label {
-        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
         font-size: 12px;
         font-weight: 700;
         letter-spacing: .12em;
@@ -1754,7 +1754,7 @@ function GlobalStyle() {
         font-size: 12px;
         color: #b7cede;
       }
-      .sp-cta { border-radius: 7px; font-family: var(--font-orbitron), 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .025em; }
+      .sp-cta { border-radius: 7px; font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif); font-size: 12px; font-weight: 700; letter-spacing: .025em; }
       .sp-cta-primary {
         color: #f4fbff;
         border: 1px solid #56d8ff;
@@ -1900,7 +1900,7 @@ function GlobalStyle() {
         justify-content: space-between;
         gap: 10px;
         color: #d9f7ff;
-        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
         font-size: 12px;
         font-weight: 700;
         letter-spacing: .13em;
@@ -1918,9 +1918,9 @@ function GlobalStyle() {
           linear-gradient(180deg, rgba(27,61,80,.64), rgba(4,15,24,.98) 22%, #020910 100%);
         box-shadow: inset 0 1px 0 rgba(255,255,255,.16);
       }
-      .sp-card-cat { color: #8bdfff; font-family: var(--font-orbitron), 'Orbitron', sans-serif; font-weight: 700; letter-spacing: .12em; }
+      .sp-card-cat { color: #8bdfff; font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif); font-weight: 700; letter-spacing: .12em; }
       .sp-swatch { border-radius: 0; box-shadow: 0 0 10px var(--sector-accent, #32d6ff); }
-      .sp-card-title { color: #fff; font-family: var(--font-orbitron), 'Orbitron', sans-serif; font-size: 18px; line-height: 1.3; font-weight: 600; text-shadow: 0 2px 1px #000, 0 0 14px rgba(70,205,255,.12); }
+      .sp-card-title { color: #fff; font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif); font-size: 18px; line-height: 1.3; font-weight: 600; text-shadow: 0 2px 1px #000, 0 0 14px rgba(70,205,255,.12); }
       .sp-card-focus {
         display: -webkit-box;
         min-height: 40px;
@@ -1940,7 +1940,7 @@ function GlobalStyle() {
         gap: 10px;
         margin-bottom: 6px;
         color: #93b8ca;
-        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
         font-size: 12px;
         font-weight: 700;
         letter-spacing: .09em;
@@ -1955,7 +1955,7 @@ function GlobalStyle() {
         padding-top: 12px;
         border-top: 1px solid rgba(99,196,235,.2);
         color: #d7f5ff;
-        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-family: var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif);
         font-size: 12px;
         font-weight: 700;
         letter-spacing: .08em;
