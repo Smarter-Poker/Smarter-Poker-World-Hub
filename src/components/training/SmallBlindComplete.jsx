@@ -60,7 +60,7 @@ export default function SmallBlindComplete() {
         {strat.ranges.map((r, i) => (
           <div key={i} style={{ background: `${r.color}08`, borderLeft: `3px solid ${r.color}`, borderRadius: 8, padding: 10, marginBottom: 6 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: r.color }}>{r.label}</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{r.hands}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>{r.hands}</div>
           </div>
         ))}
 

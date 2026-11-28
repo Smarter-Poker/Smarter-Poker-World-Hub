@@ -1,30 +1,27 @@
 /*
  * ═══════════════════════════════════════════════════════════════════════════
- *  DIAMOND WALLET / #SMARTERCASINOREALISM
+ *  DIAMOND WALLET / #SMARTERDESIGN
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * The World Hub's diamond wallet, brought onto the same machined vocabulary as
- * the Club Arena vault: obsidian ground, gunmetal structure, chrome type,
- * electric-blue energy. The rendered artwork supplies the physical realism;
- * this file frames it and lays live data into its bays. Nothing here pretends
- * to be the artwork.
+ * The global Diamond Wallet opened from the UniversalHeader, on the
+ * #SMARTERDESIGN materials (docs/SMARTERDESIGN.md, styles/smarterdesign.css):
+ * an ink-navy canvas, one continuous steel nine-slice rim per surface
+ * (chrome-readout panels, chrome-stat wells, chrome-row controls), cobalt for
+ * the selected or primary control, square corners, and white, silver, ice and
+ * cyan type. Green and red are reserved for real gains, losses and errors.
  *
  * WHY THIS FILE EXISTS AT ALL. Until 2026-09-05 this component was 2,425 lines
- * carrying 171 inline `style={{}}` objects and not one stylesheet, while every
- * one of its six siblings in this folder (MarketplaceCommerceNav,
- * MarketplaceDetailExperience, MarketplaceSubpageShell, MerchPurchaseDialog,
- * RewardTelemetryConsole, VipMembershipConsole) had a .module.css. Hard-coded
- * hexes cannot be themed, cannot be reviewed as a set, and cannot be shared -
- * which is how the wallet drifted away from the rest of the platform's look.
+ * carrying 171 inline `style={{}}` objects and not one stylesheet. Hard-coded
+ * hexes cannot be themed, cannot be reviewed as a set, and cannot be shared.
+ * Every colour and material the wallet paints is declared once on `.wallet`.
  *
- * THE TOKENS ARE THE CLUB ARENA ONES, DELIBERATELY. Dan, 2026-09-05: the two
- * wallets are "fully integrated ... but separate" - one diamond economy seen
- * from two places, so they must READ as the same hardware. The values below
- * mirror src/pages/PlayerWalletPage.css in the Club Arena repo. If you change
- * a colour here, change it there, or the two halves of one wallet stop
- * matching.
+ * The rendered wallet artwork (diamond-wallet-bg.jpg) stays: it is the
+ * premium crown, diamond and VIP plate scene, and the live balance and VIP
+ * readouts are measured into its bays. It now sits inside a steel rim. The old
+ * circuit backdrop behind the dialog is gone; the canvas is the navy gradient.
  *
- * NO :hover ANYWHERE (Dan 2026-08-29): a press is the feedback.
+ * NO HOVER STATES ANYWHERE (Dan 2026-08-29): a press is the feedback, and focus is
+ * the ice ring (outline 2px #9ee3ff, offset 2px).
  */
 
 /*
@@ -40,30 +37,24 @@
 }
 
 .wallet {
-  --vault-obsidian: #05070a;
-  --vault-carbon: #0d1218;
-  --vault-panel: #0b1017;
-  --vault-panel-raised: #111925;
-  --vault-gunmetal: #27313c;
-  --vault-chrome: #b8c3cd;
-  --vault-chrome-hot: #e6edf3;
-  --vault-cyan: #00d4ff;
-  --vault-blue: #4169e1;
-  --vault-gold: #ffc93c;
-  --vault-muted: #7f8c9b;
-  --vault-radius: 8px;
-  --desk-white: #f4f7fb;
-  --desk-silver: #e4e7ec;
-  --desk-muted: #9aa5b3;
-  --desk-blue: #45adff;
-  --desk-red: #ff5b6e;
-  --desk-row: #080b0f;
-  --desk-well: #05070a;
-  --desk-shadow: 0 1px 1.5px rgb(0 0 0 / 80%);
-  --desk-glow: 0 0 5px rgb(140 210 255 / 90%), 0 1px 0 rgb(0 0 0 / 70%);
-  --vault-font-display:
+  /* #SMARTERDESIGN fills. */
+  --sd-navy-bg: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  --sd-card-bg: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%);
+  --sd-control-bg: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  --sd-cobalt-bg: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  /* #SMARTERDESIGN type colours. */
+  --sd-white: #f2f7ff;
+  --sd-silver: #bdd0e2;
+  --sd-ice: #86daff;
+  --sd-cyan: #67e8f9;
+  --sd-red: #ff6b7a;
+  --sd-focus: #9ee3ff;
+  --sd-divider: #2b4460;
+  --sd-ink: #050e18;
+  --sd-shadow: 0 1px 2px rgb(0 0 0 / 80%);
+  --wallet-font-display:
     var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
-  --vault-font-label:
+  --wallet-font-label:
     var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
@@ -73,18 +64,20 @@
  * A container, so the readouts inside are sized and placed against the
  * ARTWORK rather than the viewport. The plate bays are a fixed fraction of the
  * image, so everything in them is expressed in cqw/% and the panel scales as
- * one piece.
+ * one piece. One steel rim, square corners.
  */
 .art {
   position: relative;
   container-type: inline-size;
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto 16px;
+  box-sizing: border-box;
+  width: calc(100% - 32px);
+  max-width: 568px;
+  margin: 0 auto 14px;
   overflow: hidden;
-  border-radius: 16px;
-  background-color: #050a15;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
+  background: var(--sd-navy-bg);
 }
 
 .artImage {
@@ -95,12 +88,6 @@
 
 /*
  * MEASURED, NOT NUDGED.
- *
- * These two readouts used to sit at `calc(28.5% + 18px)` and
- * `calc(66.6% - 15px)` with a `translateX(2px)` on top. A percentage plus a
- * fixed pixel count lines up at exactly ONE width: at the 600px the panel
- * reaches on desktop those resolved correctly, and at 375px the balance drifted
- * about 3% to the right of its plate.
  *
  * The values below were measured off diamond-wallet-bg.jpg (796x1024) by
  * sampling luminance for the dark bay inside each lit plate frame:
@@ -131,39 +118,38 @@
 
 .artFigure {
   margin-bottom: 4px;
-  font-family: var(--vault-font-display);
+  color: var(--sd-white);
+  -webkit-text-fill-color: var(--sd-white);
+  font-family: var(--wallet-font-display);
   font-size: clamp(24px, 6cqw, 36px);
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   line-height: 1;
   letter-spacing: 1px;
   text-transform: capitalize;
-  color: #c0e0ff;
-  -webkit-text-fill-color: #c0e0ff;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 12px rgba(0, 200, 255, 0.7));
+  text-shadow:
+    0 2px 0 #243951,
+    0 3px 6px #020914;
 }
 
 .artLabel {
-  color: var(--vault-chrome-hot);
-  font-family: var(--vault-font-label);
-  font-size: clamp(10px, 2.5cqw, 14px);
+  color: var(--sd-white);
+  font-family: var(--wallet-font-label);
+  font-size: clamp(12px, 2.5cqw, 14px);
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 0.06em;
   text-transform: capitalize;
-  text-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.9),
-    0 0 8px rgba(0, 180, 255, 0.6);
+  text-shadow: 0 2px 4px rgb(0 0 0 / 90%);
 }
 
 .artLabelDim {
-  color: var(--vault-muted);
+  color: var(--sd-silver);
 }
 
 /*
  * The two painted buttons' behaviour. Invisible on purpose - the artwork draws
  * them - but a real <button>, so focus, Enter and Space all work. The focus
- * ring is the only thing it paints, and it must stay: an invisible control
- * that cannot show focus is unusable by the people who most need the outline.
+ * ring is the only thing it paints, and it must stay.
  */
 .artHitbox {
   position: absolute;
@@ -172,20 +158,24 @@
   height: 10%;
   padding: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: 0;
   background: transparent;
   cursor: pointer;
   z-index: 10;
 }
 
-.artHitbox:focus-visible {
-  outline: 2px solid var(--vault-cyan) !important;
-  outline-offset: 2px !important;
+.artHitbox:active {
+  /* No hover; the press is the feedback. */
+  background: rgb(25 129 236 / 18%);
 }
 
-.artHitbox:active {
-  /* No hover in Club Arena; the press is the feedback. */
-  background: rgba(0, 212, 255, 0.12);
+/* The two painted buttons sit one each side of the plate. */
+.artHitboxBuy {
+  left: 10%;
+}
+
+.artHitboxSend {
+  right: 10%;
 }
 
 /*
@@ -203,59 +193,71 @@
   align-items: center;
   justify-content: center;
   padding: 0 6%;
-  color: var(--vault-chrome);
-  font-family: var(--vault-font-label);
-  font-size: clamp(9px, 2.1cqw, 13px);
+  color: var(--sd-silver);
+  font-family: var(--wallet-font-label);
+  font-size: clamp(12px, 2.3cqw, 14px);
   font-weight: 600;
-  letter-spacing: 0.06em;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
   text-align: center;
-  background: #050a15;
+  background: var(--sd-ink);
+}
+
+/* ── Shared focus ring ──────────────────────────────────────────────────── */
+
+.artHitbox:focus-visible,
+.closeBtn:focus-visible,
+.searchClear:focus-visible,
+.rangeSelect:focus-visible,
+.filterChip:focus-visible,
+.statsToggle:focus-visible,
+.sendClear:focus-visible,
+.sendRecentChip:focus-visible,
+.sendMatch:focus-visible,
+.sendGo:focus-visible,
+.sendConfirmCancel:focus-visible,
+.sendConfirmGo:focus-visible,
+.emptyReset:focus-visible,
+.litKey:focus-visible,
+.copyKey:focus-visible {
+  outline: 2px solid var(--sd-focus) !important;
+  outline-offset: 2px !important;
 }
 
 /* ── Search ─────────────────────────────────────────────────────────────── */
 
-/*
- * THE BOTTOM HALF IS THE CASHIER DESK (Dan 2026-10-16: "the bottom needs to be
- * enhanced and optimized. it still has the flat boring buttons"). The same
- * desk Club Arena's Cashier and wallets now wear: a hairline well for search,
- * filters as lit words with the chosen one white, hairline rows on #080b0f,
- * credits in blue and debits in red, and no drawn pill or rounded key
- * anywhere. Words stay Title Case here (the Marketplace typography law bans
- * uppercase transforms on this surface).
- */
-
 .searchWrap {
-  padding: 12px 16px 6px;
+  padding: 0 16px 8px;
 }
 
+/* The field is a chrome-row control; the whole frame shows focus. */
 .searchField {
   display: flex;
   align-items: center;
   gap: 8px;
+  box-sizing: border-box;
   min-height: 50px;
-  padding: 0 4px 0 14px;
-  border: 1px solid var(--vault-gunmetal);
+  padding: 0 3px 0 12px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
   border-radius: 0;
-  background: var(--desk-well);
-  box-shadow: none;
+  background: var(--sd-control-bg);
 }
 
-/* The whole field lights when the input inside it has focus, so the machined
-   frame is what shows focus rather than a ring around a transparent input. */
 .searchField:focus-within {
-  border-color: var(--desk-blue);
-  box-shadow: none;
+  outline: 2px solid var(--sd-focus);
+  outline-offset: 2px;
 }
 
 .searchInput {
   flex: 1;
   min-width: 0;
-  min-height: 48px;
+  min-height: 44px;
   border: none;
   outline: none;
   background: transparent;
   box-shadow: none;
-  color: var(--desk-white);
+  color: var(--sd-white);
   font-family: var(--font-inter), Inter, Arial, sans-serif;
   font-size: 16px;
   font-weight: 600;
@@ -263,7 +265,78 @@
 }
 
 .searchInput::placeholder {
-  color: var(--desk-muted);
+  color: var(--sd-silver);
+  opacity: 1;
+}
+
+/* ── Controls: chrome-row keys, cobalt when selected or primary ─────────── */
+
+.searchClear,
+.rangeSelect,
+.filterChip,
+.statsToggle,
+.closeBtn,
+.sendClear,
+.sendRecentChip,
+.sendConfirmCancel,
+.emptyReset,
+.litKey,
+.copyKey {
+  box-sizing: border-box;
+  min-height: 44px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-control-bg);
+  color: var(--sd-white);
+  font-family: var(--wallet-font-label);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.15;
+  text-transform: capitalize;
+  text-shadow: var(--sd-shadow);
+  box-shadow: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.searchClear:active,
+.filterChip:active,
+.statsToggle:active,
+.closeBtn:active,
+.sendClear:active,
+.sendRecentChip:active,
+.sendConfirmCancel:active,
+.emptyReset:active,
+.litKey:not(:disabled):active,
+.copyKey:active,
+.sendGo:not(:disabled):active,
+.sendConfirmGo:not(:disabled):active {
+  filter: brightness(0.89);
+}
+
+.filterChipOn,
+.statsToggleOn,
+.rangeSelectActive,
+.copyKeyDone,
+.litKeyLarge,
+.sendGo,
+.sendConfirmGo {
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: var(--sd-cobalt-bg);
+  color: #fff;
+}
+
+.litKey:disabled,
+.sendGo:disabled,
+.sendConfirmGo:disabled {
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: var(--sd-control-bg);
+  color: var(--sd-silver);
+  cursor: default;
 }
 
 .searchClear {
@@ -271,218 +344,154 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  min-width: 52px;
-  min-height: 44px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--desk-blue);
-  font: 800 13px/1 var(--vault-font-label);
-  letter-spacing: 0.12em;
-  text-transform: capitalize;
-  cursor: pointer;
-}
-
-.searchClear:active {
-  opacity: 0.75;
-}
-
-.searchClear:focus-visible {
-  outline: 2px solid var(--vault-cyan) !important;
-  outline-offset: 2px !important;
+  min-width: 64px;
+  padding: 0 12px;
 }
 
 /* ── The filter rail and its badges ─────────────────────────────────────── */
 
 /*
- * These are the tabs Dan pointed at. The numbers beside them are now counted
- * over the whole ledger by the API; the styling here is what makes them read
- * as machined controls rather than generic pills.
+ * These are the tabs Dan pointed at. The numbers beside them are counted over
+ * the whole ledger by the API. Each tab is a chrome-row control; the chosen
+ * one is cobalt and carries aria-pressed.
  */
 .filterRail {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 4px 18px;
-  padding: 2px 16px 4px;
-  border-bottom: 1px solid #000;
-  background: transparent;
-  box-shadow: inset 0 -1px 0 rgb(255 255 255 / 6%);
+  gap: 8px;
+  padding: 0 16px 12px;
 }
 
 .rangeSelect {
   flex: 1 0 100%;
-  min-height: 44px;
-  margin-bottom: 2px;
   padding: 0 14px;
-  border: 1px solid var(--vault-gunmetal);
-  border-radius: 0;
-  background: var(--desk-well);
   background-image: none;
-  color: var(--desk-muted);
-  font-family: var(--vault-font-label);
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  cursor: pointer;
+  background: var(--sd-control-bg);
   appearance: none;
   -webkit-appearance: none;
 }
 
-/* An active range is a lit control, like a filter that is doing something. */
 .rangeSelectActive {
-  border-color: var(--desk-blue);
-  color: var(--desk-white);
+  background: var(--sd-cobalt-bg);
 }
 
-.rangeSelect:focus-visible,
-.filterChip:focus-visible,
-.statsToggle:focus-visible {
-  outline: 2px solid var(--vault-cyan) !important;
-  outline-offset: 2px !important;
+/* A <select> paints its own popup on the platform's colours; the option
+   colours are the one place the wallet has to say so explicitly. */
+.rangeOption {
+  background: #0a1829;
+  color: #fff;
 }
 
 .filterChip {
+  flex: 1 1 auto;
   flex-shrink: 0;
-  min-height: 44px;
-  padding: 0 2px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--desk-muted);
-  font-family: var(--vault-font-label);
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  padding: 0 12px;
   white-space: nowrap;
-  cursor: pointer;
-  box-shadow: none;
-  text-shadow: var(--desk-shadow);
-}
-
-/* No hover; a press is the feedback (Dan 2026-08-29). */
-.filterChip:active,
-.statsToggle:active {
-  opacity: 0.75;
-}
-
-.filterChipOn {
-  color: var(--desk-white);
-  text-shadow: var(--desk-glow);
 }
 
 .statsToggle {
   composes: filterChip;
 }
 
-.statsToggleOn {
-  color: var(--desk-blue);
-  text-shadow: none;
-}
-
 /* ── Chrome ─────────────────────────────────────────────────────────────── */
 
+/* The close control: a labelled 44px chrome key, top right. */
 .closeBtn {
   --sp-btn-size: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   width: auto;
-  min-width: 44px;
+  min-width: 88px;
   height: 44px;
-  min-height: 44px;
-  padding: 0 4px;
-  border: 0;
+  padding: 0 16px;
+  font-size: 15px;
+}
+
+/* ── Panels: Send, Stats and Gifts ──────────────────────────────────────── */
+
+.sendPanel,
+.statsPanel {
+  box-sizing: border-box;
+  margin: 0 16px 12px;
+  padding: 14px 16px;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
   border-radius: 0;
-  background: transparent;
-  color: var(--desk-white);
-  font: 800 14px/1 var(--vault-font-label);
-  letter-spacing: 0.1em;
-  text-transform: capitalize;
-  text-shadow: var(--desk-glow);
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  box-shadow: none;
-}
-
-.closeBtn:active {
-  opacity: 0.75;
-}
-
-.closeBtn:focus-visible {
-  outline: 2px solid var(--vault-cyan) !important;
-  outline-offset: 2px !important;
-}
-
-/* ── The Send panel ─────────────────────────────────────────────────────── */
-
-.sendPanel {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--vault-gunmetal);
-  background: var(--vault-panel);
+  background: var(--sd-card-bg);
   animation: walletFadeIn 0.2s ease;
 }
 
-.sendTitle {
+.statsPanelGifts {
+  padding: 12px 16px 14px;
+}
+
+.sendTitle,
+.sendConfirmTitle,
+.statsHeading {
   margin-bottom: 8px;
-  color: var(--vault-chrome-hot);
-  font-family: var(--vault-font-label);
-  font-size: 12px;
+  color: var(--sd-white);
+  font-family: var(--wallet-font-label);
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.02em;
   text-transform: capitalize;
 }
 
 .sendRules {
-  margin-bottom: 10px;
-  color: var(--vault-muted);
-  font-size: 10px;
-  line-height: 1.4;
+  margin-bottom: 12px;
+  color: var(--sd-silver);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .sendMeter {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .sendMeterRow {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  margin-bottom: 3px;
-  color: var(--vault-muted);
-  font-size: 10px;
-}
-
-.sendMeterLeft {
-  color: var(--vault-cyan);
+  gap: 4px 12px;
+  margin-bottom: 6px;
+  color: var(--sd-silver);
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
-/* Near the cap, the figure warns. Gold, not red: approaching a daily limit is
-   a state to notice, not a failure. */
+.sendMeterLeft {
+  color: var(--sd-cyan);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Near the cap the figure goes bright white and heavy: a state to notice,
+   not a failure, so it is not red. */
 .sendMeterLeftLow {
-  color: var(--vault-gold);
+  color: var(--sd-white);
+  font-weight: 900;
 }
 
 .sendMeterTrack {
-  height: 4px;
+  height: 6px;
   overflow: hidden;
-  border-radius: 2px;
-  background: var(--vault-carbon);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  border-radius: 0;
+  background: #02070d;
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 60%);
 }
 
 .sendMeterFill {
   height: 100%;
-  border-radius: 2px;
-  background: var(--vault-cyan);
+  border-radius: 0;
+  background: var(--sd-cyan);
   transition: width 0.3s ease;
 }
 
 .sendMeterFillLow {
-  background: var(--vault-gold);
+  background: var(--sd-white);
 }
 
 /* ── Send: recipient, amount, confirmation ──────────────────────────────── */
@@ -490,7 +499,7 @@
 .sendForm {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 /* The dropdown anchors to this. */
@@ -499,153 +508,131 @@
 }
 
 .sendFieldLabel {
-  margin-bottom: 4px;
-  color: var(--vault-muted);
-  font-family: var(--vault-font-label);
-  font-size: 10px;
+  margin-bottom: 6px;
+  color: var(--sd-silver);
+  font-family: var(--wallet-font-label);
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.03em;
   text-transform: capitalize;
 }
 
-/* The chosen friend, seated in a raised plate. */
+/* The chosen friend, seated in a chrome-stat well. */
 .sendChosen {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid rgba(0, 212, 255, 0.35);
-  border-radius: 10px;
-  background: var(--vault-carbon);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  gap: 10px;
+  min-height: 50px;
+  padding: 3px 3px 3px 12px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-navy-bg);
 }
 
 .sendChosenAvatar {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   object-fit: cover;
 }
 
 .sendChosenName {
   flex: 1;
-  color: var(--vault-chrome-hot);
-  font-size: 13px;
+  min-width: 0;
+  color: var(--sd-white);
+  font-size: 15px;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
-/* The small round dismiss, used to unseat a friend and to clear the search. */
+/* Unseat a friend or clear the friend search: a labelled chrome key. */
 .sendClear {
   display: flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  border: none;
-  border-radius: 50%;
-  background: var(--vault-gunmetal);
-  color: var(--vault-chrome);
-  font-size: 10px;
-  cursor: pointer;
+  min-width: 64px;
+  padding: 0 12px;
+  font-size: 13px;
 }
 
 .sendClearSmall {
-  width: 18px;
-  height: 18px;
-}
-
-.sendClear:active {
-  transform: translateY(1px);
-}
-
-.sendClear:focus-visible,
-.sendRecentChip:focus-visible,
-.sendMatch:focus-visible,
-.sendConfirmCancel:focus-visible,
-.sendConfirmGo:focus-visible {
-  outline: 2px solid var(--vault-cyan) !important;
-  outline-offset: 2px !important;
+  min-width: 60px;
 }
 
 .sendRecent {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .sendRecentChip {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border: 1px solid var(--vault-gunmetal);
-  border-radius: 12px;
-  background: #0e141c;
-  color: var(--vault-chrome);
-  font-size: 11px;
+  gap: 8px;
+  padding: 0 12px;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-size: 13px;
   font-weight: 600;
-  cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-.sendRecentChip:active {
-  transform: translateY(1px);
 }
 
 .sendRecentAmount {
-  color: var(--vault-cyan);
-  font-size: 10px;
+  color: var(--sd-cyan);
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
-/* The search field and the amount field share one machined frame. */
+/* The search field and the amount field share one chrome-row frame. */
 .sendField {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid var(--vault-gunmetal);
-  border-radius: 10px;
-  background: var(--vault-carbon);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+  min-height: 50px;
+  padding: 0 3px 0 12px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-control-bg);
 }
 
 .sendField:focus-within {
-  border-color: rgba(0, 212, 255, 0.55);
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.5),
-    0 0 0 2px rgba(0, 212, 255, 0.25);
+  outline: 2px solid var(--sd-focus);
+  outline-offset: 2px;
 }
 
 .sendFieldGrow {
   flex: 1;
+  min-width: 0;
 }
 
 .sendInput {
   flex: 1;
   min-width: 0;
+  min-height: 44px;
   border: none;
   outline: none;
   background: transparent;
   box-shadow: none;
-  color: var(--vault-chrome-hot);
+  color: var(--sd-white);
   font-family: var(--font-inter), Inter, Arial, sans-serif;
-  font-size: 13px;
+  font-size: 16px;
   text-transform: capitalize;
 }
 
 .sendInput::placeholder {
-  color: var(--vault-muted);
+  color: var(--sd-silver);
+  opacity: 1;
 }
 
 /* Diamonds are a number; the amount reads in the display face, no
    capitalisation, tabular figures. */
 .sendAmountInput {
   composes: sendInput;
-  font-family: var(--vault-font-display);
-  font-size: 15px;
+  font-family: var(--wallet-font-display);
+  font-size: 17px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-transform: none;
@@ -657,19 +644,20 @@
   right: 0;
   left: 0;
   z-index: 10;
-  max-height: 180px;
-  margin-top: 4px;
+  max-height: 240px;
+  margin-top: 6px;
   overflow-y: auto;
-  border: 1px solid var(--vault-gunmetal);
-  border-radius: 10px;
-  background: var(--vault-panel);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
+  background: var(--sd-navy-bg);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 55%);
 }
 
 .sendDropdownNote {
   padding: 12px 14px;
-  color: var(--vault-muted);
-  font-size: 12px;
+  color: var(--sd-silver);
+  font-size: 13px;
 }
 
 .sendMatch {
@@ -677,26 +665,32 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 10px 14px;
+  min-height: 52px;
+  padding: 8px 12px;
   border: none;
-  border-bottom: 1px solid var(--vault-gunmetal);
+  border-bottom: 1px solid var(--sd-divider);
+  border-radius: 0;
   background: transparent;
-  color: var(--vault-chrome-hot);
-  font-size: 12px;
+  color: var(--sd-white);
+  font-size: 14px;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
 }
 
-/* No hover; the press lights the row. */
+.sendMatch:last-child {
+  border-bottom: 0;
+}
+
+/* No hover; the press lights the row cobalt. */
 .sendMatch:active {
-  background: rgba(0, 212, 255, 0.08);
+  background: var(--sd-cobalt-bg);
 }
 
 .sendMatchAvatar {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -706,12 +700,12 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: var(--vault-gunmetal);
-  color: var(--vault-chrome-hot);
-  font-size: 12px;
+  background: #1a3047;
+  color: var(--sd-white);
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -721,20 +715,22 @@
 }
 
 .sendMatchName {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .sendMatchHandle {
-  color: var(--vault-muted);
-  font-size: 10px;
+  color: var(--sd-silver);
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .sendHint {
-  margin-top: 4px;
-  padding-left: 4px;
-  color: var(--vault-muted);
-  font-size: 10px;
+  margin-top: 6px;
+  color: var(--sd-silver);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .sendAmountRow {
@@ -743,158 +739,108 @@
   gap: 8px;
 }
 
-/* The Send button: a lit chrome key. Disabled is dimmed, never hidden, so
-   the player can see the control they are waiting on. */
+/* The Send key: the cobalt primary. Disabled falls back to the steel key with
+   silver words, never hidden, so the player sees the control they wait on. */
 .sendGo {
-  padding: 9px 18px;
-  border: 1px solid rgba(0, 212, 255, 0.55);
-  border-radius: 10px;
-  background: #071822;
-  color: var(--vault-chrome-hot);
-  font-family: var(--vault-font-label);
-  font-size: 12px;
+  box-sizing: border-box;
+  min-height: 50px;
+  padding: 0 20px;
+  border-radius: 0;
+  font-family: var(--wallet-font-label);
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.03em;
   text-transform: capitalize;
+  text-shadow: var(--sd-shadow);
   white-space: nowrap;
   cursor: pointer;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 0 14px rgba(0, 212, 255, 0.18);
-  transition:
-    opacity 0.15s ease,
-    transform 0.15s ease;
+  touch-action: manipulation;
 }
 
-.sendGo:disabled {
-  opacity: 0.5;
-  cursor: default;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-.sendGo:not(:disabled):active {
-  transform: translateY(1px);
-}
-
-.sendGo:focus-visible {
-  outline: 2px solid var(--vault-cyan) !important;
-  outline-offset: 2px !important;
-}
-
-/* Feedback strips under the form. */
+/* Feedback under the form, in a chrome-stat well. */
 .sendNote {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-}
-
-.sendNoteError {
-  background: rgba(248, 113, 113, 0.08);
-  color: #ff5b6e;
-}
-
-.sendNoteOk {
-  background: rgba(0, 212, 255, 0.08);
-  color: var(--vault-cyan);
-}
-
-/* The confirmation: a raised plate the money question is asked on. */
-.sendConfirm {
   margin-top: 10px;
-  padding: 12px 14px;
-  border: 1px solid rgba(0, 212, 255, 0.35);
-  border-radius: 10px;
-  background: var(--vault-panel);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  animation: walletFadeIn 0.15s ease;
-}
-
-.sendConfirmTitle {
-  margin-bottom: 8px;
-  color: var(--vault-chrome-hot);
-  font-family: var(--vault-font-label);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: capitalize;
-}
-
-.sendConfirmText {
-  margin-bottom: 10px;
-  color: var(--vault-chrome);
-  font-size: 11px;
+  padding: 8px 12px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-navy-bg);
+  font-size: 13px;
   line-height: 1.4;
 }
 
+.sendNoteError {
+  color: var(--sd-red);
+}
+
+.sendNoteOk {
+  color: var(--sd-cyan);
+}
+
+/* The confirmation: a chrome-stat well the money question is asked in. */
+.sendConfirm {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-navy-bg);
+  animation: walletFadeIn 0.15s ease;
+}
+
+.sendConfirmText {
+  margin-bottom: 12px;
+  color: var(--sd-silver);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 .sendConfirmAmount {
-  color: var(--vault-cyan);
+  color: var(--sd-cyan);
   font-variant-numeric: tabular-nums;
 }
 
 .sendConfirmWho {
-  color: var(--vault-chrome-hot);
+  color: var(--sd-white);
 }
 
 .sendConfirmActions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .sendConfirmCancel {
-  flex: 1;
-  padding: 7px 0;
-  border: 1px solid var(--vault-gunmetal);
-  border-radius: 8px;
-  background: #0e141c;
-  color: var(--vault-chrome);
-  font-family: var(--vault-font-label);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  cursor: pointer;
+  flex: 1 1 120px;
+  padding: 0 12px;
 }
 
 .sendConfirmGo {
   composes: sendGo;
-  flex: 1;
-  padding: 7px 0;
-  border-radius: 8px;
-  font-size: 11px;
+  flex: 2 1 180px;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 14px;
+  white-space: normal;
 }
 
-.sendConfirmCancel:active {
-  transform: translateY(1px);
-}
-
-/* ── The Stats panel: whole-ledger figures on machined plates ───────────── */
-
-.statsPanel {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--vault-gunmetal);
-  background: var(--vault-panel);
-  animation: walletFadeIn 0.2s ease;
-}
-
-.statsPanelGifts {
-  padding: 8px 16px 12px;
-}
+/* ── The Stats panel: whole-ledger figures in chrome-stat wells ─────────── */
 
 .statsGrid2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .statsGrid3 {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .statsGridTight {
@@ -902,106 +848,98 @@
   margin-bottom: 0;
 }
 
-/* One plate for every figure; the tint says which side of the ledger. */
+/* One well for every figure; the sign and the label say which side. */
 .statsPlate {
+  min-width: 0;
   padding: 8px 10px;
-  border: 1px solid var(--vault-gunmetal);
-  border-radius: var(--vault-radius);
-  background: var(--vault-carbon);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-navy-bg);
+  overflow-wrap: anywhere;
 }
 
-.statsPlateIn {
-  border-color: rgba(0, 212, 255, 0.3);
-  background: rgba(0, 212, 255, 0.1);
-}
-
+.statsPlateIn,
 .statsPlateOut {
-  border-color: rgba(184, 195, 205, 0.25);
+  /* The side of the ledger is carried by the figure's sign and colour. */
+  background: var(--sd-navy-bg);
 }
 
 .statsPlateCenter {
-  padding: 6px 8px;
+  padding: 8px;
   text-align: center;
 }
 
 .statsPlateSmall {
-  padding: 6px 10px;
-}
-
-.statsHeading {
-  margin-bottom: 8px;
-  color: var(--vault-muted);
-  font-family: var(--vault-font-label);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: capitalize;
+  padding: 8px 10px;
 }
 
 .statsHeadingTight {
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .statsSub {
-  margin-top: 12px;
-  padding: 8px 0;
-  border-top: 1px solid var(--vault-gunmetal);
+  margin-top: 14px;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--sd-divider);
 }
 
 .statsLabel {
   margin-bottom: 2px;
-  color: var(--vault-muted);
-  font-size: 10px;
+  color: var(--sd-silver);
+  font-size: 13px;
 }
 
 .statsLabelSmall {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .statsFigure {
-  font-family: var(--vault-font-display);
-  font-size: 16px;
+  color: var(--sd-white);
+  font-family: var(--wallet-font-display);
+  font-size: 20px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .statsFigureSmall {
-  font-size: 14px;
+  font-size: 17px;
 }
 
-/* Credits in the vault's energy, debits in chrome: spending is not an
-   error, so it is not red (the same rule the ledger rows follow). */
+/* Credits in ice, debits in white: spending is not an error, so it is not
+   red. The sign carries the meaning too. */
 .statsFigureIn {
-  color: var(--vault-cyan);
+  color: var(--sd-ice);
 }
 
 .statsFigureOut {
-  color: var(--vault-chrome-hot);
+  color: var(--sd-white);
 }
 
 .statsFoot {
   margin-top: 2px;
-  color: var(--vault-muted);
-  font-size: 9px;
+  color: var(--sd-silver);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
-/* Month-on-month: up is the energy colour, down is chrome. Which direction is
-   good depends on the column, so the JSX picks the class. */
+/* Month-on-month: up is ice, down is silver. Which direction is good depends
+   on the column, so the JSX picks the class. */
 .statsTrend {
   display: flex;
   align-items: center;
   gap: 2px;
   margin-top: 2px;
-  font-size: 9px;
+  color: var(--sd-silver);
+  font-size: 12px;
 }
 
 .statsTrendUp {
-  color: var(--vault-cyan);
+  color: var(--sd-ice);
 }
 
 .statsTrendDown {
-  color: var(--vault-chrome);
+  color: var(--sd-silver);
 }
 
 /* Ranked bars: the top row is full width, the rest scale to it. Width and
@@ -1009,51 +947,56 @@
 .statsBarRow {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 3px;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .statsBarRowTight {
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .statsBarTrack {
   flex: 1;
-  height: 4px;
+  height: 6px;
   overflow: hidden;
-  border-radius: 2px;
-  background: var(--vault-carbon);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  border-radius: 0;
+  background: #02070d;
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 60%);
 }
 
 .statsBarTrackThin {
-  height: 3px;
+  height: 4px;
 }
 
 .statsBarFill {
   width: var(--bar-width);
   height: 100%;
-  border-radius: 2px;
+  border-radius: 0;
   background: var(--bar-color);
 }
 
 .statsBarLabel {
-  min-width: 80px;
-  color: var(--vault-chrome);
-  font-size: 10px;
-  white-space: nowrap;
+  flex: 0 1 auto;
+  min-width: 96px;
+  max-width: 60%;
+  color: var(--sd-white);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .statsBarLabelSmall {
-  min-width: 70px;
-  font-size: 9px;
+  min-width: 84px;
+  font-size: 12px;
 }
 
 /* The skeleton shown while the whole-ledger pass is still running. */
 .statsSkeletonPlate {
-  height: 60px;
-  border-radius: var(--vault-radius);
-  background: rgba(255, 255, 255, 0.04);
+  height: 64px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-navy-bg);
   animation: walletShimmer 1.2s ease-in-out infinite;
 }
 
@@ -1063,57 +1006,35 @@
 
 /* The way back out of a search or date range that emptied the view. */
 .emptyReset {
-  min-height: 44px;
   margin-top: 12px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--desk-blue);
-  font-family: var(--vault-font-label);
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: capitalize;
-  cursor: pointer;
-}
-
-.emptyReset:active {
-  opacity: 0.75;
-}
-
-.emptyReset:focus-visible {
-  outline: 2px solid var(--vault-cyan) !important;
-  outline-offset: 2px !important;
+  padding: 0 16px;
 }
 
 /* ── A ledger row ───────────────────────────────────────────────────────── */
 
 /*
- * NO HOVER, AND NOT IN JAVASCRIPT EITHER.
- *
- * These rows carried onMouseEnter/onMouseLeave handlers that assigned
- * `e.currentTarget.style.background` - a hover effect written in JS rather than
- * CSS. That is the no-hover rule (Dan 2026-08-29) routed around rather than
- * followed, and it also does nothing on touch, where most of these rows are
- * read. A press is the feedback.
+ * NO HOVER, AND NOT IN JAVASCRIPT EITHER. These rows once carried
+ * onMouseEnter/onMouseLeave handlers that assigned a background. A press is
+ * the feedback. Each row is one chrome-stat well; the opened row's rim turns
+ * cobalt.
  */
 .txRow {
   margin: 0 16px 8px;
-  border: 1px solid var(--vault-gunmetal);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
   border-radius: 0;
-  background: var(--desk-row);
+  background: var(--sd-card-bg);
   cursor: pointer;
-  transition: border-color 0.15s ease;
 }
 
 .txRow:active {
-  border-color: var(--desk-blue);
+  filter: brightness(1.1);
 }
 
 .txRowOpen {
-  border-color: var(--desk-blue);
-  background: var(--desk-row);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: var(--sd-navy-bg);
   box-shadow: none;
 }
 
@@ -1122,7 +1043,7 @@
   align-items: center;
   gap: 12px;
   min-height: 68px;
-  padding: 10px 14px;
+  padding: 10px 12px;
 }
 
 .txBody {
@@ -1130,46 +1051,50 @@
   min-width: 0;
 }
 
+/* VIP marks and the empty-state stamp: a small chrome-stat well, ice type. */
 .vipMark,
 .emptyStateMark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #c8a65b;
+  box-sizing: border-box;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
   border-radius: 0;
-  color: #f1d78d;
-  font: 800 10px/1 var(--vault-font-label);
-  letter-spacing: 0.08em;
+  background: var(--sd-navy-bg);
+  color: var(--sd-ice);
+  font: 800 12px/1 var(--wallet-font-label);
+  letter-spacing: 0.06em;
   text-transform: capitalize;
 }
 
 .vipMark {
   flex-shrink: 0;
-  min-height: 18px;
-  padding: 0 4px;
+  min-height: 24px;
+  padding: 0 6px;
 }
 
 .emptyStateMark {
-  min-height: 32px;
-  margin-bottom: 10px;
-  padding: 0 10px;
+  min-height: 36px;
+  margin-bottom: 12px;
+  padding: 0 12px;
+  font-size: 13px;
 }
 
 .txLabel {
   margin-bottom: 3px;
-  color: var(--desk-white);
-  font-family: var(--vault-font-label);
-  font-size: 15px;
+  color: var(--sd-white);
+  font-family: var(--wallet-font-label);
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
 .txDesc {
   overflow: hidden;
-  color: var(--desk-muted);
-  font-size: 12px;
+  color: var(--sd-silver);
+  font-size: 13px;
   text-overflow: ellipsis;
-  text-shadow: var(--desk-shadow);
   white-space: nowrap;
 }
 
@@ -1179,24 +1104,77 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+  text-align: right;
 }
 
 .txAmount {
-  font-family: var(--vault-font-display);
-  font-size: 16px;
+  font-family: var(--wallet-font-display);
+  font-size: 18px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
-/* A credit in the desk's lit blue, a debit in its red, exactly as the Club
-   Arena Cashier and wallet desks print them, so one diamond economy reads the
-   same from both places. */
+/* A credit in ice, a debit in red, signed, exactly as the Club Arena Cashier
+   and wallet desks print them, so one diamond economy reads the same from
+   both places. */
 .txAmountIn {
-  color: var(--desk-blue);
+  color: var(--sd-ice);
 }
 
 .txAmountOut {
-  color: var(--desk-red);
+  color: var(--sd-red);
+}
+
+.txAfter {
+  color: var(--sd-silver);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.txWhen {
+  color: var(--sd-silver);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The row opened: its receipt, under a divider. */
+.txDetail {
+  padding: 0 12px 10px;
+  border-top: 1px solid var(--sd-divider);
+  animation: walletFadeIn 0.15s ease;
+}
+
+.txDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 16px;
+  padding-top: 10px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.txDetailWide {
+  grid-column: 1 / -1;
+}
+
+.txDetailKey {
+  color: var(--sd-silver);
+}
+
+.txDetailValue {
+  color: var(--sd-white);
+}
+
+.txDetailRef {
+  color: var(--sd-white);
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.copyKey {
+  margin-top: 10px;
+  padding: 0 16px;
 }
 
 /* ── The shell: backdrop, dialog, close bar, scroll body ─────────────────── */
@@ -1205,8 +1183,7 @@
   position: fixed;
   inset: 0;
   z-index: 89;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgb(2 7 13 / 70%);
   animation: walletFadeIn 0.2s ease;
 }
 
@@ -1222,19 +1199,23 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #020814 url('/images/diamond-wallet-bg-new.webp') center/cover no-repeat;
+  color: var(--sd-white);
+  background: var(--sd-navy-bg);
   font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
   text-transform: capitalize;
+  color-scheme: dark;
   animation: walletFadeScale 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .closeBar {
   display: flex;
   justify-content: flex-end;
+  box-sizing: border-box;
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
-  padding: 12px 16px 0;
+  padding: 10px 16px 10px;
 }
 
 .scrollBody {
@@ -1246,33 +1227,12 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* The two painted buttons sit one each side of the plate. */
-.artHitboxBuy {
-  left: 10%;
-}
-
-.artHitboxSend {
-  right: 10%;
-}
-
-/* A <select> paints its own popup on the platform's colours; the option
-   colours are the one place the vault has to say so explicitly. */
-.rangeOption {
-  background: #0a1628;
-  color: #fff;
-}
-
-/* ── The empty-state diamond and the category donut ─────────────────────── */
-
-.emptyDiamond {
-  opacity: 0.6;
-  filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.4));
-}
+/* ── The empty-state mark and the category donut ────────────────────────── */
 
 .donut {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .donutRing {
@@ -1281,38 +1241,40 @@
 
 .donutLegend {
   flex: 1;
+  min-width: 0;
 }
 
 .donutLegendRow {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 3px;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 /* The swatch takes its colour from the slice it stands for. */
 .donutSwatch {
   flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 0;
   background: var(--swatch);
 }
 
 .donutLegendLabel {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
-  color: var(--vault-muted);
-  font-size: 10px;
+  color: var(--sd-silver);
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .donutLegendValue {
-  color: var(--vault-chrome);
-  font-family: var(--vault-font-display);
-  font-size: 10px;
-  font-weight: 600;
+  color: var(--sd-white);
+  font-family: var(--wallet-font-display);
+  font-size: 13px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1324,14 +1286,16 @@
   gap: 12px;
   min-height: 68px;
   margin: 0 16px 8px;
-  padding: 10px 14px;
-  border: 1px solid var(--vault-gunmetal);
-  background: var(--desk-row);
+  padding: 10px 12px;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: var(--sd-card-bg);
 }
 
 .skeletonBone {
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.06);
+  border-radius: 0;
+  background: #1a3047;
   animation: walletShimmer 1.2s ease-in-out infinite;
 }
 
@@ -1339,7 +1303,6 @@
   flex-shrink: 0;
   width: 36px;
   height: 36px;
-  border-radius: 10px;
 }
 
 .skeletonBody {
@@ -1355,7 +1318,7 @@
 .skeletonSub {
   width: 40%;
   height: 10px;
-  background: rgba(255, 255, 255, 0.04);
+  background: #13263a;
   animation-delay: 0.2s;
 }
 
@@ -1371,17 +1334,17 @@
 /* Pull-to-refresh: the distance the finger has travelled is data. */
 .pullBanner {
   padding: var(--pull-pad) 0;
-  color: var(--vault-muted);
-  font-family: var(--vault-font-label);
-  font-size: 11px;
+  color: var(--sd-silver);
+  font-family: var(--wallet-font-label);
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.03em;
   text-align: center;
   text-transform: capitalize;
 }
 
 .pullBannerArmed {
-  color: var(--vault-cyan);
+  color: var(--sd-cyan);
 }
 
 .pullBannerSettling {
@@ -1393,70 +1356,50 @@
 }
 
 .stateBox {
-  padding: 40px;
-  color: var(--vault-muted);
+  margin: 0 16px;
+  padding: 28px 20px;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
+  background: var(--sd-card-bg);
+  color: var(--sd-silver);
   text-align: center;
 }
 
 .stateBoxEmpty {
-  padding: 30px 40px;
+  padding: 24px 20px;
 }
 
 .stateText {
   margin-bottom: 14px;
-  color: var(--desk-silver);
-  font-size: 13px;
+  color: var(--sd-red);
+  font-size: 14px;
 }
 
 .stateTitle {
-  font-size: 13px;
-  font-weight: 500;
+  color: var(--sd-white);
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .stateHint {
-  margin-top: 6px;
-  color: var(--vault-muted);
-  font-size: 11px;
+  margin-top: 8px;
+  color: var(--sd-silver);
+  font-size: 13px;
 }
 
-/* Retry, Load More, and the first-diamonds call to action share one lit key. */
+/* Retry, Load More and the first-diamonds call to action share one key. */
 .litKey {
-  min-height: 44px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--desk-blue);
-  font-family: var(--vault-font-label);
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: capitalize;
-  cursor: pointer;
-  box-shadow: none;
-  transition: opacity 0.15s ease;
-}
-
-.litKey:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.litKey:not(:disabled):active {
-  opacity: 0.75;
-}
-
-.litKey:focus-visible {
-  outline: 2px solid var(--vault-cyan) !important;
-  outline-offset: 2px !important;
+  padding: 0 18px;
+  transition: filter 0.15s ease;
 }
 
 .litKeyLarge {
   margin-top: 16px;
-  padding: 0 12px;
-  color: var(--desk-white);
-  font-size: 15px;
-  text-shadow: var(--desk-glow);
+  min-height: 50px;
+  padding: 0 22px;
+  font-size: 16px;
 }
 
 .loadMore {
@@ -1467,12 +1410,12 @@
 /* Today / Yesterday / This Week / Earlier. */
 .groupHeader {
   padding: 14px 16px 8px;
-  color: var(--desk-muted);
-  font-family: var(--vault-font-label);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-shadow: var(--desk-shadow);
+  color: var(--sd-white);
+  font-family: var(--wallet-font-label);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-shadow: var(--sd-shadow);
   text-transform: capitalize;
 }
 
@@ -1480,110 +1423,47 @@
   margin-top: 4px;
 }
 
-.txAfter {
-  color: var(--desk-muted);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-.txWhen {
-  color: var(--desk-muted);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-}
-
-/* The row opened: its receipt, laid under the icon column. */
-.txDetail {
-  padding: 0 14px 10px;
-  border-top: 1px solid #000;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
-  animation: walletFadeIn 0.15s ease;
-}
-
-.txDetailGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px 16px;
-  padding-top: 10px;
-  font-size: 12px;
-}
-
-.txDetailWide {
-  grid-column: 1 / -1;
-}
-
-.txDetailKey {
-  color: var(--desk-muted);
-}
-
-.txDetailValue {
-  color: var(--desk-silver);
-}
-
-.txDetailRef {
-  color: var(--desk-silver);
-  font-family: var(--font-inter), Inter, Arial, sans-serif;
-  font-size: 11px;
-}
-
-.copyKey {
-  min-height: 44px;
-  margin-top: 4px;
-  padding: 0 2px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--desk-blue);
-  font-family: var(--vault-font-label);
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  cursor: pointer;
-  transition: color 0.15s ease;
-}
-
-.copyKey:active {
-  opacity: 0.75;
-}
-
-.copyKey:focus-visible {
-  outline: 2px solid var(--vault-cyan) !important;
-  outline-offset: 2px !important;
-}
-
-.copyKeyDone {
-  color: var(--desk-white);
-  text-shadow: var(--desk-glow);
-}
-
 .footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 12px;
+  gap: 4px 12px;
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid #000;
-  background: var(--desk-well);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
-  color: var(--desk-muted);
-  font-family: var(--vault-font-label);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  border-top: 1px solid var(--sd-divider);
+  background: var(--sd-ink);
+  color: var(--sd-silver);
+  font-family: var(--wallet-font-label);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
   text-align: center;
-  text-shadow: var(--desk-shadow);
 }
 
 /* Every filter word on screen at 375 and 393 (Dan 2026-10-16): the rail wraps
    instead of hiding Earned, Spent and Gifts in a sideways strip, and on a
-   phone the words tighten while each keeps its 44px tap height. */
+   phone each key tightens while keeping its 44px tap height. */
 @media (max-width: 480px) {
   .filterRail {
-    gap: 2px 14px;
+    gap: 6px;
   }
 
   .filterChip {
-    font-size: 12px;
-    letter-spacing: 0.06em;
+    padding: 0 8px;
+    font-size: 13px;
+  }
+
+  .statsGrid3 {
+    gap: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallet *,
+  .wallet {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -1597,6 +1477,5 @@
   overflow: hidden;
   border: 0;
   clip: rect(0 0 0 0);
-  clip-path: inset(50%);
   white-space: nowrap;
 }

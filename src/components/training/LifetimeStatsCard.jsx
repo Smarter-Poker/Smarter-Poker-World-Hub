@@ -164,7 +164,7 @@ const styles = {
         background: 'rgba(0,0,0,0.2)', borderRadius: 10,
     },
     heroValue: {
-        fontSize: 36, fontWeight: 800, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+        fontSize: 36, fontWeight: 800, fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
         lineHeight: 1,
     },
     heroLabel: { fontSize: 12, color: '#64748b', marginTop: 4 },
@@ -179,7 +179,7 @@ const styles = {
         textAlign: 'center',
     },
     statValue: {
-        fontSize: 16, fontWeight: 'bold', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+        fontSize: 16, fontWeight: 'bold', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
     },
     statLabel: { fontSize: 12, color: '#64748b', fontWeight: 600, marginTop: 2 },
     statSub: { fontSize: 12, color: '#475569', marginTop: 1 },

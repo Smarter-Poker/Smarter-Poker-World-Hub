@@ -202,7 +202,7 @@ function ClassificationSidebar({ groups, actions, lockedClassifications, onToggl
           textTransform: 'uppercase',
           letterSpacing: 1,
           marginBottom: 10,
-          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+          fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
         }}
       >
         Hand Classes
@@ -911,7 +911,7 @@ function SolutionsBrowserInner() {
                 fontWeight: 800,
                 margin: 0,
                 color: '#eef8ff',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
               }}
             >
               GTO Solutions
@@ -1005,7 +1005,7 @@ function SolutionsBrowserInner() {
                     background:
                       stackDepth === sd ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
                     color: stackDepth === sd ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                    fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                   }}
                 >
                   {sd}BB
@@ -1069,7 +1069,7 @@ function SolutionsBrowserInner() {
                     whiteSpace: 'nowrap',
                     background: position === p ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
                     color: position === p ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                    fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                   }}
                 >
                   {p}
@@ -1191,7 +1191,7 @@ function SolutionsBrowserInner() {
                         : 'rgba(255,255,255,0.04)',
                       color: !showBookmarksOnly ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                       transition: 'all 0.15s',
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                      fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                     }}
                   >
                     ALL SPOTS
@@ -1220,7 +1220,7 @@ function SolutionsBrowserInner() {
                         : 'rgba(255,255,255,0.04)',
                       color: showBookmarksOnly ? '#86daff' : 'var(--sp-fg-dim)',
                       transition: 'all 0.15s',
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                      fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                     }}
                   >
                     ★ BOOKMARKS
@@ -1279,7 +1279,7 @@ function SolutionsBrowserInner() {
                         fontSize: 12,
                         color: 'var(--sp-fg-dim)',
                         padding: '6px 8px',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                        fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                       }}
                     >
                       Page {page} • {returnedCount} Returned
@@ -1441,7 +1441,7 @@ function SolutionsBrowserInner() {
                         fontSize: 18,
                         fontWeight: 800,
                         color: 'var(--sp-accent-cyan)',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                        fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                       }}
                     >
                       {spotDetail.heroPosition}
@@ -1461,7 +1461,7 @@ function SolutionsBrowserInner() {
                           fontWeight: 700,
                           background: 'rgba(255,255,255,0.06)',
                           color: 'var(--sp-fg-muted)',
-                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                          fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                         }}
                       >
                         {a}
@@ -1594,7 +1594,7 @@ function SolutionsBrowserInner() {
                         fontSize: 12,
                         fontWeight: 700,
                         color: 'var(--sp-accent-cyan)',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                        fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                         marginBottom: 12,
                         textTransform: 'uppercase',
                         letterSpacing: 1,
@@ -1630,7 +1630,34 @@ function SolutionsBrowserInner() {
                   />
                 ) : null}
               </motion.div>
-            ) : null}
+            ) : (
+              <div
+                className="smarterdesign sd-panel"
+                data-solutions-empty-detail="true"
+                style={{
+                  maxWidth: 460,
+                  width: '100%',
+                  margin: 'auto',
+                  padding: '28px 24px',
+                  textAlign: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 800,
+                    color: '#f2f7ff',
+                    fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
+                    marginBottom: 8,
+                  }}
+                >
+                  Select An Audited Solver Spot
+                </div>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: '#bdd0e2' }}>
+                  Choose Any Audited PioSOLVER Spot On The Left To Inspect Its 13×13 GTO Action Matrix, Hand-Class EV Breakdown, And Strategy Report.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -39,20 +39,13 @@ import { getVerifiedCheckoutAuthorization } from '../../../src/lib/store/checkou
 import { leaveForCheckout } from '../../../src/lib/store/leaveForCheckout.mjs';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
+import { formatUsd } from '../../../src/lib/store/formatStoreMoney.mjs';
 import { boundedCommerceFetch } from '../../../src/lib/store/boundedCommerceFetch';
 import { resolveReviewedMerchArt } from '../../../src/lib/store/merchProductArt';
 import {
   classifyMerchDiamondPurchaseRefusal,
   normalizeVerifiedMerchDiamondPurchase,
 } from '../../../src/lib/store/verifiedCommerceResponse.mjs';
-
-/** Whole-dollar amounts show without cents; any fractional amount stays exact. */
-function formatCartUsd(value) {
-  const amount = Number(value) || 0;
-  return Number.isInteger(amount)
-    ? amount.toLocaleString('en-US')
-    : amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 function AccountPanel({ title, primaryAction = null, children }) {
   return (
@@ -1428,7 +1421,7 @@ export default function ShoppingCart() {
                     <span>
                       Subtotal ({itemCount} {itemCount === 1 ? 'Item' : 'Items'})
                     </span>
-                    <span>${formatCartUsd(getSubtotal())}</span>
+                    <span>{formatUsd(getSubtotal())}</span>
                   </div>
 
                   <div style={styles.summaryRow}>
@@ -1440,7 +1433,7 @@ export default function ShoppingCart() {
 
                   <div style={styles.totalRow}>
                     <span>Total</span>
-                    <span>${formatCartUsd(getSubtotal())}</span>
+                    <span>{formatUsd(getSubtotal())}</span>
                   </div>
 
                   {/* Mixed cart: one purchase type per checkout session */}
@@ -1452,8 +1445,8 @@ export default function ShoppingCart() {
                   {!usingDiamonds && cardGroup && deferredUnits > 0 && (
                     <div style={styles.noticeBox}>
                       {cardGroup === 'diamonds'
-                        ? `All Diamond Packages Check Out Together For $${formatCartUsd(cardChargeCents / 100)}. The Other ${deferredUnits} ${deferredUnits === 1 ? 'Item Stays' : 'Items Stay'} In Your Cart For A Separate Checkout.`
-                        : `This Checkout Covers Your Merchandise ($${formatCartUsd(cardChargeCents / 100)}). The Other ${deferredUnits} ${deferredUnits === 1 ? 'Item Stays' : 'Items Stay'} In Your Cart.`}
+                        ? `All Diamond Packages Check Out Together For ${formatUsd(cardChargeCents / 100)}. The Other ${deferredUnits} ${deferredUnits === 1 ? 'Item Stays' : 'Items Stay'} In Your Cart For A Separate Checkout.`
+                        : `This Checkout Covers Your Merchandise (${formatUsd(cardChargeCents / 100)}). The Other ${deferredUnits} ${deferredUnits === 1 ? 'Item Stays' : 'Items Stay'} In Your Cart.`}
                     </div>
                   )}
                   {usingDiamonds && vipItems.length > 0 && (
@@ -1530,7 +1523,7 @@ export default function ShoppingCart() {
                       </div>
                       <div className={cartStyles.paymentTotal}>
                         <span className={cartStyles.paymentPrice}>
-                          ${formatCartUsd(cardChargeCents / 100)}
+                          {formatUsd(cardChargeCents / 100)}
                         </span>
                         <span className={cartStyles.selectionSeam} aria-hidden="true" />
                       </div>
@@ -1663,7 +1656,7 @@ function CartItem({
         <div style={styles.itemDetails}>
           <h4 style={styles.itemName}>{copyName}</h4>
           <p style={styles.itemType}>{marketplaceCopy(type)}</p>
-          <p style={styles.itemPrice}>${formatCartUsd(Number(price) || 0)}</p>
+          <p style={styles.itemPrice}>{formatUsd(Number(price) || 0)}</p>
         </div>
 
         <div style={{ ...styles.itemActions, ...(isMobile ? styles.itemActionsMobile : {}) }}>

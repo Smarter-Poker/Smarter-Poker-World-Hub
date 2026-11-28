@@ -121,7 +121,7 @@ const EVBar = memo(({ action, ev, frequency, bestEV, isPlayerAction, isOptimal }
             </div>
             <div style={{
                 width: 55, fontSize: 12, fontWeight: 700, textAlign: 'right',
-                fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                 color: ev >= 0 ? '#22c55e' : '#ef4444',
             }}>
                 {ev >= 0 ? '+' : ''}{ev.toFixed(2)} BB
@@ -278,7 +278,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                 <div style={{
                     fontSize: 12, fontWeight: 700,
                     color: isCorrect ? '#22c55e' : '#ef4444',
-                    fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+                    fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                 }}>
                     {hand?.evLoss > 0 ? `-${hand.evLoss.toFixed(2)} BB` : '✓ 0.00 BB'}
                 </div>
@@ -307,7 +307,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                 {handData.potSize && (
                     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
                         <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Pot</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff', fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)" }}>
                             {handData.potSize} BB
                         </div>
                     </div>

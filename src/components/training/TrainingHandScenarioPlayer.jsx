@@ -295,7 +295,7 @@ const styles = {
     stepCounter: {
         color: '#b0b3b8',
         fontSize: 12,
-        fontFamily: 'monospace',
+        fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         marginLeft: 8,
     },
 
@@ -355,7 +355,7 @@ const styles = {
         padding: 12,
         background: 'rgba(0,0,0,0.5)',
         borderRadius: 8,
-        fontFamily: 'monospace',
+        fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         fontSize: 12,
         color: '#0f0',
     },
@@ -422,7 +422,7 @@ const styles = {
         background: 'rgba(0,0,0,0.9)',
         color: '#0f0',
         fontSize: 12,
-        fontFamily: 'monospace',
+        fontFamily: 'var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         padding: 8,
         borderRadius: 4,
         zIndex: 200,

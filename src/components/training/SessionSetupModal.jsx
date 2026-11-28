@@ -365,6 +365,7 @@ export default function SessionSetupModal({
   return (
     <div
       ref={dialogRef}
+      className="smarterdesign"
       role="dialog"
       aria-modal="true"
       aria-labelledby="sp-setup-title"

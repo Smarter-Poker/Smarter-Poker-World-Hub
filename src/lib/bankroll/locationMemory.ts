@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabase';
+import { getAuthUserId } from '../authUtils';
 import { exactIlikePattern } from './venueNames.mjs';
 
 // deleteLocation, getLocationStats, getLocationAlerts,
@@ -23,9 +24,9 @@ export async function getOrCreateLocation(
   longitude?: number,
   pokerVenueId?: string | number | null
 ): Promise<string> {
-  // Verify auth session — RLS requires auth.uid() = user_id
-  const { data: { session } } = await supabase.auth.getSession();
-  const authUserId = session?.user?.id || userId;
+  // RLS requires auth.uid() = user_id: write as the signed-in user. Read from
+  // the stored session through authUtils, the repo-approved auth read.
+  const authUserId = getAuthUserId() || userId;
 
   // A failed lookup used to fall through to the insert and save a second copy
   // of a venue the player already has.

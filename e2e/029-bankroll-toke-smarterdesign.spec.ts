@@ -161,9 +161,10 @@ test('Toke destinations retain readable navigation and an accessible tax sheet',
 // bankroll is already initialised, or it correctly meets the gate instead.
 async function installInitialisedProBankroll(page: Page, userId: string) {
   await page.route('**/api/vip/check-status?*', route => route.fulfill({ json: { isVip: true } }));
-  await page.route('**/rest/v1/bankroll_segments*', route => route.fulfill({ json: [{
-    user_id: userId, segment_type: 'poker', initial_deposit: 1000, current_balance: 1000,
-  }] }));
+  const segment = { user_id: userId, segment_type: 'poker', initial_deposit: 1000, current_balance: 1000 };
+  await page.route('**/rest/v1/bankroll_segments*', route => route.fulfill({
+    json: route.request().headers().accept?.includes('vnd.pgrst.object') ? segment : [segment],
+  }));
 }
 
 async function installBankrollSession(page: Page) {
@@ -321,6 +322,7 @@ test('Tournament entry records the entered buy-in and applies each bounty once a
   await form.getByLabel('Tournament Type', { exact: true }).selectOption('pko');
   await form.getByLabel('Bounties Collected ($)', { exact: true }).fill('20');
   await expect(form.getByText('Total Buy-In:')).toContainText('$205');
+  // #3276: entry forms keep US dollars and say so, whatever the Display EUR setting.
   await expect(form.getByText('Net (USD): +$65', { exact: true })).toBeVisible();
   await form.getByRole('button', { name: 'Log Entry', exact: true }).click();
   await expect.poll(() => writes.length).toBe(1);

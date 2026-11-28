@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -475,6 +476,16 @@ export default function MRatioCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="m-ratio-calculator"
+              toolName="Tournament M-Ratio & Q-Ratio Calculator"
+              eyebrow="Free MTT Zone Cloud Sync"
+              title="Save This Tournament M-Ratio & Zone Readout Free"
+              description="Sync Effective M Calculations, Harrington Survival Zones & Q-Ratio Benchmarks Across Devices."
+              ctaLabel="Save M-Ratio Spot Free"
+              summaryText={`Stack ${metrics.safeStack} (${metrics.stackBb}BB) At ${metrics.safeSb}/${metrics.safeBb}/${metrics.safeAnte} (${metrics.safePlayers}-Handed): M = ${metrics.mRatio} | Effective M = ${metrics.effectiveM} (${metrics.zoneLabel}) | Q-Ratio = ${metrics.qRatio}`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-m-ratio-calculator"

@@ -164,7 +164,7 @@ export default function VenueDetail() {
             <div className="cmd-rivet cmd-rivet-bl" />
             <div className="cmd-rivet cmd-rivet-br" />
           </div>
-          <p className="text-[#64748B] mb-4">Venue Not Found</p>
+          <p className="text-[#9FB3C8] mb-4">Venue Not Found</p>
           <Link
             href="/hub/commander"
             className="text-[#22D3EE] font-medium hover:underline"
@@ -199,19 +199,20 @@ export default function VenueDetail() {
         )}
 
         {/* Header */}
+        <div className="cmd-back-row">
+          <Link className="cmd-back-link"
+            href="/hub/commander"
+            >
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+            Back
+          </Link>
+        </div>
         <header className="cmd-header-full">
           <div className="max-w-3xl mx-auto px-4 py-4">
-            <Link
-              href="/hub/commander"
-              className="inline-flex items-center gap-2 text-[#64748B] hover:text-[#22D3EE] mb-3"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </Link>
 
             <h1 className="text-xl font-bold text-white">{venue.name}</h1>
 
-            <div className="flex flex-wrap gap-4 mt-2 text-sm text-[#64748B]">
+            <div className="flex flex-wrap gap-4 mt-2 text-sm text-[#9FB3C8]">
               <span className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
                 {venue.city}, {venue.state}
@@ -253,8 +254,8 @@ export default function VenueDetail() {
                   <div className="cmd-rivet cmd-rivet-bl" />
                   <div className="cmd-rivet cmd-rivet-br" />
                 </div>
-                <Users className="w-8 h-8 mx-auto mb-2 text-[#64748B] opacity-50" />
-                <p className="text-[#64748B]">No Live Games Right Now</p>
+                <Users className="w-8 h-8 mx-auto mb-2 text-[#9FB3C8] opacity-50" />
+                <p className="text-[#9FB3C8]">No Live Games Right Now</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -295,7 +296,7 @@ export default function VenueDetail() {
                             </span>
                           </div>
                           {game.commander_tables && (
-                            <p className="text-sm text-[#64748B] mt-1">
+                            <p className="text-sm text-[#9FB3C8] mt-1">
                               Table {game.commander_tables.table_number}
                             </p>
                           )}
@@ -308,7 +309,7 @@ export default function VenueDetail() {
                           <span>{occupiedSeats}/{game.max_players || 9} Seated</span>
                         </div>
                         {waitlist && (
-                          <div className="flex items-center gap-1 text-sm text-[#F59E0B]">
+                          <div className="flex items-center gap-1 text-sm text-[#22D3EE]">
                             <Clock className="w-4 h-4" />
                             <span>{waitlist.count} Waiting</span>
                           </div>
@@ -358,7 +359,7 @@ export default function VenueDetail() {
                     <p className="font-medium text-white">
                       {wl.game_type?.toUpperCase()} {wl.stakes}
                     </p>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-[#64748B]">
+                    <div className="flex items-center gap-4 mt-2 text-sm text-[#9FB3C8]">
                       <span className="flex items-center gap-1">
                         <Users className="w-4 h-4" />
                         {wl.count}

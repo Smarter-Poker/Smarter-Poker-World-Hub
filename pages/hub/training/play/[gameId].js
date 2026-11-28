@@ -74,7 +74,7 @@ export default function TrainingPlayPage() {
                     description="Interactive Smarter.Poker GTO Training Level Selector."
                     noindex={true}
                 />
-                <main style={{
+                <main className="smarterdesign" style={{
                     minHeight: '100dvh',
                     padding: '24px 16px 70px',
                     width: '100%',
@@ -85,29 +85,25 @@ export default function TrainingPlayPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#ffffff',
-                    fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif",
+                    color: '#f2f7ff',
+                    fontFamily: "var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 }}>
-                    <section style={{
+                    <section className="sd-panel" style={{
                         width: '100%',
                         maxWidth: 480,
-                        background: '#081121',
-                        border: '1px solid rgba(148, 184, 224, 0.28)',
-                        borderRadius: 14,
                         padding: '28px 24px',
                         textAlign: 'center',
-                        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.45)',
                     }}>
                         <div style={{
                             display: 'inline-block',
                             padding: '5px 12px',
-                            borderRadius: 999,
-                            background: 'rgba(56, 189, 248, 0.12)',
-                            border: '1px solid rgba(148, 184, 224, 0.28)',
-                            color: '#38bdf8',
+                            background: 'rgba(10, 24, 41, 0.82)',
+                            border: '1px solid rgba(134, 218, 255, 0.36)',
+                            color: '#86daff',
                             fontSize: 12,
                             fontWeight: 700,
-                            letterSpacing: '0.04em',
+                            letterSpacing: '0.06em',
+                            textTransform: 'uppercase',
                             marginBottom: 14,
                         }}>
                             Smarter.Poker GTO Training
@@ -115,10 +111,10 @@ export default function TrainingPlayPage() {
                         <h1 style={{
                             margin: '0 0 10px',
                             fontSize: 'clamp(22px, 4vw, 28px)',
-                            fontWeight: 800,
-                            lineHeight: 1.25,
-                            color: '#ffffff',
-                            fontFamily: "var(--font-orbitron), sans-serif",
+                            fontWeight: 700,
+                            lineHeight: 1.2,
+                            color: '#f2f7ff',
+                            fontFamily: "var(--sd-type, var(--font-rajdhani, 'Arial Narrow'), sans-serif)",
                         }}>
                             {headingTitle}
                         </h1>
@@ -126,7 +122,7 @@ export default function TrainingPlayPage() {
                             margin: '0 0 22px',
                             fontSize: 14,
                             lineHeight: 1.6,
-                            color: '#cbd5e1',
+                            color: '#bdd0e2',
                         }}>
                             Loading Level Selector. Sign In Or Create A Free Account To Play 107 Solver-Graded GTO Poker Training Games And Save Your Progress.
                         </p>
@@ -139,18 +135,13 @@ export default function TrainingPlayPage() {
                             <Link
                                 href={signupHref}
                                 rel="nofollow"
+                                className="sd-button sd-primary"
                                 style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     minHeight: 44,
                                     padding: '10px 22px',
-                                    borderRadius: 8,
-                                    background: 'linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%)',
-                                    border: '1px solid rgba(148, 184, 224, 0.36)',
-                                    color: '#ffffff',
-                                    fontSize: 14,
-                                    fontWeight: 700,
                                     textDecoration: 'none',
                                 }}
                             >
@@ -159,18 +150,13 @@ export default function TrainingPlayPage() {
                             <Link
                                 href={loginHref}
                                 rel="nofollow"
+                                className="sd-button"
                                 style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     minHeight: 44,
                                     padding: '10px 20px',
-                                    borderRadius: 8,
-                                    background: '#060d1a',
-                                    border: '1px solid rgba(148, 184, 224, 0.28)',
-                                    color: '#38bdf8',
-                                    fontSize: 14,
-                                    fontWeight: 600,
                                     textDecoration: 'none',
                                 }}
                             >
@@ -192,10 +178,12 @@ export default function TrainingPlayPage() {
             />
             <div className="training-play-page" style={{ background: '#040d18', minHeight: '100dvh' }}>
                 <UniversalHeader pageDepth={2} />
-                <LevelSelector
-                    userId={userId}
-                    gameId={gameId}
-                />
+                <div className="smarterdesign">
+                    <LevelSelector
+                        userId={userId}
+                        gameId={gameId}
+                    />
+                </div>
             </div>
         </>
     );

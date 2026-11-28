@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -590,6 +591,16 @@ export default function StraddleCalculatorPage({
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="straddle-calculator"
+              toolName="Straddle & Bomb Pot EV Calculator"
+              eyebrow="Free Live Cash Cloud Sync"
+              title="Save This Straddle & Bomb Pot EV Spot Free"
+              description="Store Mississippi Button Straddle Depths, Bomb Pot SPRs & Live Game Adjustments Free."
+              ctaLabel="Save Straddle Spot Free"
+              summaryText={`${metrics.blindObj.label} (${metrics.straddledBbs} Straddled BBs) | Bomb Pot Pool ${metrics.bombPool} (SPR ${metrics.bombSpr})`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-straddle-calculator"

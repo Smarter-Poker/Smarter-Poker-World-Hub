@@ -4,6 +4,7 @@ import Link from 'next/link';
 import styles from './CheckoutStatusPanel.module.css';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 import { checkoutReceiptHref } from '../../lib/store/checkoutReconciliation';
+import { formatUsdCents } from '../../lib/store/formatStoreMoney.mjs';
 
 const COPY = {
   verifying: {
@@ -47,9 +48,7 @@ const COPY = {
 function amountLabel(receipt) {
   if (!receipt) return null;
   if (receipt.amountTotal != null) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-      Number(receipt.amountTotal) / 100
-    );
+    return formatUsdCents(receipt.amountTotal);
   }
   return null;
 }

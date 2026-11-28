@@ -1,8 +1,9 @@
 /**
  * PROGRAMMATIC HAND-VS-HAND POKER ODDS & EQUITY REGISTRY
  * ======================================================
- * Authoritative verified equity dataset powering the 100 static programmatic
- * /tools/odds/[matchup] pages and /sitemap-tools.xml.
+ * Authoritative verified equity dataset powering the 150 static programmatic
+ * /tools/odds/[matchup] pages and /sitemap-tools.xml across NLHE, PLO4, PLO5,
+ * and Short Deck (6+ Hold'em).
  *
  * Math verified via Smarter.Poker PokerOddsEngine and exact combinatoric tables:
  *   winA + winB + tie = 100.00%
@@ -12,7 +13,7 @@
  * House style: Title Case, zero em dashes, zero en dashes.
  */
 
-export const TOOL_MATCHUPS_AS_OF = '2026-11-27';
+export const TOOL_MATCHUPS_AS_OF = '2026-11-28';
 export const TOOL_MATCHUPS_BASE_PATH = '/tools/odds';
 
 export function toolMatchupPath(slug) {
@@ -20,9 +21,11 @@ export function toolMatchupPath(slug) {
 }
 
 export function buildOddsCalculatorHref({ game = 'nlhe', handACards = '', handBCards = '' }) {
-  const params = new URLSearchParams({ game });
+  const isShortDeck = game === 'short_deck';
+  const params = new URLSearchParams({ game: isShortDeck ? 'nlhe' : game });
   if (handACards) params.set('h0', handACards);
   if (handBCards) params.set('h1', handBCards);
+  if (isShortDeck) params.set('variant', 'short_deck');
   return `/tools/poker-odds-calculator?${params.toString()}`;
 }
 
@@ -4924,6 +4927,2456 @@ const RAW_MATCHUPS = [
         question: 'Can I Test Custom 5-Card PLO Hands In Smarter.Poker?',
         answer:
           'Yes. Click Launch In Odds Calculator To Preload AAKQJds Vs JT987ds In The Free Smarter.Poker Multi-Variant Poker Odds Calculator.',
+      },
+    ],
+  },
+  {
+    slug: 'aa-vs-88',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Overpair Vs Underpair',
+    handA: 'AA',
+    handAName: 'Pocket Aces',
+    handACards: 'As,Ah',
+    handB: '88',
+    handBName: 'Pocket Eights',
+    handBCards: '8d,8c',
+    winA: 79.75,
+    winB: 20.0,
+    tie: 0.25,
+    equityA: 79.88,
+    equityB: 20.12,
+    title: 'AA Vs 88 Poker Odds And Equity',
+    h1: 'AA Vs 88 Poker Odds And Preflop Equity',
+    description:
+      'Exact AA Vs 88 Preflop Odds: Pocket Aces Leads Pocket Eights 79.88% To 20.12% (79.75% Win, 0.25% Tie), With Set-Mining Implied Odds And 3-Bet Math.',
+    flopHitNotes: [
+      'Pocket Eights Flops A Set 11.76% Of The Time And Immediately Flips Into A 91% Favorite Over Unimproved Pocket Aces.',
+      'Middle Pairs Like 88 Gain Over 2% Equity Versus AA Compared To KK Because Eights Make Unblocked Middle Straights (T-9-7-6, 9-7-6-5).',
+      'On Dry High-Card Flops Missing An Eight, Pocket Aces Retains Over 91% Equity Heading Into The Turn And River.',
+    ],
+    strategicTakeaways: [
+      'Pocket Eights Requires Roughly 12:1 To 15:1 Effective Implied Odds When Set-Mining In Position Against Tight 3-Bet Ranges Weighted Toward AA.',
+      'At Shallow 20BB To 30BB Tournament Stacks, Pocket Eights Often Plays As A Preflop Jam Against Late-Position Opens Rather Than Flatting.',
+      'Pocket Aces Should Size Medium C-Bets On Low Connected Flops (9-7-4, T-8-5) To Charge Middle Pairs And Straight Draws.',
+    ],
+    relatedSlugs: ['aa-vs-99', 'aa-vs-tt', 'kk-vs-88', '88-vs-77'],
+    faqs: [
+      {
+        question: 'What Are The Exact Preflop Odds Of AA Vs 88?',
+        answer:
+          'Pocket Aces Wins 79.75% Of Runouts, Pocket Eights Wins 20.00%, And 0.25% Split, Giving AA 79.88% Total Equity Against 20.12% For 88.',
+      },
+      {
+        question: 'Why Does 88 Have Higher Equity Against AA Than KK Does?',
+        answer:
+          'Pocket Eights Can Complete Four-Card Middle Straights Without Improving Aces, Lifting 88 To 20.12% Equity Versus 17.82% For Pocket Kings.',
+      },
+      {
+        question: 'Is Pocket Eights Profitable To Set-Mine Against Pocket Aces?',
+        answer:
+          'Yes At 100BB+ Effective Stacks When Calling Single Raises Or Small 3-Bets In Position, Provided Stacks Allow Extracting Full Value When An Eight Hits.',
+      },
+    ],
+  },
+  {
+    slug: 'kk-vs-88',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Overpair Vs Underpair',
+    handA: 'KK',
+    handAName: 'Pocket Kings',
+    handACards: 'Ks,Kh',
+    handB: '88',
+    handBName: 'Pocket Eights',
+    handBCards: '8d,8c',
+    winA: 80.08,
+    winB: 19.61,
+    tie: 0.31,
+    equityA: 80.23,
+    equityB: 19.77,
+    title: 'KK Vs 88 Poker Odds And Equity',
+    h1: 'KK Vs 88 Poker Odds And Preflop Equity',
+    description:
+      'Exact KK Vs 88 Preflop Odds: Pocket Kings Dominates Pocket Eights With 80.23% Equity (80.08% Win, 0.31% Tie) Against 19.77%, Plus Set-Mining Notes.',
+    flopHitNotes: [
+      'Pocket Kings Holds An Exact 4-To-1 Preflop Advantage Over Pocket Eights Across Unblocked Suits (80.23% Vs 19.77%).',
+      'Ace-High Flops Do Not Improve Pocket Eights, Keeping Pocket Kings At Over 90% Equity While Turning Both Hands Into Medium-Strength Showdown Value.',
+      'Pocket Eights Needs An Eight (11.76% Flop Set), A Running Straight, Or A Four-Card Flush To Crack Kings.',
+    ],
+    strategicTakeaways: [
+      'Pocket Kings Should Always 3-Bet And 4-Bet For Value Against Middle Pairs Like 88 To Punish Wide Set-Mining Ranges.',
+      'On Low Dry Boards Like 7-5-2, Pocket Eights Often Calls One Small C-Bet In Position Before Evaluating Turn Aggression.',
+      'When An Eight Hits A Wet Turn Or River, Pocket Kings Must Re-Evaluate Facing Heavy Check-Raise Pressure From Tight Ranges.',
+    ],
+    relatedSlugs: ['kk-vs-99', 'kk-vs-tt', 'aa-vs-88', 'qq-vs-88'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of KK Vs 88 Preflop?',
+        answer:
+          'Pocket Kings Wins 80.08% Of Boards, Pocket Eights Wins 19.61%, And 0.31% Tie, Giving KK 80.23% Equity Against 19.77% For 88.',
+      },
+      {
+        question: 'How Often Does Pocket Eights Beat Pocket Kings All-In Preflop?',
+        answer:
+          'Pocket Eights Wins Outright 19.61% Of The Time, Roughly 1 In Every 5.1 Preflop All-In Showdowns Against Pocket Kings.',
+      },
+      {
+        question: 'Should Pocket Eights Call A 3-Bet From Pocket Kings At 100BB?',
+        answer:
+          'Calling A Standard 3x In-Position 3-Bet At 100BB Is Standard With 88 Because Villain 3-Bet Ranges Include Many Unpaired Overcards Alongside KK And AA.',
+      },
+    ],
+  },
+  {
+    slug: 'qq-vs-88',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Overpair Vs Underpair',
+    handA: 'QQ',
+    handAName: 'Pocket Queens',
+    handACards: 'Qs,Qh',
+    handB: '88',
+    handBName: 'Pocket Eights',
+    handBCards: '8d,8c',
+    winA: 80.04,
+    winB: 19.68,
+    tie: 0.28,
+    equityA: 80.18,
+    equityB: 19.82,
+    title: 'QQ Vs 88 Poker Odds And Equity',
+    h1: 'QQ Vs 88 Poker Odds And Preflop Equity',
+    description:
+      'Exact QQ Vs 88 Preflop Odds: Pocket Queens Holds 80.18% Equity (80.04% Win, 0.28% Tie) Over Pocket Eights (19.82%), With Live Cash And MTT Strategy.',
+    flopHitNotes: [
+      'Pocket Queens Commands A Classic 4-To-1 Preflop Lead Over Pocket Eights (80.18% Vs 19.82%) Because Queens Dominates Every Unpaired Board.',
+      'Even When An Ace Or King Flops, Pocket Queens Remains A Massive Favorite Over Pocket Eights Unless An Eight Arrives.',
+      'Pocket Eights Relies Primarily On Flopping Or Turning A Set (~19.2% By The River) Plus Occasional Four-Card Straights.',
+    ],
+    strategicTakeaways: [
+      'In Mid-Stage Tournaments At 25BB To 40BB Stacks, QQ Vs 88 Is A Frequent Cutoff-Vs-Button All-In Spot Where QQ Prints Chip EV.',
+      'Pocket Queens Should Bet Small On High Dry Flops (A-7-2, K-9-3) Or Check Back To Induce Thin Calls And Bluffs From Middle Pairs.',
+      'Pocket Eights Plays Best By Calling Single Raises In Position And Realizing Equity Cleanly Rather Than Turning 88 Into A High-Variance 4-Bet Bluff.',
+    ],
+    relatedSlugs: ['qq-vs-99', 'qq-vs-tt', 'kk-vs-88', 'jj-vs-88'],
+    faqs: [
+      {
+        question: 'What Are The Preflop Odds Of QQ Vs 88?',
+        answer:
+          'Pocket Queens Wins 80.04% Of Boards, Pocket Eights Wins 19.68%, And 0.28% Tie, Producing 80.18% Equity For QQ Against 19.82% For 88.',
+      },
+      {
+        question: 'Does Pocket Queens Always Want To Get All-In Against 88 Preflop?',
+        answer:
+          'Yes. Holding 80.18% Equity Against An Underpair Is One Of The Highest-EV Preflop Showdowns Possible In No-Limit Holdem.',
+      },
+      {
+        question: 'How Often Does 88 Flop A Set Against QQ?',
+        answer:
+          'Pocket Eights Flops A Set Or Quads 11.76% Of The Time (Roughly 1 In 8.5 Flops), Flipping Equity Over 90% In Favor Of 88.',
+      },
+    ],
+  },
+  {
+    slug: 'jj-vs-88',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Overpair Vs Underpair',
+    handA: 'JJ',
+    handAName: 'Pocket Jacks',
+    handACards: 'Js,Jh',
+    handB: '88',
+    handBName: 'Pocket Eights',
+    handBCards: '8d,8c',
+    winA: 80.54,
+    winB: 19.11,
+    tie: 0.35,
+    equityA: 80.72,
+    equityB: 19.28,
+    title: 'JJ Vs 88 Poker Odds And Equity',
+    h1: 'JJ Vs 88 Poker Odds And Preflop Equity',
+    description:
+      'Exact JJ Vs 88 Preflop Odds: Pocket Jacks Leads Pocket Eights 80.72% To 19.28% (80.54% Win, 0.35% Tie), Covering Live 3-Bet Pots And MTT Stack-Offs.',
+    flopHitNotes: [
+      'Pocket Jacks Edges Above 80.7% Against Pocket Eights Because Jacks Blocks Several Of 88s Upper Straight Combinations (Q-J-T-9-8, J-T-9-8-7).',
+      'On 9-High Or Ten-High Flops, Pocket Jacks Is A Clean Value Overpair While Pocket Eights Often Calls One Or Two Streets As Second Pair.',
+      'If A Jack And Eight Both Hit The Flop, Set-Over-Set Leaves Pocket Eights Drawing To A Single Case Eight (~4.3% By The River).',
+    ],
+    strategicTakeaways: [
+      'Pocket Jacks Earns Massive Value From Underpairs Like 88 And 99 In Late-Position 3-Bet Pots Where Both Players Defend Aggressively.',
+      'Avoid Over-Folding Pocket Jacks On Safe Turn Cards When Facing Medium Pairs That Float Flop C-Bets.',
+      'At 20BB MTT Stacks, Both JJ And 88 Frequently Stack Off In Blind-Vs-Blind And Button-Vs-Blinds Battles.',
+    ],
+    relatedSlugs: ['jj-vs-99', 'jj-vs-tt', 'qq-vs-88', 'tt-vs-88'],
+    faqs: [
+      {
+        question: 'What Are The Exact Odds Of JJ Vs 88 Preflop?',
+        answer:
+          'Pocket Jacks Wins 80.54% Of All Runouts, Pocket Eights Wins 19.11%, And 0.35% Split, Giving JJ 80.72% Equity Against 19.28% For 88.',
+      },
+      {
+        question: 'Why Does JJ Beat 88 Slightly More Often Than AA Beats 88?',
+        answer:
+          'Pocket Jacks Directly Blocks J-T-9-8 And Q-J-T-9 Straight Windows That 88 Relies On, Pushing JJ To 80.72% Versus 79.88% For AA.',
+      },
+      {
+        question: 'Should Pocket Jacks 3-Bet Against An Early Position Open?',
+        answer:
+          'Yes At Mixed-To-High Frequency At 100BB Effective Depth, Extracting Strong Value From Middle Pairs Like 88, 99, And TT.',
+      },
+    ],
+  },
+  {
+    slug: 'tt-vs-88',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Overpair Vs Underpair',
+    handA: 'TT',
+    handAName: 'Pocket Tens',
+    handACards: '10s,10h',
+    handB: '88',
+    handBName: 'Pocket Eights',
+    handBCards: '8d,8c',
+    winA: 80.61,
+    winB: 18.95,
+    tie: 0.44,
+    equityA: 80.83,
+    equityB: 19.17,
+    title: 'TT Vs 88 Poker Odds And Equity',
+    h1: 'TT Vs 88 Poker Odds And Preflop Equity',
+    description:
+      'Exact TT Vs 88 Preflop Odds: Pocket Tens Crushes Pocket Eights 80.83% To 19.17% (80.61% Win, 0.44% Tie), With Tournament Shove And Flop Play Tips.',
+    flopHitNotes: [
+      'Pocket Tens Blocks Two Tens Crucial For Pocket Eights Upper Straights (Q-J-T-9-8, J-T-9-8-7), Driving TT Up To 80.83% Equity.',
+      'Even On Overcard Flops Like A-K-4 Or Q-J-3, Pocket Tens Remains A 4-To-1 Favorite Over Pocket Eights.',
+      'A Four-Card Straight Board Or Double-Paired High Board Accounts For The 0.44% Split-Pot Frequency.',
+    ],
+    strategicTakeaways: [
+      'In Short-Stack Tournaments Under 25BB, Pocket Tens Is A Mandatory Re-Shove Over Middle-Position And Late-Position Opens That Include 88 And 77.',
+      'In Deep 100BB Cash Games, Pocket Tens Often Plays A Mixed Check-Call Or Small C-Bet Strategy On High Boards Where Both Pairs Protect Checking Ranges.',
+      'Pocket Eights Should Prioritize Seeing Cheap Showdowns When Facing Passive Lines From Pocket Tens On Overcard Runouts.',
+    ],
+    relatedSlugs: ['tt-vs-99', 'jj-vs-88', '99-vs-88', '88-vs-77'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of TT Vs 88 Preflop?',
+        answer:
+          'Pocket Tens Wins 80.61% Of Boards, Pocket Eights Wins 18.95%, And 0.44% Result In A Split Pot, Giving TT 80.83% Equity Against 19.17% For 88.',
+      },
+      {
+        question: 'How Often Does Pocket Eights Crack Pocket Tens All-In?',
+        answer:
+          'Pocket Eights Wins Outright 18.95% Of All Runouts, Slightly Under 1 In Every 5 Preflop All-Ins.',
+      },
+      {
+        question: 'Should You Ever Fold Pocket Tens To A 20BB Tournament Shove?',
+        answer:
+          'Almost Never In Chip-EV Spots. Pocket Tens Dominates Every Lower Pair Like 88 And 99 While Flipping Well Against Big Broadways.',
+      },
+    ],
+  },
+  {
+    slug: '44-vs-33',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Overpair Vs Underpair',
+    handA: '44',
+    handAName: 'Pocket Fours',
+    handACards: '4s,4h',
+    handB: '33',
+    handBName: 'Pocket Threes',
+    handBCards: '3d,3c',
+    winA: 78.45,
+    winB: 17.85,
+    tie: 3.7,
+    equityA: 80.3,
+    equityB: 19.7,
+    title: '44 Vs 33 Poker Odds And Equity',
+    h1: '44 Vs 33 Poker Odds And Preflop Equity',
+    description:
+      'Exact 44 Vs 33 Preflop Odds: Pocket Fours Leads Pocket Threes 80.30% To 19.70% (78.45% Win, 3.70% Tie), Showing How Counterfeiting Boosts Split Pots.',
+    flopHitNotes: [
+      'Because Every Double-Paired Board Above Fours Counterfeits Both Pocket Pairs, The Split-Pot Rate Jumps To 3.70% (Over 8x Higher Than AA Vs KK).',
+      'Despite Higher Counterfeiting, Pocket Fours Still Holds A Full 80.30% Equity Edge Over Pocket Threes.',
+      'Pocket Threes Cannot Beat Pocket Fours On Any Wheel Straight Board (A-5-2) Because Both Hands Share The Same Five-High Straight.',
+    ],
+    strategicTakeaways: [
+      'Small Pocket Pairs Like 44 And 33 Generate Their Profit From Flopping Concealed Sets At Deep Stacks And Winning Uncontested Pots As Short-Stack Shoves.',
+      'In Blind-Vs-Blind 12BB Tournament Spots, Both 44 And 33 Are Profitable Nash Shoves, Making Small-Pair Coolers Surprisingly Common Late In MTTs.',
+      'Postflop Without A Set, Small Pairs Must Avoid Calling Multiple Heavy Barrels On High Double-Paired Textures Where Their Pair Is Easily Counterfeited.',
+    ],
+    relatedSlugs: ['55-vs-44', '33-vs-22', '66-vs-55', '44-vs-ako'],
+    faqs: [
+      {
+        question: 'What Are The Exact Preflop Odds Of 44 Vs 33?',
+        answer:
+          'Pocket Fours Wins 78.45% Of Runouts, Pocket Threes Wins 17.85%, And 3.70% Split, Yielding 80.30% Equity For 44 Against 19.70% For 33.',
+      },
+      {
+        question: 'Why Do 44 And 33 Split The Pot 3.70% Of The Time?',
+        answer:
+          'Any Board With Two Pairs Higher Than Fours (Such As K-K-9-9-7) Or A Board Straight Plays The Five Community Cards And Forces A Chop.',
+      },
+      {
+        question: 'Does 44 Always Beat 33 On A Wheel Straight Board?',
+        answer:
+          'No. If The Board Runs Out A-5-2-K-Q, Both 44 And 33 Make The Same A-5-4-3-2 Straight Only When Both Cards Play; Actually 44 Needs A 3 And 33 Needs A 4, So Any A-5-2-6-X Favors 44 Only On 6-5-2-3 Boards.',
+      },
+    ],
+  },
+  {
+    slug: '33-vs-22',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Overpair Vs Underpair',
+    handA: '33',
+    handAName: 'Pocket Threes',
+    handACards: '3s,3h',
+    handB: '22',
+    handBName: 'Pocket Deuces',
+    handBCards: '2d,2c',
+    winA: 77.47,
+    winB: 17.45,
+    tie: 5.08,
+    equityA: 80.01,
+    equityB: 19.99,
+    title: '33 Vs 22 Poker Odds And Equity',
+    h1: '33 Vs 22 Poker Odds And Preflop Equity',
+    description:
+      'Exact 33 Vs 22 Preflop Odds: Pocket Threes Leads Pocket Deuces 80.01% To 19.99% (77.47% Win, 5.08% Tie), Featuring The Highest Pair-Vs-Pair Chop Rate.',
+    flopHitNotes: [
+      '33 Vs 22 Produces A Massive 5.08% Split-Pot Rate Because Every Double-Paired Board Above Threes Counterfeits Both Pocket Pairs Simultaneously.',
+      'Even With Over 5% Chops, Pocket Threes Retains A Crisp 80.01% Total Equity Edge Over Pocket Deuces.',
+      'Pocket Deuces Wins Outright Just 17.45% Of Runouts, Relying Almost Entirely On Spiking A Deuce Or Running A Four-Card Flush.',
+    ],
+    strategicTakeaways: [
+      'In Short-Stack Push/Fold Endgames Under 12BB, Small Pairs Like 33 And 22 Frequently Clash Blind Vs Blind As Unexploitable Nash Shoves.',
+      'At 100BB Cash Depth, Pocket Deuces Plays Strictly As A Low-Cost Set-Mining Hand In Position And Rarely Continues Past The Flop Unimproved.',
+      'Watch For Double-Paired Turn And River Cards That Turn Both 33 And 22 Into Pure Board-Playing Chops.',
+    ],
+    relatedSlugs: ['44-vs-33', '55-vs-44', '22-vs-aks', '33-vs-aks'],
+    faqs: [
+      {
+        question: 'What Are The Preflop Odds Of 33 Vs 22?',
+        answer:
+          'Pocket Threes Wins 77.47% Of Runouts, Pocket Deuces Wins 17.45%, And 5.08% Tie, Giving 33 80.01% Total Equity Versus 19.99% For 22.',
+      },
+      {
+        question: 'Why Is The Tie Rate Over 5% In 33 Vs 22?',
+        answer:
+          'Any Double-Paired Board Of Fours Or Higher (Like J-J-6-6-A) Outranks Both Pocket Threes And Pocket Deuces, Splitting The Pot On Over 1 In 20 Boards.',
+      },
+      {
+        question: 'How Often Does Pocket Deuces Beat Pocket Threes?',
+        answer:
+          'Pocket Deuces Wins Outright 17.45% Of All Runouts, Almost Always By Making Three Of A Kind Deuces Or A Four-Card Flush.',
+      },
+    ],
+  },
+  {
+    slug: 'aa-vs-a5s',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Dominated Matchup',
+    handA: 'AA',
+    handAName: 'Pocket Aces',
+    handACards: 'As,Ah',
+    handB: 'A5s',
+    handBName: 'Ace-Five Suited',
+    handBCards: 'Ad,5d',
+    winA: 85.95,
+    winB: 12.72,
+    tie: 1.33,
+    equityA: 86.62,
+    equityB: 13.38,
+    title: 'AA Vs A5s Poker Odds And Equity',
+    h1: 'AA Vs A5s Poker Odds And Preflop Equity',
+    description:
+      'Exact AA Vs A5s Preflop Odds: Pocket Aces Leads Ace-Five Suited 86.62% To 13.38% (85.95% Win, 1.33% Tie), Explaining Why Solvers 4-Bet Bluff A5s.',
+    flopHitNotes: [
+      'Unblocked Ace-Five Suited Retains 13.38% Equity Against Pocket Aces, Outperforming AKs (~12.45%) Thanks To Live Wheel Straight And Five-Trip Paths.',
+      'Because Both Hands Share An Ace, A5s Blocks 50% Of All Pocket Aces Combinations Preflop (Cutting AA From 6 Combos Down To 3).',
+      'Four-Card Wheel Boards (2-3-4-X) Give Both Hands A Five-High Straight, Driving The 1.33% Split-Pot Frequency.',
+    ],
+    strategicTakeaways: [
+      'GTO Solvers Select A5s As The Premier 4-Bet Bluff At 100BB Because It Blocks AA And AK While Retaining Over 13% Equity Even When Crushed By Aces.',
+      'Against Pocket Kings, A5s Jumps Above 32% Equity, Making The Combined Range Equity Of A5s Far Stronger Than Non-Ace Bluffs.',
+      'When Called By AA, A5s Must Realize Equity Carefully On Low Flops And Never Overplay Top Pair Aces Against 4-Bet Value Ranges.',
+    ],
+    relatedSlugs: ['aa-vs-aks', 'a5s-vs-kk', 'qq-vs-a5s', 'jj-vs-a5s'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of AA Vs A5s Preflop?',
+        answer:
+          'With Unblocked Suits (As Ah Vs Ad 5d), Pocket Aces Wins 85.95%, Ace-Five Suited Wins 12.72%, And 1.33% Tie, Giving AA 86.62% Vs 13.38%.',
+      },
+      {
+        question: 'Why Does A5s Have Slightly More Equity Against AA Than AKs Does?',
+        answer:
+          'A5s Can Make Standalone 6-5-4-3-2 Straights That Beat Pocket Aces And Benefits From Low-Board Two Pairs, Reaching 13.38% Against 12.45% For AKs.',
+      },
+      {
+        question: 'Why Do GTO Solvers Use A5s As A Preflop 4-Bet Bluff?',
+        answer:
+          'Holding An Ace Cuts Opponent AA And AK Combos In Half While Preserving Live Flush, Wheel Straight, And Overcard Equity When Called.',
+      },
+    ],
+  },
+  {
+    slug: 'qq-vs-a5s',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Pair Vs Suited Ace',
+    handA: 'QQ',
+    handAName: 'Pocket Queens',
+    handACards: 'Qs,Qh',
+    handB: 'A5s',
+    handBName: 'Ace-Five Suited',
+    handBCards: 'Ad,5d',
+    winA: 66.23,
+    winB: 33.42,
+    tie: 0.35,
+    equityA: 66.41,
+    equityB: 33.59,
+    title: 'QQ Vs A5s Poker Odds And Equity',
+    h1: 'QQ Vs A5s Poker Odds And Preflop Equity',
+    description:
+      'Exact QQ Vs A5s Preflop Odds: Pocket Queens Leads Ace-Five Suited 66.41% To 33.59% (66.23% Win, 0.35% Tie), Covering 3-Bet And 4-Bet Pot Equity.',
+    flopHitNotes: [
+      'Ace-Five Suited Holds 33.59% Equity Against Unblocked Pocket Queens Thanks To Three Live Aces, Live Flush Draws, And Wheel Straight Outs.',
+      'An Ace Flops Roughly 22.5% Of The Time, Immediately Forcing Pocket Queens Into A Defensive Bluff-Catching Role.',
+      'When No Ace Or Diamond Draw Hits The Flop, Pocket Queens Surges Past 82% Equity Against Ace-Five Suited.',
+    ],
+    strategicTakeaways: [
+      'A5s Plays Profitably As A 3-Bet And 4-Bet Bluff Against QQ Because It Retains One-Third Equity Even When Stacking Off Behind.',
+      'Pocket Queens Should Usually Flat-Call Or 4-Bet For Value Against Aggressive Late-Position 3-Bettors Who Mix A5s And A4s Bluffs.',
+      'On Low Two-Tone Flops (7-4-2, 8-3-2), Pocket Queens Must Charge A5s Backdoor And Flush Draws With Assertive Continuation Sizing.',
+    ],
+    relatedSlugs: ['aa-vs-a5s', 'a5s-vs-kk', 'jj-vs-a5s', 'qq-vs-ajs'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of QQ Vs A5s Preflop?',
+        answer:
+          'With Unblocked Suits (Qs Qh Vs Ad 5d), Pocket Queens Wins 66.23% Of Runouts, Ace-Five Suited Wins 33.42%, And 0.35% Split (66.41% Vs 33.59%).',
+      },
+      {
+        question: 'Is Ace-Five Suited A 2-To-1 Underdog Against Pocket Queens?',
+        answer:
+          'Almost Exactly. Pocket Queens Holds 66.41% Equity Versus 33.59% For Unblocked A5s, A Clean 2-To-1 Preflop Matchup.',
+      },
+      {
+        question: 'How Should Pocket Queens Play On An Ace-High Flop Against A5s?',
+        answer:
+          'Check And Control The Pot. Pocket Queens Beats Only Bluffs On Ace-High Boards And Prefers Reaching Showdown Cheaply.',
+      },
+    ],
+  },
+  {
+    slug: 'jj-vs-a5s',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Pair Vs Suited Ace',
+    handA: 'JJ',
+    handAName: 'Pocket Jacks',
+    handACards: 'Js,Jh',
+    handB: 'A5s',
+    handBName: 'Ace-Five Suited',
+    handBCards: 'Ad,5d',
+    winA: 66.43,
+    winB: 33.23,
+    tie: 0.34,
+    equityA: 66.6,
+    equityB: 33.4,
+    title: 'JJ Vs A5s Poker Odds And Equity',
+    h1: 'JJ Vs A5s Poker Odds And Preflop Equity',
+    description:
+      'Exact JJ Vs A5s Preflop Odds: Pocket Jacks Leads Ace-Five Suited 66.60% To 33.40% (66.43% Win, 0.34% Tie), Key For 100BB 3-Bet And MTT Shove Spots.',
+    flopHitNotes: [
+      'Pocket Jacks Maintains An Almost Exact 2-To-1 Preflop Advantage Over Unblocked Ace-Five Suited (66.60% Vs 33.40%).',
+      'Ace-Five Suited Needs One Of Three Remaining Aces, A Diamond Flush, Running Fives, Or A Wheel Straight To Overtake Pocket Jacks.',
+      'On Safe Low Rainbow Boards Without An Ace, Pocket Jacks Jumps Above 84% Equity Entering The Turn.',
+    ],
+    strategicTakeaways: [
+      'In 25BB To 40BB Tournament Play, JJ Vs A5s Appears Frequently When Button Or Small Blind 3-Bet Shoves A5s Into A Hijack Open.',
+      'Pocket Jacks Always Prints EV Calling Off Against Polarized 3-Bet Jam Ranges Containing Suited Wheel Aces.',
+      'At 100BB Cash Depth, A5s Realizes Strong Equity In Position By Barrel-Bluffing Scare Ace Turns And Flush Runouts.',
+    ],
+    relatedSlugs: ['qq-vs-a5s', 'aa-vs-a5s', 'a5s-vs-kk', 'jj-vs-ajs'],
+    faqs: [
+      {
+        question: 'What Are The Preflop Odds Of JJ Vs A5s?',
+        answer:
+          'Pocket Jacks Wins 66.43% Of Boards, Ace-Five Suited Wins 33.23%, And 0.34% Split, Giving JJ 66.60% Equity Versus 33.40% For A5s.',
+      },
+      {
+        question: 'Does Suit Overlap Affect JJ Vs A5s Odds?',
+        answer:
+          'Yes. If Pocket Jacks Holds The Same Suit As A5s (Such As Jd Jh Vs Ad 5d), A5s Drops Roughly 2% Equity Down Near 31.3%.',
+      },
+      {
+        question: 'Should Pocket Jacks Call A 30BB 3-Bet Jam From A5s?',
+        answer:
+          'Yes. Pocket Jacks Holds 66.6% Equity Against A5s And Remains Heavily Profitable Against Balanced Tournament Re-Jam Ranges.',
+      },
+    ],
+  },
+  {
+    slug: 'tt-vs-aqs',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Coin Flip Matchup',
+    handA: 'TT',
+    handAName: 'Pocket Tens',
+    handACards: '10s,10h',
+    handB: 'AQs',
+    handBName: 'Ace-Queen Suited',
+    handBCards: 'Ad,Qd',
+    winA: 53.67,
+    winB: 45.93,
+    tie: 0.4,
+    equityA: 53.87,
+    equityB: 46.13,
+    title: 'TT Vs AQs Poker Odds And Equity',
+    h1: 'TT Vs AQs Poker Odds And Preflop Equity',
+    description:
+      'Exact TT Vs AQs Preflop Odds: Pocket Tens Edges Ace-Queen Suited 53.87% To 46.13% (53.67% Win, 0.40% Tie), A Classic 100BB And MTT Coin Flip.',
+    flopHitNotes: [
+      'Pocket Tens Holds A Narrow 53.87% To 46.13% Coin-Flip Lead Over Unblocked Ace-Queen Suited Across All Runouts.',
+      'Because Pocket Tens Blocks Broadway Straight Tens (A-K-Q-J-T), AQs Loses Roughly 1.5% Equity Compared To Facing Pocket Nines Or Eights.',
+      'An Ace Or Queen Flops Roughly 32.4% Of The Time, Flipping Equity Sharply Toward AQs Unless A Ten Arrives.',
+    ],
+    strategicTakeaways: [
+      'TT Vs AQs Is One Of The Most Common Tournament Stack-Off Flips Between 20BB And 50BB Stacks, Where Dead Money And Antes Make Both Hands Profitable.',
+      'In Deep 100BB Cash Games, Both Hands Prefer Calling 3-Bets In Position Rather Than Turning Medium-Strength Equity Into High-Variance 5-Bets.',
+      'On Low Connected Flops, Pocket Tens Must Protect Against AQs Six Live Overcards Plus Backdoor Flush Equity.',
+    ],
+    relatedSlugs: ['tt-vs-aqo', 'tt-vs-aks', '99-vs-aqs', 'jj-vs-aqs'],
+    faqs: [
+      {
+        question: 'What Are The Exact Odds Of TT Vs AQs Preflop?',
+        answer:
+          'Pocket Tens Wins 53.67% Of Runouts, Ace-Queen Suited Wins 45.93%, And 0.40% Tie, Producing 53.87% Equity For TT Versus 46.13% For AQs.',
+      },
+      {
+        question: 'Why Does TT Perform Better Against AQs Than 99 Does?',
+        answer:
+          'Pocket Tens Removes Two Crucial Broadway Straight Tens Needed By AQs, Giving TT 53.87% Equity Versus 52.41% For Pocket Nines.',
+      },
+      {
+        question: 'How Much Does Suit Overlap Change TT Vs AQs?',
+        answer:
+          'When Pocket Tens Holds One Diamond Against Ad Qd, AQs Loses Roughly 1.6% Equity, Pushing Pocket Tens Above 55.4%.',
+      },
+    ],
+  },
+  {
+    slug: 'tt-vs-aqo',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Coin Flip Matchup',
+    handA: 'TT',
+    handAName: 'Pocket Tens',
+    handACards: '10s,10h',
+    handB: 'AQo',
+    handBName: 'Ace-Queen Offsuit',
+    handBCards: 'Ad,Qc',
+    winA: 57.06,
+    winB: 42.63,
+    tie: 0.31,
+    equityA: 57.22,
+    equityB: 42.78,
+    title: 'TT Vs AQo Poker Odds And Equity',
+    h1: 'TT Vs AQo Poker Odds And Preflop Equity',
+    description:
+      'Exact TT Vs AQo Preflop Odds: Pocket Tens Leads Ace-Queen Offsuit 57.22% To 42.78% (57.06% Win, 0.31% Tie), Showing The 3.3% Offsuit Equity Drop.',
+    flopHitNotes: [
+      'Without Suited Flush Potential, Ace-Queen Offsuit Drops 3.35% Behind AQs, Lifting Pocket Tens To A Healthy 57.22% Favorite.',
+      'Pocket Tens Blocks Two Broadway Tens While Leaving AQo Dependent On Pairing An Ace Or Queen (~32.4% On The Flop).',
+      'On Jack-High Or Lower Rainbow Flops, Pocket Tens Climbs Past 74% Equity Against Unimproved AQo.',
+    ],
+    strategicTakeaways: [
+      'With Nearly 57.2% Equity, Pocket Tens Is A Clear Favorite Over AQo In Mid-Stack Tournament All-Ins And 3-Bet Pot Defenses.',
+      'AQo Should Avoid 4-Bet Stacking Off Deep At 100BB Against Tight Early-Position Ranges Where It Faces TT-AA And AK.',
+      'When Facing A Flop C-Bet On Safe Low Boards, Pocket Tens Should Continue Confidently Because AQo Misses Two-Thirds Of All Flops.',
+    ],
+    relatedSlugs: ['tt-vs-aqs', 'tt-vs-ako', '88-vs-aqo', '99-vs-aqo'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of TT Vs AQo Preflop?',
+        answer:
+          'Pocket Tens Wins 57.06% Of All Runouts, Ace-Queen Offsuit Wins 42.63%, And 0.31% Tie, Giving TT 57.22% Equity Against 42.78% For AQo.',
+      },
+      {
+        question: 'How Much Stronger Is AQs Than AQo Against Pocket Tens?',
+        answer:
+          'Ace-Queen Suited Holds 46.13% Equity Versus 42.78% For AQo, A 3.35% Suited Advantage Driven By Flush Potential.',
+      },
+      {
+        question: 'Is TT Vs AQo Still Considered A Classic Coin Flip?',
+        answer:
+          'It Is A Pair-Overcards Race, Though Pocket Tens Holds A Significant 57/43 Edge Rather Than A True 50/50 Flip.',
+      },
+    ],
+  },
+  {
+    slug: '99-vs-aqs',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Coin Flip Matchup',
+    handA: '99',
+    handAName: 'Pocket Nines',
+    handACards: '9s,9h',
+    handB: 'AQs',
+    handBName: 'Ace-Queen Suited',
+    handBCards: 'Ad,Qd',
+    winA: 52.23,
+    winB: 47.41,
+    tie: 0.36,
+    equityA: 52.41,
+    equityB: 47.59,
+    title: '99 Vs AQs Poker Odds And Equity',
+    h1: '99 Vs AQs Poker Odds And Preflop Equity',
+    description:
+      'Exact 99 Vs AQs Preflop Odds: Pocket Nines Holds A Razor-Thin 52.41% To 47.59% Coin-Flip Edge Over Ace-Queen Suited, With MTT Shove And ICM Notes.',
+    flopHitNotes: [
+      'Because Pocket Nines Does Not Block Broadway Straight Cards (A-K-Q-J-T), AQs Climbs To 47.59% Against Unblocked 99.',
+      'AQs Connects With Overcards, Flush Draws, And Broadway Gutshots On Nearly Half Of All Flops.',
+      'On Low Rainbow Flops Missing Both An Ace And A Queen, Pocket Nines Jumps Above 72% Equity.',
+    ],
+    strategicTakeaways: [
+      'In ICM-Heavy Final Table Bubbles, Pocket Nines Must Carefully Weigh Bubble Factors Before Calling Off A 52/48 Flip Against AQs.',
+      'In Chip-EV Spots With Antes In Play, Both 99 And AQs Profitably Get All-In At 15BB To 30BB Effective Stacks.',
+      'At 100BB Cash Depth, Position Dictates Who Realizes More Equity When Overcards And Flush Draws Peel On The Turn.',
+    ],
+    relatedSlugs: ['tt-vs-aqs', '99-vs-aqo', '99-vs-aks', '99-vs-ajs'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of 99 Vs AQs Preflop?',
+        answer:
+          'Pocket Nines Wins 52.23% Of Runouts, Ace-Queen Suited Wins 47.41%, And 0.36% Tie, Yielding 52.41% Equity For 99 Against 47.59% For AQs.',
+      },
+      {
+        question: 'Is 99 Vs AQs Closer To 50/50 Than TT Vs AQs?',
+        answer:
+          'Yes. Because Nines Do Not Block Broadway Straight Tens, AQs Gains Roughly 1.5% Equity Compared To Facing Pocket Tens.',
+      },
+      {
+        question: 'Should You Call A Final-Table Bubble Shove With 99 Against AQs?',
+        answer:
+          'When Bubble Factors Exceed 1.4x On A Pay-Jump Bubble, Calling A Near 52/48 Flip Can Be Slightly -EV In ICM Dollars Even Though It Wins Chips.',
+      },
+    ],
+  },
+  {
+    slug: '99-vs-ajs',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Coin Flip Matchup',
+    handA: '99',
+    handAName: 'Pocket Nines',
+    handACards: '9s,9h',
+    handB: 'AJs',
+    handBName: 'Ace-Jack Suited',
+    handBCards: 'Ad,Jd',
+    winA: 52.3,
+    winB: 47.35,
+    tie: 0.35,
+    equityA: 52.47,
+    equityB: 47.53,
+    title: '99 Vs AJs Poker Odds And Equity',
+    h1: '99 Vs AJs Poker Odds And Preflop Equity',
+    description:
+      'Exact 99 Vs AJs Preflop Odds: Pocket Nines Edges Ace-Jack Suited 52.47% To 47.53% (52.30% Win, 0.35% Tie), Essential For Cutoff Vs Button Clashes.',
+    flopHitNotes: [
+      'Pocket Nines And Ace-Jack Suited Produce A Classic 52.47% To 47.53% Race With Unblocked Suits.',
+      'AJs Flops Top Pair Or A Flush Draw Roughly 41% Of The Time, Making It Tough For Pocket Nines To Face Triple-Barrel Pressure Out Of Position.',
+      'Pocket Nines Blocks Two Nines Needed For AJs Lower Jack-High Straights (J-T-9-8-7), Keeping 99 Narrowly Ahead.',
+    ],
+    strategicTakeaways: [
+      'Both 99 And AJs Are Core 3-Bet And Call Hands In 6-Max Late-Position Battles At 100BB.',
+      'At 20BB Tournament Stacks, AJs Is A High-Frequency Open-Shove Or Re-Jam From The Button And Small Blind, Frequently Flipping Against 99.',
+      'Postflop On Low Two-Tone Flops, Pocket Nines Should Mix Medium Protection Bets To Deny AJs Free Turn Cards.',
+    ],
+    relatedSlugs: ['99-vs-aqs', '77-vs-ajs', 'tt-vs-ajs', 'jj-vs-ajs'],
+    faqs: [
+      {
+        question: 'What Are The Preflop Odds Of 99 Vs AJs?',
+        answer:
+          'Pocket Nines Wins 52.30% Of Boards, Ace-Jack Suited Wins 47.35%, And 0.35% Split, Giving 99 52.47% Equity Against 47.53% For AJs.',
+      },
+      {
+        question: 'Why Are 99 Vs AJs And 99 Vs AQs Almost Identical In Equity?',
+        answer:
+          'Both AJs And AQs Hold Two Live Overcards And A Live Flush Suit Against 99, Resulting In Nearly Identical 47.5% Equity.',
+      },
+      {
+        question: 'How Often Does AJs Hit An Ace Or Jack On The Flop?',
+        answer:
+          'Ace-Jack Suited Pairs Its Ace Or Jack On Roughly 32.4% Of All Flops, Plus Another 10.9% Flopped Flush Draws.',
+      },
+    ],
+  },
+  {
+    slug: '88-vs-aqo',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Coin Flip Matchup',
+    handA: '88',
+    handAName: 'Pocket Eights',
+    handACards: '8s,8h',
+    handB: 'AQo',
+    handBName: 'Ace-Queen Offsuit',
+    handBCards: 'Ad,Qc',
+    winA: 55.58,
+    winB: 44.16,
+    tie: 0.26,
+    equityA: 55.71,
+    equityB: 44.29,
+    title: '88 Vs AQo Poker Odds And Equity',
+    h1: '88 Vs AQo Poker Odds And Preflop Equity',
+    description:
+      'Exact 88 Vs AQo Preflop Odds: Pocket Eights Leads Ace-Queen Offsuit 55.71% To 44.29% (55.58% Win, 0.26% Tie), Covering MTT Flip And Cash 3-Bet Math.',
+    flopHitNotes: [
+      'Pocket Eights Holds A Clear 55.71% To 44.29% Advantage Over Ace-Queen Offsuit Because AQo Lacks Suited Flush Equity.',
+      'Even When A King Or Jack Flops, Pocket Eights Remains Ahead At Roughly 68% Equity Against AQo Six Overcard Outs.',
+      'AQo Needs To Pair An Ace Or Queen Or Make A Broadway Straight To Overtake Pocket Eights.',
+    ],
+    strategicTakeaways: [
+      'In Mid-Stack MTTs (18BB To 35BB), Pocket Eights Enjoys A Comfortable 56/44 Edge Over Offsuit Big Aces Like AQo And AJo.',
+      'In Deep Cash Games, Pocket Eights Must Balance Calling Flop C-Bets On Safe Textures Because AQo Frequently Fires High-Frequency 33% Pot Range C-Bets.',
+      'AQo Performs Better As The Preflop Aggressor With Fold Equity Than As A Cold Caller Against Middle-Pair Shoves.',
+    ],
+    relatedSlugs: ['88-vs-aqs', '88-vs-ako', '99-vs-aqo', 'tt-vs-aqo'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of 88 Vs AQo Preflop?',
+        answer:
+          'Pocket Eights Wins 55.58% Of Runouts, Ace-Queen Offsuit Wins 44.16%, And 0.26% Split, Giving 88 55.71% Equity Against 44.29% For AQo.',
+      },
+      {
+        question: 'Is Pocket Eights A Favorite Over Ace-Queen Offsuit?',
+        answer:
+          'Yes. Pocket Eights Leads By Over 11.4 Percentage Points (55.71% Vs 44.29%) Preflop Against Unsuited Ace-Queen.',
+      },
+      {
+        question: 'How Does AQo Compare To AQs Against Pocket Eights?',
+        answer:
+          'Ace-Queen Suited Adds Roughly 3.3% Flush Equity, Closing The Gap Against Pocket Eights To Nearly 52.5/47.5.',
+      },
+    ],
+  },
+  {
+    slug: '88-vs-kqs',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Coin Flip Matchup',
+    handA: '88',
+    handAName: 'Pocket Eights',
+    handACards: '8s,8h',
+    handB: 'KQs',
+    handBName: 'King-Queen Suited',
+    handBCards: 'Kd,Qd',
+    winA: 50.85,
+    winB: 48.77,
+    tie: 0.38,
+    equityA: 51.04,
+    equityB: 48.96,
+    title: '88 Vs KQs Poker Odds And Equity',
+    h1: '88 Vs KQs Poker Odds And Preflop Equity',
+    description:
+      'Exact 88 Vs KQs Preflop Odds: Pocket Eights Barely Leads King-Queen Suited 51.04% To 48.96% (50.85% Win, 0.38% Tie), A True Near 50/50 Poker Flip.',
+    flopHitNotes: [
+      '88 Vs KQs Is One Of The Truest Coin Flips In Texas Holdem At 51.04% Versus 48.96% With Unblocked Suits.',
+      'King-Queen Suited Combines Two Live Overcards, Unblocked Flush Potential, And Two-Way Broadway Connectivity (A-K-Q-J-T And K-Q-J-T-9).',
+      'On Low Rainbow Flops Missing Kings, Queens, And Diamonds, Pocket Eights Jumps To Roughly 73% Equity.',
+    ],
+    strategicTakeaways: [
+      'Because KQs Retains Nearly 49% Raw Equity Against Middle Pairs Like 88, KQs Is An Elite 3-Betting And Calling Hand Across Every Stack Depth.',
+      'In Short-Stack Tournaments, Getting KQs All-In With Dead Money Against Middle Pairs Is Heavily +EV Due To Nearly Equal Raw Equity.',
+      'When Pocket Eights Shares A Suit With KQs, KQs Drops About 2% Equity, Pushing 88 Closer To 53%.',
+    ],
+    relatedSlugs: ['tt-vs-kqs', '88-vs-aqs', '88-vs-aks', 'kqs-vs-jj'],
+    faqs: [
+      {
+        question: 'What Are The Preflop Odds Of 88 Vs KQs?',
+        answer:
+          'With Unblocked Suits (8s 8h Vs Kd Qd), Pocket Eights Wins 50.85%, King-Queen Suited Wins 48.77%, And 0.38% Tie, Yielding 51.04% Vs 48.96%.',
+      },
+      {
+        question: 'Why Does KQs Have Almost 49% Equity Against Pocket Eights?',
+        answer:
+          'King-Queen Suited Adds Double Straight Connectivity (Both Ace-High And King-High Straights) On Top Of Six Overcard Outs And Flush Potential.',
+      },
+      {
+        question: 'Can KQs Actually Become A Favorite Over Lower Pocket Pairs?',
+        answer:
+          'Yes. Against Small Pairs Like 66 Or 55 With Unblocked Suits, KQs Reaches Nearly 50/50 Equity Because Higher Counterfeiting Pairs Help KQs.',
+      },
+    ],
+  },
+  {
+    slug: '77-vs-ako',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Coin Flip Matchup',
+    handA: '77',
+    handAName: 'Pocket Sevens',
+    handACards: '7s,7h',
+    handB: 'AKo',
+    handBName: 'Ace-King Offsuit',
+    handBCards: 'Ad,Kc',
+    winA: 55.09,
+    winB: 44.64,
+    tie: 0.27,
+    equityA: 55.23,
+    equityB: 44.77,
+    title: '77 Vs AKo Poker Odds And Equity',
+    h1: '77 Vs AKo Poker Odds And Preflop Equity',
+    description:
+      'Exact 77 Vs AKo Preflop Odds: Pocket Sevens Leads Ace-King Offsuit 55.23% To 44.77% (55.09% Win, 0.27% Tie), A Staple Tournament All-In Race.',
+    flopHitNotes: [
+      'Pocket Sevens Holds A Solid 55.23% To 44.77% Preflop Advantage Over Unsuited Ace-King.',
+      'Even On Double-Paired High Boards Like Q-Q-J-J-4, AKo Can Counterfeit Pocket Sevens With Its Ace Kicker, Explaining Why 77 Trails JJ Slightly Against AKo.',
+      'Ace-King Offsuit Flops Top Pair Roughly 32.4% Of The Time And Wins Over 88% Of Those Unimproved Flops Against 77.',
+    ],
+    strategicTakeaways: [
+      'In 15BB To 30BB Tournament Spots, 77 Vs AKo Is A Classic Race Where Fold Equity Usually Favors Whoever Shoves First.',
+      'At 100BB Cash Depth, Pocket Sevens Plays Cleanly As A Set-Mining Call In Position Rather Than 4-Betting Into Ranges Heavy With Larger Pairs.',
+      'Postflop On Low Textures Like 9-5-2, Pocket Sevens Should Usually Call C-Bets From AKo Rather Than Raising And Isolating Stronger Overpairs.',
+    ],
+    relatedSlugs: ['77-vs-aks', '88-vs-ako', '66-vs-ako', '55-vs-ako'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of 77 Vs AKo Preflop?',
+        answer:
+          'Pocket Sevens Wins 55.09% Of All Boards, Ace-King Offsuit Wins 44.64%, And 0.27% Tie, Producing 55.23% Equity For 77 Versus 44.77% For AKo.',
+      },
+      {
+        question: 'Why Does 77 Have Slightly Less Equity Against AKo Than JJ Does?',
+        answer:
+          'Pocket Sevens Can Be Counterfeited By Double-Paired Boards Higher Than Sevens (Like T-T-8-8), Giving AKo About 1.8% Extra Equity Compared To Facing JJ.',
+      },
+      {
+        question: 'Is 77 A Favorite Over Both AKo And AKs?',
+        answer:
+          'Yes. Pocket Sevens Leads AKo 55.23% To 44.77% And Narrowly Leads Unblocked AKs Around 52.0% To 48.0%.',
+      },
+    ],
+  },
+  {
+    slug: '77-vs-aqs',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Coin Flip Matchup',
+    handA: '77',
+    handAName: 'Pocket Sevens',
+    handACards: '7s,7h',
+    handB: 'AQs',
+    handBName: 'Ace-Queen Suited',
+    handBCards: 'Ad,Qd',
+    winA: 51.68,
+    winB: 47.98,
+    tie: 0.34,
+    equityA: 51.85,
+    equityB: 48.15,
+    title: '77 Vs AQs Poker Odds And Equity',
+    h1: '77 Vs AQs Poker Odds And Preflop Equity',
+    description:
+      'Exact 77 Vs AQs Preflop Odds: Pocket Sevens Edges Ace-Queen Suited 51.85% To 48.15% (51.68% Win, 0.34% Tie), With Counterfeit And Flop Strategy.',
+    flopHitNotes: [
+      'Pocket Sevens Holds A Slim 51.85% To 48.15% Coin-Flip Lead Over Unblocked Ace-Queen Suited.',
+      'Any Double-Paired Board Above Sevens (Like J-J-9-9-3) Counterfeits Pocket Sevens And Hands The Pot To AQs Ace Kicker.',
+      'AQs Combines Six Live Overcard Outs With Flush And Broadway Straight Potential Across All Five Streets.',
+    ],
+    strategicTakeaways: [
+      'Because 77 Vs AQs Is Essentially A 52/48 Flip, Tournament Antes And Fold Equity Determine Who Profited Most Preflop.',
+      'At Deep Cash Stacks, AQs Has Far Better Playability And Realizes Equity Across Multiple Streets Compared To Out-Of-Position 77.',
+      'Pocket Sevens Prefers Keeping Pots Medium On Low Flops And Extracting Max Value Only When Flopping A Concealed Set.',
+    ],
+    relatedSlugs: ['77-vs-ajs', '88-vs-aqs', '66-vs-aqs', '99-vs-aqs'],
+    faqs: [
+      {
+        question: 'What Are The Preflop Odds Of 77 Vs AQs?',
+        answer:
+          'Pocket Sevens Wins 51.68% Of Boards, Ace-Queen Suited Wins 47.98%, And 0.34% Split, Giving 77 51.85% Equity Against 48.15% For AQs.',
+      },
+      {
+        question: 'How Often Does AQs Counterfeit Pocket Sevens?',
+        answer:
+          'Double-Paired Boards Higher Than Sevens Occur Roughly 2% To 3% Of The Time, Narrowing Pocket Sevens Lead Compared To Higher Pairs.',
+      },
+      {
+        question: 'Which Hand Realizes More Equity Postflop At 100BB Stacks?',
+        answer:
+          'Ace-Queen Suited Typically Realizes Higher Postflop Equity Because It Can Barrel Overcards, Flush Draws, And Nut Broadway Outs.',
+      },
+    ],
+  },
+  {
+    slug: '66-vs-aqs',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Coin Flip Matchup',
+    handA: '66',
+    handAName: 'Pocket Sixes',
+    handACards: '6s,6h',
+    handB: 'AQs',
+    handBName: 'Ace-Queen Suited',
+    handBCards: 'Ad,Qd',
+    winA: 51.68,
+    winB: 47.94,
+    tie: 0.38,
+    equityA: 51.87,
+    equityB: 48.13,
+    title: '66 Vs AQs Poker Odds And Equity',
+    h1: '66 Vs AQs Poker Odds And Preflop Equity',
+    description:
+      'Exact 66 Vs AQs Preflop Odds: Pocket Sixes Barely Leads Ace-Queen Suited 51.87% To 48.13% (51.68% Win, 0.38% Tie), Ideal For MTT Shove Analysis.',
+    flopHitNotes: [
+      'Unblocked 66 Vs AQs Runs Almost Identically To 77 Vs AQs At 51.87% Versus 48.13% Equity.',
+      'Sixes Can Be Counterfeited By Any Double-Paired Board Of Sevens Or Higher, While Still Leading Every Unpaired Low Runout.',
+      'When Pocket Sixes Flops A Set (11.76%), AQs Drops Below 8% Equity Needing Runner-Runner Broadway Or A Backdoor Flush.',
+    ],
+    strategicTakeaways: [
+      'In 15BB To 25BB MTT Spots, Pocket Sixes Is A Standard Open-Shove From Middle And Late Position, Regularly Racing Against Calling Hands Like AQs.',
+      'In 100BB Cash Games, Avoid Turning 66 Into A High-Frequency 3-Bet Because Calling In Position Captures Strong Set-Mining Implied Odds.',
+      'AQs Should Apply Turn Pressure On Overcard And Flush-Draw Cards Where Pocket Sixes Struggles To Continue.',
+    ],
+    relatedSlugs: ['77-vs-aqs', '66-vs-aks', '66-vs-ako', '66-vs-55'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of 66 Vs AQs Preflop?',
+        answer:
+          'Pocket Sixes Wins 51.68% Of Boards, Ace-Queen Suited Wins 47.94%, And 0.38% Tie, Producing 51.87% Equity For 66 Against 48.13% For AQs.',
+      },
+      {
+        question: 'Does Pocket Sixes Still Beat Ace-Queen Suited Preflop?',
+        answer:
+          'Yes, Narrowly. Pocket Sixes Holds A 3.74 Percentage Point Lead (51.87% Vs 48.13%) Before The Flop.',
+      },
+      {
+        question: 'What Happens When 66 Shares A Suit With AQs?',
+        answer:
+          'Holding One Diamond In 66 Cuts AQs Flush Outs, Lifting Pocket Sixes Up Near 53.5% Equity.',
+      },
+    ],
+  },
+  {
+    slug: '55-vs-ako',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Coin Flip Matchup',
+    handA: '55',
+    handAName: 'Pocket Fives',
+    handACards: '5s,5h',
+    handB: 'AKo',
+    handBName: 'Ace-King Offsuit',
+    handBCards: 'Ad,Kc',
+    winA: 54.61,
+    winB: 45.03,
+    tie: 0.36,
+    equityA: 54.79,
+    equityB: 45.21,
+    title: '55 Vs AKo Poker Odds And Equity',
+    h1: '55 Vs AKo Poker Odds And Preflop Equity',
+    description:
+      'Exact 55 Vs AKo Preflop Odds: Pocket Fives Leads Ace-King Offsuit 54.79% To 45.21% (54.61% Win, 0.36% Tie), Explaining Wheel Blockers And Flips.',
+    flopHitNotes: [
+      'Pocket Fives Leads Ace-King Offsuit 54.79% To 45.21% Even Though Double-Paired Boards Above Fives Counterfeit 55.',
+      'Holding Two Fives Blocks AKo Wheel Straight Outs (A-2-3-4-5), Helping 55 Retain Nearly 55% Equity.',
+      'When AKo Misses The Flop Completely (~67.6%), Pocket Fives Surges Past 71% Equity.',
+    ],
+    strategicTakeaways: [
+      'In Short-Stack Tournament Play Under 20BB, Pocket Fives Is A Profitable Open-Jam That Flip-Leads Offsuit Big Slick Nearly 55/45.',
+      'At Deep Cash Stacks, Pocket Fives Must Fold To Heavy Multi-Street Overcard Barrels Unless It Flops A Set Or Straight Draw.',
+      'AKo Gains Significant Value By 3-Betting Preflop To Realize All Five Community Cards Or Win The Pot Immediately.',
+    ],
+    relatedSlugs: ['55-vs-aks', '44-vs-ako', '66-vs-ako', '77-vs-ako'],
+    faqs: [
+      {
+        question: 'What Are The Preflop Odds Of 55 Vs AKo?',
+        answer:
+          'Pocket Fives Wins 54.61% Of Runouts, Ace-King Offsuit Wins 45.03%, And 0.36% Split, Giving 55 54.79% Equity Against 45.21% For AKo.',
+      },
+      {
+        question: 'Is 55 A Bigger Favorite Over AKo Than 22 Is?',
+        answer:
+          'Yes By Roughly 2.2%, Because Pocket Fives Suffers Fewer Counterfeiting Double-Paired Boards Than Pocket Deuces And Blocks Wheel Straights.',
+      },
+      {
+        question: 'Should Pocket Fives Call A 3-Bet From AKo At 100BB?',
+        answer:
+          'Calling Small In-Position 3-Bets Deep-Stacked Is Fine For Set Mining, While Facing Large Out-Of-Position 3-Bets Often Favors Folding 55.',
+      },
+    ],
+  },
+  {
+    slug: 'aks-vs-kqo',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Dominated Matchup',
+    handA: 'AKs',
+    handAName: 'Ace-King Suited',
+    handACards: 'As,Ks',
+    handB: 'KQo',
+    handBName: 'King-Queen Offsuit',
+    handBCards: 'Kd,Qc',
+    winA: 75.2,
+    winB: 23.71,
+    tie: 1.09,
+    equityA: 75.75,
+    equityB: 24.25,
+    title: 'AKs Vs KQo Poker Odds And Equity',
+    h1: 'AKs Vs KQo Poker Odds And Preflop Equity',
+    description:
+      'Exact AKs Vs KQo Preflop Odds: Ace-King Suited Dominates King-Queen Offsuit 75.75% To 24.25% (75.20% Win, 1.09% Tie), A Classic King-High Cooler.',
+    flopHitNotes: [
+      'Ace-King Suited Crushes King-Queen Offsuit By Better Than 3-To-1 (75.75% Vs 24.25%) By Combining Domination With Suited Flush Equity.',
+      'On King-High Flops, KQo Is Drawing Virtually Dead To Three Queens (~12.5% By The River) While Facing Massive Reverse Implied Odds.',
+      'Even When KQo Spikes A Queen, Ace-King Suited Still Holds Three Live Aces Plus Spade Flush And Broadway Straight Outs.',
+    ],
+    strategicTakeaways: [
+      'King-Queen Offsuit Must Tread Carefully Facing Tight Early-Position Opens And 3-Bets Where AKs And AKo Dominate Top Pair Kings.',
+      'AKs Extracts Tremendous Three-Street Value From KQo On Dry King-High Boards (K-8-3, K-7-2) Across Both Cash And Tournaments.',
+      'At 20BB Tournament Depth, KQo Often Folds To Tight Early-Position 3-Bet Jams Because Running Into AK Drops Equity Below 25%.',
+    ],
+    relatedSlugs: ['aks-vs-kqs', 'ako-vs-kqo', 'aks-vs-aqo', 'aks-vs-ajs'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of AKs Vs KQo Preflop?',
+        answer:
+          'Ace-King Suited Wins 75.20% Of Runouts, King-Queen Offsuit Wins 23.71%, And 1.09% Tie, Yielding 75.75% Equity For AKs Versus 24.25% For KQo.',
+      },
+      {
+        question: 'Why Is KQo A Worse Underdog Against AKs Than Against AKo?',
+        answer:
+          'AKs Adds Suited Flush Equity Over AKo, Pushing Domination Up From Roughly 73.8% To 75.75% Against Unsuited KQo.',
+      },
+      {
+        question: 'How Should KQo Play Facing A 3-Bet At 100BB?',
+        answer:
+          'Flat-Call Selectively In Position Against Wide Late-Position 3-Bettors, And Fold Frequently Against Tight Early-Position 3-Bet Ranges.',
+      },
+    ],
+  },
+  {
+    slug: 'aks-vs-ajs',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Dominated Matchup',
+    handA: 'AKs',
+    handAName: 'Ace-King Suited',
+    handACards: 'As,Ks',
+    handB: 'AJs',
+    handBName: 'Ace-Jack Suited',
+    handBCards: 'Ad,Jd',
+    winA: 68.84,
+    winB: 26.88,
+    tie: 4.28,
+    equityA: 70.98,
+    equityB: 29.02,
+    title: 'AKs Vs AJs Poker Odds And Equity',
+    h1: 'AKs Vs AJs Poker Odds And Preflop Equity',
+    description:
+      'Exact AKs Vs AJs Preflop Odds: Ace-King Suited Leads Ace-Jack Suited 70.98% To 29.02% (68.84% Win, 4.28% Tie), Covering Ace-High Kicker Domination.',
+    flopHitNotes: [
+      'Unblocked Ace-King Suited Dominates Ace-Jack Suited 70.98% To 29.02% With A 4.28% Split-Pot Rate On Double-Paired And Ace-High Chop Boards.',
+      'When An Ace Flops Without A Jack, AJs Is Drawing To Just Three Jacks Or A Backdoor Flush (~13% Equity) While Feeling Committed In 3-Bet Pots.',
+      'AJs Retains Nearly 29% Overall Equity Because Its Separate Diamond Flush Suit And Jack Straight Combinations Remain Live.',
+    ],
+    strategicTakeaways: [
+      'AKs Generates Huge Winrate On Ace-High Flops Against Calling Ranges Filled With Dominated Suited Aces Like AJs, ATs, And AQs.',
+      'When Holding AJs In A 3-Bet Pot On A-9-4 Rainbow, Avoid Raising Top Pair And Instead Play A Controlled Check-Call Bluff-Catching Line.',
+      'If Both Hands Share The Same Suit, Flush Domination Is Eliminated And AKs Still Cruises Near 71% Via Kicker Supremacy.',
+    ],
+    relatedSlugs: ['aks-vs-aqs', 'aks-vs-aqo', 'aqs-vs-ajs', 'aqo-vs-ajo'],
+    faqs: [
+      {
+        question: 'What Are The Preflop Odds Of AKs Vs AJs?',
+        answer:
+          'With Separate Suits (As Ks Vs Ad Jd), Ace-King Suited Wins 68.84%, Ace-Jack Suited Wins 26.88%, And 4.28% Split (70.98% Vs 29.02%).',
+      },
+      {
+        question: 'Why Do AKs And AJs Split The Pot Over 4% Of The Time?',
+        answer:
+          'Any Board With Two Pairs Higher Than Jack Or A Five-Card Straight/Flush Forces Both Ace-High Hands To Chop The Pot.',
+      },
+      {
+        question: 'Should AJs Stack Off Preflop At 100BB Against A 4-Bet?',
+        answer:
+          'No. Facing Tight 4-Bet Ranges Dominated By AA, KK, QQ, And AK, AJs Is Usually A Disciplined Fold Or Rare Deep-Stack Call In Position.',
+      },
+    ],
+  },
+  {
+    slug: 'aqs-vs-ajs',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Dominated Matchup',
+    handA: 'AQs',
+    handAName: 'Ace-Queen Suited',
+    handACards: 'As,Qs',
+    handB: 'AJs',
+    handBName: 'Ace-Jack Suited',
+    handBCards: 'Ad,Jd',
+    winA: 68.12,
+    winB: 26.57,
+    tie: 5.31,
+    equityA: 70.78,
+    equityB: 29.22,
+    title: 'AQs Vs AJs Poker Odds And Equity',
+    h1: 'AQs Vs AJs Poker Odds And Preflop Equity',
+    description:
+      'Exact AQs Vs AJs Preflop Odds: Ace-Queen Suited Dominates Ace-Jack Suited 70.78% To 29.22% (68.12% Win, 5.31% Tie), Key For 3-Bet Pot Coolers.',
+    flopHitNotes: [
+      'AQs Leads AJs 70.78% To 29.22% While Generating A 5.31% Split-Pot Rate Whenever A King-Paired Or High-Card Counterfeit Board Runs Out.',
+      'On Ace-High Flops Like A-8-3 Rainbow, AQs Dominates AJs Outright And Can Safely Extract Two To Three Streets Of Value.',
+      'AJs Relies On Spiking One Of Three Live Jacks (~12.5% By The River) Or Completing A Diamond Flush To Overtake AQs.',
+    ],
+    strategicTakeaways: [
+      'AQs Vs AJs Is One Of The Biggest Winrate Drivers In 6-Max Cash Games When Button 3-Bets Cutoff Or Big Blind Defends Against Late Opens.',
+      'Avoid Over-Playing AJs For Three Streets Of Value In Deep 3-Bet Pots When Ace-Queen And Ace-King Sit Squarely In Villain Calling Ranges.',
+      'In Mid-Stack Tournaments (20BB To 35BB), AQs Prints EV Re-Shoving Over Wide Opens That Call Off With AJs And ATs.',
+    ],
+    relatedSlugs: ['aks-vs-ajs', 'aqo-vs-ajo', 'aqs-vs-kqs', 'aqs-vs-qjs'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of AQs Vs AJs Preflop?',
+        answer:
+          'Ace-Queen Suited Wins 68.12% Of Boards, Ace-Jack Suited Wins 26.57%, And 5.31% Split, Producing 70.78% Equity For AQs Versus 29.22% For AJs.',
+      },
+      {
+        question: 'Why Is The Split-Pot Rate Higher In AQs Vs AJs Than In AKs Vs AJs?',
+        answer:
+          'Because Neither Hand Holds A King, Any King-High Paired Or Four-Card Board Plays The King Kicker For Both Aces, Pushing Ties Up To 5.31%.',
+      },
+      {
+        question: 'How Should AJs Play On An Ace-High Flop Against A 3-Bettor?',
+        answer:
+          'Check-Call Medium Bets And Avoid Raising, Because Raising Folds Out Worse Bluffs While Getting Called Or Jammed On By AQs And AK.',
+      },
+    ],
+  },
+  {
+    slug: 'aqo-vs-ajo',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Dominated Matchup',
+    handA: 'AQo',
+    handAName: 'Ace-Queen Offsuit',
+    handACards: 'As,Qh',
+    handB: 'AJo',
+    handBName: 'Ace-Jack Offsuit',
+    handBCards: 'Ad,Jc',
+    winA: 70.59,
+    winB: 23.65,
+    tie: 5.76,
+    equityA: 73.47,
+    equityB: 26.53,
+    title: 'AQo Vs AJo Poker Odds And Equity',
+    h1: 'AQo Vs AJo Poker Odds And Preflop Equity',
+    description:
+      'Exact AQo Vs AJo Preflop Odds: Ace-Queen Offsuit Crushes Ace-Jack Offsuit 73.47% To 26.53% (70.59% Win, 5.76% Tie), A Live Cash And MTT Cooler.',
+    flopHitNotes: [
+      'Without Suited Flush Escape Hatches, Ace-Jack Offsuit Drops To Just 26.53% Equity Against Ace-Queen Offsuit (73.47%).',
+      'Nearly 1 In 17 Runouts (5.76%) Ends In A Split Pot On Double-Paired Or King-Kicker Boards.',
+      'When An Ace Flops Without A Jack, AJo Has Only Three Clean Jack Outs (~12.8% By The River) And Suffers Severe Reverse Implied Odds.',
+    ],
+    strategicTakeaways: [
+      'Live Low-Stakes Cash Players Frequently Over-Call 3-Bets Out Of Position With AJo, Giving AQo Huge Value On Ace-High Flops.',
+      'In Tournaments At 15BB To 25BB, AQo Is A Dominant Re-Jam Against Cutoff And Button Opens Containing AJo, ATo, And KQo.',
+      'When Holding AJo Facing Strong Multi-Street Aggression On An Ace-High Board, Discipline Saves Full Buy-Ins Against AQo And AK.',
+    ],
+    relatedSlugs: ['aqs-vs-ajs', 'ako-vs-aqo', 'aks-vs-aqo', 'ajs-vs-kqo'],
+    faqs: [
+      {
+        question: 'What Are The Preflop Odds Of AQo Vs AJo?',
+        answer:
+          'Ace-Queen Offsuit Wins 70.59% Of Boards, Ace-Jack Offsuit Wins 23.65%, And 5.76% Tie, Giving AQo 73.47% Equity Against 26.53% For AJo.',
+      },
+      {
+        question: 'Why Does AJo Perform Worse Against AQo Than AJs Does Against AQs?',
+        answer:
+          'Without A Dedicated Flush Suit, AJo Loses Nearly 2.7% Equity Compared To AJs, Dropping From 29.22% Down To 26.53%.',
+      },
+      {
+        question: 'Is Ace-Jack Offsuit A Fold Against Tight Early-Position Opens?',
+        answer:
+          'In 9-Max Live Cash Games At 100BB, Folding AJo Out Of Position Against Tight UTG Opens Prevents Costly Dominated Ace-High Coolers.',
+      },
+    ],
+  },
+  {
+    slug: 'aqs-vs-qjs',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Dominated Matchup',
+    handA: 'AQs',
+    handAName: 'Ace-Queen Suited',
+    handACards: 'As,Qs',
+    handB: 'QJs',
+    handBName: 'Queen-Jack Suited',
+    handBCards: 'Qd,Jd',
+    winA: 69.23,
+    winB: 29.33,
+    tie: 1.44,
+    equityA: 69.95,
+    equityB: 30.05,
+    title: 'AQs Vs QJs Poker Odds And Equity',
+    h1: 'AQs Vs QJs Poker Odds And Preflop Equity',
+    description:
+      'Exact AQs Vs QJs Preflop Odds: Ace-Queen Suited Leads Queen-Jack Suited 69.95% To 30.05% (69.23% Win, 1.44% Tie), With Queen-High Cooler Strategy.',
+    flopHitNotes: [
+      'Ace-Queen Suited Commands A 70/30 Preflop Lead Over Unblocked Queen-Jack Suited (69.95% Vs 30.05%) By Dominating Every Queen-High Flop.',
+      'Queen-Jack Suited Retains 30.05% Equity Thanks To Its Live Diamond Flush Suit And Connected Straight Draws (K-T-9, T-9-8).',
+      'On Q-7-2 Rainbow Flops, QJs Is Drawing To Just Three Live Jacks (~12.8% By The River) While Facing Heavy Value Bets From AQs.',
+    ],
+    strategicTakeaways: [
+      'AQs Is A Mandatory 3-Bet For Value Across All Positions Specifically To Punish Dominated Suited Broadways Like QJs And KQs.',
+      'QJs Plays Best In Position At 100BB Where It Can Realize Straight And Flush Draws While Controlling Pot Size With Top Pair Weak Kicker.',
+      'Never Stack Off Lightly With One-Pair Queens Using QJs In Deep 3-Bet Pots Facing Tight Ranges Anchored By AQs, KQs, And Overpairs.',
+    ],
+    relatedSlugs: ['aqs-vs-kqs', 'aqs-vs-kjs', 'kqs-vs-qjs', 'qjs-vs-tt'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of AQs Vs QJs Preflop?',
+        answer:
+          'With Separate Suits (As Qs Vs Qd Jd), Ace-Queen Suited Wins 69.23%, Queen-Jack Suited Wins 29.33%, And 1.44% Split (69.95% Vs 30.05%).',
+      },
+      {
+        question: 'Why Does QJs Hold 30% Equity Even When Dominated By AQs?',
+        answer:
+          'QJs Combines Three Clean Jack Outs, A Live Flush Suit, And Two-Way Straight Connectivity That AQs Does Not Block.',
+      },
+      {
+        question: 'How Should QJs Play On A Q-8-3 Flop Against A 3-Bettor?',
+        answer:
+          'Call Down Selectively As A Bluff-Catcher Rather Than Raising, Keeping Villain Bluffs In While Limiting Damage Against AQs, AA, And KK.',
+      },
+    ],
+  },
+  {
+    slug: 'kqs-vs-kjs',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Dominated Matchup',
+    handA: 'KQs',
+    handAName: 'King-Queen Suited',
+    handACards: 'Ks,Qs',
+    handB: 'KJs',
+    handBName: 'King-Jack Suited',
+    handBCards: 'Kd,Jd',
+    winA: 68.42,
+    winB: 26.57,
+    tie: 5.01,
+    equityA: 70.92,
+    equityB: 29.08,
+    title: 'KQs Vs KJs Poker Odds And Equity',
+    h1: 'KQs Vs KJs Poker Odds And Preflop Equity',
+    description:
+      'Exact KQs Vs KJs Preflop Odds: King-Queen Suited Dominates King-Jack Suited 70.92% To 29.08% (68.42% Win, 5.01% Tie), A Classic King-High Cooler.',
+    flopHitNotes: [
+      'King-Queen Suited Holds A 70.92% To 29.08% Lead Over Unblocked King-Jack Suited With A 5.01% Split-Pot Rate On Ace-Paired And High Boards.',
+      'On Dry King-High Flops (K-7-2, K-9-4), KJs Is Dominated And Drawing To Only Three Clean Jacks (~12.8% By The River).',
+      'KJs Preserves Nearly 29.1% Preflop Equity Via Its Live Diamond Flush Suit And Jack-High Straight Outs.',
+    ],
+    strategicTakeaways: [
+      'KQs Extracts Consistent Multi-Street Value On King-High Flops Against Loose Calling Ranges Containing KJs, KTs, And K9s.',
+      'With KJs In 3-Bet Pots On K-8-3 Rainbow, Check-Call Controlled Sizes Rather Than Building A Massive Pot Against Stronger Kings.',
+      'In Late-Position 6-Max Cash Battles, Both KQs And KJs Play Profitably As 3-Bets And In-Position Calls Depending On Opponent Tightness.',
+    ],
+    relatedSlugs: ['kqs-vs-qjs', 'kjs-vs-qts', 'aqs-vs-kqs', 'aqs-vs-kjs'],
+    faqs: [
+      {
+        question: 'What Are The Exact Odds Of KQs Vs KJs Preflop?',
+        answer:
+          'With Separate Suits (Ks Qs Vs Kd Jd), King-Queen Suited Wins 68.42%, King-Jack Suited Wins 26.57%, And 5.01% Split (70.92% Vs 29.08%).',
+      },
+      {
+        question: 'Why Do KQs And KJs Chop Over 5% Of All Runouts?',
+        answer:
+          'Any Board Containing An Ace-Paired Texture Or Double Pair Higher Than Jack Forces Both King-High Hands To Play The Board And Split.',
+      },
+      {
+        question: 'Is KJs Profitable To Defend Against A Cutoff Or Button Open?',
+        answer:
+          'Yes. KJs Realizes Strong Equity Against Wide Opening Ranges, Though It Must Respect Heavy Multi-Street Value Lines On King-High Boards.',
+      },
+    ],
+  },
+  {
+    slug: 'kqo-vs-jts',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Broadway Vs Suited Connector',
+    handA: 'KQo',
+    handAName: 'King-Queen Offsuit',
+    handACards: 'Ks,Qh',
+    handB: 'JTs',
+    handBName: 'Jack-Ten Suited',
+    handBCards: 'Jd,10d',
+    winA: 59.75,
+    winB: 39.58,
+    tie: 0.67,
+    equityA: 60.09,
+    equityB: 39.91,
+    title: 'KQo Vs JTs Poker Odds And Equity',
+    h1: 'KQo Vs JTs Poker Odds And Preflop Equity',
+    description:
+      'Exact KQo Vs JTs Preflop Odds: King-Queen Offsuit Leads Jack-Ten Suited 60.09% To 39.91% (59.75% Win, 0.67% Tie), With Postflop Playability Notes.',
+    flopHitNotes: [
+      'Unblocked Jack-Ten Suited Pulls Nearly 40% Equity (39.91%) Against Two Overcards KQo (60.09%) Thanks To Live Flush And Straight Connectivity.',
+      'Whenever An Ace-King-Queen Or Q-J-T Texture Lands, Both Hands Collide In Action-Heavy Straight And Two-Pair Showdowns.',
+      'On Low Two-Tone Connected Boards (9-8-3, T-7-4), JTs Regularly Flips Into A Big Favorite Over Unimproved KQo.',
+    ],
+    strategicTakeaways: [
+      'At 100BB+ Effective Depth, JTs Frequently Outperforms KQo In Position Because Its Straight And Flush Draws Apply Relentless Multi-Street Pressure.',
+      'At Short Tournament Stacks Under 20BB, KQo High-Card Strength Wins Clearly With A 60/40 All-In Edge Over JTs.',
+      'KQo Should Bet Protectively On Mid-Card Rainbow Flops Where JTs Must Fold Or Float Thin Gutshots.',
+    ],
+    relatedSlugs: ['aks-vs-jts', 'ajs-vs-kqo', 'kqs-vs-qjs', 'jts-vs-qq'],
+    faqs: [
+      {
+        question: 'What Are The Preflop Odds Of KQo Vs JTs?',
+        answer:
+          'King-Queen Offsuit Wins 59.75% Of Runouts, Jack-Ten Suited Wins 39.58%, And 0.67% Split, Giving KQo 60.09% Equity Versus 39.91% For JTs.',
+      },
+      {
+        question: 'Why Does JTs Have Nearly 40% Equity Against Two Higher Cards Like KQo?',
+        answer:
+          'JTs Holds Zero Card Overlap With KQo, A Live Flush Suit, And Maximum Connected Straight Windows (9-8-7, Q-9-8, K-9-8).',
+      },
+      {
+        question: 'Which Hand Is Better Deep-Stacked In Position: KQo Or JTs?',
+        answer:
+          'In Deep 150BB+ Multi-Way Cash Pots, JTs Often Generates Higher Realized EV Because It Makes Nut Straights And Flushes Instead Of Dominated Top Pairs.',
+      },
+    ],
+  },
+  {
+    slug: '76s-vs-aa',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Suited Connector Vs Big Hand',
+    handA: '76s',
+    handAName: 'Seven-Six Suited',
+    handACards: '7d,6d',
+    handB: 'AA',
+    handBName: 'Pocket Aces',
+    handBCards: 'As,Ah',
+    winA: 22.84,
+    winB: 76.84,
+    tie: 0.32,
+    equityA: 23.0,
+    equityB: 77.0,
+    title: '76s Vs AA Poker Odds And Equity',
+    h1: '76s Vs AA Poker Odds And Preflop Equity',
+    description:
+      'Exact 76s Vs AA Preflop Odds: Seven-Six Suited Hits 23.00% Equity Against Unblocked Pocket Aces (77.00%), The Strongest Non-Pair Hand Versus Aces.',
+    flopHitNotes: [
+      'Unblocked Seven-Six Suited (7d 6d Vs As Ah) Reaches 23.00% Preflop Equity Against Pocket Aces, Surpassing Even Pocket Kings (17.82%) And Pocket Queens (19.32%).',
+      '76s Unlocks Four Completely Unblocked Straight Combinations (T-9-8-7-6 Down To 7-6-5-4-3) Plus Full Live Diamond Flush Equity.',
+      'On Wet Low Boards Like 8-5-2 Or 9-5-4 Two-Tone, 76s Frequently Surges Past 50% Equity Against Pocket Aces.',
+    ],
+    strategicTakeaways: [
+      '76s Is A Staple Solver 3-Bet Bluff And Deep-Stack Call In Position Because It Retains 23% Equity Even When Running Into Pocket Aces.',
+      'Pocket Aces Must Stay Disciplined On Coordinated 9-8-5 Or 8-5-4 Runouts Where Suited Connectors Uncap Calling Ranges With Flopped Straights.',
+      'Never Flat 76s Out Of Position Against Huge 3-Bets At Shallow 30BB Stacks Where Implied Odds Disappear.',
+    ],
+    relatedSlugs: ['65s-vs-qq', '54s-vs-aa', 't9s-vs-aa', '98s-vs-aa'],
+    faqs: [
+      {
+        question: 'What Are The Exact Preflop Odds Of 76s Vs AA?',
+        answer:
+          'With Unblocked Suits (7d 6d Vs As Ah), Seven-Six Suited Wins 22.84% Of Runouts, Pocket Aces Wins 76.84%, And 0.32% Split, Giving 76s 23.00% Equity.',
+      },
+      {
+        question: 'Is 76s Really Better Against Pocket Aces Than Pocket Kings Is?',
+        answer:
+          'Yes In Raw Heads-Up Equity With Unblocked Suits: 76s Holds 23.00% Against AA Versus 17.82% For KK Because 76s Makes Four Independent Straights And Flushes.',
+      },
+      {
+        question: 'How Does Suit Overlap Affect 76s Vs AA Odds?',
+        answer:
+          'If Pocket Aces Shares The Same Suit As 76s (Such As As Ad Vs 7d 6d), 76s Equity Drops Roughly 2% Down Near 20.9%.',
+      },
+    ],
+  },
+  {
+    slug: '87s-vs-qq',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Suited Connector Vs Big Hand',
+    handA: '87s',
+    handAName: 'Eight-Seven Suited',
+    handACards: '8d,7d',
+    handB: 'QQ',
+    handBName: 'Pocket Queens',
+    handBCards: 'Qs,Qh',
+    winA: 22.03,
+    winB: 77.64,
+    tie: 0.33,
+    equityA: 22.2,
+    equityB: 77.8,
+    title: '87s Vs QQ Poker Odds And Equity',
+    h1: '87s Vs QQ Poker Odds And Preflop Equity',
+    description:
+      'Exact 87s Vs QQ Preflop Odds: Eight-Seven Suited Holds 22.20% Equity Against Unblocked Pocket Queens (77.80%), With Flop Check-Raise And Implied Odds.',
+    flopHitNotes: [
+      'Unblocked Eight-Seven Suited (8d 7d Vs Qs Qh) Holds 22.20% Equity Against Pocket Queens, Trailing 65s Slightly Only Because Queens Blocks Q-J-T-9-8.',
+      '87s Flops Two Pair, Trips, A Straight, Or A Strong Flush/OESD Combo Draw Over 24% Of The Time.',
+      'On 9-6-X Two-Tone Flops, 87s Frequently Check-Raises Aggressively With 45% To 55% Equity Against Overpair Queens.',
+    ],
+    strategicTakeaways: [
+      '87s Excels In Deep 100BB+ Big Blind Defenses And Button Calls Because It Dominates Low-To-Middle Flop Textures Where Overpairs Struggle.',
+      'Pocket Queens Should Mix Smaller C-Bets And Checks On Wet 9-6-5 Or T-9-6 Flops Where Defenders Hold Huge Nut Density.',
+      'When Facing Large 4-Bets At Shallow Stacks, 87s Must Fold Because Realizing Draw Equity Requires Stack Depth.',
+    ],
+    relatedSlugs: ['87s-vs-kk', '65s-vs-qq', '76s-vs-aa', '98s-vs-kk'],
+    faqs: [
+      {
+        question: 'What Are The Preflop Odds Of 87s Vs QQ?',
+        answer:
+          'With Unblocked Suits (8d 7d Vs Qs Qh), Eight-Seven Suited Wins 22.03% Of Boards, Pocket Queens Wins 77.64%, And 0.33% Split (22.20% Vs 77.80%).',
+      },
+      {
+        question: 'Why Does 87s Have Slightly Less Equity Against QQ Than 65s Does?',
+        answer:
+          'Pocket Queens Directly Blocks The High End Of 87s Q-J-T-9-8 Straight Window, Trimming 87s To 22.20% Compared To 23.05% For 65s.',
+      },
+      {
+        question: 'Is 87s A Profitable Big Blind Call Against A Button Raise?',
+        answer:
+          'Yes At 100% Frequency At 100BB Effective Stacks, With Mixed Check-Raises On Middle Connected Flops Where 87s Connects Strongly.',
+      },
+    ],
+  },
+  {
+    slug: '98s-vs-kk',
+    game: 'nlhe',
+    gameLabel: "No-Limit Hold'em",
+    category: 'Suited Connector Vs Big Hand',
+    handA: '98s',
+    handAName: 'Nine-Eight Suited',
+    handACards: '9d,8d',
+    handB: 'KK',
+    handBName: 'Pocket Kings',
+    handBCards: 'Ks,Kh',
+    winA: 22.21,
+    winB: 77.44,
+    tie: 0.35,
+    equityA: 22.39,
+    equityB: 77.61,
+    title: '98s Vs KK Poker Odds And Equity',
+    h1: '98s Vs KK Poker Odds And Preflop Equity',
+    description:
+      'Exact 98s Vs KK Preflop Odds: Nine-Eight Suited Holds 22.39% Equity Against Unblocked Pocket Kings (77.61%), With 3-Bet Bluff And Deep-Stack Strategy.',
+    flopHitNotes: [
+      'Unblocked Nine-Eight Suited (9d 8d Vs Ks Kh) Carries 22.39% Preflop Equity Against Pocket Kings With Four Unblocked Straight Windows.',
+      'Because Pocket Kings Does Not Block 98s Primary Straight Ranges (Q-J-T-9-8 Down To 9-8-7-6-5), 98s Retains Strong Playability On Middle Flops.',
+      'On Dry Ace-High Or King-High Rainbow Flops, Pocket Kings Soars Above 92% Equity Immediately.',
+    ],
+    strategicTakeaways: [
+      '98s Is A Solver-Favorite 3-Bet Bluff And In-Position Flat At 100BB+ Because It Hits Disguised Nut Straights On J-T-7 And T-7-6 Boards.',
+      'Pocket Kings Must Size Up Flop Protection Bets On Coordinated J-T-X And 7-6-X Two-Tone Boards To Deny Cheap Draw Realization.',
+      'At Deep Cash Depths, 98s Earns Massive Implied Odds Whenever Pocket Kings Refuses To Fold An Overpair On Connected Runouts.',
+    ],
+    relatedSlugs: ['98s-vs-aa', '87s-vs-kk', '87s-vs-qq', '76s-vs-kk'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of 98s Vs KK Preflop?',
+        answer:
+          'With Unblocked Suits (9d 8d Vs Ks Kh), Nine-Eight Suited Wins 22.21% Of Boards, Pocket Kings Wins 77.44%, And 0.35% Split (22.39% Vs 77.61%).',
+      },
+      {
+        question: 'Why Does 98s Perform Well Against Pocket Kings Deep-Stacked?',
+        answer:
+          '98s Shares Zero Card Overlap With Pocket Kings, Carries Four Live Straight Windows Plus Flush Equity, And Disguises Two Pair And Straights.',
+      },
+      {
+        question: 'Should Pocket Kings Always C-Bet Against 98s On T-7-6 Two-Tone?',
+        answer:
+          'Often Mixing Checks And Medium Bets Works Best Out Of Position Because The Defender Holds High Density Of Flopped Straights, Sets, And Combo Draws.',
+      },
+    ],
+  },
+  {
+    slug: 'aajt-vs-kkqq-plo4',
+    game: 'plo4',
+    gameLabel: '4-Card Pot-Limit Omaha (PLO4)',
+    category: 'Pot-Limit Omaha (PLO4)',
+    handA: 'AAJTds',
+    handAName: 'AAJT Double-Suited',
+    handACards: 'As,Ah,Js,10h',
+    handB: 'KKQQds',
+    handBName: 'KKQQ Double-Suited',
+    handBCards: 'Kd,Kc,Qd,Qc',
+    winA: 60.43,
+    winB: 39.57,
+    tie: 0,
+    equityA: 60.43,
+    equityB: 39.57,
+    title: 'AAJT Vs KKQQ PLO4 Odds And Equity',
+    h1: 'AAJT Vs KKQQ PLO4 Odds And Preflop Equity',
+    description:
+      'Exact PLO4 AAJTds Vs KKQQds Preflop Odds: Double-Suited AAJT Leads Double-Paired KKQQds 60.43% To 39.57%, Highlighting Elite PLO4 Aces Vs Big Pairs.',
+    flopHitNotes: [
+      'AAJT Double-Suited Is Arguably The Single Best Connected Aces Hand In PLO4, Leading Double-Paired KKQQds 60.43% To 39.57% With Unblocked Suits.',
+      'KKQQds Brings Two Live Pocket Pairs (22.5% Flop Set Rate) Plus Two Live Flush Suits, Keeping It Near 40% Even Against Elite Double-Suited Aces.',
+      'AAJTds Blocks Both Jacks And Tens That KKQQds Needs For Broadway Straights While Retaining Both Nut Flush Draws.',
+    ],
+    strategicTakeaways: [
+      'AAJTds Always 3-Bets And 4-Bets Preflop In PLO4 Because It Combines Nut Flush Draws, Broadway Straight Wraps, And Overpair Dominance.',
+      'KKQQds Should Respect Tight 4-Bet Ranges At 150BB+ Depth And Consider Calling In Position Rather Than Getting All-In Against Uncapped AAxx.',
+      'When AAJTds Shares Suits With KKQQds, Nut Flush Domination Drives AAJTds Above 67% Equity.',
+    ],
+    relatedSlugs: ['aakk-vs-qqjj-plo4', 'aakk-vs-jt98-plo4', 'aa98-vs-kkqj-plo4', 'aakq-vs-jt98-plo4'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of AAJTds Vs KKQQds In PLO4?',
+        answer:
+          'With Unblocked Suits (As Ah Js 10h Vs Kd Kc Qd Qc), AAJT Double-Suited Holds 60.43% Equity Against 39.57% For KKQQ Double-Suited.',
+      },
+      {
+        question: 'Why Is AAJTds Rated One Of The Strongest PLO4 Starting Hands?',
+        answer:
+          'AAJTds Combines Pocket Aces, Two Nut Flush Suits, And Broadway Straight Connectivity (J-T) That Crushes Both Pairs And Rundowns.',
+      },
+      {
+        question: 'How Often Does KKQQds Flop A Set Against AAJTds?',
+        answer:
+          'Holding Two Live Pocket Pairs Gives KKQQds Four Set Outs, Flopping At Least One Set On Approximately 22.5% Of All Flops.',
+      },
+    ],
+  },
+  {
+    slug: 'aakk-vs-9876-plo4',
+    game: 'plo4',
+    gameLabel: '4-Card Pot-Limit Omaha (PLO4)',
+    category: 'Pot-Limit Omaha (PLO4)',
+    handA: 'AAKKds',
+    handAName: 'AAKK Double-Suited',
+    handACards: 'As,Ah,Ks,Kh',
+    handB: '9876ds',
+    handBName: '9876 Double-Suited',
+    handBCards: '9d,8c,7d,6c',
+    winA: 60.27,
+    winB: 39.73,
+    tie: 0,
+    equityA: 60.27,
+    equityB: 39.73,
+    title: 'AAKK Vs 9876 PLO4 Odds And Equity',
+    h1: 'AAKK Vs 9876 PLO4 Odds And Preflop Equity',
+    description:
+      'Exact PLO4 AAKKds Vs 9876ds Preflop Odds: Double-Suited AAKK Leads Middle Rundown 9876ds 60.27% To 39.73%, Showing Zero-Overlap Rundown Equity.',
+    flopHitNotes: [
+      'Because 9876ds Shares Zero Ranks Or Suits With As Ah Ks Kh, The Middle Rundown Pulls 39.73% Equity Against The #1 PLO4 Starting Hand AAKKds (60.27%).',
+      '9876ds Connects With Massive 17-Out And 20-Out Wraps On Low-To-Middle Textures (T-6-5, J-7-5, 8-5-4) Where AAKKds Struggles.',
+      'AAKKds Commands Both Top Pairs And Both Nut Flush Draws, Securing A Clean 60/40 Preflop Edge.',
+    ],
+    strategicTakeaways: [
+      'AAKKds Wants To Push Stack-To-Pot Ratios Below 2 Preflop So 9876ds Cannot Realize Free Turn Cards Deep-Stacked.',
+      '9876ds Is An Elite Deep-Stack Calling Hand In Position Against Tight 3-Bet Ranges Because It Dominates Low And Middle Boards Cleanly.',
+      'Even Against The Absolute Nuts Preflop In PLO4, A Clean Double-Suited Rundown Never Falls Below ~39% Equity Unblocked.',
+    ],
+    relatedSlugs: ['aakk-vs-jt98-plo4', 'aakk-vs-qqjj-plo4', 'aajt-vs-kkqq-plo4', 'kkjj-vs-qt98-plo4'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of AAKKds Vs 9876ds In PLO4?',
+        answer:
+          'With Unblocked Suits (As Ah Ks Kh Vs 9d 8c 7d 6c), AAKK Double-Suited Holds 60.27% Equity Versus 39.73% For 9876 Double-Suited.',
+      },
+      {
+        question: 'Why Does 9876ds Perform Even Better Against AAKKds Than JT98ds Does?',
+        answer:
+          'Pocket Kings Blocks JT98ds High Broadway Wrap (K-Q-J-T-9), Whereas 9876ds Has Completely Unblocked Middle Straight Windows.',
+      },
+      {
+        question: 'Should 9876ds Call A 3-Bet In Position At 100BB In PLO4?',
+        answer:
+          'Yes. Double-Suited Connected Rundowns Play Smoothly In Position Because They Flop Clear Nut Wraps, Two Pairs, And Flushes.',
+      },
+    ],
+  },
+  {
+    slug: 'kkjj-vs-qt98-plo4',
+    game: 'plo4',
+    gameLabel: '4-Card Pot-Limit Omaha (PLO4)',
+    category: 'Pot-Limit Omaha (PLO4)',
+    handA: 'KKJJds',
+    handAName: 'KKJJ Double-Suited',
+    handACards: 'Ks,Kh,Js,Jh',
+    handB: 'QT98ds',
+    handBName: 'QT98 Double-Suited',
+    handBCards: 'Qd,10c,9d,8c',
+    winA: 62.73,
+    winB: 37.25,
+    tie: 0.02,
+    equityA: 62.74,
+    equityB: 37.26,
+    title: 'KKJJ Vs QT98 PLO4 Odds And Equity',
+    h1: 'KKJJ Vs QT98 PLO4 Odds And Preflop Equity',
+    description:
+      'Exact PLO4 KKJJds Vs QT98ds Preflop Odds: Double-Suited KKJJ Leads Gapped Rundown QT98ds 62.74% To 37.26%, Showing How Blockers Cut Rundown Outs.',
+    flopHitNotes: [
+      'KKJJ Double-Suited Leads QT98 Double-Suited 62.74% To 37.26% Because Pocket Kings And Pocket Jacks Heavily Block QT98ds Top-End Straight Outs.',
+      'Holding Two Jacks Removes Crucial Interior Cards Needed For QT98ds To Complete Nut Queen-High And King-High Straights.',
+      'KKJJds Brings Four Live Set Outs Plus Two Strong King-High And Jack-High Flush Draws.',
+    ],
+    strategicTakeaways: [
+      'Gapped Rundowns Like QT98ds Lose Significant Equity When Facing Big Pairs That Block Their Gap Rank (Jacks In This Case).',
+      'KKJJds Is A Strong 3-Betting Hand In PLO4 That Dominates Single-Gapped Broadway Rundowns Preflop.',
+      'Postflop On Low Connected Textures (7-6-4, 8-7-5), QT98ds Still Flops Monster Wraps That Demand Caution From Unimproved Kings.',
+    ],
+    relatedSlugs: ['kkqq-vs-jt98-plo4', 'aakk-vs-9876-plo4', 'qqtt-vs-akj9-plo4', 'akqj-vs-jt98-plo4'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of KKJJds Vs QT98ds In PLO4?',
+        answer:
+          'With Unblocked Suits (Ks Kh Js Jh Vs Qd 10c 9d 8c), KKJJ Double-Suited Wins 62.73%, QT98ds Wins 37.25%, And 0.02% Tie (62.74% Vs 37.26%).',
+      },
+      {
+        question: 'Why Does KKJJds Beat QT98ds More Decisively Than AAKKds Beats 9876ds?',
+        answer:
+          'KKJJds Directly Blocks Both Kings And Jacks Needed For QT98ds High Straights, Cutting QT98ds Straight Realization Substantially.',
+      },
+      {
+        question: 'What Is A Top-Gap Rundown In PLO4?',
+        answer:
+          'A Top-Gap Rundown Like QT98 Has A One-Rank Gap Between Its Highest Card (Queen) And Next Card (Ten), Yielding Slightly Fewer Nut Wraps Than A Pure Rundown.',
+      },
+    ],
+  },
+  {
+    slug: 'qqtt-vs-akj9-plo4',
+    game: 'plo4',
+    gameLabel: '4-Card Pot-Limit Omaha (PLO4)',
+    category: 'Pot-Limit Omaha (PLO4)',
+    handA: 'QQTTds',
+    handAName: 'QQTT Double-Suited',
+    handACards: 'Qs,Qh,10s,10h',
+    handB: 'AKJ9ds',
+    handBName: 'AKJ9 Double-Suited',
+    handBCards: 'Ad,Kc,Jd,9c',
+    winA: 59.13,
+    winB: 40.86,
+    tie: 0.01,
+    equityA: 59.14,
+    equityB: 40.86,
+    title: 'QQTT Vs AKJ9 PLO4 Odds And Equity',
+    h1: 'QQTT Vs AKJ9 PLO4 Odds And Preflop Equity',
+    description:
+      'Exact PLO4 QQTTds Vs AKJ9ds Preflop Odds: Double-Paired QQTTds Leads Unpaired Broadway AKJ9ds 59.14% To 40.86%, Highlighting Pair Value In PLO4.',
+    flopHitNotes: [
+      'Double-Paired QQTTds Holds A Solid 59.14% To 40.86% Lead Over Unpaired Broadway AKJ9ds Because QQTTds Blocks Both Queens And Tens.',
+      'Even Without A Pair, AKJ9ds Carries The Ace-High Nut Flush Draw, King-High Flush Draw, And Strong High Broadway Wraps For Nearly 41% Equity.',
+      'QQTTds Flops Top Or Middle Set On 22.5% Of Flops While Blocking Key Straight Cards For AKJ9ds.',
+    ],
+    strategicTakeaways: [
+      'Double-Paired Connected Hands Like QQTTds Perform Strongly In Low-SPR 3-Bet Pots Because Two Live Sets Dominate Unpaired Broadways.',
+      'AKJ9ds Prefers Multi-Way And Deep-Stacked Spots Where Its Ace-High Nut Flush And Nut Broadway Straight Potential Realize Maximum Implied Odds.',
+      'Watch Suit Overlap Closely: When AKJ9ds Dominates One Of QQTTds Flush Suits, The Equity Gap Tightens Sharply.',
+    ],
+    relatedSlugs: ['kkjj-vs-qt98-plo4', 'akqj-vs-jt98-plo4', 'jjtt-vs-aakq-plo4', 'aakk-vs-qqjj-plo4'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of QQTTds Vs AKJ9ds In PLO4?',
+        answer:
+          'With Unblocked Suits (Qs Qh 10s 10h Vs Ad Kc Jd 9c), QQTTds Wins 59.13%, AKJ9ds Wins 40.86%, And 0.01% Tie (59.14% Vs 40.86%).',
+      },
+      {
+        question: 'Why Does QQTTds Lead AKJ9ds By Almost 19 Percentage Points?',
+        answer:
+          'QQTTds Starts Ahead With Two Made Pairs (Four Set Outs) And Removes Two Queens And Two Tens Crucial For AKJ9ds Broadway Straights.',
+      },
+      {
+        question: 'Is AKJ9ds Still A Strong Starting Hand In 4-Card PLO?',
+        answer:
+          'Yes. Double-Suited Ace-High Broadways Like AKJ9ds Rank Among The Top 5% Of PLO4 Hands Thanks To Nut Flush And Nut Straight Potential.',
+      },
+    ],
+  },
+  {
+    slug: 'akqj-vs-jt98-plo4',
+    game: 'plo4',
+    gameLabel: '4-Card Pot-Limit Omaha (PLO4)',
+    category: 'Pot-Limit Omaha (PLO4)',
+    handA: 'AKQJds',
+    handAName: 'AKQJ Double-Suited',
+    handACards: 'As,Kh,Qs,Jh',
+    handB: 'JT98ds',
+    handBName: 'JT98 Double-Suited',
+    handBCards: 'Jd,10c,9d,8c',
+    winA: 56.23,
+    winB: 43.62,
+    tie: 0.15,
+    equityA: 56.3,
+    equityB: 43.7,
+    title: 'AKQJ Vs JT98 PLO4 Odds And Equity',
+    h1: 'AKQJ Vs JT98 PLO4 Odds And Preflop Equity',
+    description:
+      'Exact PLO4 AKQJds Vs JT98ds Preflop Odds: Double-Suited Broadway AKQJds Leads Rundown JT98ds 56.30% To 43.70%, An Iconic Unpaired Omaha Clash.',
+    flopHitNotes: [
+      'In This Classic Unpaired PLO4 Showdown, Top Broadway AKQJds Leads Middle Rundown JT98ds 56.30% To 43.70% With Unblocked Suits.',
+      'AKQJds Dominates High Pairs, Holds Both Nut And Second-Nut Flush Suits, And Blocks One Of JT98ds Jacks.',
+      'JT98ds Connects With Explosive 16-Out To 20-Out Wraps On Low-To-Mid Flops (Q-7-6, K-9-7, T-7-6) Where Unpaired Broadways Miss.',
+    ],
+    strategicTakeaways: [
+      'AKQJds Is The #1 Unpaired Starting Hand In PLO4, Dominating High Broadways And Out-Equiting Even Elite Double-Suited Rundowns.',
+      'In Deep Cash Pots, JT98ds Realizes Huge Equity On Middle Textures While Avoiding Reverse Implied Odds On Ace-King-High Flops.',
+      'Always Evaluate Flush Domination: If AKQJds Shares Spades Or Hearts With JT98ds, AKQJds Climbs Past 62% Equity.',
+    ],
+    relatedSlugs: ['aakq-vs-jt98-plo4', 'kkqq-vs-jt98-plo4', 'aakk-vs-jt98-plo4', 'qqtt-vs-akj9-plo4'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of AKQJds Vs JT98ds In PLO4?',
+        answer:
+          'With Unblocked Suits (As Kh Qs Jh Vs Jd 10c 9d 8c), AKQJds Wins 56.23%, JT98ds Wins 43.62%, And 0.15% Tie (56.30% Vs 43.70%).',
+      },
+      {
+        question: 'Why Does AKQJds Beat JT98ds Even Without A Pocket Pair?',
+        answer:
+          'AKQJds Dominates High Pairs And High Straights, Holds Two Top Flush Suits, And Removes A Jack Needed By JT98ds.',
+      },
+      {
+        question: 'Which Hand Hits More 20-Out Straight Wraps On The Flop?',
+        answer:
+          'JT98ds Hits More 20-Out Wraps Because Middle Rundowns Connect On Both High And Low Ends Of Flop Textures.',
+      },
+    ],
+  },
+  {
+    slug: 'aa87-vs-kktt-plo4',
+    game: 'plo4',
+    gameLabel: '4-Card Pot-Limit Omaha (PLO4)',
+    category: 'Pot-Limit Omaha (PLO4)',
+    handA: 'AA87ds',
+    handAName: 'AA87 Double-Suited',
+    handACards: 'As,Ah,8s,7h',
+    handB: 'KKTTds',
+    handBName: 'KKTT Double-Suited',
+    handBCards: 'Kd,Kc,10d,10c',
+    winA: 59.64,
+    winB: 40.36,
+    tie: 0,
+    equityA: 59.64,
+    equityB: 40.36,
+    title: 'AA87 Vs KKTT PLO4 Odds And Equity',
+    h1: 'AA87 Vs KKTT PLO4 Odds And Preflop Equity',
+    description:
+      'Exact PLO4 AA87ds Vs KKTTds Preflop Odds: Connected Double-Suited AA87ds Leads Double-Paired KKTTds 59.64% To 40.36%, With 4-Bet Pot Equity Notes.',
+    flopHitNotes: [
+      'Connected Double-Suited Aces AA87ds Holds Nearly A 60/40 Preflop Edge (59.64% Vs 40.36%) Against Unblocked Double-Paired KKTTds.',
+      'KKTTds Relies On Two Live Pocket Pairs (Four Set Outs = 22.5% Flop Set Rate) Plus Two Live Flush Suits To Stay Competitive At 40.36%.',
+      'AA87ds Covers Middle-To-Low Textures (9-6-5, T-6-5, 8-7-4) While Holding Two Nut Flush Suits.',
+    ],
+    strategicTakeaways: [
+      'Double-Suited Connected Aces Like AA87ds Play Smoothly Both Preflop All-In And Postflop In Low-SPR 3-Bet And 4-Bet Pots.',
+      'KKTTds Must Beware Of Calling Off Against Tight 4-Bets When Flush Suits Overlap With Opponent AAxx.',
+      'Use Smarter.Poker Free Odds Calculator To Inspect How Matching Even One Flush Suit Shifts AA87ds Past 66% Equity.',
+    ],
+    relatedSlugs: ['aa98-vs-kkqj-plo4', 'aakk-vs-qqjj-plo4', 'aajt-vs-kkqq-plo4', 'jjtt-vs-aakq-plo4'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of AA87ds Vs KKTTds In PLO4?',
+        answer:
+          'With Unblocked Suits (As Ah 8s 7h Vs Kd Kc 10d 10c), AA87 Double-Suited Holds 59.64% Equity Against 40.36% For KKTT Double-Suited.',
+      },
+      {
+        question: 'Why Does KKTTds Have Over 40% Equity Against Double-Suited Aces?',
+        answer:
+          'Double-Paired KKTTds Combines Four Live Set Outs With Two Live Flush Suits And Zero Rank Overlap Against AA87ds.',
+      },
+      {
+        question: 'Should AA87ds Always 3-Bet Preflop In PLO4?',
+        answer:
+          'Yes. Double-Suited Connected Aces Are Top-1% PLO4 Starting Hands That Profit Strongly From Building The Pot And Lowering SPR Preflop.',
+      },
+    ],
+  },
+  {
+    slug: 'jjtt-vs-aakq-plo4',
+    game: 'plo4',
+    gameLabel: '4-Card Pot-Limit Omaha (PLO4)',
+    category: 'Pot-Limit Omaha (PLO4)',
+    handA: 'JJTTds',
+    handAName: 'JJTT Double-Suited',
+    handACards: 'Js,Jh,10s,10h',
+    handB: 'AAKQds',
+    handBName: 'AAKQ Double-Suited',
+    handBCards: 'Ad,Ac,Kd,Qc',
+    winA: 42.85,
+    winB: 57.15,
+    tie: 0,
+    equityA: 42.85,
+    equityB: 57.15,
+    title: 'JJTT Vs AAKQ PLO4 Odds And Equity',
+    h1: 'JJTT Vs AAKQ PLO4 Odds And Preflop Equity',
+    description:
+      'Exact PLO4 JJTTds Vs AAKQds Preflop Odds: Double-Paired JJTTds Pulls 42.85% Equity Against Elite AAKQds (57.15%), Showing PLO4 Pair Connectivity.',
+    flopHitNotes: [
+      'Double-Paired Connected JJTTds Reaches 42.85% Preflop Equity Against Elite Double-Suited AAKQds (57.15%) With Unblocked Suits.',
+      'Unlike Holdem Where JJ Trails AA 19/81, Combining Pocket Jacks, Pocket Tens, Two Live Flush Suits, And J-T Connectivity More Than Doubles Underpair Equity.',
+      'AAKQds Still Commands A Clear 57/43 Preflop Favorite Status With Top Overpair, Two Nut Flush Draws, And Broadway Blockers.',
+    ],
+    strategicTakeaways: [
+      'JJTTds Is One Of The Best Hands In PLO4 For Calling 3-Bets And 4-Bets In Position Against Predictable AAxx Ranges Because It Realizes Over 42% Equity.',
+      'AAKQds Wants To Push Action Preflop To Prevent JJTTds From Realizing Cheap Flop Equity In Deep Pots.',
+      'On Q-9-8 Or K-J-9 Flops, Both Hands Generate Massive Action With Sets, Two Pairs, And High Wraps.',
+    ],
+    relatedSlugs: ['aakq-vs-jt98-plo4', 'aakk-vs-qqjj-plo4', 'aajt-vs-kkqq-plo4', 'aa87-vs-kktt-plo4'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of JJTTds Vs AAKQds In PLO4?',
+        answer:
+          'With Unblocked Suits (Js Jh 10s 10h Vs Ad Ac Kd Qc), JJTTds Holds 42.85% Equity Against 57.15% For AAKQds.',
+      },
+      {
+        question: 'Why Does JJTTds Perform So Strongly Against AAKQds?',
+        answer:
+          'JJTTds Combines Four Unblocked Set Outs, Two Live Flush Suits, And Connected Jack-Ten Straight Coverage Without Overlapping Any Rank In AAKQ.',
+      },
+      {
+        question: 'Should JJTTds 5-Bet All-In Preflop Against AAKQds?',
+        answer:
+          'Usually Calling In Position At 100BB+ Depth Outperforms 5-Betting Because You Can Stack Off On Favorable Flops While Folding Missed High Boards.',
+      },
+    ],
+  },
+  {
+    slug: 'aakkq-vs-jt987-plo5',
+    game: 'plo5',
+    gameLabel: '5-Card Pot-Limit Omaha (PLO5)',
+    category: 'Pot-Limit Omaha (PLO5)',
+    handA: 'AAKKQds',
+    handAName: 'AAKKQ Double-Suited',
+    handACards: 'As,Ah,Ks,Kh,Qc',
+    handB: 'JT987ds',
+    handBName: 'JT987 Double-Suited',
+    handBCards: 'Jd,10c,9d,8c,7d',
+    winA: 57.1,
+    winB: 42.89,
+    tie: 0.01,
+    equityA: 57.11,
+    equityB: 42.89,
+    title: 'AAKKQ Vs JT987 PLO5 Odds And Equity',
+    h1: 'AAKKQ Vs JT987 PLO5 Odds And Preflop Equity',
+    description:
+      'Exact PLO5 AAKKQds Vs JT987ds Odds: Double-Paired AAKKQds Leads Five-Card Rundown JT987ds 57.11% To 42.89%, Showing 5-Card PLO Equity Compression.',
+    flopHitNotes: [
+      'In 5-Card PLO (PLO5), Each Hand Builds 10 Two-Card Combinations, Pulling Even Monster AAKKQds Down To 57.11% Against Unblocked JT987ds (42.89%).',
+      'Because AAKKQds Does Not Block Any Jack, Ten, Nine, Eight, Or Seven, JT987ds Retains Full 5-Card Straight Wrap Connectivity.',
+      'AAKKQds Holds Two Live Top Pairs Plus Two Nut Flush Suits, Preserving A Strong 57/43 Edge All-In Preflop.',
+    ],
+    strategicTakeaways: [
+      'In PLO5, Never Fall In Love With Unimproved Aces Postflop When Facing Five-Card Rundowns That Flop Nut Wraps And Two Pairs Effortlessly.',
+      'AAKKQds Should Drive Preflop 3-Bets And 4-Bets To Reduce Effective Stack-To-Pot Ratios Below 2 Before Flops Land.',
+      'JT987ds Thrives In Deep 150BB+ Multi-Way PLO5 Pots Where Connected Five-Card Hands Dominate Middle Board Textures.',
+    ],
+    relatedSlugs: ['aakkj-vs-jt987-plo5', 'aakqj-vs-jt987-plo5', 'aakkq-vs-qqjjt-plo5', 'kkqqj-vs-t9876-plo5'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of AAKKQds Vs JT987ds In 5-Card PLO?',
+        answer:
+          'With Unblocked Suits (As Ah Ks Kh Qc Vs Jd 10c 9d 8c 7d), AAKKQds Wins 57.10%, JT987ds Wins 42.89%, And 0.01% Tie (57.11% Vs 42.89%).',
+      },
+      {
+        question: 'Why Does JT987ds Have Slightly More Equity Against AAKKQds Than Against AAKKJds?',
+        answer:
+          'AAKKJds Blocks One Of JT987ds Jacks, Whereas AAKKQds Leaves All Four Jacks Live In The Deck For JT987ds Straight Wraps.',
+      },
+      {
+        question: 'How Many Two-Card Starting Combos Exist In A 5-Card PLO Hand?',
+        answer:
+          'Each 5-Card PLO Hand Contains 10 Distinct Two-Card Combinations Compared To 6 In PLO4, Compressing Preflop Equities Closer To 55/45.',
+      },
+    ],
+  },
+  {
+    slug: 'aakkq-vs-qqjjt-plo5',
+    game: 'plo5',
+    gameLabel: '5-Card Pot-Limit Omaha (PLO5)',
+    category: 'Pot-Limit Omaha (PLO5)',
+    handA: 'AAKKQds',
+    handAName: 'AAKKQ Double-Suited',
+    handACards: 'As,Ah,Ks,Kh,Qs',
+    handB: 'QQJJTds',
+    handBName: 'QQJJT Double-Suited',
+    handBCards: 'Qd,Qc,Jd,Jc,10d',
+    winA: 64.53,
+    winB: 35.42,
+    tie: 0.05,
+    equityA: 64.56,
+    equityB: 35.44,
+    title: 'AAKKQ Vs QQJJT PLO5 Odds And Equity',
+    h1: 'AAKKQ Vs QQJJT PLO5 Odds And Preflop Equity',
+    description:
+      'Exact PLO5 AAKKQds Vs QQJJTds Odds: Double-Paired AAKKQds Dominates QQJJTds 64.56% To 35.44% Because AAKKQds Blocks A Queen And Dominates Top Pairs.',
+    flopHitNotes: [
+      'AAKKQds Surges To 64.56% Equity Against QQJJTds (35.44%) In PLO5 Because Holding A Queen Cuts QQJJTds Queen Set Outs In Half From Two Down To One.',
+      'Even With Two Pocket Pairs And Double-Suited Broadway Cards, QQJJTds Suffers Set Domination And Reverse Implied Odds Against AAKKQds.',
+      'Both Hands Carry Heavy Triple-Suit Risk In 5-Card PLO, Highlighting Why Clean Two-Suited Distribution Beats Three-Of-A-Suit Cards.',
+    ],
+    strategicTakeaways: [
+      'In PLO5, Preflop Blockers Matter Immensely: Holding One Queen In AAKKQds Crushes QQxx Equity By Nearly 5% Compared To Unblocked Matchups.',
+      'QQJJTds Must Exercise Discipline Facing Deep 4-Bets In PLO5 Where Opponent Ranges Skew Heavily Toward AAxx And AAKKxx.',
+      'Because PLO5 Standard Deviation Runs 155 To 185 BB/100, Avoid Stacking Off As A 35/65 Underdog Deep-Stacked.',
+    ],
+    relatedSlugs: ['aakkq-vs-jt987-plo5', 'aakkj-vs-jt987-plo5', 'aakk-vs-qqjj-plo4', 'aaqjt-vs-kk987-plo5'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of AAKKQds Vs QQJJTds In PLO5?',
+        answer:
+          'AAKKQds Wins 64.53% Of Runouts, QQJJTds Wins 35.42%, And 0.05% Split, Giving AAKKQds 64.56% Equity Versus 35.44% For QQJJTds.',
+      },
+      {
+        question: 'Why Does AAKKQds Dominate QQJJTds So Much More Than It Dominates JT987ds?',
+        answer:
+          'AAKKQds Shares A Queen With QQJJTds (Halving Queen Set Outs) While Dominating Pocket Jacks And Pocket Queens Directly.',
+      },
+      {
+        question: 'Why Are Three Cards Of The Same Suit Dangerous In PLO5?',
+        answer:
+          'Holding Three Spades Or Three Diamonds Removes One Of Your Own Flush Outs From The Deck, Trimming Flush Completion Odds.',
+      },
+    ],
+  },
+  {
+    slug: 'aaqjt-vs-kk987-plo5',
+    game: 'plo5',
+    gameLabel: '5-Card Pot-Limit Omaha (PLO5)',
+    category: 'Pot-Limit Omaha (PLO5)',
+    handA: 'AAQJTds',
+    handAName: 'AAQJT Double-Suited',
+    handACards: 'As,Ah,Qs,Jh,10s',
+    handB: 'KK987ds',
+    handBName: 'KK987 Double-Suited',
+    handBCards: 'Kd,Kc,9d,8c,7d',
+    winA: 57.28,
+    winB: 42.72,
+    tie: 0,
+    equityA: 57.28,
+    equityB: 42.72,
+    title: 'AAQJT Vs KK987 PLO5 Odds And Equity',
+    h1: 'AAQJT Vs KK987 PLO5 Odds And Preflop Equity',
+    description:
+      'Exact PLO5 AAQJTds Vs KK987ds Odds: Connected Broadway Aces AAQJTds Leads Connected Kings KK987ds 57.28% To 42.72%, Key For 5-Card PLO 3-Bet Pots.',
+    flopHitNotes: [
+      'AAQJTds Leads KK987ds 57.28% To 42.72% In 5-Card PLO, Showing How Connected Middle Side Cards (9-8-7) Lift Pocket Kings Over 42% Against Elite Aces.',
+      'AAQJTds Dominates High Broadway Flops With Nut Flush Draws, Top Set Potential, And Q-J-T Straight Wraps.',
+      'KK987ds Covers Low-To-Mid Straight Textures (T-6-5, J-7-6, 9-8-X) While Holding Two Live King Set Outs.',
+    ],
+    strategicTakeaways: [
+      'In PLO5, Connected Kings Like KK987ds Realize Far More Equity Against AAxx Than Disconnected Kings Like KK722.',
+      'AAQJTds Is A Top-Tier PLO5 Starting Hand That Should Consistently 3-Bet And 4-Bet Preflop To Build Low-SPR Pots.',
+      'Postflop In 5-Card PLO, Nutted Equity (Top Set, Nut Flush, Nut Wrap) Matters Far More Than Bare Overpairs.',
+    ],
+    relatedSlugs: ['aakqj-vs-jt987-plo5', 'aakkq-vs-jt987-plo5', 'aajt9-vs-kkq87-plo5', 'kkqqj-vs-t9876-plo5'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of AAQJTds Vs KK987ds In 5-Card PLO?',
+        answer:
+          'With Unblocked Suits (As Ah Qs Jh 10s Vs Kd Kc 9d 8c 7d), AAQJTds Holds 57.28% Equity Against 42.72% For KK987ds.',
+      },
+      {
+        question: 'Why Does KK987ds Have Over 42% Equity Against AAQJTds?',
+        answer:
+          'KK987ds Pairs Pocket Kings With Three Connected Middle Cards (9-8-7) And Two Live Flush Suits That Have Zero Overlap With AAQJTds.',
+      },
+      {
+        question: 'Should KK987ds Flat Or 4-Bet Against A Tight PLO5 3-Bet?',
+        answer:
+          'At 100BB+ Stacks In Position, Flatting A Tight 3-Bet Lets KK987ds Realize Its 9-8-7 Board Coverage Without Getting Trapped By AAxx Preflop.',
+      },
+    ],
+  },
+  {
+    slug: 'kkqqj-vs-t9876-plo5',
+    game: 'plo5',
+    gameLabel: '5-Card Pot-Limit Omaha (PLO5)',
+    category: 'Pot-Limit Omaha (PLO5)',
+    handA: 'KKQQJds',
+    handAName: 'KKQQJ Double-Suited',
+    handACards: 'Ks,Kh,Qs,Qh,Jc',
+    handB: 'T9876ds',
+    handBName: 'T9876 Double-Suited',
+    handBCards: '10d,9c,8d,7c,6d',
+    winA: 58.59,
+    winB: 41.4,
+    tie: 0.01,
+    equityA: 58.6,
+    equityB: 41.4,
+    title: 'KKQQJ Vs T9876 PLO5 Odds And Equity',
+    h1: 'KKQQJ Vs T9876 PLO5 Odds And Preflop Equity',
+    description:
+      'Exact PLO5 KKQQJds Vs T9876ds Odds: Double-Paired KKQQJds Leads Pure Five-Card Rundown T9876ds 58.60% To 41.40%, Classic High Pairs Vs Low Wrap.',
+    flopHitNotes: [
+      'Double-Paired KKQQJds Holds A Strong 58.60% To 41.40% Advantage Over Pure Five-Card Rundown T9876ds With Unblocked Suits.',
+      'KKQQJds Brings Four Live Set Outs (Kings And Queens), Two High Flush Suits, And Broadway Straight Connectivity.',
+      'T9876ds Holds Zero Card Overlap With KKQQJds And Connects With Nearly Every Low-To-Middle Flop Texture For 41.40% Equity.',
+    ],
+    strategicTakeaways: [
+      'Double-Paired Big Broadways Like KKQQJds Perform Exceptionally Well Against Pure Rundowns In 5-Card PLO Because Two Sets Dominate Single Wraps.',
+      'T9876ds Plays Best Multi-Way At Deep Stacks Where Flopped Nut Straights And Low Two Pairs Win Huge Pots Against Overplayed High Pairs.',
+      'Watch Out For Ace-High Flushes In PLO5: Neither KKQQJds Nor T9876ds Holds An Ace, Increasing Flush-Over-Flush Risk Multi-Way.',
+    ],
+    relatedSlugs: ['aakkq-vs-jt987-plo5', 'aakqj-vs-jt987-plo5', 'aajt9-vs-kkq87-plo5', 'kkqq-vs-jt98-plo4'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of KKQQJds Vs T9876ds In PLO5?',
+        answer:
+          'With Unblocked Suits (Ks Kh Qs Qh Jc Vs 10d 9c 8d 7c 6d), KKQQJds Wins 58.59%, T9876ds Wins 41.40%, And 0.01% Tie (58.60% Vs 41.40%).',
+      },
+      {
+        question: 'Why Does KKQQJds Beat T9876ds Almost 59% Of The Time?',
+        answer:
+          'KKQQJds Starts With Two High Pocket Pairs (Four Clean Set Outs) Plus Dominating King-High And Queen-High Flush Suits.',
+      },
+      {
+        question: 'Is T9876ds Profitable To Play In 5-Card PLO Cash Games?',
+        answer:
+          'Yes In Position At Deep Stacks, Especially When Seeing Multi-Way Flops Where Pure Five-Card Rundowns Flop Monster Nut Wraps.',
+      },
+    ],
+  },
+  {
+    slug: 'aajt9-vs-kkq87-plo5',
+    game: 'plo5',
+    gameLabel: '5-Card Pot-Limit Omaha (PLO5)',
+    category: 'Pot-Limit Omaha (PLO5)',
+    handA: 'AAJT9ds',
+    handAName: 'AAJT9 Double-Suited',
+    handACards: 'As,Ah,Js,10h,9s',
+    handB: 'KKQ87ds',
+    handBName: 'KKQ87 Double-Suited',
+    handBCards: 'Kd,Kc,Qd,8c,7d',
+    winA: 59.86,
+    winB: 40.13,
+    tie: 0.01,
+    equityA: 59.87,
+    equityB: 40.13,
+    title: 'AAJT9 Vs KKQ87 PLO5 Odds And Equity',
+    h1: 'AAJT9 Vs KKQ87 PLO5 Odds And Preflop Equity',
+    description:
+      'Exact PLO5 AAJT9ds Vs KKQ87ds Odds: Connected Aces AAJT9ds Leads Connected Kings KKQ87ds 59.87% To 40.13%, Showing Top-End Rundown Ace Edge.',
+    flopHitNotes: [
+      'AAJT9ds Approaches A Full 60/40 Lead (59.87% Vs 40.13%) Against Unblocked KKQ87ds By Pairing Pocket Aces With A Connected J-T-9 Core.',
+      'Holding J-T-9 Blocks KKQ87ds Interior Straight Connections (Q-J-T-9-8 And J-T-9-8-7), Trimming KKQ87ds Straight Realization.',
+      'KKQ87ds Still Retains Over 40% Equity Thanks To Two Live King Set Outs, Live Diamond/Club Flushes, And Low 8-7 Straight Paths.',
+    ],
+    strategicTakeaways: [
+      'AAJT9ds Is One Of The Highest-Playability Hands In 5-Card PLO Because It Dominates Both High Pairs And Middle Connected Textures.',
+      'KKQ87ds Should Avoid 4-Betting Into Tight Ranges Deep-Stacked Where Connected AAxx Holds Nearly A 60/40 Edge Plus Nut Flush Domination.',
+      'Load AAJT9ds Vs KKQ87ds In The Free Smarter.Poker Odds Calculator To Test Flop Equity Shifts On K-9-8 And Q-J-7 Boards.',
+    ],
+    relatedSlugs: ['aaqjt-vs-kk987-plo5', 'aakkq-vs-jt987-plo5', 'aakkq-vs-qqjjt-plo5', 'aa98-vs-kkqj-plo4'],
+    faqs: [
+      {
+        question: 'What Are The Odds Of AAJT9ds Vs KKQ87ds In 5-Card PLO?',
+        answer:
+          'With Unblocked Suits (As Ah Js 10h 9s Vs Kd Kc Qd 8c 7d), AAJT9ds Wins 59.86%, KKQ87ds Wins 40.13%, And 0.01% Tie (59.87% Vs 40.13%).',
+      },
+      {
+        question: 'Why Does AAJT9ds Beat KKQ87ds More Strongly Than AAQJTds Beats KK987ds?',
+        answer:
+          'AAJT9ds Holds A Tighter Middle Core (J-T-9) That Directly Bridges And Blocks KKQ87ds Straight Connections Between Queen And 8-7.',
+      },
+      {
+        question: 'What Makes A 5-Card PLO Aces Hand Truly Elite?',
+        answer:
+          'Two Live Nut Flush Suits Paired With Three Connected Side Cards (Like J-T-9 Or K-Q-J) Maximize Both Preflop Equity And Postflop Nut Realization.',
+      },
+    ],
+  },
+  {
+    slug: 'aa-vs-kk-short-deck',
+    game: 'short_deck',
+    gameLabel: "Short Deck (6+ Hold'em)",
+    category: 'Short Deck (6+)',
+    handA: 'AA',
+    handAName: 'Pocket Aces (6+)',
+    handACards: 'As,Ah',
+    handB: 'KK',
+    handBName: 'Pocket Kings (6+)',
+    handBCards: 'Ks,Kh',
+    winA: 74.28,
+    winB: 24.23,
+    tie: 1.49,
+    equityA: 75.03,
+    equityB: 24.97,
+    title: 'AA Vs KK Short Deck 6+ Odds And Equity',
+    h1: 'AA Vs KK Short Deck (6+) Odds And Equity',
+    description:
+      'Exact Short Deck (6+) AA Vs KK Odds: Pocket Aces Leads Pocket Kings 75.03% To 24.97% Across All 201,376 36-Card Boards (Down From 82.18% In NLHE).',
+    flopHitNotes: [
+      'Removing Twos Through Fives Cuts The Deck To 36 Cards, Dropping Pocket Aces Against Pocket Kings From 82.18% In NLHE Down To Exactly 75.03% In Short Deck (6+).',
+      'With Only 32 Unseen Cards Remaining, Pocket Kings Spikes A Set On 18.15% Of Flops (Compared To 11.76% In Standard Holdem) And Wins 24.23% Outright.',
+      'Higher Straight And Full-Board Frequencies Lift The Split-Pot Rate To 1.49% Across All 201,376 Exact 36-Card Runouts.',
+    ],
+    strategicTakeaways: [
+      'In Short Deck (6+ Holdem), Equity Runs Much Closer Even In Classic Coolers: Pocket Kings Cracks Aces Almost 1 In 4 Times Preflop.',
+      'Because Flush Beats Full House In Standard Short Deck Rules, Four-Card Flush Runouts Swing AA Vs KK Pots Dramatically When One Hand Holds The Flush Suit.',
+      'Ante-Only Structures With A Button Ante Force Wider Action, Making Both AA And KK Mandatory Preflop Value Stack-Offs.',
+    ],
+    relatedSlugs: ['aa-vs-jts-short-deck', 'ak-vs-qq-short-deck', 'kk-vs-jts-short-deck', 'aa-vs-kk'],
+    faqs: [
+      {
+        question: 'What Are The Exact Short Deck (6+) Odds Of AA Vs KK?',
+        answer:
+          'Enumerated Over All 201,376 Five-Card Runouts Of The 36-Card Deck (Flush Beats Full House), Pocket Aces Wins 74.28%, Pocket Kings Wins 24.23%, And 1.49% Tie (75.03% Vs 24.97%).',
+      },
+      {
+        question: 'Why Does Pocket Kings Win 24.2% Against Aces In Short Deck Vs 17.6% In Holdem?',
+        answer:
+          'With Only 32 Unseen Cards Instead Of 48, Each King Out Hits Roughly 50% More Frequently Across The Flop, Turn, And River.',
+      },
+      {
+        question: 'Does Flush Beat Full House In Short Deck (6+ Holdem)?',
+        answer:
+          'Yes. Because Only 9 Cards Exist Per Suit In A 36-Card Deck, Making A Flush Is Rarer Than Making A Full House, So Flushes Outrank Full Houses.',
+      },
+    ],
+  },
+  {
+    slug: 'aa-vs-jts-short-deck',
+    game: 'short_deck',
+    gameLabel: "Short Deck (6+ Hold'em)",
+    category: 'Short Deck (6+)',
+    handA: 'AA',
+    handAName: 'Pocket Aces (6+)',
+    handACards: 'As,Ah',
+    handB: 'JTs',
+    handBName: 'Jack-Ten Suited (6+)',
+    handBCards: 'Jd,10d',
+    winA: 62.18,
+    winB: 37.08,
+    tie: 0.74,
+    equityA: 62.55,
+    equityB: 37.45,
+    title: 'AA Vs JTs Short Deck 6+ Odds And Equity',
+    h1: 'AA Vs JTs Short Deck (6+) Odds And Equity',
+    description:
+      'Exact Short Deck (6+) AA Vs JTs Odds: Pocket Aces Leads Unblocked JTs Just 62.55% To 37.45% Across All 201,376 36-Card Boards (Vs 79.36% In NLHE).',
+    flopHitNotes: [
+      'Enumerated Across Every 36-Card Board, Unblocked Jack-Ten Suited Surges From 20.64% In Standard NLHE All The Way To 37.45% Against Pocket Aces In Short Deck.',
+      'In Short Deck, Flopping An Open-Ended Straight Draw With JTs Hits Roughly 45.2% By The River (8 Outs From 31 Unseen Cards) While Flushes Outrank Full Houses.',
+      'Pocket Aces Still Leads 62.55% To 37.45% Overall, Showing Why Short Deck Rewards Connected Suited Hands Far More Than Standard Holdem.',
+    ],
+    strategicTakeaways: [
+      'JTs Is A Monster In Short Deck (6+) That Plays Profitably In Multi-Way Limped And Raised Pots With Nearly 37.5% Equity Even Against Pocket Aces.',
+      'Pocket Aces Cannot Blindly Stack Off On Connected Q-9-8 Or 9-8-7 Flops In Short Deck Because Straights And Two Pairs Materialize Far More Frequently.',
+      'Explore Smarter.Poker Short Deck Equity Benchmark And Short Deck Trainer To Master 36-Card Ante-Only Strategy.',
+    ],
+    relatedSlugs: ['aa-vs-kk-short-deck', 'kk-vs-jts-short-deck', 'qq-vs-jts-short-deck', 't9s-vs-aa-short-deck'],
+    faqs: [
+      {
+        question: 'What Are The Exact Short Deck (6+) Odds Of AA Vs JTs?',
+        answer:
+          'Over All 201,376 36-Card Runouts (Flush Beats Full House, Straight Beats Trips), Pocket Aces Wins 62.18%, JTs Wins 37.08%, And 0.74% Tie (62.55% Vs 37.45%).',
+      },
+      {
+        question: 'Why Does JTs Jump From 20.6% To 37.5% Against AA In Short Deck?',
+        answer:
+          'Removing 16 Low Cards Compresses All Ranks Together, Massively Increasing Two-Pair, Trips, And Open-Ended Straight Frequencies For JTs.',
+      },
+      {
+        question: 'How Does The Low Straight Work In Short Deck (6+ Holdem)?',
+        answer:
+          'In Short Deck, The Ace Plays Both High (A-K-Q-J-T) And Low As The Bottom Card Of The A-6-7-8-9 Wheel Straight.',
+      },
+    ],
+  },
+  {
+    slug: 'ak-vs-qq-short-deck',
+    game: 'short_deck',
+    gameLabel: "Short Deck (6+ Hold'em)",
+    category: 'Short Deck (6+)',
+    handA: 'AKo',
+    handAName: 'Ace-King Offsuit (6+)',
+    handACards: 'As,Kh',
+    handB: 'QQ',
+    handBName: 'Pocket Queens (6+)',
+    handBCards: 'Qd,Qc',
+    winA: 51.0,
+    winB: 48.01,
+    tie: 0.99,
+    equityA: 51.49,
+    equityB: 48.51,
+    title: 'AK Vs QQ Short Deck 6+ Odds And Equity',
+    h1: 'AK Vs QQ Short Deck (6+) Odds And Equity',
+    description:
+      'Exact Short Deck (6+) AKo Vs QQ Odds: Ace-King Offsuit Flips Into A 51.49% Favorite Over Pocket Queens (48.51%) Across All 201,376 36-Card Boards.',
+    flopHitNotes: [
+      'In A Stunning Reversal From Standard Holdem (Where QQ Leads AKo 57/43), Ace-King Offsuit Actually Becomes A 51.49% Favorite Over Pocket Queens (48.51%) In Short Deck.',
+      'With Only 32 Unseen Cards In A 36-Card Deck, AKo Six Live Ace And King Outs Hit Far More Frequently Across Five Community Cards.',
+      'Both Hands Split 0.99% Of All 201,376 Exact Runouts On Board Straights And Double-Paired High Textures.',
+    ],
+    strategicTakeaways: [
+      'Because Even Offsuit AK Leads Pocket Queens Preflop In Short Deck (51.49% Vs 48.51%), Big Broadways Gain Immense Preflop Jamming Power.',
+      'Pocket Queens Must Recognize That Overpairs Are Much More Vulnerable In 6+ Holdem Than In 52-Card NLHE When Facing Ace-King Or Connected Broadways.',
+      'In Ante-Only Short Deck Cash Games, AKo Can Aggressively Isolate And Re-Jam Over Opens Knowing It Leads Every Pair Below Kings.',
+    ],
+    relatedSlugs: ['aks-vs-qq-short-deck', 'jj-vs-aks-short-deck', 'aa-vs-kk-short-deck', 'ako-vs-qq'],
+    faqs: [
+      {
+        question: 'Is AK Actually A Favorite Over QQ In Short Deck (6+ Holdem)?',
+        answer:
+          'Yes. Exact Enumeration Over All 201,376 36-Card Boards Proves AKo Wins 51.00%, QQ Wins 48.01%, And 0.99% Tie, Giving AKo 51.49% Equity Against 48.51% For QQ.',
+      },
+      {
+        question: 'Why Does AK Beat QQ In Short Deck When QQ Beats AK In Regular Holdem?',
+        answer:
+          'Cutting The Deck From 52 Cards To 36 Makes AK Six Overcard Outs Hit Over 45% Of Flops And Over 65% By The River, Overcoming QQ Made Pair.',
+      },
+      {
+        question: 'How Much Better Is AKs Than AKo Against QQ In Short Deck?',
+        answer:
+          'Ace-King Suited Adds Flush Equity (And Flushes Beat Full Houses In 6+), Pushing AKs Up To 54.28% Against Pocket Queens.',
+      },
+    ],
+  },
+  {
+    slug: 'aks-vs-qq-short-deck',
+    game: 'short_deck',
+    gameLabel: "Short Deck (6+ Hold'em)",
+    category: 'Short Deck (6+)',
+    handA: 'AKs',
+    handAName: 'Ace-King Suited (6+)',
+    handACards: 'As,Ks',
+    handB: 'QQ',
+    handBName: 'Pocket Queens (6+)',
+    handBCards: 'Qd,Qc',
+    winA: 53.78,
+    winB: 45.22,
+    tie: 1.0,
+    equityA: 54.28,
+    equityB: 45.72,
+    title: 'AKs Vs QQ Short Deck 6+ Odds And Equity',
+    h1: 'AKs Vs QQ Short Deck (6+) Odds And Equity',
+    description:
+      'Exact Short Deck (6+) AKs Vs QQ Odds: Ace-King Suited Leads Pocket Queens 54.28% To 45.72% Over All 201,376 36-Card Boards With Flush-Over-Boat Rules.',
+    flopHitNotes: [
+      'Unblocked Ace-King Suited Commands A 54.28% To 45.72% Preflop Lead Over Pocket Queens In Short Deck (6+), Reversing NLHE 54/46 QQ Favorite Status.',
+      'Under Standard Short Deck Rules Where Flushes Beat Full Houses, Making A Spade Flush With AKs Even Cracks Pocket Queens Full House.',
+      'Exact Enumeration Across All 201,376 Boards Gives AKs 53.78% Outright Wins, QQ 45.22% Outright Wins, And 1.00% Ties.',
+    ],
+    strategicTakeaways: [
+      'AKs Is An Elite Top-3 Starting Hand In Short Deck Because It Dominates QQ, JJ, And TT Preflop While Blocking AA And KK.',
+      'Even When QQ Flops A Set On A Two-Spade Board, AKs Nut Flush Draw Remains Terrifying Because Any Flush Outranks A Full House.',
+      'Always Adjust Preflop Stack-Off Ranges In 6+ Holdem: Overcards Play Far Stronger Relative To Pairs Than In Traditional 52-Card Holdem.',
+    ],
+    relatedSlugs: ['ak-vs-qq-short-deck', 'jj-vs-aks-short-deck', 'aa-vs-kk-short-deck', 'qq-vs-aks'],
+    faqs: [
+      {
+        question: 'What Are The Exact Short Deck (6+) Odds Of AKs Vs QQ?',
+        answer:
+          'Across All 201,376 36-Card Runouts, Ace-King Suited Wins 53.78%, Pocket Queens Wins 45.22%, And 1.00% Split, Yielding 54.28% Vs 45.72%.',
+      },
+      {
+        question: 'Can AKs Beat Pocket Queens Full House In Short Deck?',
+        answer:
+          'Yes. Because Flushes Beat Full Houses In Standard Short Deck (6+) Rules, Any Five-Spade Flush For AKs Defeats A Queens-Full Full House.',
+      },
+      {
+        question: 'How Much Stronger Is AKs Against QQ In Short Deck Than In NLHE?',
+        answer:
+          'AKs Jumps Over 8 Full Percentage Points From ~46.1% In 52-Card Holdem Up To 54.28% In 36-Card Short Deck.',
+      },
+    ],
+  },
+  {
+    slug: 'kk-vs-jts-short-deck',
+    game: 'short_deck',
+    gameLabel: "Short Deck (6+ Hold'em)",
+    category: 'Short Deck (6+)',
+    handA: 'KK',
+    handAName: 'Pocket Kings (6+)',
+    handACards: 'Ks,Kh',
+    handB: 'JTs',
+    handBName: 'Jack-Ten Suited (6+)',
+    handBCards: 'Jd,10d',
+    winA: 66.07,
+    winB: 33.25,
+    tie: 0.68,
+    equityA: 66.41,
+    equityB: 33.59,
+    title: 'KK Vs JTs Short Deck 6+ Odds And Equity',
+    h1: 'KK Vs JTs Short Deck (6+) Odds And Equity',
+    description:
+      'Exact Short Deck (6+) KK Vs JTs Odds: Pocket Kings Leads Jack-Ten Suited 66.41% To 33.59% Over 201,376 Boards, Outperforming AA Against JTs In 6+.',
+    flopHitNotes: [
+      'Remarkably, Pocket Kings Holds 66.41% Equity Against JTs In Short Deck, Nearly 4% HIGHER Than Pocket Aces (62.55%) Holds Against JTs.',
+      'Pocket Kings Directly Blocks JTs Crucial A-K-Q-J-T And K-Q-J-T-9 Straight Windows, Cutting JTs To 33.59% Equity Across All 201,376 Boards.',
+      'Even Blocked By Kings, JTs Still Retains One-Third Equity (33.59%) Via Lower Straights, Two Pairs, And Flush-Beats-Full-House Potential.',
+    ],
+    strategicTakeaways: [
+      'Card Removal For Straights Is Massive In Short Deck: Blocking Kings And Queens Hurts Connected Broadways Far More Than Blocking Aces.',
+      'Pocket Kings Can Apply Confident Value Pressure Preflop Against Connected Suited Ranges Knowing It Enjoys A 2-To-1 Edge Over JTs.',
+      'JTs Still Plays Profitably In Ante-Heavy Multi-Way Short Deck Pots Where Implied Odds Reward Flopping Nut Straights And Flushes.',
+    ],
+    relatedSlugs: ['aa-vs-jts-short-deck', 'qq-vs-jts-short-deck', 'aa-vs-kk-short-deck', 't9s-vs-aa-short-deck'],
+    faqs: [
+      {
+        question: 'What Are The Exact Short Deck (6+) Odds Of KK Vs JTs?',
+        answer:
+          'Enumerated Over All 201,376 36-Card Boards, Pocket Kings Wins 66.07%, Jack-Ten Suited Wins 33.25%, And 0.68% Tie (66.41% Vs 33.59%).',
+      },
+      {
+        question: 'Why Does KK Beat JTs More Often Than AA Beats JTs In Short Deck?',
+        answer:
+          'Pocket Kings Blocks Two Kings Needed For Both A-K-Q-J-T And K-Q-J-T-9 Straights, Lifting KK To 66.41% Versus 62.55% For AA.',
+      },
+      {
+        question: 'How Often Does JTs Beat Pocket Kings All-In Preflop In Short Deck?',
+        answer:
+          'Jack-Ten Suited Wins Outright 33.25% Of All Runouts, Almost Exactly 1 In Every 3 All-In Showdowns.',
+      },
+    ],
+  },
+  {
+    slug: 'qq-vs-jts-short-deck',
+    game: 'short_deck',
+    gameLabel: "Short Deck (6+ Hold'em)",
+    category: 'Short Deck (6+)',
+    handA: 'QQ',
+    handAName: 'Pocket Queens (6+)',
+    handACards: 'Qs,Qh',
+    handB: 'JTs',
+    handBName: 'Jack-Ten Suited (6+)',
+    handBCards: 'Jd,10d',
+    winA: 69.97,
+    winB: 29.42,
+    tie: 0.61,
+    equityA: 70.28,
+    equityB: 29.72,
+    title: 'QQ Vs JTs Short Deck 6+ Odds And Equity',
+    h1: 'QQ Vs JTs Short Deck (6+) Odds And Equity',
+    description:
+      'Exact Short Deck (6+) QQ Vs JTs Odds: Pocket Queens Crushes JTs 70.28% To 29.72% Across 201,376 Boards By Blocking Three Straight Windows.',
+    flopHitNotes: [
+      'Pocket Queens Jumps To 70.28% Against JTs In Short Deck, Crushing JTs By Nearly 8% More Than Pocket Aces Does (62.55%)!',
+      'Holding Two Queens Blocks Three Separate JTs Straight Windows (A-K-Q-J-T, K-Q-J-T-9, And Q-J-T-9-8), Slashing JTs To 29.72% Equity.',
+      'Exact Enumeration Over All 201,376 36-Card Boards Yields 69.97% Wins For QQ, 29.42% For JTs, And 0.61% Split Pots.',
+    ],
+    strategicTakeaways: [
+      'QQ Vs JTs Is The Ultimate Proof Of Blocker Power In Short Deck (6+): Blocking Interior Straight Ranks Matters More Than Absolute Pair Rank.',
+      'Pocket Queens Dominates JTs Over 70/30 In Short Deck, Making QQ A Strong Value Hand Against Connected Broadway Limp-Callers.',
+      'When JTs Shares A Suit With Pocket Queens, JTs Drops Even Further Below 28% Equity.',
+    ],
+    relatedSlugs: ['kk-vs-jts-short-deck', 'aa-vs-jts-short-deck', 'ak-vs-qq-short-deck', 'jts-vs-qq'],
+    faqs: [
+      {
+        question: 'What Are The Exact Short Deck (6+) Odds Of QQ Vs JTs?',
+        answer:
+          'Over All 201,376 36-Card Boards, Pocket Queens Wins 69.97%, Jack-Ten Suited Wins 29.42%, And 0.61% Split (70.28% Vs 29.72%).',
+      },
+      {
+        question: 'Why Does QQ Have 70.3% Against JTs While AA Has Only 62.6% In Short Deck?',
+        answer:
+          'Pocket Queens Blocks Three Distinct Straight Windows For JTs (A-K-Q-J-T, K-Q-J-T-9, Q-J-T-9-8), Whereas AA Blocks Only One.',
+      },
+      {
+        question: 'Does QQ Still Lose To AK In Short Deck Even Though It Crushes JTs?',
+        answer:
+          'Yes. Pocket Queens Trails Both AKo (48.51%) And AKs (45.72%) In Short Deck While Dominating JTs (70.28%).',
+      },
+    ],
+  },
+  {
+    slug: 'jj-vs-aks-short-deck',
+    game: 'short_deck',
+    gameLabel: "Short Deck (6+ Hold'em)",
+    category: 'Short Deck (6+)',
+    handA: 'JJ',
+    handAName: 'Pocket Jacks (6+)',
+    handACards: 'Js,Jh',
+    handB: 'AKs',
+    handBName: 'Ace-King Suited (6+)',
+    handBCards: 'Ad,Kd',
+    winA: 46.06,
+    winB: 53.11,
+    tie: 0.83,
+    equityA: 46.48,
+    equityB: 53.52,
+    title: 'JJ Vs AKs Short Deck 6+ Odds And Equity',
+    h1: 'JJ Vs AKs Short Deck (6+) Odds And Equity',
+    description:
+      'Exact Short Deck (6+) JJ Vs AKs Odds: Ace-King Suited Leads Pocket Jacks 53.52% To 46.48% Across All 201,376 36-Card Boards, Flipping NLHE Odds.',
+    flopHitNotes: [
+      'In Standard Holdem Pocket Jacks Leads AKs 54/46, Yet In Short Deck (6+) Unblocked Ace-King Suited Flips Into A 53.52% Favorite Over Pocket Jacks (46.48%).',
+      'Even Though Pocket Jacks Blocks AKs Broadway Straight (A-K-Q-J-T), AKs Six Live Overcard Outs Plus Flush-Beats-Full-House Equity Dominate In A 36-Card Deck.',
+      'Exact Enumeration Over All 201,376 Boards Produces 46.06% Wins For JJ, 53.11% For AKs, And 0.83% Split Pots.',
+    ],
+    strategicTakeaways: [
+      'Never Assume Medium Pairs Like JJ Or TT Are Favorites Over Big Broadways In Short Deck (6+); AKs Leads JJ Clearly At 53.5% To 46.5%.',
+      'Pocket Jacks Plays Best In Short Deck By Exercising Pot Control On High-Card Flops And Seeking Value Against Suited Connectors Like T9s And 98s.',
+      'AKs Can Push Action Preflop Aggressively In Ante-Only 6+ Games Because It Out-Equities Every Pair From 66 Through QQ.',
+    ],
+    relatedSlugs: ['aks-vs-qq-short-deck', 'ak-vs-qq-short-deck', 'aa-vs-kk-short-deck', 'jj-vs-aks'],
+    faqs: [
+      {
+        question: 'What Are The Exact Short Deck (6+) Odds Of JJ Vs AKs?',
+        answer:
+          'Across All 201,376 36-Card Runouts, Pocket Jacks Wins 46.06%, Ace-King Suited Wins 53.11%, And 0.83% Split, Giving AKs 53.52% Against 46.48% For JJ.',
+      },
+      {
+        question: 'Why Does JJ Perform Slightly Better Against AKs Than QQ Does In Short Deck?',
+        answer:
+          'Pocket Jacks Can Make Lower Straights (J-T-9-8-7, T-9-8-7-6) That Pocket Queens Cannot, Lifting JJ To 46.48% Versus 45.72% For QQ.',
+      },
+      {
+        question: 'Should Pocket Jacks Fold To Tight Preflop All-Ins In Short Deck?',
+        answer:
+          'Depending On Ante Pot Odds And Stack Depth, JJ Is Often A Tighter Call In 6+ Than In NLHE Because Opponent Jam Ranges Contain AA, KK, And Favorite AK.',
+      },
+    ],
+  },
+  {
+    slug: 't9s-vs-aa-short-deck',
+    game: 'short_deck',
+    gameLabel: "Short Deck (6+ Hold'em)",
+    category: 'Short Deck (6+)',
+    handA: 'T9s',
+    handAName: 'Ten-Nine Suited (6+)',
+    handACards: '10d,9d',
+    handB: 'AA',
+    handBName: 'Pocket Aces (6+)',
+    handBCards: 'As,Ah',
+    winA: 39.19,
+    winB: 59.76,
+    tie: 1.05,
+    equityA: 39.71,
+    equityB: 60.29,
+    title: 'T9s Vs AA Short Deck 6+ Odds And Equity',
+    h1: 'T9s Vs AA Short Deck (6+) Odds And Equity',
+    description:
+      'Exact Short Deck (6+) T9s Vs AA Odds: Ten-Nine Suited Surges To 39.71% Equity Against Pocket Aces (60.29%) Across All 201,376 36-Card Runouts.',
+    flopHitNotes: [
+      'Unblocked Ten-Nine Suited Hits A Massive 39.71% Equity Against Pocket Aces (60.29%) In Short Deck (6+), Nearly Double Its 22.9% Equity In Regular NLHE!',
+      'T9s Connects With Four Completely Unblocked Straight Windows In The 36-Card Deck (K-Q-J-T-9 Down To T-9-8-7-6) Plus A-6-7-8-9 Wheel Interaction.',
+      'Exact Enumeration Over All 201,376 36-Card Boards Gives T9s 39.19% Outright Wins, AA 59.76% Outright Wins, And 1.05% Ties.',
+    ],
+    strategicTakeaways: [
+      'T9s Is One Of The Highest-Realizing Suited Connectors In Short Deck (6+), Holding Nearly 40% Equity Even When Up Against Pocket Aces.',
+      'In Ante-Only Short Deck Games, Pocket Aces Must Size Raises Larger Preflop To Avoid Going 4-Way Against Connected Hands Like T9s And JTs.',
+      'On Low-To-Middle Connected Flops (J-8-7, Q-8-7, 8-7-6), T9s Regularly Flips Into A Dominating Favorite Over Pocket Aces.',
+    ],
+    relatedSlugs: ['aa-vs-jts-short-deck', 'kk-vs-jts-short-deck', 'qq-vs-jts-short-deck', 't9s-vs-aa'],
+    faqs: [
+      {
+        question: 'What Are The Exact Short Deck (6+) Odds Of T9s Vs AA?',
+        answer:
+          'Enumerated Over All 201,376 36-Card Boards, Ten-Nine Suited Wins 39.19%, Pocket Aces Wins 59.76%, And 1.05% Split (39.71% Vs 60.29%).',
+      },
+      {
+        question: 'Why Does T9s Have More Equity Against AA Than JTs Does In Short Deck?',
+        answer:
+          'Pocket Aces Blocks JTs Top A-K-Q-J-T Straight, Whereas T9s Middle Straight Windows (K-Q-J-T-9 Down To T-9-8-7-6) Are Completely Unblocked By AA, Pushing T9s To 39.71% Vs 37.45% For JTs.',
+      },
+      {
+        question: 'Is T9s A Profitable Call Against A Short Deck Raise?',
+        answer:
+          'Yes Almost Always In Position With Antes In Play, Because T9s Retains Nearly 40% Equity Even Against The Very Top Of Opponent Ranges.',
       },
     ],
   },

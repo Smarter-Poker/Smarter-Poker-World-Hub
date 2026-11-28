@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -616,6 +617,16 @@ export default function PloOutsCalculatorPage() {
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="plo-outs-calculator"
+            toolName="PLO Wrap & Nut-Out Calculator"
+            eyebrow="Free PLO Draw Cloud Sync"
+            title="Save This PLO Wrap & Nut-Out Spot Free"
+            description="Store 13-Out To 20-Out PLO Wraps, Flush Combo Equities & Blocker-Adjusted Odds Free."
+            ctaLabel="Save PLO Wrap Free"
+            summaryText={summaryText}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-plo-outs-calculator"

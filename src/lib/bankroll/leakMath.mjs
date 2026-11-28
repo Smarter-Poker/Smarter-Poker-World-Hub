@@ -90,9 +90,14 @@ export function timeBlockOf(hour) {
   return 'evening';
 }
 
-/** Cash-game results by stakes: { [stakes]: { net, hours, sessions } }, net in dollars. */
+/**
+ * Cash-game results by stakes: { [stakes]: { net, hours, sessions } }, net in dollars.
+ * @returns {Record<string, { net: number, hours: number, sessions: number }>}
+ */
 export function stakeTotals(rows) {
+  /** @type {Record<string, number>} */
   const cents = {};
+  /** @type {Record<string, { net: number, hours: number, sessions: number }>} */
   const out = {};
   for (const row of rows || []) {
     if (!row || !row.stakes) continue;
@@ -105,7 +110,10 @@ export function stakeTotals(rows) {
   return out;
 }
 
-/** Results by time of day: { late_night, morning, afternoon, evening: { net, count } }. */
+/**
+ * Results by time of day: { late_night, morning, afternoon, evening: { net, count } }.
+ * @returns {Record<string, { net: number, count: number }>}
+ */
 export function timeBlockTotals(rows) {
   const cents = { late_night: 0, morning: 0, afternoon: 0, evening: 0 };
   const count = { late_night: 0, morning: 0, afternoon: 0, evening: 0 };
@@ -116,6 +124,7 @@ export function timeBlockTotals(rows) {
     cents[block] += entryCents(row);
     count[block] += 1;
   }
+  /** @type {Record<string, { net: number, count: number }>} */
   const out = {};
   for (const block of Object.keys(cents)) out[block] = { net: cents[block] / 100, count: count[block] };
   return out;

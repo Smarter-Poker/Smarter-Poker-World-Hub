@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -386,6 +387,16 @@ export default function MttGrindPlannerPage() {
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="mtt-grind-planner"
+            toolName="MTT Schedule & ABI Grind Planner"
+            eyebrow="Free MTT Schedule Cloud Sync"
+            title="Save This MTT Session Schedule & ABI Plan Free"
+            description="Sync Average Buy-In Budgets, Re-Entry Buffers & Expected Session Volume In Your Free Account."
+            ctaLabel="Save MTT Plan Free"
+            summaryText={summaryText}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-mtt-grind-planner"

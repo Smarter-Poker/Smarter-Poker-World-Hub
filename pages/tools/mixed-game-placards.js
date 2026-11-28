@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -593,6 +594,16 @@ export default function MixedGamePlacardsPage() {
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="mixed-game-placards"
+              toolName="Mixed Game Rotation & Placard Tracker"
+              eyebrow="Free Mixed Game Cloud Sync"
+              title="Save This Mixed Game Rotation Setup Free"
+              description="Keep HORSE, 8-Game & Custom Rotation Orders Synced For Live Tables & Home Games Free."
+              ctaLabel="Save Rotation Free"
+              summaryText={`${tracker.presetObj.label} (Hand #${tracker.safeHand}): Active Game = ${tracker.currentGame.name} (${tracker.currentGame.limitType}) | Next Up = ${tracker.nextGame.name}`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-mixed-game-placards"

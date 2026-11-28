@@ -1590,17 +1590,16 @@ export default function MerchStore({
       >
         {!detailMode && (
           <div className={merchStyles.intro}>
-            <p className={merchStyles.storeIntro}>
-              Neural Steel Apparel, Headwear, Table Gear, And Lifestyle Products Are Created After
-              Purchase, Then Packed And Shipped Directly By A Fulfillment Partner. We Never Hold Or
-              Ship Inventory.
-            </p>
-
             {user?.id && (
               <div className={merchStyles.balanceReadout}>
                 Diamond Balance <strong>{fmt(balance)}</strong>
               </div>
             )}
+            <p className={merchStyles.storeIntro}>
+              Neural Steel Apparel, Headwear, Table Gear, And Lifestyle Products Are Created After
+              Purchase, Then Packed And Shipped Directly By A Fulfillment Partner. We Never Hold Or
+              Ship Inventory.
+            </p>
             {isOperator && (
               <div className={merchStyles.operatorRow}>
                 <Link href="/hub/merch-store/fulfillment" className={merchStyles.operatorLink}>

@@ -1,10 +1,11 @@
 /**
- * Intent-Personalized Day-0 / Day-1 / Day-3 Organic Activation & Series Reminder Email Composer
+ * Intent-Personalized Day-0 / Day-1 / Day-3 / Day-7 / Day-21 / Day-25 Organic Activation & Series Reminder Email Composer
  *
  * Pure, zero-PII, Resend-ready HTML + plain-text email builder that tailors
  * Day-0 activation, Day-1 behavioral re-engagement, Day-3 unverified VIP
- * urgency nudges, and saved tournament series event reminders to the player's
- * organic entry intent (`gto-ranges`, `odds-calculator`, `gto-leak-finder`,
+ * urgency nudges, Day-7 & Day-21 habit digests, Day-25 VIP trial graduation,
+ * and saved tournament series event reminders to the player's organic entry
+ * intent (`gto-ranges`, `odds-calculator`, `gto-leak-finder`,
  * `series-reminder`, `live-venues`, or `general-hub`).
  *
  * Standards enforced:
@@ -49,6 +50,14 @@ const TRACK_CONFIG = Object.freeze({
     day3BenefitTitle: 'Unlock Full GTO Preflop Ranges + 500 Diamonds',
     day3BenefitBody:
       'Verify your phone in 15 seconds to claim Free 30-Day VIP + 500 Diamonds On Phone Verify and unlock full 100bb cash, MTT, and 3-bet solver range charts with unlimited saved spots.',
+    day7Title: 'Next GTO Challenge: 3-Bet Pot Preflop & Flop Frequencies',
+    day7Body:
+      'Build on your preflop range work with a quick solver rep focused on 100bb 3-bet pot continuation strategy across cash and MTT seats.',
+    day7CtaLabel: 'Open GTO Preflop Range Drills',
+    day21Title: 'Keep Your Range Edge Sharp & Find Local Games',
+    day21Body:
+      'Review your go-to preflop range charts and browse upcoming live poker rooms and tournament schedules near you before your next session.',
+    day21CtaLabel: 'Review GTO Ranges & Local Games',
   },
   'odds-calculator': {
     label: 'Poker Odds & Equity Calculator',
@@ -69,6 +78,14 @@ const TRACK_CONFIG = Object.freeze({
     day3BenefitTitle: 'Unlock Unlimited Equity Studies + 500 Diamonds',
     day3BenefitBody:
       'Verify your phone in 15 seconds to claim Free 30-Day VIP + 500 Diamonds On Phone Verify and unlock saved hand-vs-range matchups, multi-street EV tracking, and full solver tools.',
+    day7Title: 'Next GTO Challenge: Multi-Street Equity & Pot Odds Drill',
+    day7Body:
+      'Pair your hand-vs-range equity calculations with a 60-second GTO Hand Lab decision to test how raw equity translates into solver EV.',
+    day7CtaLabel: 'Open Equity & Odds Workspace',
+    day21Title: 'Bring Your Equity Edge To Upcoming Local Tables',
+    day21Body:
+      'Revisit your odds calculator workspace before your next live session and check upcoming local poker rooms and daily tournament schedules.',
+    day21CtaLabel: 'Open Odds Tools & Local Games',
   },
   'gto-leak-finder': {
     label: 'GTO Leak Finder',
@@ -89,6 +106,14 @@ const TRACK_CONFIG = Object.freeze({
     day3BenefitTitle: 'Unlock Full GTO Leak Finder Drills + 500 Diamonds',
     day3BenefitBody:
       'Verify your phone in 15 seconds to claim Free 30-Day VIP + 500 Diamonds On Phone Verify and unlock full Personal Assistant leak audits, targeted drill playlists, and solver reviews.',
+    day7Title: 'Next GTO Challenge: Targeted Turn & River Leak Repair',
+    day7Body:
+      'Jump back into Personal Assistant and GTO Hand Lab for a focused solver drill targeting the highest-EV postflop leaks.',
+    day7CtaLabel: 'Continue GTO Leak Drills',
+    day21Title: 'Re-Run Your Leak Check & Explore Local Poker Rooms',
+    day21Body:
+      'Run a fresh check-in inside Personal Assistant to sharpen weak spots and browse upcoming local games and series schedules.',
+    day21CtaLabel: 'Open Personal Assistant Check-In',
   },
   'series-reminder': {
     label: 'Live Tournament Series Alerts',
@@ -109,6 +134,14 @@ const TRACK_CONFIG = Object.freeze({
     day3BenefitTitle: 'Unlock Live Series Alerts & MTT Solver Tools + 500 Diamonds',
     day3BenefitBody:
       'Verify your phone in 15 seconds to claim Free 30-Day VIP + 500 Diamonds On Phone Verify and unlock synced series alerts, ICM warmup drills, and full MTT solver access.',
+    day7Title: 'Next GTO Challenge: Short-Stack ICM & Live MTT Warmup',
+    day7Body:
+      'Check your upcoming tournament series calendar and knock out a quick MTT solver challenge in GTO Hand Lab before your next flight.',
+    day7CtaLabel: 'Open Series Calendar & Warmup',
+    day21Title: 'Review Upcoming Tournament Series & Local Schedules',
+    day21Body:
+      'See newly posted tournament schedules, guarantees, and nearby live poker rooms so you can plan your next festival run.',
+    day21CtaLabel: 'Browse Upcoming Poker Series',
   },
   'live-venues': {
     label: 'Live Poker Rooms Near You',
@@ -129,6 +162,14 @@ const TRACK_CONFIG = Object.freeze({
     day3BenefitTitle: 'Unlock Live Room Alerts & Cash Solver Warmups + 500 Diamonds',
     day3BenefitBody:
       'Verify your phone in 15 seconds to claim Free 30-Day VIP + 500 Diamonds On Phone Verify and unlock live room alerts, bankroll tracking, and full cash-game GTO warmup packs.',
+    day7Title: 'Next GTO Challenge: Deep-Stack Live Cash Table Warmup',
+    day7Body:
+      'Review live room listings in Poker Near Me and run a quick 60-second cash-game solver challenge before you head to the felt.',
+    day7CtaLabel: 'Open Poker Near Me & Warmup',
+    day21Title: 'Check Upcoming Local Poker Games & Live Schedules',
+    day21Body:
+      'Explore updated daily tournaments, nearby poker rooms, and upcoming regional series schedules inside Poker Near Me.',
+    day21CtaLabel: 'Explore Upcoming Local Games',
   },
   'general-hub': {
     label: 'Smarter.Poker Hub',
@@ -149,6 +190,14 @@ const TRACK_CONFIG = Object.freeze({
     day3BenefitTitle: 'Unlock Full Smarter.Poker Hub VIP + 500 Diamonds',
     day3BenefitBody:
       'Verify your phone in 15 seconds to claim Free 30-Day VIP + 500 Diamonds On Phone Verify and unlock GTO Hand Lab, Preflop Charts, 42+ Free Calculators, and Live Series Alerts.',
+    day7Title: 'Next GTO Challenge: 60-Second Solver Decision Rep',
+    day7Body:
+      'Jump into GTO Hand Lab for a quick solver rep, inspect preflop charts, or open any of our 42+ free poker calculators in one tap.',
+    day7CtaLabel: 'Start Next GTO Challenge',
+    day21Title: 'Check In On Your Poker Study & Browse Local Games',
+    day21Body:
+      'Keep your study workspace handy and check upcoming local poker rooms, daily schedules, and tournament series across Smarter.Poker Hub.',
+    day21CtaLabel: 'Open Smarter.Poker Hub',
   },
 });
 
@@ -607,5 +656,173 @@ export function buildSeriesEventReminderEmail({
     text,
     ctaUrl,
     bankrollUrl,
+  };
+}
+
+function sanitizeSavedSpotCount(rawCount) {
+  const n = Number(rawCount);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.floor(n);
+}
+
+/**
+ * Day-7 and Day-21 Habit Digest emails tailored by organic activation track.
+ * Reports honest saved spot counts only when `savedSpotCount > 0` (never
+ * fabricates drills, hands, or streaks), escapes all untrusted inputs,
+ * enforces zero em/en dashes, Title Case headings, zero banned gold, and zero PII.
+ */
+export function buildHabitDigestEmail({
+  phase = 'day7',
+  track,
+  firstName = '',
+  savedSpotCount = 0,
+  siteUrl = DEFAULT_SITE_URL,
+} = {}) {
+  const origin = normalizeOrigin(siteUrl);
+  const resolvedPhase = phase === 'day21' ? 'day21' : 'day7';
+  const resolvedTrack = TRACK_SET.has(track) ? track : 'general-hub';
+  const cfg = TRACK_CONFIG[resolvedTrack];
+  const greetingName = sanitizeFirstName(firstName);
+  const safeSavedCount = sanitizeSavedSpotCount(savedSpotCount);
+  const savedSpotNoun = safeSavedCount === 1 ? 'saved spot' : 'saved spots';
+  const savedSummaryLine =
+    safeSavedCount > 0
+      ? `You currently have ${safeSavedCount} ${savedSpotNoun} synced in your Smarter.Poker workspace.`
+      : 'Your Smarter.Poker study tools and bookmarks stay synced across desktop and mobile whenever you save a spot.';
+
+  const isDay21 = resolvedPhase === 'day21';
+  const subject = isDay21
+    ? 'Your 21-Day Poker Study Check-In & Upcoming Local Games'
+    : 'Your 7-Day Smarter.Poker Study Progress & Next GTO Challenge';
+
+  const previewText = stripEmDashes(
+    isDay21
+      ? `21-day check-in for ${cfg.label}. ${savedSummaryLine}`
+      : `7-day study check-in for ${cfg.label}. ${savedSummaryLine}`,
+  );
+
+  const primaryPath =
+    resolvedTrack === 'general-hub' && !isDay21
+      ? '/hub/training/hand-lab'
+      : cfg.defaultNextPath;
+  const ctaUrl = `${origin}${primaryPath}?src=habit-${resolvedPhase}&track=${encodeURIComponent(resolvedTrack)}`;
+  const secondaryCtaUrl = isDay21
+    ? `${origin}/hub/poker-near-me/lobby?src=habit-day21`
+    : `${origin}/hub/training/hand-lab?src=habit-day7`;
+  const secondaryCtaLabel = isDay21
+    ? 'Browse Upcoming Local Games'
+    : 'Open GTO Hand Lab';
+
+  const heading = isDay21
+    ? 'Your 21-Day Study Check-In & Upcoming Local Games'
+    : 'Your 7-Day Study Progress & Next GTO Challenge';
+  const intro = isDay21
+    ? `it has been three weeks since you joined Smarter.Poker. ${savedSummaryLine}`
+    : `you are one week into Smarter.Poker. ${savedSummaryLine}`;
+
+  const cardEyebrow = isDay21
+    ? `21-Day Habit Digest | ${cfg.label}`
+    : `7-Day Habit Digest | ${cfg.label}`;
+  const cardTitle = isDay21 ? cfg.day21Title : cfg.day7Title;
+  const cardBody = isDay21 ? cfg.day21Body : cfg.day7Body;
+  const primaryCtaLabel = isDay21 ? cfg.day21CtaLabel : cfg.day7CtaLabel;
+  const rewardBannerEyebrow = isDay21
+    ? 'Upcoming Local Games & Series'
+    : 'Weekly Study Momentum';
+  const rewardBannerText = isDay21
+    ? 'Find daily poker room schedules, regional tournament series, and free bankroll tracking inside Smarter.Poker.'
+    : 'Keep your edge sharp with GTO Hand Lab, Preflop Charts, 42+ Free Calculators, and live poker schedules.';
+
+  const { html, text } = renderEmailShell({
+    cleanSite: origin,
+    subject,
+    previewText,
+    eyebrow: `Smarter.Poker | ${cfg.label}`,
+    heading,
+    greetingName,
+    intro,
+    cardEyebrow,
+    cardTitle,
+    cardBody,
+    primaryCtaLabel,
+    primaryCtaUrl: ctaUrl,
+    secondaryCtaLabel,
+    secondaryCtaUrl,
+    rewardBannerEyebrow,
+    rewardBannerText,
+  });
+
+  return {
+    phase: resolvedPhase,
+    track: resolvedTrack,
+    subject,
+    previewText,
+    html,
+    text,
+    ctaUrl,
+  };
+}
+
+/**
+ * Day-25 VIP Trial Graduation email for phone-verified organic users whose
+ * Free 30-Day VIP welcome window is wrapping up. Links cleanly to
+ * `${origin}/hub/vip?src=vip-trial-day25` with honest saved spot count only
+ * when `savedSpotCount > 0`, zero fabricated stats, zero em/en dashes,
+ * Title Case headings, zero banned gold, and zero PII.
+ */
+export function buildVipTrialGraduationEmail({
+  firstName = '',
+  savedSpotCount = 0,
+  siteUrl = DEFAULT_SITE_URL,
+} = {}) {
+  const origin = normalizeOrigin(siteUrl);
+  const greetingName = sanitizeFirstName(firstName);
+  const safeSavedCount = sanitizeSavedSpotCount(savedSpotCount);
+  const savedSpotNoun = safeSavedCount === 1 ? 'saved spot' : 'saved spots';
+
+  const subject = 'Your 30-Day Free VIP Access Wraps Up Soon - Keep Unlimited GTO & Live Tools';
+  const previewText = stripEmDashes(
+    safeSavedCount > 0
+      ? `Your 30-day free VIP access wraps up soon. Keep your ${safeSavedCount} ${savedSpotNoun} and unlimited GTO and live tools.`
+      : 'Your 30-day free VIP access wraps up soon - keep unlimited GTO training, solver tools, and live poker features.',
+  );
+
+  const ctaUrl = `${origin}/hub/vip?src=vip-trial-day25`;
+  const secondaryCtaUrl = `${origin}/hub?src=vip-trial-day25`;
+
+  const intro =
+    safeSavedCount > 0
+      ? `your 30-day free VIP welcome window wraps up in a few days. You currently have ${safeSavedCount} ${savedSpotNoun} synced to your account ready for continued study.`
+      : 'your 30-day free VIP welcome window wraps up in a few days. Lock in uninterrupted access to every GTO solver drill, calculator, and live poker tool inside Smarter.Poker.';
+
+  const cardBody =
+    'Continue with unlimited GTO Hand Lab challenges, full Preflop Range Charts, Personal Assistant leak reviews, Bankroll Manager tracking, and synced live tournament series alerts without losing momentum.';
+
+  const { html, text } = renderEmailShell({
+    cleanSite: origin,
+    subject,
+    previewText,
+    eyebrow: 'Smarter.Poker VIP Membership',
+    heading: 'Your 30-Day Free VIP Access Wraps Up Soon',
+    greetingName,
+    intro,
+    cardEyebrow: 'Day-25 VIP Access Check-In',
+    cardTitle: 'Keep Unlimited GTO Training & Live Poker Tools',
+    cardBody,
+    primaryCtaLabel: 'Keep Unlimited VIP Access',
+    primaryCtaUrl: ctaUrl,
+    secondaryCtaLabel: 'Open Smarter.Poker Hub',
+    secondaryCtaUrl,
+    rewardBannerEyebrow: 'Included With Smarter.Poker VIP',
+    rewardBannerText:
+      'Unlimited GTO Hand Lab reps, full 100bb cash and MTT solver ranges, Personal Assistant leak audits, and live poker room alerts.',
+  });
+
+  return {
+    subject,
+    previewText,
+    html,
+    text,
+    ctaUrl,
   };
 }

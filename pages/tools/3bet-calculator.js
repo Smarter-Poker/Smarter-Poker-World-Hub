@@ -17,6 +17,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -436,6 +437,16 @@ export default function ThreeBetCalculatorPage({
         </section>
 
         <div style={{ marginBottom: 32 }}>
+          <SmarterCalculatorSaveBar
+            toolSlug="3bet-calculator"
+            toolName="3-Bet, 4-Bet & Squeeze Calculator"
+            eyebrow="Free Preflop Cloud Sync"
+            title="Save This 3-Bet & Squeeze Sizing Spot Free"
+            description="Sync 3-Bet Multipliers, Villain MDF Thresholds & Optimal 4-Bet Sizings Across Phone & Desktop."
+            ctaLabel="Save 3-Bet Spot Free"
+            summaryText={`${metrics.safeStack}BB ${position} Vs ${metrics.safeOpen}BB Open (+${metrics.safeCallers} Callers): Recommended 3-Bet = ${metrics.recommendedThreeBetBb}BB (${metrics.baseMultiplier}x) | Villain MDF = ${metrics.villainMdfPct}% | Optimal 4-Bet = ${metrics.optimalFourBetBb}BB | Flop SPR = ${metrics.flopSprIfCalled}`}
+            redirectPath={canonicalPath}
+          />
           <SmarterAccountUnlockGate
             variant="calculator-pro"
             context="tools-3bet-calculator"

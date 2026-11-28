@@ -1,6 +1,7 @@
-/* VIP plan cards on #SMARTERDESIGN: one approved steel nine-slice rim per
-   plan, a cobalt lit rim when selected, the approved VIP crest as the plan
-   marker, and live lettering. The price is the largest thing on the card. */
+/* VIP plan cards on #SMARTERDESIGN: each plan is one chrome-stat well over
+   the card fill; the selected plan is chrome-active over cobalt. The approved
+   VIP crest is the plan marker, every word is live and the price is the
+   largest thing on the card. Square corners. */
 .vipCard {
   --vc-type: var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif;
   position: relative;
@@ -11,12 +12,11 @@
   min-width: 0;
   margin: 0;
   padding: 16px 14px 14px;
-  border: 5px solid transparent;
-  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 6px stretch;
-  background:
-    radial-gradient(120% 90px at 50% 0, #1a3a5e 0, transparent 75%),
-    linear-gradient(170deg, #142639 0%, #091726 46%, #030a13 100%);
-  box-shadow: inset 0 3px 10px rgb(0 0 0 / 70%), 0 8px 16px rgb(0 0 0 / 60%);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%);
+  box-shadow: 0 8px 16px rgb(0 0 0 / 60%);
   color: #f2f7ff;
   cursor: pointer;
   font: inherit;
@@ -26,27 +26,21 @@
   -webkit-tap-highlight-color: transparent;
 }
 .vipCardSelected {
-  border-image-source: url('/images/smarterdesign/chrome-active-v2.webp');
-  border-image-slice: 11;
-  background:
-    radial-gradient(120% 130px at 50% 0, #1c64b4 0, transparent 78%),
-    linear-gradient(170deg, #123760 0%, #0a1f3a 48%, #040c18 100%);
-  box-shadow: inset 0 3px 10px rgb(0 0 0 / 55%), 0 0 22px rgb(38 136 255 / 38%), 0 8px 16px rgb(0 0 0 / 60%);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  color: #fff;
 }
 .vipCardCrown { display: block; width: 62px; height: 49px; filter: drop-shadow(0 3px 4px #000); }
 .vipCardCrown img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .vipCardReadout { display: grid; justify-items: center; min-width: 0; gap: 6px; width: 100%; }
 .vipPlanName { color: #f2f7ff; font: 750 21px/1.1 var(--vc-type); letter-spacing: 0.02em; text-shadow: 0 2px 0 #243951, 0 3px 5px #020914; }
+/* A printed label on the card, never a second frame. */
 .vipOfferTag {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 2px 10px;
-  border: 1px solid #3a7fbd;
-  background: linear-gradient(180deg, #12406f, #082341);
-  box-shadow: inset 0 1px 0 rgb(134 218 255 / 45%);
   color: #86daff;
-  font: 700 11.5px/1.2 var(--vc-type);
+  font: 700 12px/1.2 var(--vc-type);
   letter-spacing: 0.08em;
 }
 .vipPriceRow { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 2px 8px; }
@@ -67,11 +61,15 @@
   font: 600 13px/1.3 var(--font-inter), Arial, sans-serif;
 }
 .vipSelection { display: inline-flex; align-items: center; gap: 8px; min-height: 22px; color: #bdd0e2; font: 700 13px/1 var(--vc-type); letter-spacing: 0.06em; }
-.vipSelection::before { content: ''; width: 14px; height: 14px; border: 2px solid #8fa9c0; border-radius: 50%; background: #020812; box-shadow: inset 0 0 0 3px #020812; }
-.vipCardSelected .vipSelection { color: #f2f7ff; }
-.vipCardSelected .vipSelection::before { border-color: #d6f1ff; background: #45adff; box-shadow: inset 0 0 0 3px #04101f, 0 0 10px #2d9dff; }
+.vipSelection::before { content: ''; width: 14px; height: 14px; border: 2px solid #8fa9c0; background: #020812; }
+.vipCardSelected .vipSelection,
+.vipCardSelected .vipPlanDetail,
+.vipCardSelected .vipDiamondPrice,
+.vipCardSelected .vipOfferTag { color: #f2f7ff; }
+.vipCardSelected .vipDiamondPrice { border-top-color: #8fc4f5; }
+.vipCardSelected .vipSelection::before { border-color: #f2f7ff; background: #f2f7ff; box-shadow: inset 0 0 0 3px #07377e; }
 .vipCard:focus-visible { outline: 2px solid #9ee3ff !important; outline-offset: 3px !important; }
-.vipCard:active { transform: translateY(2px); }
+.vipCard:active { transform: translateY(1px); filter: brightness(.89); }
 @media (max-width: 640px) {
   /* Phone: marker and name on one line, the price across the full width. */
   .vipCard { grid-template-columns: 46px minmax(0, 1fr) auto; justify-items: stretch; align-items: center; gap: 8px 12px; padding: 12px 12px 11px; text-align: left; }

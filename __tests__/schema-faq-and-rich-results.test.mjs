@@ -80,6 +80,8 @@ test('seriesSchema emits hierarchical BreadcrumbList including state and venue w
     city: 'Round Rock',
     state: 'TX',
     startDate: '2026-04-01',
+    // Set by the series page's server props when the TX directory has rooms.
+    stateDirectoryPath: '/hub/poker-near-me/in/tx',
   };
   const nodes = seriesSchema(sample);
   const breadcrumbNode = nodes.find((n) => n['@type'] === 'BreadcrumbList');

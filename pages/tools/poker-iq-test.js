@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterCalculatorSaveBar from '../../src/components/seo/SmarterCalculatorSaveBar';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
@@ -519,6 +520,16 @@ export default function PokerIqTestPage() {
 
         {!isEmbed && (
           <div style={{ marginBottom: 32 }}>
+            <SmarterCalculatorSaveBar
+              toolSlug="poker-iq-test"
+              toolName="Poker IQ Diagnostic Assessment"
+              eyebrow="Free Diagnostic Cloud Sync"
+              title="Save Your Poker IQ Score & Leak Report Free"
+              description="Keep Your 10-Domain Quantitative Poker IQ Score & Targeted GTO Drill Recommendations Synced Free."
+              ctaLabel="Save IQ Score Free"
+              summaryText={`Quantitative Poker IQ Score: ${diagnosis.iqScore}/200 (${diagnosis.tierLabel} - ${diagnosis.correctCount}/10 Correct Domains)`}
+              redirectPath={canonicalPath}
+            />
             <SmarterAccountUnlockGate
               variant="calculator-pro"
               context="tools-poker-iq-test"

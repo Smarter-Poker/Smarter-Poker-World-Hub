@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import { SD_FILL, SD_FRAME, offStandardPaint } from './smarterdesign-standard.test.mjs';
+
 // Three defects the Marketplace restoration measured on the live pages rather
 // than inferred from source: a heading outline that skipped a level on the merch
 // product detail page, two accessible names attached to role-less generic
@@ -168,9 +170,10 @@ test('the VIP surfaces are sized by their content, not by a painted plate', () =
   );
   const plan = /\.plan \{[^}]*\}/.exec(vipCss)?.[0] || '';
   assert.ok(plan, 'the VIP plan rule is gone');
-  assert.match(plan, /border:\s*1px solid/, 'the VIP plan keeps a restrained frame');
-  assert.match(plan, /background:\s*#/, 'the VIP plan keeps a readable surface');
-  assert.doesNotMatch(plan, /url\(/, 'the VIP plan layout must not carry an image asset');
+  // #SMARTERDESIGN: one chrome-stat well over the standard navy fill.
+  assert.match(plan, SD_FRAME.well, 'the VIP plan is one chrome-stat well');
+  assert.match(plan, SD_FILL, 'the VIP plan keeps a readable standard surface');
+  assert.deepEqual(offStandardPaint(plan), [], 'the VIP plan carries no off-standard paint');
 });
 
 test('the rewards stats readout wraps instead of running off the side', () => {
