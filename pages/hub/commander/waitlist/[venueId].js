@@ -11,7 +11,7 @@ import { ArrowLeft, Users, MapPin, Loader2, ChevronDown, ChevronUp, X, Globe, Ch
 import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 // Capitalize first letter of every word
 function titleCase(str) {
@@ -1070,3 +1070,5 @@ const S = {
     boxShadow: '0 2px 12px rgba(134, 218, 255, 0.15)',
   },
 };
+
+PlayerWaitlistPage.getLayout = commanderPageLayout;

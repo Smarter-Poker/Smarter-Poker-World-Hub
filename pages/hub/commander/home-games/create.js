@@ -54,7 +54,7 @@ const LeafletLocationPicker = dynamic(
   { ssr: false }
 );
 import { getAccessToken } from '../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import { publishPlannedHomeGameTournaments, submitHomeGameOccurrence } from '../../../../src/lib/home-games/tournamentPublication.mjs';
 
 const GAME_TYPES = [
@@ -2048,3 +2048,5 @@ export default function CreateHomeGamePage() {
     </CommanderPageShell>
   );
 }
+
+CreateHomeGamePage.getLayout = commanderPageLayout;

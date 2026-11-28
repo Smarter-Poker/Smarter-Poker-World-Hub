@@ -12,7 +12,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Trophy, Clock, DollarSign, Medal, Star, Calendar } from 'lucide-react';
 import LeaderboardDisplay from '../../../../src/components/commander/leaderboards/LeaderboardDisplay';
 import { supabase } from '../../../../src/lib/supabase';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import { publicLeaderboardsUrl, publicPromotionsUrl, normalizePublicPromotion } from '../../../../src/lib/commanderPublicReads';
 
 /* Inline LeaderboardRow replaced by shared LeaderboardDisplay component */
@@ -273,3 +273,5 @@ export default function LeaderboardPage() {
     </CommanderPageShell>
   );
 }
+
+LeaderboardPage.getLayout = commanderPageLayout;

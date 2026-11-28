@@ -191,3 +191,20 @@ test('tabs are the shared chrome tab, cobalt when selected, never a cyan outline
   assert.match(css, /\.cmd-tab \{[\s\S]*?min-height: 44px;[\s\S]*?chrome-row\.webp/);
   assert.match(css, /\.cmd-tab--active \{[\s\S]*?chrome-active-v2\.webp/);
 });
+
+test('every state of every player page renders inside the shell (page layout), not only the content state', () => {
+  // Most pages return their loading, not-found and error screens before
+  // reaching their own <CommanderPageShell>, so those screens showed no
+  // global header. Each page now declares commanderPageLayout, which
+  // pages/_app.js applies around the whole page.
+  const app = read('pages/_app.js');
+  assert.match(app, /typeof Component\.getLayout === 'function' \? Component\.getLayout : \(page\) => page/);
+  assert.match(app, /\{renderWithPageLayout\(<Component \{\.\.\.pageProps\} \/>\)\}/);
+  const shell = read(SHELL);
+  assert.match(shell, /export function commanderPageLayout\(page\)/);
+  assert.match(shell, /if \(insideShell\) return <>\{children\}<\/>;/, 'a nested shell must render its children only');
+  const missing = walk(PAGES_DIR)
+    .filter((f) => f.endsWith('.js'))
+    .filter((f) => !/\n\w+\.getLayout = commanderPageLayout;\n?$/.test(read(f)));
+  assert.deepEqual(missing, []);
+});

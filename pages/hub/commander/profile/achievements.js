@@ -11,7 +11,7 @@ import { ArrowLeft, Award, Star, Lock } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 export default function AchievementsPage() {
   const router = useRouter();
@@ -166,3 +166,5 @@ export default function AchievementsPage() {
     </CommanderPageShell>
   );
 }
+
+AchievementsPage.getLayout = commanderPageLayout;

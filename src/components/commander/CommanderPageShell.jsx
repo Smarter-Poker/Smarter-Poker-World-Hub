@@ -19,7 +19,7 @@
  * "?" in the image header's upper-right corner.
  * ═══════════════════════════════════════════════════════════════════════════
  */
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../ui/UniversalHeader';
@@ -64,7 +64,28 @@ function findHeader() {
   return typeof document === 'undefined' ? null : document.querySelector('header.cmd-header-full, header.cmd-header-bar');
 }
 
+// One shell per page. commanderPageLayout (below) wraps each whole page in
+// this shell; the page's own <CommanderPageShell> inside it renders its
+// children only.
+const InsideCommanderShell = createContext(false);
+
 export default function CommanderPageShell({ children }) {
+    const insideShell = useContext(InsideCommanderShell);
+    if (insideShell) return <>{children}</>;
+    return <CommanderPageShellFrame>{children}</CommanderPageShellFrame>;
+}
+
+/**
+ * Page layout for every /hub/commander page: `Page.getLayout = commanderPageLayout`.
+ * pages/_app.js applies it, so a page's loading, not-found and error screens
+ * (usually returned before its own <CommanderPageShell>) get the global header,
+ * scene and painted "?" too.
+ */
+export function commanderPageLayout(page) {
+    return <CommanderPageShell>{page}</CommanderPageShell>;
+}
+
+function CommanderPageShellFrame({ children }) {
     const router = useRouter();
     const pathname = (router && router.pathname) || '';
     const scene = sceneFor(pathname);
@@ -93,7 +114,9 @@ export default function CommanderPageShell({ children }) {
 
             {/* Page content, with this page's #SMARTERDESIGN scene */}
             <div className="smarterdesign" style={{ '--sd-scene': `url(/images/smarterdesign/headers/${scene}-scene.webp)` }} data-sd-scene={scene}>
-                {children}
+                <InsideCommanderShell.Provider value={true}>
+                    {children}
+                </InsideCommanderShell.Provider>
             </div>
             {header && createPortal(
                 <a href="/hub/commander/faq" className="sd-header-help" data-focus-custom="" aria-label={`Help For ${pageTitle}`}>

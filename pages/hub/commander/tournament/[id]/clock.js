@@ -9,7 +9,7 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Users, Trophy, Clock, DollarSign } from 'lucide-react';
 import { useCommanderSync } from '../../../../../src/lib/commander/useCommanderSync';
 import { supabase } from '../../../../../src/lib/supabase';
-import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../../src/components/commander/CommanderPageShell';
 
 const TABS = [
   { id: 'clock', label: 'Clock' },
@@ -611,3 +611,5 @@ function StatCard({ icon: Icon, label, value }) {
     </div>
   );
 }
+
+TournamentLivePage.getLayout = commanderPageLayout;
