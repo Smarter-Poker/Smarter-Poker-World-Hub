@@ -175,6 +175,7 @@ import './bankroll-live-suite.test.mjs';
 import './bankroll-write-live-suite.test.mjs';
 import './bankroll-phone-speed.test.mjs';
 import './bankroll-shell-wiring.test.mjs';
+import './the-log-sheet-sits-above-the-global-header.law.test.mjs';
 import './bankroll-first-load-reads-in-one-batch.law.test.mjs';
 import './bankroll-leak-view-honesty.test.mjs';
 import './bankroll-staking-math.test.mjs';

@@ -1715,7 +1715,12 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1000,
+    // Above the fixed global header (z-index 10050), level with the other
+    // dialogs that must clear it (HamburgerMenu, the Poker Near Me panel).
+    // At 1000 the sheet slid under the header: once the Log Session step
+    // grew taller (the Club Arena sessions panel, #3294) its title and Close
+    // sat beneath the header on a 720px-tall desktop and could not be clicked.
+    zIndex: 10100,
     padding: 20,
   },
   modal: {
