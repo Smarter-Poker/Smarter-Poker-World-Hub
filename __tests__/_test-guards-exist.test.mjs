@@ -1004,6 +1004,10 @@ import './otc-tier1-overlay-attribution-onetap-20261127.law.test.mjs';
 import './otc-tier2-leak-finder-and-activation-20261127.law.test.mjs';
 import './otc-tier2-bofu-compare-and-matchups-20261127.law.test.mjs';
 import './otc-tier3-serp-schema-and-lifecycle-20261127.law.test.mjs';
+import './otc-tier4-live-funnel-telemetry-20261127.law.test.mjs';
+import './otc-tier4-reminder-sync-and-viral-loop-20261127.law.test.mjs';
+import './otc-tier4-local-geo-conversion-20261127.law.test.mjs';
+import './otc-tier4-100-matchups-and-live-drip-20261127.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
