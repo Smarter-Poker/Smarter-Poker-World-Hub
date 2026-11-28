@@ -175,10 +175,10 @@ Smarter.Poker Live Venue Directory Team`,
       '"professional gambler" "tax deductions" "session log" IRS',
       '"poker tax" "win loss statement" accountant blog',
     ],
-    emailSubjectTemplate: 'Free IRS Form W-2G & Schedule C Poker Session Ledger Resource For {{target}} Clients',
+    emailSubjectTemplate: 'IRS Form W-2G & Schedule C Poker Session Ledger Resource For {{target}} Clients',
     emailBodyTemplate: `Hi {{target}} Tax Advisory Team,
 
-We saw your guide on reporting gambling income, IRS Form W-2G jackpots, and contemporaneously logged session records. To help poker players and casino dealers maintain audit-ready documentation for their CPAs, Smarter.Poker provides a 100% free Form W-2G & Schedule C Session Ledger with receipt scanning and one-click CSV accountant exports:
+We saw your guide on reporting gambling income, IRS Form W-2G jackpots, and contemporaneously logged session records. To help poker players and casino dealers maintain audit-ready documentation for their CPAs, Smarter.Poker provides a Form W-2G & Schedule C Session Ledger with receipt scanning and one-click CSV accountant exports (free dashboard; logging and tools with VIP or a 24-hour pass):
 
 Tax & Bankroll Ledger Guide: https://smarter.poker/features/bankroll-tax-tracker
 W-2G Tax Reporting Study: https://smarter.poker/research/us-poker-player-tax-w2g-reporting-and-session-accounting-benchmark

@@ -28,7 +28,7 @@ const BANKROLL_MANAGER_FAQS = [
   {
     question: 'Is the Smarter.Poker Bankroll Manager free to use?',
     answer:
-      'Yes, Smarter.Poker Bankroll Manager is 100% free to use. You can log sessions, analyze leaks, export records, and visualize bankroll trends with zero subscription fees.',
+      'Your bankroll dashboard is free to view. Logging sessions, scanning receipts, leak analysis, reports and the other tools are included with VIP, or with a 24-hour pass for 25 diamonds.',
   },
   {
     question: 'What is risk of ruin in poker bankroll management?',
@@ -110,7 +110,7 @@ const RECEIPT_TONE_COLORS = {
   ATTACH: '#60a5fa',
   LATER: '#a5b7cc',
 };
-import { formatCurrency, formatCurrencyWithSign, eurRateNote } from '../../src/lib/bankroll/currencyUtils';
+import { formatCurrency, formatCurrencyWithSign, formatCentsCurrency, eurRateNote } from '../../src/lib/bankroll/currencyUtils';
 
 // Bankroll components. Eager: the dashboard's first paint (trend chart,
 // Jarvis insights, rules card, stat cards). Everything below the fold or
@@ -159,7 +159,7 @@ import { requestPermission, showVenueAlert } from '../../src/lib/pushAlerts';
 import { sendGeofenceNotification } from '../../src/lib/geofencePush';
 import { getAccessToken, getFreshAccessToken } from '../../src/lib/authUtils';
 import { loadGeofenceVenues } from '../../src/lib/bankroll/geofenceVenues.mjs';
-import { listHeld, releaseHeld, noteAttempt } from '../../src/lib/bankroll/receiptHold.mjs';
+import { listHeld, releaseHeld, noteAttempt, alreadySavedRow } from '../../src/lib/bankroll/receiptHold.mjs';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import FaqSection from '../../src/components/seo/FaqSection';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
@@ -515,6 +515,8 @@ export default function BankrollManagerPage() {
   // The receipt this scan looks like, if the player has photographed it before.
   const [scannerDuplicate, setScannerDuplicate] = useState(null);
   const [recentHashes, setRecentHashes] = useState([]);
+  // Held scans wait for this: they are checked against it before sending.
+  const [recentHashesLoaded, setRecentHashesLoaded] = useState(false);
   const [bulkFiling, setBulkFiling] = useState(false);
   // The receipt a LogEntryModal was opened for, so its save marks the receipt assigned.
   const receiptAwaitingEntryRef = useRef(null);
@@ -848,6 +850,12 @@ export default function BankrollManagerPage() {
   const resumeHeldScan = useCallback(async (record) => {
     if (!record || !record.blob) return;
     if (!requireOnline()) return;
+    if (alreadySavedRow(record, recentHashes)) {
+      await releaseHeld(record.id);
+      refreshHeldScans();
+      toast.show('That Scan Was Already Saved. It Is Under Receipts Waiting Or Already Filed.');
+      return;
+    }
     await noteAttempt(record.id);
     setResumingHeld(record);
     setScannerStep('scan');
@@ -857,7 +865,7 @@ export default function BankrollManagerPage() {
     setScannerRoute(null);
     setScannerReceiptId(null);
     setShowScanner(true);
-  }, [requireOnline]);
+  }, [requireOnline, recentHashes, refreshHeldScans]);
 
   /**
    * A HELD SCAN SENDS ITSELF WHEN THE SIGNAL COMES BACK.
@@ -883,15 +891,24 @@ export default function BankrollManagerPage() {
   useEffect(() => {
     if (!online || !userId) return;
     if (autoFlushing || resumingHeld || showScanner) return;
+    // Not before the stored hashes are known: the check below needs them.
+    if (!recentHashesLoaded) return;
     const next = heldScans.find((h) => h && h.blob && (h.attempts || 0) < 3);
     if (!next) return;
     let cancelled = false;
     (async () => {
+      // Saved last time, then the tab closed before the device copy went:
+      // it already has its row, so release it instead of filing it twice.
+      if (alreadySavedRow(next, recentHashes)) {
+        await releaseHeld(next.id);
+        if (!cancelled) refreshHeldScans();
+        return;
+      }
       await noteAttempt(next.id);
       if (!cancelled) setAutoFlushing(next);
     })();
     return () => { cancelled = true; };
-  }, [online, userId, autoFlushing, resumingHeld, showScanner, heldScans]);
+  }, [online, userId, autoFlushing, resumingHeld, showScanner, heldScans, recentHashesLoaded, recentHashes, refreshHeldScans]);
 
   /**
    * The row exists, so the device copy has done its job.
@@ -971,14 +988,16 @@ export default function BankrollManagerPage() {
 
       // Everything recently scanned, FILED OR NOT, so a receipt photographed
       // again next week is still recognised as one already dealt with.
-      const { data: hashes } = await supabase
+      const { data: hashes, error: hashError } = await supabase
         .from('bankroll_receipts')
         .select('id, summary, status, created_at, image_hash')
         .eq('user_id', userId)
         .not('image_hash', 'is', null)
         .order('created_at', { ascending: false })
         .limit(200);
+      if (hashError) throw hashError;
       setRecentHashes(hashes || []);
+      setRecentHashesLoaded(true);
     } catch (err) {
       console.warn('[bankroll] pending receipts load failed:', err?.message || err);
     }
@@ -2830,9 +2849,9 @@ export default function BankrollManagerPage() {
                       {v.rule}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
-                      <span>Limit: {v.limit}</span>
+                      <span>Limit: {v.limitCents != null ? formatCentsCurrency(v.limitCents, preferences.currencyEUR) : v.limit}</span>
                       <span style={{ fontWeight: 600, color: v.severity === 'high' ? '#ef4444' : v.severity === 'info' ? '#22c55e' : '#56c8dd' }}>
-                        Actual: {v.actual}
+                        Actual: {v.actualCents != null ? formatCentsCurrency(v.actualCents, preferences.currencyEUR, { signed: Boolean(v.signedActual) }) : v.actual}
                       </span>
                     </div>
                   </div>
