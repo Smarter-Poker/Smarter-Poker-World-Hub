@@ -82299,7 +82299,7 @@
       "functions": [
         {
           "name": "venueFloor",
-          "line": 64,
+          "line": 69,
           "references": 5,
           "exported": true,
           "defaultExport": false,
@@ -82307,7 +82307,7 @@
         },
         {
           "name": "venueFloorLabel",
-          "line": 70,
+          "line": 75,
           "references": 10,
           "exported": true,
           "defaultExport": false,
@@ -82315,7 +82315,7 @@
         },
         {
           "name": "listedVenueCount",
-          "line": 125,
+          "line": 130,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -82323,7 +82323,7 @@
         },
         {
           "name": "listedVenueLabel",
-          "line": 130,
+          "line": 135,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -82331,7 +82331,7 @@
         },
         {
           "name": "buildVenueStats",
-          "line": 180,
+          "line": 185,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -82339,7 +82339,7 @@
         },
         {
           "name": "snapshotOverClaims",
-          "line": 232,
+          "line": 237,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -82347,7 +82347,7 @@
         },
         {
           "name": "snapshotBehind",
-          "line": 250,
+          "line": 255,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -137763,7 +137763,7 @@
       {
         "file": "src/lib/venueCount.mjs",
         "name": "listedVenueLabel",
-        "line": 130,
+        "line": 135,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -137779,16 +137779,13 @@
           "__tests__/the-venue-claims-are-real.law.test.mjs",
           "pages/poker-rooms/guides/index.js",
           "pages/poker-rooms/states/[state].js",
-          "src/content/guides/corridors.js",
-          "src/content/guides/markets.js",
-          "src/content/guides/states.js",
-          "src/lib/seo/markdownIngestion.mjs"
+          "src/lib/venueClaims.mjs"
         ]
       },
       {
         "file": "src/lib/venueCount.mjs",
         "name": "snapshotOverClaims",
-        "line": 232,
+        "line": 237,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -137807,7 +137804,7 @@
       {
         "file": "src/lib/venueCount.mjs",
         "name": "snapshotBehind",
-        "line": 250,
+        "line": 255,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -150357,7 +150354,7 @@
       {
         "file": "src/lib/venueCount.mjs",
         "name": "listedVenueLabel",
-        "line": 130,
+        "line": 135,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -150373,16 +150370,13 @@
           "__tests__/the-venue-claims-are-real.law.test.mjs",
           "pages/poker-rooms/guides/index.js",
           "pages/poker-rooms/states/[state].js",
-          "src/content/guides/corridors.js",
-          "src/content/guides/markets.js",
-          "src/content/guides/states.js",
-          "src/lib/seo/markdownIngestion.mjs"
+          "src/lib/venueClaims.mjs"
         ]
       },
       {
         "file": "src/lib/venueCount.mjs",
         "name": "snapshotOverClaims",
-        "line": 232,
+        "line": 237,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -150401,7 +150395,7 @@
       {
         "file": "src/lib/venueCount.mjs",
         "name": "snapshotBehind",
-        "line": 250,
+        "line": 255,
         "references": 1,
         "exported": true,
         "defaultExport": false,

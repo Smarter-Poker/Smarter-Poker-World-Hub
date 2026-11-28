@@ -279,7 +279,9 @@ export async function getServerSideProps({ params, req, res, query }) {
     accept.includes('text/markdown') ||
     req?.url?.includes('format=md')
   ) {
-    const md = renderAuthorDetailMarkdown(author);
+    const { renderWithLiveVenueStats } = await import('../../src/lib/server/venueStats.mjs');
+    // The room counts state one live read (snapshot fallback), as /api/ai/facts does.
+    const md = await renderWithLiveVenueStats(() => renderAuthorDetailMarkdown(author));
     res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
     res.setHeader('Vary', 'Accept');
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
