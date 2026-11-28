@@ -198,7 +198,7 @@ export default function AuthHealthDashboard(props) {
             </section>
 
             <footer style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid #2a3a4a', color: '#aabcc4', fontSize: 12 }}>
-                Backed By <code>Public.Auth_Health_View</code> + <code>Probe_Heartbeats</code>. Runbook: <a href="/docs/SIGNUP_RUNBOOK.md" style={S.link}>SIGNUP_RUNBOOK.Md</a>.
+                Backed By <code>Public.Auth_Health_View</code> + <code>Probe_Heartbeats</code>. Runbook: <a href="https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/blob/main/docs/SIGNUP_RUNBOOK.md" style={S.link}>SIGNUP_RUNBOOK.Md</a>.
             </footer>
         </main>
     );

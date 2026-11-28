@@ -1052,6 +1052,7 @@ import './otc-tier9-auth-og-sitemap-and-parity-20261128.law.test.mjs';
 import './site-wide-payload-budget.test.mjs';
 import './jarvis-photo-reader-removed.test.mjs';
 import './an-internal-link-reaches-a-page.law.test.mjs';
+import './every-internal-link-reaches-a-page-before-merge.law.test.mjs';
 import './bankroll-w4-cleanup.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
