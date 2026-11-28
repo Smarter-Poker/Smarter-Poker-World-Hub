@@ -203,7 +203,7 @@ export default function AboutPage() {
           <SmarterConversionCta
             eyebrow="Free Smarter.Poker Account"
             title="Start Playing And Training Free On Smarter.Poker"
-            description={`Join Free To Access 107 Interactive GTO Training Games, ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, Bankroll Tracking, And Private Poker Clubs.`}
+            description={`Join Free To Access 107 Interactive GTO Training Games, ${VENUE_COUNT_LABEL} Live Poker Rooms, Bankroll Tracking, And Private Poker Clubs.`}
             primaryLabel="Create Free Account"
             primaryHref="/auth/signup?redirect=/hub&src=about"
             secondaryLabel="Sign In"

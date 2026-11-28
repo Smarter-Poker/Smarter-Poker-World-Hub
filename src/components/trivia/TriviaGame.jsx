@@ -24,11 +24,13 @@ import TriviaQuestionProgress from './TriviaQuestionProgress';
 import TriviaNetworkBanner from './TriviaNetworkBanner';
 import ReportQuestionButton from './ReportQuestionButton';
 import { toTitleCase } from '../../lib/trivia/titleCase';
+import { preloadTriviaDeckAhead } from '../../lib/trivia/preloadTriviaCards';
 import * as audio from '../../lib/trivia/triviaAudio';
 import { triggerTriviaHaptic } from '../../lib/trivia/triviaHaptics';
 import useVIP from '../../hooks/useVIP';
 import useTriviaTimer from '../../hooks/useTriviaTimer';
 import useTriviaKeyboardControls from '../../hooks/useTriviaKeyboardControls';
+import { isTriviaAutoAdvanceEnabled } from '../../hooks/useTriviaPreferenceRuntime';
 
 
 // ══ Escalating stake values per question ══
@@ -332,6 +334,9 @@ export default function TriviaGame({
     // Keep refs in sync with state (for auto-complete closure)
     useEffect(() => { answersRef.current = answers; }, [answers]);
     useEffect(() => { streakRef.current = streak; }, [streak]);
+    useEffect(() => {
+        preloadTriviaDeckAhead(questions, currentIndex);
+    }, [questions, currentIndex]);
 
     // Auto-complete game when timer expires (arcade mode).
     // Phase 67: completedRef guard prevents double-onComplete race. Race
@@ -708,6 +713,19 @@ export default function TriviaGame({
         onAdvance: advanceQuestion,
     });
 
+    const isCorrectReveal = !isArcadeMode
+        && canAdvanceQuestion
+        && revealedCorrectIndex !== null
+        && selectedAnswer === revealedCorrectIndex;
+
+    useEffect(() => {
+        if (!isCorrectReveal || !isTriviaAutoAdvanceEnabled()) return undefined;
+        const timer = window.setTimeout(() => {
+            advanceQuestion();
+        }, 1100);
+        return () => window.clearTimeout(timer);
+    }, [isCorrectReveal, currentIndex]);
+
     const onGameKeyDown = (e) => {
         if (e.metaKey || e.ctrlKey || e.altKey) return;
         const target = e.target;
@@ -814,51 +832,42 @@ export default function TriviaGame({
                 onReconnect={retryPendingAnswer}
             />
 
-            {/* ════ Progress, clock and stakes: rows on the glass ════ */}
-            <ul className="tc-rows trivia-game__rows">
-                <li className="tc-row">
-                    <span className="tc-row__label">Question</span>
-                    <span className="tc-row__value question-count">
-                        {currentIndex + 1} Of {questions.length}
+            {/* ════ Clean single-row playing header + slim progress ticker ════ */}
+            <div className="trivia-play-topbar">
+                <div className="trivia-play-topbar__row">
+                    <span className="trivia-play-topbar__count question-count">
+                        Question {currentIndex + 1} Of {questions.length}
                     </span>
-                </li>
-                {timeLimit && (
-                    <li className="tc-row trivia-game__clock-row">
-                        <span className="tc-row__label">Time Left</span>
-                        <span className={`tc-row__value trivia-game__clock ${clockInk}`}>
-                            {Math.floor(Math.max(0, timeRemaining) / 60)}:{String(Math.max(0, timeRemaining) % 60).padStart(2, '0')}
-                        </span>
-                        {/* Time pressure was purely visual. Announce at the
-                            10s and 5s marks (and only then) so screen-reader
-                            users are not spammed once per second. */}
-                        <span className="trivia-sr-only" role="timer" aria-live="assertive">
-                            {timeRemaining === 10 || timeRemaining === 5
-                                ? `${timeRemaining} seconds remaining`
-                                : ''}
-                        </span>
-                    </li>
-                )}
-                {enableStakes && (
-                    <li className={`tc-row stakes-bar ${showBust ? 'busted' : ''}`}>
-                        <span className="tc-row__label">Diamonds At Risk</span>
-                        <span className={`tc-row__value stake-value ${showBust ? 'tc-ink--red' : 'tc-ink--cyan'}`}>
-                            {stakePot}
-                        </span>
-                    </li>
-                )}
-                {enableStakes && multiplier > 1 && (
-                    <li className="tc-row">
-                        <span className="tc-row__label">Multiplier</span>
-                        <span className="tc-row__value tc-ink--cyan">{multiplier}X</span>
-                    </li>
-                )}
-                {isFireMode && (
-                    <li className="tc-row">
-                        <span className="tc-row__label">Streak</span>
-                        <span className="tc-row__value tc-ink--red">Fire Mode {streak} In A Row</span>
-                    </li>
-                )}
-            </ul>
+                    <div className="trivia-play-topbar__badges">
+                        {timeLimit && (
+                            <span className={`trivia-play-topbar__badge trivia-game__clock ${clockInk}`}>
+                                {Math.floor(Math.max(0, timeRemaining) / 60)}:{String(Math.max(0, timeRemaining) % 60).padStart(2, '0')}
+                                <span className="trivia-sr-only" role="timer" aria-live="assertive">
+                                    {timeRemaining === 10 || timeRemaining === 5
+                                        ? `${timeRemaining} seconds remaining`
+                                        : ''}
+                                </span>
+                            </span>
+                        )}
+                        {enableStakes && (
+                            <span className={`trivia-play-topbar__badge stakes-bar stake-value ${showBust ? 'busted tc-ink--red' : 'tc-ink--cyan'}`}>
+                                {stakePot} Diamonds{multiplier > 1 ? ` · ${multiplier}X` : ''}
+                            </span>
+                        )}
+                        {isFireMode && (
+                            <span className="trivia-play-topbar__badge tc-ink--red">
+                                {streak} Streak
+                            </span>
+                        )}
+                    </div>
+                </div>
+                <TriviaQuestionProgress
+                    total={questions.length}
+                    currentIndex={currentIndex}
+                    outcomes={questionOutcomes}
+                    label={`Question ${currentIndex + 1} Of ${questions.length}`}
+                />
+            </div>
 
             {/* ════ Ghost Opponent ════ */}
             {enableGhostOpponent && (
@@ -889,24 +898,14 @@ export default function TriviaGame({
             </div>
 
             {/* ════ Question ════ */}
-            <TriviaQuestionProgress
-                total={questions.length}
-                currentIndex={currentIndex}
-                outcomes={questionOutcomes}
-                label={`Question ${currentIndex + 1} Of ${questions.length}`}
-            />
             <div key={currentIndex} className="question-card">
-                <div className="question-meta">
-                    <span className="category tc-label">{getCategoryName(currentQuestion.category)}</span>
-                    <span className={`difficulty ${getDifficultyInk(currentQuestion.difficulty)}`}>
-                        {toTitleCase(currentQuestion.difficulty || '')}
-                    </span>
-                    {enableStakes && (
+                {enableStakes && (
+                    <div className="question-meta">
                         <span className="question-stake tc-ink--cyan">
                             {stakeForQuestion} Diamonds
                         </span>
-                    )}
-                </div>
+                    </div>
+                )}
 
                 {/* Question Text */}
                 <h2 className="question-text">
@@ -1039,7 +1038,9 @@ export default function TriviaGame({
                         </button>
                         {showExplanation && (
                             <div className="explanation-content">
-                                <p className="trivia-console-copy">{currentExplanation}</p>
+                                <p className="trivia-console-copy">
+                                    <TriviaCardText text={currentExplanation} cardStyle="mini" />
+                                </p>
                             </div>
                         )}
                     </div>

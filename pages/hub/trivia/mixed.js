@@ -22,6 +22,7 @@ import DiamondEngine from '../../../src/services/DiamondEngine';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import TriviaCardText from '../../../src/components/trivia/TriviaCardText';
+import { preloadTriviaDeckAhead } from '../../../src/lib/trivia/preloadTriviaCards';
 import TriviaQuestionProgress from '../../../src/components/trivia/TriviaQuestionProgress';
 import useTriviaKeyboardControls from '../../../src/hooks/useTriviaKeyboardControls';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
@@ -651,6 +652,11 @@ export default function MixedModePage() {
     }
 
     const currentQuestion = questions[currentQuestionIndex];
+    useEffect(() => {
+        if (gameState === 'playing' && questions.length > 0) {
+            preloadTriviaDeckAhead(questions, currentQuestionIndex, 2);
+        }
+    }, [gameState, questions, currentQuestionIndex]);
     useTriviaKeyboardControls({
         enabled: gameState === 'playing' && Boolean(currentQuestion) && !showOutOfDiamonds,
         optionCount: currentQuestion?.options?.length || 0,
@@ -872,20 +878,24 @@ export default function MixedModePage() {
                                         </div>
                                     </dl>
 
-                                    <progress
-                                        className="trivia-challenge-progress"
-                                        value={currentQuestionIndex + 1}
-                                        max={Math.max(questions.length, 1)}
-                                        aria-label={`Question ${currentQuestionIndex + 1} Of ${questions.length}`}
-                                    />
-                                    <TriviaQuestionProgress
-                                        total={questions.length}
-                                        currentIndex={currentQuestionIndex}
-                                        label={`Question ${currentQuestionIndex + 1} Of ${questions.length}`}
-                                    />
-                                    <p className="trivia-challenge-progress-label">
-                                        Question {formatTriviaDisplayNumber(currentQuestionIndex + 1)} Of {formatTriviaDisplayNumber(questions.length)}
-                                    </p>
+                                    <div className="trivia-play-topbar">
+                                        <div className="trivia-play-topbar__row">
+                                            <span className="trivia-play-topbar__count trivia-challenge-progress-label">
+                                                Question {formatTriviaDisplayNumber(currentQuestionIndex + 1)} Of {formatTriviaDisplayNumber(questions.length)}
+                                            </span>
+                                            <div className="trivia-play-topbar__badges">
+                                                <span className="trivia-play-topbar__badge">{currentCategory.name}</span>
+                                                <span className="trivia-play-topbar__badge" aria-live="off">
+                                                    {formatTriviaDisplayNumber(timer.timeLeft)}s
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <TriviaQuestionProgress
+                                            total={questions.length}
+                                            currentIndex={currentQuestionIndex}
+                                            label={`Question ${currentQuestionIndex + 1} Of ${questions.length}`}
+                                        />
+                                    </div>
 
                                     <h2 id="mixed-question-title" className="trivia-challenge-question">
                                         <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} structured />

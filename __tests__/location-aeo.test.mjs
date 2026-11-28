@@ -14,7 +14,7 @@ test('buildLocationPaaQuestions generates valid Q&A for state landing pages', ()
   assert.equal(questions.length, 5);
   assert.equal(questions[0].question, 'Is Poker Legal In Nevada?');
   assert.equal(questions[1].question, 'How Many Poker Rooms Are In Nevada?');
-  assert.ok(questions[1].answer.includes('35 verified poker venues'));
+  assert.ok(questions[1].answer.includes('35 listed poker venues'));
   assert.ok(questions[1].answer.includes('Bellagio Poker Room'));
 });
 
@@ -30,7 +30,7 @@ test('buildLocationPaaQuestions generates valid Q&A for city landing pages', () 
   assert.ok(Array.isArray(questions));
   assert.equal(questions.length, 3);
   assert.equal(questions[0].question, 'Are There Poker Rooms In Las Vegas, Nevada?');
-  assert.ok(questions[0].answer.includes('20 verified poker rooms'));
+  assert.ok(questions[0].answer.includes('20 listed poker rooms'));
   assert.ok(questions[1].question, 'Where Can I Play Poker In Las Vegas?');
 });
 

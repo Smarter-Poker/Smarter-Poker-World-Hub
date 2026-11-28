@@ -18,13 +18,15 @@ import {
     completeSeries,
     deleteSeries,
     getSeriesReport,
+    reopenSeries,
     fetchLedgerEntries,
 } from '../../lib/bankroll/bankrollSelectors';
 import { getUserLocations } from '../../lib/bankroll/locationMemory';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 import toast from '../../stores/toastStore';
 import TripReport from './TripReport';
-import { localDay } from '../../lib/bankroll/localDates.mjs';
+import { localDay, parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
+import { dateRangeProblem, entryNet, tripDayLabel } from '../../lib/bankroll/tripMath.mjs';
 
 const CATEGORY_LABELS = {
     poker_cash: 'Cash Games',
@@ -35,12 +37,14 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
-function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger }) {
+function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger, openSeriesId }) {
     const [activeSeries, setActiveSeries] = useState(null);
     const [completedSeries, setCompletedSeries] = useState([]);
     const [seriesEntries, setSeriesEntries] = useState([]);
     const [locations, setLocations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
+    const [entriesError, setEntriesError] = useState(false);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [selectedSeriesReport, setSelectedSeriesReport] = useState(null);
     const [confirmComplete, setConfirmComplete] = useState(false);
@@ -71,32 +75,47 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
             const [active, all, locs] = await Promise.all([
                 getActiveSeries(userId),
                 fetchSeries(userId),
-                getUserLocations(userId),
+                getUserLocations(userId).catch(() => []),
             ]);
             setActiveSeries(active);
             setCompletedSeries(all.filter(s => s.status === 'completed'));
             setLocations(locs || []);
+            setLoadError(false);
 
             // Fetch individual entries for active series
             if (active && active.id) {
                 try {
-                    const entries = await fetchLedgerEntries(userId, { tripId: active.id, includeExpenses: true, limit: 100 });
+                    const entries = await fetchLedgerEntries(userId, { tripId: active.id, includeExpenses: true, limit: 500 });
                     setSeriesEntries(entries || []);
+                    setEntriesError(false);
                 } catch (entryErr) {
                     console.warn('Could not load series entries:', entryErr);
                     setSeriesEntries([]);
+                    setEntriesError(true);
                 }
             } else {
                 setSeriesEntries([]);
+                setEntriesError(false);
             }
         } catch (err) {
             console.warn('Error loading series data:', err);
+            setLoadError(true);
         } finally {
             setIsLoading(false);
         }
     }, [userId]);
 
     useEffect(() => { loadData(); }, [loadData, refreshTrigger]);
+
+    // Opened from a series' summary row in Recent Activity: show its report.
+    useEffect(() => {
+        if (!userId || !openSeriesId) return;
+        let cancelled = false;
+        getSeriesReport(userId, openSeriesId)
+            .then(report => { if (!cancelled && report?.trip?.status === 'completed') setSelectedSeriesReport(report); })
+            .catch(err => console.warn('Could not open series report:', err));
+        return () => { cancelled = true; };
+    }, [userId, openSeriesId]);
 
     // Fetch DB series + venues on mount (independent of userId)
     useEffect(() => {
@@ -201,6 +220,11 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
             toast.error('Series name is required');
             return;
         }
+        const rangeProblem = dateRangeProblem(activeSeries.start_date, editForm.end_date || null);
+        if (rangeProblem) {
+            toast.error(rangeProblem);
+            return;
+        }
         try {
             await updateSeries(userId, activeSeries.id, editForm);
             toast.success('Series updated!');
@@ -216,7 +240,18 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
             const report = await getSeriesReport(userId, seriesId);
             setSelectedSeriesReport(report);
         } catch (err) {
-            toast.error('Failed to load series report');
+            toast.error('Could Not Load The Series Report. Please Try Again.');
+        }
+    };
+
+    const handleReopenSeries = async (seriesId) => {
+        try {
+            await reopenSeries(userId, seriesId);
+            toast.success('Series Reopened');
+            setSelectedSeriesReport(null);
+            await loadData();
+        } catch (err) {
+            toast.error(err.message || 'Failed to reopen series');
         }
     };
 
@@ -225,13 +260,15 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
             <TripReport
                 report={selectedSeriesReport}
                 onBack={() => setSelectedSeriesReport(null)}
+                kind="series"
+                onReopen={!activeSeries && selectedSeriesReport.trip?.status === 'completed'
+                    ? () => handleReopenSeries(selectedSeriesReport.trip.id)
+                    : null}
             />
         );
     }
 
-    const daysSinceStart = activeSeries
-        ? Math.max(1, Math.ceil((Date.now() - new Date(activeSeries.start_date).getTime()) / (1000 * 60 * 60 * 24)))
-        : 0;
+    const dayLabel = activeSeries ? tripDayLabel(activeSeries.start_date) : '';
 
     return (
         <div className="sd-panel" style={styles.container}>
@@ -245,10 +282,12 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                 >
                     {/* Delete X */}
                     <button
+                        type="button"
                         onClick={() => setConfirmDelete(true)}
                         style={styles.deleteX}
                         title="Delete Series"
-                    >&#X2715;</button>
+                        aria-label="Delete Series"
+                    >✕</button>
 
                     <div style={styles.activeHeader}>
                         <div style={styles.activeLed} />
@@ -261,8 +300,8 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                             <h2 style={styles.activeName}>{activeSeries.name}</h2>
                             <p style={styles.activeMeta}>
                                 {activeSeries.location_name && `${activeSeries.location_name} · `}
-                                Started {new Date(activeSeries.start_date + 'T12:00:00').toLocaleDateString()} · Day {daysSinceStart}
-                                {activeSeries.end_date && ` · Ends ${new Date(activeSeries.end_date + 'T12:00:00').toLocaleDateString()}`}
+                                {dayLabel.startsWith('Day') ? 'Started' : 'Starts'} {parseLedgerDay(activeSeries.start_date).toLocaleDateString()}{dayLabel.startsWith('Day') ? ` · ${dayLabel}` : ''}
+                                {activeSeries.end_date && ` · Ends ${parseLedgerDay(activeSeries.end_date).toLocaleDateString()}`}
                             </p>
                         </>
                     ) : (
@@ -271,7 +310,8 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                                 type="text"
                                 value={editForm.name}
                                 onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                                placeholder=""
+                                placeholder="Series Name"
+                                aria-label="Series Name"
                                 style={styles.formInput}
                                 autoFocus
                             />
@@ -289,7 +329,8 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                                 type="text"
                                 value={editForm.purpose}
                                 onChange={e => setEditForm({ ...editForm, purpose: e.target.value })}
-                                placeholder=""
+                                placeholder="Purpose (e.g. Main Event Run)"
+                                aria-label="Purpose"
                                 style={styles.formInput}
                             />
                             <div style={{ display: 'flex', gap: 8 }}>
@@ -306,7 +347,8 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                             <textarea
                                 value={editForm.notes}
                                 onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
-                                placeholder=""
+                                placeholder="Notes"
+                                aria-label="Notes"
                                 style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
                             />
                         </div>
@@ -326,7 +368,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                             </div>
                             <div style={styles.runningStat}>
                                 <span style={styles.runningStatLabel}>Sessions</span>
-                                <span style={styles.runningStatValue}>{activeSeries.entryCount || 0}</span>
+                                <span style={styles.runningStatValue}>{activeSeries.sessionCount || 0}</span>
                             </div>
                             <div style={styles.runningStat}>
                                 <span style={styles.runningStatLabel}>Expenses</span>
@@ -348,19 +390,26 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                         </div>
                     )}
 
+                    {!editMode && entriesError && (
+                        <div role="alert" style={styles.inlineError}>
+                            Could Not Load This Series' Entries.
+                            <button type="button" onClick={loadData} style={styles.retryBtn}>Retry</button>
+                        </div>
+                    )}
+
                     {/* --- SERIES ENTRIES LIST --- */}
                     {!editMode && seriesEntries.length > 0 && (
                         <div style={styles.entriesSection}>
                             <h4 style={styles.entriesSectionTitle}>Series Entries ({seriesEntries.length})</h4>
                             <div style={styles.entriesScroll}>
                                 {seriesEntries.map(entry => {
-                                    const net = (entry.gross_out || 0) - (entry.gross_in || 0);
+                                    const net = entry.category === 'expense' ? -Math.abs(entryNet(entry)) : entryNet(entry);
                                     const catLabel = CATEGORY_LABELS[entry.category] || entry.category || 'Entry';
                                     return (
                                         <div key={entry.id} style={styles.entryRow}>
                                             <div style={styles.entryInfo}>
                                                 <span style={styles.entryDate}>
-                                                    {entry.entry_date ? new Date(entry.entry_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}
+                                                    {entry.entry_date ? parseLedgerDay(entry.entry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}
                                                 </span>
                                                 <span style={styles.entryCat}>{catLabel}</span>
                                                 {entry.stakes && <span style={styles.entryStakes}>{entry.stakes}</span>}
@@ -372,9 +421,11 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                                                 <div style={styles.entryActions}>
                                                     {onEditEntry && (
                                                         <button
+                                                            type="button"
                                                             onClick={() => onEditEntry(entry)}
                                                             style={styles.entryEditBtn}
                                                             title="Edit Entry"
+                                                            aria-label={`Edit ${catLabel} Entry`}
                                                         >✏</button>
                                                     )}
                                                     {onDeleteEntry && (
@@ -384,8 +435,10 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                                                                     await onDeleteEntry(entry.id);
                                                                 }
                                                             }}
+                                                            type="button"
                                                             style={styles.entryDeleteBtn}
                                                             title="Delete Entry"
+                                                            aria-label={`Delete ${catLabel} Entry`}
                                                         >✕</button>
                                                     )}
                                                 </div>
@@ -599,7 +652,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                             type="text"
                             value={newSeries.purpose}
                             onChange={e => setNewSeries({ ...newSeries, purpose: e.target.value })}
-                            placeholder=""
+                            placeholder="e.g. Main Event Run, Satellites"
                             style={styles.formInput}
                         />
 
@@ -607,7 +660,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                         <textarea
                             value={newSeries.notes}
                             onChange={e => setNewSeries({ ...newSeries, notes: e.target.value })}
-                            placeholder=""
+                            placeholder="Any Notes..."
                             style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
                         />
 
@@ -624,6 +677,11 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                 <h3 style={styles.historyTitle}>Completed Series</h3>
                 {isLoading ? (
                     <div style={styles.loadingPlaceholder}>Loading Series...</div>
+                ) : loadError ? (
+                    <div role="alert" style={styles.emptyState}>
+                        Could Not Load Your Series.
+                        <button type="button" onClick={loadData} style={styles.retryBtn}>Retry</button>
+                    </div>
                 ) : completedSeries.length === 0 ? (
                     <div style={styles.emptyState}>No Completed Series Yet. Start Your First Series Above!</div>
                 ) : (
@@ -646,13 +704,13 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                                 </span>
                                 <span style={styles.seriesCardMeta}>
                                     {series.location_name && <span>{series.location_name}</span>}
-                                    <span>{new Date(series.start_date + 'T12:00:00').toLocaleDateString()}</span>
-                                    {series.end_date && (
-                                        <span> -- {new Date(series.end_date + 'T12:00:00').toLocaleDateString()}</span>
-                                    )}
+                                    <span>
+                                        {parseLedgerDay(series.start_date).toLocaleDateString()}
+                                        {series.end_date && ` - ${parseLedgerDay(series.end_date).toLocaleDateString()}`}
+                                    </span>
                                 </span>
                                 <span style={styles.seriesCardFooter}>
-                                    <span>{series.entryCount || 0} Entries</span>
+                                    <span>{series.sessionCount || 0} {series.sessionCount === 1 ? 'Session' : 'Sessions'}</span>
                                     <span style={styles.viewReportLink}>View Report →</span>
                                 </span>
                             </motion.button>
@@ -705,6 +763,8 @@ const styles = {
         fontWeight: 700,
         color: '#fff',
         margin: '4px 0',
+        paddingRight: 36,
+        overflowWrap: 'anywhere',
     },
     activeMeta: {
         fontSize: 14,
@@ -953,8 +1013,28 @@ const styles = {
     },
     confirmRow: {
         display: 'flex',
+        flexWrap: 'wrap',
         alignItems: 'center',
         gap: 8,
+    },
+    inlineError: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: 10,
+        fontSize: 14,
+        color: '#fca5a5',
+        marginBottom: 16,
+    },
+    retryBtn: {
+        background: 'transparent',
+        color: '#edf6ff',
+        border: `1px solid ${METAL.highlight}`,
+        borderRadius: 8,
+        padding: '6px 14px',
+        marginLeft: 10,
+        fontSize: 14,
+        cursor: 'pointer',
     },
     confirmText: {
         fontSize: 14,
@@ -1109,6 +1189,7 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: 10,
         marginBottom: 6,
     },
     seriesCardName: {
@@ -1116,6 +1197,8 @@ const styles = {
         fontWeight: 600,
         color: '#fff',
         margin: 0,
+        minWidth: 0,
+        overflowWrap: 'anywhere',
     },
     seriesCardPL: {
         fontSize: 16,
@@ -1123,6 +1206,7 @@ const styles = {
     },
     seriesCardMeta: {
         display: 'flex',
+        flexWrap: 'wrap',
         gap: 8,
         fontSize: 14,
         color: '#94a3b8',

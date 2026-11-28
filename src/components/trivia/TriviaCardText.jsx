@@ -5,14 +5,16 @@ import {
     tokenizePokerCardText,
 } from '../../lib/trivia/pokerCardText.mjs';
 
-function renderCardGraphic(token, key, size = 'hero') {
+function renderCardGraphic(token, key, size = 'hero', extraClass = '') {
     const dims = size === 'board'
         ? { width: 54, height: 76 }
-        : { width: 30, height: 42 };
+        : size === 'mini'
+            ? { width: 22, height: 31 }
+            : { width: 30, height: 42 };
     return (
         <img
             key={key}
-            className={`trivia-card-img trivia-card-img--${size}`}
+            className={`trivia-card-img trivia-card-img--${size}${extraClass ? ` ${extraClass}` : ''}`}
             src={cardImagePath(token.rankCode || token.rank, token.suit)}
             alt={`${token.rank} Of ${token.label || token.suit}`}
             width={dims.width}
@@ -75,8 +77,8 @@ function renderInlineTokens(tokens, { formatText, cardStyle = 'pill', cardSize =
         out.push(
             <span key={`${keyPrefix}-g-${i}`} className="trivia-card-group">
                 {run.map((card, cIdx) => (
-                    cardStyle === 'image'
-                        ? renderCardGraphic(card, `${keyPrefix}-c-${i}-${cIdx}`, cardSize)
+                    cardStyle === 'image' || cardStyle === 'mini'
+                        ? renderCardGraphic(card, `${keyPrefix}-c-${i}-${cIdx}`, cardStyle === 'mini' ? 'mini' : cardSize)
                         : renderCardPill(card, `${keyPrefix}-c-${i}-${cIdx}`)
                 ))}
             </span>,
@@ -156,7 +158,13 @@ export default function TriviaCardText({
                     >
                         <span className="trivia-q-board-label">{parsed.boardLabel}</span>
                         <span className="trivia-q-board-cards">
-                            {parsed.boardCards.map((card, idx) => renderCardGraphic(card, `board-${idx}`, 'board'))}
+                            {parsed.boardCards.map((card, idx) => {
+                                const prevStreet = idx > 0 ? parsed.boardCards[idx - 1].street : null;
+                                const streetGap = prevStreet && card.street && card.street !== prevStreet
+                                    ? 'trivia-card-img--street-gap'
+                                    : '';
+                                return renderCardGraphic(card, `board-${idx}`, 'board', streetGap);
+                            })}
                         </span>
                     </span>
                 ) : null}

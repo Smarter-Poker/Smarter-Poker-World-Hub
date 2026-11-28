@@ -1,13 +1,13 @@
 import React from 'react';
 import FeatureLanderLayout from '../../src/components/features/FeatureLanderLayout';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
-import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
+import { VENUE_COUNT_LABEL, VENUE_STATE_COUNT } from '../../src/lib/venueCount.mjs';
 
 export default function PokerNearMeFeaturePage() {
   const features = [
     {
-      title: `${VENUE_COUNT_LABEL} Verified Poker Venues`,
-      description: 'Directory Of Legal Casino Cardrooms And Poker Venues Across North America With Contact Details And Hours.',
+      title: `${VENUE_COUNT_LABEL} Poker Venues`,
+      description: 'Directory Of Legal Casino Cardrooms And Poker Venues Across The United States With Contact Details And Hours.',
     },
     {
       title: '4,500+ Weekly Tournaments',
@@ -65,7 +65,7 @@ export default function PokerNearMeFeaturePage() {
   const faqs = [
     {
       question: 'How Many Poker Rooms Are Listed on Smarter.Poker?',
-      answer: 'Smarter.Poker Tracks Over 324 Verified Legal Poker Venues Across The United States, Canada, And International Cardrooms.',
+      answer: `Smarter.Poker Lists ${VENUE_COUNT_LABEL} Legal Poker Venues Across ${VENUE_STATE_COUNT} US States.`,
     },
     {
       question: 'Are Tournament Schedules Updated in Real Time?',
@@ -83,7 +83,7 @@ export default function PokerNearMeFeaturePage() {
       metaTitle="Live Poker Rooms and Cardroom Directory | Smarter.Poker"
       description={`Discover ${VENUE_COUNT_LABEL} Legal Poker Rooms, Cardrooms, And 4,500+ Weekly Tournaments With Real-Time Waiting Lists, Tournament Clocks, Cash Games, And Phone Contacts.`}
       canonical="/features/poker-near-me"
-      badgeText={`${VENUE_COUNT_LABEL} Verified Venues & 4,500+ Weekly Tournaments`}
+      badgeText={`${VENUE_COUNT_LABEL} Venues & 4,500+ Weekly Tournaments`}
       primaryCtaText="Explore Poker Near Me"
       primaryCtaHref="/hub/poker-near-me/lobby"
       secondaryCtaText="View Plain-Text Spec"

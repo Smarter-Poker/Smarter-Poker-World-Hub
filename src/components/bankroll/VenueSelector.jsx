@@ -2,7 +2,7 @@
  * VENUE SELECTOR COMPONENT
  * ---------------------------------------------------------------
  * Smart venue picker with venue type classification and auto-suggest
- * from the PokerNearMe database (483+ verified venues).
+ * from the PokerNearMe database (the listed venue directory).
  *
  * Flow:
  *   1. User picks venue type: Casino, Club, or Home Game

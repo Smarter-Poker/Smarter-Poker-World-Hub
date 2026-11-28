@@ -279,7 +279,7 @@ export default function PokerRoomsByGameDetailPage({ gameVertical, peerVerticals
           metricValue={gameVertical.gameFormat}
           formulaText="Format EV Retention = Gross Variant Winrate - Format Rake Drag + Promotional Rebate"
           ifThenBecause={gameVertical.ifThenBecause}
-          quoteText={`Selecting verified cardrooms with deep daily liquidity in ${gameVertical.gameFormat} ensures consistent table quality and predictable rake overhead.`}
+          quoteText={`Selecting cardrooms with deep daily liquidity in ${gameVertical.gameFormat} ensures consistent table quality and predictable rake overhead.`}
           quoteAuthor="Smarter.Poker Live Venue Intelligence Team"
           doi="10.5281/zenodo.24115447"
           canonicalPath={canonicalPath}

@@ -28,7 +28,7 @@ export function buildLocationPaaQuestions({ stateName, stateCode, city, venueCou
     questions.push({
       question: `Are There Poker Rooms In ${clean(city)}, ${clean(stateName || stateCode)}?`,
       answer: count > 0
-        ? `Yes, there ${count === 1 ? 'is 1 verified poker room' : `are ${count} verified poker rooms`} operating in ${loc}, including ${sampleList}. View complete addresses, live game limits, and daily tournament schedules on Smarter.Poker.`
+        ? `Yes, there ${count === 1 ? 'is 1 listed poker room' : `are ${count} listed poker rooms`} operating in ${loc}, including ${sampleList}. View complete addresses, live game limits, and daily tournament schedules on Smarter.Poker.`
         : `Poker rooms and card clubs in ${loc} are cataloged on Smarter.Poker with directions, phone contacts, and operating schedules.`,
     });
 
@@ -55,7 +55,7 @@ export function buildLocationPaaQuestions({ stateName, stateCode, city, venueCou
     questions.push({
       question: `How Many Poker Rooms Are In ${sName}?`,
       answer: count > 0
-        ? `There ${count === 1 ? 'is 1 verified poker venue' : `are ${count} verified poker venues`} operating across ${sName}, including popular rooms like ${sampleList}. Browse complete directories by city on Smarter.Poker.`
+        ? `There ${count === 1 ? 'is 1 listed poker venue' : `are ${count} listed poker venues`} operating across ${sName}, including popular rooms like ${sampleList}. Browse complete directories by city on Smarter.Poker.`
         : `Licensed poker rooms, charity poker halls, and commercial casinos across ${sName} are tracked in the Smarter.Poker venue directory.`,
     });
 
@@ -77,7 +77,7 @@ export function buildLocationPaaQuestions({ stateName, stateCode, city, venueCou
     // National directory
     questions.push({
       question: 'How Can I Find Poker Rooms Near Me?',
-      answer: 'Use the Smarter.Poker directory to browse verified poker rooms, casinos, card clubs, and daily tournament schedules across all 50 states.',
+      answer: 'Use the Smarter.Poker directory to browse poker rooms, casinos, card clubs, and daily tournament schedules across all 50 states.',
     });
     questions.push({
       question: 'What Types Of Poker Venues Are Listed On Smarter.Poker?',

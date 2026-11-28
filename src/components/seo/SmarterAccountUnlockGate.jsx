@@ -71,7 +71,7 @@ const PRESETS = {
     eyebrow: 'Free Live Room Intel',
     title: 'Track Peak Hours, Favorite Rooms & Series Alerts With A Free Account',
     subtitle:
-      'Unlock Peak-Hour Trends, Favorite Room Tracking, And Tournament Series Alerts For Verified Poker Rooms.',
+      'Unlock Peak-Hour Trends, Favorite Room Tracking, And Tournament Series Alerts For Listed Poker Rooms.',
     ctaLabel: 'Unlock Live Room Intel Free',
     unlockedHref: '/hub/poker-near-me/lobby',
     unlockedLabel: 'Open Live Poker Near Me',
@@ -116,13 +116,13 @@ const PRESETS = {
     eyebrow: 'Free Research & Comparison Access',
     title: 'Filter, Save & Export This Data With A Free Account',
     subtitle:
-      'Filter Verified Poker Rooms, Tournament Series, And Research Datasets Inside Smarter.Poker - Free With Your Account.',
+      'Filter Listed Poker Rooms, Tournament Series, And Research Datasets Inside Smarter.Poker - Free With Your Account.',
     ctaLabel: 'Unlock Full Interactive Data Free',
     unlockedHref: '/hub',
     unlockedLabel: 'Open Smarter.Poker Hub',
     locked: ['Room Filters', 'Saved Comparisons', 'Calendar Export', 'Custom Notes', 'Cloud Bookmarks'],
     benefits: [
-      'Filter Verified Poker Rooms By Stakes, Games & Distance',
+      'Filter Listed Poker Rooms By Stakes, Games & Distance',
       'Save Comparisons, Research Benchmarks & Custom Notes',
       'Access Free Bankroll Tracker, Training Games & Poker Clubs',
     ],

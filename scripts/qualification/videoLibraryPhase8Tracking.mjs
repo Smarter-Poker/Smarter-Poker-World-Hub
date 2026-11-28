@@ -90,7 +90,10 @@ export async function runPhase8Tracking({ page, client, admin, session, ownerId,
             video = candidates[index];
             assert.equal(await readRow(), null, 'Every candidate must have no existing dedicated-account history');
             await page.goto(`${base}${watchPath(video)}`, { waitUntil: 'domcontentloaded' });
-            await page.locator('[data-watch-tracking="ready"]').waitFor({ timeout: 20000 });
+            // Ready is silent (#3170, #3206): the server-rendered Sign In line and the
+            // Loading line both carry data-watch-tracking, so none left means the
+            // signed-in owner's progress read settled without an error.
+            await expect(page.locator('[data-watch-tracking]')).toHaveCount(0, { timeout: 20000 });
             const discoverablePlayer = page.locator('iframe[src*="youtube-nocookie.com/embed/"]');
             await expect(discoverablePlayer).toBeVisible();
             const discoverableSource = new URL(await discoverablePlayer.getAttribute('src'));
@@ -142,7 +145,9 @@ export async function runPhase8Tracking({ page, client, admin, session, ownerId,
         assert.equal(stopped.progress_seconds, paused.progress_seconds);
         assert(stopped.watch_duration_seconds > 0 && stopped.watch_duration_seconds < 300);
         await page.reload({ waitUntil: 'domcontentloaded' });
-        await page.locator('[data-watch-tracking="ready"]').waitFor();
+        // Ready is silent: owned progress has loaded once Resume appears.
+        await expect(page.getByRole('button', { name: 'Resume Saved Position', exact: true })).toBeVisible({ timeout: 20000 });
+        await expect(page.locator('[data-watch-tracking]')).toHaveCount(0);
         const resumedIframe = page.locator('iframe[src*="youtube-nocookie.com/embed/"]');
         await expect(resumedIframe).toBeVisible();
         const resumedHandle = await resumedIframe.elementHandle();

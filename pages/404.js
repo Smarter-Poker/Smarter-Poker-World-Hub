@@ -78,7 +78,7 @@ const RECOVERY_ROUTES = [
     },
     {
         title: 'Live Poker Rooms Directory',
-        subtitle: 'Verified Poker Rooms, Cash Games & Daily Schedules',
+        subtitle: 'Listed Poker Rooms, Cash Games & Daily Schedules',
         href: '/hub/poker-near-me/lobby',
         badge: 'Live Directory',
     },

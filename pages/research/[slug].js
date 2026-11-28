@@ -464,7 +464,7 @@ export default function ResearchReportDetailPage({ report }) {
         <SmarterConversionCta
           eyebrow="Free Poker Analytics & GTO Tools"
           title="Turn Industry Data Into Winning Decisions On Smarter.Poker"
-          description={`Track Your Own Bankroll And Rake, Explore ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, And Train With 107 Free GTO Games In One Account.`}
+          description={`Track Your Own Bankroll And Rake, Explore ${VENUE_COUNT_LABEL} Live Poker Rooms, And Train With 107 Free GTO Games In One Account.`}
           primaryLabel="Create Free Account"
           primaryHref={`/auth/signup?redirect=/hub/training&src=research-${encodeURIComponent(report.slug)}`}
           secondaryLabel="Explore Free Calculators"

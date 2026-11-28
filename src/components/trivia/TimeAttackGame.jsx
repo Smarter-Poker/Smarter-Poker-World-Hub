@@ -20,6 +20,7 @@ import TriviaNetworkBanner from './TriviaNetworkBanner';
 import ReportQuestionButton from './ReportQuestionButton';
 import { getAccessToken } from '../../lib/authUtils';
 import { triggerTriviaHaptic } from '../../lib/trivia/triviaHaptics';
+import { preloadTriviaDeckAhead } from '../../lib/trivia/preloadTriviaCards';
 import useTriviaKeyboardControls from '../../hooks/useTriviaKeyboardControls';
 import usePhase9ReducedMotion from './phase9/usePhase9ReducedMotion';
 
@@ -75,6 +76,11 @@ export default function TimeAttackGame({
     const reduceMotion = usePhase9ReducedMotion();
 
     const currentQuestion = questions[currentIndex];
+    useEffect(() => {
+        if (!gameOver && questions.length > 0) {
+            preloadTriviaDeckAhead(questions, currentIndex, 2);
+        }
+    }, [gameOver, questions, currentIndex]);
     const remainingCap = Math.max(0, DAILY_DIAMOND_CAP - dailyDiamondsEarned);
 
     // The report button needs a Bearer token. Prefer the one the page passes;

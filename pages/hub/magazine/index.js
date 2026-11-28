@@ -267,7 +267,7 @@ export default function SmarterPokerMagazineNewsstandPage({
             coverLines: [
                 '44-Page Commercial Print & Interactive Digital Format',
                 'NLH, ICM, PLO5 & AI Leak-Busting Strategy Columns',
-                'Free Monthly Print Bundles For Verified Cardrooms',
+                'Free Monthly Print Bundles For Partner Cardrooms',
             ],
         },
     };

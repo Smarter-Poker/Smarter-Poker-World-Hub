@@ -68,6 +68,13 @@ const SEGMENT_RE = /(\s+|[,.;:!?()[\]/"'-])/;
 //   "You hold A7o on the flop. The board is Qh Qs Jd. What is the best play?"
 const BOARD_CLAUSE_RE = /(?:^|(?<=[.!?]\s+|\s+))(?:the\s+)?board(?:\s+is)?\s*:?\s+((?:(?:10|[AKQJT2-9])[shdc♠♥♦♣](?:[\s,-]+)?){3,5})(?=[.!?;,]|\s|$)/i;
 
+// Matches narrative multi-street cards when no explicit "Board:" clause exists:
+//   "The flop is 9♦6♥2♣ ... The turn is 3♣ ... The river is T♠ ..."
+//   "Flop 8h 4c 2s check-call 3.5BB; turn 3h check. River Ks, ..."
+const NARRATIVE_FLOP_RE = /\b(?:the\s+)?flop(?:\s+is|\s+comes)?\s*:?\s+((?:(?:10|[AKQJT2-9])[shdc♠♥♦♣](?:[\s,-]+)?){3})(?=[.!?;,)]|\s|$)/i;
+const NARRATIVE_TURN_RE = /\b(?:the\s+)?turn(?:\s+is|\s+comes)?\s*:?\s+((?:10|[AKQJT2-9])[shdc♠♥♦♣])(?=[.!?;,)]|\s|$)/i;
+const NARRATIVE_RIVER_RE = /\b(?:the\s+)?river(?:\s+is|\s+comes)?\s*:?\s+((?:10|[AKQJT2-9])[shdc♠♥♦♣])(?=[.!?;,)]|\s|$)/i;
+
 // Matches a clean closing question sentence at the end of a multi-sentence scenario.
 const CLOSING_QUESTION_RE = /^([\s\S]+?[.!])\s+([^.!?]+\?)$/;
 
@@ -317,7 +324,11 @@ export function parseStructuredTriviaQuestion(text) {
     if (boardMatch) {
         const boardRaw = boardMatch[1].trim();
         const boardTokens = tokenizePokerCardText(boardRaw, { expandHands: false, usedCards })
-            .filter((t) => t.type === 'card');
+            .filter((t) => t.type === 'card')
+            .map((c, idx) => ({
+                ...c,
+                street: idx < 3 ? 'flop' : idx === 3 ? 'turn' : 'river',
+            }));
 
         if (boardTokens.length >= 3 && boardTokens.length <= 5) {
             const before = raw.slice(0, boardMatch.index).trim();
@@ -333,6 +344,46 @@ export function parseStructuredTriviaQuestion(text) {
                 boardLabel: 'The Board Is',
                 boardCards: boardTokens,
                 promptLine: after,
+                usedCards,
+            };
+        }
+    }
+
+    // Narrative multi-street scenarios (e.g. "Flop is 8c 7d 3s ... Turn is 3c ... River is Ts ..."):
+    // extract ordered Flop (+ optional Turn + optional River) cards into the same large board tray
+    // while keeping the full action narrative on Line 1 and closing question on Line 3.
+    const flopMatch = NARRATIVE_FLOP_RE.exec(raw);
+    if (flopMatch) {
+        const flopCards = tokenizePokerCardText(flopMatch[1].trim(), { expandHands: false, usedCards })
+            .filter((t) => t.type === 'card')
+            .map((c) => ({ ...c, street: 'flop' }));
+        if (flopCards.length === 3) {
+            const narrativeBoard = [...flopCards];
+            const turnMatch = NARRATIVE_TURN_RE.exec(raw.slice(flopMatch.index + flopMatch[0].length));
+            if (turnMatch) {
+                const turnCard = parseSingleCard(turnMatch[1].trim());
+                if (turnCard) narrativeBoard.push({ ...turnCard, street: 'turn' });
+                const afterTurnIdx = flopMatch.index + flopMatch[0].length + turnMatch.index + turnMatch[0].length;
+                const riverMatch = NARRATIVE_RIVER_RE.exec(raw.slice(afterTurnIdx));
+                if (riverMatch) {
+                    const riverCard = parseSingleCard(riverMatch[1].trim());
+                    if (riverCard) narrativeBoard.push({ ...riverCard, street: 'river' });
+                }
+            } else {
+                const riverMatch = NARRATIVE_RIVER_RE.exec(raw.slice(flopMatch.index + flopMatch[0].length));
+                if (riverMatch) {
+                    const riverCard = parseSingleCard(riverMatch[1].trim());
+                    if (riverCard) narrativeBoard.push({ ...riverCard, street: 'river' });
+                }
+            }
+            const closingMatch = CLOSING_QUESTION_RE.exec(raw);
+            return {
+                structured: true,
+                raw,
+                setupLine: closingMatch ? closingMatch[1].trim() : raw,
+                boardLabel: 'The Board Is',
+                boardCards: narrativeBoard,
+                promptLine: closingMatch ? closingMatch[2].trim() : '',
                 usedCards,
             };
         }
@@ -363,4 +414,49 @@ export function parseStructuredTriviaQuestion(text) {
         promptLine: '',
         usedCards,
     };
+}
+
+/**
+ * Extracts all unique `/cards/optimized/*.png` asset paths referenced by a
+ * Trivia question (hero hand + board + options) so the next question's cards
+ * can be preloaded in the background for 0ms render latency.
+ */
+export function extractQuestionCardImagePaths(questionOrText) {
+    const urls = new Set();
+    const texts = [];
+    if (typeof questionOrText === 'string') {
+        texts.push(questionOrText);
+    } else if (questionOrText && typeof questionOrText === 'object') {
+        if (typeof questionOrText.question === 'string') texts.push(questionOrText.question);
+        if (Array.isArray(questionOrText.options)) {
+            for (const opt of questionOrText.options) {
+                if (typeof opt === 'string') texts.push(opt);
+            }
+        }
+    }
+
+    for (const raw of texts) {
+        const parsed = parseStructuredTriviaQuestion(raw);
+        for (const c of parsed.boardCards) {
+            urls.add(cardImagePath(c.rankCode || c.rank, c.suit));
+        }
+        const setupTokens = tokenizePokerCardText(parsed.setupLine || raw, {
+            expandHands: true,
+            usedCards: parsed.usedCards,
+        });
+        for (const t of setupTokens) {
+            if (t.type === 'card') urls.add(cardImagePath(t.rankCode || t.rank, t.suit));
+        }
+        if (parsed.promptLine) {
+            const promptTokens = tokenizePokerCardText(parsed.promptLine, {
+                expandHands: true,
+                usedCards: parsed.usedCards,
+            });
+            for (const t of promptTokens) {
+                if (t.type === 'card') urls.add(cardImagePath(t.rankCode || t.rank, t.suit));
+            }
+        }
+    }
+
+    return Array.from(urls);
 }

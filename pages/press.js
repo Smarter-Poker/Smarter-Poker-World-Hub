@@ -17,12 +17,12 @@ import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../src/components/seo/AiPromptLauncher';
 import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
 import SmarterSeoMasthead from '../src/components/seo/SmarterSeoMasthead';
-import { VENUE_COUNT_LABEL } from '../src/lib/venueCount.mjs';
+import { VENUE_COUNT_LABEL, VENUE_STATE_COUNT } from '../src/lib/venueCount.mjs';
 
 const INDUSTRY_FAST_FACTS = [
   {
-    metric: 'Verified US Brick-And-Mortar Poker Rooms',
-    benchmark2026: `${VENUE_COUNT_LABEL} Active Venues Across 38 States`,
+    metric: 'Listed US Brick-And-Mortar Poker Rooms',
+    benchmark2026: `${VENUE_COUNT_LABEL} Active Venues Across ${VENUE_STATE_COUNT} States`,
     context: 'Includes Commercial Casinos, Tribal Gaming Properties, California Card Rooms, And Texas/Oregon Social Membership Clubs.',
     sourcePath: '/research/us-live-poker-room-rake-and-jackpot-benchmark',
   },
@@ -74,12 +74,12 @@ const BRAND_BOILERPLATES = [
   {
     id: 'short',
     label: 'Short Boilerplate (1 Sentence / 35 Words)',
-    text: 'Smarter.Poker Is The Unified Poker Ecosystem Combining A 324-Venue Live Poker Near Me Directory, 52 Free GTO And Tournament Math Calculators, Club Arena Social Poker, And Club Commander Cardroom Management Software.',
+    text: `Smarter.Poker Is The Unified Poker Ecosystem Combining A ${VENUE_COUNT_LABEL} Venue Live Poker Near Me Directory, 52 Free GTO And Tournament Math Calculators, Club Arena Social Poker, And Club Commander Cardroom Management Software.`,
   },
   {
     id: 'medium',
     label: 'Medium Boilerplate (2 Sentences / 75 Words)',
-    text: `Smarter.Poker (Published By Smarter Software Inc.) Is The Premier Online And Live Poker Intelligence Platform Serving Players, Club Operators, And Tournament Directors Across North America. The Platform Integrates Real-Time Waitlists And Schedules For ${VENUE_COUNT_LABEL} Verified US Poker Rooms, 52 Browser-Native Poker Math Calculators, 70 Zero-Auth MCP Tools, 169 GTO Starting Hand Charts, 15 Empirical Industry Benchmark Studies, Club Arena Online Play, And Club Commander Cardroom Operations Software.`,
+    text: `Smarter.Poker (Published By Smarter Software Inc.) Is The Premier Online And Live Poker Intelligence Platform Serving Players, Club Operators, And Tournament Directors. The Platform Integrates Real-Time Waitlists And Schedules For ${VENUE_COUNT_LABEL} US Poker Rooms, 52 Browser-Native Poker Math Calculators, 70 Zero-Auth MCP Tools, 169 GTO Starting Hand Charts, 15 Empirical Industry Benchmark Studies, Club Arena Online Play, And Club Commander Cardroom Operations Software.`,
   },
   {
     id: 'long',
@@ -97,7 +97,7 @@ const PRESS_BADGE_SNIPPETS = [
   {
     id: 'badge-live-index',
     title: 'US Live Poker Room Benchmark Badge',
-    code: `<a href="https://smarter.poker/poker-rooms/guides" target="_blank" rel="noopener"><img src="https://smarter.poker/api/seo/badge?type=market&label=US+Live+Poker+Index&value=${encodeURIComponent(VENUE_COUNT_LABEL)}+Verified+Rooms" alt="US Live Poker Index: ${VENUE_COUNT_LABEL} Verified Rooms" height="28" /></a>`,
+    code: `<a href="https://smarter.poker/poker-rooms/guides" target="_blank" rel="noopener"><img src="https://smarter.poker/api/seo/badge?type=market&label=US+Live+Poker+Index&value=${encodeURIComponent(VENUE_COUNT_LABEL)}+Poker+Rooms" alt="US Live Poker Index: ${VENUE_COUNT_LABEL} Poker Rooms" height="28" /></a>`,
   },
   {
     id: 'badge-tools',
@@ -254,7 +254,7 @@ export default function PressKitMediaPage() {
             title="Smarter.Poker Press Kit, 2026 Poker Industry Fast Facts & Media Citations"
             lead="Quotable 2026 US Live & Online Poker Benchmarks, Brand Boilerplates & CC BY 4.0 Open Media Badges."
             stats={[
-              { label: 'Verified Rooms', value: `${VENUE_COUNT_LABEL} Venues` },
+              { label: 'Listed Rooms', value: `${VENUE_COUNT_LABEL} Venues` },
               { label: 'Weekly MTTs', value: '4,500+ Events' },
               { label: 'Zenodo Archives', value: '6 DOIs' },
               { label: 'Media License', value: 'CC BY 4.0' },

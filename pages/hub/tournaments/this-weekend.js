@@ -34,7 +34,7 @@ import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 const WEEKEND_TOURNAMENTS_FAQS = [
   {
     question: 'How Do I Find Poker Tournaments Running This Weekend Near Me?',
-    answer: `Smarter.Poker Aggregates All Recurring And Special Friday, Saturday, And Sunday Live Poker Tournaments Across ${VENUE_COUNT_LABEL} Verified Casino Poker Rooms And Licensed Cardrooms. Filter By Day (Friday, Saturday, Sunday), State, Or Buy-In Range To Compare Start Times And Guaranteed Prize Pools.`,
+    answer: `Smarter.Poker Aggregates All Recurring And Special Friday, Saturday, And Sunday Live Poker Tournaments Across ${VENUE_COUNT_LABEL} Casino Poker Rooms And Licensed Cardrooms. Filter By Day (Friday, Saturday, Sunday), State, Or Buy-In Range To Compare Start Times And Guaranteed Prize Pools.`,
   },
   {
     question: 'Which Weekend Day Has The Largest Guaranteed Poker Tournaments?',
@@ -185,7 +185,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
       {
         canonical: 'https://smarter.poker/hub/tournaments/this-weekend',
         pageName: 'Poker Tournaments This Weekend',
-        pageDescription: `Browse upcoming weekend poker tournaments from ${weekendInfo.weekendRangeLabel}. Find buy-ins, schedules, and guaranteed prize pools across verified poker rooms.`,
+        pageDescription: `Browse upcoming weekend poker tournaments from ${weekendInfo.weekendRangeLabel}. Find buy-ins, schedules, and guaranteed prize pools across listed poker rooms.`,
       }
     );
   }, [filteredTournaments, weekendInfo]);
@@ -223,7 +223,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
                   path: '/hub/tournaments/this-weekend',
                   name: 'Smarter.Poker Weekend Poker Tournaments Directory (Friday, Saturday & Sunday)',
                   description:
-                    `Live Friday, Saturday, And Sunday Poker Tournament Schedules, Buy-Ins, Starting Stacks, And Guaranteed Prize Pools Across ${VENUE_COUNT_LABEL} Verified North American Poker Rooms.`,
+                    `Live Friday, Saturday, And Sunday Poker Tournament Schedules, Buy-Ins, Starting Stacks, And Guaranteed Prize Pools Across ${VENUE_COUNT_LABEL} US Poker Rooms.`,
                   keywords: [
                     'poker tournaments this weekend',
                     'weekend poker tournaments near me',
@@ -282,7 +282,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
 
             <p className="weekend-lead">
               Your Definitive Guide To Friday, Saturday, And Sunday Tournaments.
-              Compare Guaranteed Prize Pools, Structures, And Start Times At Verified Card Rooms.
+              Compare Guaranteed Prize Pools, Structures, And Start Times At Listed Card Rooms.
             </p>
 
             {/* Quick-Facts Key Metrics */}
@@ -292,7 +292,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
                 <dd className="stat-value">{stats.total || '1,800+'}</dd>
               </div>
               <div className="stat-card">
-                <dt className="stat-label">Verified Venues</dt>
+                <dt className="stat-label">Listed Venues</dt>
                 <dd className="stat-value">{stats.venues || VENUE_COUNT_LABEL}</dd>
               </div>
               <div className="stat-card">
@@ -421,7 +421,7 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [], in
             <p>
               Weekend Poker Tournaments Represent The Largest Prize Pools, Biggest Fields, And Most Diverse Tournament
               Schedules Across Casinos And Dedicated Poker Clubs. From Friday Night Warm-Ups To Saturday Marquee Deepstacks
-              And Sunday Majors, Smarter.Poker Provides Real-Time Schedule Tracking From Hundreds Of Verified Venues.
+              And Sunday Majors, Smarter.Poker Provides Real-Time Schedule Tracking From Hundreds Of Listed Venues.
             </p>
             <div className="seo-tips-grid">
               <div className="seo-tip">

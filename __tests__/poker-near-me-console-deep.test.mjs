@@ -33,6 +33,7 @@ function seriesHydrationFixture() {
     'next/router': { useRouter: () => ({ isReady: false, query: {}, push() {}, replace() {} }) }, 'next/dynamic': () => empty,
     '../../src/components/ui/FullScreenPageOverlay': frame, '../../src/components/ui/UniversalHeader': empty,
     '../../src/components/poker-near-me/PokerNearMeFamilyNav': empty, '../../src/components/seo/HubPageSummary': empty,
+    '../../src/components/poker-near-me/PnmImageHeader': empty,
     '../../src/components/ui/HamburgerMenu': empty, '../../src/config/hamburgerMenus': { getMenuConfig: () => ({}) },
     '../../src/hooks/useVenueRealtime': empty, '../../src/lib/geoUtils': { resolveEntityCoordinates: () => null, haversineDistance: () => 0 },
     'swr': () => ({ data: null, error: null, isValidating: false, mutate() {} }),

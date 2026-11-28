@@ -44,7 +44,7 @@ const VERTICAL_APPLICATIONS = [
     name: 'Smarter.Poker Live Poker Near Me Directory',
     category: 'SportsApplication',
     url: `${SITE}/features/poker-near-me`,
-    description: `Directory Of ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, 4,500+ Weekly Daily Tournaments, WSOP/WPT/MSPT Series And GPS Roadtrip Routing.`,
+    description: `Directory Of ${VENUE_COUNT_LABEL} Live Poker Rooms, 4,500+ Weekly Daily Tournaments, WSOP/WPT/MSPT Series And GPS Roadtrip Routing.`,
   },
   {
     id: 'bankroll-tax-tracker',
@@ -158,7 +158,7 @@ export function buildKnowledgeGraph() {
         url: SITE,
         logo: `${SITE}/images/logo.png`,
         description:
-          `Smarter.Poker Is The Premier Poker Training, Live Venue Discovery And Club Management Platform Offering 100+ GTO Training Games, 52 Free Poker Calculators, 70 Zero-Auth MCP Tools, 44 Streamer Bot Commands, ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, 4,500+ Weekly Tournaments And Free Cloud Tools.`,
+          `Smarter.Poker Is The Premier Poker Training, Live Venue Discovery And Club Management Platform Offering 100+ GTO Training Games, 52 Free Poker Calculators, 70 Zero-Auth MCP Tools, 44 Streamer Bot Commands, ${VENUE_COUNT_LABEL} Live Poker Rooms, 4,500+ Weekly Tournaments And Free Cloud Tools.`,
         foundingDate: '2025-10',
         publishingPrinciples: `${SITE}/editorial-standards`,
         verificationFactCheckingPolicy: `${SITE}/verification-methodology`,
@@ -206,8 +206,8 @@ export function buildKnowledgeGraph() {
       {
         '@type': 'Dataset',
         '@id': `${SITE}/hub/poker-near-me/venues#dataset`,
-        name: 'North American Verified Live Poker Room Directory Dataset',
-        description: `Structured Directory Of ${VENUE_COUNT_LABEL} Active Casino Poker Rooms, Cardrooms And Social Poker Clubs Across The United States And Canada.`,
+        name: 'US Live Poker Room Directory Dataset',
+        description: `Structured Directory Of ${VENUE_COUNT_LABEL} Active Casino Poker Rooms, Cardrooms And Social Poker Clubs Across The United States.`,
         url: `${SITE}/hub/poker-near-me/venues`,
         license: 'https://creativecommons.org/licenses/by/4.0/',
         creator: { '@id': `${SITE}/#organization` },
