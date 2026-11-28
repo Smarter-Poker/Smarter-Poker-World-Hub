@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Generates an embeddable, downloadable 880x480 vector SVG chart for any of
- * Smarter.Poker's 15 empirical research studies (?slug=...), derived directly
+ * Smarter.Poker's 15 research pages (?slug=...), derived directly
  * from the downloadable dataset rows with explicit unit headers, publication
  * and modification dates, methodology summary, and low-to-high range/uncertainty
  * whisker intervals (never fabricated fallback values).
@@ -42,7 +42,7 @@ function detectUnitFromCellOrHeader(cell = '', header = '') {
   if (/\bHours?\b|\bHrs?\b/i.test(combined)) return 'Hours';
   if (/\bTables?\b/i.test(combined)) return 'Tables';
   if (/\bRooms?\b|\bVenues?\b/i.test(combined)) return 'Venues';
-  return truncateText(header || 'Empirical Benchmark Unit', 28);
+  return truncateText(header || 'Value', 28);
 }
 
 export function extractNumericMetric(row, headers = []) {
@@ -134,7 +134,7 @@ export function buildResearchChartSvg(report) {
 
   const maxValue = Math.max(...parsedRows.map((r) => Math.max(r.value, r.high || r.value)), 1);
   const primaryHeader = parsedRows[0]?.header || headers[headers.length - 1] || 'Primary Metric';
-  const primaryUnit = parsedRows[0]?.unit || 'Empirical Units';
+  const primaryUnit = parsedRows[0]?.unit || 'None Plotted';
   const hasAnyRange = parsedRows.some((r) => r.hasRange);
 
   const width = 880;
@@ -181,9 +181,15 @@ export function buildResearchChartSvg(report) {
       '',
     114
   );
-  const uncertaintyNote = hasAnyRange
-    ? 'Range Whiskers Show Empirical Low-To-High Stratum Interval From Published Dataset'
-    : 'Exact Deterministic Or Census Tabulation From Published Dataset Archive';
+  // The note says what the plotted numbers are. An editorial page has no
+  // measured figures, so its chart plots nothing and says so.
+  const uncertaintyNote = parsedRows.length === 0
+    ? 'No Measured Figures: This Page Is An Editorial Guide'
+    : target.basis === 'directory'
+      ? `Dated Directory Read (${target.modifiedDate || ''}); Counts Change Weekly`
+      : hasAnyRange
+        ? 'Range Whiskers Show The Low-To-High Values Stated In The Table'
+        : 'Exact Arithmetic Or Full Enumeration; No Sampling Error';
   const doiText = target.doi || RESEARCH_DATASET_DOI;
   const canonicalUrl = `https://smarter.poker/research/${target.slug}`;
   const pubDate = target.publishedDate || '2026-11-08';
@@ -200,7 +206,7 @@ export function buildResearchChartSvg(report) {
   <rect width="${width}" height="${height}" rx="12" fill="url(#bgGrad)" stroke="#1e293b" stroke-width="2"/>
 
   <!-- Header Bar -->
-  <text x="28" y="34" fill="#f59e0b" font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="800" letter-spacing="1.1">SMARTER.POKER DATASET-DERIVED BENCHMARK • PUBLISHED ${escapeXml(pubDate)} • UPDATED ${escapeXml(modDate)}</text>
+  <text x="28" y="34" fill="#f59e0b" font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="800" letter-spacing="1.1">SMARTER.POKER RESEARCH CHART • PUBLISHED ${escapeXml(pubDate)} • UPDATED ${escapeXml(modDate)}</text>
   <rect x="644" y="16" width="208" height="24" rx="12" fill="#06281e" stroke="#10b981" stroke-width="1"/>
   <text x="748" y="32" text-anchor="middle" fill="#34d399" font-family="JetBrains Mono, monospace, sans-serif" font-size="10.5" font-weight="700">DOI: ${escapeXml(doiText)}</text>
 

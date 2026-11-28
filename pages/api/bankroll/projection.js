@@ -10,27 +10,20 @@ import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase'
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { guardBankrollRequest } from '../../../src/lib/bankroll/apiGuard.mjs';
 import { MIN_SESSIONS, projectionInputs, runProjection, sessionResults } from '../../../src/lib/bankroll/projectionMath.mjs';
 
 
 
 export default async function handler(req, res) {
   try {
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-          if (!applyRateLimit(req, res, LIMITS.write)) return;
-      }
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
 
-      // BUG #249 FIX: Require JWT auth — prevent IDOR on bankroll data
-      const _token = req.headers.authorization?.replace('Bearer ', '');
-      if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-      const _authUser = authData?.user;
-      if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
+      const _authUser = await guardBankrollRequest(req, res, {
+          methods: ['POST'],
+          verify: (request) => getServerUserWithFallback(request, getSupabase()),
+      });
+      if (!_authUser) return;
 
       const inputs = projectionInputs(req.body || {});
       if (inputs.error) return res.status(400).json({ success: false, message: inputs.error });

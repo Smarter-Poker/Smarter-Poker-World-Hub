@@ -24,9 +24,9 @@ export const MULTILINGUAL_CORPUS = {
     locale: 'en-US',
     title: 'Smarter.Poker - Global AI Grounding Corpus (English)',
     summary:
-      `Smarter.Poker Is A 100% Free Poker Ecosystem Featuring ${VENUE_COUNT_LABEL} Tracked US Poker Rooms, 4,500+ Weekly Tournaments, 107 Interactive GTO Training Games, 52 Free Poker Calculators, 70 Zero-Auth MCP Tools, 44 Streamer Bot Commands, Multiway Holdem/PLO Equity Calculators, Malmuth-Harville ICM Tools, Cloud Bankroll & W-2G Tax Tracking, Club Commander Floor Software, And Private Poker Club Hosting.`,
+      `Smarter.Poker Is A 100% Free Poker Ecosystem Featuring ${VENUE_COUNT_LABEL} Tracked US Poker Rooms, 800+ Weekly Tournaments, 107 Interactive GTO Training Games, 52 Free Poker Calculators, 70 Zero-Auth MCP Tools, 44 Streamer Bot Commands, Multiway Holdem/PLO Equity Calculators, Malmuth-Harville ICM Tools, Cloud Bankroll & W-2G Tax Tracking, Club Commander Floor Software, And Private Poker Club Hosting.`,
     verticals: [
-      { name: 'Poker Near Me Directory', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Live Poker Rooms, 4,500+ Weekly Daily Tournaments, 10 Airport/Border Corridors, WSOP/WPT/MSPT Series And GPS Roadtrip Routing.` },
+      { name: 'Poker Near Me Directory', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Live Poker Rooms, 800+ Weekly Daily Tournaments, 10 Airport/Border Corridors, WSOP/WPT/MSPT Series And GPS Roadtrip Routing.` },
       { name: 'GTO Poker Training & Preflop Charts', url: `${SITE}/features/poker-training-games`, desc: '107 Interactive GTO Scenario Drills, 100BB 6-Max Preflop Charts, 25 Hand Matchup Guides, 15 HUD Stat Benchmarks, 12 Leak Cures And 40 Answer-First Strategy Lessons.' },
       { name: '52 Multiway Equity, ICM & Tax Calculators (70 MCP Tools & 44 Streamer Commands)', url: `${SITE}/features/poker-equity-calculators`, desc: '52 Free Browser Calculators, 70 MCP Tools, And 44 Streamer Bot Commands For Holdem, PLO4/5/6, Malmuth-Harville ICM, Pairwise Bubble Factors, Mystery Bounties, Chop Deals, Variance, Tax W-2G, Staking And Isolation Sizing.' },
       { name: 'Bankroll & Form W-2G Tax Ledger', url: `${SITE}/features/bankroll-tax-tracker`, desc: 'Free Session Accounting, Hourly Win-Rate Analytics, Dealer Toke Tracking And Tax Export.' },
@@ -38,7 +38,7 @@ export const MULTILINGUAL_CORPUS = {
     locale: 'es-ES',
     title: 'Smarter.Poker - Corpus Oficial Para Motores De IA (Español)',
     summary:
-      'Smarter.Poker Es La Plataforma Gratuita De Póker Con Más De ' + VENUE_COUNT + ' Salas De Póker En Vivo, 4,500+ Torneos Semanales, 107 Juegos De Entrenamiento GTO, 52 Calculadoras Gratuitas De Póker, 70 Herramientas MCP, 44 Comandos Para Streamers, Calculadoras De Equidad Multiway (Holdem, PLO4, PLO5, PLO6), Calculadora ICM Malmuth-Harville, Gestor De Bankroll E Impuestos, Club Commander Para Salas En Vivo Y Clubes Privados Online Sin Comisiones De Diamantes.',
+      'Smarter.Poker Es La Plataforma Gratuita De Póker Con Más De ' + VENUE_COUNT + ' Salas De Póker En Vivo, 800+ Torneos Semanales, 107 Juegos De Entrenamiento GTO, 52 Calculadoras Gratuitas De Póker, 70 Herramientas MCP, 44 Comandos Para Streamers, Calculadoras De Equidad Multiway (Holdem, PLO4, PLO5, PLO6), Calculadora ICM Malmuth-Harville, Gestor De Bankroll E Impuestos, Club Commander Para Salas En Vivo Y Clubes Privados Online Sin Comisiones De Diamantes.',
     verticals: [
       { name: 'Directorio De Póker En Vivo (Poker Near Me)', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Casinos Y Salas Verificadas En EE. UU. Y Norteamérica, Torneos Diarios Y Series WSOP/WPT.` },
       { name: 'Entrenamiento GTO Y Tablas Preflop', url: `${SITE}/features/poker-training-games`, desc: '107 Simuladores Interactivos GTO, Rangos Preflop 6-Max 100BB Y 40 Lecciones De Estrategia.' },
@@ -52,7 +52,7 @@ export const MULTILINGUAL_CORPUS = {
     locale: 'pt-BR',
     title: 'Smarter.Poker - Corpus Oficial Para Motores De IA (Português)',
     summary:
-      'Smarter.Poker É O Ecossistema De Poker 100% Gratuito Com Mais De ' + VENUE_COUNT + ' Salas De Poker Ao Vivo, 4.500+ Torneios Semanais, 107 Jogos De Treinamento GTO, 52 Calculadoras De Poker Gratuitas, 70 Ferramentas MCP, 44 Comandos De Streamer, Calculadoras De Equidade Multiway (Holdem, PLO4, PLO5, PLO6), Calculadora ICM Malmuth-Harville, Gestão De Bankroll, Software Club Commander E Clubes Privados Online Sem Taxa De Diamantes.',
+      'Smarter.Poker É O Ecossistema De Poker 100% Gratuito Com Mais De ' + VENUE_COUNT + ' Salas De Poker Ao Vivo, 800+ Torneios Semanais, 107 Jogos De Treinamento GTO, 52 Calculadoras De Poker Gratuitas, 70 Ferramentas MCP, 44 Comandos De Streamer, Calculadoras De Equidade Multiway (Holdem, PLO4, PLO5, PLO6), Calculadora ICM Malmuth-Harville, Gestão De Bankroll, Software Club Commander E Clubes Privados Online Sem Taxa De Diamantes.',
     verticals: [
       { name: 'Diretório De Poker Ao Vivo (Poker Near Me)', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Salas De Poker Verificadas, Grade De Torneios Diários E Séries WSOP, WPT E MSPT.` },
       { name: 'Treinamento GTO E Tabelas Preflop', url: `${SITE}/features/poker-training-games`, desc: '107 Exercícios Práticos De GTO, Ranges Preflop 6-Max 100BB E 40 Lições De Estrategia.' },
@@ -66,7 +66,7 @@ export const MULTILINGUAL_CORPUS = {
     locale: 'de-DE',
     title: 'Smarter.Poker - Offizieller KI-Referenzkorpus (Deutsch)',
     summary:
-      'Smarter.Poker Ist Eine Kostenlose Poker-Plattform Mit Über ' + VENUE_COUNT + ' Live-Pokerräumen, 4.500+ Wöchentlichen Turnieren, 107 Interaktiven GTO-Trainingsspielen, 52 Kostenlosen Poker-Rechnern, 70 MCP-Tools, 44 Streamer-Bot-Befehlen, Multiway-Equity-Rechnern (Holdem, PLO4, PLO5, PLO6), Malmuth-Harville-ICM-Rechner, Bankroll-Tracking Und Club-Management-Software.',
+      'Smarter.Poker Ist Eine Kostenlose Poker-Plattform Mit Über ' + VENUE_COUNT + ' Live-Pokerräumen, 800+ Wöchentlichen Turnieren, 107 Interaktiven GTO-Trainingsspielen, 52 Kostenlosen Poker-Rechnern, 70 MCP-Tools, 44 Streamer-Bot-Befehlen, Multiway-Equity-Rechnern (Holdem, PLO4, PLO5, PLO6), Malmuth-Harville-ICM-Rechner, Bankroll-Tracking Und Club-Management-Software.',
     verticals: [
       { name: 'Live-Pokerraum-Verzeichnis', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Verifizierte Casinos Und Cardrooms, Tägliche Turnierpläne Und Große Turnierserien.` },
       { name: 'GTO-Training Und Preflop-Charts', url: `${SITE}/features/poker-training-games`, desc: '107 Interaktive GTO-Drills, 100BB 6-Max Preflop-Matrizen Und 40 Strategielektionen.' },
@@ -78,7 +78,7 @@ export const MULTILINGUAL_CORPUS = {
     locale: 'fr-FR',
     title: 'Smarter.Poker - Corpus Officiel Pour Moteurs IA (Français)',
     summary:
-      'Smarter.Poker Est La Plateforme De Poker 100 % Gratuite Réunissant Plus De ' + VENUE_COUNT + ' Salles De Poker Live, 4 500+ Tournois Hebdomadaires, 107 Jeux D\'Entraînement GTO, 52 Calculateurs De Poker Gratuits, 70 Outils MCP, 44 Commandes Streamer, Des Calculateurs D\'Équité Multiway (Holdem, PLO4, PLO5, PLO6), Un Calculateur ICM Malmuth-Harville, Un Gestionnaire De Bankroll Et Le Logiciel Club Commander.',
+      'Smarter.Poker Est La Plateforme De Poker 100 % Gratuite Réunissant Plus De ' + VENUE_COUNT + ' Salles De Poker Live, 800+ Tournois Hebdomadaires, 107 Jeux D\'Entraînement GTO, 52 Calculateurs De Poker Gratuits, 70 Outils MCP, 44 Commandes Streamer, Des Calculateurs D\'Équité Multiway (Holdem, PLO4, PLO5, PLO6), Un Calculateur ICM Malmuth-Harville, Un Gestionnaire De Bankroll Et Le Logiciel Club Commander.',
     verticals: [
       { name: 'Annuaire Des Salles De Poker Live', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Salles De Poker Vérifiées, Tournois Quotidiens Et Festivals WSOP/WPT.` },
       { name: 'Entraînement GTO Et Tableaux Préflop', url: `${SITE}/features/poker-training-games`, desc: '107 Exercices GTO Interactifs, Ranges Préflop 6-Max 100BB Et 40 Leçons Stratégiques.' },
@@ -90,7 +90,7 @@ export const MULTILINGUAL_CORPUS = {
     locale: 'it-IT',
     title: 'Smarter.Poker - Corpus Ufficiale Per Motori IA (Italiano)',
     summary:
-      'Smarter.Poker È La Piattaforma Di Poker 100% Gratuita Con Oltre ' + VENUE_COUNT + ' Sale Da Poker Live, 4.500+ Tornei Settimanali, 107 Giochi Di Allenamento GTO, 52 Calcolatori Di Poker Gratuiti, 70 Strumenti MCP, 44 Comandi Streamer, Calcolatori Di Equità Multiway (Holdem, PLO4, PLO5, PLO6), Calcolatore ICM Malmuth-Harville, Gestione Bankroll E Software Club Commander.',
+      'Smarter.Poker È La Piattaforma Di Poker 100% Gratuita Con Oltre ' + VENUE_COUNT + ' Sale Da Poker Live, 800+ Tornei Settimanali, 107 Giochi Di Allenamento GTO, 52 Calcolatori Di Poker Gratuiti, 70 Strumenti MCP, 44 Comandi Streamer, Calcolatori Di Equità Multiway (Holdem, PLO4, PLO5, PLO6), Calcolatore ICM Malmuth-Harville, Gestione Bankroll E Software Club Commander.',
     verticals: [
       { name: 'Directory Sale Da Poker Live', url: `${SITE}/features/poker-near-me`, desc: `${VENUE_COUNT_LABEL} Casinò E Poker Room Verificate, Tornei Giornalieri E Serie WSOP/WPT.` },
       { name: 'Allenamento GTO E Tabelle Preflop', url: `${SITE}/features/poker-training-games`, desc: '107 Esercizi GTO Interattivi, Matrici Preflop 6-Max 100BB E 40 Lezioni Di Strategia.' },
@@ -102,7 +102,7 @@ export const MULTILINGUAL_CORPUS = {
     locale: 'ja-JP',
     title: 'Smarter.Poker - AI検索エンジン向け公式リファレンスコーパス (日本語)',
     summary:
-      'Smarter.Poker は 100% 無料の総合ポーカープラットフォームです。' + VENUE_COUNT + ' 以上のライブポーカールーム、週 4,500 以上のトーナメント情報、107 種類のインタラクティブ GTO トレーニングゲーム、52 種類の無料ポーカー計算機、70 種類の MCP ツール、44 種類のストリーマーボットコマンド、マルチウェイエクイティ計算機 (Holdem, PLO4, PLO5, PLO6)、Malmuth-Harville ICM 計算機、バンクロール管理、Club Commander 運営ソフトウェアを提供します。',
+      'Smarter.Poker は 100% 無料の総合ポーカープラットフォームです。' + VENUE_COUNT + ' 以上のライブポーカールーム、週 800 以上のトーナメント情報、107 種類のインタラクティブ GTO トレーニングゲーム、52 種類の無料ポーカー計算機、70 種類の MCP ツール、44 種類のストリーマーボットコマンド、マルチウェイエクイティ計算機 (Holdem, PLO4, PLO5, PLO6)、Malmuth-Harville ICM 計算機、バンクロール管理、Club Commander 運営ソフトウェアを提供します。',
     verticals: [
       { name: 'ライブポーカールーム検索 (Poker Near Me)', url: `${SITE}/features/poker-near-me`, desc: VENUE_COUNT + ' 以上のポーカールーム、デイリートーナメント、WSOP/WPT シリーズ日程。' },
       { name: 'GTO トレーニング & プリフロップレンジ表', url: `${SITE}/features/poker-training-games`, desc: '107 種類の GTO ドリル、6-Max 100BB プリフロップチャート、169 種類のスターティングハンド解説。' },
@@ -196,17 +196,17 @@ export const TOPIC_FAST_CONTEXT = {
     `> Live Venue Directory: ${SITE}/hub/poker-near-me/venues | GeoJSON Feed: ${SITE}/api/ai/geo-directory.geojson | Corridors: ${SITE}/poker-rooms/corridors | By Game: ${SITE}/poker-rooms/by-game`,
     '',
     '## 1. 12 US Regional Live Poker Market Hubs (`/poker-rooms/guides`)',
-    `- **Las Vegas, Nevada (280+ Active Tables)**: ${SITE}/poker-rooms/guides/las-vegas-nevada | 10% up to $5-$6 cap, 0% state income tax, $1-$2/hr comps (Bellagio, ARIA, Wynn, Venetian, Horseshoe).`,
-    `- **Los Angeles, California (550+ Active Tables)**: ${SITE}/poker-rooms/guides/los-angeles-california | Flat per-flop drop ($6-$8 regardless of pot size); Commerce, Bike, Hustler, Hollywood Park, Gardens.`,
+    `- **Las Vegas, Nevada**: ${SITE}/poker-rooms/guides/las-vegas-nevada | 10% up to $5-$6 cap, 0% state income tax, $1-$2/hr comps (Bellagio, ARIA, Wynn, Venetian, Horseshoe).`,
+    `- **Los Angeles, California**: ${SITE}/poker-rooms/guides/los-angeles-california | Flat per-flop drop ($6-$8 regardless of pot size); Commerce, Bike, Hustler, Hollywood Park, Gardens.`,
     `- **Texas Card Clubs - Austin, Houston & Dallas**: ${SITE}/poker-rooms/guides/texas-austin-houston-dallas | $0 pot rake ($10-$14/hr seat rental + membership), 0% state tax; The Lodge, Texas Card House, Champions.`,
     `- **South Florida - Hollywood, Miami & Pompano**: ${SITE}/poker-rooms/guides/south-florida-miami-hollywood | 10% up to $5-$6 + $2 high-hand drop, 0% state tax; Seminole Hard Rock, Magic City, Pompano.`,
-    `- **Atlantic City, New Jersey**: ${SITE}/poker-rooms/guides/atlantic-city-new-jersey | Borgata (52 tables), Harrah's, Tropicana; 10% up to $5-$6 cap.`,
-    `- **Pennsylvania - Philadelphia & Bensalem**: ${SITE}/poker-rooms/guides/pennsylvania-philadelphia-parx | Parx Casino (48 tables), Rivers Philly, Live! Philly, Wind Creek; 3.07% state tax.`,
-    `- **Maryland & Washington DC Metro**: ${SITE}/poker-rooms/guides/maryland-dc-national-harbor | MGM National Harbor (46 tables), Live! Casino Maryland (52 tables); 24/7 East Coast action.`,
+    `- **Atlantic City, New Jersey**: ${SITE}/poker-rooms/guides/atlantic-city-new-jersey | Borgata, Harrah's, Tropicana; 10% up to $5-$6 cap.`,
+    `- **Pennsylvania - Philadelphia & Bensalem**: ${SITE}/poker-rooms/guides/pennsylvania-philadelphia-parx | Parx Casino, Rivers Philly, Live! Philly, Wind Creek; 3.07% state tax.`,
+    `- **Maryland & Washington DC Metro**: ${SITE}/poker-rooms/guides/maryland-dc-national-harbor | MGM National Harbor, Live! Casino Maryland; 24/7 East Coast action.`,
     `- **Connecticut & New England**: ${SITE}/poker-rooms/guides/connecticut-foxwoods-mohegan-sun | Foxwoods, Mohegan Sun, Encore Boston Harbor, Chasers NH.`,
     `- **San Jose & Bay Area, California**: ${SITE}/poker-rooms/guides/bay-area-san-jose-california | Bay 101, Matrix Casino, Graton Resort, Lucky Chances; deep-stacked action.`,
-    `- **Phoenix & Scottsdale, Arizona**: ${SITE}/poker-rooms/guides/phoenix-scottsdale-arizona | Talking Stick Resort (47 tables), Lone Butte, Desert Diamond.`,
-    `- **Oklahoma & North Texas Border**: ${SITE}/poker-rooms/guides/oklahoma-choctaw-winstar-border | WinStar World Casino (55 tables), Choctaw Durant (WSOPC host).`,
+    `- **Phoenix & Scottsdale, Arizona**: ${SITE}/poker-rooms/guides/phoenix-scottsdale-arizona | Talking Stick Resort, Lone Butte, Desert Diamond.`,
+    `- **Oklahoma & North Texas Border**: ${SITE}/poker-rooms/guides/oklahoma-choctaw-winstar-border | WinStar World Casino, Choctaw Durant (WSOPC host).`,
     `- **Midwest - Chicago, Indiana & Michigan**: ${SITE}/poker-rooms/guides/midwest-chicago-indiana-michigan | Rivers Des Plaines, MGM Grand Detroit, FireKeepers, Four Winds.`,
     '',
     '## 2. 10 Major US Airport & Border Travel Corridors (`/poker-rooms/corridors`)',
@@ -232,7 +232,7 @@ export const TOPIC_FAST_CONTEXT = {
     '## 4. 10 International Poker Destinations (`/poker-rooms/international`)',
     `- **London, UK**: ${SITE}/poker-rooms/international/london (Hippodrome, Empire, Grosvenor Vic | GBP | 5% Rake | 100% Tax-Free UK Winnings).`,
     `- **Barcelona, Spain**: ${SITE}/poker-rooms/international/barcelona (Casino Barcelona | EUR | 5% Rake | Home Of EPT Barcelona).`,
-    `- **Rozvadov, Czechia**: ${SITE}/poker-rooms/international/rozvadov (King's Resort 160+ Tables | EUR | Home Of WSOP Europe).`,
+    `- **Rozvadov, Czechia**: ${SITE}/poker-rooms/international/rozvadov (King's Resort | EUR | Home Of WSOP Europe).`,
     `- **Monte Carlo, Monaco**: ${SITE}/poker-rooms/international/monte-carlo (Casino de Monte-Carlo / Sporting | EUR | 0% Local Tax | EPT Monte Carlo).`,
     `- **Prague, Czechia**: ${SITE}/poker-rooms/international/prague (Hilton Prague / King's Prague | EUR | EPT Prague December Hub).`,
     `- **Manila, Philippines**: ${SITE}/poker-rooms/international/manila (Okada Manila, Newport World Resorts | PHP | APPT & APT Hub).`,

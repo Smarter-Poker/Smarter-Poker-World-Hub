@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Activity, ChevronDown, Layers3, MapPin, Trophy } from 'lucide-react';
 import ResponsiveTable from '../ui/ResponsiveTable';
 import styles from './toke/VenueConsole.module.css';
+import { careerTotals, gameTypeStats as computeGameTypes, rankVenues, tournamentBrackets as computeBrackets } from '../../lib/bankroll/tokeVenueStats.mjs';
 
 const fmt = (value) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
@@ -38,34 +39,6 @@ const GAME_TYPE_MAP = {
   other: 'Other',
 };
 
-const BUYIN_BRACKETS = [
-  { label: '$1k+', min: 1000, max: Infinity },
-  { label: '$500-$999', min: 500, max: 999.99 },
-  { label: '$250-$499', min: 250, max: 499.99 },
-  { label: '$100-$249', min: 100, max: 249.99 },
-  { label: '<$100', min: 0, max: 99.99 },
-];
-
-// ── Helpers ──────────────────────────────────────────────────────
-
-function computeGigStats(gig) {
-  // Use gig.downs[] directly (attached by fetchGigs for analytics)
-  const downs = gig.downs || [];
-  let totalTokes = 0;
-  let totalHours = 0;
-  for (const down of downs) {
-    // Only count dealing downs for hours (not breaks - they inflate the denominator unfairly)
-    const isDealing =
-      down.down_type === 'cash' || down.down_type === 'tournament' || down.down_type === 'brush';
-    if (isDealing) totalTokes += Number(down.toke_amount) || 0;
-    if (isDealing && down.started_at && down.ended_at) {
-      const hours = (Date.parse(down.ended_at) - Date.parse(down.started_at)) / 3600000;
-      if (Number.isFinite(hours) && hours > 0) totalHours += hours;
-    }
-  }
-  return { totalTokes, totalHours, downs };
-}
-
 // ── Main Component ───────────────────────────────────────────────
 
 export default function VenueIntelligence({
@@ -81,87 +54,15 @@ export default function VenueIntelligence({
   const [gameOpen, setGameOpen] = useState(true);
   const [tourneyOpen, setTourneyOpen] = useState(true);
 
-  // ── Venue Performance Ranking ──────────────────────────────
-  const venueRanking = useMemo(() => {
-    const map = Object.create(null);
-    for (const gig of gigs) {
-      const venue = gig.venue_name || 'Unknown Venue';
-      if (!map[venue]) map[venue] = { venue, totalTokes: 0, totalHours: 0, events: 0 };
-      const { totalTokes, totalHours } = computeGigStats(gig);
-      map[venue].totalTokes += totalTokes;
-      map[venue].totalHours += totalHours;
-      map[venue].events += 1;
-    }
-    const arr = Object.values(map || {});
-    for (const v of arr) v.tokePerHr = v.totalHours > 0 ? v.totalTokes / v.totalHours : 0;
-    const sorted = {
-      toke_hr: [...arr].sort((a, b) => b.tokePerHr - a.tokePerHr),
-      total: [...arr].sort((a, b) => b.totalTokes - a.totalTokes),
-      events: [...arr].sort((a, b) => b.events - a.events),
-    };
-    return sorted[venueSort];
-  }, [gigs, venueSort]);
-
-  // ── Game Type Profitability ────────────────────────────────
-  const gameTypeStats = useMemo(() => {
-    const map = Object.create(null);
-    for (const gig of gigs) {
-      for (const down of gig.downs || []) {
-        const gt =
-          down.down_type === 'cash'
-            ? down.game_type || 'Holdem'
-            : down.down_type === 'tournament'
-              ? 'tournament'
-              : down.down_type;
-        if (!map[gt]) map[gt] = { gameType: gt, totalTokes: 0, totalDowns: 0 };
-        map[gt].totalTokes += Number(down.toke_amount) || 0;
-        map[gt].totalDowns += 1;
-      }
-    }
-    return Object.values(map || {})
-      .map((gt) => ({
-        ...gt,
-        avgTokePerDown: gt.totalDowns > 0 ? gt.totalTokes / gt.totalDowns : 0,
-      }))
-      .sort((a, b) => b.avgTokePerDown - a.avgTokePerDown);
-  }, [gigs]);
-
-  // ── Tournament Buy-In Bracket Analysis ────────────────────
-  const tournamentBrackets = useMemo(() => {
-    const bracketMap = {};
-    for (const b of BUYIN_BRACKETS)
-      bracketMap[b.label] = { label: b.label, totalTokes: 0, totalDowns: 0 };
-
-    let hasTourneyData = false;
-    for (const gig of gigs) {
-      for (const down of gig.downs || []) {
-        // use gig.downs directly
-        if (down.down_type !== 'tournament') continue;
-        hasTourneyData = true;
-        const buyin = down.tournament_buyin;
-        if (buyin == null || buyin === '') continue;
-        const bracket = BUYIN_BRACKETS.find((b) => buyin >= b.min && buyin <= b.max);
-        if (!bracket) continue;
-        bracketMap[bracket.label].totalTokes += Number(down.toke_amount) || 0;
-        bracketMap[bracket.label].totalDowns += 1;
-      }
-    }
-    if (!hasTourneyData) return null;
-
-    return BUYIN_BRACKETS.map((b) => ({
-      ...bracketMap[b.label],
-      avgTokePerDown:
-        bracketMap[b.label].totalDowns > 0
-          ? bracketMap[b.label].totalTokes / bracketMap[b.label].totalDowns
-          : 0,
-    })).filter((b) => b.totalDowns > 0);
-  }, [gigs]);
-
-  const totalEvents = gigs.length;
-  const totalTokesAllTime = useMemo(
-    () => gigs.reduce((sum, gig) => sum + computeGigStats(gig).totalTokes, 0),
-    [gigs]
-  );
+  // Paid hours and tokes come from tokeVenueStats.mjs, the same definitions
+  // Analytics and the event reports use, so Hourly Tokes agrees across pages.
+  const safeGigs = Array.isArray(gigs) ? gigs : [];
+  const venueRanking = useMemo(() => rankVenues(safeGigs, venueSort), [safeGigs, venueSort]);
+  const gameTypeStats = useMemo(() => computeGameTypes(safeGigs), [safeGigs]);
+  const tournamentBrackets = useMemo(() => computeBrackets(safeGigs), [safeGigs]);
+  const career = useMemo(() => careerTotals(safeGigs), [safeGigs]);
+  const totalEvents = career.events;
+  const totalTokesAllTime = career.totalTokes;
 
   const measure = (venue) =>
     venueSort === 'events'
@@ -199,6 +100,10 @@ export default function VenueIntelligence({
             <div>
               <dt>Venues</dt>
               <dd>{venueRanking.length}</dd>
+            </div>
+            <div>
+              <dt>Tokes Per Hour</dt>
+              <dd>{career.paidHours > 0 ? fmt(career.tokesPerHour) : '-'}</dd>
             </div>
           </dl>
         ) : (
@@ -255,7 +160,7 @@ export default function VenueIntelligence({
                         <strong>{venue.venue}</strong>
                         <small>
                           {venue.events} {venue.events === 1 ? 'Event' : 'Events'} ·{' '}
-                          {venue.totalHours.toFixed(1)} Dealing Hours
+                          {venue.paidHours.toFixed(1)} Paid Hours
                         </small>
                       </div>
                       <dl className={styles.rowFigures}>
@@ -265,7 +170,7 @@ export default function VenueIntelligence({
                         </div>
                         <div>
                           <dt>Hourly Tokes</dt>
-                          <dd>{venue.totalHours > 0 ? fmt(venue.tokePerHr) : '-'}</dd>
+                          <dd>{venue.paidHours > 0 ? fmt(venue.tokePerHr) : '-'}</dd>
                         </div>
                       </dl>
                       <div className={styles.meter} aria-hidden="true">
@@ -282,7 +187,7 @@ export default function VenueIntelligence({
             ) : (
               <p className={styles.empty}>
                 {ready
-                  ? 'Complete A Shift To Compare Tokes And Dealing Hours By Venue.'
+                  ? 'Complete A Shift To Compare Tokes And Paid Hours By Venue.'
                   : 'Venue Rankings Use Completed Shifts.'}
               </p>
             )}

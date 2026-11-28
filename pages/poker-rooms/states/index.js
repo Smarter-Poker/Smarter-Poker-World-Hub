@@ -161,7 +161,7 @@ export default function USStatePokerDirectoryPage({ byState = LISTED_VENUES_BY_S
           <p style={styles.lead}>
             <strong>Direct Answer:</strong> Live And Online Poker Regulations Vary Dramatically Across US State Lines:
             <strong> Nevada, Texas, And Florida Offer 0% State Income Tax</strong>;
-            <strong> California Operates 85+ Rooms On A Flat Per-Flop Collection Drop</strong>;
+            <strong> California Card Rooms Charge A Flat Per-Hand Collection Drop</strong>;
             <strong> Texas Social Clubs Charge $0 Pot Rake And Hourly Seat Time</strong>; And
             <strong> Nevada, New Jersey, Michigan, And Pennsylvania Share Regulated Multi-State Online Poker Liquidity</strong>.
           </p>

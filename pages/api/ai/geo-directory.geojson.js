@@ -154,7 +154,7 @@ export function buildGeoDirectoryFeatureCollection() {
         travelCorridors: POKER_TRAVEL_CORRIDORS.length,
       },
       license: 'CC-BY-4.0',
-      doi: '10.5281/zenodo.15129481',
+      doi: '10.5281/zenodo.24115647',
       canonicalUrl: 'https://smarter.poker/api/ai/geo-directory.geojson',
     },
     features,
