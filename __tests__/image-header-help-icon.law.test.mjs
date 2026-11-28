@@ -104,6 +104,14 @@ test('the "?" sits 3px inside the painted rim, top and right, by arithmetic', as
   // takes that frame's numbers so it stays 3px clear of it.
   assert.match(training, /border: 2px solid transparent !important;[^}]*var\(--sd-training-chrome\) border-box/);
   assert.match(training, /:where\(\.sd-panel, \.sd-masthead\)[^{]*\.sd-header-help \{\s*--sd-help-border: 2px;\s*--sd-help-rim: 2px;\s*\}/);
+  // The control's skin is guarded in a cascade layer: layered !important beats
+  // every unlayered page rule (Training, the store) whatever its specificity.
+  const layer = css.slice(css.indexOf('@layer sd-header-help {'));
+  assert.ok(css.includes('@layer sd-header-help {'), 'the header-help skin guard is a cascade layer');
+  for (const decl of ['border: 0 !important', 'border-radius: 50% !important', 'background: transparent !important', 'box-shadow: none !important', 'outline: none !important']) {
+    assert.ok(layer.slice(0, layer.indexOf('\n}\n')).includes(decl), `the layer guards ${decl}`);
+  }
+  assert.match(layer, /\.sd-header-help:focus-visible\s*\{/, 'the guard covers focus states');
   assert.doesNotMatch(vipCss, /\n\.help \{/, 'the retired VIP help circle stays deleted');
   assert.doesNotMatch(read('src/components/bankroll/BankrollHelp.module.css'), /\.help\b/, 'the retired Bankroll help circle stays deleted');
 });
