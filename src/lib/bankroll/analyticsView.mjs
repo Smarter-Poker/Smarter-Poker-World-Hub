@@ -1,4 +1,5 @@
 import { sessionHours } from './ledgerMath.mjs';
+import { USD_TO_EUR, convertCurrency } from './currencyUtils.js';
 
 export const GAME_LABELS = {
   poker_cash: 'Cash Games',
@@ -263,4 +264,14 @@ export function chartTicks(minimum, maximum) {
   const first = Math.floor(low / step) * step;
   const last = Math.max(first + step, Math.ceil(high / step) * step);
   return Array.from({ length: (last - first) / step + 1 }, (_, index) => first + index * step);
+}
+
+// The money ruler is round in the currency it is READ in. Rows stay in US
+// cents; in euros the extents are converted, rounded outwards in euro cents
+// and mapped back to the US cents the chart plots, so the labels read
+// EUR 5K, 10K, 15K instead of 9.13K, 18.25K (a USD ruler relabelled).
+export function moneyChartTicks(minimum, maximum, displayEUR = false) {
+  if (!displayEUR) return chartTicks(minimum, maximum);
+  const toEur = (cents) => Math.round(convertCurrency(cents / 100, true) * 100);
+  return chartTicks(toEur(minimum), toEur(maximum)).map((eur) => eur / USD_TO_EUR);
 }
