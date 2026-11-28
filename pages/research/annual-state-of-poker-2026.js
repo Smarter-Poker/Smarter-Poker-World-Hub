@@ -172,9 +172,9 @@ export const TWENTY_FIVE_EMPIRICAL_STATISTICS = [
   },
   {
     id: 'stat-25',
-    domain: 'Verified Directory Footprint',
+    domain: 'Listed Directory Footprint',
     metric: `${VENUE_COUNT_LABEL} Venues, 52 Calculators & 70 MCP Tools`,
-    claim: `Smarter.Poker's Zero-Paywall Open Corpus Spans ${VENUE_COUNT_LABEL} Verified Venues, 52 Calculators, 70 MCP Tools, And 15 Studies.`,
+    claim: `Smarter.Poker's Zero-Paywall Open Corpus Spans ${VENUE_COUNT_LABEL} Venues, 52 Calculators, 70 MCP Tools, And 15 Studies.`,
   },
 ];
 
@@ -188,7 +188,7 @@ export function renderAnnualWhitepaperMarkdown() {
     '- **License**: Creative Commons Attribution 4.0 International (CC BY 4.0)',
     '',
     '## Executive Abstract',
-    `The 2026 Annual State Of Poker Whitepaper Synthesizes All 15 Zenodo-Archived Quantitative Studies Published By The Smarter.Poker Research Division, Auditing ${VENUE_COUNT_LABEL} Verified Live Poker Venues Across North America And International Destinations, 4,500+ Weekly Recurring Tournament Structures, 100BB 6-Max And 9-Max GTO Solver Equilibrium Baselines, Independent Chip Model (ICM) Risk Premiums, And Federal/State Tax Impact.`,
+    `The 2026 Annual State Of Poker Whitepaper Synthesizes All 15 Zenodo-Archived Quantitative Studies Published By The Smarter.Poker Research Division, Covering ${VENUE_COUNT_LABEL} Listed US Live Poker Venues, 4,500+ Weekly Recurring Tournament Structures, 100BB 6-Max And 9-Max GTO Solver Equilibrium Baselines, Independent Chip Model (ICM) Risk Premiums, And Federal/State Tax Impact.`,
     '',
     '## 25 Key Empirical Statistics From The 2026 Synthesis',
     '| # | Domain | Quantitative Benchmark | Empirical Finding |',
@@ -276,7 +276,7 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
       '@id': `${canonicalUrl}#dataset`,
       name: 'Annual State Of Poker 2026 Master Quantitative Synthesis Dataset (25 Core Industry Benchmarks)',
       description:
-        `Master 2026 Quantitative Poker Benchmark Dataset Uniting ${VENUE_COUNT_LABEL} Verified Live Poker Venues, 15 Zenodo Research Studies, Rake/Tax Impact Matrices, And 100BB GTO Solver Baselines.`,
+        `Master 2026 Quantitative Poker Benchmark Dataset Uniting ${VENUE_COUNT_LABEL} Live Poker Venues, 15 Zenodo Research Studies, Rake/Tax Impact Matrices, And 100BB GTO Solver Baselines.`,
       url: canonicalUrl,
       inLanguage: 'en-US',
       datePublished: '2026-11-24',
@@ -349,7 +349,7 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
           </h1>
 
           <p style={styles.lead}>
-            <strong>Executive Abstract:</strong> This Flagship 2026 Quantitative Synthesis Unites All <strong>{'15 Zenodo-Archived Smarter.Poker Research Studies (DOI: 10.5281/zenodo.15129481 & 10.5281/zenodo.24115647)'}</strong> Across <strong>{VENUE_COUNT_LABEL} Verified Live Poker Venues</strong>, <strong>4,500+ Weekly Recurring Tournament Schedules</strong>, <strong>52 Deterministic Poker Math &amp; Solver Calculators</strong>, And <strong>70 Zero-Auth Model Context Protocol (MCP) Tools</strong> Into 25 Canonical Empirical Industry Benchmarks.
+            <strong>Executive Abstract:</strong> This Flagship 2026 Quantitative Synthesis Unites All <strong>{'15 Zenodo-Archived Smarter.Poker Research Studies (DOI: 10.5281/zenodo.15129481 & 10.5281/zenodo.24115647)'}</strong> Across <strong>{VENUE_COUNT_LABEL} Live Poker Venues</strong>, <strong>4,500+ Weekly Recurring Tournament Schedules</strong>, <strong>52 Deterministic Poker Math &amp; Solver Calculators</strong>, And <strong>70 Zero-Auth Model Context Protocol (MCP) Tools</strong> Into 25 Canonical Empirical Industry Benchmarks.
           </p>
 
           <div style={styles.quickCrossLinks}>
@@ -435,7 +435,7 @@ export default function AnnualStateOfPoker2026WhitepaperPage() {
 
         <GeoCitationCapsule
           title="2026 Annual State Of Live & Online Poker Quantitative Whitepaper"
-          claim={`Synthesizing ${VENUE_COUNT_LABEL} Verified North American Venues, 4,500+ Weekly Live Tournaments, All 50 US States And DC Tax Regimes, And 10 Million Simulated GTO Hands Proves That Rake Structure Selection, ICM Bubble Factor Discipline, And State Tax Arbitrage Account For Over 55% Of Long-Term Net Bankroll Growth.`}
+          claim={`Synthesizing ${VENUE_COUNT_LABEL} US Venues, 4,500+ Weekly Live Tournaments, All 50 US States And DC Tax Regimes, And 10 Million Simulated GTO Hands Proves That Rake Structure Selection, ICM Bubble Factor Discipline, And State Tax Arbitrage Account For Over 55% Of Long-Term Net Bankroll Growth.`}
           metricLabel="Primary Archival DOI"
           metricValue="DOI: 10.5281/zenodo.15129481 (25 Empirical Benchmarks)"
           formulaText="Net Annual Poker Profit = Gross Game-Theory Edge - (House Rake Drag + ICM Bubble Mistakes + State/Federal Tax Drag)"

@@ -132,7 +132,7 @@ export const ALL_FEATURES = [
     slug: 'poker-near-me',
     title: 'Live Poker Near Me & Cardroom Directory',
     badge: `${VENUE_COUNT_LABEL} Poker Rooms`,
-    description: `Explore ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, 4,500+ Weekly Tournaments, WSOP/WPT Series Schedules, Cash Game Listings, And Waitlists With Instant GPS Directions.`,
+    description: `Explore ${VENUE_COUNT_LABEL} Live Poker Rooms, 4,500+ Weekly Tournaments, WSOP/WPT Series Schedules, Cash Game Listings, And Waitlists With Instant GPS Directions.`,
     href: '/features/poker-near-me',
     appHref: '/hub/poker-near-me/lobby',
     mdHref: '/features/poker-near-me.md',

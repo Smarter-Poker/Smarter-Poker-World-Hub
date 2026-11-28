@@ -6,7 +6,7 @@
  *
  * House style: Title Case, zero em dashes.
  */
-import { VENUE_COUNT_LABEL } from '../../lib/venueCount.mjs';
+import { VENUE_COUNT_LABEL, VENUE_STATE_COUNT } from '../../lib/venueCount.mjs';
 
 export const RESEARCH_BASE_PATH = '/research';
 export const RESEARCH_DATASET_DOI = '10.5281/zenodo.24115647';
@@ -28,9 +28,9 @@ const RAW_RESEARCH_REPORTS = [
     swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
     category: 'Live Cardroom Economics',
     summary:
-      `Analysis Of ${VENUE_COUNT_LABEL} Verified US Commercial Casinos, Tribal Gaming Properties, And Regulated Card Rooms Shows Standard $1/$2 And $1/$3 No-Limit Hold'em Cash Games Charge A 10% Pot Rake Capped At $5 To $7 Plus A $1 To $2 Promotional Jackpot Drop.`,
+      `Analysis Of ${VENUE_COUNT_LABEL} US Commercial Casinos, Tribal Gaming Properties, And Regulated Card Rooms Shows Standard $1/$2 And $1/$3 No-Limit Hold'em Cash Games Charge A 10% Pot Rake Capped At $5 To $7 Plus A $1 To $2 Promotional Jackpot Drop.`,
     methodology:
-      'Compiled From The Smarter.Poker National Venue Dataset Across 324 Active Poker Rooms In 38 US States, Auditing Published House Rules, Promotional Drop Schedules, And Time-Rake Structures.',
+      `Compiled From The Smarter.Poker National Venue Dataset Across ${VENUE_COUNT_LABEL} Listed Poker Rooms In ${VENUE_STATE_COUNT} US States, Auditing Published House Rules, Promotional Drop Schedules, And Time-Rake Structures.`,
     keyFindings: [
       'Low-Stakes No-Limit Hold\'em ($1/$2 And $1/$3) Operates On A 10% Percentage Rake Capped Between $5 And $7 In 84% Of Surveyed US Commercial And Tribal Card Rooms.',
       'Promotional Drops For Bad Beat Jackpots And High-Hand Promotions Average $1 To $2 Per Qualifying Pot Reaching A Flop.',

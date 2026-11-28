@@ -578,7 +578,7 @@ export default function RakeCalculatorPage({
           compact
           eyebrow="Free Smarter.Poker Account"
           title="Compare Live Room Rake & Track Net Hourly Profit Free"
-          description={`Benchmark Drop Vs Time-Charge Across ${VENUE_COUNT_LABEL} Verified Poker Rooms And Log Net Sessions In Bankroll Manager.`}
+          description={`Benchmark Drop Vs Time-Charge Across ${VENUE_COUNT_LABEL} Poker Rooms And Log Net Sessions In Bankroll Manager.`}
           primaryLabel="Create Free Account"
           primaryHref="/auth/signup?redirect=/tools/rake-calculator&src=rake-calc"
           secondaryLabel="Sign In"

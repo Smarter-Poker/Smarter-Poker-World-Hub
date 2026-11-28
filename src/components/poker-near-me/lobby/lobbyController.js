@@ -53,7 +53,7 @@ export function createLobbyJsonLd(websiteSchema, siteUrl = 'https://smarter.poke
         '@id': `${lobbyUrl}#dataset`,
         name: 'United States Live Poker Rooms & Daily Tournaments Directory Dataset',
         description:
-          'Comprehensive Directory Of Verified Live Poker Rooms, Casino Card Rooms, Charity Poker Venues, Cash Game Stakes, And Daily Tournament Schedules Across The United States.',
+          'Comprehensive Directory Of Live Poker Rooms, Casino Card Rooms, Charity Poker Venues, Cash Game Stakes, And Daily Tournament Schedules Across The United States.',
         url: lobbyUrl,
         sameAs: lobbyUrl,
         isAccessibleForFree: true,

@@ -669,7 +669,7 @@ export function buildMagazineManifestFromVault({
         leadCoverItem?.body_text,
         leadCoverItem?.summary,
         [
-            'Planning to make the trip? Poker Near Me on Smarter.Poker lists verified cardrooms, daily tournament structures, and the full schedule for every major series stop on the calendar.',
+            'Planning to make the trip? Poker Near Me on Smarter.Poker lists US cardrooms, daily tournament structures, and the full schedule for every major series stop on the calendar.',
             'The Live Series Radar beginning on Page 38 tracks the next 60 days of festivals coast to coast, with dates, venues, and direct links to each schedule.',
             'Want to see who is leading the season? The Global Player Of The Year standings on Page 20 rank the Top 25 contenders heading into the final stretch.',
             'Before your next deep run, drill the exact No-Limit Holdem, Final-Table ICM, and Pot-Limit Omaha spots in The Strategy Lab beginning on Page 26.',

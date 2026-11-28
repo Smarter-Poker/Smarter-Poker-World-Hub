@@ -7,7 +7,7 @@
  * Returns a deterministic freshness manifest (`verifiedAt: "2026-11-24"`) with
  * statutory rake/tax verification dates, solver dataset SHA-256 / SWHID hashes,
  * and total counts (52 calculators, 70 MCP tools, 44 streamer commands,
- * 15 research datasets, 715 verified venues).
+ * 15 research datasets, the listed venue floor from venueCount.mjs).
  *
  * House style: Title Case, zero em dashes.
  */

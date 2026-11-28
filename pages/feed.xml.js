@@ -78,7 +78,7 @@ const FEATURE_ITEMS = [
     {
         title: 'Live Poker Near Me & Cardroom Directory',
         link: `${SITE_URL}/features/poker-near-me`,
-        description: `Explore ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, 4,500+ Weekly Tournaments, WSOP/WPT Series Schedules, Cash Game Listings, And Waitlists With Instant GPS Directions.`,
+        description: `Explore ${VENUE_COUNT_LABEL} Live Poker Rooms, 4,500+ Weekly Tournaments, WSOP/WPT Series Schedules, Cash Game Listings, And Waitlists With Instant GPS Directions.`,
     },
     {
         title: 'Private Poker Clubs & Union Hosting Arena',
@@ -526,7 +526,7 @@ const TOOL_ITEMS = [
     {
         title: 'Best Live Poker Rooms By Game Variant (PLO, Big O, Mixed, Stud & High-Stakes)',
         link: `${SITE_URL}/poker-rooms/by-game`,
-        description: `Curated Directory Grouping ${VENUE_COUNT_LABEL} North American Poker Rooms By PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, And Daily MTTs.`,
+        description: `Curated Directory Grouping ${VENUE_COUNT_LABEL} US Poker Rooms By PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, And Daily MTTs.`,
         category: 'Live Poker Guides',
         pubDate: LEARN_MODIFIED,
     },

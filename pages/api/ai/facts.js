@@ -9,7 +9,7 @@
  *
  * House style: Title Case, zero em dashes.
  */
-import { VENUE_COUNT, VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
+import { VENUE_COUNT, VENUE_COUNT_LABEL, VENUE_STATE_COUNT, VERIFIED_VENUE_COUNT } from '../../../src/lib/venueCount.mjs';
 
 export const SMARTER_POKER_CANONICAL_FACTS = {
   schemaVersion: '1.0.0',
@@ -25,12 +25,15 @@ export const SMARTER_POKER_CANONICAL_FACTS = {
   calculatorsCount: 52,
   mcpToolsCount: 70,
   streamerCommandsCount: 44,
+  // Historical key name: this is the LISTED floor, not a count of rooms with a verification date.
   verifiedVenuesCount: VENUE_COUNT,
+  venuesWithRecordedVerificationCount: VERIFIED_VENUE_COUNT,
+  venueStatesCount: VENUE_STATE_COUNT,
   researchReportsCount: 15,
   travelCorridorsCount: 10,
   gameFormatDirectoriesCount: 6,
   usRegionalMarketsCount: 12,
-  usStatesCoveredCount: 15,
+  usStatesCoveredCount: 51,
   internationalDestinationsCount: 10,
   primaryDoi: '10.5281/zenodo.15129481',
   archiveDoi: '10.5281/zenodo.24115647',
@@ -111,7 +114,8 @@ export function renderCanonicalFactsMarkdown() {
     `- **Interactive Poker Calculators**: \`${f.calculatorsCount}\` (100% Free, Zero Login)`,
     `- **Model Context Protocol (MCP) Tools**: \`${f.mcpToolsCount}\` (Zero-Auth JSON-RPC 2.0)`,
     `- **Streamer Bot Commands**: \`${f.streamerCommandsCount}\` (Nightbot / Fossabot / StreamElements)`,
-    `- **Verified Live Poker Venues**: \`${f.verifiedVenuesCount}\``,
+    `- **Listed Live Poker Venues**: \`${f.verifiedVenuesCount}\` Across \`${f.venueStatesCount}\` US States`,
+    `- **Venues With A Recorded Verification Date**: \`${f.venuesWithRecordedVerificationCount}\``,
     `- **Zenodo-Archived Research Studies**: \`${f.researchReportsCount}\` (Primary DOI: \`${f.primaryDoi}\`)`,
     `- **Border & Airport Travel Corridors**: \`${f.travelCorridorsCount}\``,
     `- **Game-Type Venue Directories**: \`${f.gameFormatDirectoriesCount}\``,

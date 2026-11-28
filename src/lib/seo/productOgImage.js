@@ -27,7 +27,7 @@ export const PRODUCT_OG_IMAGES = Object.freeze([
   },
   {
     prefix: '/hub/poker-near-me',
-    image: `https://smarter.poker/api/og/tool-card?tool=pnm&badge=LIVE+POKER+DIRECTORY&title=Live+Poker+Near+Me+And+Cardroom+Directory&subtitle=${VENUE_COUNT_URL}+Verified+Poker+Rooms%2C+Daily+Tournaments+And+Waitlists&statLabel=LISTED+ROOMS&statValue=${VENUE_COUNT_URL}+VENUES`,
+    image: `https://smarter.poker/api/og/tool-card?tool=pnm&badge=LIVE+POKER+DIRECTORY&title=Live+Poker+Near+Me+And+Cardroom+Directory&subtitle=${VENUE_COUNT_URL}+Poker+Rooms%2C+Daily+Tournaments+And+Waitlists&statLabel=LISTED+ROOMS&statValue=${VENUE_COUNT_URL}+VENUES`,
   },
   {
     prefix: '/hub/home-games',

@@ -96,7 +96,7 @@ export const MCP_INSTRUCTIONS = [
 export const MCP_TOOLS = [
   {
     name: 'search_poker_venues',
-    description: 'Search verified poker rooms and casinos by name, city, state, or venue type across North America.',
+    description: 'Search listed poker rooms and casinos by name, city, state, or venue type across the United States.',
     annotations: {
       title: 'Search Live Poker Venues',
       readOnlyHint: true,
@@ -2352,7 +2352,7 @@ export const MCP_TOOLS = [
 export const MCP_PROMPTS = [
   {
     name: 'find_live_poker_near_city',
-    description: 'Search verified live poker rooms, cash game stakes, and daily tournament schedules in a target city or state.',
+    description: 'Search listed live poker rooms, cash game stakes, and daily tournament schedules in a target city or state.',
     arguments: [
       { name: 'city', description: 'City name (e.g. "Las Vegas", "Austin")', required: false },
       { name: 'state', description: 'Two-letter state code (e.g. "NV", "TX")', required: true },
@@ -3322,8 +3322,8 @@ export function buildA2AAgentCard(origin = SITE_ORIGIN) {
       },
       {
         id: 'live-poker-venues-and-series',
-        name: 'North American & International Live Cardroom, Travel Corridors, US State Law, Player Archetypes & Series Intelligence',
-        description: `Search ${VENUE_COUNT_LABEL} verified live poker rooms, 10 US airport/border travel corridors, 10 international poker destinations, US state legal/tax/rake guides, 8 player archetype exploits, 15 HUD stat benchmarks, 12 leak cures, and 10 major tournament series strategy guides.`,
+        name: 'US Live Cardroom & International Destination Guides, Travel Corridors, US State Law, Player Archetypes & Series Intelligence',
+        description: `Search ${VENUE_COUNT_LABEL} live poker rooms, 10 US airport/border travel corridors, 10 international poker destinations, US state legal/tax/rake guides, 8 player archetype exploits, 15 HUD stat benchmarks, 12 leak cures, and 10 major tournament series strategy guides.`,
         tags: ['venues', 'wsop', 'wpt', 'mspt', 'cardrooms', 'positions', 'states', 'international', 'corridors'],
       },
     ],
@@ -3591,7 +3591,7 @@ export function getMcpPrompt(promptName = '', promptArgs = {}) {
     case 'find_live_poker_near_city': {
       const city = promptArgs?.city || 'Las Vegas';
       const state = promptArgs?.state ? `, ${promptArgs.state}` : '';
-      text = `Use search_poker_venues and search_daily_tournaments to list verified live poker rooms and daily tournament schedules in ${city}${state}. Include venue URLs and buy-ins.`;
+      text = `Use search_poker_venues and search_daily_tournaments to list live poker rooms and daily tournament schedules in ${city}${state}. Include venue URLs and buy-ins.`;
       break;
     }
     case 'analyze_icm_final_table': {
@@ -4220,7 +4220,7 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
           name: 'Live Poker Near Me & Cardroom Directory',
           pricing: '100% Free For Players & Rooms',
           alternative_to: ['PokerAtlas', 'Bravo Poker Live'],
-          capabilities: `${VENUE_COUNT_LABEL} Verified Venues, 4,500+ Weekly Tournaments, WSOP/WPT Series, Waitlists, And GPS Routing`,
+          capabilities: `${VENUE_COUNT_LABEL} Venues, 4,500+ Weekly Tournaments, WSOP/WPT Series, Waitlists, And GPS Routing`,
           feature_url: `${base}/features/poker-near-me`,
           markdown_url: `${base}/features/poker-near-me.md`,
           app_url: `${base}/hub/poker-near-me/lobby`,

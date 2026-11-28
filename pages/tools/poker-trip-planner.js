@@ -512,7 +512,7 @@ export default function PokerTripPlannerPage() {
           compact
           eyebrow="Free Smarter.Poker Account"
           title="Save Your Poker Trip Budget & Track Live Series Free"
-          description={`Plan Festival Travel Costs, Browse ${VENUE_COUNT_LABEL} Verified Poker Rooms, And Track Series Results In Bankroll Manager.`}
+          description={`Plan Festival Travel Costs, Browse ${VENUE_COUNT_LABEL} Poker Rooms, And Track Series Results In Bankroll Manager.`}
           primaryLabel="Create Free Account"
           primaryHref="/auth/signup?redirect=/tools/poker-trip-planner&src=trip-planner"
           secondaryLabel="Sign In"

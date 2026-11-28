@@ -23,6 +23,7 @@ import {
   STATES_URL,
   stateGuidePath,
 } from '../../../src/content/guides/states';
+import { listedVenueCount } from '../../../src/lib/venueCount.mjs';
 
 const DIRECTORY_FAQS = [
   {
@@ -31,7 +32,7 @@ const DIRECTORY_FAQS = [
   },
   {
     q: 'Which US States Allow Playing Live Poker At Age 18+',
-    a: 'Licensed Pari-Mutuel Cardrooms In Florida (25+ Venues), Most Private Membership Social Poker Clubs In Texas And Ohio, And Select Non-Alcohol Tribal Poker Rooms Such As Turning Stone In New York Legally Admit Players Age 18 And Older.',
+    a: `Licensed Pari-Mutuel Cardrooms In Florida (${listedVenueCount('FL')} Listed Rooms), Most Private Membership Social Poker Clubs In Texas And Ohio, And Select Non-Alcohol Tribal Poker Rooms Such As Turning Stone In New York Legally Admit Players Age 18 And Older.`,
   },
   {
     q: 'Which US States Have Regulated Real-Money Online Poker?',
@@ -201,7 +202,7 @@ export default function USStatePokerDirectoryPage() {
                   <th style={styles.th}>State</th>
                   <th style={styles.th}>Min Age</th>
                   <th style={styles.th}>State Income Tax</th>
-                  <th style={styles.th}>Active Live Rooms</th>
+                  <th style={styles.th}>Listed Rooms</th>
                   <th style={styles.th}>Typical Rake Model</th>
                   <th style={styles.th}>Full State Guide</th>
                 </tr>
@@ -216,7 +217,7 @@ export default function USStatePokerDirectoryPage() {
                     </td>
                     <td style={styles.tdCyan}>{s.minAge}</td>
                     <td style={styles.tdEmerald}>{s.stateIncomeTaxRate}</td>
-                    <td style={styles.tdCell}>{s.approxLiveRooms}</td>
+                    <td style={styles.tdCell}>{listedVenueCount(s.code)}</td>
                     <td style={styles.tdCell}>{s.rakeModel}</td>
                     <td style={styles.tdAction}>
                       <Link href={stateGuidePath(s.slug)} style={styles.guideLink}>
