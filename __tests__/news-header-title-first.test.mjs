@@ -26,5 +26,9 @@ test('the shared header keeps the seal and parent-above layout as its default', 
 
 test('title-first sets a larger title and the no-seal header uses one column', () => {
     assert.match(css, /\.header\.header\.noSeal \{\s*grid-template-columns: minmax\(0, 1fr\);/);
-    assert.match(css, /\.header\.titleFirst \.title \{\s*font-size: clamp\(2\.2rem, 5\.4vw, 4rem\);/);
+    assert.match(css, /\.header\.titleFirst \.title \{\s*font-size: clamp\(2\.2rem, 5\.4vw, 4rem\) !important;/);
+});
+
+test('the title-first size outranks the site-wide phone h1 rule', () => {
+    assert.match(css, /\.header\.titleFirst \.title \{\s*font-size: clamp\(2\.05rem, 9\.5vw, 2\.9rem\) !important;/);
 });
