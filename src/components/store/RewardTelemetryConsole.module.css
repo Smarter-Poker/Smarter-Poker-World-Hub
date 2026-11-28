@@ -1,13 +1,14 @@
 .console {
   position: relative;
   margin-bottom: 14px;
-  padding: clamp(20px, 3vw, 30px);
-  border: 1px solid #365468;
-  background: #07131b;
-  box-shadow:
-    inset 0 1px 0 rgba(155, 179, 192, .14),
-    0 16px 34px rgba(0, 0, 0, .26);
-  color: #c4d6df;
+  /* Layout only: every circuit, signal and state panel inside carries its own
+     steel rim, so the console paints no frame around them. */
+  padding: clamp(4px, 1vw, 10px) 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #bdd0e2;
+  font-variant-numeric: tabular-nums;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
@@ -21,7 +22,7 @@
 
 .consoleHeader h2 {
   margin: 8px 0 0;
-  color: #effdff;
+  color: #f2f7ff;
   font:
     800 clamp(28px, 4vw, 42px) / 0.95 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -41,13 +42,12 @@
   min-height: 44px;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   padding: 7px 18px;
-  border: 1px solid #365468;
-  background: #0a151d;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .16),
-    inset 0 -1px 0 rgba(69, 173, 255, .2);
-  color: #dffaff;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: #f2f7ff;
   font:
     800 12px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -77,17 +77,19 @@
   width: 100%;
   min-height: 112px;
   padding: 18px;
-  border: 1px solid #294757;
-  background: #081116;
-  box-shadow:
-    inset 0 1px 0 rgba(155, 179, 192, .12);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%);
+  box-shadow: none;
 }
 
 .circuitGauge {
   display: grid;
   place-items: center;
   align-self: stretch;
-  color: #8befff;
+  border-right: 1px solid #445e77;
+  color: #86daff;
+  font-variant-numeric: tabular-nums;
   font:
     800 clamp(18px, 3vw, 28px) / 1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -105,7 +107,7 @@
 .signalGrid span,
 .rewardSignal span {
   display: block;
-  color: #9db6c2;
+  color: #bdd0e2;
   font:
     800 12px/1.1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -119,7 +121,7 @@
 .circuitHeader strong {
   display: block;
   margin-top: 5px;
-  color: #eaffff;
+  color: #f2f7ff;
   font:
     800 clamp(13px, 1.6vw, 18px) / 1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -133,22 +135,22 @@
   height: 10px;
   margin-top: 10px;
   overflow: hidden;
-  border: 1px solid #325365;
-  background: #000;
+  border: 1px solid #445e77;
+  background: #050e18;
 }
 
 .progressTrack span {
   display: block;
   height: 100%;
-  background: #00c8ff;
-  box-shadow: 0 0 16px rgba(0, 200, 255, 0.75);
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  box-shadow: none;
   transition: width 0.35s ease;
 }
 
 .circuit small {
   display: block;
   margin-top: 7px;
-  color: #8ca4af;
+  color: #bdd0e2;
   font:
     700 12px/1.25 var(--font-inter),
     Inter,
@@ -168,15 +170,16 @@
   align-content: center;
   min-height: 76px;
   padding: 12px 14px;
-  border: 1px solid #294757;
-  background: #07131b;
-  box-shadow: inset 0 1px 0 rgba(155, 179, 192, .12);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  box-shadow: none;
 }
 
 .signalGrid strong {
   display: block;
   margin-top: 7px;
-  color: #eaffff;
+  color: #f2f7ff;
   font:
     800 clamp(13px, 1.5vw, 17px) / 1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -197,10 +200,10 @@
   width: 100%;
   margin-top: 12px;
   padding: 18px;
-  border: 1px solid #294757;
-  background: #081116;
-  box-shadow:
-    inset 0 1px 0 rgba(155, 179, 192, .12);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%);
+  box-shadow: none;
 }
 
 .rewardSignal > div {
@@ -211,7 +214,7 @@
 .rewardSignal strong {
   display: block;
   margin-top: 7px;
-  color: #58d9ff;
+  color: #86daff;
   font:
     800 clamp(13px, 1.6vw, 18px) / 1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -232,13 +235,14 @@
   min-height: 46px;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   padding: 10px 20px;
-  border: 1px solid #58d9ff;
-  background: #063446;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .18),
-    inset 0 -1px 0 rgba(69, 173, 255, .22);
-  color: #eafaff;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  box-shadow: none;
+  color: #fff;
   font:
     800 13px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -253,8 +257,19 @@
 }
 
 .statePanel :is(button, a) {
-  border-color: #627f8f;
-  background: #0a151d;
+  color: #fff;
+}
+
+.rewardSignal button:active,
+.statePanel :is(button, a):active {
+  filter: brightness(0.89);
+}
+
+.rewardSignal button:disabled {
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: #13202c;
+  color: #a7b7c8;
+  cursor: default;
 }
 
 /* Percentage padding resolves against the CONTAINING BLOCK's inline size, not
@@ -277,15 +292,16 @@
   width: min(560px, 100%);
   margin: 22px auto 0;
   padding: 28px 24px;
-  border: 1px solid #23394a;
-  background: #070e15;
-  box-shadow: inset 0 1px 0 rgba(155, 179, 192, .14);
-  color: #b8d0da;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  box-shadow: none;
+  color: #bdd0e2;
   text-align: center;
 }
 
 .statePanel strong {
-  color: #effdff;
+  color: #f2f7ff;
   font:
     800 20px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -300,8 +316,8 @@
 }
 
 .console :is(button, a):focus-visible {
-  outline: 2px solid #8befff !important;
-  outline-offset: 3px !important;
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }
 
 @media (max-width: 780px) {

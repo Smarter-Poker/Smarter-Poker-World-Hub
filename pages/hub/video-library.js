@@ -26,6 +26,7 @@ import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import VideoLibraryWorkspaceHeader from '../../src/components/video-library/VideoLibraryWorkspaceHeader';
+import { VIDEO_LIBRARY_HELP_STEPS } from '../../src/lib/videoLibraryHelpSteps.mjs';
 
 // AEO phase 3 & 4 (2026-10-29).
 const VIDEO_LIBRARY_SCHEMA = hubProductSchema({
@@ -167,66 +168,7 @@ const LIBRARY_VIEW_META = {
     },
 };
 
-// Everything the index used to explain in grey sentences, behind the mast's
-// chrome "?" (Dan, 2026-11-27: "REMOVE ANY AND ALL UN NECESSARY EXPLANATIONS
-// (ADD A QUESTION MARK ICON) IF ITS NEEDED"). Title Case, no em dashes.
-// Each target is a data-tutorial attribute on this page.
-const VIDEO_LIBRARY_HELP_STEPS = Object.freeze([
-    {
-        id: 'welcome',
-        title: 'Poker Video Library',
-        body: 'Poker Sessions, Strategy And Live Coverage. Study Complete Sessions, Tournament Coverage And Creator Breakdowns In One Place.',
-        target: 'mast',
-    },
-    {
-        id: 'search',
-        title: 'Search And Browse',
-        body: 'Search Every Published Poker Video, Then Use The Chips To Switch Between Cash Games, Tournaments, Reels, Latest, Trending And Your Saved Lists.',
-        target: 'search',
-    },
-    {
-        id: 'filters',
-        title: 'Game, Stakes And Skill Level',
-        body: 'Filters Match Published Titles And Tags. Unlabeled Videos Appear In All. With A Filter On, Search Matches Published Titles And Channels.',
-        target: 'filters',
-    },
-    {
-        id: 'upload',
-        title: 'Upload Poker Clip',
-        body: 'Share Your Own Poker Clip In Poker Reels. Sign In And Confirm Your Sharing Rights Before Publishing.',
-        target: 'upload',
-    },
-    {
-        id: 'sources',
-        title: 'Channels',
-        body: 'Pick A Channel To See Only Its Videos. Show All Channels Lists Every Channel In The Library.',
-        target: 'sources',
-    },
-    {
-        id: 'study',
-        title: 'Diamond Study Streak',
-        body: 'Counts Days With Verified Video Watch Diamond Credits. Watch Rewards Use Existing Eligibility And Limits. No Extra Streak Bonus. Earn A Video Watch Reward Each Day To Continue Your Streak.',
-        target: 'study',
-    },
-    {
-        id: 'live',
-        title: 'Live Now',
-        body: 'Featured Channels Streaming Right Now. Checked Shows When Live Status Was Last Confirmed. Live Videos Open On YouTube.',
-        target: 'live',
-    },
-    {
-        id: 'timeline',
-        title: 'Hand Timeline',
-        body: 'In The Video Viewer, The Hand Timeline Becomes Available When Playback Starts. Hand Markers Last For This Viewing Session.',
-        target: null,
-    },
-    {
-        id: 'pause-quiz',
-        title: 'What Would You Do?',
-        body: 'Pause A Hand, Choose Your Action, Then Watch What Happens. Your Decision, Not A Solver Answer. It Is Available When The Player Reports Its Timeline, And Choices And Notes Last For This Viewing Session.',
-        target: null,
-    },
-]);
+// Help steps live in the shared Video Library help standard (src/lib/videoLibraryHelpSteps.mjs).
 
 class VideoLibraryReelsBoundary extends Component {
     constructor(props) {
@@ -2148,7 +2090,7 @@ export default function VideoLibraryPage() {
                             eyebrow={currentViewMeta.kicker}
                             helpTitle="Poker Video Library"
                             helpId="index"
-                            helpSteps={VIDEO_LIBRARY_HELP_STEPS}
+                            helpSteps={VIDEO_LIBRARY_HELP_STEPS.index}
                         />
                     </div>
                     {/* Search, then one row of chips: the YouTube phone layout. */}
@@ -2666,6 +2608,7 @@ export default function VideoLibraryPage() {
                         </div>
 
                     <div
+                        data-tutorial="viewer"
                         className={`vl-player-stage${parseDuration(selectedVideo.duration) > 0 && parseDuration(selectedVideo.duration) <= 180 ? ' is-vertical-player' : ''}`}
                         onMouseMove={!isTouchDevice ? vlRevealHud : undefined}
                         onFocusCapture={!isTouchDevice ? vlRevealHud : undefined}

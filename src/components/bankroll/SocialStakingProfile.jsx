@@ -12,7 +12,7 @@ const fields = [
   ['count', 'Sessions'],
   ['mean', 'Average Session'],
   ['net', 'Net Result'],
-  ['streak', 'Winning Streak'],
+  ['streak', 'Current Win Streak'],
   ['graph', 'Result Trend'],
 ];
 const defaults = {
@@ -24,6 +24,10 @@ const defaults = {
   streak: false,
   graph: true,
 };
+// A backer stakes poker. Slots, table games and sports results are not part of
+// a staking record, and mixing them in misstated ROI and win rate.
+export const STAKING_CATEGORIES = ['poker_cash', 'poker_mtt'];
+export const stakingEntries = (entries = []) => entries.filter((e) => STAKING_CATEGORIES.includes(e?.category));
 const keyFor = (id) => 'bankroll.stats-card.fields.' + id;
 
 function ResultGraph({ points }) {
@@ -53,7 +57,8 @@ function ResultGraph({ points }) {
   );
 }
 
-function ProfileCard({ entries, user, displayEUR, onClose }) {
+function ProfileCard({ entries: allEntries, user, displayEUR, onClose }) {
+  const entries = useMemo(() => stakingEntries(allEntries), [allEntries]);
   const [shown, setShown] = useState(defaults);
   const [feedback, setFeedback] = useState('');
   const [busy, setBusy] = useState(false);
@@ -132,7 +137,7 @@ function ProfileCard({ entries, user, displayEUR, onClose }) {
               ' → ' +
               money(points[points.length - 1], displayEUR, true)
           );
-        text = [alias + ' · Staking Profile', ...lines].join('\n');
+        text = [alias + ' · Poker Staking Profile', ...lines].join('\n');
       }
       if (!(await safeCopyToClipboard(text)))
         throw Error('Clipboard Access Was Unavailable. Select And Copy The Card Text.');
@@ -184,6 +189,9 @@ function ProfileCard({ entries, user, displayEUR, onClose }) {
               </div>
             ))}
           </dl>
+          {summary.count === 0 && (
+            <p className={styles.empty}>No Poker Sessions Recorded Yet. Log A Cash Game Or Tournament To Build Your Profile.</p>
+          )}
           {shown.graph && points.length > 0 && (
             <div className={styles.profileChart}>
               <div>
@@ -201,7 +209,7 @@ function ProfileCard({ entries, user, displayEUR, onClose }) {
               <SlidersHorizontal size={17} aria-hidden />
               Stats Card Privacy
             </h3>
-            <p>Choose The Figures Included When You Copy Your Card.</p>
+            <p>Choose The Figures Included When You Copy Your Card. Figures Cover Poker Cash Games And Tournaments.</p>
             <div className={styles.choices}>
               {fields.map(([key, label]) => (
                 <button key={key} type="button" aria-pressed={shown[key]} onClick={() => toggle(key)}>

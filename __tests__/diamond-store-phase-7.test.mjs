@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import { BANNED_TEXT_COLOUR, ROUNDED_CORNER, SD_FRAME, offStandardPaint } from './smarterdesign-standard.test.mjs';
+
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const CART = read('pages/hub/diamond-store/cart.js');
@@ -36,12 +38,14 @@ test('marketplace account pages share same-surface navigation and accessible cas
   assert.doesNotMatch(SHELL, /target=|window\.open/);
   assert.match(SHELL, /aria-current=\{active === id \? 'page'/);
   assert.match(SHELL, /aria-label="Marketplace Account Pages"/);
-  assert.doesNotMatch(
-    SHELL_CSS,
-    /border-radius|(?:linear|radial|conic)-gradient|:hover/
-  );
-  assert.match(SHELL_CSS, /box-shadow/);
-  assert.match(SHELL_CSS, /:focus-visible/);
+  // #SMARTERDESIGN: square corners, only standard paint, no hover states, and
+  // the route links are chrome-row controls with the cobalt selected state.
+  assert.doesNotMatch(SHELL_CSS, /:hover/);
+  assert.doesNotMatch(SHELL_CSS, ROUNDED_CORNER);
+  assert.deepEqual(offStandardPaint(SHELL_CSS), []);
+  assert.doesNotMatch(SHELL_CSS, BANNED_TEXT_COLOUR);
+  assert.match(SHELL_CSS, SD_FRAME.control);
+  assert.match(SHELL_CSS, /:focus-visible\s*\{[^}]*outline:\s*2px solid #9ee3ff/);
   assert.match(SHELL_CSS, /@media \(prefers-reduced-motion: reduce\)/);
 });
 

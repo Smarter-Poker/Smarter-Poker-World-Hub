@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { localDay } from '../../lib/bankroll/localDates.mjs';
 
 // Clean SmarterPoker-style categories (no emojis)
 const QUICK_CATEGORIES = [
@@ -40,7 +41,7 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
 
             const formData = {
                 category,
-                entry_date: new Date().toISOString().split('T')[0],
+                entry_date: localDay(),
                 gross_in: grossIn,
                 gross_out: grossOut,
                 notes: 'Quick logged',

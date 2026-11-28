@@ -50,6 +50,8 @@ import { supabase } from '../../lib/supabase';
 import VenueSelector from './VenueSelector';
 import toast from '../../stores/toastStore';
 import { busEmit } from '../../engine/EventBus';
+import { localDay } from '../../lib/bankroll/localDates.mjs';
+import { buildGigReportCsv, downloadCsv, irsMileageRate, safeFileName } from '../../lib/bankroll/tokeReport.mjs';
 
 // ── Down type metadata ──
 const DOWN_TYPES = [
@@ -202,7 +204,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         poker_venue_id: null,
         latitude: null,
         longitude: null,
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: localDay(),
         hourly_rate: '',
         notes: '',
     });
@@ -391,20 +393,20 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             }
         } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
-        if (tokePrefs.downTimerAlerts === false) return; // 🛡️ Respect user preference for OS Push Alerts
+        if (tokePrefs.downTimerAlerts === false) return; // Respect user preference for OS Push Alerts
 
         let message = '';
-        let title = '⏰ Down Timer';
+        let title = 'Down Timer';
 
         if (lastDown.down_type === 'break') {
-            title = '☕ Break Check';
+            title = 'Break Check';
             message = 'Are you still on break?';
         } else if (lastDown.down_type === 'brush') {
-            title = '🧹 Brush Check';
+            title = 'Brush Check';
             message = 'Are you still brushing?';
         } else {
             const tableInfo = lastDown.table_number ? ` (Table ${lastDown.table_number})` : '';
-            title = '♠ Down Check';
+            title = 'Down Check';
             message = `Still dealing the same table${tableInfo}?`;
         }
 
@@ -543,7 +545,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             toast.success('Event started!');
             busEmit.sessionStart('Toke Tracker');
             setShowCreateForm(false);
-            setNewGig({ venue_name: '', venue_address: '', location_id: null, venue_type: 'casino', poker_venue_id: null, latitude: null, longitude: null, start_date: new Date().toISOString().split('T')[0], hourly_rate: '', notes: '' });
+            setNewGig({ venue_name: '', venue_address: '', location_id: null, venue_type: 'casino', poker_venue_id: null, latitude: null, longitude: null, start_date: localDay(), hourly_rate: '', notes: '' });
             await requestNotificationPermission();
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
@@ -985,7 +987,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             `Expenses:      -${formatCurrency(stats.totalExpenses)}`,
             `Net Earnings:  ${formatCurrency(stats.totalEarnings)}`,
             `Hours Worked:  ${stats.totalHoursWorked.toFixed(1)}h`,
+            `Tokes/Hour:    ${formatCurrency(stats.tokesPerHour)}`,
             `Avg Toke/Down: ${formatCurrency(stats.avgTokePerDown)}`,
+            `Per Day:       ${formatCurrency(stats.perDay)} (${stats.durationDays} day${stats.durationDays !== 1 ? 's' : ''})`,
             `Downs: ${stats.totalDowns}  (Cash: ${stats.cashDownCount} | Tourn: ${stats.tournamentDownCount} | Brush: ${stats.brushDownCount} | Break: ${stats.breakCount})`,
             `Mileage: ${gig.mileage || 0} mi`,
         ];
@@ -1002,39 +1006,18 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
     const handleDownloadCSV = () => {
         if (!selectedReport) return;
-        const { gig, downs, expenses } = selectedReport;
-        const rows = [
-            ['Type', 'Date', 'Game', 'Table', 'Started', 'Ended', 'Toke', 'Double', 'Multiplier', 'Notes'],
-            ...(downs || []).map(d => [
-                d.down_type,
-                new Date(d.started_at).toLocaleDateString(),
-                d.game_type || '',
-                d.table_number || '',
-                new Date(d.started_at).toLocaleTimeString(),
-                d.ended_at ? new Date(d.ended_at).toLocaleTimeString() : '',
-                d.toke_amount || 0,
-                d.is_double_down ? 'Yes' : 'No',
-                d.down_multiplier || 1,
-                d.notes || '',
-            ]),
-            [],
-            ['Expense Type', 'Amount', 'Description', 'Date'],
-            ...(expenses || []).map(e => [
-                e.category,
-                e.amount || 0,
-                e.description || '',
-                new Date(e.created_at).toLocaleDateString(),
-            ]),
-        ];
-        const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `toke-report-${gig.venue_name.replace(/\s+/g, '-')}-${gig.start_date}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-        toast.success('CSV downloaded!');
+        const { gig } = selectedReport;
+        const expenseLabels = Object.fromEntries(EXPENSE_CATEGORIES.map(c => [c.id, c.label]));
+        try {
+            downloadCsv(
+                buildGigReportCsv(selectedReport, { expenseLabels }),
+                `toke-report-${safeFileName(gig.venue_name)}-${gig.start_date}.csv`
+            );
+            toast.success('CSV downloaded!');
+        } catch (err) {
+            console.warn('[TokeTracker] CSV export failed:', err);
+            toast.error('CSV download failed');
+        }
     };
 
     // ── Report Subview ──
@@ -1054,9 +1037,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
                     {/* Mileage IRS Deductible */}
                     {gig.mileage > 0 && (() => {
-                        const year = gig.start_date ? parseInt(gig.start_date.slice(0, 4), 10) : new Date().getFullYear();
-                        const irsRates = { 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585 };
-                        const rate = irsRates[year] || 0.67;
+                        const rate = irsMileageRate(gig.end_date || gig.start_date);
                         return (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 8, background: 'rgba(56,189,248,0.08)', border: '2px solid rgba(56,189,248,0.25)', borderRadius: 8, fontSize: 13 }}>
                                 <CarFront size={16} aria-hidden="true" />
@@ -1092,8 +1073,8 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             <span>{formatCurrency(stats.avgTokePerDown)}</span>
                         </div>
                         <div className={"sd-metric " + shift.metric}>
-                            <span>Mileage</span>
-                            <span>{gig.mileage || 0} Mi</span>
+                            <span>Tokes / Hour</span>
+                            <span>{formatCurrency(stats.tokesPerHour)}</span>
                         </div>
                         <div className={"sd-metric " + shift.metric}>
                             <span>Per Day</span>
@@ -1755,7 +1736,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 onDeleteGig={handleDeleteCompletedGig}
             />
 
-            <MonthlyIncomeGoal key={userId || 'guest'} userId={userId} completedGigs={completedGigs} />
+            <MonthlyIncomeGoal key={userId || 'guest'} userId={userId} completedGigs={completedGigs} activeGig={activeGig} />
 
             <DealerReference key={'reference-' + (userId || 'guest')} />
 

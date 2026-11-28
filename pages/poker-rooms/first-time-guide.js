@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const CHECKIN_STEPS = [
   {
@@ -502,12 +503,12 @@ export default function FirstTimeCasinoPokerGuidePage() {
           <SmarterConversionCta
             eyebrow="Free Live Poker Starter Account"
             title="Practice Preflop Strategy & Find Your First Live Room Free"
-            description="Create A Free Smarter.Poker Account To Drill 107 GTO Training Games Before Sitting Down, Browse 715+ Live Rooms, And Track Your First Session."
+            description={`Create A Free Smarter.Poker Account To Drill 107 GTO Training Games Before Sitting Down, Browse ${VENUE_COUNT_LABEL} Poker Rooms, And Track Your First Session.`}
             primaryLabel="Create Free Account"
             primaryHref="/auth/signup?redirect=%2Fpoker-rooms%2Ffirst-time-guide&src=first-time-guide"
             secondaryLabel="Sign In"
             secondaryHref="/auth/login?redirect=%2Fpoker-rooms%2Ffirst-time-guide"
-            highlights={['100% Free Account', '107 GTO Drills', '715+ Live Rooms']}
+            highlights={['100% Free Account', '107 GTO Drills', `${VENUE_COUNT_LABEL} Poker Rooms`]}
           />
         </div>
 

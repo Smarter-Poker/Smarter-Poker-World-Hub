@@ -14,13 +14,34 @@ import {
     updateStakingArrangement,
     deleteStakingArrangement,
     deactivateAllArrangements,
-    fetchStakingSessions,
-    createStakingSession,
-    getStakingStats,
-    fetchLedgerEntries,
+    loadStakingDeal,
+    linkStakingSession,
+    unlinkStakingSession,
 } from '../../lib/bankroll/bankrollSelectors';
-import { formatCurrency } from '../../lib/bankroll/currencyUtils';
+import { buildStakingStatementCsv, normaliseStakingTerms, replayStakingDeal } from '../../lib/bankroll/stakingMath.mjs';
 import toast from '../../stores/toastStore';
+import { localDay, parseLedgerDay } from '../../lib/bankroll/localDates.mjs';
+
+const CATEGORY_LABELS = {
+    poker_cash: 'Cash',
+    poker_mtt: 'MTT',
+    casino_table: 'Casino',
+    slots: 'Slots',
+    sports: 'Sports',
+};
+
+// Staking settles to the cent: whole-dollar rounding showed two $425 shares of
+// an $851 session. Whole amounts stay short, anything else shows cents.
+const formatCurrency = (amount) => {
+    const value = Math.round((Number(amount) || 0) * 100) / 100;
+    const digits = Number.isInteger(value) ? 0 : 2;
+    const text = Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: 2 });
+    return (value < 0 ? '-$' : '$') + text;
+};
+
+const shortDay = (day, withYear = false) => day
+    ? parseLedgerDay(day).toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}) })
+    : '';
 
 export default function StakingTracker({ userId, refreshTrigger }) {
     const [arrangements, setArrangements] = useState([]);
@@ -29,6 +50,11 @@ export default function StakingTracker({ userId, refreshTrigger }) {
     const [stats, setStats] = useState({ totalGrossResult: 0, playerShare: 0, backerShare: 0, sessionCount: 0 });
     const [unlinkedEntries, setUnlinkedEntries] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const [currentMakeup, setCurrentMakeup] = useState(0);
+    const [formError, setFormError] = useState('');
+    const [busyId, setBusyId] = useState(null);
+    const [confirmUnlink, setConfirmUnlink] = useState(null);
 
     // Modal state
     const [showModal, setShowModal] = useState(false);
@@ -39,10 +65,6 @@ export default function StakingTracker({ userId, refreshTrigger }) {
     const [confirmEnd, setConfirmEnd] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(null);
 
-    // Link session state
-    const [showLinkModal, setShowLinkModal] = useState(false);
-    const [linkingEntry, setLinkingEntry] = useState(null);
-
     // Form
     const [form, setForm] = useState({
         backer_name: '',
@@ -51,13 +73,14 @@ export default function StakingTracker({ userId, refreshTrigger }) {
         split_percentage: 50,
         markup_percentage: 0,
         starting_makeup: 0,
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: localDay(),
         notes: '',
     });
 
     const loadData = useCallback(async () => {
-        if (!userId) return;
+        if (!userId) { setIsLoading(false); return; }
         setIsLoading(true);
+        setLoadError('');
         try {
             const arr = await fetchStakingArrangements(userId);
             setArrangements(arr);
@@ -66,31 +89,20 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             setActiveArrangement(active);
 
             if (active) {
-                const [sessData, statsData] = await Promise.all([
-                    fetchStakingSessions(active.id),
-                    getStakingStats(active.id),
-                ]);
-                setSessions(sessData);
-                setStats(statsData);
-
-                // Find ledger entries not yet linked to a staking session
-                try {
-                    const allEntries = await fetchLedgerEntries(userId, { limit: 50 });
-                    const linkedIds = new Set(sessData.map(s => s.ledger_entry_id));
-                    const unlinked = allEntries.filter(e =>
-                        !linkedIds.has(e.id) &&
-                        e.category !== 'expense' &&
-                        new Date(e.entry_date) >= new Date(active.start_date)
-                    );
-                    setUnlinkedEntries(unlinked);
-                } catch { setUnlinkedEntries([]); }
+                const deal = await loadStakingDeal(userId, active, arr.map(a => a.id));
+                setSessions(deal.sessions);
+                setStats(deal.totals);
+                setCurrentMakeup(deal.currentMakeup);
+                setUnlinkedEntries(deal.linkable);
             } else {
                 setSessions([]);
                 setStats({ totalGrossResult: 0, playerShare: 0, backerShare: 0, sessionCount: 0 });
+                setCurrentMakeup(0);
                 setUnlinkedEntries([]);
             }
         } catch (err) {
             console.warn('Error loading staking data:', err);
+            setLoadError('Your Staking Deals Could Not Be Loaded.');
         } finally {
             setIsLoading(false);
         }
@@ -109,7 +121,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             split_percentage: 50,
             markup_percentage: 0,
             starting_makeup: 0,
-            start_date: new Date().toISOString().split('T')[0],
+            start_date: localDay(),
             notes: '',
         });
         setShowModal(true);
@@ -121,27 +133,31 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             backer_name: arr.backer_name || '',
             backer_email: arr.backer_email || '',
             backer_phone: arr.backer_phone || '',
-            split_percentage: arr.split_percentage || 50,
+            split_percentage: arr.split_percentage ?? 50,
             markup_percentage: arr.markup_percentage || 0,
             starting_makeup: arr.starting_makeup || 0,
-            start_date: arr.start_date || new Date().toISOString().split('T')[0],
+            start_date: arr.start_date || localDay(),
             notes: arr.notes || '',
         });
+        setFormError('');
         setShowModal(true);
     };
 
     const handleSave = async () => {
-        if (!form.backer_name.trim()) return;
+        if (!form.backer_name.trim() || saving) return;
+        const { terms, error } = normaliseStakingTerms(form);
+        if (error) { setFormError(error); return; }
+        if (!form.start_date) { setFormError('Choose The Date The Deal Started.'); return; }
+        setFormError('');
         setSaving(true);
         try {
             if (editingArrangement) {
+                // Changed terms re-apply to every linked session when the deal reloads.
                 await updateStakingArrangement(editingArrangement.id, {
-                    backer_name: form.backer_name,
+                    backer_name: form.backer_name.trim(),
                     backer_email: form.backer_email || null,
                     backer_phone: form.backer_phone || null,
-                    split_percentage: parseInt(form.split_percentage),
-                    markup_percentage: parseInt(form.markup_percentage) || 0,
-                    starting_makeup: parseFloat(form.starting_makeup) || 0,
+                    ...terms,
                     start_date: form.start_date,
                     notes: form.notes || null,
                 });
@@ -150,12 +166,10 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                 // Deactivate any existing active arrangement
                 await deactivateAllArrangements(userId);
                 await createStakingArrangement(userId, {
-                    backer_name: form.backer_name,
+                    backer_name: form.backer_name.trim(),
                     backer_email: form.backer_email || null,
                     backer_phone: form.backer_phone || null,
-                    split_percentage: parseInt(form.split_percentage),
-                    markup_percentage: parseInt(form.markup_percentage) || 0,
-                    starting_makeup: parseFloat(form.starting_makeup) || 0,
+                    ...terms,
                     start_date: form.start_date,
                     notes: form.notes || null,
                 });
@@ -176,7 +190,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
         try {
             await updateStakingArrangement(activeArrangement.id, {
                 is_active: false,
-                end_date: new Date().toISOString().split('T')[0],
+                end_date: localDay(),
             });
             toast.success('Arrangement completed');
             setConfirmEnd(false);
@@ -200,24 +214,52 @@ export default function StakingTracker({ userId, refreshTrigger }) {
     };
 
     const handleLinkEntry = async (entry) => {
-        if (!activeArrangement) return;
+        if (!activeArrangement || busyId) return;
+        setBusyId(entry.id);
         try {
-            const net = (entry.gross_out || 0) - (entry.gross_in || 0);
-            await createStakingSession({
-                arrangement_id: activeArrangement.id,
-                ledger_entry_id: entry.id,
-                gross_result: net,
-                split_percentage: activeArrangement.split_percentage,
-                current_makeup: activeArrangement.current_makeup || 0,
-            });
+            await linkStakingSession({ ...activeArrangement, current_makeup: currentMakeup }, entry);
             toast.success('Session linked to staking arrangement');
-            setShowLinkModal(false);
-            setLinkingEntry(null);
-            loadData();
         } catch (err) {
             console.warn('Error linking entry:', err);
-            toast.error('Failed to link session');
+            toast.error(err?.message?.startsWith('That Session') ? err.message : 'Failed to link session');
+        } finally {
+            setBusyId(null);
+            loadData();
         }
+    };
+
+    const handleUnlink = async (session) => {
+        if (busyId) return;
+        setBusyId(session.id);
+        try {
+            await unlinkStakingSession(session.id);
+            toast.success('Session removed from this deal');
+        } catch (err) {
+            console.warn('Error unlinking session:', err);
+            toast.error('Failed to remove session');
+        } finally {
+            setBusyId(null);
+            setConfirmUnlink(null);
+            loadData();
+        }
+    };
+
+    const handleExport = () => {
+        if (!activeArrangement) return;
+        const replay = replayStakingDeal({
+            startingMakeup: activeArrangement.starting_makeup,
+            splitPercentage: activeArrangement.split_percentage,
+            sessions,
+        });
+        const csv = buildStakingStatementCsv(activeArrangement, replay, CATEGORY_LABELS);
+        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'staking-' + (activeArrangement.backer_name || 'deal').replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '-' + localDay() + '.csv';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
 
     // --- RENDER ---
@@ -230,13 +272,16 @@ export default function StakingTracker({ userId, refreshTrigger }) {
         );
     }
 
-    const CATEGORY_LABELS = {
-        poker_cash: 'Cash',
-        poker_mtt: 'MTT',
-        casino_table: 'Casino',
-        slots: 'Slots',
-        sports: 'Sports',
-    };
+    if (loadError) {
+        return (
+            <div className="sd-panel" style={styles.container}>
+                <div role="alert" style={styles.loadingState}>
+                    <p style={{ margin: '0 0 12px' }}>{loadError}</p>
+                    <button type="button" onClick={loadData} style={styles.addBtn}>Retry</button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="sd-panel" style={styles.container}>
@@ -254,7 +299,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                             <div style={styles.liveBadge}>● ACTIVE DEAL</div>
                             <h3 style={styles.backerName}>{activeArrangement.backer_name}</h3>
                             <div style={styles.activeMeta}>
-                                Started {new Date(activeArrangement.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                Started {shortDay(activeArrangement.start_date, true)}
                                 {activeArrangement.backer_email && ` · ${activeArrangement.backer_email}`}
                             </div>
                         </div>
@@ -305,10 +350,10 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                             <div style={styles.statLabel}>MAKEUP</div>
                             <div style={{
                                 ...styles.statValue,
-                                color: (activeArrangement.current_makeup || 0) > 0 ? '#ef4444' : '#22c55e'
+                                color: currentMakeup > 0 ? '#ef4444' : '#22c55e'
                             }}>
-                                {(activeArrangement.current_makeup || 0) > 0
-                                    ? `-${formatCurrency(activeArrangement.current_makeup)}`
+                                {currentMakeup > 0
+                                    ? `-${formatCurrency(currentMakeup)}`
                                     : 'Clear'
                                 }
                             </div>
@@ -324,8 +369,11 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                     <div key={s.id} style={styles.sessionRow}>
                                         <div style={styles.sessionInfo}>
                                             <span style={styles.sessionDate}>
-                                                {new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                {shortDay(s.entry_date) || shortDay(s.created_at)}
                                             </span>
+                                            {s.category && (
+                                                <span style={styles.sessionCat}>{CATEGORY_LABELS[s.category] || s.category}</span>
+                                            )}
                                             <span style={{
                                                 ...styles.sessionNet,
                                                 color: s.gross_result >= 0 ? '#22c55e' : '#ef4444'
@@ -336,6 +384,22 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                         <div style={styles.sessionSplits}>
                                             <span style={{ color: '#22c55e', fontSize: 14 }}>You: {formatCurrency(s.player_share)}</span>
                                             <span style={{ color: '#3b82f6', fontSize: 14 }}>Backer: {formatCurrency(s.backer_share)}</span>
+                                            {confirmUnlink === s.id ? (
+                                                <span style={styles.unlinkConfirm}>
+                                                    <button type="button" onClick={() => handleUnlink(s)} disabled={!!busyId} style={styles.confirmYesSmall}>Remove</button>
+                                                    <button type="button" onClick={() => setConfirmUnlink(null)} style={styles.confirmNoSmall}>Keep</button>
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setConfirmUnlink(s.id)}
+                                                    disabled={!!busyId}
+                                                    aria-label={'Remove The ' + (shortDay(s.entry_date) || 'Linked') + ' Session From This Deal'}
+                                                    style={styles.unlinkBtn}
+                                                >
+                                                    Unlink
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -349,12 +413,12 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                             <div style={styles.sectionTitle}>Unlinked Sessions ({unlinkedEntries.length})</div>
                             <div style={styles.sessionsScroll}>
                                 {unlinkedEntries.map(entry => {
-                                    const net = (entry.gross_out || 0) - (entry.gross_in || 0);
+                                    const net = entry.net_result ?? (entry.gross_out || 0) - (entry.gross_in || 0);
                                     return (
                                         <div key={entry.id} style={styles.sessionRow}>
                                             <div style={styles.sessionInfo}>
                                                 <span style={styles.sessionDate}>
-                                                    {new Date(entry.entry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                    {shortDay(entry.entry_date)}
                                                 </span>
                                                 <span style={styles.sessionCat}>
                                                     {CATEGORY_LABELS[entry.category] || entry.category}
@@ -367,16 +431,25 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                                 </span>
                                             </div>
                                             <button
+                                                type="button"
                                                 onClick={() => handleLinkEntry(entry)}
-                                                style={styles.linkBtn}
+                                                disabled={!!busyId}
+                                                aria-label={'Link The ' + shortDay(entry.entry_date) + ' Session To This Deal'}
+                                                style={{ ...styles.linkBtn, opacity: busyId ? 0.5 : 1 }}
                                             >
-                                                Link
+                                                {busyId === entry.id ? 'Linking...' : 'Link'}
                                             </button>
                                         </div>
                                     );
                                 })}
                             </div>
                         </div>
+                    )}
+
+                    {sessions.length === 0 && unlinkedEntries.length === 0 && (
+                        <p style={styles.noSessions}>
+                            No Sessions Logged Since {shortDay(activeArrangement.start_date, true)} Yet. Log A Session And Link It Here.
+                        </p>
                     )}
 
                     {/* Actions */}
@@ -392,6 +465,11 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                 <button onClick={() => setConfirmEnd(true)} style={styles.completeBtn}>
                                     ✓ End Deal
                                 </button>
+                                {sessions.length > 0 && (
+                                    <button type="button" onClick={handleExport} style={styles.editBtn}>
+                                        Export Statement
+                                    </button>
+                                )}
                             </>
                         ) : (
                             <AnimatePresence>
@@ -429,7 +507,8 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                 <div style={styles.pastName}>{arr.backer_name}</div>
                                 <div style={styles.pastMeta}>
                                     {arr.split_percentage}% / {100 - arr.split_percentage}%
-                                    {arr.end_date && ` · Ended ${new Date(arr.end_date).toLocaleDateString()}`}
+                                    {arr.end_date && ` · Ended ${shortDay(arr.end_date, true)}`}
+                                    {Number(arr.current_makeup) > 0 && ` · Makeup ${formatCurrency(arr.current_makeup)}`}
                                 </div>
                             </div>
                             <div style={styles.pastActions}>
@@ -439,7 +518,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                         <button onClick={() => setConfirmDelete(null)} style={styles.confirmNoSmall}>Cancel</button>
                                     </>
                                 ) : (
-                                    <button onClick={() => setConfirmDelete(arr.id)} style={styles.deleteBtn}>✕</button>
+                                    <button type="button" onClick={() => setConfirmDelete(arr.id)} aria-label={'Delete The Deal With ' + arr.backer_name} style={styles.deleteBtn}>✕</button>
                                 )}
                             </div>
                         </div>
@@ -503,7 +582,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                     <label style={styles.formLabel}>Your Split %</label>
                                     <input
                                         type="number"
-                                        min="0" max="100"
+                                        min="0" max="100" step="1" inputMode="numeric"
                                         value={form.split_percentage}
                                         onChange={e => setForm({ ...form, split_percentage: e.target.value })}
                                         style={styles.formInput}
@@ -513,7 +592,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                     <label style={styles.formLabel}>Backer Split %</label>
                                     <input
                                         type="number"
-                                        value={100 - parseInt(form.split_percentage || 0)}
+                                        value={(() => { const n = Number(form.split_percentage); return form.split_percentage !== '' && Number.isInteger(n) && n >= 0 && n <= 100 ? 100 - n : ''; })()}
                                         disabled
                                         style={{ ...styles.formInput, opacity: 0.5 }}
                                     />
@@ -536,6 +615,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                     <label style={styles.formLabel}>Starting Makeup</label>
                                     <input
                                         type="number"
+                                        min="0" step="0.01" inputMode="decimal"
                                         value={form.starting_makeup}
                                         onChange={e => setForm({ ...form, starting_makeup: e.target.value })}
                                         placeholder="0"
@@ -564,6 +644,8 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                                     />
                                 </div>
                             </div>
+
+                            {formError && <p role="alert" style={styles.formError}>{formError}</p>}
 
                             <div style={styles.modalActions}>
                                 <button onClick={() => setShowModal(false)} style={styles.cancelBtn}>
@@ -720,6 +802,8 @@ const styles = {
     },
     sessionRow: {
         display: 'flex',
+        flexWrap: 'wrap',
+        gap: 6,
         justifyContent: 'space-between',
         alignItems: 'center',
         background: 'rgba(0,0,0,0.25)',
@@ -748,7 +832,32 @@ const styles = {
     },
     sessionSplits: {
         display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
         gap: 12,
+    },
+    unlinkBtn: {
+        background: 'transparent',
+        color: '#9aaec3',
+        border: '1px solid rgba(255,255,255,0.15)',
+        borderRadius: 4,
+        padding: '3px 8px',
+        fontSize: 14,
+        cursor: 'pointer',
+    },
+    unlinkConfirm: {
+        display: 'inline-flex',
+        gap: 6,
+    },
+    noSessions: {
+        fontSize: 14,
+        color: '#9aaec3',
+        margin: '0 0 14px',
+    },
+    formError: {
+        color: '#f87171',
+        fontSize: 14,
+        margin: '12px 0 0',
     },
     linkBtn: {
         background: 'rgba(59,130,246,0.15)',
@@ -951,7 +1060,7 @@ const styles = {
     },
     formRow: {
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
         gap: 12,
     },
     modalActions: {

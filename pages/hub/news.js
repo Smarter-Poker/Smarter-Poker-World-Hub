@@ -41,7 +41,6 @@ import { getYouTubeVideoId } from '../../src/lib/socialHelpers';
 import useSWR, { SWRConfig } from 'swr';
 import { originFrom } from '../../src/lib/poker-near-me/seriesSeo.mjs';
 import { swrFallback, catalogueCacheHeaders } from '../../src/lib/seo/swrFallback.mjs';
-import { supabase } from '../../src/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 // confetti loaded lazily on first use
 let _confetti = null;
@@ -59,6 +58,8 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
 import LiveWireStyles from '../../src/components/news/LiveWireStyles';
+import NewsSmarterDesignStyles from '../../src/components/news/NewsSmarterDesignStyles';
+import BankrollImageHeader from '../../src/components/bankroll/BankrollImageHeader';
 import MagazineNewsstandBanner from '../../src/components/magazine/MagazineNewsstandBanner';
 import {
     ConsoleCopy,
@@ -236,9 +237,24 @@ export async function getServerSideProps({ req, res }) {
   return { props: { fallback: { ...firstPage, ...sourceBoxes } } };
 }
 
+// REFRESH POLICY (Dan, 2026-11-27): "THIS PAGE SHOULD NOT AUTO REFRESH, IT
+// SHOULD ONLY REFRESH WHEN SOMEONE NAVIGATES TO IT, OR EVERY 15 MINUTES WHEN
+// LEFT 'OPEN'". Every feed on the page loads on arrival and then once every
+// 15 minutes while the tab is visible; returning focus or a reconnect does not
+// reload it, and the old live INSERT subscription (which reloaded the feed on
+// every new article) is gone. The story list itself is refreshed from page 0
+// on the same 15-minute clock (see NEWS_REFRESH_MS in NewsHub).
+const NEWS_REFRESH_MS = 15 * 60 * 1000;
+const NEWS_REFRESH_POLICY = {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    refreshInterval: NEWS_REFRESH_MS,
+    refreshWhenHidden: false,
+};
+
 export default function NewsHubPage({ fallback }) {
   return (
-    <SWRConfig value={{ fallback: fallback || {} }}>
+    <SWRConfig value={{ fallback: fallback || {}, ...NEWS_REFRESH_POLICY }}>
       <NewsHub />
     </SWRConfig>
   );
@@ -867,29 +883,18 @@ function NewsHub() {
     }, [reelViewerOpen]);
 
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // TIER 3 REALTIME: News Updates — revalidate SWR directly on INSERT
-    // ═══════════════════════════════════════════════════════════════════════════
+    // 15-MINUTE REFRESH (Dan, 2026-11-27; replaces the live INSERT subscription).
     // refreshNewsFeed (not the raw SWR mutate): with offset pagination a plain
-    // revalidate would only refresh whichever page is currently in the SWR key, so
-    // an INSERT would never surface while the reader is deep in the feed.
+    // revalidate would only refresh whichever page is currently in the SWR key.
+    // A hidden tab waits; the next tick after it is visible again refreshes it.
     const refreshNewsRef = useRef(null);
     refreshNewsRef.current = refreshNewsFeed;
     useEffect(() => {
-        const newsChannel = supabase
-            .channel(`news-live-${Date.now()}`)
-            .on('postgres_changes', {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'poker_news'
-            }, () => {
-                refreshNewsRef.current?.();
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(newsChannel);
-        };
+        const timer = setInterval(() => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+            refreshNewsRef.current?.();
+        }, NEWS_REFRESH_MS);
+        return () => clearInterval(timer);
     }, []);
 
     // Load preferences and bookmarks from Supabase on mount
@@ -1480,8 +1485,9 @@ function NewsHub() {
                 the point of this page. The exit animation is unaffected. */}
             <PageTransition disableInitialAnimation>
                 
-                <div className="news-hub live-wire">
+                <div className="news-hub live-wire smarterdesign">
                     <LiveWireStyles />
+                    <NewsSmarterDesignStyles />
                     {/* Scroll Progress Bar */}
                     <div className="scroll-progress" style={{ width: `${scrollProgress}%` }} />
                     <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
@@ -1544,24 +1550,36 @@ function NewsHub() {
                     <div className="layout">
                         {/* Left Column - News Boxes */}
                         <main className="main-content">
-                            <div className="news-desk-masthead">
-                                <div className="news-desk-title-group">
-                                    <span className="live-pulse" aria-hidden="true" />
-                                    <div>
-                                        <div className="news-desk-kicker">
-                                            Live Desk · {filteredNews.length} Stories Moving
-                                            {newArticleCount > 0 ? ` · ${newArticleCount} new` : ''}
-                                        </div>
-                                        <h1 className="news-desk-title">Live Intelligence Wire</h1>
-                                    </div>
-                                </div>
-                                {lastRefreshed && (
-                                    <div className="news-desk-freshness">
-                                        <span>Updated {hasMounted ? timeAgo(lastRefreshed) : ''}</span>
-                                        <button type="button" onClick={() => refreshNewsFeed()}>Refresh</button>
-                                    </div>
+                            {/* #SMARTERDESIGN image header (Dan, 2026-11-27): one steel
+                                rim, the newspaper seal in its chrome circle, the page
+                                name in live white lettering, the press scene on the
+                                right and the one painted chrome "?" in the corner. The
+                                explanations that used to sit on the page live behind
+                                the "?". */}
+                            <BankrollImageHeader
+                                art="news"
+                                section="news"
+                                title="Poker News"
+                                titleId="news-page-title"
+                                className="news-image-header"
+                                parent={(
+                                    <span className="news-desk-kicker">
+                                        Live Intelligence Wire · {filteredNews.length} Stories
+                                        {newArticleCount > 0 ? ` · ${newArticleCount} New` : ''}
+                                        {lastRefreshed && hasMounted ? ` · Updated ${timeAgo(lastRefreshed)}` : ''}
+                                    </span>
                                 )}
-                            </div>
+                                helpContent={(
+                                    <>
+                                        <p>Headlines Are Gathered Every Hour From Seven Poker Outlets, Each Shown As A Source Chip Below. Open A Story To Read It Here.</p>
+                                        <p>Use The Tabs For News, Reels, Videos, Events And Read Later. Tap A Source To Show Only Its Stories, Or Several Sources At Once. Clear Removes Every Source Filter.</p>
+                                        <p>Story Signal Counts The Stories Shown. Latest Puts The Newest First; Most Read Ranks Stories By Reader Views.</p>
+                                        <p>The Bookmark And Clock On Each Story Save It To Bookmarks Or Read Later. Saved Stories Sync When You Are Signed In.</p>
+                                        <p>Events Lists Upcoming Tournaments; Allow Location To Sort Them By Distance. Location Is Used Once And Never Stored.</p>
+                                        <p>The Page Loads The Latest Stories When You Open It, Then Checks Again Every 15 Minutes While It Stays Open.</p>
+                                    </>
+                                )}
+                            />
 
                             {/* Existing sections, surfaced in the approved Live Wire tab rail. */}
                             <div className="section-tabs" role="tablist" aria-label="News sections">
@@ -2639,8 +2657,8 @@ function NewsHub() {
                     .bookmark-notice {
                         padding: 8px 12px;
                         margin-bottom: 10px;
-                        background: rgba(251, 191, 36, 0.1);
-                        border: 1px solid rgba(251, 191, 36, 0.35);
+                        background: rgba(134, 218, 255, 0.1);
+                        border: 1px solid rgba(134, 218, 255, 0.35);
                         border-radius: 10px;
                         color: #86daff;
                         font-size: 12px;
@@ -2959,8 +2977,8 @@ function NewsHub() {
                         width: 18px;
                         height: 18px;
                         border-radius: 50%;
-                        background: rgba(251, 146, 60, 0.18);
-                        color: #fb923c;
+                        background: rgba(134, 218, 255, 0.18);
+                        color: #86daff;
                         z-index: 2;
                     }
                     .news-list-item {

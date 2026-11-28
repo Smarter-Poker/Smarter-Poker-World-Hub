@@ -4,11 +4,12 @@ import { CalendarRange } from 'lucide-react';
 import { comparePeriods } from '../../lib/bankroll/analyticsView.mjs';
 import { money, periodDate, tone } from './analyticsDisplay';
 import styles from './BankrollAnalytics.module.css';
+import { localDay } from '../../lib/bankroll/localDates.mjs';
 const pct = (v) => (v == null ? 'N/A' : v.toFixed(1) + '%');
 
 export default function HistoricalComparison({ entries = [], displayEUR = false }) {
   const [period, setPeriod] = useState('month');
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDay();
   const { current, previous, start, previousStart } = useMemo(
     () => comparePeriods(entries, period, today),
     [entries, period, today]

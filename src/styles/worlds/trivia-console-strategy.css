@@ -109,7 +109,10 @@
 
 .strategy-trivia .game-area {
     display: grid;
-    gap: 2.6cqw;
+    gap: 14px;
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
     min-width: 0;
 }
 
@@ -117,15 +120,18 @@
     outline: none;
 }
 
+.strategy-trivia .game-top-bar {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
 .strategy-trivia .game-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 3cqw;
+    gap: 12px;
     min-width: 0;
-    padding-bottom: 1.6cqw;
-    border-bottom: var(--tc-rule);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 8%);
 }
 
 .strategy-trivia .strategy-clock {
@@ -457,17 +463,19 @@
     }
 
     .strategy-trivia .game-area {
-        grid-template-columns: minmax(270px, 0.72fr) minmax(0, 1.28fr);
-        grid-template-rows: auto auto auto auto auto 1fr;
+        grid-template-columns: minmax(0, 1fr);
         align-items: start;
-        gap: 18px 30px;
+        gap: 16px;
+        max-width: 780px;
+        margin: 0 auto;
+    }
+
+    .strategy-trivia .game-top-bar {
+        gap: 8px;
     }
 
     .strategy-trivia .game-header {
-        grid-column: 1 / -1;
-        grid-row: 1;
-        gap: 20px;
-        padding-bottom: 10px;
+        gap: 16px;
     }
 
     .strategy-trivia .strategy-clock {
@@ -481,23 +489,10 @@
     }
 
     .strategy-trivia .strategy-clock__value {
-        font-size: 26px;
-    }
-
-    .strategy-trivia .strategy-run-contract {
-        grid-column: 1;
-        grid-row: 2;
-    }
-
-    .strategy-trivia .strategy-context {
-        grid-column: 1;
-        grid-row: 3 / span 4;
-        gap: 10px;
+        font-size: 24px;
     }
 
     .strategy-trivia .question-content-area {
-        grid-column: 2;
-        grid-row: 2;
         gap: 10px;
     }
 
@@ -505,21 +500,7 @@
         font-size: 20px !important;
     }
 
-    .strategy-trivia .bottom-actions-area,
-    .strategy-trivia .strategy-question-fault {
-        grid-column: 2;
-        grid-row: 3;
-    }
-
-    .strategy-trivia .strategy-answer-state,
-    .strategy-trivia .strategy-answer-retry {
-        grid-column: 2;
-        grid-row: 4;
-    }
-
     .strategy-trivia .answer-analysis {
-        grid-column: 2;
-        grid-row: 5 / span 2;
         gap: 14px;
         padding-top: 14px;
     }

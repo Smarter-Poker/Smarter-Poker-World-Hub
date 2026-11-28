@@ -2,8 +2,9 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  *  INTERACTIVE POKER TOOLS & SOLVERS SITEMAP -- /sitemap-tools.xml
  * ═══════════════════════════════════════════════════════════════════════════════
- * Dedicated segmented sitemap for all 52 interactive browser-native poker math
- * calculators, GTO preflop range matrices, and webmaster embed widgets.
+ * Dedicated segmented sitemap for all interactive browser-native poker math
+ * calculators, GTO preflop range matrices, top 30 hand-vs-hand equity pages,
+ * and webmaster embed widgets.
  * Serves at https://smarter.poker/sitemap-tools.xml
  */
 
@@ -12,9 +13,23 @@ import {
   sendSitemapXmlResponse,
   TOOLS_PAGES,
 } from '../src/lib/seo/sitemapBuilders.mjs';
+import {
+  TOOL_HAND_MATCHUPS,
+  TOOL_MATCHUPS_AS_OF,
+} from '../src/content/tools/handMatchups.js';
+
+export const TOOLS_SITEMAP_URLS = [
+  ...TOOLS_PAGES,
+  ...TOOL_HAND_MATCHUPS.map((matchup) => ({
+    path: matchup.path,
+    priority: '0.85',
+    changefreq: 'monthly',
+    lastmod: TOOL_MATCHUPS_AS_OF,
+  })),
+];
 
 export async function getServerSideProps({ req, res }) {
-  const sitemap = generateSitemapXml(TOOLS_PAGES);
+  const sitemap = generateSitemapXml(TOOLS_SITEMAP_URLS);
 
   res.setHeader('Content-Type', 'text/xml');
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');

@@ -20,10 +20,8 @@ const CHECKOUT = readFileSync(
 );
 
 test('cinematic artwork ships in high-quality WebP with PNG fallbacks', () => {
-  const assets = [
-    'diamond-vault-hero',
-    'diamond-packages-sheet',
-  ];
+  // The package sheet is product art the #SMARTERDESIGN redesign kept.
+  const assets = ['diamond-packages-sheet'];
   let pngBytes = 0;
   let webpBytes = 0;
 
@@ -37,11 +35,16 @@ test('cinematic artwork ships in high-quality WebP with PNG fallbacks', () => {
   assert.match(SHOWCASE_CSS, /image-set\(/);
   assert.ok(webpBytes < pngBytes * 0.2, 'optimized artwork must stay below 20% of PNG payload');
 
-  const routeHeroes = ['vip-hero', 'merch-hero', 'rewards-hero', 'club-shop-hero'];
-  for (const asset of routeHeroes) {
-    const bytes = statSync(join(ROOT, `public/images/store-v3/${asset}.webp`)).size;
-    assert.match(SHOWCASE_CSS, new RegExp(`${asset}\\.webp`));
-    assert.ok(bytes < 100 * 1024, `${asset} must stay below 100 KiB`);
+  // The old route heroes (diamond-vault-hero, vip-hero, merch-hero, ...) were
+  // replaced by the #SMARTERDESIGN StoreImageHeader: one seal and one scene
+  // WebP per destination, each held under the image budget.
+  assert.doesNotMatch(SHOWCASE_CSS, /(?:diamond-vault|vip|merch|rewards|club-shop)-hero\.(?:webp|png)/);
+  for (const art of ['store-diamonds', 'vip', 'store-merch', 'store-rewards', 'store-club-shop']) {
+    assert.match(SHOWCASE, new RegExp(`art: '${art}'`));
+    for (const part of ['seal', 'scene']) {
+      const bytes = statSync(join(ROOT, `public/images/smarterdesign/headers/${art}-${part}.webp`)).size;
+      assert.ok(bytes < 100 * 1024, `${art}-${part} must stay below 100 KiB`);
+    }
   }
 });
 

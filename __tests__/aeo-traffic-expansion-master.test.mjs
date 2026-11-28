@@ -122,8 +122,8 @@ test('Phase 2 of 6: Starting Hand 8-Matchup Equity Matrix, Video Watch Markdown 
   assert.ok(fs.existsSync(path.join(ROOT, 'pages/hub/video-library/channels/index.js')));
 });
 
-test('Phase 3 of 6: 30 verified comparison pages with HRC, Flopzilla, Wynn vs Venetian, Borgata vs Parx, and Florida Rooms', () => {
-  assert.equal(COMPARE_PAGES.length, 30);
+test('Phase 3 of 6: 30+ verified comparison pages with HRC, Flopzilla, Wynn vs Venetian, Borgata vs Parx, Florida Rooms, and PLO4 vs PLO5', () => {
+  assert.ok(COMPARE_PAGES.length >= 30);
   for (const slug of [
     'smarter-poker-vs-holdem-resources-calculator',
     'smarter-poker-vs-flopzilla',

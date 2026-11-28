@@ -2,7 +2,7 @@
   width: min(100% - 24px, 1120px);
   margin: 16px auto 0;
   padding: 0;
-  color: #f4f7fb;
+  color: #f2f7ff;
   background: transparent;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
@@ -21,38 +21,41 @@
   gap: 7px;
   min-width: 44px;
   min-height: 44px;
+  box-sizing: border-box;
   padding: 10px 14px;
-  border: 1px solid #2b4252;
-  color: #dce9ef;
-  background: #09121a;
-  box-shadow: inset 0 1px 0 rgba(238, 250, 255, 0.1);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  border-radius: 0;
+  color: #f2f7ff;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.035em;
   text-decoration: none;
   transition:
     filter 150ms ease,
-    color 150ms ease,
-    transform 150ms ease;
+    color 150ms ease;
+}
+
+.link:active {
+  filter: brightness(0.89);
 }
 
 .link[aria-current='page'] {
-  border-color: #58bfe9;
-  color: #f6fbfe;
-  background: #0b2a42;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -2px 0 #1d8cd1;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  color: #fff;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
 }
 
 .link:focus-visible {
-  outline: 3px solid #45adff !important;
+  outline: 2px solid #9ee3ff !important;
   outline-offset: 2px !important;
 }
 
 .count {
   min-width: 18px;
-  color: #ffe36b;
+  color: #86daff;
+  font-variant-numeric: tabular-nums;
   font-size: 12px;
   line-height: 1;
   text-align: center;
@@ -64,12 +67,12 @@
   width: 100%;
   height: var(--sp-footer-dock-height);
   margin: 28px 0 0;
-  padding-inline: 4px;
-  border: 1px solid #2d4759;
-  background: #050b11;
-  box-shadow:
-    inset 0 1px 0 rgb(238 250 255 / 14%),
-    0 10px 22px rgb(0 0 0 / 30%);
+  padding: 3px 4px;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  box-shadow: none;
   font-family: var(--font-inter), Inter, Arial, sans-serif;
 }
 
@@ -78,25 +81,17 @@
   height: 100%;
 }
 
+/* Footer links keep the chrome-row rim and cobalt current state from .link;
+   the footer only tightens their spacing. */
 .pageFooter .link {
   min-height: 0;
   padding-block: 0;
-  border: 1px solid #2b4252;
-  color: #cbd8df;
-  background-color: #09121a;
-  background-image: none;
-  box-shadow: inset 0 1px 0 rgb(238 250 255 / 10%);
   font-size: 13px;
   letter-spacing: 0.01em;
 }
 
 .pageFooter .link[aria-current='page'] {
-  border-color: #58bfe9;
-  color: #f6fbfe;
-  background-color: #0b2a42;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 20%),
-    inset 0 -2px 0 #1d8cd1;
+  color: #fff;
   filter: none;
 }
 
@@ -132,5 +127,24 @@
 @media (prefers-reduced-motion: reduce) {
   .link {
     transition: none;
+  }
+}
+
+/* On wider screens the footer rail lines up with the store content above it
+   instead of spanning the window with oversized controls. */
+@media (min-width: 641px) {
+  .rail.pageFooter {
+    width: min(100% - 52px, 1188px);
+    height: auto;
+    margin: 28px auto 0;
+    padding: 6px;
+  }
+
+  .pageFooter .links {
+    height: auto;
+  }
+
+  .pageFooter .link {
+    min-height: 48px;
   }
 }

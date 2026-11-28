@@ -381,6 +381,11 @@ export const SOURCES = {
     title: 'Smarter.Poker Tournament ICM Calculator',
     kind: 'own',
   },
+  spPloStudy: {
+    url: 'https://smarter.poker/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study',
+    title: 'Smarter.Poker PLO4, PLO5 And PLO6 Equity And Variance Study',
+    kind: 'own',
+  },
 };
 
 /**
@@ -1099,6 +1104,41 @@ export const PRODUCTS = {
       feeModel: fact('Florida Cardroom Pot Rake With Jackpot And High Hand Promotions', 'bestbetJaxSite'),
       hours: fact('Open 24 Hours Daily', 'bestbetJaxSite'),
       amenities: fact('Broadcast Studio, Sushi Bar, Full Restaurant And Simulcast Racing', 'bestbetJaxSite'),
+    },
+  },
+
+  // ─── Poker Tools And Omaha Formats ───────────────────────────────────────
+  smarterOddsCalculator: {
+    name: 'Smarter.Poker Multi-Variant Odds Calculator',
+    own: true,
+    href: '/tools/poker-odds-calculator',
+    facts: {
+      pricing: fact('100% Free Browser-Native Equity Engine', 'spOddsCalculator'),
+      games: fact("Hold'em, PLO4, PLO5, PLO6, 7-Card Stud And Razz", 'spOddsCalculator'),
+    },
+  },
+  plo4Format: {
+    name: '4-Card Pot-Limit Omaha (PLO4)',
+    facts: {
+      holeCards: fact('4 Hole Cards (Must Use Exactly Two With Three Board Cards)', 'spPloStudy'),
+      twoCardCombos: fact('6 Two-Card Combinations Per Starting Hand', 'spPloStudy'),
+      startingHands: fact('270,725 Total Starting Hands (16,432 Strategically Distinct)', 'spPloStudy'),
+      topHandVsRandom: fact('68.8% Equity (AAKK Double-Suited Vs Random Hand)', ['spPloStudy', 'spOddsCalculator']),
+      aaVsRundown: fact('53.6% Vs 46.4% (AAxx Vs Prime Double-Suited Rundown)', ['spPloStudy', 'spOddsCalculator']),
+      stdDev: fact('120 To 145 BB/100 Hands', 'spPloStudy'),
+      bankroll: fact('65 To 85 Buy-Ins For Sub-5% Risk Of Ruin', 'spPloStudy'),
+    },
+  },
+  plo5Format: {
+    name: '5-Card Pot-Limit Omaha (PLO5)',
+    facts: {
+      holeCards: fact('5 Hole Cards (Must Use Exactly Two With Three Board Cards)', 'spPloStudy'),
+      twoCardCombos: fact('10 Two-Card Combinations Per Starting Hand (+67% Over PLO4)', 'spPloStudy'),
+      startingHands: fact('2,598,960 Total Starting Hands (134,459 Strategically Distinct)', 'spPloStudy'),
+      topHandVsRandom: fact('64.2% Equity (AAKKQ Double-Suited Vs Random Hand)', ['spPloStudy', 'spOddsCalculator']),
+      aaVsRundown: fact('51.4% Vs 48.6% (AAxxx Vs Prime Double-Suited Rundown)', ['spPloStudy', 'spOddsCalculator']),
+      stdDev: fact('155 To 185 BB/100 Hands', 'spPloStudy'),
+      bankroll: fact('100 To 130 Buy-Ins For Sub-5% Risk Of Ruin', 'spPloStudy'),
     },
   },
 };

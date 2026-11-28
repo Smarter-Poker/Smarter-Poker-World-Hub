@@ -16,6 +16,7 @@ import { RESEARCH_REPORTS } from '../../../src/content/research/reports.js';
 import { US_POKER_STATES } from '../../../src/content/guides/states.js';
 import { POKER_TRAVEL_CORRIDORS } from '../../../src/content/guides/corridors.js';
 import { POKER_ROOMS_BY_GAME } from '../../../src/content/guides/byGame.js';
+import { VENUE_COUNT } from '../../../src/lib/venueCount.mjs';
 
 export function buildFreshnessLedger() {
   return {
@@ -30,7 +31,7 @@ export function buildFreshnessLedger() {
       mcpToolsCount: 70,
       streamerCommandsCount: 44,
       researchDatasetsCount: 15,
-      verifiedVenuesCount: 715,
+      verifiedVenuesCount: VENUE_COUNT,
       travelCorridorsCount: POKER_TRAVEL_CORRIDORS.length,
       gameFormatDirectoriesCount: POKER_ROOMS_BY_GAME.length,
       usStatesAuditedCount: US_POKER_STATES.length,

@@ -9,6 +9,8 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import postcss from 'postcss';
 
+import { SMARTERDESIGN_GRADIENTS, offStandardPaint } from './smarterdesign-standard.test.mjs';
+
 const require = createRequire(import.meta.url);
 const css = readFileSync('src/components/store/MarketplaceDetailExperience.module.css', 'utf8');
 
@@ -78,12 +80,15 @@ test('real Merch atlas cards keep image margins unpainted and copy faces readabl
   assert.equal(declaration(merchCss, '.atlasProductImage', 'aspect-ratio'), '1 / 2');
   const baseFace = declaration(merchCss, '.cardBody', 'background');
   const shellFace = declaration(shellCss, '.merchSurface :global(article) > div:last-child', 'background');
-  assert.equal(baseFace, '#02070b');
-  assert.equal(shellFace, '#050a0f');
+  // #SMARTERDESIGN: both copy faces are the standard card fill; contrast is
+  // checked against every stop of it, so the lightest stop must still pass.
+  assert.equal(baseFace, SMARTERDESIGN_GRADIENTS.card);
+  assert.equal(shellFace.replace(/\s*!important$/, ''), SMARTERDESIGN_GRADIENTS.card);
+  const faceStops = (face) => face.match(/#[0-9a-f]{6}\b/gi) || [face];
   const luminance = (hex) => hex.slice(1).match(/../g).map((pair) => parseInt(pair, 16) / 255)
     .map((n) => n <= 0.04045 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4)
     .reduce((sum, n, i) => sum + n * [0.2126, 0.7152, 0.0722][i], 0);
-  for (const face of [baseFace, shellFace]) {
+  for (const face of [...faceStops(baseFace), ...faceStops(shellFace)]) {
     for (const selector of ['.productTitle', '.productDescription', '.price']) {
       let ink = declaration(merchCss, selector, 'color');
       if (ink === '#fff') ink = '#ffffff';
@@ -192,11 +197,17 @@ test('all six linked detail families retain one content layer with wrapping read
   assert.equal(values.overflow, 'visible');
   assert.match(css, /line-height: 1\.2/);
   assert.match(css, /overflow-wrap: anywhere/);
+  // #SMARTERDESIGN: each readout is one chrome-stat well on the navy fill, and
+  // the grid around the wells paints no frame of its own (one frame per surface).
   const readout = parsed.nodes.find((node) => node.selector === '.readoutGrid div');
   const declarations = Object.fromEntries(readout.nodes.map((node) => [node.prop, node.value]));
-  assert.equal(declarations.border, '0');
-  assert.equal(declarations['border-top'], '1px solid #253b49');
-  assert.equal(declarations.background, 'transparent');
+  assert.equal(declarations.border, '3px solid transparent');
+  assert.equal(declarations['border-image'], "url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch");
+  assert.equal(declarations.background, SMARTERDESIGN_GRADIENTS.navy);
+  assert.equal(declarations['border-radius'], '0');
+  const grid = parsed.nodes.find((node) => node.selector === '.readoutGrid');
+  for (const node of grid.nodes) assert.doesNotMatch(node.prop, /^(?:border|background|box-shadow|outline)/);
+  assert.deepEqual(offStandardPaint(css), []);
   const longest = getStaticPaths()
     .paths.map(({ params }) => getStaticProps({ params }).props.reward)
     .sort((a, b) => b.name.length - a.name.length)[0];

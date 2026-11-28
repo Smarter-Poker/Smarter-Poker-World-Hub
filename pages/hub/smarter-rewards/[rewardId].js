@@ -110,6 +110,16 @@ export default function RewardDetail({ reward }) {
       }
       status={unavailable ? 'Coming Soon' : reward.lifetime ? 'Lifetime Signal' : 'Repeatable'}
       presentation="reward"
+      header={{
+        art: 'store-rewards',
+        title: 'Smarter Rewards',
+        help: {
+          steps: [
+            'Complete The Signal Described Below To Earn Its Diamonds. Rewards Are Verified Against Your Account Before Credit.',
+            'Daily And Monthly Caps Apply. View Every Reward To See What Else You Can Unlock.',
+          ],
+        },
+      }}
       actions={
         <>
           <Link href="/hub/smarter-rewards">View Every Reward</Link>

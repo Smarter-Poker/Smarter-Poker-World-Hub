@@ -3,6 +3,18 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import {
+  BANNED_TEXT_COLOUR,
+  ROUNDED_CORNER,
+  SD_FRAME,
+  SMARTERDESIGN_GRADIENTS,
+  offStandardPaint,
+} from './smarterdesign-standard.test.mjs';
+
+const literal = (value) => new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+const cobalt = literal(SMARTERDESIGN_GRADIENTS.cobalt);
+const control = literal(SMARTERDESIGN_GRADIENTS.control);
+
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const MERCH = read('src/components/store/MerchStore.jsx');
@@ -51,8 +63,12 @@ test('merch replaces floating generic icons with restrained retail controls', ()
     `${CSS}\n${DIALOG_CSS}\n${FULFILLMENT_CSS}`,
     /marketplace-console-v1|spade-console|wallet-row-shell|button-(?:primary|secondary)/
   );
-  assert.match(CSS, /linear-gradient|box-shadow/);
-  assert.doesNotMatch(CSS, /:hover|border-radius/);
+  // #SMARTERDESIGN: square chrome controls on the four standard fills only.
+  assert.match(CSS, SD_FRAME.control);
+  assert.deepEqual(offStandardPaint(CSS), []);
+  assert.doesNotMatch(CSS, /:hover/);
+  assert.doesNotMatch(CSS, ROUNDED_CORNER);
+  assert.doesNotMatch(CSS, BANNED_TEXT_COLOUR);
   assert.match(MERCH, /resolveReviewedMerchArt\(rawId\)/);
   assert.match(ART, /const REVIEWED_MERCH_IMAGES = new Map/);
   assert.match(MERCH, /mediaApproved: Boolean\(approvedImage \|\| atlasPosition\)/);
@@ -96,12 +112,19 @@ test('a merch card offers one primary action, not four equal ones', () => {
   const diamondBlock = rule('actionDiamond')[0] || '';
   const goldBlock = rule('actionGold')[0] || '';
   const secondaryBlock = rule('actionSecondary')[0] || '';
-  assert.match(primaryBlock, /background:\s*#0a4f69/);
-  assert.match(diamondBlock, /background:\s*#061a23/);
-  assert.match(goldBlock, /background:\s*#181506/);
-  assert.match(secondaryBlock, /background:\s*#071017/);
+  // #SMARTERDESIGN hierarchy: only the primary is the cobalt chrome-active
+  // control; Diamond, Add To Cart and View Details share the steel control and
+  // step down by size and ink (ice, white, silver).
+  assert.match(primaryBlock, SD_FRAME.active);
+  assert.match(primaryBlock, cobalt);
+  for (const block of [diamondBlock, goldBlock, secondaryBlock]) {
+    assert.match(block, control);
+    assert.doesNotMatch(block, /chrome-active|#1981ec/);
+  }
+  assert.match(diamondBlock, /color:\s*#86daff/);
+  assert.match(goldBlock, /color:\s*#f2f7ff/);
+  assert.match(secondaryBlock, /color:\s*#bdd0e2/);
   assert.doesNotMatch(`${CSS}\n${DIALOG_CSS}\n${FULFILLMENT_CSS}`, /button-primary\.png/);
-  assert.match(secondaryBlock, /background-image:\s*none/);
 
   // The favorite control sits beside the product name, not over the photo.
   assert.doesNotMatch(

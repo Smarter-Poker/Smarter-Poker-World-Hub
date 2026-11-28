@@ -11,7 +11,11 @@ import ThumbnailImage from '../../../../../src/components/video-library/VideoThu
  * runs no JavaScript reads the title, channel, date, length and the related
  * videos, and Google reads a VideoObject. The visible privacy-enhanced
  * YouTube player is present in server HTML with autoplay disabled, so search
- * crawlers can discover it without clicking a facade.
+ * crawlers can discover it without clicking a facade. A click-to-play facade
+ * was measured and rejected on 2026-11-27: Google's video guidance is not to
+ * load primary content on user interaction, and indexing each video is why
+ * these pages exist. Phone weight is cut elsewhere instead (shared chrome
+ * slices, deferred account panels); see video-library-watch-performance.test.
  *
  * Rules carried over from the library: only rows that pass the catalog's
  * availability gate render (blocked, stale, non-embeddable or taken-down
@@ -42,8 +46,10 @@ import dynamic from 'next/dynamic';
 import SEOHead from '../../../../../src/components/video-library/VideoLibrarySEOHead';
 import SmarterConversionCta from '../../../../../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../../../../../src/components/seo/SmarterAccountUnlockGate';
+import DeferUntilNear from '../../../../../src/components/video-library/DeferUntilNear';
 import HubPageShell from '../../../../../src/components/ui/HubPageShell';
 import VideoLibraryWorkspaceHeader from '../../../../../src/components/video-library/VideoLibraryWorkspaceHeader';
+import { VIDEO_LIBRARY_HELP_STEPS } from '../../../../../src/lib/videoLibraryHelpSteps.mjs';
 import { getMenuConfig } from '../../../../../src/config/hamburgerMenus';
 import {
     BLOCKED_VIDEO_LIBRARY_IDS,
@@ -72,19 +78,13 @@ import {
     watchUrl,
 } from '../../../../../src/lib/videoLibraryWatch.mjs';
 import { formatViewCount, getVideoChannel, getVideoMetaLine } from '../../../../../src/lib/videoLibraryCards';
+import { creatorChapters } from '../../../../../src/lib/videoLibraryChapters.mjs';
 
 const UniversalHeader = dynamic(() => import('../../../../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../../../../src/components/ui/HamburgerMenu'), { ssr: false });
 
-// Page explanations live behind the title mast's chrome "?" (Dan, 2026-11-27).
-const WATCH_HELP_STEPS = Object.freeze([
-    { id: 'player', title: 'Video Player', body: 'The Privacy-Enhanced YouTube Player. Mini-Player Keeps It On Screen While You Scroll, And Autoplay Next Opens The Next Video When This One Ends.', target: 'watch-player' },
-    { id: 'timeline', title: 'Hand Timeline', body: 'The Timeline Becomes Available When Playback Starts. Hand Markers Last For This Viewing Session.', target: 'watch-player' },
-    { id: 'pause-quiz', title: 'What Would You Do?', body: 'Pause A Hand, Choose Your Action, Then Watch What Happens. Your Decision, Not A Solver Answer. It Is Available When The Player Reports Its Timeline, And Choices And Notes Last For This Viewing Session.', target: 'watch-player' },
-    { id: 'progress', title: 'Watch Progress', body: 'Signed In, Your Watch Progress Saves While You Watch And Verified Watch Time Can Earn A Diamond Reward.', target: 'watch-title' },
-    { id: 'actions', title: 'Video Actions', body: 'Share To Your Feed, Queue The Next Video, Save It To Playlists And Training, Or Watch On YouTube.', target: 'watch-actions' },
-    { id: 'more', title: 'More To Watch', body: 'More From This Channel And Related Videos Are Picked From The Verified Library.', target: 'watch-more' },
-]);
+// Help steps live in the shared Video Library help standard (src/lib/videoLibraryHelpSteps.mjs).
+const WATCH_HELP_STEPS = VIDEO_LIBRARY_HELP_STEPS.watch;
 
 const RELATED_LIMIT = 8;
 const CHANNEL_LIMIT = 6;
@@ -140,7 +140,7 @@ export async function getServerSideProps({ req, query, params, res }) {
         }
 
         const relatedTypes = VIDEO_LIBRARY_POKER_TYPES.includes(video.type) ? VIDEO_LIBRARY_POKER_TYPES : [video.type];
-        const [channelResult, relatedResult] = await Promise.all([
+        const [channelResult, relatedResult, chaptersResult] = await Promise.all([
             db.from('video_library_public_catalog')
                 .select(VIDEO_ROW_FIELDS)
                 .eq('source_id', video.source)
@@ -156,6 +156,13 @@ export async function getServerSideProps({ req, query, params, res }) {
                 .or(mixedContentFilter())
                 .order('published_at', { ascending: false, nullsFirst: false })
                 .limit(RELATED_LIMIT + 6),
+            // The creator's own chapters, read from the YouTube description at
+            // ingest. creatorChapters() keeps only marked, valid entries.
+            db.from('video_enrichment_records')
+                .select('chapters, video_library_videos!inner(youtube_video_id)')
+                .eq('video_library_videos.youtube_video_id', videoId)
+                .limit(1)
+                .maybeSingle(),
         ]);
         const usable = (result, limit) => (result.error ? [] : (result.data || []))
             .map(normaliseVideoRow)
@@ -164,6 +171,8 @@ export async function getServerSideProps({ req, query, params, res }) {
             .map(pickCard);
         if (channelResult.error) console.warn('[video-watch] channel videos unavailable:', channelResult.error.message);
         if (relatedResult.error) console.warn('[video-watch] related videos unavailable:', relatedResult.error.message);
+        if (chaptersResult.error) console.warn('[video-watch] creator chapters unavailable:', chaptersResult.error.message);
+        const chapters = chaptersResult.error ? [] : creatorChapters(chaptersResult.data?.chapters, durationSeconds(video.duration));
 
         const channel = getVideoChannel(video);
         // Link only to a channel page that exists, at its canonical address.
@@ -224,6 +233,7 @@ export async function getServerSideProps({ req, query, params, res }) {
                     ...buildVideoJsonLd(video, { channelName: channel.name, channelHref, description }),
                     buildVideoWatchWebPageJsonLd(video),
                 ].filter(Boolean),
+                chapters,
                 channelVideos: usable(channelResult, CHANNEL_LIMIT),
                 relatedVideos: usable(relatedResult, RELATED_LIMIT),
             },
@@ -266,7 +276,7 @@ function VideoList({ title, videos }) {
     );
 }
 
-export default function VideoWatchPage({ unavailable, video, channel, channelHref = null, description, canonical, indexable, jsonLd, channelVideos, relatedVideos }) {
+export default function VideoWatchPage({ unavailable, video, channel, channelHref = null, description, canonical, indexable, jsonLd, chapters = [], channelVideos, relatedVideos }) {
     const router = useRouter();
     const { user } = useAvatar();
     const playbackQueue = useVideoLibraryQueue(user?.id);
@@ -423,11 +433,12 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                 <WatchPlaybackTools key={`tools:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} active={!ytError} attemptPlayback={attemptPlayback}
                                     initialSeekSeconds={initialSeekSeconds}
                                     onMarkersChange={setQuizMarkers}
+                                    chapters={chapters}
                                     duration={seconds} nextTitle={nextVideo?.title}
                                     onNext={() => openQueuedVideo(queueIndex >= 0 ? playbackQueue.advance(video.videoId) : nextVideo)}
                                     autoplay={autoplayNext} onAutoplayChange={setAutoplayNext}
                                     mini={miniPlayer} onMiniChange={setMiniPlayer} />
-                                {VIDEO_LIBRARY_POKER_TYPES.includes(video.type) && <PauseQuiz key={`quiz:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} videoId={video.videoId} active={!ytError} markers={quizMarkers} />}
+                                {VIDEO_LIBRARY_POKER_TYPES.includes(video.type) && <PauseQuiz key={`quiz:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} videoId={video.videoId} active={!ytError} markers={quizMarkers} chapters={chapters} />}
                                 {tracking.status === 'ready' && tracking.resumeSeconds > 0 && <button type="button" className="vl-pill-button" onClick={resumeWatching}>Resume Saved Position</button>}
                                 <WatchTracking tracking={tracking} ownerId={user?.id} returnPath={watchPath(video)} />
 
@@ -473,14 +484,16 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                         {views && <div><dt>Views On YouTube</dt><dd>{views.replace(/\s*Views$/i, '')}</dd></div>}
                                     </dl>
                                 </section>
-                                <div style={{ marginTop: 18 }}>
+                                {/* Below-the-fold account panels mount near the viewport, so
+                                    their painted plates are not fetched before a phone scrolls. */}
+                                <DeferUntilNear style={{ marginTop: 18 }} placeholderHeight={740}>
                                     <SmarterAccountUnlockGate
                                         variant="video-drill"
                                         context="video-library-watch"
                                         redirectPath={watchPath(video)}
                                     />
-                                </div>
-                                <div style={{ marginTop: 18 }}>
+                                </DeferUntilNear>
+                                <DeferUntilNear style={{ marginTop: 18 }} placeholderHeight={390}>
                                     <SmarterConversionCta
                                         compact
                                         eyebrow="Free Smarter.Poker Account"
@@ -491,7 +504,7 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                         secondaryLabel="Sign In"
                                         secondaryHref={`/auth/login?redirect=${encodeURIComponent(watchPath(video))}`}
                                     />
-                                </div>
+                                </DeferUntilNear>
                             </div>
 
                             <aside className="vl-watch-page-side" data-tutorial="watch-more">

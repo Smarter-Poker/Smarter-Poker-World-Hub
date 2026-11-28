@@ -1,5 +1,6 @@
 import React from 'react';
 import FeatureLanderLayout from '../../src/components/features/FeatureLanderLayout';
+import SmarterMiniGtoDrill from '../../src/components/seo/SmarterMiniGtoDrill';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
 
 export default function PokerTrainingGamesPage() {
@@ -74,22 +75,38 @@ export default function PokerTrainingGamesPage() {
   ];
 
   return (
-    <FeatureLanderLayout
-      title="GTO Poker Training Games & Interactive Decision Drills"
-      metaTitle="GTO Poker Training Games & Interactive Decision Drills | Smarter.Poker"
-      description="Free Interactive GTO Poker Training Games With 100+ Scenarios Across MTT, Cash Games, Spins, And SNGs With Solver-Graded Decision Feedback."
-      canonical="/features/poker-training-games"
-      badgeText="100+ GTO Decision Practice Scenarios"
-      primaryCtaText="Start Training Games"
-      primaryCtaHref="/hub/training"
-      secondaryCtaText="View Plain-Text Spec"
-      secondaryCtaHref="/features/poker-training-games.md"
-      markdownUrl="https://smarter.poker/features/poker-training-games.md"
-      features={features}
-      comparison={comparison}
-      howItWorks={howItWorks}
-      faqs={faqs}
-    />
+    <div style={{ background: '#081121' }}>
+      <FeatureLanderLayout
+        title="GTO Poker Training Games & Interactive Decision Drills"
+        metaTitle="GTO Poker Training Games & Interactive Decision Drills | Smarter.Poker"
+        description="Free Interactive GTO Poker Training Games With 100+ Scenarios Across MTT, Cash Games, Spins, And SNGs With Solver-Graded Decision Feedback."
+        canonical="/features/poker-training-games"
+        badgeText="100+ GTO Decision Practice Scenarios"
+        primaryCtaText="Start Training Games"
+        primaryCtaHref="/hub/training"
+        secondaryCtaText="View Plain-Text Spec"
+        secondaryCtaHref="/features/poker-training-games.md"
+        markdownUrl="https://smarter.poker/features/poker-training-games.md"
+        features={features}
+        comparison={comparison}
+        howItWorks={howItWorks}
+        faqs={faqs}
+      />
+      <section
+        aria-label="Playable GTO Poker Training Spot Preview"
+        style={{
+          maxWidth: 920,
+          margin: '0 auto',
+          padding: '0 20px 64px',
+          background: '#081121',
+        }}
+      >
+        <SmarterMiniGtoDrill
+          category="Preflop"
+          redirectPath="/features/poker-training-games"
+        />
+      </section>
+    </div>
   );
 }
 

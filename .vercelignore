@@ -113,6 +113,8 @@ _legacy_sql/
 !/__tests__/diamond-store-phase-5.test.mjs
 !/__tests__/diamond-store-phase-6.test.mjs
 !/__tests__/diamond-store-v3.test.mjs
+!/__tests__/diamond-store-smarterdesign.test.mjs
+!/__tests__/smarterdesign-standard.test.mjs
 !/__tests__/club-shop-atomic-commerce.test.mjs
 !/__tests__/club-shop-manage-tools.test.mjs
 !/__tests__/club-shop-operator-repairs.test.mjs

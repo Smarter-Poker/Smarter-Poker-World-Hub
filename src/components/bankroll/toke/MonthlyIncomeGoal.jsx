@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pencil, Plus, Target } from 'lucide-react';
 import desk from './DealerAnalytics.module.css';
+import { monthTokes } from '../../../lib/bankroll/tokeReport.mjs';
 
 const legacyKey = 'toke_monthly_goal';
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-export default function MonthlyIncomeGoal({ userId, completedGigs }) {
+export default function MonthlyIncomeGoal({ userId, completedGigs = [], activeGig = null }) {
     const key = legacyKey + ':' + userId;
     const [goal, setGoal] = useState(0);
     const [editing, setEditing] = useState(false);
@@ -31,10 +32,10 @@ export default function MonthlyIncomeGoal({ userId, completedGigs }) {
     useEffect(() => { if (editing) input.current?.focus(); }, [editing]);
 
     const now = new Date();
-    const month = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-    const earned = completedGigs.reduce((sum, gig) =>
-        gig.user_id === userId && gig.start_date?.startsWith(month + '-')
-            ? sum + (Number(gig.totalTokes) || 0) : sum, 0);
+    // Tokes count in the month each down was dealt, including the event still
+    // in progress (an event that started last month no longer hides this
+    // month's tokes, and today's tokes count before the event is completed).
+    const earned = monthTokes(activeGig ? [...completedGigs, activeGig] : completedGigs, userId, now);
     const percent = goal > 0 ? Math.min(100, 100 * earned / goal) : 0;
     const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
 

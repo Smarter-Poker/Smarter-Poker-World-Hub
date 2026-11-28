@@ -28,10 +28,11 @@ import {
   authorPath,
   renderAuthorsIndexMarkdown,
 } from '../../src/content/authors';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 export default function AuthorsIndexPage() {
   const claimText =
-    'All Smarter.Poker Strategy Guides, 52 Interactive Calculators, And 715+ Live Venue Profiles Are Audited By Four Specialized Research Desks Under Reproducible CFR Solver Convergence (<=0.05% Exploitability) And Timestamped Statutory Provenance.';
+    `All Smarter.Poker Strategy Guides, 52 Interactive Calculators, And ${VENUE_COUNT_LABEL} Venue Profiles Are Audited By Four Specialized Research Desks Under Reproducible CFR Solver Convergence (<=0.05% Exploitability) And Timestamped Statutory Provenance.`;
   const quoteText =
     'Verifiable E-E-A-T In Quantitative Gaming Requires Tying Every Published Number To A Deterministic Solver Iteration, A Published Statute, Or A Dated Cardroom Audit With A Permanent Zenodo DOI.';
 
@@ -108,7 +109,7 @@ export default function AuthorsIndexPage() {
             stats={[
               { label: 'Research Desks', value: `${EDITORIAL_AUTHORS.length} Teams` },
               { label: 'CFR Standard', value: '<= 0.05% Pot' },
-              { label: 'Live Audits', value: '715+ Venues' },
+              { label: 'Venue Audits', value: `${VENUE_COUNT_LABEL} Venues` },
               { label: 'Open Access', value: 'CC BY 4.0' },
             ]}
             redirectPath="/authors"

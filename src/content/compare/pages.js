@@ -138,6 +138,16 @@ const VENUE_VERSUS_COLUMNS = [
   { key: 'amenities', label: 'Amenities' },
 ];
 
+const OMAHA_FORMAT_COLUMNS = [
+  { key: 'holeCards', label: 'Hole Cards' },
+  { key: 'twoCardCombos', label: 'Two-Card Combos' },
+  { key: 'startingHands', label: 'Starting Hands' },
+  { key: 'topHandVsRandom', label: 'Top Hand Vs Random' },
+  { key: 'aaVsRundown', label: 'Aces Vs Prime Rundown' },
+  { key: 'stdDev', label: 'Std Dev (BB/100)' },
+  { key: 'bankroll', label: 'Recommended Bankroll' },
+];
+
 // ─── The pages ─────────────────────────────────────────────────────────────
 //
 // A paragraph or bullet is { text, sources }. `sources` lists the SOURCES
@@ -1723,6 +1733,115 @@ export const COMPARE_PAGES = [
     related: ['best-poker-rooms-in-las-vegas', 'best-poker-rooms-in-texas', 'wynn-vs-venetian-poker-las-vegas'],
     productLinks: ['clubCommander'],
     glossary: ['Rake', 'Straddle', 'Waitlist'],
+  },
+
+  // 31 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'plo4-vs-plo5',
+    kind: 'versus',
+    title: 'PLO4 Vs PLO5: Odds, Variance And Bankroll',
+    h1: 'PLO4 Vs PLO5: Complete Equity, Variance And Bankroll Comparison',
+    description:
+      'PLO4 Vs PLO5 Compared: 6 Vs 10 Two-Card Combos, 270,725 Vs 2,598,960 Hands, 53.6% Vs 51.4% Equity, 120-145 Vs 155-185 BB/100 Variance And Bankroll Rules.',
+    summary: p(
+      '4-Card Pot-Limit Omaha (PLO4) Deals 4 Hole Cards Forming 6 Two-Card Combinations Across 270,725 Starting Hands, Whereas 5-Card Pot-Limit Omaha (PLO5) Deals 5 Hole Cards Forming 10 Two-Card Combinations Across 2,598,960 Starting Hands. That Fifth Card Compresses Preflop Equity Edges From 53.6% To 51.4% Against Prime Rundowns, Raises Standard Deviation From 120-145 To 155-185 BB/100, And Expands Recommended Bankrolls From 65-85 Buy-Ins To 100-130 Buy-Ins.',
+      ['spPloStudy', 'spOddsCalculator', 'spHome']
+    ),
+    intro: p(
+      'Both Variants Follow Identical Pot-Limit Betting Rules And Require Using Exactly Two Hole Cards With Three Community Cards. Adding A Single Extra Hole Card Increases Combinatorial Density By 67%, Reshaping Hand Selection, Postflop Nut Thresholds, And Downswing Depth.',
+      ['spPloStudy']
+    ),
+    table: {
+      caption: '4-Card Pot-Limit Omaha (PLO4) Vs 5-Card Pot-Limit Omaha (PLO5), ' + CHECKED_LABEL,
+      subjectLabel: 'Format',
+      products: ['plo4Format', 'plo5Format'],
+      columns: OMAHA_FORMAT_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Combinatorics: 6 Vs 10 Two-Card Combos',
+        paragraphs: [
+          p(
+            'Every Omaha Hand Must Combine Exactly Two Hole Cards With Three Board Cards. In 4-Card Pot-Limit Omaha (PLO4), Four Cards Generate C(4,2) = 6 Two-Card Sub-Hands Out Of 270,725 Total Starting Hands. In 5-Card Pot-Limit Omaha (PLO5), Five Cards Generate C(5,2) = 10 Two-Card Sub-Hands Out Of 2,598,960 Total Starting Hands, Nearly Ten Times The Starting Hand Space.',
+            ['spPloStudy']
+          ),
+        ],
+      },
+      {
+        heading: 'Equity Compression And Postflop Nut Thresholds',
+        bullets: [
+          p(
+            'Top Starting Hand Vs Random: AAKK Double-Suited Holds 68.8% Equity Against A Random Hand In 4-Card Pot-Limit Omaha (PLO4), Dropping To 64.2% For AAKKQ Double-Suited In 5-Card Pot-Limit Omaha (PLO5).',
+            ['spPloStudy', 'spOddsCalculator']
+          ),
+          p(
+            'Aces Vs Prime Rundown: Preflop Equity Compresses From 53.6% Vs 46.4% In 4-Card Pot-Limit Omaha (PLO4) Down To 51.4% Vs 48.6% In 5-Card Pot-Limit Omaha (PLO5), Making Multi-Way Preflop Stacks Run Nearly 50/50.',
+            ['spPloStudy', 'spOddsCalculator']
+          ),
+          p(
+            'Postflop Flush And Full-House Density: Adding The Fifth Card Increases Postflop Flush And Full-House Frequencies By 42%, Turning Second-Nut Flushes And Unimproved Bottom Sets Into Thin Or Negative-EV Stack-Offs Multiway.',
+            ['spPloStudy']
+          ),
+        ],
+      },
+      {
+        heading: 'Variance And Bankroll Requirements',
+        paragraphs: [
+          p(
+            'Because Equity Runs Closer To 50/50 And Pot-Limit Betting Commits Stacks Earlier, Standard Deviation Climbs From 120-145 BB/100 In 4-Card Pot-Limit Omaha (PLO4) To 155-185 BB/100 In 5-Card Pot-Limit Omaha (PLO5). To Maintain Sub-5% Risk Of Ruin At A Solid 5 BB/100 Win Rate, Players Should Hold 65-85 Buy-Ins For PLO4 And 100-130 Buy-Ins For PLO5.',
+            ['spPloStudy']
+          ),
+        ],
+      },
+      {
+        heading: 'Simulate PLO4 And PLO5 Spots Free',
+        paragraphs: [
+          p(
+            'Run Live Multiway PLO4 And PLO5 Equity Simulations With Dead Cards In The Smarter.Poker Multi-Variant Odds Calculator, Or Review The Full Dataset Inside The Smarter.Poker PLO4, PLO5 And PLO6 Equity And Variance Study.',
+            ['spOddsCalculator', 'spPloStudy']
+          ),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'What Is The Main Mathematical Difference Between PLO4 And PLO5?',
+        a: p(
+          '4-Card Pot-Limit Omaha (PLO4) Creates 6 Two-Card Combos Across 270,725 Starting Hands, While 5-Card Pot-Limit Omaha (PLO5) Creates 10 Two-Card Combos Across 2,598,960 Starting Hands, Compressing Preflop Equity And Raising Nut-Hand Frequencies By 42%.',
+          ['spPloStudy']
+        ),
+      },
+      {
+        q: 'How Much Higher Is Variance In PLO5 Compared To PLO4?',
+        a: p(
+          'Standard Deviation Rises From 120-145 BB/100 In 4-Card Pot-Limit Omaha (PLO4) To 155-185 BB/100 In 5-Card Pot-Limit Omaha (PLO5), Increasing Expected Downswing Depth And Extending Recommended Bankroll Cushions.',
+          ['spPloStudy']
+        ),
+      },
+      {
+        q: 'How Many Buy-Ins Do I Need For PLO4 Vs PLO5?',
+        a: p(
+          'For Sub-5% Risk Of Ruin At A Winning Rate, Smarter.Poker Variance Benchmarks Recommend 65 To 85 Buy-Ins For 4-Card Pot-Limit Omaha (PLO4) And 100 To 130 Buy-Ins For 5-Card Pot-Limit Omaha (PLO5).',
+          ['spPloStudy']
+        ),
+      },
+      {
+        q: 'How Much Equity Do Pocket Aces Have Against A Rundown In PLO4 Vs PLO5?',
+        a: p(
+          'Against A Prime Double-Suited Rundown, Preflop Aces Hold Approximately 53.6% Equity In 4-Card Pot-Limit Omaha (PLO4) And Compress Further To 51.4% In 5-Card Pot-Limit Omaha (PLO5).',
+          ['spPloStudy', 'spOddsCalculator']
+        ),
+      },
+    ],
+    related: ['best-gto-poker-trainers', 'smarter-poker-vs-monkersolver', 'smarter-poker-vs-equilab'],
+    productLinks: ['smarterOddsCalculator', 'bankrollManager'],
+    extraLinks: [
+      {
+        href: '/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study',
+        label: 'Read The Full PLO4, PLO5 And PLO6 Equity And Variance Study',
+      },
+    ],
+    glossary: ['Equity', 'Variance', 'Pot Odds', 'Implied Odds', 'SPR', 'EV (Expected Value)'],
   },
 ];
 

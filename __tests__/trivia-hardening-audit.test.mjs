@@ -14,6 +14,11 @@ import {
     buildTriviaOperationsSnapshot,
 } from '../src/lib/trivia/operationsSnapshot.mjs';
 import { resolveTriviaKeyAction } from '../src/lib/trivia/keyboardControlsModel.mjs';
+import {
+    cardImagePath,
+    parseStructuredTriviaQuestion,
+    tokenizePokerCardText,
+} from '../src/lib/trivia/pokerCardText.mjs';
 
 const ROOT = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -304,4 +309,94 @@ test('Stats grid and 4-box equal sizing CSS invariants stay locked', () => {
     assert.match(lobbyCss, /\.metric\s*\{[\s\S]*height:\s*52px/);
     assert.match(lobbyCss, /\.studyButton\s*\{[\s\S]*height:\s*52px/);
     assert.match(lobbyCss, /\.searchField\s*\{[\s\S]*height:\s*52px/);
+});
+
+// ---------------------------------------------------------------------------
+// 11. Structured 3-Line Question Layout, Shorthand Cards & Decluttered Play Header
+// ---------------------------------------------------------------------------
+test('parseStructuredTriviaQuestion splits scenario into 3 clean lines and expands Q5s/pairs without board collisions', () => {
+    const sample = 'You hold Q5s in BB vs BTN on the river (10BB effective, pot 30BB). Board: 7c 2d 9d 5d 3h. What is the GTO play?';
+    const parsed = parseStructuredTriviaQuestion(sample);
+    assert.equal(parsed.structured, true);
+    assert.equal(parsed.setupLine, 'You hold Q5s in BB vs BTN on the river (10BB effective, pot 30BB).');
+    assert.equal(parsed.boardLabel, 'The Board Is');
+    assert.deepEqual(
+        parsed.boardCards.map((c) => `${c.rankCode}${c.suitCode}`),
+        ['7c', '2d', '9d', '5d', '3h'],
+    );
+    assert.equal(parsed.promptLine, 'What is the GTO play?');
+
+    const setupCards = tokenizePokerCardText(parsed.setupLine, {
+        expandHands: true,
+        usedCards: parsed.usedCards,
+    }).filter((t) => t.type === 'card');
+    assert.deepEqual(
+        setupCards.map((c) => `${c.rank}${c.symbol}`),
+        ['Q♠', '5♠'],
+        'Q5s on 7c 2d 9d 5d 3h must render as Q♠ 5♠ without colliding with 5d',
+    );
+
+    // Collision avoidance when spades collides with board (9s Qc 8c Ad 3h) -> picks hearts.
+    const suitedCollision = parseStructuredTriviaQuestion(
+        'You hold 98s in BB vs BTN on the river (10BB effective, pot 30BB). Board: 9s Qc 8c Ad 3h. What is the GTO play?',
+    );
+    const suitedCards = tokenizePokerCardText(suitedCollision.setupLine, {
+        expandHands: true,
+        usedCards: suitedCollision.usedCards,
+    }).filter((t) => t.type === 'card');
+    assert.deepEqual(suitedCards.map((c) => `${c.rank}${c.symbol}`), ['9♥', '8♥']);
+
+    // Pocket pair collision avoidance (55 with 5h on board -> 5♠ 5♦).
+    const pairCollision = parseStructuredTriviaQuestion(
+        'You hold 55 in BB vs BTN on the river (10BB effective, pot 30BB). Board: 5h 8c Qd Qc 6h. What is the GTO play?',
+    );
+    const pairCards = tokenizePokerCardText(pairCollision.setupLine, {
+        expandHands: true,
+        usedCards: pairCollision.usedCards,
+    }).filter((t) => t.type === 'card');
+    assert.deepEqual(pairCards.map((c) => `${c.rank}${c.symbol}`), ['5♠', '5♦']);
+
+    // Offsuit hand (A7o -> A♠ 7♥).
+    const offsuit = parseStructuredTriviaQuestion('You hold A7o on the flop. Board: Qh Qs Jd. What is the GTO play?');
+    const offsuitCards = tokenizePokerCardText(offsuit.setupLine, {
+        expandHands: true,
+        usedCards: offsuit.usedCards,
+    }).filter((t) => t.type === 'card');
+    assert.deepEqual(offsuitCards.map((c) => `${c.rank}${c.symbol}`), ['A♠', '7♥']);
+
+    // Plain prose and percentages/BBs never trigger false card expansion.
+    const prose = tokenizePokerCardText('As a player in a 3d arena, an Ad says Ah yes. Win 55% at 22BB.');
+    assert.equal(prose.every((t) => t.type === 'text'), true);
+
+    // All 52 playing-card PNGs exist on disk.
+    for (const rank of ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']) {
+        for (const suit of ['s', 'h', 'd', 'c']) {
+            const rel = cardImagePath(rank, suit);
+            assert.ok(fs.existsSync(path.join(ROOT, 'public', rel)), `Missing playing card asset public${rel}`);
+        }
+    }
+});
+
+test('StrategyTrivia declutters playing header and all Trivia question surfaces wire structured cards', () => {
+    const strategySrc = read('src/components/trivia/StrategyTrivia.jsx');
+    assert.doesNotMatch(strategySrc, /<section className="strategy-context"/, 'Decision Rail must not clutter the playing screen');
+    assert.doesNotMatch(strategySrc, /className="tc-rows strategy-run-contract"/, 'Entry State / Session Expires must not clutter the playing screen');
+    assert.doesNotMatch(strategySrc, /strategy-clock__label">Decision Clock/, 'Untimed Decision Clock label must not clutter the playing screen');
+    assert.match(strategySrc, /<TriviaCardText[\s\S]*?structured/);
+
+    for (const rel of [
+        'src/components/trivia/TriviaGame.jsx',
+        'src/components/trivia/TimeAttackGame.jsx',
+        'src/components/trivia/pvp/PvpCompetitiveExperience.jsx',
+        'src/components/trivia/tournaments/TournamentSections.jsx',
+        'pages/hub/trivia/endless.js',
+        'pages/hub/trivia/survival-game.js',
+        'pages/hub/trivia/mixed.js',
+        'pages/hub/trivia/study.js',
+    ]) {
+        assert.match(read(rel), /<TriviaCardText[\s\S]*?structured/, `${rel} must pass structured to TriviaCardText`);
+    }
+
+    const consoleCss = read('src/styles/worlds/trivia-console.css');
+    assert.match(consoleCss, /\.trivia-card-img--board\s*\{[\s\S]*width:\s*50px;[\s\S]*height:\s*70px;/);
 });

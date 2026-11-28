@@ -1,7 +1,7 @@
 /* Transaction state is content, not an ornamental plate. Keep the panel
    readable at every width and let the receipt determine its height. */
 .panel {
-  --seal: #8defff;
+  --seal: #86daff;
 
   position: relative;
   display: grid;
@@ -11,29 +11,31 @@
   min-height: 96px;
   margin: 18px auto 8px;
   padding: 18px 20px;
-  border: 1px solid #365468;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
   border-radius: 0;
-  background: #07131b;
-  box-shadow: inset 0 1px 0 rgba(155, 179, 192, 0.14);
-  color: #eef9ff;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  box-shadow: none;
+  color: #f2f7ff;
+  font-variant-numeric: tabular-nums;
 }
 
 .panel:focus-visible {
-  outline: 2px solid #9bf4ff !important;
-  outline-offset: 4px !important;
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }
 
 .complete {
-  --seal: #75eaff;
+  --seal: #67e8f9;
 }
 
 .pending,
 .verifying {
-  --seal: #8defff;
+  --seal: #86daff;
 }
 
 .canceled {
-  --seal: #b8c4cc;
+  --seal: #bdd0e2;
 }
 
 .review,
@@ -45,6 +47,8 @@
   display: grid;
   place-items: center;
   align-self: stretch;
+  margin-right: 4px;
+  border-right: 1px solid #445e77;
   color: var(--seal);
   font:
     800 clamp(11px, 1.15vw, 15px) / 1.05 var(--font-roboto-condensed),
@@ -63,7 +67,7 @@
 }
 
 .copy > span {
-  color: #afc5d3;
+  color: #bdd0e2;
   font:
     700 11px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -76,7 +80,7 @@
 
 .copy h2 {
   margin: 3px 0 5px;
-  color: #f5fcff;
+  color: #f2f7ff;
   font:
     700 clamp(18px, 2vw, 26px) var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -89,7 +93,7 @@
 .copy p {
   max-width: 760px;
   margin: 0;
-  color: #c6d6df;
+  color: #bdd0e2;
   font-size: 13px;
   line-height: 1.45;
 }
@@ -106,7 +110,7 @@
 }
 
 .receipt dt {
-  color: #afc5d3;
+  color: #bdd0e2;
   font:
     700 9px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -147,9 +151,12 @@
   min-height: 44px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #456174;
+  box-sizing: border-box;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
   border-radius: 0;
-  color: #eafaff;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
   font:
     800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -169,22 +176,22 @@
 }
 
 .primaryAction {
-  border-color: #18c9ee;
-  background: #063446;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  color: #fff;
 }
 
-.secondaryAction,
-.dismiss {
-  background: #0a151d;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+.primaryAction:active,
+.secondaryAction:active,
+.dismiss:active {
+  filter: brightness(0.89);
 }
 
 .primaryAction:focus-visible,
 .secondaryAction:focus-visible,
 .dismiss:focus-visible {
-  outline: 2px solid #9bf4ff !important;
-  outline-offset: 3px !important;
+  outline: 2px solid #9ee3ff !important;
+  outline-offset: 2px !important;
 }
 
 .dismiss {

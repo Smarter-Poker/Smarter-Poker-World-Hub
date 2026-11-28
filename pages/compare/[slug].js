@@ -38,6 +38,7 @@ import {
   glossaryHref,
   pageSources,
 } from '../../src/content/compare/pages';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 export async function getStaticPaths() {
   return {
@@ -95,7 +96,7 @@ export default function ComparePage({ slug }) {
                 <caption>{page.table.caption}</caption>
                 <thead>
                   <tr>
-                    <th scope="col">Product</th>
+                    <th scope="col">{page.table.subjectLabel || 'Product'}</th>
                     {page.table.columns.map((column) => (
                       <th scope="col" key={column.key}>
                         {column.label}
@@ -180,12 +181,19 @@ export default function ComparePage({ slug }) {
                 </Link>
               </li>
             ))}
+            {(page.extraLinks || []).map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className="cmp-link">
+                  {item.label}
+                </Link>
+              </li>
+            ))}
           </ul>
 
           <SmarterConversionCta
             eyebrow="Switch To 100% Free Poker Tools"
             title="Start Using Smarter.Poker Free With Zero Subscriptions"
-            description="Get 107 Free GTO Training Games, Browser-Native Odds & ICM Calculators, And 715+ Live Poker Room Listings In One Free Account."
+            description={`Get 107 Free GTO Training Games, Browser-Native Odds & ICM Calculators, And ${VENUE_COUNT_LABEL} Live Poker Room Listings In One Free Account.`}
             primaryLabel="Create Free Account"
             primaryHref={`/auth/signup?redirect=/hub/training&src=compare-${encodeURIComponent(page.slug)}`}
             secondaryLabel="Browse Free Poker Tools"

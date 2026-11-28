@@ -293,6 +293,7 @@ export default function Wishlist() {
 
         <MarketplaceSubpageShell
           active="wishlist"
+          art="store-wishlist"
           eyebrow="Saved Marketplace Gear"
           title="Wishlist"
           description="Keep A Shortlist Of Gear And Marketplace Access, Then Return To The Live Product Page For Current Options, Availability, And Payment Choice."
@@ -435,8 +436,8 @@ const styles = {
     maxWidth: '100vw',
     overflowX: 'hidden',
     boxSizing: 'border-box',
-    background: '#000000',
-    color: '#FFFFFF',
+    background: '#040d18',
+    color: '#f2f7ff',
   },
   content: { maxWidth: '1200px', margin: '0 auto', padding: '80px 24px 40px' },
   title: { fontSize: '32px', fontWeight: 700, marginBottom: '32px' },
@@ -455,9 +456,12 @@ const styles = {
     flexDirection: 'column',
     justifySelf: 'center',
     overflow: 'visible',
-    border: '1px solid #23394a',
-    backgroundColor: '#070e15',
-    boxShadow: 'inset 0 1px 0 rgb(238 250 255 / 8%)',
+    boxSizing: 'border-box',
+    border: '5px solid transparent',
+    borderImage: "url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch",
+    borderRadius: 0,
+    background: 'linear-gradient(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%)',
+    color: '#f2f7ff',
   },
   wishlistFrameBody: {
     display: 'flex',
@@ -471,7 +475,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: '#000000',
+    backgroundColor: '#050e18',
   },
   productImage: { width: '100%', height: '100%', objectFit: 'cover' },
   productAtlasImage: {
@@ -482,7 +486,7 @@ const styles = {
     backgroundSize: '400% 100%',
   },
   productFallback: {
-    color: '#9edcf0',
+    color: '#86daff',
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 17,
@@ -491,14 +495,14 @@ const styles = {
   },
   productBody: { display: 'flex', minHeight: 210, flexDirection: 'column', padding: '18px' },
   productType: {
-    color: '#7f9aa9',
+    color: '#bdd0e2',
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 12,
     letterSpacing: '0.14em',
     textTransform: 'capitalize',
   },
-  productName: { margin: '10px 0 14px', color: '#edfaff', fontSize: 18, fontWeight: 700 },
+  productName: { margin: '10px 0 14px', color: '#f2f7ff', fontSize: 18, fontWeight: 700 },
   priceRow: {
     display: 'flex',
     alignItems: 'baseline',
@@ -506,8 +510,19 @@ const styles = {
     gap: 12,
     flexWrap: 'wrap',
   },
-  price: { color: '#00E0FF', fontSize: '18px', fontWeight: 600, margin: '8px 0' },
-  diamondPrice: { color: '#a8bac4', fontSize: 12, fontWeight: 600 },
+  price: {
+    color: '#f2f7ff',
+    fontSize: '18px',
+    fontWeight: 600,
+    margin: '8px 0',
+    fontVariantNumeric: 'tabular-nums',
+  },
+  diamondPrice: {
+    color: '#bdd0e2',
+    fontSize: 12,
+    fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
+  },
   actions: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',

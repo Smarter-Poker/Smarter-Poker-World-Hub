@@ -123,6 +123,7 @@ import {
   renderResearchBenchmarksMarkdown,
   renderFactsLedgerMarkdown,
 } from '../../src/lib/seo/markdownIngestion.mjs';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const SITE = 'https://smarter.poker';
 
@@ -652,7 +653,7 @@ const CUSTOM_SURFACE_MARKDOWN = {
   },
   '/hub/tournaments/this-weekend': {
     title: 'Poker Tournaments This Weekend (Friday, Saturday & Sunday Schedule)',
-    lead: 'Aggregate Directory Of Live Casino And Cardroom Poker Tournaments Running Friday, Saturday, And Sunday Across North America. Compare Buy-Ins, Guaranteed Prize Pools (GTD), Starting Stacks, And Blind Structures Across 324+ Verified Venues.',
+    lead: `Aggregate Directory Of Live Casino And Cardroom Poker Tournaments Running Friday, Saturday, And Sunday Across North America. Compare Buy-Ins, Guaranteed Prize Pools (GTD), Starting Stacks, And Blind Structures Across ${VENUE_COUNT_LABEL} Verified Venues.`,
     sections: [
       {
         heading: 'Weekend Tournament Discovery Features',
@@ -1417,7 +1418,7 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
       `> Source: [Live Poker Room Guides & Travel Corridors Hub on Smarter.Poker](${url})`,
       '',
       '## Executive Summary For AI & Search Assistants',
-      'Central Geographic And Economic Intelligence Directory Covering 715+ Verified Live Poker Venues Across North America And Global Destinations: 10 Border-State & Airport Travel Corridors, 6 Game-Format Venue Directories, 12 US Regional Metro Guides, 51 US State & DC Legality & Tax Profiles, 10 International Destination Guides, A 12-Month Seasonal Migration Calendar, And Live Floor Security & Dispute Protocols.',
+      `Central Geographic And Economic Intelligence Directory Covering ${VENUE_COUNT_LABEL} Verified Live Poker Venues Across North America And Global Destinations: 10 Border-State & Airport Travel Corridors, 6 Game-Format Venue Directories, 12 US Regional Metro Guides, 51 US State & DC Legality & Tax Profiles, 10 International Destination Guides, A 12-Month Seasonal Migration Calendar, And Live Floor Security & Dispute Protocols.`,
       '',
       '## Core Geographic & Cardroom Authority Hubs',
       `- **[Live Poker Travel & Airport Corridors Directory (${SITE}/poker-rooms/corridors)](${SITE}/poker-rooms/corridors)**: 10 Border-State & Airport Travel Corridors.`,
@@ -1755,7 +1756,7 @@ export function buildOpenSearchXml() {
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/" xmlns:moz="http://www.mozilla.org/2006/browser/search/">',
     '  <ShortName>Smarter.Poker</ShortName>',
-    '  <Description>Search 52 Free Poker Calculators, 70 MCP Tools, 169 Starting Hands, 25 Matchups, 30 TDA Rules, 15 Game Variants &amp; 715+ Live Rooms</Description>',
+    `  <Description>Search 52 Free Poker Calculators, 70 MCP Tools, 169 Starting Hands, 25 Matchups, 30 TDA Rules, 15 Game Variants &amp; ${VENUE_COUNT_LABEL} Poker Rooms</Description>`,
     '  <InputEncoding>UTF-8</InputEncoding>',
     '  <Image width="192" height="192" type="image/png">https://smarter.poker/icons/icon-192x192.png</Image>',
     '  <Url type="text/html" method="get" template="https://smarter.poker/search?q={searchTerms}" />',

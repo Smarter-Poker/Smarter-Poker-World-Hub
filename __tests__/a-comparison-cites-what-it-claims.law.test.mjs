@@ -93,6 +93,7 @@ const EXPECTED_SLUGS = [
   'wynn-vs-venetian-poker-las-vegas',
   'borgata-vs-parx-poker',
   'best-poker-rooms-in-florida',
+  'plo4-vs-plo5',
 ];
 
 /** Other names a product goes by in running copy. */

@@ -10,6 +10,7 @@
  * 3. Journalist & Digital PR Data Pitch Templates (backed by /research/*)
  * 4. Proprietary Card Room, Club Operator, & Creator Embed Loops
  */
+import { VENUE_COUNT_LABEL } from '../venueCount.mjs';
 
 export const DEAD_TOOL_REPLACEMENTS = [
   {
@@ -280,7 +281,7 @@ export const JOURNALIST_PR_ANGLES = [
     researchUrl: 'https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark',
     targetBeats: ['Casino Industry', 'Las Vegas Travel', 'Texas Business', 'Personal Finance'],
     quotableStat:
-      'Smarter.Poker\'s benchmark of 324+ verified US poker rooms compares standard 10% capped casino rake in Las Vegas and California against time-collection ($10-$15/hr) membership models in Texas social clubs.',
+      `Smarter.Poker's benchmark of ${VENUE_COUNT_LABEL} verified US poker rooms compares standard 10% capped casino rake in Las Vegas and California against time-collection ($10-$15/hr) membership models in Texas social clubs.`,
   },
   {
     id: 'pr-tax-w2g',

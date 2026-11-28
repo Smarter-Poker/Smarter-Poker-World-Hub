@@ -3,8 +3,36 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import {
+  BANNED_TEXT_COLOUR,
+  REJECTED_PAINTED_ART,
+  SD_FILL,
+  SD_FRAME,
+  SMARTERDESIGN_GRADIENTS,
+  hasSecondFrame,
+  offStandardPaint,
+} from './smarterdesign-standard.test.mjs';
+
+
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
+
+// 2026-11 #SMARTERDESIGN: the 2026-09 "no gradients, no url(), 1px hairline,
+// no image surfaces" contracts below were replaced by the #SMARTERDESIGN
+// materials (docs/SMARTERDESIGN.md). Each surface keeps its original intent
+// (content-sized, readable, no rejected painted art, no decorative edge bars,
+// no hover-only states, one frame per surface) but its paint must now be one
+// of the standard chrome nine-slices over one of the four standard fills.
+// Shared paint helpers live in __tests__/smarterdesign-standard.test.mjs.
+const assertSdSurface = (rule, frame, label) => {
+  assert.ok(rule, `expected ${label} rule`);
+  assert.match(rule, SD_FRAME[frame], `${label} must carry the ${frame} chrome nine-slice`);
+  assert.match(rule, SD_FILL, `${label} must use a standard #SMARTERDESIGN fill`);
+  assert.deepEqual(offStandardPaint(rule), [], `${label} carries off-standard paint`);
+  assert.doesNotMatch(rule, /aspect-ratio|padding:\s*calc\(|padding:\s*\d+(?:\.\d+)?%/, label);
+  assert.doesNotMatch(rule, /border-left/, label);
+  assert.equal(hasSecondFrame(rule), false, `${label} must not paint a second frame`);
+};
 
 const files = {
   checkout: 'src/components/diamond-store/CheckoutStatusPanel.module.css',
@@ -28,13 +56,29 @@ const paintedMarketplaceScope = [
   'src/components/store/StoreCards.module.css',
   'src/components/store/MerchPurchaseDialog.module.css',
   'src/components/diamond-store/SmarterStoreShowcase.module.css',
+  'src/components/diamond-store/StoreImageHeader.module.css',
+  'src/components/diamond-store/CheckoutStatusPanel.module.css',
+  'src/components/store/StoreToast.module.css',
+  'src/components/store/MerchStore.module.css',
+  'src/components/store/RewardTelemetryConsole.module.css',
+  'src/components/store/ShoppingCart.module.css',
+  'src/components/store/MarketplaceCommerceNav.module.css',
+  'src/components/store/MarketplaceSubpageShell.module.css',
+  'src/components/store/MarketplaceDetailExperience.module.css',
+  'pages/hub/diamond-store/cart.module.css',
+  'pages/hub/diamond-store/marketplace-account-controls.module.css',
   'pages/hub/diamond-store.js',
+  'pages/hub/diamond-store/cart.js',
+  'pages/hub/diamond-store/orders.js',
+  'pages/hub/diamond-store/orders/[orderId].js',
+  'pages/hub/diamond-store/wishlist.js',
   'src/components/store/ShoppingCart.jsx',
   'src/components/store/StoreCards.js',
+  'src/components/store/MarketplaceDetailExperience.jsx',
   'src/components/diamond-store/diamondStoreStyles.js',
 ];
 
-test('transaction notices use content-driven image-free status surfaces', () => {
+test('transaction notices use content-driven #SMARTERDESIGN status surfaces', () => {
   const checkout = read(files.checkout);
   const toast = read(files.toast);
   const toastComponent = read(files.toastComponent);
@@ -45,11 +89,9 @@ test('transaction notices use content-driven image-free status surfaces', () => 
     ['checkout status', checkoutPanel],
     ['toast status', toastPanel],
   ]) {
-    assert.ok(rule, `expected ${label} rule`);
     assert.match(rule, /min-height:\s*\d+px/);
-    assert.match(rule, /border:\s*1px solid/);
-    assert.match(rule, /background:\s*#/);
-    assert.doesNotMatch(rule, /url\(|aspect-ratio|padding:\s*calc\(|(?:linear|radial)-gradient/);
+    assertSdSurface(rule, 'panel', label);
+    assert.match(rule, /border-radius:\s*0/, `${label} keeps square corners`);
   }
 
   const checkoutControls =
@@ -57,42 +99,63 @@ test('transaction notices use content-driven image-free status surfaces', () => 
     '';
   const toastDismiss = toast.match(/\.dismiss\s*\{[\s\S]*?\n\}/)?.[0] || '';
   assert.match(checkoutControls, /min-height:\s*44px/);
-  assert.match(checkoutControls, /border:\s*1px solid/);
+  assertSdSurface(checkoutControls, 'control', 'checkout controls');
   assert.match(toastDismiss, /min-height:\s*44px/);
-  assert.match(toastDismiss, /border:\s*1px solid/);
-  assert.match(toastDismiss, /background:\s*#/);
-  assert.doesNotMatch(
-    `${checkout}\n${toastDismiss}`,
-    /marketplace-console-v1|url\(|aspect-ratio|(?:linear|radial|conic)-gradient/
-  );
-  assert.doesNotMatch(toastComponent, /TOAST_STYLES|--toast-bg|linear-gradient/);
+  assertSdSurface(toastDismiss, 'control', 'toast dismiss');
+  const primary = checkout.match(/\n\.primaryAction\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.match(primary, SD_FRAME.active, 'the primary checkout action is the cobalt control');
+  assert.match(primary, new RegExp(SMARTERDESIGN_GRADIENTS.cobalt.replace(/[()]/g, '\\$&')));
+  assert.deepEqual(offStandardPaint(`${checkout}\n${toast}`), []);
+  assert.doesNotMatch(`${checkout}\n${toastDismiss}`, /aspect-ratio/);
+  assert.doesNotMatch(toastComponent, /TOAST_STYLES|--toast-bg|gradient/);
 });
 
-test('merchandise confirmation uses one readable restrained purchase card', () => {
+test('merchandise confirmation uses one readable #SMARTERDESIGN purchase card', () => {
   const component = read(files.dialogComponent);
   const styles = read(files.dialog);
 
   assert.doesNotMatch(component, /styles\.(?:rail|seal)/);
   assert.doesNotMatch(styles, /spade-console|marketplace-console-v1|aspect-ratio/);
   const panel = styles.match(/\.panel\s*\{[\s\S]*?\n\}/)?.[0] || '';
-  assert.match(panel, /border:\s*1px solid #496979/);
-  assert.doesNotMatch(panel, /padding:\s*\d+(?:\.\d+)?%/);
-  assert.match(styles, /\.actions\s*\{[\s\S]*?grid-template-columns:[\s\S]*?background:\s*#08131b/);
-  assert.match(styles, /\.close\s*\{[\s\S]*?min-height:\s*44px/);
+  assertSdSurface(panel, 'panel', 'merch dialog panel');
+  assert.match(panel, /max-height:/, 'the dialog stays bounded');
+  assert.match(panel, /overflow:\s*auto/, 'and scrolls rather than clipping');
+  // One frame per surface: the action row inside the framed panel is unframed.
+  const actions = styles.match(/\.actions\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.match(actions, /grid-template-columns:/);
+  assert.match(actions, /background:\s*transparent/);
+  assert.doesNotMatch(actions, /border-image/);
+  const close = styles.match(/\.close\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.match(close, /min-height:\s*44px/);
+  assertSdSurface(close, 'control', 'merch dialog close');
+  assert.deepEqual(offStandardPaint(styles), []);
 });
 
 test('reward and VIP live data use content-driven rows without duplicate outer consoles', () => {
   const telemetry = read(files.telemetry);
   const vip = read(files.vip);
 
-  const contentRules = [
-    ['reward console', telemetry.match(/\.console\s*\{[\s\S]*?\n\}/)?.[0] || ''],
+  // One frame per surface: the reward console is layout only, because every
+  // circuit and state panel inside it carries its own chrome rim.
+  const rewardConsole = telemetry.match(/\.console\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.ok(rewardConsole, 'expected reward console rule');
+  assert.match(rewardConsole, /border:\s*0/);
+  assert.match(rewardConsole, /background:\s*transparent/);
+  assert.doesNotMatch(rewardConsole, /border-image|url\(|gradient/);
+  for (const [label, rule] of [
     ['reward circuit', telemetry.match(/\.circuit\s*\{[\s\S]*?\n\}/)?.[0] || ''],
     ['reward state', telemetry.match(/\.statePanel\s*\{[\s\S]*?\n\}/)?.[0] || ''],
+  ]) {
+    assertSdSurface(rule, 'panel', label);
+  }
+  assert.deepEqual(offStandardPaint(telemetry), []);
+
+  // The VIP membership console was not part of the store redesign; it keeps
+  // its restrained content-sized rows.
+  for (const [label, rule] of [
     ['VIP status', vip.match(/\.statusLine div\s*\{[\s\S]*?\n\}/)?.[0] || ''],
     ['VIP plan', vip.match(/\.plan\s*\{[\s\S]*?\n\}/)?.[0] || ''],
-  ];
-  for (const [label, rule] of contentRules) {
+  ]) {
     assert.ok(rule, `expected ${label} rule`);
     assert.match(rule, /border:\s*1px solid/);
     assert.match(rule, /background:\s*#/);
@@ -125,7 +188,7 @@ test('reward and VIP live data use content-driven rows without duplicate outer c
   assert.doesNotMatch(vipPanel, /url\(|(?:linear|radial|conic)-gradient/);
 });
 
-test('VIP benefit rows are readable cards, and FAQ rows keep their painted hardware', () => {
+test('VIP benefit rows are readable cards, and FAQ rows keep their #SMARTERDESIGN wells', () => {
   const shell = read('src/components/diamond-store/DiamondStoreShell.module.css');
   const legacyStyles = read('src/components/diamond-store/diamondStoreStyles.js');
   const store = read('pages/hub/diamond-store.js');
@@ -143,10 +206,9 @@ test('VIP benefit rows are readable cards, and FAQ rows keep their painted hardw
   assert.doesNotMatch(benefit, /overflow:\s*hidden/);
   assert.match(benefit, /overflow:\s*visible/);
 
-  // Restrained chrome, matching the accepted Marketplace footer. No new paint.
-  assert.match(benefit, /background:\s*#070e15/);
-  assert.match(benefit, /border:\s*1px solid #23394a/);
-  assert.doesNotMatch(benefit, /(?:linear|radial|conic)-gradient|border-radius/);
+  // #SMARTERDESIGN card: readout chrome over the card fill, square corners.
+  assertSdSurface(benefit, 'panel', 'VIP benefit card');
+  assert.doesNotMatch(benefit, /border-radius:\s*[1-9]/);
 
   // The ornamental frame carried no text and was aria-hidden. It is gone from
   // both the stylesheet and the markup, not merely hidden.
@@ -172,15 +234,14 @@ test('VIP benefit rows are readable cards, and FAQ rows keep their painted hardw
   assert.doesNotMatch(faqRow, /aspect-ratio/);
   assert.doesNotMatch(faqRow, /wallet-row-shell/);
   assert.doesNotMatch(faqRow, /overflow:\s*hidden/);
-  assert.match(faqRow, /border:\s*1px solid #23394a/);
-  assert.match(faqRow, /background:\s*#070e15/);
-  assert.doesNotMatch(faqRow, /(?:linear|radial|conic)-gradient|border-left/);
+  assertSdSurface(faqRow, 'well', 'VIP FAQ row');
 
-  // The question stays a 48px touch target and carries no painted plate.
+  // The question stays a 48px touch target inside the row's one frame: it
+  // carries no plate or rim of its own.
   assert.match(faqQuestion, /min-height:\s*48px/);
-  assert.doesNotMatch(faqQuestion, /url\(/);
-  assert.doesNotMatch(faqQuestion, /aspect-ratio/);
-  assert.doesNotMatch(faqQuestion, /(?:linear|radial|conic)-gradient|border-left/);
+  assert.match(faqQuestion, /border:\s*0/);
+  assert.match(faqQuestion, /background:\s*transparent/);
+  assert.doesNotMatch(faqQuestion, /url\(|aspect-ratio|gradient|border-left/);
 
   // The answer is a paragraph, never a near-square painted panel.
   assert.doesNotMatch(faqAnswer, /aspect-ratio/);
@@ -202,13 +263,14 @@ test('merch and fulfillment keep variable-height cards honest while upgrading co
   const merch = read(files.merch);
   const fulfillment = read(files.fulfillment);
 
-  // Status surfaces are content-sized and keep chrome as a restrained accent.
-  for (const plate of ['balanceReadout', 'catalogAlert']) {
+  // Status surfaces are content-sized: a stat well for the balance, a readout
+  // panel for the catalog alert.
+  for (const [plate, frame] of [
+    ['balanceReadout', 'well'],
+    ['catalogAlert', 'panel'],
+  ]) {
     const rule = merch.match(new RegExp(`\\.${plate} \\{[\\s\\S]*?\\n\\}`))?.[0] || '';
-    assert.ok(rule, `${plate} rule is gone`);
-    assert.doesNotMatch(rule, /url\(|aspect-ratio|padding:\s*calc\(/);
-    assert.match(rule, /border:\s*1px solid/);
-    assert.match(rule, /background:\s*#/);
+    assertSdSurface(rule, frame, plate);
   }
   // .emptyState used to be the same 1105/1133 housing with `padding: 18%`
   // resolving against the page column: an 18px content box inside a 440px
@@ -217,10 +279,11 @@ test('merch and fulfillment keep variable-height cards honest while upgrading co
   assert.ok(emptyState, 'the merch empty state rule is gone');
   assert.doesNotMatch(emptyState, /utility\/utility-shell\.webp/);
   assert.doesNotMatch(emptyState, /padding:\s*\d+(?:\.\d+)?%/);
-  assert.doesNotMatch(
-    merch.match(/\.productCard\s*\{[\s\S]*?\n\}/)?.[0] || '',
-    /navigation\/nav-shell|shark-panel\/bay|utility\/utility-shell/
-  );
+  assertSdSurface(emptyState, 'panel', 'merch empty state');
+  const productCard = merch.match(/\.productCard\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.doesNotMatch(productCard, /navigation\/nav-shell|shark-panel\/bay|utility\/utility-shell/);
+  assert.match(productCard, SD_FRAME.panel, 'a merch card is one chrome readout frame');
+  assert.deepEqual(offStandardPaint(merch), []);
 
   const fulfillmentStatus = fulfillment.match(/\.status\s*\{[\s\S]*?\n\}/)?.[0] || '';
   assert.ok(fulfillmentStatus, 'the fulfillment status rule is gone');
@@ -243,7 +306,7 @@ test('merch and fulfillment keep variable-height cards honest while upgrading co
   );
 });
 
-test('upgraded Marketplace surfaces reject CSS-painted gradients and decorative edge bars', () => {
+test('upgraded Marketplace surfaces use only #SMARTERDESIGN paint and no decorative edge bars', () => {
   const fulfillment = read(files.fulfillment);
   const merch = read(files.merch);
   const shell = read(files.shell);
@@ -251,9 +314,10 @@ test('upgraded Marketplace surfaces reject CSS-painted gradients and decorative 
   const legacyStyles = read(files.legacyStyles);
   const storeCards = read(files.storeCards);
   const telemetry = read(files.telemetry);
-  const heroOverlays = [...showcase.matchAll(/\.hero:after\s*\{[\s\S]*?\n\s*\}/g)];
 
-  assert.ok(heroOverlays.length > 1, 'expected the mobile hero overlay rule');
+  // The old painted hero and its mobile overlay are gone: the store opens on
+  // the shared StoreImageHeader instead (see diamond-store-smarterdesign).
+  assert.doesNotMatch(showcase, /\.hero(?::after|\s*\{)|\.heroCopy|\.diamondHero|\.sectionHero/);
 
   const flatRules = [
     ['fulfillment order', fulfillment.match(/\.order\s*\{[\s\S]*?\n\}/)?.[0] || ''],
@@ -265,14 +329,14 @@ test('upgraded Marketplace surfaces reject CSS-painted gradients and decorative 
     ],
     [
       'club admin fields',
-      shell.match(/\.clubAdminCreatePanel :is\(input, select\)\s*\{[\s\S]*?\n\}/)?.[0] || '',
+      shell.match(/\.clubAdminCreatePanel :is\(input, select(?:, textarea)?\)\s*\{[\s\S]*?\n\}/)?.[0] ||
+        '',
     ],
     [
       'club ownership notice',
       shell.match(/\.clubAdminOwnershipNotice\s*\{[\s\S]*?\n\}/)?.[0] || '',
     ],
     ['dialog metric', shell.match(/\.dialogMetric\s*\{[\s\S]*?\n\}/)?.[0] || ''],
-    ['mobile hero overlay', heroOverlays.at(-1)?.[0] || ''],
     ['reward cap banner', legacyStyles.match(/capBanner:\s*\{[\s\S]*?\n\s*\},/)?.[0] || ''],
     ['merch product card', merch.match(/\.productCard\s*\{[\s\S]*?\n\}/)?.[0] || ''],
     ['unavailable merch media', merch.match(/\.mediaUnavailable\s*\{[\s\S]*?\n\}/)?.[0] || ''],
@@ -286,19 +350,28 @@ test('upgraded Marketplace surfaces reject CSS-painted gradients and decorative 
 
   for (const [label, rule] of flatRules) {
     assert.ok(rule, `expected ${label} rule`);
-    assert.doesNotMatch(rule, /(?:linear|radial|conic)-gradient|border-left/, label);
+    assert.deepEqual(offStandardPaint(rule), [], label);
+    assert.doesNotMatch(rule, /border-left|borderLeft/, label);
   }
 
   assert.doesNotMatch(shell, /\.clubAdmin(?:CreatePanel|Row)::before/);
   assert.doesNotMatch(shell, /border-left/);
 });
 
-test('the full painted Marketplace scope rejects gradients and decorative left edges', () => {
-  const prohibitedPaint =
-    /(?:repeating-)?(?:linear|radial|conic)-gradient\s*\(|border-left(?:-[a-z]+)?\s*:|borderLeft(?:Color|Style|Width)?\s*:/i;
+test('the full painted Marketplace scope uses only #SMARTERDESIGN paint and no decorative left edges', () => {
+  const decorativeLeftEdge =
+    /border-left(?:-[a-z]+)?\s*:|borderLeft(?:Color|Style|Width)?\s*:/i;
 
   for (const file of paintedMarketplaceScope) {
-    assert.doesNotMatch(read(file), prohibitedPaint, file);
+    const source = read(file);
+    assert.doesNotMatch(source, decorativeLeftEdge, file);
+    assert.deepEqual(offStandardPaint(source), [], file);
+    assert.doesNotMatch(source, REJECTED_PAINTED_ART, file);
+    // The global Diamond Wallet modal (UniversalHeader) was not part of the
+    // store redesign and still sets var(--vault-gold) text; it is tracked
+    // outside this store scope.
+    if (file.endsWith('DiamondWalletModal.module.css')) continue;
+    assert.doesNotMatch(source, BANNED_TEXT_COLOUR, `${file} paints banned text colours`);
   }
 });
 
@@ -412,12 +485,17 @@ test('cart and wishlist frames carry no empty painted slice', () => {
   assert.doesNotMatch(cartCss, /FrameTop|FrameBottom|shark-panel\/(?:top|mid|bottom)\.png/);
   assert.doesNotMatch(withoutComments(wishlist), /shark-panel\/(?:top|mid|bottom)\.png/);
 
-  // Restrained chrome, and overflow stays visible: it clips nothing.
-  assert.match(cartCss, /\.cartItemFrame,\n\.summaryFrame \{[\s\S]*?overflow: visible;/);
-  assert.match(cartCss, /border: 1px solid #23394a;/);
-  assert.match(cartCss, /background: #070e15;/);
-  assert.match(withoutComments(wishlist), /border: '1px solid #23394a'/);
-  assert.match(withoutComments(wishlist), /backgroundColor: '#070e15'/);
+  // One #SMARTERDESIGN readout frame per card, and overflow stays visible: it
+  // clips nothing.
+  const cartFrame = cartCss.match(/\.cartItemFrame,\n\.summaryFrame \{[\s\S]*?\n\}/)?.[0] || '';
+  assert.match(cartFrame, /overflow: visible;/);
+  assertSdSurface(cartFrame, 'panel', 'cart item and summary frame');
+  const wishlistItem =
+    withoutComments(wishlist).match(/wishlistItem:\s*\{[\s\S]*?\n\s*\},/)?.[0] || '';
+  assert.match(wishlistItem, /overflow: 'visible'/);
+  assert.match(wishlistItem, /border: '5px solid transparent',\s*borderImage: "url\('\/images\/smarterdesign\/chrome-readout\.webp'\)/);
+  assert.match(wishlistItem, /background: 'linear-gradient\(155deg, #162a3f 0%, #0a1a2a 43%, #050e18 87%\)'/);
+  assert.deepEqual(offStandardPaint(wishlist), []);
 });
 
 test('the anonymous fulfillment console says so and refuses its own actions', () => {
@@ -449,8 +527,7 @@ test('the rewards family is sized by its content, not by painted geometry', () =
   assert.doesNotMatch(statePanel, /padding:[^;]*%/);
   assert.doesNotMatch(statePanel, /aspect-ratio/);
   assert.doesNotMatch(statePanel, /utility-shell/);
-  assert.match(statePanel, /border:\s*1px solid #23394a/);
-  assert.match(statePanel, /background:\s*#070e15/);
+  assertSdSurface(statePanel, 'panel', 'reward sign-in state panel');
 
   // 67 Easter Egg cards were held open at 210px around 123-159px of content,
   // inside overflow: hidden, behind three concentric painted rings.
@@ -566,7 +643,9 @@ test('the Club Shop card states what a shopper owns, and paints only its control
   // purchase buttons.
   const category = shell.match(/\.clubItemCategory\s*\{[\s\S]*?\n\}/)?.[0] || '';
   assert.doesNotMatch(category, /button-secondary\.png/);
-  assert.match(category, /border:\s*1px solid #23394a/);
+  // It reads as a #SMARTERDESIGN stat well (a label), never as a control.
+  assertSdSurface(category, 'well', 'club item category');
+  assert.doesNotMatch(category, /chrome-(?:row|active)\.webp/);
 
   // A floor that never applied, and a floor that was quietly overridden.
   assert.doesNotMatch(shell.match(/\.clubItemBody\s*\{[\s\S]*?\n\}/)?.[0] || '', /min-height/);

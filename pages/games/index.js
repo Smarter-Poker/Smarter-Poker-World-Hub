@@ -30,6 +30,7 @@ import {
   POKER_VARIANTS,
   gameVariantPath,
 } from '../../src/content/games/variants';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const GAMES_INDEX_FAQS = [
   {
@@ -300,7 +301,7 @@ export default function PokerGamesIndexPage() {
         <SmarterConversionCta
           eyebrow="Free Multi-Variant Poker Account"
           title="Master Hold'em, PLO & Mixed Games With Free Smarter.Poker Tools"
-          description="Access 107 Free GTO Training Games, Multi-Variant Equity Calculators, And 715+ Live Poker Room Schedules In One Account."
+          description={`Access 107 Free GTO Training Games, Multi-Variant Equity Calculators, And ${VENUE_COUNT_LABEL} Live Poker Room Schedules In One Account.`}
           primaryLabel="Create Free Account"
           primaryHref="/auth/signup?redirect=/hub/training&src=games-index"
           secondaryLabel="Find Live Poker Rooms"

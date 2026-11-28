@@ -86,7 +86,8 @@ test('CRO Law 4: training/play renders non-empty SSR H1, starting hands include 
   assert.match(handSrc, /GTO Preflop Spot Check|Quick GTO Spot Check/i, 'starting hand pages must include the interactive GTO Spot Check');
 
   const homeSrc = read('pages/index.js');
-  assert.match(homeSrc, /715\+ Live Rooms/, 'homepage must include the #SMARTERDESIGN sticky mobile CTA');
+  // The room count comes from the one source of truth (the-room-count-is-real.law.test.mjs).
+  assert.match(homeSrc, /\{VENUE_COUNT_LABEL\} Poker Rooms/, 'homepage must include the #SMARTERDESIGN sticky mobile CTA with the shared room count');
 
   const signupSrc = read('pages/auth/signup.js');
   assert.match(signupSrc, /Continue With Google/, 'signup.js must display prominent 1-tap Continue With Google CTA');

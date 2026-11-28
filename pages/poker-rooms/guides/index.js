@@ -21,6 +21,7 @@ import {
   POKER_MARKET_GUIDES,
   marketGuidePath,
 } from '../../../src/content/guides/markets.js';
+import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 
 const DIRECTORY_FAQS = [
   {
@@ -33,7 +34,7 @@ const DIRECTORY_FAQS = [
   },
   {
     q: 'Where Can I Check Live Poker Room Waitlists And Tournament Clocks Near Me?',
-    a: 'Use The Smarter.Poker Live Directory At /hub/poker-near-me To Browse 324+ Verified US Poker Venues, Real-Time Cash Waitlists, And 4,500+ Weekly Tournament Schedules.',
+    a: `Use The Smarter.Poker Live Directory At /hub/poker-near-me To Browse ${VENUE_COUNT_LABEL} Verified US Poker Venues, Cash Game Listings, And 4,500+ Weekly Tournament Schedules.`,
   },
 ];
 
@@ -224,7 +225,7 @@ export default function PokerMarketGuidesIndexPage() {
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             <Link href="/hub/poker-near-me/lobby" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#1d4ed8', color: '#ffffff', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
-              Poker Near Me (715+ Live Venues)
+              Poker Near Me ({VENUE_COUNT_LABEL} Poker Venues)
             </Link>
             <Link href="/poker-rooms/international" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 14px', background: '#0284c7', color: '#ffffff', borderRadius: 0, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               10 International Poker Destination Guides

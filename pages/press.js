@@ -17,11 +17,12 @@ import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../src/components/seo/AiPromptLauncher';
 import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
 import SmarterSeoMasthead from '../src/components/seo/SmarterSeoMasthead';
+import { VENUE_COUNT_LABEL } from '../src/lib/venueCount.mjs';
 
 const INDUSTRY_FAST_FACTS = [
   {
     metric: 'Verified US Brick-And-Mortar Poker Rooms',
-    benchmark2026: '324+ Active Venues Across 38 States',
+    benchmark2026: `${VENUE_COUNT_LABEL} Active Venues Across 38 States`,
     context: 'Includes Commercial Casinos, Tribal Gaming Properties, California Card Rooms, And Texas/Oregon Social Membership Clubs.',
     sourcePath: '/research/us-live-poker-room-rake-and-jackpot-benchmark',
   },
@@ -57,7 +58,7 @@ const INDUSTRY_FAST_FACTS = [
   },
   {
     metric: '2026 Annual State Of Live & Online Poker Whitepaper',
-    benchmark2026: '715+ Venues, 4,500+ Weekly MTTs, 15 State Tax Profiles & 10M+ Simulated Hands',
+    benchmark2026: `${VENUE_COUNT_LABEL} Venues, 4,500+ Weekly MTTs, 15 State Tax Profiles & 10M+ Simulated Hands`,
     context: 'Flagship Annual Quantitative Whitepaper With Consolidated Benchmark Scorecards And Zenodo DOI Provenance.',
     sourcePath: '/research/annual-state-of-poker-2026',
   },
@@ -78,12 +79,12 @@ const BRAND_BOILERPLATES = [
   {
     id: 'medium',
     label: 'Medium Boilerplate (2 Sentences / 75 Words)',
-    text: 'Smarter.Poker (Published By Smarter Software Inc.) Is The Premier Online And Live Poker Intelligence Platform Serving Players, Club Operators, And Tournament Directors Across North America. The Platform Integrates Real-Time Waitlists And Schedules For 324+ Verified US Poker Rooms, 52 Browser-Native Poker Math Calculators, 70 Zero-Auth MCP Tools, 169 GTO Starting Hand Charts, 15 Empirical Industry Benchmark Studies, Club Arena Online Play, And Club Commander Cardroom Operations Software.',
+    text: `Smarter.Poker (Published By Smarter Software Inc.) Is The Premier Online And Live Poker Intelligence Platform Serving Players, Club Operators, And Tournament Directors Across North America. The Platform Integrates Real-Time Waitlists And Schedules For ${VENUE_COUNT_LABEL} Verified US Poker Rooms, 52 Browser-Native Poker Math Calculators, 70 Zero-Auth MCP Tools, 169 GTO Starting Hand Charts, 15 Empirical Industry Benchmark Studies, Club Arena Online Play, And Club Commander Cardroom Operations Software.`,
   },
   {
     id: 'long',
     label: 'Long Press Boilerplate (Full Media Attribution Paragraph)',
-    text: 'Operated By Smarter Software Inc., Smarter.Poker Is The All-In-One Poker Technology, Data Research, And Cardroom Management Ecosystem. For Everyday Players, Smarter.Poker Provides Free Access To 52 Interactive GTO And Tournament Calculators, 70 Model Context Protocol (MCP) AI Tools, 169 Canonical Starting Hand Strategy Guides, 25 Head-To-Head Matchup Solvers, 30 Official TDA And Robert\'s Rules Of Poker Floor Rulings, And Real-Time Live Discovery Across 324+ US Poker Venues And 4,500+ Weekly Tournaments. For Private Clubs And Commercial Cardrooms, Smarter.Poker Powers Club Arena And Club Commander, Delivering Waitlist Automation, Tournament Clocks, Floor Management, And Transparent Player Analytics Under Creative Commons CC BY 4.0 Open Data Attribution.',
+    text: `Operated By Smarter Software Inc., Smarter.Poker Is The All-In-One Poker Technology, Data Research, And Cardroom Management Ecosystem. For Everyday Players, Smarter.Poker Provides Free Access To 52 Interactive GTO And Tournament Calculators, 70 Model Context Protocol (MCP) AI Tools, 169 Canonical Starting Hand Strategy Guides, 25 Head-To-Head Matchup Solvers, 30 Official TDA And Robert's Rules Of Poker Floor Rulings, And Real-Time Live Discovery Across ${VENUE_COUNT_LABEL} US Poker Venues And 4,500+ Weekly Tournaments. For Private Clubs And Commercial Cardrooms, Smarter.Poker Powers Club Arena And Club Commander, Delivering Waitlist Automation, Tournament Clocks, Floor Management, And Transparent Player Analytics Under Creative Commons CC BY 4.0 Open Data Attribution.`,
   },
 ];
 
@@ -96,7 +97,7 @@ const PRESS_BADGE_SNIPPETS = [
   {
     id: 'badge-live-index',
     title: 'US Live Poker Room Benchmark Badge',
-    code: '<a href="https://smarter.poker/poker-rooms/guides" target="_blank" rel="noopener"><img src="https://smarter.poker/api/seo/badge?type=market&label=US+Live+Poker+Index&value=324%2B+Verified+Rooms" alt="US Live Poker Index: 324+ Verified Rooms" height="28" /></a>',
+    code: `<a href="https://smarter.poker/poker-rooms/guides" target="_blank" rel="noopener"><img src="https://smarter.poker/api/seo/badge?type=market&label=US+Live+Poker+Index&value=${encodeURIComponent(VENUE_COUNT_LABEL)}+Verified+Rooms" alt="US Live Poker Index: ${VENUE_COUNT_LABEL} Verified Rooms" height="28" /></a>`,
   },
   {
     id: 'badge-tools',
@@ -253,7 +254,7 @@ export default function PressKitMediaPage() {
             title="Smarter.Poker Press Kit, 2026 Poker Industry Fast Facts & Media Citations"
             lead="Quotable 2026 US Live & Online Poker Benchmarks, Brand Boilerplates & CC BY 4.0 Open Media Badges."
             stats={[
-              { label: 'Verified Rooms', value: '324+ Venues' },
+              { label: 'Verified Rooms', value: `${VENUE_COUNT_LABEL} Venues` },
               { label: 'Weekly MTTs', value: '4,500+ Events' },
               { label: 'Zenodo Archives', value: '6 DOIs' },
               { label: 'Media License', value: 'CC BY 4.0' },

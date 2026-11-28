@@ -2005,6 +2005,14 @@
 .vl-playback-error { position: absolute; inset: 0; background: #000e; display: grid; place-content: center; padding: 20px; }
 .vl-timeline-marks { position: relative; height: 8px; margin-bottom: 8px; }
 .vl-timeline-marks span { position: absolute; width: 3px; height: 8px; background: #389aff; transform: translateX(-50%); }
+.vl-timeline-marks span.is-chapter { width: 2px; background: #e6f3ff; opacity: .7; }
+.vl-chapters { margin: 4px 0 12px; text-align: center; }
+.vl-chapters h4 { margin: 0 0 8px; font-size: 16px; }
+.vl-hand-timeline .vl-chapters ol { display: flex; flex-direction: column; gap: 6px; max-height: 320px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.vl-hand-timeline .vl-chapters button { display: flex; gap: 10px; width: 100%; text-align: left; }
+.vl-chapters .vl-chapter-time { flex: none; min-width: 4.5em; font-variant-numeric: tabular-nums; }
+.vl-chapters .vl-chapter-title { flex: 1; overflow-wrap: anywhere; font-weight: 500; letter-spacing: 0; }
+.vl-chapters button[aria-current='true'] { outline: 2px solid #389aff; outline-offset: -2px; }
 .vl-viewer.is-mini-player .vl-player-stage, .vl-watch-page-player.is-mini-player { min-height: 200px; }
 .vl-sound-notice { font-size: 12px; color: #aaa; padding-block: 4px; }
 
@@ -2267,12 +2275,14 @@
    and the grey explanation lines moved behind the mast's "?". The video feed
    itself stays the frameless YouTube grid of the 2026-10-11 ruling; only the
    controls and readouts above it wear the chrome. The chrome rails are the
-   same art Club Arena paints Player Stats with (public/assets/video-library/mast). */
+   same art Club Arena paints Player Stats with, served once from the shared
+   public/images/smarterdesign/ copies (byte-identical duplicates were removed
+   2026-11-27 so a page never fetches the same frame twice). */
 .video-library-page {
-    --vl-chrome-row: url('/assets/video-library/mast/chrome-row.webp');
-    --vl-chrome-active: url('/assets/video-library/mast/chrome-active.webp');
-    --vl-chrome-stat: url('/assets/video-library/mast/chrome-stat.webp');
-    --vl-chrome-panel: url('/assets/video-library/mast/chrome-readout.webp');
+    --vl-chrome-row: url('/images/smarterdesign/chrome-row.webp');
+    --vl-chrome-active: url('/images/smarterdesign/chrome-active.webp');
+    --vl-chrome-stat: url('/images/smarterdesign/chrome-stat.webp');
+    --vl-chrome-panel: url('/images/smarterdesign/chrome-readout.webp');
     --vl-chrome-fill: linear-gradient(180deg, #263e55, #112437 45%, #07131e);
     --vl-chrome-fill-active: linear-gradient(180deg, #2b6fc0, #14478c 48%, #0b2d63);
     --vl-chrome-panel-fill: radial-gradient(ellipse at 87% 0%, #19374f 0%, transparent 65%), linear-gradient(154deg, #11263a, #07131e 56%, #081927);

@@ -6,10 +6,10 @@
     "pages/legal/official-rules.js": "4173d038cf68fb2a9ac806c15011ad1dcfe65122c9bf0ee57865b600484b9c5f",
     "src/components/landing/LandingProductSummary.js": "1373d71bb361f3514add01cccdcb7e69ac9159813d5e9edbea7a8262438b760a",
     "src/lib/businessHubGuide.mjs": "af62def60de12b17475ebcf0e1d8f5c2cb28888e10f047876c69accc1ba2a7ef",
-    "pages/about.js": "e927a3348495987c15f308372b718998a75e2428f953d94bff4a68d18c9412cc",
+    "pages/about.js": "7faeeaaf526c118a357ca41603c7f4293ac8094f3a521fe2ed03131c0e01a22b",
     "src/lib/businessHubJourney.mjs": "8adb19909591e0fdeee08d744e61287f28ff6cd42d0d104010f36da5a9b6b174",
     "pages/hub/commander/index.js": "7157da8adece8f9adc1a54b9b628308aa2c409e32f433eed70bcca0a56ac28b7",
-    "pages/hub/bankroll-manager.js": "a249c3d230b9b18e4185ba83c989d17b4fb26b5cbb42f85bedefca6b04ef26f0",
+    "pages/hub/bankroll-manager.js": "bec8ed3c418609a6fd6ff0d18f48444261de436e290f64b907b1406edbdcbd89",
     "pages/hub/training.js": "11b9723ac7c6b2ec7364e768fc8c2656409b1fb09f808de571a3883e7c879a09",
     "pages/hub/poker-near-me/lobby.js": "5635e588762d9ef4c4e66c11332630cbfe0305c4b4038860485a3a0c26d8b0ca"
   }

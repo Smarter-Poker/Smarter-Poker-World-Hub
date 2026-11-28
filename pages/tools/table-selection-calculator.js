@@ -22,6 +22,7 @@ import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShar
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const STAKES_OPTIONS = [
   { id: '1_2', label: '$1/$2 No-Limit Holdem', bb: 2 },
@@ -526,7 +527,7 @@ export default function TableSelectionCalculatorPage() {
           compact
           eyebrow="Free Smarter.Poker Account"
           title="Score Live Tables & Find Softest Poker Rooms Free"
-          description="Compare Live Room Traffic Across 715+ Venues, Log Session Winrates, And Unlock 107 Free GTO Games."
+          description={`Compare Live Room Traffic Across ${VENUE_COUNT_LABEL} Venues, Log Session Winrates, And Unlock 107 Free GTO Games.`}
           primaryLabel="Create Free Account"
           primaryHref="/auth/signup?redirect=/tools/table-selection-calculator&src=table-selection"
           secondaryLabel="Sign In"

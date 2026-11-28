@@ -1590,7 +1590,6 @@ export default function MerchStore({
       >
         {!detailMode && (
           <div className={merchStyles.intro}>
-            <h2 className={merchStyles.storeTitle}>Official Merch</h2>
             <p className={merchStyles.storeIntro}>
               Neural Steel Apparel, Headwear, Table Gear, And Lifestyle Products Are Created After
               Purchase, Then Packed And Shipped Directly By A Fulfillment Partner. We Never Hold Or

@@ -346,28 +346,139 @@ body.world-trivia :focus-visible:not(:is(header, nav, footer) *) {
     border-color: #22c55e;
 }
 
+/* ── Structured 3-Line Question & Real Playing-Card Graphics ────────────── */
+
+.trivia-q-structured {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+}
+
+.trivia-q-line {
+    display: block;
+    line-height: 1.4;
+}
+
+.trivia-q-line--setup {
+    color: var(--tc-ink-white, #f2f7ff);
+    font-size: clamp(16px, 4.1vw, 20px);
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.trivia-q-line--board {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 8px;
+    border: 1px solid #445e77;
+    border-radius: 10px;
+    background: #0a1829;
+}
+
+.trivia-q-board-label {
+    color: var(--tc-ink-blue, #86daff);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.1;
+}
+
+.trivia-q-board-cards {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.trivia-q-line--prompt {
+    color: var(--tc-ink-white, #f2f7ff);
+    font-size: clamp(18px, 4.6vw, 23px);
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.trivia-card-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin: 0 4px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.trivia-card-img {
+    display: inline-block;
+    border-radius: 4px;
+    object-fit: contain;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 55%);
+    vertical-align: middle;
+}
+
+.trivia-card-img--hero {
+    width: 30px;
+    height: 42px;
+}
+
+.trivia-card-img--board {
+    width: 50px;
+    height: 70px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 65%);
+}
+
+@media (min-width: 720px) {
+    .trivia-q-structured {
+        gap: 14px;
+    }
+
+    .trivia-q-line--board {
+        padding: 12px 14px;
+        gap: 10px;
+    }
+
+    .trivia-q-board-cards {
+        gap: 8px;
+    }
+
+    .trivia-card-img--hero {
+        width: 34px;
+        height: 48px;
+    }
+
+    .trivia-card-img--board {
+        width: 58px;
+        height: 81px;
+    }
+}
+
 /* ── Segmented Question Progress Strip ──────────────────────────────────── */
 
 .trivia-q-progress {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     width: 100%;
-    padding: 4px 0 8px;
+    padding: 2px 0 4px;
 }
 
 .trivia-q-progress__seg {
     flex: 1 1 0;
-    height: 6px;
+    height: 5px;
     min-width: 4px;
     border: 1px solid #445e77;
-    border-radius: 2px;
+    border-radius: 999px;
     background: #0e2236;
 }
 
 .trivia-q-progress__seg--current {
     border-color: #86daff;
     background: #1981ec;
+    box-shadow: 0 0 6px rgb(25 129 236 / 55%);
 }
 
 .trivia-q-progress__seg--answered {

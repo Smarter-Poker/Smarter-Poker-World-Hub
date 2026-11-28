@@ -26,6 +26,7 @@ import {
   stateGuidePath,
 } from '../../../src/content/guides/states';
 import venueDirectorySnapshot from '../../../data/poker-venue-directory-snapshot.json';
+import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 
 const STATES_WITH_LIVE_VENUES = new Set(
   (venueDirectorySnapshot?.venues || [])
@@ -361,7 +362,7 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [], ha
             primaryHref={`/auth/signup?redirect=${encodeURIComponent(canonicalPath)}&src=poker-rooms-state`}
             secondaryLabel="Sign In"
             secondaryHref={`/auth/login?redirect=${encodeURIComponent(canonicalPath)}`}
-            highlights={['100% Free Account', '715+ Live Rooms', 'Bankroll & Tax Log']}
+            highlights={['100% Free Account', `${VENUE_COUNT_LABEL} Poker Rooms`, 'Bankroll & Tax Log']}
           />
         </div>
 

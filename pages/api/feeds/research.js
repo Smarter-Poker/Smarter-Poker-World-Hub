@@ -16,6 +16,7 @@
 import { RESEARCH_REPORTS, researchPath } from '../../../src/content/research/reports.js';
 import { SITE_URL } from '../../../src/lib/seo/sitemapBuilders.mjs';
 import { OEMBED_CALCULATORS } from '../seo/oembed.js';
+import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 
 const CALCULATOR_BADGE_VALUES = {
   'odds-calculator': 'Equity & Odds Solver',
@@ -149,7 +150,7 @@ const AUTHORITY_WHITEPAPER_FEED_ITEMS = [
     slug: 'annual-state-of-poker-2026',
     url: `${SITE_URL}/research/annual-state-of-poker-2026`,
     title: '2026 Annual State Of Live & Online Poker Industry Whitepaper (DOI: 10.5281/zenodo.15129481)',
-    summary: 'Flagship 2026 quantitative industry report synthesizing 715+ verified North American poker venues, 4,500+ weekly tournaments, all 50 US states and DC tax regimes, and 10M+ simulated GTO hands.',
+    summary: `Flagship 2026 quantitative industry report synthesizing ${VENUE_COUNT_LABEL} verified North American poker venues, 4,500+ weekly tournaments, all 50 US states and DC tax regimes, and 10M+ simulated GTO hands.`,
     category: 'Annual Industry Whitepaper',
   },
   {
@@ -212,14 +213,14 @@ const AUTHORITY_WHITEPAPER_FEED_ITEMS = [
     slug: 'by-game',
     url: `${SITE_URL}/poker-rooms/by-game`,
     title: 'Best Live Poker Rooms By Game Variant (PLO, Big O, Mixed, Stud & High-Stakes NLH)',
-    summary: 'Curated directory grouping 715+ verified North American poker venues by PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, and Daily MTTs.',
+    summary: `Curated directory grouping ${VENUE_COUNT_LABEL} verified North American poker venues by PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, and Daily MTTs.`,
     category: 'Geographic Venue Intelligence',
   },
   {
     slug: 'facts',
     url: `${SITE_URL}/facts`,
     title: 'Smarter.Poker Canonical Fact Ledger, Entity Provenance & AI Verification Hub',
-    summary: 'Authoritative entity provenance and verified platform metrics (52 calculators, 70 MCP tools, 44 streamer commands, 715+ venues) synced with /.well-known/ai-facts.json.',
+    summary: `Authoritative entity provenance and verified platform metrics (52 calculators, 70 MCP tools, 44 streamer commands, ${VENUE_COUNT_LABEL} venues) synced with /.well-known/ai-facts.json.`,
     category: 'Entity Provenance',
   },
   {

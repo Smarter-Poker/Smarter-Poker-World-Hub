@@ -9,6 +9,7 @@
  *
  * House style: Title Case, zero em dashes.
  */
+import { VENUE_COUNT_LABEL } from '../lib/venueCount.mjs';
 
 export const AUTHORS_AS_OF = '2026-11-24';
 export const AUTHORS_BASE_PATH = '/authors';
@@ -83,12 +84,12 @@ export const EDITORIAL_AUTHORS = [
     name: 'Smarter.Poker Live Venue Intelligence Team',
     shortTitle: 'Live Venue Intelligence Team Methodology',
     title: 'Live Venue Intelligence Team Methodology',
-    h1: 'Smarter.Poker Live Venue Intelligence Team: 715+ Room Statutory, Rake & Waitlist Verification',
+    h1: `Smarter.Poker Live Venue Intelligence Team: ${VENUE_COUNT_LABEL} Room Statutory, Rake & Waitlist Verification`,
     specialty: 'Live Cardroom Auditing, State Gaming Statutes, Rake Caps & Tournament Schedule Verification',
     primaryDoi: '10.5281/zenodo.24115454',
     orcidStyleId: 'https://smarter.poker/authors/live-venue-intelligence-team#org',
     summary:
-      'The Smarter.Poker Live Venue Intelligence Team Maintains And Verifies The Nationwide Poker Near Me Directory Covering 324+ Active US Poker Venues, 4,500+ Weekly Scheduled Tournaments, All 50 US States And DC Gaming Law And Tax Guides, 12 Regional Market Guides, And 10 International Poker Destination Profiles.',
+      `The Smarter.Poker Live Venue Intelligence Team Maintains And Verifies The Nationwide Poker Near Me Directory Covering ${VENUE_COUNT_LABEL} Active US Poker Venues, 4,500+ Weekly Scheduled Tournaments, All 50 US States And DC Gaming Law And Tax Guides, 12 Regional Market Guides, And 10 International Poker Destination Profiles.`,
     credentials: [
       'Direct Floor Verification & Club Commander Live Telemetry Integration For Waitlists, Table Counts, And Tournament Clocks.',
       'State-By-State Statutory Audit Covering State Gaming Commissions, Tribal Gaming Compacts, And Texas Social Club Models.',

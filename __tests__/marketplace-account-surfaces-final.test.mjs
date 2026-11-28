@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import { SD_FILL, SD_FRAME, hasSecondFrame, offStandardPaint } from './smarterdesign-standard.test.mjs';
+
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 
@@ -55,10 +57,14 @@ test('account states and cart framing use restrained image-free CSS surfaces', (
   // Account and cart records reserve their space for product, status,
   // ownership, and the next available action.
   const CART_CSS_RULES = CART_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
-  assert.match(
-    CART_CSS_RULES,
-    /\.cartItemFrame,\s*\.summaryFrame \{[\s\S]*?border: 1px solid #23394a;[\s\S]*?background: #070e15;[\s\S]*?box-shadow: inset 0 1px 0 rgb\(238 250 255 \/ 8%\);/
-  );
+  // #SMARTERDESIGN: each cart record is one chrome readout frame over the
+  // standard card fill, with no second hairline or inset ring.
+  const cartFrame =
+    CART_CSS_RULES.match(/\.cartItemFrame,\s*\.summaryFrame \{[\s\S]*?\n\}/)?.[0] || '';
+  assert.match(cartFrame, SD_FRAME.panel);
+  assert.match(cartFrame, SD_FILL);
+  assert.equal(hasSecondFrame(cartFrame), false);
+  assert.deepEqual(offStandardPaint(CART_CSS), []);
   assert.match(
     CART_CSS_RULES,
     /\.cartItemFrameBody,\s*\.summaryFrameBody \{[\s\S]*?padding: 16px 20px;/
@@ -71,7 +77,8 @@ test('account states and cart framing use restrained image-free CSS surfaces', (
   );
   assert.doesNotMatch(CART, /FrameTop|FrameBottom/);
   assert.doesNotMatch(CART, /shark-panel\/bay\.png|spade-console\/mid\.png/);
-  assert.doesNotMatch(ACCOUNT_CONTROLS, /url\(|marketplace-console-v1|shark-panel|spade-console/);
+  assert.doesNotMatch(ACCOUNT_CONTROLS, /marketplace-console-v1|shark-panel|spade-console/);
+  assert.deepEqual(offStandardPaint(ACCOUNT_CONTROLS), []);
   assert.match(ACCOUNT_CONTROLS, /\.action\s*\{[\s\S]*?min-height:\s*46px/);
   assert.match(ACCOUNT_CONTROLS, /\.panel,[\s\S]*?\.recordCard\s*\{/);
   assert.match(ACCOUNT_CONTROLS, /\.statusRow\s*\{/);

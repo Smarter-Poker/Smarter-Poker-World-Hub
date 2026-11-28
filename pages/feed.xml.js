@@ -17,6 +17,7 @@ import { HAND_MATCHUPS, matchupPath } from '../src/content/learn/matchups.js';
 import { SERIES_GUIDES, seriesGuidePath } from '../src/content/guides/seriesGuides.js';
 import { SITE_URL, sendSitemapXmlResponse } from '../src/lib/seo/sitemapBuilders.mjs';
 import { xmlEscape } from '../src/lib/videoLibraryWatch.mjs';
+import { VENUE_COUNT_LABEL } from '../src/lib/venueCount.mjs';
 
 const FEATURE_ITEMS = [
     {
@@ -77,7 +78,7 @@ const FEATURE_ITEMS = [
     {
         title: 'Live Poker Near Me & Cardroom Directory',
         link: `${SITE_URL}/features/poker-near-me`,
-        description: 'Explore 324+ Verified Live Poker Rooms, 4,500+ Weekly Tournaments, WSOP/WPT Series Schedules, Real-Time Cash Games, And Waitlists With Instant GPS Directions.',
+        description: `Explore ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, 4,500+ Weekly Tournaments, WSOP/WPT Series Schedules, Cash Game Listings, And Waitlists With Instant GPS Directions.`,
     },
     {
         title: 'Private Poker Clubs & Union Hosting Arena',
@@ -525,7 +526,7 @@ const TOOL_ITEMS = [
     {
         title: 'Best Live Poker Rooms By Game Variant (PLO, Big O, Mixed, Stud & High-Stakes)',
         link: `${SITE_URL}/poker-rooms/by-game`,
-        description: 'Curated Directory Grouping 715+ North American Poker Rooms By PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, And Daily MTTs.',
+        description: `Curated Directory Grouping ${VENUE_COUNT_LABEL} North American Poker Rooms By PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, And Daily MTTs.`,
         category: 'Live Poker Guides',
         pubDate: LEARN_MODIFIED,
     },
@@ -546,7 +547,7 @@ const TOOL_ITEMS = [
     {
         title: '2026 Annual State Of Live & Online Poker Industry Whitepaper',
         link: `${SITE_URL}/research/annual-state-of-poker-2026`,
-        description: 'Flagship 2026 Quantitative Industry Report Synthesizing 715+ Venues, 4,500+ Weekly Tournaments, And 10M+ Simulated GTO Hands (DOI: 10.5281/zenodo.15129481).',
+        description: `Flagship 2026 Quantitative Industry Report Synthesizing ${VENUE_COUNT_LABEL} Venues, 4,500+ Weekly Tournaments, And 10M+ Simulated GTO Hands (DOI: 10.5281/zenodo.15129481).`,
         category: 'Poker Industry Research',
         pubDate: LEARN_MODIFIED,
     },
@@ -602,7 +603,7 @@ const TOOL_ITEMS = [
     {
         title: 'Universal Poker Search & Command Directory',
         link: `${SITE_URL}/search`,
-        description: 'Instant Command Palette And Search Directory Indexing 52 Interactive Calculators, 70 MCP Tools, And 715+ Live Poker Rooms.',
+        description: `Instant Command Palette And Search Directory Indexing 52 Interactive Calculators, 70 MCP Tools, And ${VENUE_COUNT_LABEL} Live Poker Rooms.`,
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },

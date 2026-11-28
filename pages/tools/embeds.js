@@ -11,6 +11,7 @@ import SmarterConversionCta from '../../src/components/seo/SmarterConversionCta'
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
 import { Code, Copy, Check, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const WIDGETS = [
   {
@@ -595,7 +596,7 @@ export const PARTNER_BADGES = [
   {
     id: 'badge-award-top50',
     title: 'US Live Poker Room Benchmark Index Badge',
-    description: 'For poker rooms and casino properties included in the US Live Poker Room Rake & Jackpot Benchmark Report (324+ venues).',
+    description: `For poker rooms and casino properties included in the US Live Poker Room Rake & Jackpot Benchmark Report (${VENUE_COUNT_LABEL} venues).`,
     badgeUrl: 'https://smarter.poker/api/seo/badge?type=award-top50',
     targetUrl: 'https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark',
     altText: 'US Live Poker Room Index: Smarter.Poker Directory',
@@ -2346,7 +2347,7 @@ export default function WebmasterEmbedPortal() {
             compact
             eyebrow="Free Smarter.Poker Account"
             title="Unlock All 52 Poker Calculators, 107 GTO Drills & Live Room Data"
-            description="Create A Free Smarter.Poker Account To Save Custom Calculator Presets, Track Bankroll Sessions, And Access 715+ Verified Poker Rooms."
+            description={`Create A Free Smarter.Poker Account To Save Custom Calculator Presets, Track Bankroll Sessions, And Access ${VENUE_COUNT_LABEL} Verified Poker Rooms.`}
             primaryLabel="Create Free Account"
             primaryHref="/auth/signup?redirect=/tools/embeds&src=tools-embeds"
             secondaryLabel="Sign In"

@@ -37,6 +37,7 @@ import {
   Award,
   Layers
 } from 'lucide-react';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const COMPARE_FAQS = [
   {
@@ -53,7 +54,7 @@ const COMPARE_FAQS = [
   },
   {
     question: 'How Does Smarter.Poker Live Poker Room Directory Compare To PokerAtlas?',
-    answer: 'Smarter.Poker features an extensive directory of 324+ verified poker venues and 4,500+ weekly tournament records, integrated directly with free venue management software (Club Commander) for real-time waitlists, tournament clocks, and SMS seat notifications.',
+    answer: `Smarter.Poker features an extensive directory of ${VENUE_COUNT_LABEL} verified poker venues and 4,500+ weekly tournament records, integrated directly with free venue management software (Club Commander) for real-time waitlists, tournament clocks, and SMS seat notifications.`,
   },
   {
     question: 'How Does Smarter.Poker Bankroll Manager Compare To Pokerbase And Poker Bankroll Tracker?',
@@ -194,7 +195,7 @@ export default function CompareHubPage() {
             </div>
             <div>
               <div style={{ fontSize: '12px', color: '#7E9BB8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Live Directory</div>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: '#38bdf8' }}>324+ Venues + Free Waitlist System</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#38bdf8' }}>{VENUE_COUNT_LABEL} Venues + Free Waitlist System</div>
             </div>
           </div>
         </aside>
@@ -203,7 +204,7 @@ export default function CompareHubPage() {
           <SmarterConversionCta
             eyebrow="Zero Subscription Poker Platform"
             title="Try Smarter.Poker Free Against Legacy Paid Tools"
-            description="Unlock 107 Free GTO Training Games, Browser-Native Equity & ICM Solvers, And 715+ Verified Live Poker Rooms With Zero Credit Card Required."
+            description={`Unlock 107 Free GTO Training Games, Browser-Native Equity & ICM Solvers, And ${VENUE_COUNT_LABEL} Verified Live Poker Rooms With Zero Credit Card Required.`}
             primaryLabel="Create Free Account"
             primaryHref="/auth/signup?redirect=/hub/training&src=compare-index"
             secondaryLabel="Open Free Poker Tools"
@@ -1075,7 +1076,7 @@ export default function CompareHubPage() {
 
         <GeoCitationCapsule
           title="Smarter.Poker Software & Live Platform Benchmark Capsule"
-          claim="Smarter.Poker Replaces $1,200+ In Annual Third-Party Poker Software Subscriptions (ICMIZER, GTO Solvers, Desktop Odds Calculators, And Paid Bankroll Trackers) With 52 Free Browser-Native Calculators, 107 GTO Scenario Trainers, And 324+ Verified Live Cardroom Listings."
+          claim={`Smarter.Poker Replaces $1,200+ In Annual Third-Party Poker Software Subscriptions (ICMIZER, GTO Solvers, Desktop Odds Calculators, And Paid Bankroll Trackers) With 52 Free Browser-Native Calculators, 107 GTO Scenario Trainers, And ${VENUE_COUNT_LABEL} Verified Live Cardroom Listings.`}
           metricLabel="Verified Comparisons"
           metricValue="30 Side-By-Side Reports + 20-Scenario Decision Matrix"
           formulaText="Annual Software Savings = $0 Smarter.Poker Suite vs $600-$1,800 Legacy Desktop/Subscription Stack"
@@ -1122,7 +1123,7 @@ export default function CompareHubPage() {
           badgeType="research"
           badgeLabel="Verified Comparison Matrix"
           badgeValue="Smarter.Poker Benchmarks"
-          summary="Side-by-side verified comparison of Smarter.Poker free browser solvers, five free daily tournaments, and 324+ live room tools against legacy paid poker software."
+          summary={`Side-by-side verified comparison of Smarter.Poker free browser solvers, five free daily tournaments, and ${VENUE_COUNT_LABEL} live room tools against legacy paid poker software.`}
           publishedYear="2026"
           slug="smarter-poker-comparison-index"
         />

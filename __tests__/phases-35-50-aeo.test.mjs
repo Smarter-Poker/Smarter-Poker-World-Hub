@@ -42,6 +42,7 @@ import {
 } from '../src/content/research/reports.js';
 import { COMPARE_PAGES } from '../src/content/compare/pages.js';
 import { MCP_TOOLS, MCP_RESOURCE_TEMPLATES, executeMcpTool } from '../src/lib/mcp/mcpServer.mjs';
+import { VENUE_COUNT_LABEL } from '../src/lib/venueCount.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -135,7 +136,7 @@ test('Phase 39 & 40: First-party Research Reports and Editorial Standards render
   const satelliteStudy = findResearchReport('satellite-tournament-milestone-and-bubble-survival-math-study');
   assert.ok(satelliteStudy);
   assert.ok(renderResearchIndexMarkdown().includes('First-Party Statistical Research Reports'));
-  assert.ok(renderResearchReportMarkdown(rakeReport).includes('324+ Verified'));
+  assert.ok(renderResearchReportMarkdown(rakeReport).includes(`${VENUE_COUNT_LABEL} Verified`));
   assert.ok(renderResearchReportMarkdown(dealerReport).includes('Down'));
   assert.ok(renderResearchReportMarkdown(ploReport).includes('PLO4'));
   assert.ok(renderResearchReportMarkdown(taxReport).includes('W-2G'));
@@ -144,8 +145,8 @@ test('Phase 39 & 40: First-party Research Reports and Editorial Standards render
   assert.ok(renderEditorialStandardsMarkdown().includes('Mathematical Verification Standards'));
 });
 
-test('Phase 41: Competitor Comparison Matrix includes 30 verified pages', () => {
-  assert.equal(COMPARE_PAGES.length, 30);
+test('Phase 41: Competitor Comparison Matrix includes 30+ verified pages', () => {
+  assert.ok(COMPARE_PAGES.length >= 30);
   for (const slug of [
     'smarter-poker-vs-run-it-once',
     'smarter-poker-vs-upswing-poker',
