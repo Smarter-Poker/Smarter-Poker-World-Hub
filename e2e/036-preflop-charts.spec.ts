@@ -283,7 +283,10 @@ for (const size of WIDTHS) {
       await expectSmarterDesign(page, 'stats signed in');
 
       await open(page, '/hub/preflop-charts/achievements');
-      await expect(body).toContainText(/\b3\b/);
+      // The vault reads "3 / 11 Unlocked" for the three fixture awards. Its
+      // label runs straight into the number in innerText ("Completion3"), so
+      // the match is on the count itself, not a word boundary.
+      await expect(body).toContainText(/3 \/ 11 Unlocked/);
       await expectSmarterDesign(page, 'achievements signed in');
     });
   });
