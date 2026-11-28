@@ -478,7 +478,10 @@ for (const format of ['CSV', 'JSON', 'PDF']) {
       const app = window as Window & { next?: { router?: { isReady: boolean; pathname: string } } };
       return app.next?.router?.isReady && app.next.router.pathname === '/hub/bankroll-manager/export';
     });
-    await expect(page.locator('link[rel="preload"][as="image"][href="/default-avatar.png"]').first()).toBeAttached();
+    // #3252 seats a hashed 192px derivative of the default portrait
+    // (HEADER_DEFAULT_AVATAR in UniversalHeader.js), so match the family, not
+    // one file name: the signal is that the mounted header preloaded it.
+    await expect(page.locator('link[rel="preload"][as="image"][href*="default-avatar"]').first()).toBeAttached();
     const button = page.getByRole('button', { name: 'Export ' + format, exact: true });
     await expect(button).toBeVisible();
     await context.setOffline(true);
