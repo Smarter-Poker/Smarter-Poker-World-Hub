@@ -1,6 +1,8 @@
 /*
  * VIP Command Center layout on the VIP kit (#SMARTERDESIGN). The rims,
- * price readouts and painted actions are the kit's; this file places them.
+ * price readouts and chrome actions are the kit's; this file places them.
+ * Readouts and notices are chrome-stat wells, fields are chrome-row controls,
+ * the current plan is chrome-active over cobalt. Square corners.
  * Text inks: white, silver, ice blue only. Errors use semantic red.
  */
 .console {
@@ -42,8 +44,10 @@
   gap: 7px;
   margin-right: 4px;
   padding: 3px 10px;
-  border: 1px solid #3a7fbd;
-  background: #082341;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
   color: #86daff;
   font: 700 13px/1.3 var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif;
   letter-spacing: 0.05em;
@@ -53,13 +57,10 @@
   content: '';
   width: 8px;
   height: 8px;
-  border-radius: 50%;
   background: #4fb6ff;
-  box-shadow: 0 0 8px #4fb6ff;
 }
 .stateChip[data-state='off']::before {
   background: #6b7d8f;
-  box-shadow: none;
 }
 .readouts {
   display: grid;
@@ -72,14 +73,15 @@
   gap: 5px;
   min-width: 0;
   padding: 11px 12px;
-  border: 4px solid transparent;
-  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 5px stretch;
-  background: radial-gradient(110% 80% at 50% 0%, #153f6c 0%, #08192c 52%, #030a13 100%);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
   box-shadow: inset 0 3px 12px rgb(0 0 0 / 85%);
 }
 .readouts dt {
   color: #86daff;
-  font: 700 11.5px/1.2 var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif;
+  font: 700 12px/1.2 var(--font-roboto-condensed), 'Arial Narrow', Arial, sans-serif;
   letter-spacing: 0.07em;
 }
 .readouts dd {
@@ -92,14 +94,16 @@
 .notice {
   margin: 0;
   padding: 10px 12px;
-  border-left: 3px solid #4fb6ff;
-  background: linear-gradient(90deg, rgb(20 72 130 / 45%), rgb(6 18 32 / 0%));
-  color: #dceaf6;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  color: #f2f7ff;
   font: 500 13.5px/1.5 var(--font-inter), Arial, sans-serif;
 }
+/* A real error: semantic red lettering in the same well. */
 .noticeError {
-  border-left-color: #ff6b6b;
-  background: linear-gradient(90deg, rgb(120 24 32 / 45%), rgb(6 18 32 / 0%));
+  color: #ff8a8a;
 }
 .planGrid {
   display: grid;
@@ -112,8 +116,12 @@
   min-width: 0;
 }
 .planCurrent > :first-child {
-  border-image-source: url('/images/smarterdesign/chrome-active-v2.webp');
-  border-image-slice: 11;
+  border-image: url('/images/smarterdesign/chrome-active.webp') 11 / 4px stretch;
+  background: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+}
+/* White lettering on the cobalt well; ice would sink into it. */
+.planCurrent > :first-child :is(span, p, strong) {
+  color: #f2f7ff;
 }
 .actions {
   display: grid;
@@ -122,8 +130,8 @@
 }
 .finePrint {
   margin: 0;
-  color: #9fb3c6;
-  font: 500 12.5px/1.5 var(--font-inter), Arial, sans-serif;
+  color: #bdd0e2;
+  font: 500 13px/1.5 var(--font-inter), Arial, sans-serif;
 }
 .dialog {
   max-height: calc(100dvh - 24px);
@@ -151,10 +159,11 @@
   width: 100%;
   min-height: 48px;
   padding: 10px 12px;
-  border: 1px solid #456174;
-  background: #061019;
-  box-shadow: inset 0 2px 8px rgb(0 0 0 / 70%);
-  color: #effdff;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  border-radius: 0;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  color: #f2f7ff;
   font: 600 15px/1.4 var(--font-inter), Arial, sans-serif;
 }
 textarea.field {

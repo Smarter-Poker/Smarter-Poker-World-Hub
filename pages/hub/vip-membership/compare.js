@@ -157,7 +157,7 @@ export default function VipComparePage() {
           },
         ]}
       />
-      <div style={{ marginTop: 24 }}>
+      <div className={styles.unlock}>
         <SmarterAccountUnlockGate
           variant="study-deck"
           context="vip-membership-compare"

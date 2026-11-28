@@ -36,6 +36,10 @@ export const SMARTERDESIGN_SEAL_AND_HEADER_PAINT = Object.freeze([
   'radial-gradient(ellipse at 20% 102%, #233f63 0, #102337 38%, #07121e 78%)',
   'linear-gradient(90deg, transparent, #0002 18%, #0006 43%, #0009 68%, #000)',
   'linear-gradient(90deg, transparent, #0002 22%, #0006 52%, #0009 76%, #000f)',
+  // The VIP image header (VipKit VipMasthead and the VipDialog head): its
+  // backdrop and the crown-scene fade, kept exactly as approved.
+  'radial-gradient(ellipse at 18% 104%, #23466f 0, #0f2338 40%, #06111d 80%)',
+  'linear-gradient(90deg, transparent, #0003 20%, #0009 52%, #000 82%)',
 ]);
 
 const ALLOWED_GRADIENTS = new Set(
@@ -53,8 +57,6 @@ export const SMARTERDESIGN_URL_ALLOWLIST = Object.freeze([
   /^\/images\/store-v3\/club-shop-product-atlas-v2\.(?:webp|png)$/,
   /^\/images\/merch\/neural-steel\/[a-z0-9-]+\.webp$/,
   /^\/images\/global-header\/global-header-desktop\.png$/,
-  // The global Diamond Wallet modal keeps its existing approved backdrop art.
-  /^\/images\/diamond-wallet-bg-new\.webp$/,
   /^\$\{[^}]+\}$/,
 ]);
 

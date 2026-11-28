@@ -56175,7 +56175,7 @@
         {
           "element": "a",
           "name": "helpLabel || `${title} Help And Frequently Asked Questions`",
-          "line": 65,
+          "line": 66,
           "handler": null,
           "destination": "helpHref",
           "type": null,
@@ -56185,7 +56185,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 119,
+          "line": 120,
           "handler": "onClick",
           "destination": "href",
           "type": null,
@@ -56195,7 +56195,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 121,
+          "line": 122,
           "handler": "onClick",
           "destination": null,
           "type": "button",
@@ -56205,7 +56205,7 @@
         {
           "element": "button",
           "name": "closeLabel",
-          "line": 450,
+          "line": 451,
           "handler": "onClose",
           "destination": null,
           "type": "button",
@@ -56245,7 +56245,7 @@
       "functions": [
         {
           "name": "VipSeal",
-          "line": 39,
+          "line": 40,
           "references": 5,
           "exported": true,
           "defaultExport": false,
@@ -56253,7 +56253,7 @@
         },
         {
           "name": "VipMasthead",
-          "line": 47,
+          "line": 48,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56261,7 +56261,7 @@
         },
         {
           "name": "VipPricePlate",
-          "line": 77,
+          "line": 78,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -56269,7 +56269,7 @@
         },
         {
           "name": "vipIntroPlateProps",
-          "line": 94,
+          "line": 95,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56277,7 +56277,7 @@
         },
         {
           "name": "VipIntroPrice",
-          "line": 105,
+          "line": 106,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -56285,7 +56285,7 @@
         },
         {
           "name": "Plate",
-          "line": 110,
+          "line": 111,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -56293,7 +56293,7 @@
         },
         {
           "name": "VipCta",
-          "line": 124,
+          "line": 125,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -56301,7 +56301,7 @@
         },
         {
           "name": "VipGhost",
-          "line": 128,
+          "line": 129,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -56309,7 +56309,7 @@
         },
         {
           "name": "VipMonthlyCta",
-          "line": 133,
+          "line": 134,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56317,7 +56317,7 @@
         },
         {
           "name": "sessionStore",
-          "line": 151,
+          "line": 152,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56325,7 +56325,7 @@
         },
         {
           "name": "currentHubPath",
-          "line": 155,
+          "line": 156,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56333,7 +56333,7 @@
         },
         {
           "name": "usePhoneOfferStep",
-          "line": 175,
+          "line": 176,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -56341,7 +56341,7 @@
         },
         {
           "name": "VipPhoneOfferBody",
-          "line": 195,
+          "line": 196,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56349,7 +56349,7 @@
         },
         {
           "name": "VipPhoneOfferStep",
-          "line": 223,
+          "line": 224,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -56357,7 +56357,7 @@
         },
         {
           "name": "VipPhoneOfferGate",
-          "line": 243,
+          "line": 244,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56365,7 +56365,7 @@
         },
         {
           "name": "VipUpgradePrompt",
-          "line": 264,
+          "line": 265,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56373,7 +56373,7 @@
         },
         {
           "name": "VipCrest",
-          "line": 307,
+          "line": 308,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56381,7 +56381,7 @@
         },
         {
           "name": "VipPlanPanel",
-          "line": 319,
+          "line": 320,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56389,7 +56389,7 @@
         },
         {
           "name": "VipFacts",
-          "line": 339,
+          "line": 340,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56397,7 +56397,7 @@
         },
         {
           "name": "VipLead",
-          "line": 353,
+          "line": 354,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56405,7 +56405,7 @@
         },
         {
           "name": "VipDialog",
-          "line": 377,
+          "line": 378,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56413,7 +56413,7 @@
         },
         {
           "name": "cx",
-          "line": 37,
+          "line": 38,
           "references": 19,
           "exported": false,
           "defaultExport": false,
@@ -56421,7 +56421,7 @@
         },
         {
           "name": "focusables",
-          "line": 390,
+          "line": 391,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56429,7 +56429,7 @@
         },
         {
           "name": "onKeyDown",
-          "line": 392,
+          "line": 393,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -97139,11 +97139,11 @@
       "effectRef": "src/components/ui/WorldCommandMenuBoundary.jsx"
     },
     {
-      "id": "src/components/vip/VipKit.jsx:65:1",
+      "id": "src/components/vip/VipKit.jsx:66:1",
       "file": "src/components/vip/VipKit.jsx",
       "element": "a",
       "name": "helpLabel || `${title} Help And Frequently Asked Questions`",
-      "line": 65,
+      "line": 66,
       "handler": null,
       "destination": "helpHref",
       "type": null,
@@ -97152,11 +97152,11 @@
       "effectRef": "src/components/vip/VipKit.jsx"
     },
     {
-      "id": "src/components/vip/VipKit.jsx:119:2",
+      "id": "src/components/vip/VipKit.jsx:120:2",
       "file": "src/components/vip/VipKit.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 119,
+      "line": 120,
       "handler": "onClick",
       "destination": "href",
       "type": null,
@@ -97165,11 +97165,11 @@
       "effectRef": "src/components/vip/VipKit.jsx"
     },
     {
-      "id": "src/components/vip/VipKit.jsx:121:3",
+      "id": "src/components/vip/VipKit.jsx:122:3",
       "file": "src/components/vip/VipKit.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 121,
+      "line": 122,
       "handler": "onClick",
       "destination": null,
       "type": "button",
@@ -97178,11 +97178,11 @@
       "effectRef": "src/components/vip/VipKit.jsx"
     },
     {
-      "id": "src/components/vip/VipKit.jsx:450:4",
+      "id": "src/components/vip/VipKit.jsx:451:4",
       "file": "src/components/vip/VipKit.jsx",
       "element": "button",
       "name": "closeLabel",
-      "line": 450,
+      "line": 451,
       "handler": "onClose",
       "destination": null,
       "type": "button",
@@ -130527,7 +130527,6 @@
           "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges.js",
           "pages/tools/preflop-ranges/[position].js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -130631,7 +130630,6 @@
           "pages/tools/poker-trip-planner.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -131261,7 +131259,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipPhoneOfferGate",
-        "line": 243,
+        "line": 244,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -131277,7 +131275,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipPlanPanel",
-        "line": 319,
+        "line": 320,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -131292,7 +131290,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipFacts",
-        "line": 339,
+        "line": 340,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -131307,7 +131305,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipLead",
-        "line": 353,
+        "line": 354,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -133251,7 +133249,6 @@
           "pages/tools/poker-trip-planner.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -142834,7 +142831,6 @@
           "pages/tools/pot-odds-calculator.js",
           "pages/tools/preflop-ranges.js",
           "pages/tools/preflop-ranges/[position].js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -142938,7 +142934,6 @@
           "pages/tools/poker-trip-planner.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",
@@ -143568,7 +143563,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipPhoneOfferGate",
-        "line": 243,
+        "line": 244,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -143584,7 +143579,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipPlanPanel",
-        "line": 319,
+        "line": 320,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -143599,7 +143594,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipFacts",
-        "line": 339,
+        "line": 340,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -143614,7 +143609,7 @@
       {
         "file": "src/components/vip/VipKit.jsx",
         "name": "VipLead",
-        "line": 353,
+        "line": 354,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -145558,7 +145553,6 @@
           "pages/tools/poker-trip-planner.js",
           "pages/tools/poker-winrate-calculator.js",
           "pages/tools/pot-odds-calculator.js",
-          "pages/tools/preflop-ranges/index.js",
           "pages/tools/promo-ev-calculator.js",
           "pages/tools/push-fold-calculator.js",
           "pages/tools/rake-calculator.js",

@@ -98,12 +98,18 @@ test('fulfillment keeps semantic text controls in a restrained retail surface', 
   assert.match(css, /font-family: var\(--font-inter\), Inter/);
   assert.doesNotMatch(css, /IBM Plex Mono|ui-monospace|\bmonospace\b/);
   assert.doesNotMatch(css, /marketplace-console-v1|wallet-row-shell|button-(?:primary|secondary)/);
-  assert.match(css, /border:\s*1px solid #385568/);
-  assert.match(css, /background:\s*#071017/);
+  // 2026-11-27 #SMARTERDESIGN: controls are chrome-row nine-slices on the
+  // standard control fill, the primary is cobalt, and corners stay square.
+  assert.match(
+    css,
+    /border:\s*3px solid transparent;\s*border-image:\s*url\('\/images\/smarterdesign\/chrome-row\.webp'\)/
+  );
+  assert.match(css, /linear-gradient\(180deg, #263f58, #112338 39%, #071420 77%, #12283c\)/);
+  assert.match(css, /linear-gradient\(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba\)/);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /\.dialogClose\s*\{[\s\S]*?top:\s*18px;[\s\S]*?right:\s*18px/);
-  assert.match(css, /linear-gradient|box-shadow/);
-  assert.doesNotMatch(css, /:hover|border-radius/);
+  assert.doesNotMatch(css, /:hover/);
+  assert.doesNotMatch(css, /border-radius:(?!\s*0;)/);
 });
 
 test('production verification exercises canonical cache behavior and ships Phase 19', async () => {

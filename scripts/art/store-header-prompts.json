@@ -1,0 +1,41 @@
+{
+  "model": "grok-imagine-image",
+  "generated": "2026-11-27",
+  "style": "Photorealistic premium 3D product render, dark luxury tech casino aesthetic, polished chrome and gunmetal steel, thin glowing cobalt-blue accent light, deep ink-navy to black background, cinematic studio lighting, crisp reflections, ultra detailed, no text, no letters, no logos, no people, no watermark.",
+  "sealSuffix": "Centered single hero object filling about 70% of a square frame, symmetric, isolated on the dark background, icon composition.",
+  "sceneSuffix": "Wide cinematic landscape scene, the subject placed on the right half of the frame, the left 40% of the frame is dark and empty for overlay text, moody depth of field.",
+  "art": {
+    "store-diamonds": {
+      "seal": "a single brilliant-cut sapphire-blue diamond hovering above a round chrome pedestal with glowing cobalt rings",
+      "scene": "a glowing sapphire-blue diamond floating above a chrome pedestal in a dark high-tech diamond exchange hall with stacks of chrome poker chips"
+    },
+    "store-merch": {
+      "seal": "a black premium hoodie with a small chrome spade emblem on the chest, folded on a chrome display stand",
+      "scene": "a dark luxury boutique display case with a black hoodie with chrome spade emblem, a black cap and a black card wallet, lit by cobalt strips"
+    },
+    "store-rewards": {
+      "seal": "a polished chrome trophy cup with blue sapphire diamonds at its base",
+      "scene": "a polished chrome trophy cup surrounded by blue diamonds and black poker chips on a glowing chrome podium"
+    },
+    "store-club-shop": {
+      "seal": "a chrome stopwatch with a glowing cobalt-blue dial",
+      "scene": "a private poker club room with an oval table with a glowing cobalt spade inlay and black leather chairs, a chrome stopwatch resting on the table edge"
+    },
+    "store-cart": {
+      "seal": "a black and chrome shopping basket holding black poker chips and a small blue diamond",
+      "scene": "a black and chrome shopping basket full of black poker chips on a glowing chrome platform in a dark tech store aisle"
+    },
+    "store-orders": {
+      "seal": "a sealed matte black shipping box wrapped with a glowing cobalt light strap",
+      "scene": "matte black sealed shipping boxes with glowing cobalt straps moving along a chrome conveyor belt in a dark automated fulfillment tunnel"
+    },
+    "store-order-detail": {
+      "seal": "a sleek black receipt tablet with a glowing cobalt checkmark seal resting on brushed steel",
+      "scene": "a sleek black tablet showing a glowing cobalt checkmark beside a sealed black package on a brushed steel desk with blue light"
+    },
+    "store-wishlist": {
+      "seal": "a chrome star-shaped bookmark badge with a glowing cobalt center",
+      "scene": "a dark luxury showroom with three lit glass display pedestals holding a blue diamond, a black cap and a chrome trophy, cobalt light from below"
+    }
+  }
+}

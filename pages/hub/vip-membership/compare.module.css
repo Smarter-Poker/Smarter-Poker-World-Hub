@@ -1,4 +1,4 @@
-/* Layout only. The plan panels, price readouts and painted actions come from
+/* Layout only. The plan panels, price readouts and chrome actions come from
    the VIP kit (src/components/vip/VipKit). */
 .planGrid {
   display: grid;
@@ -11,7 +11,7 @@
   margin-top: 18px;
 }
 
-/* The kit's actions keep a 44px minimum; this keeps a plain fallback link
+/* The kit's chrome actions keep a 44px minimum; this keeps a plain fallback link
    (no stylesheet) reachable too. */
 .planGrid a {
   min-height: 44px;
@@ -19,7 +19,12 @@
 
 .planGrid a:focus-visible {
   outline: 2px solid #9ee3ff !important;
-  outline-offset: -6px !important;
+  outline-offset: 2px !important;
+}
+
+/* The account unlock band under the facts: layout only, it brings its own rim. */
+.unlock {
+  margin-top: 24px;
 }
 
 @media (max-width: 1000px) {
