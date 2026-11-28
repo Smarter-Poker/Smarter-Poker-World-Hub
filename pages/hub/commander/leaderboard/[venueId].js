@@ -184,8 +184,8 @@ export default function LeaderboardPage() {
                       selectedLeaderboard?.id === lb.id ? null : lb
                     )}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedLeaderboard?.id === lb.id
-                        ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
-                        : 'bg-[#0F1C32] text-[#9FB3C8] border-2 border-[#445E77] hover:text-white'
+                        ? 'cmd-tab cmd-tab--active'
+                        : 'cmd-tab'
                       }`}
                   >
                     <span>{lb.name}</span>
@@ -209,8 +209,8 @@ export default function LeaderboardPage() {
                   key={p}
                   onClick={() => setPeriod(p)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${period === p
-                      ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
-                      : 'bg-[#0F1C32] text-[#9FB3C8] border-2 border-[#445E77] hover:text-white'
+                      ? 'cmd-tab cmd-tab--active'
+                      : 'cmd-tab'
                     }`}
                 >
                   {p === 'all' ? 'All Time' : p}
@@ -224,8 +224,8 @@ export default function LeaderboardPage() {
                   key={value}
                   onClick={() => setMetric(value)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${metric === value
-                      ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
-                      : 'bg-[#0F1C32] text-[#9FB3C8] border-2 border-[#445E77] hover:text-white'
+                      ? 'cmd-tab cmd-tab--active'
+                      : 'cmd-tab'
                     }`}
                 >
                   <Icon className="w-4 h-4" />

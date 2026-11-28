@@ -22,3 +22,9 @@ Owner order (Dan, 2026-11-27): "CLUB COMMANDER NEEDS THE SAME #SMARTERDESIGN UPG
 - New `__tests__/hub-commander-smarterdesign.law.test.mjs` (Build Safety Gate CHECK 8): no prohibited hue by actual hue (not a list) in the pages, components or stylesheet; palette `--check` clean; the stylesheet layer; the shell's global header, scene map (art files exist) and single "?"; every page renders an image header (except the transient home-game join card and the TV tournament clock); no description sentence under a title; return links above the header.
 - `__tests__/hamburger-never-regresses.test.mjs` and `__tests__/poker-near-me-casino-realism.test.mjs` now pin that the shell mounts the approved header rather than its own trigger; the dead `.commander-page-shell__menu-trigger` theme in `poker-near-me-machined.css` was removed.
 - `docs/business-hub-guide-review.json`: refreshed hash for `pages/hub/commander/index.js` (header, menu and colours changed; the guide's claims are unaffected).
+
+## Found in the preview render (393px and 1280px)
+- The corner reservation (`padding-right: 52px` on the header's children) also padded the painted "?", which is a child of the header too, squeezing its icon out of its 44px box: no "?" was visible on any page. The rule now skips `.sd-header-help`.
+- Forced capitals ("CHECK IN", "VENUES WITH LIVE GAMES", button and badge labels) read in Title Case: the layer sets `text-transform: capitalize` on `.uppercase` inside Commander pages and on `.cmd-btn`, `.cmd-badge`, `.cmd-stat-label`, `.cmd-header-bar-text`.
+- Rate Table's five rating buttons overflowed a phone screen (the button class's 32px side padding); they now size to the row.
+- Twelve hand-styled tab bars (cyan outline when selected) use one shared `.cmd-tab` / `.cmd-tab--active`: the chrome row, cobalt bevel when selected.

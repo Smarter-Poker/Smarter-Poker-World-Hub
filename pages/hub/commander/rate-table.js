@@ -92,6 +92,7 @@ export default function RateTable() {
         <div className="flex gap-1.5" role="group" aria-label={label}>
           {[1, 2, 3, 4, 5].map(n => (
             <button key={n} type="button" onClick={() => onChange(n)} aria-pressed={value === n}
+              style={{ padding: 0, minWidth: 0 }}
               className={`cmd-btn flex-1 h-11 justify-center text-lg font-extrabold ${value === n ? 'cmd-btn-primary' : 'cmd-btn-secondary'}`}>
               {n}
             </button>

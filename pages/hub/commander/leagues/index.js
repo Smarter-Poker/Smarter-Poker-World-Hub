@@ -243,8 +243,8 @@ export default function LeaguesPage() {
                   key={f.value}
                   onClick={() => setFilter(f.value)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium ${filter === f.value
-                      ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
-                      : 'bg-[#0F1C32] text-[#9FB3C8] border-2 border-[#445E77]'
+                      ? 'cmd-tab cmd-tab--active'
+                      : 'cmd-tab'
                     }`}
                 >
                   {f.label}

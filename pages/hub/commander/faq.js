@@ -449,8 +449,8 @@ export default function PlayerFAQPage() {
                     }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
                       activeCategory === cat.id
-                        ? 'bg-[#22D3EE] text-[#0F172A]'
-                        : 'bg-[#1E293B] text-[#A9BDD1] hover:text-white'
+                        ? 'cmd-tab cmd-tab--active'
+                        : 'cmd-tab'
                     }`}
                   >
                     <Icon className="w-4 h-4" />

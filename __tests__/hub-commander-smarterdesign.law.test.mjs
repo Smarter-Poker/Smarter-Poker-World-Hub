@@ -107,6 +107,9 @@ test('the stylesheet carries the #SMARTERDESIGN layer and both header forms are 
     assert.ok(layer.includes(`${selector} h1`), `${selector} title is not styled`);
   }
   assert.match(layer, /var\(--sd-scene, none\)/);
+  assert.doesNotMatch(layer, /\.cmd-header-full > \*,|header\.cmd-header-bar > \* \{/, 'the corner reservation must not pad the painted "?" itself');
+  assert.match(layer, /> \*:not\(\.sd-header-help\)/);
+  assert.match(layer, /\.cmd-page \.uppercase,[\s\S]*?\.cmd-header-bar-text \{\s*text-transform: capitalize;/, 'labels read in Title Case, never forced capitals');
   assert.match(layer, /chrome-readout\.webp/);
   assert.match(layer, /chrome-active-v2\.webp/);
 });
@@ -175,4 +178,16 @@ test('no return link inside an image header; it sits directly above it', () => {
   const css = read(CSS);
   assert.match(css, /\.cmd-back-row \{/);
   assert.match(css, /\.cmd-back-link \{[\s\S]*?min-height: 44px;[\s\S]*?chrome-row\.webp/);
+});
+
+test('tabs are the shared chrome tab, cobalt when selected, never a cyan outline', () => {
+  const offenders = [];
+  for (const file of walk(PAGES_DIR).filter((f) => f.endsWith('.js'))) {
+    const src = read(file);
+    if (/\?\s*'bg-\[#132240\] text-\[#22D3EE\][^']*border-\[#22D3EE\]/.test(src)) offenders.push(file);
+  }
+  assert.deepEqual(offenders, []);
+  const css = read(CSS);
+  assert.match(css, /\.cmd-tab \{[\s\S]*?min-height: 44px;[\s\S]*?chrome-row\.webp/);
+  assert.match(css, /\.cmd-tab--active \{[\s\S]*?chrome-active-v2\.webp/);
 });
