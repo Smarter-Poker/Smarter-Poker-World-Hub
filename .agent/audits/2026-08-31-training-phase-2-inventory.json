@@ -14,7 +14,7 @@
     "dependencyFiles": 428,
     "componentFiles": 73,
     "hookFiles": 16,
-    "ctas": 500,
+    "ctas": 501,
     "dialogs": 26,
     "persistenceFiles": 100,
     "realtimeFiles": 7,
@@ -48770,7 +48770,7 @@
         {
           "element": "button",
           "name": "Close Quick Signup Dialog",
-          "line": 348,
+          "line": 437,
           "handler": "close",
           "destination": null,
           "type": "button",
@@ -48780,7 +48780,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 415,
+          "line": 504,
           "handler": "() => handleOAuthOneTap('google')",
           "destination": null,
           "type": "button",
@@ -48790,7 +48790,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 425,
+          "line": 514,
           "handler": "() => handleOAuthOneTap('facebook')",
           "destination": null,
           "type": "button",
@@ -48800,7 +48800,7 @@
         {
           "element": "button",
           "name": "Create Free Account With Email",
-          "line": 456,
+          "line": 547,
           "handler": null,
           "destination": null,
           "type": "submit",
@@ -48808,9 +48808,19 @@
           "wiring": "form-submit"
         },
         {
+          "element": "button",
+          "name": "<dynamic>",
+          "line": 557,
+          "handler": "handleMagicLinkSignIn",
+          "destination": null,
+          "type": "button",
+          "disabled": "magicLinkBusy",
+          "wiring": "handler"
+        },
+        {
           "element": "link",
           "name": "Open Full Registration Form Directly",
-          "line": 466,
+          "line": 612,
           "handler": "() => {\n              try {\n                recordUnlockIntent({\n                  unlockKey: payload.unlockKey,\n                  source: payload.source,\n                  experimentVariant,\n                  aiEngine: aiWelcome?.engine || '',\n                });\n                recordPendingSeoUnlock({\n                  unlockKey: payload.unlockKey,\n                  source: payload.source,\n                  redirectPath: payload.redirectPath,\n                });\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                  experiment_variant: experimentVariant,\n                  ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
           "destination": "signupHref",
           "type": null,
@@ -48820,7 +48830,7 @@
         {
           "element": "link",
           "name": "Sign In",
-          "line": 522,
+          "line": 668,
           "handler": "close",
           "destination": "loginHref",
           "type": null,
@@ -48877,7 +48887,7 @@
         {
           "name": "trackFunnelEvent",
           "line": 79,
-          "references": 5,
+          "references": 6,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -48916,7 +48926,7 @@
         },
         {
           "name": "onOpen",
-          "line": 137,
+          "line": 143,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48924,7 +48934,7 @@
         },
         {
           "name": "onKeyDown",
-          "line": 203,
+          "line": 212,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48932,7 +48942,7 @@
         },
         {
           "name": "handleOAuthOneTap",
-          "line": 224,
+          "line": 233,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48940,7 +48950,15 @@
         },
         {
           "name": "handleEmailFormSubmit",
-          "line": 284,
+          "line": 293,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "handleMagicLinkSignIn",
+          "line": 333,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48954,7 +48972,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 450,
+          "line": 541,
           "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -94160,11 +94178,11 @@
       "effectRef": "src/components/seo/SmarterConversionCta.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:348:1",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:437:1",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "Close Quick Signup Dialog",
-      "line": 348,
+      "line": 437,
       "handler": "close",
       "destination": null,
       "type": "button",
@@ -94173,11 +94191,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:415:2",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:504:2",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 415,
+      "line": 504,
       "handler": "() => handleOAuthOneTap('google')",
       "destination": null,
       "type": "button",
@@ -94186,11 +94204,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:425:3",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:514:3",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 425,
+      "line": 514,
       "handler": "() => handleOAuthOneTap('facebook')",
       "destination": null,
       "type": "button",
@@ -94199,11 +94217,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:456:4",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:547:4",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "button",
       "name": "Create Free Account With Email",
-      "line": 456,
+      "line": 547,
       "handler": null,
       "destination": null,
       "type": "submit",
@@ -94212,11 +94230,24 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:466:5",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:557:5",
+      "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 557,
+      "handler": "handleMagicLinkSignIn",
+      "destination": null,
+      "type": "button",
+      "disabled": "magicLinkBusy",
+      "wiring": "handler",
+      "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
+    },
+    {
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:612:6",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "link",
       "name": "Open Full Registration Form Directly",
-      "line": 466,
+      "line": 612,
       "handler": "() => {\n              try {\n                recordUnlockIntent({\n                  unlockKey: payload.unlockKey,\n                  source: payload.source,\n                  experimentVariant,\n                  aiEngine: aiWelcome?.engine || '',\n                });\n                recordPendingSeoUnlock({\n                  unlockKey: payload.unlockKey,\n                  source: payload.source,\n                  redirectPath: payload.redirectPath,\n                });\n                trackFunnelEvent('seo_quick_signup_email_continue', {\n                  has_prefilled_email: Boolean(inlineEmail.trim()),\n                  unlock_key: payload.unlockKey,\n                  source: payload.source,\n                  redirect_path: payload.redirectPath,\n                  experiment_variant: experimentVariant,\n                  ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),\n                });\n              } catch (_) {\n                /* non-blocking */\n              }\n              close();\n            }",
       "destination": "signupHref",
       "type": null,
@@ -94225,11 +94256,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:522:6",
+      "id": "src/components/seo/SmarterQuickSignupSheet.jsx:668:7",
       "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
       "element": "link",
       "name": "Sign In",
-      "line": 522,
+      "line": 668,
       "handler": "close",
       "destination": "loginHref",
       "type": null,
@@ -126510,7 +126541,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "kind": "PLACEHOLDER",
-        "line": 450,
+        "line": 541,
         "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -131872,12 +131903,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/glossary/[term].js",
           "pages/hub/bankroll-manager.js",
           "pages/learn/hands/[hand].js",
           "pages/poker-rooms/by-game/[game].js",
           "pages/poker-rooms/corridors/[slug].js",
           "pages/poker-rooms/guides/[city].js",
           "pages/poker-rooms/states/[state].js",
+          "pages/rules/[slug].js",
           "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -134774,10 +134807,12 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/glossary/[term].js",
           "pages/poker-rooms/by-game/[game].js",
           "pages/poker-rooms/corridors/[slug].js",
           "pages/poker-rooms/guides/[city].js",
           "pages/poker-rooms/states/[state].js",
+          "pages/rules/[slug].js",
           "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
@@ -139100,7 +139135,7 @@
       {
         "file": "src/components/seo/SmarterQuickSignupSheet.jsx",
         "kind": "PLACEHOLDER",
-        "line": 450,
+        "line": 541,
         "excerpt": "placeholder=\"Enter Your Email To Unlock Free\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -144462,12 +144497,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/glossary/[term].js",
           "pages/hub/bankroll-manager.js",
           "pages/learn/hands/[hand].js",
           "pages/poker-rooms/by-game/[game].js",
           "pages/poker-rooms/corridors/[slug].js",
           "pages/poker-rooms/guides/[city].js",
           "pages/poker-rooms/states/[state].js",
+          "pages/rules/[slug].js",
           "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -147364,10 +147401,12 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/glossary/[term].js",
           "pages/poker-rooms/by-game/[game].js",
           "pages/poker-rooms/corridors/[slug].js",
           "pages/poker-rooms/guides/[city].js",
           "pages/poker-rooms/states/[state].js",
+          "pages/rules/[slug].js",
           "pages/tools/gto-leak-finder/index.js",
           "src/components/seo/SmarterCalculatorSaveBar.jsx",
           "src/components/seo/SmarterEngagedConversionPrompt.jsx",
