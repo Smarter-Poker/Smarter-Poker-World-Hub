@@ -437,3 +437,107 @@ body.world-poker-near-me .pnm-location-index__link:focus-visible {
   outline: 2px solid #8fd4ff;
   outline-offset: -3px;
 }
+
+/* ---------------------------------------------------------------------------
+   ONE "NOT YET AVAILABLE" GROUP ON THE VENUE PAGE (2026-11-28).
+
+   A room with no reports, check-ins, reviews or observed history used to
+   print a full framed panel per empty section, and a new room's page ran past
+   6,000px on a 393px phone. Each empty section now hands one honest line to
+   this single steel-rimmed group (pages/hub/venues/[id].js, quietRows), and a
+   section with something to show keeps its own full UI. Rows that accept
+   input keep their action, which opens the section's own form.
+   --------------------------------------------------------------------------- */
+
+body.world-poker-near-me .venue-page section[hidden] {
+  display: none !important;
+}
+
+body.world-poker-near-me .venue-quiet-group {
+  box-sizing: border-box;
+  width: min(calc(100% - 32px), 852px);
+  margin: 28px auto 0;
+  padding: 10px 14px 6px;
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+  background: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%) padding-box;
+  color: #f2f7ff;
+}
+
+body.world-poker-near-me .venue-quiet-group__title {
+  margin: 0 0 4px !important;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgb(134 218 255 / 18%);
+  color: #f2f7ff !important;
+  font: 800 20px/1.1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+body.world-poker-near-me .venue-quiet-group__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body.world-poker-near-me .venue-quiet-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 4px 0;
+  scroll-margin-top: 96px;
+}
+
+body.world-poker-near-me .venue-quiet-row + .venue-quiet-row {
+  border-top: 1px solid rgb(134 218 255 / 10%);
+}
+
+body.world-poker-near-me .venue-quiet-row__copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+body.world-poker-near-me .venue-quiet-row__label {
+  color: #f2f7ff;
+  font: 700 16px/1.15 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+  overflow-wrap: anywhere;
+}
+
+body.world-poker-near-me .venue-quiet-row__note {
+  color: #9fbacc;
+  font: 500 13px/1.3 var(--font-inter, Inter), system-ui, sans-serif;
+  overflow-wrap: anywhere;
+}
+
+body.world-poker-near-me .venue-quiet-row__action {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px !important;
+  border: 3px solid transparent !important;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c) padding-box !important;
+  box-shadow: none !important;
+  color: #f2f7ff !important;
+  font: 700 15px/1.1 var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body.world-poker-near-me .venue-quiet-row__action:active {
+  filter: brightness(1.14);
+}
+
+body.world-poker-near-me .venue-quiet-row__action:focus-visible {
+  outline: 2px solid #8fd4ff !important;
+  outline-offset: 2px;
+}

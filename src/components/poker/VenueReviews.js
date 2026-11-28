@@ -207,7 +207,11 @@ function DistributionRow({ starCount, count, total }) {
 // ════════════════════════════════════════════
 // MAIN COMPONENT
 // ════════════════════════════════════════════
-export default function VenueReviews({ venueId, venueName, defaultOpen = false }) {
+// openFormRequest: a counter; each increase opens the write form (the venue
+// page's "Write A Review" line in its "Not Yet Available" group).
+// onAvailabilityChange: reports { canWrite } while there are no reviews and
+// nothing is open, false otherwise, so the page can fold the empty section.
+export default function VenueReviews({ venueId, venueName, defaultOpen = false, openFormRequest = 0, onAvailabilityChange }) {
     const [reviews, setReviews] = useState([]);
     const [summary, setSummary] = useState({
         avg_rating: 0, total_reviews: 0,
@@ -274,6 +278,17 @@ export default function VenueReviews({ venueId, venueName, defaultOpen = false }
     }, [venueId, sortBy]);
 
     useEffect(() => { fetchReviews(); }, [fetchReviews]);
+
+    useEffect(() => {
+        if (openFormRequest) { setShowForm(true); setError(''); }
+    }, [openFormRequest]);
+
+    const reviewsQuiet = !loading && reviews.length === 0 && !(summary.total_reviews > 0) && !showForm && !successMsg && !error;
+    const canWrite = Boolean(currentUser);
+    useEffect(() => {
+        if (!onAvailabilityChange || loading) return;
+        onAvailabilityChange(reviewsQuiet ? { canWrite } : false);
+    }, [onAvailabilityChange, loading, reviewsQuiet, canWrite]);
 
     // ────────── Handlers ──────────
     const handleSortChange = (newSort) => {

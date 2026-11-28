@@ -24,7 +24,11 @@ function intensityColor(intensity) {
     return 'rgba(56,189,248,0.82)';
 }
 
-export default function PeakHoursHeatmap({ venueId }) {
+// onAvailabilityChange (optional): reports true once the activity read has
+// finished with no history (or failed), false once it has history, so the
+// venue page can list it in its "Not Yet Available" group. A gated reader is
+// never reported: the read did not run, so availability is not known.
+export default function PeakHoursHeatmap({ venueId, onAvailabilityChange }) {
     const { allowed, showUpgradeModal, upgradeModalVisible, hideUpgradeModal, featureConfig } = useVIPGate('poker-near-me');
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -44,6 +48,12 @@ export default function PeakHoursHeatmap({ venueId }) {
             .catch(e => { if (mounted && e.name !== 'AbortError') { setError(e.message); setLoading(false); } });
         return () => { mounted = false; controller.abort(); };
     }, [venueId, allowed]);
+
+    const noHistory = Boolean(error || !data?.hasData);
+    useEffect(() => {
+        if (!onAvailabilityChange || loading || !allowed) return;
+        onAvailabilityChange(noHistory);
+    }, [onAvailabilityChange, loading, allowed, noHistory]);
 
     if (loading) return <div style={{ color: T.textSec, fontSize: 13, padding: 12 }}>Loading Activity Data...</div>;
     
