@@ -34,7 +34,7 @@ export default function StakingStatementView({ status, rows = [] }) {
                 {found && (
                     <>
                         <p style={styles.sub}>
-                            Read-Only. Shared With You By The Player. Amounts Are In US Dollars (USD), As Of The Player&apos;s Last Update.
+                            Read-Only. Shared With You By The Player. Amounts Are In US Dollars (USD), As Of The Last Update By The Player.
                         </p>
                         <dl style={styles.totals} data-testid="statement-totals">
                             <div style={styles.total}><dt style={styles.totalLabel}>Sessions</dt><dd style={styles.totalValue}>{totals.sessions}</dd></div>

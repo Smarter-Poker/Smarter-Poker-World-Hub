@@ -138,7 +138,7 @@ export default function StakingSharePanel({ userId, arrangement, sessionCount = 
     <section style={styles.wrap} aria-label="Share With Backer" data-testid="staking-share-panel">
       <h4 style={styles.title}>Share With Backer</h4>
       <p style={styles.hint}>
-        A Read-Only Link To This Deal&apos;s Statement: Session Dates, Game, Result, Each Share And Makeup, In US Dollars.
+        A Read-Only Link To The Statement Of This Deal: Session Dates, Game, Result, Each Share And Makeup, In US Dollars.
         No Sign-In Is Needed, So Send It Only To Your Backer. It Expires In {SHARE_LINK_DAYS} Days, And You Can Revoke It At Any Time.
       </p>
       {sessionCount === 0 && (
@@ -158,7 +158,7 @@ export default function StakingSharePanel({ userId, arrangement, sessionCount = 
 
       {state.error && (
         <p role="alert" style={styles.error}>
-          Could Not Read This Deal&apos;s Links: {state.error}{' '}
+          Could Not Read The Links For This Deal: {state.error}{' '}
           <button type="button" onClick={load} style={styles.linkBtn}>Try Again</button>
         </p>
       )}

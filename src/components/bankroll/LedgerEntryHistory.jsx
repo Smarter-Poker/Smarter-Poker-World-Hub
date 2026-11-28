@@ -46,7 +46,7 @@ export function HistoryList({ items }) {
                   <dd style={styles.values}>
                     <span style={styles.before}>{c.before}</span>
                     <span aria-hidden="true" style={styles.arrow}>{' -> '}</span>
-                    <span style={styles.visuallyHidden}>changed to</span>
+                    <span style={styles.visuallyHidden}>Changed To</span>
                     <span style={styles.after}>{c.after}</span>
                   </dd>
                 </div>
@@ -101,7 +101,7 @@ export default function LedgerEntryHistory({ userId, entryId, displayEUR = false
         <div style={styles.body}>
           {state.error && (
             <p role="alert" style={styles.error}>
-              Could Not Read This Entry&apos;s History: {state.error}{' '}
+              Could Not Read The History Of This Entry: {state.error}{' '}
               <button type="button" onClick={() => load(0)} style={styles.linkBtn}>Try Again</button>
             </p>
           )}
