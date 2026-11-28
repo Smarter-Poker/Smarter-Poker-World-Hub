@@ -959,6 +959,7 @@ import './seo-aeo-geo-smarterdesign-and-conversion-fortress.law.test.mjs';
 import './phase2-seo-smarterdesign-fortress-20261127.law.test.mjs';
 import './phase3-conversion-funnel-fortress-20261127.law.test.mjs';
 import './phase4-seo-ctr-and-activation-fortress-20261127.law.test.mjs';
+import './forensic-hardening-fortress-20261127.law.test.mjs';
 import './a-request-the-database-must-refuse-is-not-sent.law.test.mjs';
 import './a-profile-post-count-asks-the-post-policy.law.test.mjs';
 import './removed-pitch-decks-stay-gone.law.test.mjs';

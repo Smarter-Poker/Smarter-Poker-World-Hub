@@ -94,3 +94,21 @@ test('zero-based chart rulers include negative and positive extremes and keep co
   assert.deepEqual(chartTicks(0, 0), [0, 1]);
   assert.deepEqual(chartTicks(-2, 1), [-2, -1, 0, 1]);
 });
+
+test('running-net line keeps intra-month peaks instead of month-end buckets', () => {
+  // Reported 2026-11-27: All Time chart drew a flat line at the final total because the
+  // line plotted monthly buckets, which keep only each month's closing value.
+  const model = buildTrend(
+    [session('2026-02-10', 100), session('2026-02-20', 192.17), session('2026-02-25', -435.8)],
+    '2000-01-01',
+    '2026-11-27'
+  );
+  assert.equal(model.period, 'Month');
+  const values = model.line.map((p) => p.cumulative);
+  assert.deepEqual(values, [0, 10000, 29217, -14363, -14363]);
+  assert.equal(Math.max(...values), model.high);
+  assert.equal(Math.min(...values), model.low);
+  assert.equal(model.line[0].synthetic, true);
+  assert.equal(model.line.at(-1).date, '2026-11-27');
+  assert.ok(model.line.every((p, i) => !i || p.t > model.line[i - 1].t));
+});

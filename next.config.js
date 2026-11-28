@@ -1468,6 +1468,57 @@ const nextConfig = {
         destination: '/hub/video-library',
         permanent: true,
       },
+      // Wildcard catch-all redirects for all 10 removed YouTube video IDs so alternate/truncated slugs never 404
+      {
+        source: '/hub/video-library/watch/gy5wNpDc_f4/:slug*',
+        destination: '/learn/best-poker-players',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/gW_J_uIbE20/:slug*',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/xxM8Q76ddHI/:slug*',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/u_Yk0kC_4c4/:slug*',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/IGYA_OwBpYY/:slug*',
+        destination: '/poker-rooms/first-time-guide',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/JVVD7d59zuE/:slug*',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/Qz2tz1JkvfI/:slug*',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/7X5iF4ERDcE/:slug*',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/bWtzp1aDAUk/:slug*',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
+      {
+        source: '/hub/video-library/watch/xjqzhy4XgkU/:slug*',
+        destination: '/hub/video-library',
+        permanent: true,
+      },
       {
         source: '/research/plo4-plo5-plo6-equity-and-variance-study.md',
         destination: '/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study.md',

@@ -48180,7 +48180,7 @@
         {
           "element": "link",
           "name": "Claim 30-Day VIP + 500 Diamonds",
-          "line": 168,
+          "line": 173,
           "handler": "() => dismiss('claim-vip')",
           "destination": "/hub/verify-phone?welcome=1",
           "type": null,
@@ -48190,7 +48190,7 @@
         {
           "element": "link",
           "name": "Launch 107 GTO Games",
-          "line": 176,
+          "line": 181,
           "handler": "() => dismiss('launch-training')",
           "destination": "/hub/training",
           "type": null,
@@ -48200,7 +48200,7 @@
         {
           "element": "button",
           "name": "Dismiss Account Unlocked Banner",
-          "line": 184,
+          "line": 189,
           "handler": "() => dismiss('dismiss')",
           "destination": null,
           "type": "button",
@@ -48240,7 +48240,7 @@
       "functions": [
         {
           "name": "hasStoredAuthSession",
-          "line": 29,
+          "line": 34,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48248,7 +48248,7 @@
         },
         {
           "name": "recordPendingSeoUnlock",
-          "line": 41,
+          "line": 46,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -48256,7 +48256,7 @@
         },
         {
           "name": "promotePendingSeoUnlock",
-          "line": 56,
+          "line": 61,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -48264,7 +48264,7 @@
         },
         {
           "name": "resolveWelcomeBody",
-          "line": 81,
+          "line": 86,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48272,7 +48272,7 @@
         },
         {
           "name": "SmarterUnlockedWelcomeBanner",
-          "line": 92,
+          "line": 97,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -48280,7 +48280,7 @@
         },
         {
           "name": "dismiss",
-          "line": 129,
+          "line": 134,
           "references": 8,
           "exported": false,
           "defaultExport": false,
@@ -93406,11 +93406,11 @@
       "effectRef": "src/components/seo/SmarterQuickSignupSheet.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:168:1",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:173:1",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "Claim 30-Day VIP + 500 Diamonds",
-      "line": 168,
+      "line": 173,
       "handler": "() => dismiss('claim-vip')",
       "destination": "/hub/verify-phone?welcome=1",
       "type": null,
@@ -93419,11 +93419,11 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:176:2",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:181:2",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "link",
       "name": "Launch 107 GTO Games",
-      "line": 176,
+      "line": 181,
       "handler": "() => dismiss('launch-training')",
       "destination": "/hub/training",
       "type": null,
@@ -93432,11 +93432,11 @@
       "effectRef": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx"
     },
     {
-      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:184:3",
+      "id": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx:189:3",
       "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
       "element": "button",
       "name": "Dismiss Account Unlocked Banner",
-      "line": 184,
+      "line": 189,
       "handler": "() => dismiss('dismiss')",
       "destination": null,
       "type": "button",
@@ -129408,6 +129408,7 @@
         "review": "accepted",
         "rationale": "Default export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/about.js",
           "pages/authors/[slug].js",
           "pages/authors/index.js",
           "pages/compare/[slug].js",
@@ -129422,9 +129423,11 @@
           "pages/glossary/[term].js",
           "pages/glossary/index.js",
           "pages/hub/article.js",
+          "pages/hub/bankroll-manager.js",
           "pages/hub/daily-tournaments.js",
           "pages/hub/events-calendar.js",
           "pages/hub/help.js",
+          "pages/hub/home-games.js",
           "pages/hub/magazine/[issue].js",
           "pages/hub/magazine/index.js",
           "pages/hub/magazine/poker-rooms.js",
@@ -129434,10 +129437,12 @@
           "pages/hub/poker-near-me/in/[state]/[city].js",
           "pages/hub/poker-near-me/in/[state]/index.js",
           "pages/hub/poker-near-me/in/index.js",
+          "pages/hub/poker-near-me/lobby.js",
           "pages/hub/poker-series.js",
           "pages/hub/poker-tours.js",
           "pages/hub/series/[id].js",
           "pages/hub/tournaments/this-weekend.js",
+          "pages/hub/tours/[code].js",
           "pages/hub/training/preflop-charts.js",
           "pages/hub/training/qre-explorer.js",
           "pages/hub/training/quiz-builder.js",
@@ -129590,6 +129595,7 @@
         "review": "accepted",
         "rationale": "Default export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/about.js",
           "pages/compare/[slug].js",
           "pages/compare/index.js",
           "pages/features/index.js",
@@ -129693,6 +129699,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/hub/bankroll-manager.js",
           "pages/learn/hands/[hand].js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -129721,7 +129728,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "recordPendingSeoUnlock",
-        "line": 41,
+        "line": 46,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -129736,7 +129743,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "promotePendingSeoUnlock",
-        "line": 56,
+        "line": 61,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -129752,7 +129759,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "SmarterUnlockedWelcomeBanner",
-        "line": 92,
+        "line": 97,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -141657,6 +141664,7 @@
         "review": "accepted",
         "rationale": "Default export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/about.js",
           "pages/authors/[slug].js",
           "pages/authors/index.js",
           "pages/compare/[slug].js",
@@ -141671,9 +141679,11 @@
           "pages/glossary/[term].js",
           "pages/glossary/index.js",
           "pages/hub/article.js",
+          "pages/hub/bankroll-manager.js",
           "pages/hub/daily-tournaments.js",
           "pages/hub/events-calendar.js",
           "pages/hub/help.js",
+          "pages/hub/home-games.js",
           "pages/hub/magazine/[issue].js",
           "pages/hub/magazine/index.js",
           "pages/hub/magazine/poker-rooms.js",
@@ -141683,10 +141693,12 @@
           "pages/hub/poker-near-me/in/[state]/[city].js",
           "pages/hub/poker-near-me/in/[state]/index.js",
           "pages/hub/poker-near-me/in/index.js",
+          "pages/hub/poker-near-me/lobby.js",
           "pages/hub/poker-series.js",
           "pages/hub/poker-tours.js",
           "pages/hub/series/[id].js",
           "pages/hub/tournaments/this-weekend.js",
+          "pages/hub/tours/[code].js",
           "pages/hub/training/preflop-charts.js",
           "pages/hub/training/qre-explorer.js",
           "pages/hub/training/quiz-builder.js",
@@ -141839,6 +141851,7 @@
         "review": "accepted",
         "rationale": "Default export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/about.js",
           "pages/compare/[slug].js",
           "pages/compare/index.js",
           "pages/features/index.js",
@@ -141942,6 +141955,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/hub/bankroll-manager.js",
           "pages/learn/hands/[hand].js",
           "src/components/seo/GuestConversionBar.jsx",
           "src/components/seo/SmarterAccountUnlockGate.jsx",
@@ -141970,7 +141984,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "recordPendingSeoUnlock",
-        "line": 41,
+        "line": 46,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -141985,7 +141999,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "promotePendingSeoUnlock",
-        "line": 56,
+        "line": 61,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -142001,7 +142015,7 @@
       {
         "file": "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "name": "SmarterUnlockedWelcomeBanner",
-        "line": 92,
+        "line": 97,
         "references": 1,
         "exported": true,
         "defaultExport": true,

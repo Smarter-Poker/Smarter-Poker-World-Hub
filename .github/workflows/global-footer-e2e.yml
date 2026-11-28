@@ -220,6 +220,18 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
+      # Bankroll Manager, Toke Tracker and Jarvis image headers (#SmarterDesign).
+      # No workflow ran this spec until 2026-11-27, so when the painted header
+      # "?" landed (#3168) its 52 failures went unseen until a manual run. It
+      # mocks every request as a guest and needs no secrets.
+      - name: Verify Bankroll and Toke #SmarterDesign headers
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
+        run: npx playwright test e2e/029-bankroll-toke-smarterdesign.spec.ts --project=chromium --project=mobile-chrome --no-deps --workers=2
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
       # Trivia owns the new release evidence in this shared production-build
       # job. Run it as soon as the server is ready so unrelated World/footer
       # failures cannot skip or delay the scoped Phase 11 certification.

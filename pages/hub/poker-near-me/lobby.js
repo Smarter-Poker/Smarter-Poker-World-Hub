@@ -52,6 +52,7 @@ import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from '../../../src/comp
 import { playClickSound, playPanelOpenSound, playPanelCloseSound } from '../../../src/components/poker-near-me/lobby/PnmSoundUtils';
 import { cachedFetch, fetchWithRetry, invalidateCache, PAGE_SIZE } from '../../../src/components/poker-near-me/lobby/PnmApiCache';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
 import {
   CHECKIN_BATCH_MAX_IDS,
   CHECKIN_BATCH_SIZE,
@@ -2271,17 +2272,17 @@ export default function PokerNearMeLobby() {
                     onClick={() => router.push(f.href)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
-                      padding: '10px 14px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
-                      border: '1px solid rgba(212,168,83,0.2)',
-                      background: 'linear-gradient(135deg, rgba(212,168,83,0.06), rgba(212,168,83,0.02))',
+                      padding: '10px 14px', borderRadius: 0, cursor: 'pointer', fontFamily: 'inherit',
+                      border: '1px solid rgba(56,189,248,0.28)',
+                      background: 'linear-gradient(135deg, rgba(13,31,51,0.9), rgba(7,19,33,0.95))',
                       color: '#e0e8f0',
                     }}
                   >
                     <span style={{
-                      flexShrink: 0, padding: '2px 8px', borderRadius: 6, fontSize: 12, fontWeight: 800,
+                      flexShrink: 0, padding: '2px 8px', borderRadius: 0, fontSize: 12, fontWeight: 800,
                       letterSpacing: '0.06em', textTransform: 'uppercase',
-                      background: f.type === 'series' ? 'rgba(210,168,255,0.15)' : 'rgba(245,158,11,0.15)',
-                      color: f.type === 'series' ? '#d2a8ff' : '#f59e0b',
+                      background: f.type === 'series' ? 'rgba(210,168,255,0.15)' : 'rgba(56,189,248,0.16)',
+                      color: f.type === 'series' ? '#d2a8ff' : '#38bdf8',
                     }}>{f.type}</span>
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{f.name}</span>
@@ -3756,6 +3757,14 @@ export default function PokerNearMeLobby() {
         Poker Near Me panel uses (PokerNearMePanelShell -> painted-panels-v1
         head / mid / foot). The words, the links and the schema are
         untouched; only the dress follows the page. */}
+    <div className="pnm-lobby-summary" style={{ marginBottom: 20 }}>
+      <SmarterAccountUnlockGate
+        variant="live-venue-intel"
+        context="poker-near-me-lobby"
+        title="Unlock Live Room Waitlists, Peak Hours & Saved Poker Rooms Free"
+        redirectPath="/hub/poker-near-me/lobby"
+      />
+    </div>
     <div className="pnm-lobby-summary">
       <PokerNearMePanelShell
         as="div"
