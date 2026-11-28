@@ -108,6 +108,7 @@ const SEO_HUB_PREFIXES = new Set(['series', 'venues', 'poker-near-me', 'poker-se
 const SAFE_SEGMENT_RE = /^[A-Za-z0-9_.-]{1,64}$/;
 const SAFE_FIRST_SEGMENT_RE = /^[A-Za-z0-9_.-]{1,40}$/;
 const SAFE_UNLOCK_KEY_RE = /^[a-z0-9][a-z0-9._:-]{0,63}$/;
+const SAFE_EXPERIMENT_VARIANT_RE = /^[a-z0-9][a-z0-9._-]{0,47}$/;
 const UUID_LIKE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function cleanLower(value) {
@@ -202,6 +203,13 @@ export function sanitizeAttributionUnlockKey(rawKey) {
   const cleaned = rawKey.trim().toLowerCase();
   if (!cleaned || cleaned.includes('@') || UUID_LIKE_RE.test(cleaned)) return null;
   return SAFE_UNLOCK_KEY_RE.test(cleaned) ? cleaned : null;
+}
+
+export function sanitizeAttributionExperimentVariant(rawVariant) {
+  if (typeof rawVariant !== 'string') return null;
+  const cleaned = rawVariant.trim().toLowerCase();
+  if (!cleaned || cleaned.includes('@') || UUID_LIKE_RE.test(cleaned)) return null;
+  return SAFE_EXPERIMENT_VARIANT_RE.test(cleaned) ? cleaned : null;
 }
 
 /**
@@ -338,6 +346,10 @@ export function summarizeSignupAttribution(users, options = {}) {
   };
 
   const aiEngines = {};
+  const experimentVariants = {
+    'control-gto': 0,
+    'welcome-vip-500': 0,
+  };
   const landingCounts = new Map();
   const unlockCounts = new Map();
 
@@ -353,6 +365,13 @@ export function summarizeSignupAttribution(users, options = {}) {
 
     if (aiEngine) {
       aiEngines[aiEngine] = (aiEngines[aiEngine] || 0) + 1;
+    }
+
+    const experimentVariant = sanitizeAttributionExperimentVariant(
+      meta.experiment_variant || meta.acquisition_experiment_variant || meta.seo_experiment_variant || '',
+    );
+    if (experimentVariant) {
+      experimentVariants[experimentVariant] = (experimentVariants[experimentVariant] || 0) + 1;
     }
 
     const provider = resolveAuthProvider(user);
@@ -391,6 +410,7 @@ export function summarizeSignupAttribution(users, options = {}) {
     channels,
     providers,
     aiEngines,
+    experimentVariants,
     landingPages: topEntries(landingCounts, 'path', topLimit),
     unlockKeys: topEntries(unlockCounts, 'key', topLimit),
   };

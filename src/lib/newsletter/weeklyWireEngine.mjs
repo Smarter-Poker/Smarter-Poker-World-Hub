@@ -1822,12 +1822,21 @@ export function buildPromoBlockForSegment(
             ctaUrl: activePromo.ctaUrl,
         };
     }
+    const upgradeSignupUrl = appendNewsletterUtm(
+        buildPromoSignupUrl(`${siteUrl}/auth/signup?redirect=%2Fhub%2Fclub-arena%2F%3Fjoin%3D25450`, { siteUrl }),
+        {
+            source: 'weekly_wire',
+            medium: 'email',
+            campaign: 'non_account_upgrade_bridge',
+            content: 'promo_cta',
+        }
+    );
     return {
-        eyebrow: 'New-Player Exclusive Bonus',
-        headline: '25 Free Chips + 30-Day Free VIP + 500 Free Diamonds',
-        body: 'Create your free Smarter.Poker account through this invitation and verify your phone number to unlock 25 Free Chips in Kings Club (Code 25450), 30 Days of VIP, and 500 Free Diamonds.',
-        ctaLabel: 'Claim Your Free Rewards',
-        ctaUrl: buildPromoSignupUrl(`${siteUrl}/auth/signup?redirect=%2Fhub%2Fclub-arena%2F%3Fjoin%3D25450`, { siteUrl }),
+        eyebrow: 'Newsletter Subscriber Account Upgrade',
+        headline: 'Create Your Free Smarter.Poker Account: Claim 30-Day VIP + 500 Diamonds On Phone Verify',
+        body: 'Upgrade your Weekly Wire subscription to a free Smarter.Poker account through this invitation and verify your phone number to unlock Free 30-Day VIP + 500 Diamonds On Phone Verify plus 25 Free Chips in Kings Club (Code 25450).',
+        ctaLabel: 'Create Free Account & Claim Rewards',
+        ctaUrl: upgradeSignupUrl,
     };
 }
 

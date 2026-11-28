@@ -23,6 +23,10 @@ import {
   buildSeriesSpeakableJsonLd,
 } from './venueAeo.mjs';
 import { resolveSeriesWikidataLinks } from '../seo/wikidataRegistry.mjs';
+import {
+  buildSeriesMetaDescription,
+  buildSeriesSubEventSchema,
+} from '../seo/seriesEventSchema.mjs';
 import { isSyntheticTestSeries } from './seriesRouteIdentity.mjs';
 
 const TIMEOUT_MS = 10000;
@@ -321,8 +325,6 @@ export function seriesTitle(v) {
   ].filter(Boolean));
 }
 
-const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
-
 /**
  * A meta description Google will not truncate. The first sentence (what and
  * where and when) is always kept; the optional sentences are added while
@@ -332,32 +334,7 @@ const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 export const DESCRIPTION_MAX = 160;
 
 export function seriesDescription(v) {
-  const range = formatRange(v.startDate, v.endDate);
-  const place = seriesPlace(v);
-  // Most detailed opening sentence that fits; a very long series name drops
-  // the dates, then the venue, rather than the name itself.
-  const openings = [
-    `${v.name}${place ? ` runs at ${place}` : ''}${range ? ` from ${range}` : ''}.`,
-    `${v.name}${place ? ` runs at ${place}` : ''}.`,
-    `${v.name}${range ? ` runs from ${range}` : ''}.`,
-    `${v.name}.`,
-  ];
-  let text = openings.find((o) => o.length <= DESCRIPTION_MAX) ?? openings[openings.length - 1];
-  const optional = [];
-  if (v.totalEvents) optional.push(`${v.totalEvents} events.`);
-  if (v.mainEventBuyin) {
-    optional.push(
-      v.mainEventGuaranteed
-        ? `Main event ${money(v.mainEventBuyin)} with a ${money(v.mainEventGuaranteed)} guarantee.`
-        : `Main event ${money(v.mainEventBuyin)}.`
-    );
-  }
-  optional.push('Full schedule, buy-ins and results on Smarter.Poker.');
-  for (const bit of optional) {
-    if (text.length + 1 + bit.length > DESCRIPTION_MAX) continue;
-    text += ` ${bit}`;
-  }
-  return text;
+  return buildSeriesMetaDescription(v, v?.events || [], { maxLength: 158 });
 }
 
 /**
@@ -497,33 +474,8 @@ export function seriesSchema(v) {
         availability: 'https://schema.org/InStock',
       };
     }
-    // EVERY EVENT WITH A DATE. The series carries the location, which is
-    // what the events themselves mostly lack: a scraped event row records
-    // its date, time and buy in and leaves venue_name empty, because it is
-    // held at the series' venue. An event with no date is still listed on
-    // the page and still left out of the graph.
-    const subEvents = (v.events || [])
-      .filter((item) => item.startDate && item.name)
-      .map((item) => ({
-        '@type': 'Event',
-        name: item.name,
-        startDate: item.startTime ? `${item.startDate}T${item.startTime}` : item.startDate,
-        eventStatus: 'https://schema.org/EventScheduled',
-        eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-        organizer,
-        location: event.location,
-        superEvent: { '@id': `${url}#series` },
-        ...(item.buyin ? {
-          offers: {
-            '@type': 'Offer',
-            name: 'Buy In',
-            price: String(item.buyin),
-            priceCurrency: 'USD',
-            url,
-            availability: 'https://schema.org/InStock',
-          },
-        } : {}),
-      }));
+    // EVERY EVENT WITH A DATE (capped at 25 via buildSeriesSubEventSchema for rich SERP JSON-LD).
+    const subEvents = buildSeriesSubEventSchema(v, v.events || [], { maxEvents: 25, siteUrl: site });
     if (subEvents.length) event.subEvent = subEvents;
 
     nodes[0].about = { '@id': `${url}#series` };
