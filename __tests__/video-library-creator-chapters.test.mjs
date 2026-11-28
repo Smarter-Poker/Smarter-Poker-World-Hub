@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import * as playback from '../src/lib/videoLibraryPlayback.mjs';
 import * as quiz from '../src/lib/videoLibraryQuiz.mjs';
 import { creatorChapters, CREATOR_CHAPTER_SOURCE } from '../src/lib/videoLibraryChapters.mjs';
@@ -143,7 +144,7 @@ test('the watch page reads the creator chapters once, server side, through the v
 });
 
 test('no code path writes the "Video Start" placeholder chapter again', () => {
-    const root = new URL('..', import.meta.url).pathname;
+    const root = fileURLToPath(new URL('..', import.meta.url));
     const offenders = [];
     const walk = dir => {
         for (const name of readdirSync(dir)) {
