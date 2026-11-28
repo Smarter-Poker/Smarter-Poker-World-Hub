@@ -65,12 +65,18 @@ test('FORENSIC LAW 2 — All 10 removed YouTube video IDs have permanent :slug* 
   }
 });
 
-test('FORENSIC LAW 3 — /hub/bankroll-manager has zero /login? redirect hops and exposes Create Free Account + SmarterAccountUnlockGate', () => {
+test('FORENSIC LAW 3 — /hub/bankroll-manager has zero /login? redirect hops and visibly renders Create Free Account + SmarterAccountUnlockGate outside helpContent', () => {
   const src = read('pages/hub/bankroll-manager.js');
   assert.doesNotMatch(src, /['"]\/login\?/, 'bankroll-manager.js must route directly to /auth/login, never legacy /login?');
   assert.match(src, /\/auth\/login\?redirect=\/hub\/bankroll-manager/);
   assert.match(src, /openQuickSignup\(/, 'bankroll-manager sign-in modal must offer 1-click Create Free Account');
   assert.match(src, /<SmarterAccountUnlockGate\b/, 'bankroll-manager.js must mount SmarterAccountUnlockGate for guests');
+  const helpBlock = src.match(/helpContent=\{[\s\S]*?\}\s*>/)?.[0] || '';
+  assert.doesNotMatch(
+    helpBlock,
+    /<SmarterAccountUnlockGate\b/,
+    'SmarterAccountUnlockGate must be rendered in the visible page body, never buried inside the collapsed helpContent popover',
+  );
 });
 
 test('FORENSIC LAW 4 — Public hub lobby, tour details, home-games, and /about all mount #SMARTERDESIGN conversion funnels', () => {
