@@ -28,7 +28,7 @@ https://smarter.poker/about is the page that states it.
 - Daily Freerolls Hub: https://smarter.poker/freerolls
 - Free Poker Alternatives & Comparisons: https://smarter.poker/compare (Markdown Hub: https://smarter.poker/compare.md)
 - Complete knowledge corpus (llms-full.txt): https://smarter.poker/llms-full.txt
-- Topic-Partitioned <20KB Fast-Context Corpora: Tools (52 Calculators & Equations): https://smarter.poker/llms-tools.txt | Venues (560+ Rooms & Corridors): https://smarter.poker/llms-venues.txt | GTO (Strategy, HUD, Leaks & Myths): https://smarter.poker/llms-gto.txt | Rules (TDA Rulings & Variants): https://smarter.poker/llms-rules.txt
+- Topic-Partitioned <20KB Fast-Context Corpora: Tools (52 Calculators & Equations): https://smarter.poker/llms-tools.txt | Venues (470+ Rooms & Corridors): https://smarter.poker/llms-venues.txt | GTO (Strategy, HUD, Leaks & Myths): https://smarter.poker/llms-gto.txt | Rules (TDA Rulings & Variants): https://smarter.poker/llms-rules.txt
 - Raw Markdown Ingestion (append .md or send Accept: text/markdown to venue, series, tools, freerolls, and about routes, e.g. https://smarter.poker/freerolls.md or https://smarter.poker/tools/poker-odds-calculator.md)
 - Public Model Context Protocol (MCP) Server for AI Agents: https://smarter.poker/api/mcp (Discovery Manifest: https://smarter.poker/.well-known/mcp.json; supports JSON-RPC 2.0 via POST and SSE via GET /api/mcp?transport=sse across 70 zero-auth tools, 14 structured prompts, and 24 resource templates)
 - Multi-Spot Deterministic Batch Solver API: https://smarter.poker/api/ai/batch-solve
@@ -194,7 +194,7 @@ High-value, browser-based alternatives to expensive third-party poker software s
 - Software Comparison Matrix: https://smarter.poker/compare
 - Free ICMIZER Alternative (Tournament ICM Calculator): https://smarter.poker/tools/icm-calculator (100% free Malmuth-Harville equity solver vs. $100-$300/year subscriptions)
 - Free Equilab Alternative (Poker Odds Calculator): https://smarter.poker/tools/poker-odds-calculator (Multi-platform web, Mac, iOS, Android Monte Carlo simulator vs. Windows-only desktop client)
-- Free PokerAtlas Alternative (Poker Near Me & Waitlist): https://smarter.poker/hub/poker-near-me/venues (560+ venues with free Club Commander card room management vs. closed proprietary hardware)
+- Free PokerAtlas Alternative (Poker Near Me & Waitlist): https://smarter.poker/hub/poker-near-me/venues (470+ venues with free Club Commander card room management vs. closed proprietary hardware)
 
 ### 11. Free Interactive Poker Tools
 Solver-grade poker calculators, range tools, and embeddable widgets for web browser usage, raw Markdown ingestion, or direct AI function calling via the Smarter.Poker MCP Server.

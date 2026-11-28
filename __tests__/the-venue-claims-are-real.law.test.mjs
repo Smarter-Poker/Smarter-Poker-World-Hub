@@ -210,10 +210,15 @@ test('no "Active Live Rooms" label and no retired per-game or 324 figures', () =
 test('/poker-rooms/states shows Listed Rooms from the listed set', () => {
   const index = fs.readFileSync(path.join(ROOT, 'pages/poker-rooms/states/index.js'), 'utf8');
   assert.match(index, /<th style=\{styles\.th\}>Listed Rooms<\/th>/);
-  assert.match(index, /\{listedVenueCount\(s\.code\)\}/);
+  // Per-state counts are the live listed set at ISR time (snapshot fallback).
+  assert.match(index, /\{listedVenueCount\(s\.code, byState\)\}/);
   assert.match(index, /from '\.\.\/\.\.\/\.\.\/src\/lib\/venueCount\.mjs'/);
+  assert.match(index, /getVenueStats\(\)/);
+  assert.match(index, /revalidate: VENUE_STATS_REVALIDATE_S/);
   const detail = fs.readFileSync(path.join(ROOT, 'pages/poker-rooms/states/[state].js'), 'utf8');
-  assert.match(detail, /listedVenueLabel\(stateGuide\.code\)/);
+  assert.match(detail, /getStateRooms\(stateGuide\.code/);
+  assert.match(detail, /revalidate: VENUE_STATS_REVALIDATE_S/);
+  assert.match(detail, /listedVenueLabel\(stateGuide\.code/);
   // The hand-typed per-state estimates are gone, so nothing can show them.
   for (const rel of SCANNED) {
     const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -249,6 +254,12 @@ test('ai-facts states the verified and state counts from the constants', () => {
   assert.deepEqual(found.v, [VERIFIED_VENUE_COUNT]);
   assert.deepEqual(found.s, [VENUE_STATE_COUNT]);
   const api = fs.readFileSync(path.join(ROOT, 'pages/api/ai/facts.js'), 'utf8');
-  assert.match(api, /venuesWithRecordedVerificationCount: VERIFIED_VENUE_COUNT/);
-  assert.match(api, /venueStatesCount: VENUE_STATE_COUNT/);
+  // The API reads the same figures live (getVenueStats), snapshot on outage.
+  assert.match(api, /venuesWithRecordedVerificationCount: v\.verified/);
+  assert.match(api, /venueStatesCount: v\.stateCount/);
+  assert.match(api, /listedVenuesCount: v\.listed/);
+  assert.match(api, /buildCanonicalFacts\(await getVenueStats\(\)\)/);
+  const listed = [];
+  JSON.stringify(facts, (k, v) => { if (k === 'listedVenuesCount') listed.push(v); return v; });
+  assert.deepEqual(listed, [VERIFIED_LISTED_VENUES]);
 });

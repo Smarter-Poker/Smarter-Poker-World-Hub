@@ -1,6 +1,7 @@
 import { applyVenueIntegrity } from './venueIntegrityServer.js';
 import { redactPublicVenue } from './publicVenuePrivacy.mjs';
 import { parsePokerMapBounds, isVenueWithinPokerMapBounds } from './mapBounds.js';
+import { applyListedRoomFilter, isListedRoom } from './listedRooms.mjs';
 
 export const VENUE_DIRECTORY_FIELD_LIST = [
   'id', 'name', 'slug', 'pokeratlas_slug', 'venue_type', 'address', 'city', 'state', 'country', 'zip',
@@ -106,11 +107,8 @@ export function buildSnapshotVenueDirectory({ params = {}, venues = [], metadata
   const tournamentsOnly = text(params.tournaments, 8).toLowerCase() === 'true';
 
   const candidates = (Array.isArray(venues) ? venues : [])
-    .filter((venue) => venue?.is_active === true)
-    .filter((venue) => venue?.is_suppressed !== true)
-    .filter((venue) => venue?.id !== 3109)
-    .filter((venue) => venue?.canonical_venue_id == null)
-    .filter((venue) => !['series', 'tour', 'home_game'].includes(String(venue?.venue_type || '').toLowerCase()))
+    // The one listed-room condition (src/lib/poker-near-me/listedRooms.mjs).
+    .filter(isListedRoom)
     .filter((venue) => !state || String(venue?.state || '').toUpperCase() === state)
     .filter((venue) => !city || String(venue?.city || '').toLowerCase() === city)
     .filter((venue) => !type || String(venue?.venue_type || '').toLowerCase() === type)
@@ -152,14 +150,13 @@ function directoryQuery(supabase, params, { count = 'exact' } = {}) {
   const city = text(params.city, 120);
   const type = text(params.type || params.venue_type, 60);
   const search = text(params.search, 120);
-  let query = supabase
-    .from('poker_venues')
-    .select(VENUE_DIRECTORY_FIELDS, { count })
-    .eq('is_active', true)
-    .eq('is_suppressed', false)
-    .neq('id', 3109)
-    .is('canonical_venue_id', null)
-    .not('venue_type', 'in', '(series,tour,home_game)');
+  // The one listed-room condition, shared with the room counts
+  // (src/lib/poker-near-me/listedRooms.mjs, src/lib/server/venueStats.mjs).
+  let query = applyListedRoomFilter(
+    supabase
+      .from('poker_venues')
+      .select(VENUE_DIRECTORY_FIELDS, { count }),
+  );
 
   if (state) query = query.eq('state', state);
   if (city) query = query.ilike('city', city);

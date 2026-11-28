@@ -29,6 +29,12 @@
  *   C. MODELS: every model id named in code exists at api.x.ai. Asked with no
  *      credential: a missing model answers "Model not found" BEFORE
  *      authentication; an existing one asks for a key.
+ *   D. ROOM COUNTS (2026-11-28): no figure in the room-count snapshot
+ *      (src/lib/venueCount.mjs) is above the live listed-room set
+ *      (scripts/check-venue-count-snapshot.mjs). Client components and the
+ *      committed static files carry the snapshot, so a shrinking directory
+ *      must turn this red rather than leave an over-claim behind. A snapshot
+ *      that is merely below live is a warning.
  *
  * USAGE
  *   SUPABASE_SERVICE_ROLE_KEY=... NEXT_PUBLIC_SUPABASE_URL=... \
@@ -235,6 +241,18 @@ async function main() {
     if (!exists) fail(`C: ${where} names model '${name}', which api.x.ai answers "Model not found"`);
   }
   if (reachable) console.log(`  C. models: ${models.size} model ids checked against api.x.ai`);
+
+  // D. room counts
+  if (url && key) {
+    const { checkVenueCountSnapshot } = await import(pathToFileURL(join(ROOT, 'scripts/check-venue-count-snapshot.mjs')).href);
+    const r = await checkVenueCountSnapshot();
+    if (r.status === 'skip') skipped.push(`D room counts: ${r.error?.message || 'no live data'}`);
+    else {
+      for (const o of r.overClaims) fail(`D: the room-count snapshot claims more than the database: ${o} (node scripts/check-venue-count-snapshot.mjs --print)`);
+      for (const b of r.behind) console.log(`::warning::D: room-count snapshot behind live: ${b}`);
+      console.log(`  D. room counts: snapshot checked against ${r.live.listed} live listed rooms`);
+    }
+  }
 
   for (const s of skipped) console.log(`  SKIPPED (not green, not red): ${s}`);
   if (failures.length) {

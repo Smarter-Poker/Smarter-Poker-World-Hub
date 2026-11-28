@@ -35,6 +35,7 @@ import {
   renderByGameDetailMarkdown,
 } from '../../../src/content/guides/byGame';
 import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
+import { getVenueStats } from '../../../src/lib/server/venueStats.mjs';
 
 export async function getServerSideProps(context) {
   const { req, res, params, query } = context;
@@ -64,16 +65,18 @@ export async function getServerSideProps(context) {
     gameFormat: g.gameFormat,
   }));
 
+  const stats = await getVenueStats();
   setPublicSeoHtmlCache(context.res);
   return {
     props: {
       gameVertical,
       peerVerticals,
+      venueCountLabel: stats.label,
     },
   };
 }
 
-export default function PokerRoomsByGameDetailPage({ gameVertical, peerVerticals = [] }) {
+export default function PokerRoomsByGameDetailPage({ gameVertical, peerVerticals = [], venueCountLabel = VENUE_COUNT_LABEL }) {
   if (!gameVertical) return null;
 
   const canonicalPath = byGameGuidePath(gameVertical.slug);
@@ -253,7 +256,7 @@ export default function PokerRoomsByGameDetailPage({ gameVertical, peerVerticals
             primaryHref={`/auth/signup?redirect=${encodeURIComponent(canonicalPath)}&src=poker-rooms-by-game`}
             secondaryLabel="Sign In"
             secondaryHref={`/auth/login?redirect=${encodeURIComponent(canonicalPath)}`}
-            highlights={['100% Free Account', `${VENUE_COUNT_LABEL} Poker Rooms`, 'Bankroll Tracker']}
+            highlights={['100% Free Account', `${venueCountLabel} Poker Rooms`, 'Bankroll Tracker']}
           />
         </div>
 

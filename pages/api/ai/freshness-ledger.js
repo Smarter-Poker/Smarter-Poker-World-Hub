@@ -16,9 +16,10 @@ import { RESEARCH_REPORTS } from '../../../src/content/research/reports.js';
 import { US_POKER_STATES } from '../../../src/content/guides/states.js';
 import { POKER_TRAVEL_CORRIDORS } from '../../../src/content/guides/corridors.js';
 import { POKER_ROOMS_BY_GAME } from '../../../src/content/guides/byGame.js';
-import { VENUE_COUNT } from '../../../src/lib/venueCount.mjs';
+import { SNAPSHOT_VENUE_STATS } from '../../../src/lib/venueCount.mjs';
+import { getVenueStats } from '../../../src/lib/server/venueStats.mjs';
 
-export function buildFreshnessLedger() {
+export function buildFreshnessLedger(venueStats = SNAPSHOT_VENUE_STATS) {
   return {
     schemaVersion: '1.0.0',
     verifiedAt: '2026-11-24',
@@ -31,7 +32,10 @@ export function buildFreshnessLedger() {
       mcpToolsCount: 70,
       streamerCommandsCount: 44,
       researchDatasetsCount: 15,
-      verifiedVenuesCount: VENUE_COUNT,
+      // Listed poker rooms, exact, from src/lib/server/venueStats.mjs.
+      listedVenuesCount: venueStats.listed,
+      // @deprecated: the rounded-down listed floor, not a verified count. Use listedVenuesCount.
+      verifiedVenuesCount: venueStats.floor,
       travelCorridorsCount: POKER_TRAVEL_CORRIDORS.length,
       gameFormatDirectoriesCount: POKER_ROOMS_BY_GAME.length,
       usStatesAuditedCount: US_POKER_STATES.length,
@@ -96,7 +100,7 @@ export function buildFreshnessLedger() {
   };
 }
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.setHeader('Allow', 'GET, HEAD');
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -107,5 +111,5 @@ export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('X-Robots-Tag', 'index, follow, max-snippet:-1');
 
-  return res.status(200).json(buildFreshnessLedger());
+  return res.status(200).json(buildFreshnessLedger(await getVenueStats()));
 }

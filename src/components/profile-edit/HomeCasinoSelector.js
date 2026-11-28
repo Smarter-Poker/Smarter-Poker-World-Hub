@@ -64,7 +64,7 @@ function HomeCasinoSelector({ value, onChange }) {
                     value={query}
                     onChange={handleInputChange}
                     onFocus={() => { if (suggestions.length > 0) setShowDropdown(true); }}
-                    placeholder="Search 483+ venues or type a name..."
+                    placeholder="Search venues or type a name..."
                     style={{
                         width: '100%', padding: 12, fontSize: 15,
                         background: '#ffffff', border: `1px solid ${C.border}`,

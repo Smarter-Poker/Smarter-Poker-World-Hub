@@ -19,8 +19,8 @@
     "persistenceFiles": 100,
     "realtimeFiles": 7,
     "tests": 209,
-    "markerCandidates": 407,
-    "possibleUnwiredFunctions": 521,
+    "markerCandidates": 408,
+    "possibleUnwiredFunctions": 523,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
     "routeStateUnassignedGaps": 0,
@@ -4737,6 +4737,7 @@
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -4872,6 +4873,7 @@
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -4919,6 +4921,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -5189,7 +5192,8 @@
             "src/engines/HandHistoryParser.js",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js",
-            "src/lib/training/handHistoryReviewAuthority.mjs"
+            "src/lib/training/handHistoryReviewAuthority.mjs",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
@@ -5260,7 +5264,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
@@ -5292,7 +5297,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
@@ -6035,6 +6041,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -6195,6 +6202,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
@@ -6241,6 +6249,7 @@
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -6659,6 +6668,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/stores/pageOverlayStore.js",
             "src/utils/actionGrouper.js",
@@ -6844,6 +6854,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js",
@@ -6888,6 +6899,7 @@
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -7100,6 +7112,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -7220,6 +7233,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -7250,7 +7264,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -7458,6 +7473,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -7578,6 +7594,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -7608,7 +7625,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -7768,6 +7786,7 @@
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/trainingLobbyFilter.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -7904,6 +7923,7 @@
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -7945,6 +7965,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -8112,6 +8133,7 @@
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -8256,6 +8278,7 @@
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -8308,6 +8331,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -8443,6 +8467,7 @@
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": []
@@ -8533,6 +8558,7 @@
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -8556,6 +8582,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": []
@@ -8626,7 +8653,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js",
-            "src/lib/training/trainingPresets.mjs"
+            "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-coach-local-practice-authority.test.mjs",
@@ -8694,7 +8722,8 @@
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/training/trainingPresets.mjs"
+            "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-coach-local-practice-authority.test.mjs",
@@ -8726,7 +8755,8 @@
           "evidence": [
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/components/seo/SmarterQuickSignupSheet.jsx"
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-coach-local-practice-authority.test.mjs",
@@ -8812,7 +8842,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/console/TrainingConsoleStates.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-community-leaderboard-authority.test.mjs",
@@ -8868,7 +8899,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-community-leaderboard-authority.test.mjs",
@@ -8896,7 +8928,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-community-leaderboard-authority.test.mjs",
@@ -8965,7 +8998,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
@@ -9019,7 +9053,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/seoExperiment.js",
-            "src/lib/seo/seoFunnelTelemetry.js"
+            "src/lib/seo/seoFunnelTelemetry.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
@@ -9047,7 +9082,8 @@
           "evidence": [
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/components/seo/SmarterQuickSignupSheet.jsx"
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
@@ -9174,6 +9210,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/trainingApiUtils.js",
             "src/utils/v2Matrix.js"
@@ -9274,6 +9311,7 @@
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs",
             "src/utils/v2Matrix.js"
           ],
           "tests": [
@@ -9312,7 +9350,8 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-custom-solve-preflop-contract.test.mjs",
@@ -9414,7 +9453,8 @@
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/training/cacheTruthContract.mjs",
-            "src/lib/training/solverPolicyContract.js"
+            "src/lib/training/solverPolicyContract.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
@@ -9503,7 +9543,8 @@
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/cacheTruthContract.mjs"
+            "src/lib/training/cacheTruthContract.mjs",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
@@ -9546,7 +9587,8 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/TrainingSignInPrompt.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
@@ -9781,7 +9823,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js",
-            "src/lib/training/trainingPresets.mjs"
+            "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/a-refused-websocket-never-crashes-the-app.law.test.mjs",
@@ -9847,7 +9890,8 @@
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/training/trainingPresets.mjs"
+            "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/a-refused-websocket-never-crashes-the-app.law.test.mjs",
@@ -9881,7 +9925,8 @@
             "pages/hub/training/drill-builder.js",
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/components/seo/SmarterQuickSignupSheet.jsx"
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/a-refused-websocket-never-crashes-the-app.law.test.mjs",
@@ -10004,6 +10049,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/trainingApiUtils.js",
             "src/utils/v2Matrix.js"
@@ -10104,6 +10150,7 @@
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs",
             "src/utils/v2Matrix.js"
           ],
           "tests": [
@@ -10140,7 +10187,8 @@
           "evidence": [
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/gsc-series2-phase2.test.mjs",
@@ -10475,6 +10523,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -10595,6 +10644,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -10625,7 +10675,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -10688,7 +10739,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
@@ -10738,7 +10790,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/seoExperiment.js",
-            "src/lib/seo/seoFunnelTelemetry.js"
+            "src/lib/seo/seoFunnelTelemetry.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
@@ -10765,7 +10818,8 @@
           "evidence": [
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/components/seo/SmarterQuickSignupSheet.jsx"
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
@@ -11052,6 +11106,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/stores/pageOverlayStore.js",
             "src/utils/actionGrouper.js",
@@ -11241,6 +11296,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js",
@@ -11287,6 +11343,7 @@
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
             "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -11408,6 +11465,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/trainingApiUtils.js",
             "src/utils/v2Matrix.js"
@@ -11494,6 +11552,7 @@
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs",
             "src/utils/v2Matrix.js"
           ],
           "tests": [
@@ -11524,7 +11583,8 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
@@ -11595,7 +11655,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
@@ -11649,7 +11710,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
@@ -11675,7 +11737,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
@@ -11889,6 +11952,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -12009,6 +12073,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -12039,7 +12104,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -12096,7 +12162,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/glossary.js",
-            "src/components/training/TrainerEmptyState.jsx"
+            "src/components/training/TrainerEmptyState.jsx",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/every-glossary-term-has-a-page.law.test.mjs",
@@ -12162,7 +12229,8 @@
             "pages/hub/training/glossary.js",
             "src/hooks/useOnlineStatus.js",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/every-glossary-term-has-a-page.law.test.mjs",
@@ -12193,7 +12261,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/every-glossary-term-has-a-page.law.test.mjs",
@@ -12275,7 +12344,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
@@ -12336,7 +12406,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
@@ -12364,7 +12435,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
@@ -12449,6 +12521,7 @@
             "src/lib/training/difficultyQuestionContract.mjs",
             "src/lib/training/offlineQuestionCache.js",
             "src/lib/training/questionContract.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/actionGrouper.js"
           ],
           "tests": [
@@ -12510,7 +12583,8 @@
             "src/lib/idbCacheStore.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -12540,7 +12614,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -13046,6 +13121,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -13166,6 +13242,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -13196,7 +13273,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -13254,7 +13332,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         },
@@ -13291,7 +13370,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/seoExperiment.js",
-            "src/lib/seo/seoFunnelTelemetry.js"
+            "src/lib/seo/seoFunnelTelemetry.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         },
@@ -13309,7 +13389,8 @@
           "evidence": [
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/components/seo/SmarterQuickSignupSheet.jsx"
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -13389,7 +13470,8 @@
             "src/engines/HandHistoryParser.js",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js",
-            "src/lib/training/handHistoryReviewAuthority.mjs"
+            "src/lib/training/handHistoryReviewAuthority.mjs",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
@@ -13475,7 +13557,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
@@ -13515,7 +13598,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/aeo-ai-agent-api.test.mjs",
@@ -13686,6 +13770,7 @@
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -13842,6 +13927,7 @@
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -13899,6 +13985,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -13992,7 +14079,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/lib/poker/tournamentEquity.js",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
@@ -14083,7 +14171,8 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
-            "src/hooks/useOnlineStatus.js"
+            "src/hooks/useOnlineStatus.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
@@ -14129,7 +14218,8 @@
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
-            "pages/hub/training/icm-calculator.js"
+            "pages/hub/training/icm-calculator.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/aeo-dynamic-og-cards.test.mjs",
@@ -14369,6 +14459,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -14497,6 +14588,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -14531,7 +14623,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-simplification-mtt-design.test.mjs"
@@ -14648,6 +14741,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/trainingApiUtils.js",
             "src/utils/v2Matrix.js"
@@ -14736,6 +14830,7 @@
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs",
             "src/utils/v2Matrix.js"
           ],
           "tests": [
@@ -14768,7 +14863,8 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
@@ -14927,6 +15023,7 @@
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -15054,6 +15151,7 @@
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -15097,6 +15195,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -15266,6 +15365,7 @@
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -15425,6 +15525,7 @@
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -15482,6 +15583,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -16219,6 +16321,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -16339,6 +16442,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -16369,7 +16473,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -16584,6 +16689,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -16725,6 +16831,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -16767,7 +16874,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-global-smarterdesign-click-cards.test.mjs",
@@ -16987,6 +17095,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -17107,6 +17216,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -17137,7 +17247,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -17200,7 +17311,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
@@ -17250,7 +17362,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/seoExperiment.js",
-            "src/lib/seo/seoFunnelTelemetry.js"
+            "src/lib/seo/seoFunnelTelemetry.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
@@ -17276,7 +17389,8 @@
           "evidence": [
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/components/seo/SmarterQuickSignupSheet.jsx"
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
@@ -17610,6 +17724,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -17730,6 +17845,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -17760,7 +17876,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -18396,6 +18513,7 @@
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -18569,6 +18687,7 @@
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -18629,6 +18748,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -18875,6 +18995,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -19003,6 +19124,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -19037,7 +19159,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/trivia-club-spectator-training.test.mjs"
@@ -19109,7 +19232,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
@@ -19168,7 +19292,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
@@ -19198,7 +19323,8 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/TrainingSignInPrompt.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
@@ -19414,6 +19540,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -19534,6 +19661,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -19564,7 +19692,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -19772,6 +19901,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -19892,6 +20022,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -19922,7 +20053,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -20028,6 +20160,7 @@
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/ownProfile.js",
             "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs",
             "src/utils/pokerHandEvaluator.js"
           ],
           "tests": [
@@ -20122,6 +20255,7 @@
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -20162,6 +20296,7 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -20324,6 +20459,7 @@
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -20496,6 +20632,7 @@
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -20561,6 +20698,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -20925,7 +21063,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
@@ -20980,7 +21119,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/seoExperiment.js",
-            "src/lib/seo/seoFunnelTelemetry.js"
+            "src/lib/seo/seoFunnelTelemetry.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
@@ -21009,7 +21149,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterAccountUnlockGate.jsx",
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/components/seo/SmarterQuickSignupSheet.jsx"
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
@@ -21232,6 +21373,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -21361,6 +21503,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -21397,7 +21540,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-auxiliary-launch-wiring.test.mjs",
@@ -21524,6 +21668,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/trainingApiUtils.js",
             "src/utils/v2Matrix.js"
@@ -21624,6 +21769,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/v2Matrix.js"
           ],
           "tests": [
@@ -21661,7 +21807,8 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/all-105-clicked-pages-hardening-20261127.law.test.mjs",
@@ -22112,7 +22259,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
@@ -22158,7 +22306,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/seoExperiment.js",
-            "src/lib/seo/seoFunnelTelemetry.js"
+            "src/lib/seo/seoFunnelTelemetry.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
@@ -22182,7 +22331,8 @@
           "evidence": [
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/components/seo/SmarterQuickSignupSheet.jsx"
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-authored-model-honesty.test.mjs",
@@ -22396,6 +22546,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -22516,6 +22667,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -22546,7 +22698,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -22614,7 +22767,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
@@ -22678,7 +22832,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
@@ -22711,7 +22866,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
@@ -22823,6 +22979,7 @@
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/ownProfile.js",
             "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs",
             "src/utils/pokerHandEvaluator.js"
           ],
           "tests": [
@@ -22894,6 +23051,7 @@
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -22922,6 +23080,7 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -23363,7 +23522,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
@@ -23412,7 +23572,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/seoExperiment.js",
-            "src/lib/seo/seoFunnelTelemetry.js"
+            "src/lib/seo/seoFunnelTelemetry.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
@@ -23437,7 +23598,8 @@
           "evidence": [
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterConversionCta.jsx",
-            "src/components/seo/SmarterQuickSignupSheet.jsx"
+            "src/components/seo/SmarterQuickSignupSheet.jsx",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
@@ -23510,7 +23672,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-final-honesty-surfaces.test.mjs"
@@ -23563,7 +23726,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-final-honesty-surfaces.test.mjs"
@@ -23587,7 +23751,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-final-honesty-surfaces.test.mjs"
@@ -23951,7 +24116,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs"
@@ -24001,7 +24167,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs"
@@ -24025,7 +24192,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs"
@@ -24098,7 +24266,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-final-honesty-surfaces.test.mjs",
@@ -24155,7 +24324,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-final-honesty-surfaces.test.mjs",
@@ -24181,7 +24351,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-final-honesty-surfaces.test.mjs",
@@ -24262,7 +24433,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/console/TrainingConsoleStates.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
@@ -24331,7 +24503,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
@@ -24366,7 +24539,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/phase2-seo-smarterdesign-fortress-20261127.law.test.mjs",
@@ -24464,6 +24638,7 @@
             "src/components/training/RangeGrid.jsx",
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs",
             "src/utils/pokerHandEvaluator.js"
           ],
           "tests": [
@@ -24565,7 +24740,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
@@ -24612,7 +24788,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
@@ -24714,7 +24891,8 @@
             "src/lib/acquisition/firstTouch.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/training/cacheTruthContract.mjs",
-            "src/lib/training/solverPolicyContract.js"
+            "src/lib/training/solverPolicyContract.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
@@ -24799,7 +24977,8 @@
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/cacheTruthContract.mjs"
+            "src/lib/training/cacheTruthContract.mjs",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
@@ -24839,7 +25018,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/horse-phase3-training-cache-truth.test.mjs",
@@ -25069,6 +25249,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -25197,6 +25378,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -25231,7 +25413,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/trivia-club-spectator-training.test.mjs"
@@ -25367,6 +25550,7 @@
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -25487,6 +25671,7 @@
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -25526,6 +25711,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -25922,7 +26108,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -25988,7 +26175,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -26021,7 +26209,8 @@
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/components/training/TrainingSignInPrompt.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -26311,6 +26500,7 @@
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": []
@@ -26401,6 +26591,7 @@
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -26425,6 +26616,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": []
@@ -26633,6 +26825,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -26753,6 +26946,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -26783,7 +26977,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -26851,7 +27046,8 @@
             "src/components/seo/HubPageSummary.js",
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-focused-launch-wiring.test.mjs"
@@ -26903,7 +27099,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-focused-launch-wiring.test.mjs"
@@ -26928,7 +27125,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-focused-launch-wiring.test.mjs"
@@ -27069,6 +27267,7 @@
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -27184,6 +27383,7 @@
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -27222,6 +27422,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -27364,6 +27565,7 @@
             "src/lib/push-client.js",
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -27508,6 +27710,7 @@
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -27559,6 +27762,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -27740,6 +27944,7 @@
             "src/lib/push/enrollment-nudge.mjs",
             "src/lib/seo/hubPageSchema.js",
             "src/lib/store/checkoutIntentStore.js",
+            "src/lib/venueCount.mjs",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -27907,6 +28112,7 @@
             "src/lib/seo/seoFunnelTelemetry.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js"
@@ -27972,6 +28178,7 @@
             "src/lib/authUtils.js",
             "src/lib/push-client.js",
             "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs",
             "src/services/avatar-service.js"
           ],
           "tests": [
@@ -28207,7 +28414,8 @@
             "src/components/training/TrainerEmptyState.jsx",
             "src/components/training/console/TrainingConsoleStates.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -28273,7 +28481,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -28305,7 +28514,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -28523,6 +28733,7 @@
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/services/SolverPolicyService.js",
             "src/utils/actionGrouper.js",
             "src/utils/pokerHandEvaluator.js",
@@ -28643,6 +28854,7 @@
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/trainingPresets.mjs",
+            "src/lib/venueCount.mjs",
             "src/utils/shareCard.js",
             "src/utils/v2Matrix.js"
           ],
@@ -28673,7 +28885,8 @@
             "src/hooks/useGTOTrainer.js",
             "src/lib/authUtils.js",
             "src/lib/supabaseKeys.js",
-            "src/lib/training/horseBrainTrainingAdapter.js"
+            "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": []
         }
@@ -28748,7 +28961,8 @@
             "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/lib/acquisition/firstTouch.mjs",
-            "src/lib/seo/hubPageSchema.js"
+            "src/lib/seo/hubPageSchema.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -28806,7 +29020,8 @@
             "src/lib/authUtils.js",
             "src/lib/seo/seoExperiment.js",
             "src/lib/seo/seoFunnelTelemetry.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -28833,7 +29048,8 @@
             "src/components/seo/SmarterConversionCta.jsx",
             "src/components/seo/SmarterQuickSignupSheet.jsx",
             "src/lib/authUtils.js",
-            "src/lib/supabaseKeys.js"
+            "src/lib/supabaseKeys.js",
+            "src/lib/venueCount.mjs"
           ],
           "tests": [
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -81948,13 +82164,13 @@
       },
       "states": {
         "loading": false,
-        "empty": false,
+        "empty": true,
         "error": false,
         "retry": false,
         "offline": false,
-        "stale": false,
+        "stale": true,
         "success": false,
-        "authExpiry": false
+        "authExpiry": true
       },
       "persistenceWrites": {
         "localStorage": 0,
@@ -81972,8 +82188,24 @@
       },
       "functions": [
         {
+          "name": "venueFloor",
+          "line": 64,
+          "references": 5,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "venueFloorLabel",
+          "line": 70,
+          "references": 10,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "listedVenueCount",
-          "line": 89,
+          "line": 125,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -81981,7 +82213,31 @@
         },
         {
           "name": "listedVenueLabel",
-          "line": 94,
+          "line": 130,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "buildVenueStats",
+          "line": 180,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "snapshotOverClaims",
+          "line": 232,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "snapshotBehind",
+          "line": 250,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -81989,9 +82245,21 @@
         }
       ],
       "possibleUnwiredFunctions": [
-        "listedVenueLabel"
+        "listedVenueLabel",
+        "snapshotOverClaims",
+        "snapshotBehind"
       ],
-      "markers": []
+      "markers": [
+        {
+          "kind": "FALLBACK",
+          "line": 8,
+          "excerpt": "*   - the fallback when the database cannot be read (an outage, a build",
+          "disposition": "runtime-resilience-fallback",
+          "review": "accepted",
+          "certifiedPhase": 15,
+          "rationale": "Runtime resilience path certified for visibility, determinism, observability, and silent-downgrade testing."
+        }
+      ]
     },
     {
       "file": "src/lib/world-menu/navigationState.mjs",
@@ -128977,6 +129245,16 @@
         "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
       },
       {
+        "file": "src/lib/venueCount.mjs",
+        "kind": "FALLBACK",
+        "line": 8,
+        "excerpt": "*   - the fallback when the database cannot be read (an outage, a build",
+        "disposition": "runtime-resilience-fallback",
+        "review": "accepted",
+        "certifiedPhase": 15,
+        "rationale": "Runtime resilience path certified for visibility, determinism, observability, and silent-downgrade testing."
+      },
+      {
         "file": "src/services/SolverPolicyService.js",
         "kind": "SIMULATED",
         "line": 1418,
@@ -137336,7 +137614,7 @@
       {
         "file": "src/lib/venueCount.mjs",
         "name": "listedVenueLabel",
-        "line": 94,
+        "line": 130,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -137347,9 +137625,48 @@
         "externalReferenceFiles": [
           "__tests__/poker-near-me-console-discovery.test.mjs",
           "__tests__/structured-data-matches-the-page.law.test.mjs",
+          "__tests__/the-room-counts-maintain-themselves.law.test.mjs",
           "__tests__/the-venue-claims-are-real.law.test.mjs",
           "pages/poker-rooms/states/[state].js",
           "src/lib/seo/markdownIngestion.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/venueCount.mjs",
+        "name": "snapshotOverClaims",
+        "line": 232,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/poker-near-me-console-discovery.test.mjs",
+          "__tests__/structured-data-matches-the-page.law.test.mjs",
+          "__tests__/the-room-counts-maintain-themselves.law.test.mjs",
+          "scripts/check-venue-count-snapshot.mjs",
+          "scripts/refresh-venue-claims.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/venueCount.mjs",
+        "name": "snapshotBehind",
+        "line": 250,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/poker-near-me-console-discovery.test.mjs",
+          "__tests__/structured-data-matches-the-page.law.test.mjs",
+          "__tests__/the-room-counts-maintain-themselves.law.test.mjs",
+          "scripts/check-venue-count-snapshot.mjs",
+          "scripts/refresh-venue-claims.mjs"
         ]
       },
       {
@@ -141504,6 +141821,16 @@
         "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
       },
       {
+        "file": "src/lib/venueCount.mjs",
+        "kind": "FALLBACK",
+        "line": 8,
+        "excerpt": "*   - the fallback when the database cannot be read (an outage, a build",
+        "disposition": "runtime-resilience-fallback",
+        "review": "accepted",
+        "certifiedPhase": 15,
+        "rationale": "Runtime resilience path certified for visibility, determinism, observability, and silent-downgrade testing."
+      },
+      {
         "file": "src/services/SolverPolicyService.js",
         "kind": "SIMULATED",
         "line": 1418,
@@ -149863,7 +150190,7 @@
       {
         "file": "src/lib/venueCount.mjs",
         "name": "listedVenueLabel",
-        "line": 94,
+        "line": 130,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -149874,9 +150201,48 @@
         "externalReferenceFiles": [
           "__tests__/poker-near-me-console-discovery.test.mjs",
           "__tests__/structured-data-matches-the-page.law.test.mjs",
+          "__tests__/the-room-counts-maintain-themselves.law.test.mjs",
           "__tests__/the-venue-claims-are-real.law.test.mjs",
           "pages/poker-rooms/states/[state].js",
           "src/lib/seo/markdownIngestion.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/venueCount.mjs",
+        "name": "snapshotOverClaims",
+        "line": 232,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/poker-near-me-console-discovery.test.mjs",
+          "__tests__/structured-data-matches-the-page.law.test.mjs",
+          "__tests__/the-room-counts-maintain-themselves.law.test.mjs",
+          "scripts/check-venue-count-snapshot.mjs",
+          "scripts/refresh-venue-claims.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/venueCount.mjs",
+        "name": "snapshotBehind",
+        "line": 250,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/poker-near-me-console-discovery.test.mjs",
+          "__tests__/structured-data-matches-the-page.law.test.mjs",
+          "__tests__/the-room-counts-maintain-themselves.law.test.mjs",
+          "scripts/check-venue-count-snapshot.mjs",
+          "scripts/refresh-venue-claims.mjs"
         ]
       },
       {
