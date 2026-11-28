@@ -12,8 +12,8 @@ import { guardBankrollRequest, taxReportRequest } from '../../../src/lib/bankrol
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 
 
-import { fetchAllRows, formatUsd, SESSION_CATEGORIES } from '../../../src/lib/bankroll/ledgerReport.mjs';
-import { taxYearTotals, w2gThresholds } from '../../../src/lib/bankroll/taxMath.mjs';
+import { fetchAllRows, formatUsd } from '../../../src/lib/bankroll/ledgerReport.mjs';
+import { taxYearReport } from '../../../src/lib/bankroll/taxMath.mjs';
 
 const TAX_LIMIT = { max: 20, windowMs: 60_000, scope: ':bankroll-tax' };
 
@@ -86,7 +86,7 @@ export default async function handler(req, res) {
           if (w2gError) throw w2gError;
 
           // Calculate totals
-          const report = calculateTaxReport(sessions || [], trips || [], taxYear);
+          const report = taxYearReport(sessions || [], trips || [], taxYear);
 
           // Merge uploaded W-2G forms into report
           // w2g_forms holds gross_amount and withholding_amount. This read
@@ -128,72 +128,6 @@ export default async function handler(req, res) {
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
-}
-
-function calculateTaxReport(rows, trips, year) {
-    const totals = taxYearTotals(rows, year);
-    const threshold = w2gThresholds(year).poker;
-    const venueOf = (row) => row.bankroll_locations?.name || row.tournament_name || 'Unknown';
-    const games = rows.filter(row => !row.is_revision && SESSION_CATEGORIES.includes(row.category));
-    const net = (row) => Math.round(((Number(row.gross_out) || 0) - (Number(row.gross_in) || 0)) * 100) / 100;
-
-    const side = (match) => {
-        let winnings = 0, losses = 0;
-        for (const row of games.filter(match)) {
-            const n = net(row);
-            if (n > 0) winnings += n; else losses += -n;
-        }
-        winnings = Math.round(winnings * 100) / 100;
-        losses = Math.round(losses * 100) / 100;
-        return { winnings, losses, net: Math.round((winnings - losses) * 100) / 100 };
-    };
-
-    // A poker tournament win is W-2G reportable at $5,000 or more net of the buy-in.
-    const w2gEvents = games
-        .filter(row => row.category === 'poker_mtt' && net(row) >= threshold)
-        .map(row => ({ date: row.entry_date, type: 'Tournament', venue: venueOf(row), amount: net(row), threshold }));
-
-    // Expenses are the ledger's own expense entries, by type. The old read
-    // took them from a `trips.expenses` object that is a number column, so
-    // every report showed $0 of expenses.
-    const expenses = {};
-    for (const row of rows) {
-        if (row.is_revision || row.category !== 'expense') continue;
-        const key = row.expense_type || 'other';
-        expenses[key] = Math.round(((expenses[key] || 0) + Math.abs(Number(row.gross_in) || 0)) * 100) / 100;
-    }
-
-    return {
-        year,
-        summary: {
-            totalSessions: totals.sessions,
-            totalTrips: trips.length,
-            totalWinnings: totals.winnings,
-            totalLosses: totals.losses,
-            netGamblingResult: totals.net,
-            lossDeductionRate: totals.lossDeductionRate,
-            deductibleLosses: totals.deductibleLosses,
-            totalExpenses: totals.recordedExpenses,
-            // Gambling income left after the losses the law allows. Expenses
-            // are listed apart: only a professional gambler may deduct them.
-            taxableIncome: Math.round((totals.winnings - totals.deductibleLosses) * 100) / 100,
-        },
-        quarters: totals.quarters,
-        breakdown: {
-            cashGame: side(row => row.category !== 'poker_mtt'),
-            tournament: side(row => row.category === 'poker_mtt'),
-        },
-        expenses,
-        w2gEvents,
-        sessions: games.map(s => ({
-            date: s.entry_date,
-            venue: venueOf(s),
-            type: s.category === 'poker_mtt' ? 'Tournament' : s.category === 'poker_cash' ? 'Cash' : s.category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            buyIn: Number(s.gross_in) || 0,
-            cashOut: Number(s.gross_out) || 0,
-            net: net(s),
-        }))
-    };
 }
 
 async function generateTaxPDF(report, generatedDay) {

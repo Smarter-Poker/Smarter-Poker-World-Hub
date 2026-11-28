@@ -6,6 +6,8 @@
 // saying so, and escaped only one CSV column. Everything that decides what a
 // row means now lives here, once.
 
+import { expenseCostCents } from './ledgerMath.mjs';
+
 /** Categories that are gaming sessions. Deposits, withdrawals and expenses are not. */
 export const SESSION_CATEGORIES = Object.freeze(['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports']);
 export const MOVEMENT_CATEGORIES = Object.freeze(['deposit', 'withdrawal']);
@@ -54,7 +56,7 @@ export function summarizeLedger(entries = []) {
       if (net > 0) wins++;
       else if (net < 0) losses++;
     } else if (entry.category === 'expense') {
-      expenseCents += Math.abs(toCents(entry.gross_in) || net);
+      expenseCents += expenseCostCents(entry);
     } else if (entry.category === 'deposit') {
       depositCents += toCents(entry.gross_out);
     } else if (entry.category === 'withdrawal') {
@@ -75,6 +77,29 @@ export function summarizeLedger(entries = []) {
     netAfterExpenses: dollars(sessionCents - expenseCents),
     deposits: dollars(depositCents),
     withdrawals: dollars(withdrawalCents),
+  };
+}
+
+/**
+ * The Reports section's session figures (Total Sessions, Win Rate, Net P/L,
+ * Avg Session) for gaming rows only. The page used to add dollar floats here
+ * while every other figure summed cents, so the same sessions could read
+ * $0.30000000000000004 apart. Win rate is a whole percent; money is dollars.
+ */
+export function sessionReport(entries = []) {
+  let count = 0, wins = 0, cents = 0;
+  for (const entry of entries) {
+    if (!entry || entry.is_revision || !isSessionEntry(entry)) continue;
+    const net = entryNetCents(entry);
+    count++;
+    cents += net;
+    if (net > 0) wins++;
+  }
+  return {
+    count,
+    net: cents / 100,
+    winRate: count ? Math.round((wins / count) * 100) : 0,
+    average: count ? Math.round(cents / count) / 100 : 0,
   };
 }
 

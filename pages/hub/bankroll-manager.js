@@ -79,6 +79,7 @@ import { getBankrollPreferences, updateBankrollPreferences } from '../../src/ser
 // Bankroll library
 import { getBankrollStats, calculateTotalBankroll } from '../../src/lib/bankroll/calculations';
 import { centsToDollars, resultsCents, toCents } from '../../src/lib/bankroll/ledgerMath.mjs';
+import { sessionReport } from '../../src/lib/bankroll/ledgerReport.mjs';
 import { evaluateRuleViolations, monthBounds } from '../../src/lib/bankroll/ruleViolations.mjs';
 import { parseLedgerDay } from '../../src/lib/bankroll/localDates.mjs';
 import {
@@ -532,17 +533,8 @@ export default function BankrollManagerPage() {
     () => analysisEntries.filter(entry => Object.hasOwn(CATEGORY_LABELS, entry.category) && entry.category !== 'expense'),
     [analysisEntries],
   );
-  const report = useMemo(() => {
-    const count = gamingSessions.length;
-    let net = 0;
-    let wins = 0;
-    for (const entry of gamingSessions) {
-      const result = Number(entry.net_result ?? (Number(entry.gross_out || 0) - Number(entry.gross_in || 0)));
-      net += result;
-      if (result > 0) wins += 1;
-    }
-    return { count, net, winRate: count ? Math.round(wins / count * 100) : 0, average: count ? net / count : 0 };
-  }, [gamingSessions]);
+  // Summed in cents by ledgerReport.mjs, like every other figure on the page.
+  const report = useMemo(() => sessionReport(gamingSessions), [gamingSessions]);
   const filteredAnalyticsEntries = useMemo(
     () => gamingSessions.filter(entry => gameTypeFilter.includes(entry.category)),
     [gamingSessions, gameTypeFilter],

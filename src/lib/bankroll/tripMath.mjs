@@ -7,30 +7,42 @@
 // - expense rows: always a cost, whatever sign the row carries;
 // - accounting rows (deposit, withdrawal): bankroll transfers, never profit or loss.
 //
+// Every total is summed in whole cents (ledgerMath.mjs) and handed back in
+// dollars: adding dollar floats row by row made a trip of 0.10 and 0.20
+// sessions read 0.30000000000000004, and a trip of a few thousand rows drift.
+// A superseded revision is never counted.
+//
 // Trip dates are calendar days the player recorded (YYYY-MM-DD), so day counts
 // are taken between calendar days, never between UTC instants.
 
 import { localDay } from './localDates.mjs';
+import { centsToDollars, expenseCostCents, isCurrentRow, sessionHours as clockHours, toCents } from './ledgerMath.mjs';
 
 export const ACCOUNTING_CATEGORIES = ['deposit', 'withdrawal'];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-const num = (value) => {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
-};
+
+/** The row's own result in cents: gross_out - gross_in (net_result is generated the same way). */
+function entryNetCents(entry) {
+  if (!entry) return 0;
+  if (entry.gross_in != null || entry.gross_out != null) return toCents(entry.gross_out) - toCents(entry.gross_in);
+  return toCents(entry.net_result);
+}
 
 /** The row's own result: gross_out - gross_in (net_result is generated the same way). */
 export function entryNet(entry) {
-  if (!entry) return 0;
-  if (entry.gross_in != null || entry.gross_out != null) return num(entry.gross_out) - num(entry.gross_in);
-  return num(entry.net_result);
+  return centsToDollars(entryNetCents(entry));
 }
 
-/** What an expense row costs, as a positive amount. */
+function expenseCents(entry) {
+  if (entry && entry.gross_in == null && entry.gross_out == null) return Math.abs(toCents(entry.net_result));
+  return expenseCostCents(entry);
+}
+
+/** What an expense row costs, as a positive amount (expenseCostCents in ledgerMath.mjs). */
 export function expenseCost(entry) {
-  return Math.abs(entryNet(entry));
+  return centsToDollars(expenseCents(entry));
 }
 
 export function isExpense(entry) {
@@ -49,26 +61,30 @@ export function isSession(entry) {
  * What a row contributes to the trip's P/L: a session's result, minus an
  * expense's cost, nothing for a transfer.
  */
-export function tripContribution(entry) {
-  if (isExpense(entry)) return -expenseCost(entry);
+function contributionCents(entry) {
+  if (isExpense(entry)) return -expenseCents(entry);
   if (isAccounting(entry)) return 0;
-  return entryNet(entry);
+  return entryNetCents(entry);
+}
+
+export function tripContribution(entry) {
+  return centsToDollars(contributionCents(entry));
 }
 
 /** Running totals for one trip's rows. */
 export function summarizeTripEntries(entries) {
-  const rows = Array.isArray(entries) ? entries : [];
+  const rows = (Array.isArray(entries) ? entries : []).filter(isCurrentRow);
   let gamingNet = 0;
   let totalExpenses = 0;
   let sessionCount = 0;
-  const categoryBreakdown = {};
+  const breakdownCents = {};
   for (const entry of rows) {
     const cat = entry?.category || 'other';
     if (isAccounting(entry)) continue;
-    if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { count: 0, net: 0 };
-    categoryBreakdown[cat].count += 1;
-    const contribution = tripContribution(entry);
-    categoryBreakdown[cat].net += contribution;
+    if (!breakdownCents[cat]) breakdownCents[cat] = { count: 0, net: 0 };
+    breakdownCents[cat].count += 1;
+    const contribution = contributionCents(entry);
+    breakdownCents[cat].net += contribution;
     if (isExpense(entry)) {
       totalExpenses += -contribution;
     } else {
@@ -76,10 +92,12 @@ export function summarizeTripEntries(entries) {
       sessionCount += 1;
     }
   }
+  const categoryBreakdown = {};
+  for (const [cat, b] of Object.entries(breakdownCents)) categoryBreakdown[cat] = { count: b.count, net: centsToDollars(b.net) };
   return {
-    totalNet: gamingNet - totalExpenses,
-    gamingNet,
-    totalExpenses,
+    totalNet: centsToDollars(gamingNet - totalExpenses),
+    gamingNet: centsToDollars(gamingNet),
+    totalExpenses: centsToDollars(totalExpenses),
     sessionCount,
     expenseCount: rows.filter(isExpense).length,
     entryCount: rows.length,
@@ -183,13 +201,14 @@ export function dateRangeProblem(startDate, endDate) {
   return diff != null && diff < 0 ? 'The End Date Cannot Be Before The Start Date' : null;
 }
 
-/** Hours between two timestamps, or 0 when either is missing or out of order. */
+/**
+ * Hours a session ran, by the same rule as the dashboard (sessionHours in
+ * ledgerMath.mjs): an end clock before the start ran past midnight. This used
+ * to return 0 for those, so a 9 PM to 3 AM session played on a trip added no
+ * hours to the trip while the dashboard counted six.
+ */
 export function sessionHours(entry) {
-  if (!entry?.start_time || !entry?.end_time) return 0;
-  const start = new Date(entry.start_time).getTime();
-  const end = new Date(entry.end_time).getTime();
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 0;
-  return (end - start) / (60 * 60 * 1000);
+  return clockHours(entry?.start_time, entry?.end_time);
 }
 
 /**
@@ -198,45 +217,57 @@ export function sessionHours(entry) {
  * plus expenses).
  */
 export function buildTripReport(trip, entries, today = localDay()) {
-  const rows = (Array.isArray(entries) ? entries : []).filter((e) => !isAccounting(e));
+  const rows = (Array.isArray(entries) ? entries : []).filter((e) => isCurrentRow(e) && !isAccounting(e));
   const summary = summarizeTripEntries(rows);
   const sessions = rows.filter(isSession);
-  const categoryBreakdown = {};
-  const dailyBreakdown = {};
-  const expenseBreakdown = {};
+  const categoryCents = {};
+  const dailyCents = {};
+  const expenseTypeCents = {};
   let biggestWin = null;
   let biggestLoss = null;
   let winCount = 0;
-  let buyIns = 0;
-  let cashOuts = 0;
+  let buyInCents = 0;
+  let cashOutCents = 0;
   let totalHours = 0;
 
   for (const entry of rows) {
     const cat = entry.category || 'other';
-    if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { count: 0, net: 0, grossIn: 0, grossOut: 0 };
-    const contribution = tripContribution(entry);
-    categoryBreakdown[cat].count += 1;
-    categoryBreakdown[cat].net += contribution;
-    categoryBreakdown[cat].grossIn += num(entry.gross_in);
-    categoryBreakdown[cat].grossOut += num(entry.gross_out);
-    if (entry.entry_date) dailyBreakdown[entry.entry_date] = (dailyBreakdown[entry.entry_date] || 0) + contribution;
+    if (!categoryCents[cat]) categoryCents[cat] = { count: 0, net: 0, grossIn: 0, grossOut: 0 };
+    const contribution = contributionCents(entry);
+    categoryCents[cat].count += 1;
+    categoryCents[cat].net += contribution;
+    categoryCents[cat].grossIn += toCents(entry.gross_in);
+    categoryCents[cat].grossOut += toCents(entry.gross_out);
+    if (entry.entry_date) dailyCents[entry.entry_date] = (dailyCents[entry.entry_date] || 0) + contribution;
     if (isExpense(entry)) {
       const type = entry.expense_type || 'other';
-      expenseBreakdown[type] = (expenseBreakdown[type] || 0) + expenseCost(entry);
+      expenseTypeCents[type] = (expenseTypeCents[type] || 0) + expenseCents(entry);
     }
   }
   for (const entry of sessions) {
-    const net = entryNet(entry);
+    const net = entryNetCents(entry);
     if (net > 0) winCount += 1;
     if (biggestWin == null || net > biggestWin) biggestWin = net;
     if (biggestLoss == null || net < biggestLoss) biggestLoss = net;
-    buyIns += num(entry.gross_in);
-    cashOuts += num(entry.gross_out);
+    buyInCents += toCents(entry.gross_in);
+    cashOutCents += toCents(entry.gross_out);
     totalHours += sessionHours(entry);
   }
+  const categoryBreakdown = {};
+  for (const [cat, c] of Object.entries(categoryCents)) {
+    categoryBreakdown[cat] = { count: c.count, net: centsToDollars(c.net), grossIn: centsToDollars(c.grossIn), grossOut: centsToDollars(c.grossOut) };
+  }
+  const dailyBreakdown = {};
+  for (const [day, c] of Object.entries(dailyCents)) dailyBreakdown[day] = centsToDollars(c);
+  const expenseBreakdown = {};
+  for (const [type, c] of Object.entries(expenseTypeCents)) expenseBreakdown[type] = centsToDollars(c);
+  const buyIns = centsToDollars(buyInCents);
+  const cashOuts = centsToDollars(cashOutCents);
+  if (biggestWin != null) biggestWin = centsToDollars(biggestWin);
+  if (biggestLoss != null) biggestLoss = centsToDollars(biggestLoss);
 
   const durationDays = tripDurationDays(trip?.start_date, trip?.end_date, today);
-  const totalCost = buyIns + summary.totalExpenses;
+  const totalCost = centsToDollars(buyInCents + toCents(summary.totalExpenses));
   return {
     trip: { ...trip, location_name: trip?.bankroll_locations?.name || trip?.location_name || null },
     entries: rows,
