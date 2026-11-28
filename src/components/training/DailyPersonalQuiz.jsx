@@ -7,11 +7,11 @@ import { motion } from 'framer-motion';
 import styles from '../../styles/training/daily-personal-quiz-casino.module.css';
 
 const QUIZ_CATEGORIES = [
-  { id: 'preflop', label: 'Preflop Ranges', icon: '◇', color: '#3b82f6' },
-  { id: 'cbet', label: 'C-Bet Strategy', icon: '●', color: '#22c55e' },
-  { id: 'barrel', label: 'Multi-Street Barrels', icon: '▲', color: '#ef4444' },
-  { id: 'bluffcatch', label: 'Bluff Catching', icon: '◇', color: '#86daff' },
-  { id: 'sizing', label: 'Bet Sizing', icon: '■', color: '#86daff' },
+  { id: 'preflop', label: 'Preflop Ranges' },
+  { id: 'cbet', label: 'C-Bet Strategy' },
+  { id: 'barrel', label: 'Multi-Street Barrels' },
+  { id: 'bluffcatch', label: 'Bluff Catching' },
+  { id: 'sizing', label: 'Bet Sizing' },
 ];
 
 const DAILY_QUESTIONS = [
@@ -113,8 +113,8 @@ export default function DailyPersonalQuiz() {
       {/* Category Tags */}
       <div className={styles.categories} aria-label="Strategy Categories">
         {QUIZ_CATEGORIES.map(c => (
-          <span key={c.id} data-active={q.category === c.id || undefined}>
-            {c.icon} {c.label}
+          <span key={c.id} data-active={q.category === c.id || undefined} aria-current={q.category === c.id ? 'true' : undefined}>
+            {c.label}
           </span>
         ))}
       </div>

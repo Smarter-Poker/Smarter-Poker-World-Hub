@@ -21,6 +21,8 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { encodeCoopStudyRoom } from '../../../src/lib/training/trainingPresets.mjs';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/sessions-coaching.module.css';
 const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
 
 
@@ -462,183 +464,177 @@ export default function CoachModePage() {
           description="Master Poker Strategy Through Guided GTO Coach Mode Lessons And Interactive Check-For-Understanding Quizzes On C-Betting, 3-Bet Pots, And ICM On Smarter.Poker."
           canonical="/hub/training/coach-mode"
         />
-        <div className="sp-training-command sp-training-command--coach sp-coach-casino sp-coach-casino--lesson">
-          <header className="sp-command-header sp-coach-lesson-header">
-            <button
-              type="button"
-              aria-label="Back To Lesson List"
-              onClick={() => setActiveLesson(null)}
-              className="sp-coach-back"
-            >
-              <BackArrowIcon size={18} />
-              <span>All Modules</span>
-            </button>
-            <div className="sp-coach-lesson-title">
-              <span>{activeLesson.code}</span>
-              <strong>{activeLesson.name}</strong>
-            </div>
-            <div className="sp-coach-phase-readout" role="status">
-              <span>Operating State</span>
-              <strong>
-                {isConceptPhase
-                  ? `Concept ${step + 1} Of ${activeLesson.concepts.length}`
-                  : isQuizPhase
-                    ? `Decision ${quizIdx + 1} Of ${activeLesson.quiz.length}`
-                    : 'Local Review Finished'}
-              </strong>
-            </div>
-          </header>
-
-          <main className="sp-command-main sp-coach-stage">
-            <div className="sp-coach-progress" aria-label={`${progressPercent}% local review complete`}>
-              <div className="sp-coach-progress-labels">
-                <span>Local Reference Review</span>
-                <span>{progressPercent}% Reviewed</span>
+        <div className={`sp-coach-casino sp-coach-casino--lesson ${s.shell}`}>
+          <div className={`${s.page} ${s.pageTop}`}>
+            <header className={`sd-panel ${s.panel}`}>
+              <div className={s.lessonBar}>
+                <button
+                  type="button"
+                  aria-label="Back To Lesson List"
+                  onClick={() => setActiveLesson(null)}
+                  className={`sd-button ${s.button}`}
+                >
+                  <BackArrowIcon size={18} />
+                  <span>All Modules</span>
+                </button>
+                <div className={s.lessonTitle}>
+                  <span className={s.eyebrow}>{activeLesson.code}</span>
+                  <h2 className={`${s.sectionTitle} ${s.endAlign}`}>{activeLesson.name}</h2>
+                </div>
               </div>
-              <motion.div
-                className="sp-coach-progress-fill"
-                animate={{ width: `${progressPercent}%` }}
-              />
-            </div>
+              <div className={s.panelHead} role="status">
+                <span className={s.metricLabel}>
+                  {isConceptPhase
+                    ? `Concept ${step + 1} Of ${activeLesson.concepts.length}`
+                    : isQuizPhase
+                      ? `Decision ${quizIdx + 1} Of ${activeLesson.quiz.length}`
+                      : 'Local Review Finished'}
+                </span>
+                <span className={s.metricLabel}>{progressPercent}% Reviewed</span>
+              </div>
+              <div className={s.track} role="progressbar" aria-label="Local Reference Review" aria-valuenow={progressPercent} aria-valuemin={0} aria-valuemax={100}>
+                <motion.div className={s.fill} animate={{ width: `${progressPercent}%` }} />
+              </div>
+            </header>
 
             {isConceptPhase && (
               <motion.article
-                className="sp-coach-console sp-coach-console--concept"
+                className={`sp-coach-console sp-coach-console--concept sd-panel ${s.panel}`}
                 key={step}
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <div className="sp-coach-console-visual">
+                <figure className={s.visual}>
                   <img src={activeLesson.art} alt="" width="1200" height="751" />
-                  <div className="sp-coach-visual-shade" />
-                  <div className="sp-coach-visual-label">
-                    <span>{activeLesson.code}</span>
-                    <strong>Knowledge Calibration</strong>
-                  </div>
-                </div>
-                <div className="sp-coach-console-content">
-                  <div className="sp-coach-kicker"><i /> Concept {step + 1}</div>
-                  <h1>{activeLesson.name}</h1>
-                  <p>{activeLesson.concepts[step]}</p>
-                  <div className="sp-coach-console-rule" />
-                  <div className="sp-coach-console-meta">
-                    <span>Module Focus</span>
-                    <strong>{activeLesson.desc}</strong>
-                  </div>
-                  <motion.button
-                    className="sp-coach-primary"
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setStep(step + 1)}
-                  >
-                    {step < activeLesson.concepts.length - 1 ? 'Calibrate Next Concept' : 'Enter Decision Test'}
-                    <span aria-hidden>›</span>
-                  </motion.button>
-                </div>
+                  <figcaption>
+                    <span className={s.eyebrow}>{activeLesson.code}</span>
+                    <strong className={s.subTitle}>Knowledge Calibration</strong>
+                  </figcaption>
+                </figure>
+                <p className={s.eyebrow}>Concept {step + 1}</p>
+                <h2 className={s.sectionTitle}>{activeLesson.name}</h2>
+                <p className={s.lead}>{activeLesson.concepts[step]}</p>
+                <hr className={s.rule} />
+                <p className={s.facts}><span>Module Focus</span> <strong>{activeLesson.desc}</strong></p>
+                <motion.button
+                  type="button"
+                  className={`sd-button sd-primary ${s.button} ${s.primary} ${s.full}`}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setStep(step + 1)}
+                >
+                  {step < activeLesson.concepts.length - 1 ? 'Calibrate Next Concept' : 'Enter Decision Test'}
+                  <span aria-hidden>›</span>
+                </motion.button>
               </motion.article>
             )}
 
             {isQuizPhase && currentQuestion && (
               <motion.article
-                className="sp-coach-console sp-coach-console--quiz"
+                className={`sp-coach-console sp-coach-console--quiz sd-panel ${s.panel}`}
                 key={quizIdx}
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <div className="sp-coach-console-visual sp-coach-console-visual--quiz">
+                <figure className={s.visual}>
                   <img src={activeLesson.art} alt="" width="1200" height="751" />
-                  <div className="sp-coach-visual-shade" />
-                  <div className="sp-coach-visual-label">
-                    <span>Decision {String(quizIdx + 1).padStart(2, '0')}</span>
-                    <strong>{activeLesson.name}</strong>
-                  </div>
-                </div>
-                <div className="sp-coach-console-content sp-coach-question-panel">
-                  <div className="sp-coach-kicker"><i /> Read The Table</div>
-                  <h1>{currentQuestion.q}</h1>
-                  <div className="sp-coach-options" role="group" aria-label="Answer Choices">
-                    {currentQuestion.opts.map((opt, i) => {
-                      const optionState = selected === null
-                        ? ''
-                        : i === currentQuestion.answer
-                          ? 'is-correct'
-                          : selected === i
-                            ? 'is-incorrect'
-                            : 'is-muted';
-                      return (
-                        <motion.button
-                          key={i}
-                          className={`sp-coach-option ${optionState}`}
-                          whileTap={selected === null ? { scale: 0.985 } : {}}
-                          onClick={() => handleAnswer(i)}
-                          aria-pressed={selected === i}
-                          aria-disabled={selected !== null}
-                        >
-                          <span className="sp-coach-option-key">{String.fromCharCode(65 + i)}</span>
-                          <span>{opt}</span>
-                          <i aria-hidden />
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                  {selected !== null && (
-                    <motion.section
-                      className={`sp-command-verdict sp-coach-verdict ${answerIsCorrect ? 'is-correct' : 'is-incorrect'}`}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      aria-live="assertive"
-                      aria-atomic="true"
-                    >
-                      <div className="sp-coach-verdict-status">
-                        <span>Analysis Result</span>
-                        <strong>{answerIsCorrect ? 'Correct' : 'Incorrect'}</strong>
-                      </div>
-                      <div className="sp-coach-verdict-answer"><span>Your Answer</span><b>{currentQuestion.opts[selected]}</b></div>
-                      <div className="sp-coach-verdict-answer"><span>Correct Answer</span><b>{currentQuestion.opts[currentQuestion.answer]}</b></div>
-                      <p>{COACH_EXPLANATIONS[activeLesson.id]?.[quizIdx] || 'Review the lesson concept before moving to the next question.'}</p>
-                      <em>This Result Will Stay Open Until You Click Next.</em>
+                  <figcaption>
+                    <span className={s.eyebrow}>Decision {String(quizIdx + 1).padStart(2, '0')}</span>
+                    <strong className={s.subTitle}>{activeLesson.name}</strong>
+                  </figcaption>
+                </figure>
+                <p className={s.eyebrow}>Read The Table</p>
+                <h2 className={s.sectionTitle}>{currentQuestion.q}</h2>
+                <div className={s.options} role="group" aria-label="Answer Choices">
+                  {currentQuestion.opts.map((opt, i) => {
+                    const optionState = selected === null
+                      ? undefined
+                      : i === currentQuestion.answer
+                        ? 'correct'
+                        : selected === i
+                          ? 'incorrect'
+                          : 'muted';
+                    return (
                       <motion.button
-                        className="sp-coach-primary"
-                        whileTap={{ scale: 0.98 }}
-                        onClick={nextQuizQuestion}
+                        type="button"
+                        key={i}
+                        className={`sd-button ${s.option}`}
+                        data-state={optionState}
+                        whileTap={selected === null ? { scale: 0.985 } : {}}
+                        onClick={() => handleAnswer(i)}
+                        aria-pressed={selected === i}
+                        aria-disabled={selected !== null}
                       >
-                        {quizIdx < activeLesson.quiz.length - 1 ? 'Next Question' : 'See Results'}
-                        <span aria-hidden>›</span>
+                        <span className={s.optionKey}>{String.fromCharCode(65 + i)}</span>
+                        <span>{opt}</span>
+                        <span className={s.optionMark}>
+                          {optionState === 'correct' ? 'Correct' : optionState === 'incorrect' ? 'Your Pick' : ''}
+                        </span>
                       </motion.button>
-                    </motion.section>
-                  )}
+                    );
+                  })}
                 </div>
+                {selected !== null && (
+                  <motion.section
+                    className={s.verdict}
+                    data-correct={answerIsCorrect ? 'true' : 'false'}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    aria-live="assertive"
+                    aria-atomic="true"
+                  >
+                    <div className={s.panelHead}>
+                      <span className={s.metricLabel}>Analysis Result</span>
+                      <strong className={`${answerIsCorrect ? s.up : s.down} ${s.verdictWord}`}>{answerIsCorrect ? 'Correct' : 'Incorrect'}</strong>
+                    </div>
+                    <dl className={s.list}>
+                      <div className={s.row}><dt className={s.rowValue}>Your Answer</dt><dd className={s.rowLabel}>{currentQuestion.opts[selected]}</dd></div>
+                      <div className={s.row}><dt className={s.rowValue}>Correct Answer</dt><dd className={s.rowLabel}>{currentQuestion.opts[currentQuestion.answer]}</dd></div>
+                    </dl>
+                    <p className={s.copy}>{COACH_EXPLANATIONS[activeLesson.id]?.[quizIdx] || 'Review The Lesson Concept Before Moving To The Next Question.'}</p>
+                    <p className={`${s.metricLabel} ${s.italic}`}>This Result Will Stay Open Until You Click Next.</p>
+                    <motion.button
+                      type="button"
+                      className={`sd-button sd-primary ${s.button} ${s.primary} ${s.full}`}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={nextQuizQuestion}
+                    >
+                      {quizIdx < activeLesson.quiz.length - 1 ? 'Next Question' : 'See Results'}
+                      <span aria-hidden>›</span>
+                    </motion.button>
+                  </motion.section>
+                )}
               </motion.article>
             )}
 
             {isResults && (
               <motion.article
-                className="sp-coach-console sp-coach-console--results"
-                initial={{ opacity: 0, scale: 0.95 }}
+                className={`sp-coach-console sp-coach-console--results sd-panel ${s.panel}`}
+                initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
               >
-                <div className="sp-coach-results-visual">
+                <figure className={s.visual}>
                   <img src={activeLesson.art} alt="" width="1200" height="751" />
-                  <div className="sp-coach-results-medallion" aria-hidden>
-                    <ScoreIcon score={score} total={activeLesson.quiz.length} size={56} />
-                  </div>
+                  <figcaption>
+                    <span className={`${s.ice} ${s.inlineIcon}`} aria-hidden>
+                      <ScoreIcon score={score} total={activeLesson.quiz.length} size={36} />
+                    </span>
+                  </figcaption>
+                </figure>
+                <p className={s.eyebrow}>Local Review Finished</p>
+                <h2 className={s.sectionTitle}>Practice Review Finished</h2>
+                <p className={s.copy}>{activeLesson.name}</p>
+                <div className={s.score}>
+                  <span>{score}<span className={s.scoreOf}>/{activeLesson.quiz.length}</span></span>
+                  <small>Questions Correct</small>
                 </div>
-                <div className="sp-coach-results-content">
-                  <div className="sp-coach-kicker"><i /> Local Review Finished</div>
-                  <h1>Practice Review Finished</h1>
-                  <p>{activeLesson.name}</p>
-                  <div className="sp-coach-score">
-                    <strong>{score}<span>/{activeLesson.quiz.length}</span></strong>
-                    <small>Questions Correct</small>
-                  </div>
-                  <p>This Local Reference Result Is Not Saved And Does Not Unlock Progress Or Issue Rewards. Use The Verified Training Arena For Recorded Mastery.</p>
-                  <motion.button className="sp-coach-primary" whileTap={{ scale: 0.98 }} onClick={() => setActiveLesson(null)}>
-                    Return To Training Chambers
-                    <span aria-hidden>›</span>
-                  </motion.button>
-                </div>
+                <p className={s.note}>This Local Reference Result Is Not Saved And Does Not Unlock Progress Or Issue Rewards. Use The Verified Training Arena For Recorded Mastery.</p>
+                <motion.button type="button" className={`sd-button sd-primary ${s.button} ${s.primary} ${s.full}`} whileTap={{ scale: 0.98 }} onClick={() => setActiveLesson(null)}>
+                  Return To Training Chambers
+                  <span aria-hidden>›</span>
+                </motion.button>
               </motion.article>
             )}
-          </main>
+          </div>
         </div>
         <HubPageSummary page="training-coach-mode" />
       </>
@@ -655,11 +651,16 @@ export default function CoachModePage() {
         description="Master Poker Strategy Through Guided GTO Coach Mode Lessons And Interactive Check-For-Understanding Quizzes On C-Betting, 3-Bet Pots, And ICM On Smarter.Poker."
         canonical="/hub/training/coach-mode"
       />
-      <div className="sp-training-command sp-training-command--coach sp-coach-casino">
-        <main className="sp-command-main sp-coach-home">
+      <div className={`sp-coach-casino ${s.shell}`}>
+        <TrainingPageHead
+          slug="training-coach-mode"
+          note="Private Strategy Chamber / Local Practice"
+          help="Review Audited Concepts With Local Feedback. Recorded Progress, Unlocks, And Rewards Exist Only In The Verified Training Arena."
+        />
+        <main className={s.page}>
           <section
-            className="sp-command-header sp-coach-hero"
-            aria-labelledby="coach-mode-title"
+            className={`sd-panel ${s.panel}`}
+            aria-labelledby="coach-start-title"
             data-coach-hero-launch={recommendedLesson?.id || undefined}
             onClick={(event) => {
               if (!recommendedLesson) return;
@@ -667,87 +668,66 @@ export default function CoachModePage() {
               startLesson(recommendedLesson);
             }}
           >
-            <img className="sp-coach-hero-art" src="/images/training/coach-mode/strategy-chamber-hero.webp" alt="" width="1600" height="901" fetchpriority="high" />
-            <div className="sp-coach-hero-vignette" />
-            <button type="button" className="sp-coach-back sp-coach-hero-back" aria-label="Back To Training Hub" onClick={() => router.push('/hub/training')}>
-              <BackArrowIcon size={18} />
-              <span>Training Hub</span>
-            </button>
-            <div className="sp-coach-hero-copy">
-              <div className="sp-coach-kicker"><i /> Private Strategy Chamber / Local Practice</div>
-              <h1 id="coach-mode-title">Train Every Decision Until It Becomes Instinct.</h1>
-              <p>Review Audited Concepts With Local Feedback. Recorded Progress, Unlocks, And Rewards Exist Only In The Verified Training Arena.</p>
-              <div className="sp-coach-hero-actions">
-                <motion.button className="sp-coach-primary" whileTap={{ scale: 0.98 }} onClick={() => startLesson(recommendedLesson)}>
-                  {reviewedThisVisit.size ? 'Continue Local Module' : 'Initialize Local Coach Review'}
-                  <span aria-hidden>›</span>
-                </motion.button>
-                <div className="sp-coach-completion" role="status" aria-label={`${reviewedThisVisit.size} of ${LESSONS.length} lessons reviewed this visit`}>
-                  <strong>{String(reviewedThisVisit.size).padStart(2, '0')}</strong>
-                  <span>Of {String(LESSONS.length).padStart(2, '0')} Reviewed This Visit</span>
-                </div>
-              </div>
+            <div className={s.panelHead}>
+              <h2 id="coach-start-title" className={s.sectionTitle}>Local Coach Review</h2>
+              <p className={s.facts} role="status" aria-label={`${reviewedThisVisit.size} of ${LESSONS.length} lessons reviewed this visit`}>
+                <span><strong className={s.ice}>{reviewedThisVisit.size}</strong> Of {LESSONS.length} Reviewed This Visit</span>
+              </p>
             </div>
-              <div className="sp-coach-hero-plate" aria-hidden>
-              <span>GTO Training Core</span>
-              <strong>Coach / 11</strong>
-            </div>
+            <motion.button type="button" className={`sd-button sd-primary ${s.button} ${s.primary} ${s.full}`} whileTap={{ scale: 0.98 }} onClick={() => startLesson(recommendedLesson)}>
+              {reviewedThisVisit.size ? 'Continue Local Module' : 'Start Local Coach Review'}
+            </motion.button>
           </section>
 
-
-
-          <section className="sp-coach-module-section" aria-labelledby="coach-study-room">
-            <h2 id="coach-study-room">Study With A Partner</h2>
-            <div className="sp-coach-study-actions">
+          <section className={`sd-panel ${s.panel}`} aria-labelledby="coach-study-room">
+            <h2 id="coach-study-room" className={s.sectionTitle}>Study With A Partner</h2>
+            <div className={s.actions}>
               <button type="button" data-launch-coop-study-room="true" data-coop-room-href={coopStudyRoomHref}
-                onClick={() => router.push(coopStudyRoomHref)} className="sd-button sd-primary">
+                onClick={() => router.push(coopStudyRoomHref)} className={`sd-button sd-primary ${s.button}`}>
                 Start A Study Room
               </button>
-              <button type="button" data-copy-coop-study-room="true" onClick={handleCopyCoopStudyRoom} className="sd-button">
+              <button type="button" data-copy-coop-study-room="true" onClick={handleCopyCoopStudyRoom} className={`sd-button ${s.button}`}>
                 Copy Study Room Link
               </button>
             </div>
-            {coopCopyStatus === 'copied' && <p role="status">Link Copied.</p>}
+            {coopCopyStatus === 'copied' && <p role="status" className={s.note}>Link Copied.</p>}
             {coopCopyStatus === 'failed' && (
-              <label>Copy This Link <input readOnly value={`${window.location.origin}${coopStudyRoomHref}`} onFocus={(event) => event.target.select()} /></label>
+              <label className={s.label}>Copy This Link <input className={s.input} readOnly value={`${window.location.origin}${coopStudyRoomHref}`} onFocus={(event) => event.target.select()} /></label>
             )}
           </section>
 
-          <section className="sp-coach-module-section" aria-labelledby="coach-modules-title">
-            <header className="sp-coach-section-header">
-              <div>
-                <span>Choose Your Discipline</span>
-                <h2 id="coach-modules-title">Enter A Training Chamber</h2>
-              </div>
-              <p>30 Audited Scenarios <i /> Four Meaningful Choices <i /> Manual Analysis</p>
+          <section className={s.panel} aria-labelledby="coach-modules-title">
+            <header className={`sd-panel ${s.panel}`}>
+              <p className={s.eyebrow}>Choose Your Discipline</p>
+              <h2 id="coach-modules-title" className={s.sectionTitle}>Enter A Training Chamber</h2>
+              <p className={s.facts}><span>30 Audited Scenarios</span><span>Four Meaningful Choices</span><span>Manual Analysis</span></p>
             </header>
-            <div className="sp-command-grid sp-command-grid--lessons sp-coach-module-grid">
+            <div className={s.cardGrid}>
               {LESSONS.map((lesson, i) => (
                 <motion.button
+                  type="button"
                   key={lesson.id}
-                  className={`sp-coach-module-card ${reviewedThisVisit.has(lesson.id) ? 'is-complete' : ''}`}
+                  className={`sd-panel ${s.moduleCard}`}
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.055 }}
                   whileTap={{ scale: 0.99 }}
                   onClick={() => startLesson(lesson)}
                 >
-                  <span className="sp-coach-module-image">
+                  <span className={s.moduleArt}>
                     <img src={lesson.art} alt="" width="1200" height="751" loading={i < 3 ? 'eager' : 'lazy'} />
-                    <span className="sp-coach-module-image-shade" />
-                    <span className="sp-coach-module-code">{lesson.code}</span>
-                    {reviewedThisVisit.has(lesson.id) && <span className="sp-coach-module-complete"><CheckIcon size={14} /> Reviewed This Visit</span>}
+                    <span className={s.tag}>{lesson.code}</span>
+                    {reviewedThisVisit.has(lesson.id) && <span className={`${s.tag} ${s.moduleDone}`}><CheckIcon size={14} /> Reviewed This Visit</span>}
                   </span>
-                  <span className="sp-coach-module-body">
-                    <span className="sp-coach-module-name">{lesson.name}</span>
-                    <span className="sp-coach-module-desc">{lesson.desc}</span>
-                    <span className="sp-coach-module-data">
-                      <span><b>{lesson.concepts.length}</b> Concepts</span>
-                      <i />
-                      <span><b>{lesson.quiz.length}</b> Decisions</span>
+                  <span className={s.moduleBody}>
+                    <span className={s.sectionTitle}>{lesson.name}</span>
+                    <span className={s.copy}>{lesson.desc}</span>
+                    <span className={s.facts}>
+                      <span><strong className={s.ice}>{lesson.concepts.length}</strong> Concepts</span>
+                      <span><strong className={s.ice}>{lesson.quiz.length}</strong> Decisions</span>
                     </span>
                   </span>
-                  <span className="sp-coach-module-action">Enter Module <b aria-hidden>›</b></span>
+                  <span className={s.moduleFoot}>Enter Module <b aria-hidden>›</b></span>
                 </motion.button>
               ))}
             </div>

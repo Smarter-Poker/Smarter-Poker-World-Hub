@@ -298,6 +298,9 @@ test('Phase 6 of 6: 12-Item Master Expansion — 30 Official Rules, 15 Game Vari
     assert.equal(nonCommentLines.includes('\u2014'), false, `${trainingRel} UI copy has zero em dashes`);
     assert.ok(
       src.includes('achievements-casino.module.css') ||
+      src.includes('training-journey-sd.module.css') ||
+      src.includes('training-smarterdesign.module.css') ||
+      src.includes('training-play.module.css') ||
       src.includes('daily-challenge-casino.module.css') ||
       src.includes('#25c8ff') ||
       src.includes("borderRadius: '2px'") ||
@@ -305,7 +308,8 @@ test('Phase 6 of 6: 12-Item Master Expansion — 30 Official Rules, 15 Game Vari
       `${trainingRel} adopts #SmarterCasinoRealism visual tokens`
     );
   }
-  const dailySrc = read('pages/hub/training/daily-challenge.js');
+  // The family links live in the shared Daily tabs the page renders.
+  const dailySrc = `${read('pages/hub/training/daily-challenge.js')}\n${read('src/components/training/TrainingPageHead.jsx')}`;
   assert.ok(dailySrc.includes('CitationBacklinkBox'), 'daily-challenge.js wires CitationBacklinkBox');
   assert.ok(dailySrc.includes('/hub/training/achievements'), 'daily-challenge.js links to Achievements Vault');
   assert.ok(dailySrc.includes('/hub/training/streaks'), 'daily-challenge.js links to Streaks Vault');

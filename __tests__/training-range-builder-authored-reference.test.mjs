@@ -184,7 +184,9 @@ test('the page verifies provenance, records only practice activity, and surfaces
   assert.match(PAGE_SOURCE, /savePracticeSession\('range-builder'/);
   assert.doesNotMatch(PAGE_SOURCE, /\/api\/training\/save-session/);
   assert.doesNotMatch(PAGE_SOURCE, /bus\.emitDecision(?:Correct|Incorrect)/);
-  assert.match(PAGE_SOURCE, /AUTHORED STATIC REFERENCE.*PRACTICE ONLY.*NOT SOLVER VERIFIED/);
+  // The disclosure must stay on the page; #SMARTERDESIGN sets it in Title Case
+  // (it now sits in the image header note), so match it case-insensitively.
+  assert.match(PAGE_SOURCE, /AUTHORED STATIC REFERENCE.*PRACTICE ONLY.*NOT SOLVER VERIFIED/i);
   assert.match(PAGE_SOURCE, /role="alert"/);
   assert.match(PAGE_SOURCE, /No result was recorded/);
   assert.match(PAGE_SOURCE, /Compare To Reference/);

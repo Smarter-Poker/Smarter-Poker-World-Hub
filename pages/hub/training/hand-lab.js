@@ -3,6 +3,9 @@
 // TRAIN-CSS-GRADIENT-ADOPT-19 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 // TRAIN-CSS-TOKENS-BATCH6-8 — hex sweep batch 6: extended palette literals routed
 import BankrollImageHeader from '../../../src/components/bankroll/BankrollImageHeader';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import at from '../../../src/styles/training/analysis-tools.module.css';
 import React, { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -488,41 +491,38 @@ export default function HandLabV2() {
       />
       <UniversalHeader pageDepth={2} />
 
-      <div style={styles.container}>
-        <BankrollImageHeader art="casino_table" title="Hand Lab" helpContent={<p>Choose A Game, Fill Your Hand And Set A Board. Analyze Compares Your Hand Against The Displayed Opponent.</p>} />
-        <div style={styles.header}>
-          <button onClick={clearAll} style={styles.clearBtn}>
-            Clear Board
-          </button>
+      <div className={at.shell}>
+        <div className={`sp-training-head ${at.head}`}>
+          <div className="sd-back-row">
+            <Link href="/hub/training" className="sd-button">
+              <ArrowLeft size={16} aria-hidden /> Training
+            </Link>
+          </div>
+          <BankrollImageHeader art="training-hand-lab" title="Hand Lab" helpContent={<p>Choose A Game, Fill Your Hand And Set A Board. Analyze Compares Your Hand Against The Displayed Opponent.</p>}>
+            <div className={at.row} style={{ marginTop: 8 }}>
+              <button type="button" className={`sd-button ${at.compact}`} onClick={clearAll}>
+                Clear Board
+              </button>
+            </div>
+          </BankrollImageHeader>
         </div>
 
+        <div className={at.page}>
         {activeWireSpot && (
           <section
             data-weekly-wire-spot-card="true"
             aria-label="Weekly Wire Spot Of The Week"
-            style={{
-              marginBottom: 26,
-              padding: '22px 24px',
-              borderRadius: 18,
-              background: 'rgba(10, 22, 34, 0.88)',
-              border: '1px solid rgba(79, 193, 179, 0.42)',
-            }}
+            className={`sd-panel ${at.panel}`}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 8 }}>
-              <span style={{ color: '#4fc1b3', fontSize: 12, fontWeight: 800, letterSpacing: 1.8, textTransform: 'uppercase' }}>
+            <div className={at.panelHead}>
+              <span className={at.eyebrow}>
                 {`Weekly Wire Spot Of The Week · ${activeWireSpot.category}`}
               </span>
-              <span style={{ color: '#60a5fa', fontSize: 12, fontWeight: 700 }}>
-                Cards Loaded On Canvas Below
-              </span>
+              <span className={at.small}>Cards Loaded On Canvas Below</span>
             </div>
-            <h2 style={{ margin: '0 0 8px 0', fontSize: 20, fontWeight: 800, color: '#ffffff', lineHeight: 1.3 }}>
-              {activeWireSpot.title}
-            </h2>
-            <p style={{ margin: '0 0 16px 0', color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
-              {activeWireSpot.situation}
-            </p>
-            <div style={{ display: 'grid', gap: 10 }}>
+            <h2 className={at.sectionTitle}>{activeWireSpot.title}</h2>
+            <p className={at.copy}>{activeWireSpot.situation}</p>
+            <div className={at.list}>
               {(activeWireSpot.options || []).map((opt) => {
                 const isSelected = wireSpotPick === opt.key;
                 const isBest = Boolean(wireSpotPick) && opt.key === activeWireSpot.correctKey;
@@ -530,81 +530,26 @@ export default function HandLabV2() {
                   <button
                     key={opt.key}
                     type="button"
+                    className="sd-button"
                     aria-pressed={isSelected}
                     onClick={() => handlePickSpotOption(opt.key)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 12,
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '12px 16px',
-                      borderRadius: 10,
-                      cursor: 'pointer',
-                      background: isBest
-                        ? 'rgba(79, 193, 179, 0.16)'
-                        : isSelected
-                          ? 'rgba(96, 165, 250, 0.14)'
-                          : 'rgba(5, 10, 18, 0.72)',
-                      border: isBest
-                        ? '1px solid #4fc1b3'
-                        : isSelected
-                          ? '1px solid #60a5fa'
-                          : '1px solid rgba(255, 255, 255, 0.14)',
-                      color: '#ffffff',
-                      fontSize: 14,
-                      fontWeight: 700,
-                    }}
+                    style={{ justifyContent: 'space-between', textAlign: 'left', width: '100%' }}
                   >
                     <span>{`${opt.key}. ${opt.label}`}</span>
-                    {isBest && (
-                      <span style={{ color: '#4fc1b3', fontSize: 12, fontWeight: 800 }}>
-                        Solver Play
-                      </span>
-                    )}
+                    {isBest && <span className={at.up}>Solver Play</span>}
                   </button>
                 );
               })}
             </div>
             {spotVoteFailed && (
-              <div
-                role="alert"
-                data-spot-vote-error="true"
-                style={{
-                  marginTop: 12,
-                  padding: '10px 16px',
-                  borderRadius: 10,
-                  background: 'rgba(5, 10, 18, 0.72)',
-                  border: '1px solid rgba(96, 165, 250, 0.5)',
-                  color: '#cbd5e1',
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                }}
-              >
+              <div role="alert" data-spot-vote-error="true" className={at.error}>
                 Your Pick Is Shown Below, But The Community Vote Could Not Be Recorded. Try Again In A Moment.
               </div>
             )}
             {spotVotes.total > 0 && (
-              <div
-                data-spot-community-split="true"
-                style={{
-                  marginTop: 12,
-                  padding: '10px 16px',
-                  borderRadius: 10,
-                  background: 'rgba(5, 10, 18, 0.72)',
-                  border: '1px solid rgba(96, 165, 250, 0.28)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: 8,
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                }}
-              >
-                <span style={{ color: '#60a5fa' }}>Community Reader Split</span>
-                <span style={{ color: '#cbd5e1' }}>
+              <div data-spot-community-split="true" className={at.panelHead}>
+                <span className={at.eyebrow}>Community Reader Split</span>
+                <span className={at.small}>
                   {SPOT_VOTE_KEYS.map((key) => `Option ${key}: ${spotVotes.percentages[key]}%`).join(' | ')}
                 </span>
               </div>
@@ -613,273 +558,206 @@ export default function HandLabV2() {
               <div
                 role="status"
                 data-spot-verdict={wireSpotPick === activeWireSpot.correctKey ? 'correct' : 'review'}
-                style={{
-                  marginTop: 14,
-                  padding: '14px 16px',
-                  borderRadius: 12,
-                  background: 'rgba(5, 10, 18, 0.8)',
-                  border: '1px solid rgba(79, 193, 179, 0.35)',
-                }}
+                className={at.helpBlock}
               >
-                <div style={{ color: '#4fc1b3', fontSize: 13, fontWeight: 800, marginBottom: 4 }}>
+                <strong className={wireSpotPick === activeWireSpot.correctKey ? at.up : at.ice}>
                   {wireSpotPick === activeWireSpot.correctKey
                     ? `Exact Solver Match: Option ${activeWireSpot.correctKey} (${activeWireSpot.solverFrequency})`
                     : `You Picked Option ${wireSpotPick} · Solver Prefers Option ${activeWireSpot.correctKey} (${activeWireSpot.solverFrequency})`}
-                </div>
-                <div style={{ color: '#dbeafe', fontSize: 13.5, lineHeight: 1.55 }}>
-                  {activeWireSpot.evSummary}
-                </div>
+                </strong>
+                <span className={at.copy}>{activeWireSpot.evSummary}</span>
               </div>
             )}
           </section>
         )}
 
-        <div style={styles.layout}>
-          {/* Left: Interactive Canvas */}
-          <div style={styles.canvasCol}>
-            <div style={styles.canvasArea}>
-              <div data-handlab-variant-selector="true" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
-                {VARIANTS.map((v) => (
-                  <button
-                    key={v.id}
-                    type="button"
-                    data-variant-option={v.id}
-                    aria-pressed={variant === v.id}
-                    onClick={() => handleVariantChange(v.id)}
-                    style={{
-                      padding: '8px 14px',
-                      borderRadius: 8,
-                      border: variant === v.id ? '1px solid #00d4ff' : '1px solid rgba(255,255,255,0.16)',
-                      background: variant === v.id ? 'rgba(0, 212, 255, 0.18)' : 'rgba(255,255,255,0.04)',
-                      color: variant === v.id ? '#67e8f9' : '#cbd5e1',
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {v.label}
-                  </button>
-                ))}
-              </div>
-
-              <h3 style={styles.sectionTitle}>1. Your Hole Cards ({variantSpec.holeCount} Cards)</h3>
-              <div style={{ ...styles.heroRow, flexWrap: 'wrap' }}>
-                {heroCards.map((cardValue, idx) => {
-                  const slotKey = `hero${idx + 1}`;
-                  return (
-                    <div
-                      key={slotKey}
-                      role="button"
-                      tabIndex={0}
-                      aria-pressed={selectedSlot === slotKey}
-                      aria-label={`Select hole card ${idx + 1}`}
-                      style={{
-                        ...styles.cardSlot,
-                        border:
-                          selectedSlot === slotKey
-                            ? '2px solid #00d4ff'
-                            : '2px dashed rgba(255,255,255,0.2)',
-                      }}
-                      onClick={() => openDeck(slotKey)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          openDeck(slotKey);
-                        }
-                      }}
-                    >
-                      {cardValue ? (
-                        <PlayingCard arena card={cardValue} width={42} priority />
-                      ) : (
-                        <span style={styles.placeholder}>Card {idx + 1}</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <h3 style={styles.sectionTitle}>2. Board (Optional)</h3>
-              <div style={styles.boardRow}>
-                {[0, 1, 2, 3, 4].map((idx) => (
-                  <div
-                    key={`board${idx + 1}`}
-                    role="button"
-                    tabIndex={0}
-                    aria-pressed={selectedSlot === `board${idx + 1}`}
-                    aria-label={`Select board card ${idx + 1}`}
-                    style={{
-                      ...styles.cardSlot,
-                      height: 64,
-                      border:
-                        selectedSlot === `board${idx + 1}`
-                          ? '2px solid #4ade80'
-                          : '2px dashed rgba(255,255,255,0.2)',
-                    }}
-                    onClick={() => openDeck(`board${idx + 1}`)}
-                    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDeck(`board${idx + 1}`); } }}
-                  >
-                    {boardCards[idx] ? (
-                      <PlayingCard arena card={boardCards[idx]} width={42} priority />
-                    ) : (
-                      <span style={{ ...styles.placeholder, fontSize: 12 }}>
-                        {idx < 3 ? 'Flop' : idx === 3 ? 'Turn' : 'River'}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <h3 style={styles.sectionTitle}>3. Villain Benchmark Hand</h3>
-              <select
-                aria-label="Villain Benchmark Hand"
-                style={styles.rangeSelect}
-                value={villainHand}
-                onChange={(e) => { calcSeqRef.current += 1; setAnalyzing(false); setVillainHand(e.target.value); setEquity(null); setResults(null); setAnalysisError(''); }}
-              >
-                {benchmarkHands.map((hand) => <option key={hand.value} value={hand.value}>{hand.label}</option>)}
-              </select>
-              <div style={{ margin: '-28px 0 28px', color: 'var(--sp-fg-faint)', fontSize: 12 }}>Exact Hand Vs Hand Equity - Not A Range Estimate</div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={runAnalysis}
-                disabled={!isHeroComplete || analyzing}
-                style={{ ...styles.analyzeBtn, opacity: !isHeroComplete ? 0.5 : 1 }}
-              >
-                {analyzing ? 'RUNNING MONTE CARLO (10k Iterations)...' : 'ANALYZE EQUITY'}
-              </motion.button>
-
-              {analysisError && <div role="alert" style={{ marginTop: 14, color: 'var(--sp-accent-red)', fontSize: 12, lineHeight: 1.5 }}>{analysisError}</div>}
-
-              {/* Results */}
-              {equity && !analyzing && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  style={styles.resultsBox}
+        <section className={`sd-panel ${at.panel}`} aria-label="Hand Lab Canvas">
+          <div className={at.field}>
+            <span className={at.label}>Game</span>
+            <div data-handlab-variant-selector="true" className={at.chips}>
+              {VARIANTS.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  className="sd-button"
+                  data-variant-option={v.id}
+                  aria-pressed={variant === v.id}
+                  onClick={() => handleVariantChange(v.id)}
                 >
-                  <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', fontWeight: 700 }}>
-                    Hero Equity Vs {benchmarkHands.find((hand) => hand.value === villainHand)?.label || villainHand}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 64,
-                      fontWeight: 900,
-                      fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
-                      color: equity > 50 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
-                    }}
-                  >
-                    {equity}%
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      width: '100%',
-                      height: 12,
-                      background: 'rgba(255,255,255,0.1)',
-                      borderRadius: 6,
-                      marginTop: 16,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <div style={{ width: `${equity}%`, background: 'var(--sp-accent-green)' }} />
-                    <div style={{ width: `${100 - equity}%`, background: 'var(--sp-accent-red)' }} />
-                  </div>
-                </motion.div>
-              )}
-
-              {results && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                  <div style={{ marginTop: 12, padding: '12px 14px', border: '1px solid rgba(255,255,255,.08)', background: 'rgba(0,0,0,.18)', color: 'var(--sp-fg-muted)', fontSize: 12, lineHeight: 1.7 }}>
-                    <div>Opponent Equity: <strong style={{ color: 'var(--sp-fg)' }}>{results.opponentEquity}%</strong></div>
-                    <div>Board Cards Locked: <strong style={{ color: 'var(--sp-fg)' }}>{results.boardSize}</strong></div>
-                    <div>Monte Carlo Iterations: <strong style={{ color: 'var(--sp-fg)' }}>{Number(results.iterations || 0).toLocaleString()}</strong></div>
-                  </div>
-                  {results.horseBrainAnalysis && (
-                    <div
-                      data-handlab-brain-panel="true"
-                      data-brain-engine={results.horseBrainAnalysis.engineModule}
-                      style={{
-                        marginTop: 10,
-                        padding: '12px 14px',
-                        borderRadius: 10,
-                        border: '1px solid rgba(34,211,238,0.28)',
-                        background: 'rgba(6,182,212,0.08)',
-                        fontSize: 12,
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
-                        <span style={{ color: '#67e8f9', fontWeight: 800 }}>
-                          {`Engine: ${results.horseBrainAnalysis.engineModule}`}
-                        </span>
-                        <span style={{ color: '#e2e8f0', fontWeight: 700 }}>
-                          {`Category: ${results.horseBrainAnalysis.madeHandCategory}`}
-                        </span>
-                        {results.horseBrainAnalysis.recommendedAction && (
-                          <span style={{ color: '#4ade80', fontWeight: 800 }}>
-                            {`Best Line: ${results.horseBrainAnalysis.recommendedAction}`}
-                          </span>
-                        )}
-                      </div>
-                      {Array.isArray(results.horseBrainAnalysis.omahaBestTwoHole) &&
-                        results.horseBrainAnalysis.omahaBestTwoHole.length === 2 &&
-                        Array.isArray(results.horseBrainAnalysis.omahaBestThreeBoard) &&
-                        results.horseBrainAnalysis.omahaBestThreeBoard.length === 3 && (
-                          <div data-omaha-best-combination="true" style={{ color: '#86daff', fontWeight: 700, marginBottom: 4 }}>
-                            {`2-Hole + 3-Board Omaha Combo: ${results.horseBrainAnalysis.omahaBestTwoHole.join(' ')} + ${results.horseBrainAnalysis.omahaBestThreeBoard.join(' ')}`}
-                          </div>
-                        )}
-                      <div style={{ color: '#cbd5e1' }}>
-                        {results.horseBrainAnalysis.coachingSummary}
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              )}
+                  {v.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          <dialog ref={deckDialog} aria-label="Hand Lab Card Picker" style={{ ...styles.deckBox, width: 'min(94vw, 580px)', maxHeight: '82dvh', overflowY: 'auto', margin: 'auto', color: '#f1f8ff' }}>
-            <div style={{ display: 'flex', position: 'sticky', top: 0, paddingTop: 'calc(4px + env(safe-area-inset-top, 0px))', boxSizing: 'border-box', background: '#091727', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8 }}>
-              <strong>{selectedSlot?.startsWith('hero') ? 'Pick A Hole Card' : 'Pick A Board Card'}</strong>
-              <button type="button" className="sd-button" style={{ minHeight: 44 }} onClick={() => deckDialog.current.close()}>Done</button>
-            </div>
-              <div style={styles.deckGrid}>
-                {SUITS.map((suit) => (
-                  <div key={suit} style={styles.suitRow}>
-                    <div style={{ ...styles.suitLabel, color: getSuitColor(suit) }}>{suit}</div>
-                    <div style={styles.rankGrid}>
-                      {RANKS.map((rank) => {
-                        const card = `${rank}${suit}`;
-                        const isUsed = heroCards.includes(card) || boardCards.includes(card);
-                        return (
-                          <button
-                            type="button"
-                            key={card}
-                            data-training-raw-control="true"
-                            aria-label={`Select ${card}`}
-                            onClick={() => handleCardSelect(rank, suit)}
-                            disabled={isUsed || !selectedSlot}
-                            style={{
-                              ...styles.deckCard,
-                              opacity: isUsed ? 0.2 : !selectedSlot ? 0.5 : 1,
-                              color: getSuitColor(suit),
-                              border: isUsed
-                                ? '1px solid rgba(255,255,255,0.1)'
-                                : '1px solid rgba(255,255,255,0.2)',
-                            }}
-                          >
-                            <PlayingCard arena priority card={card} width={32} />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+          <hr className={at.rule} />
+          <h2 className={at.subTitle}>1. Your Hole Cards ({variantSpec.holeCount} Cards)</h2>
+          <div className={at.slots}>
+            {heroCards.map((cardValue, idx) => {
+              const slotKey = `hero${idx + 1}`;
+              return (
+                <div
+                  key={slotKey}
+                  role="button"
+                  tabIndex={0}
+                  className={at.slot}
+                  data-filled={cardValue ? 'true' : undefined}
+                  data-active={selectedSlot === slotKey ? 'true' : undefined}
+                  aria-pressed={selectedSlot === slotKey}
+                  aria-label={`Select hole card ${idx + 1}`}
+                  onClick={() => openDeck(slotKey)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      openDeck(slotKey);
+                    }
+                  }}
+                >
+                  {cardValue ? (
+                    <PlayingCard arena card={cardValue} width={42} priority />
+                  ) : (
+                    <span>Card {idx + 1}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <h2 className={at.subTitle}>2. Board (Optional)</h2>
+          <div className={at.slots}>
+            {[0, 1, 2, 3, 4].map((idx) => (
+              <div
+                key={`board${idx + 1}`}
+                role="button"
+                tabIndex={0}
+                className={at.slot}
+                data-filled={boardCards[idx] ? 'true' : undefined}
+                data-active={selectedSlot === `board${idx + 1}` ? 'true' : undefined}
+                aria-pressed={selectedSlot === `board${idx + 1}`}
+                aria-label={`Select board card ${idx + 1}`}
+                onClick={() => openDeck(`board${idx + 1}`)}
+                onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDeck(`board${idx + 1}`); } }}
+              >
+                {boardCards[idx] ? (
+                  <PlayingCard arena card={boardCards[idx]} width={42} priority />
+                ) : (
+                  <span>{idx < 3 ? 'Flop' : idx === 3 ? 'Turn' : 'River'}</span>
+                )}
               </div>
-          </dialog>
+            ))}
+          </div>
+
+          <label className={at.field}>
+            <span className={at.subTitle}>3. Villain Benchmark Hand</span>
+            <select
+              aria-label="Villain Benchmark Hand"
+              className={at.select}
+              value={villainHand}
+              onChange={(e) => { calcSeqRef.current += 1; setAnalyzing(false); setVillainHand(e.target.value); setEquity(null); setResults(null); setAnalysisError(''); }}
+            >
+              {benchmarkHands.map((hand) => <option key={hand.value} value={hand.value}>{hand.label}</option>)}
+            </select>
+            <span className={at.small}>Exact Hand Vs Hand Equity - Not A Range Estimate</span>
+          </label>
+
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.98 }}
+            onClick={runAnalysis}
+            disabled={!isHeroComplete || analyzing}
+            className={`sd-button sd-primary ${at.primary}`}
+          >
+            {analyzing ? 'Running Monte Carlo (10k Iterations)...' : 'Analyze Equity'}
+          </motion.button>
+
+          {analysisError && <div role="alert" className={at.error}>{analysisError}</div>}
+        </section>
+
+        {/* Results */}
+        {equity && !analyzing && (
+          <motion.section
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={`sd-panel ${at.panel}`}
+            aria-label="Hand Lab Result"
+          >
+            <span className={at.label}>
+              Hero Equity Vs {benchmarkHands.find((hand) => hand.value === villainHand)?.label || villainHand}
+            </span>
+            <strong className={at.metricValue} data-tone="ice" style={{ fontSize: 'clamp(2.6rem, 12vw, 4rem)' }}>{equity}%</strong>
+            <div className={at.equityBar} role="img" aria-label={`Hero ${equity}%, Opponent ${100 - equity}%`}>
+              <div className={at.equitySeg} style={{ width: `${equity}%`, background: 'linear-gradient(180deg, #c4edff, #64a9ff)' }} />
+              <div className={at.equitySeg} style={{ width: `${100 - equity}%`, background: 'linear-gradient(180deg, #8ea4b8, #4a6177)' }} />
+            </div>
+            {results && (
+              <dl className={at.kv}>
+                <div><dt>Opponent Equity</dt><dd>{results.opponentEquity}%</dd></div>
+                <div><dt>Board Cards Locked</dt><dd>{results.boardSize}</dd></div>
+                <div><dt>Monte Carlo Iterations</dt><dd>{Number(results.iterations || 0).toLocaleString()}</dd></div>
+              </dl>
+            )}
+            {results?.horseBrainAnalysis && (
+              <div
+                data-handlab-brain-panel="true"
+                data-brain-engine={results.horseBrainAnalysis.engineModule}
+                className={at.helpBlock}
+              >
+                <div className={at.row}>
+                  <span className={at.eyebrow}>{`Engine: ${results.horseBrainAnalysis.engineModule}`}</span>
+                  <span className={at.label}>{`Category: ${results.horseBrainAnalysis.madeHandCategory}`}</span>
+                  {results.horseBrainAnalysis.recommendedAction && (
+                    <span className={at.label}>
+                      Best Line: <strong className={at.ice}>{results.horseBrainAnalysis.recommendedAction}</strong>
+                    </span>
+                  )}
+                </div>
+                {Array.isArray(results.horseBrainAnalysis.omahaBestTwoHole) &&
+                  results.horseBrainAnalysis.omahaBestTwoHole.length === 2 &&
+                  Array.isArray(results.horseBrainAnalysis.omahaBestThreeBoard) &&
+                  results.horseBrainAnalysis.omahaBestThreeBoard.length === 3 && (
+                    <div data-omaha-best-combination="true" className={at.ice}>
+                      {`2-Hole + 3-Board Omaha Combo: ${results.horseBrainAnalysis.omahaBestTwoHole.join(' ')} + ${results.horseBrainAnalysis.omahaBestThreeBoard.join(' ')}`}
+                    </div>
+                  )}
+                <p className={at.copy}>{results.horseBrainAnalysis.coachingSummary}</p>
+              </div>
+            )}
+          </motion.section>
+        )}
+
+        <dialog ref={deckDialog} aria-label="Hand Lab Card Picker" className={`sd-panel ${at.dialog}`}>
+          <div className={at.dialogHead}>
+            <strong className={at.subTitle}>{selectedSlot?.startsWith('hero') ? 'Pick A Hole Card' : 'Pick A Board Card'}</strong>
+            <button type="button" className="sd-button" onClick={() => deckDialog.current.close()}>Done</button>
+          </div>
+          <div className={at.dialogBody}>
+            {SUITS.map((suit) => (
+              <div key={suit} className={at.suitRow}>
+                <span className={at.suitLabel} style={{ color: getSuitColor(suit) }} aria-hidden>{suit}</span>
+                <div className={at.pickerRow}>
+                  {RANKS.map((rank) => {
+                    const card = `${rank}${suit}`;
+                    const isUsed = heroCards.includes(card) || boardCards.includes(card);
+                    return (
+                      <button
+                        type="button"
+                        key={card}
+                        data-allow-small="true"
+                        data-training-raw-control="true"
+                        className={at.pick}
+                        onClick={() => handleCardSelect(rank, suit)}
+                        disabled={isUsed || !selectedSlot}
+                        aria-label={`${rank}${suit}`}
+                      >
+                        <PlayingCard arena priority card={card} width={32} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </dialog>
         </div>
       </div>
       <ConnectionToast />
@@ -891,176 +769,7 @@ export default function HandLabV2() {
 
 // Helpers
 function getSuitColor(suit) {
-  if (suit === '♥' || suit === '♦') return 'var(--sp-accent-red)';
-  if (suit === '♣') return 'var(--sp-accent-emerald)';
-  return 'var(--sp-fg)';
+  if (suit === '♥' || suit === '♦') return '#ff7a86';
+  if (suit === '♣') return '#5ee08a';
+  return '#f2f7ff';
 }
-const styles = {
-  container: {
-    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-    background: '#040d18',
-    padding: '24px 4vw 80px',
-    color: '#fff',
-    fontFamily: "'Inter', sans-serif",
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 32,
-    paddingBottom: 24,
-    borderBottom: '1px solid #688299',
-  },
-  backButton: {
-    background: '#091727',
-    border: '1px solid #688299',
-    color: '#fff',
-    padding: '8px 16px',
-    borderRadius: 7,
-    cursor: 'pointer',
-    fontSize: 14,
-    fontWeight: 600,
-  },
-  title: {
-    margin: '0 0 4px 0',
-    fontSize: 28,
-    fontWeight: 900,
-    fontFamily: "var(--font-orbitron), 'Orbitron', sans-serif",
-    letterSpacing: 1,
-    color: 'var(--sp-accent-cyan)',
-  },
-  subtitle: { margin: 0, color: 'var(--sp-fg-muted)', fontSize: 14 },
-  clearBtn: {
-    background: 'rgba(239, 68, 68, 0.1)',
-    color: 'var(--sp-accent-red)',
-    border: '1px solid rgba(239, 68, 68, 0.3)',
-    padding: '8px 16px',
-    borderRadius: 7,
-    cursor: 'pointer',
-    fontWeight: 700,
-  },
-  layout: {
-    display: 'flex',
-    gap: 12, maxWidth: 850, margin: '0 auto',
-    alignItems: 'flex-start',
-  },
-  canvasCol: {
-    flex: 1,
-    background: '#091727',
-    border: '1px solid #688299',
-    borderTopColor: '#aec0d0',
-    borderRadius: 7,
-    padding: 'clamp(12px, 3vw, 24px)', minWidth: 0,
-  },
-  pickerCol: {
-    flex: 1,
-    maxWidth: 500,
-  },
-  sectionTitle: {
-    color: 'var(--sp-fg-muted)',
-    fontSize: 14,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 16,
-  },
-  heroRow: {
-    display: 'flex',
-    gap: 16,
-    marginBottom: 40,
-  },
-  boardRow: {
-    display: 'flex',
-    gap: 4, flexWrap: 'wrap',
-    marginBottom: 20,
-  },
-  cardSlot: {
-    width: 48,
-    height: 68,
-    borderRadius: 12,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 28,
-    fontWeight: 900,
-    cursor: 'pointer',
-    background: 'rgba(255,255,255,0.02)',
-    transition: 'all 0.2s',
-  },
-  placeholder: {
-    fontSize: 12,
-    color: 'var(--sp-fg-faint)',
-    fontWeight: 600,
-  },
-  rangeSelect: {
-    width: '100%',
-    background: 'rgba(0,0,0,0.5)',
-    border: '1px solid rgba(255,255,255,0.2)',
-    color: '#fff',
-    padding: '16px',
-    borderRadius: 12,
-    fontSize: 16,
-    marginBottom: 40,
-    outline: 'none',
-  },
-  analyzeBtn: {
-    width: '100%',
-    background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)',
-    color: '#fff',
-    padding: '20px',
-    borderRadius: 7,
-    border: '1px solid #56d8ff',
-    fontSize: 18,
-    fontWeight: 900,
-    letterSpacing: 1,
-    cursor: 'pointer',
-    boxShadow: '0 8px 30px rgba(8, 124, 250, 0.3)',
-  },
-  resultsBox: {
-    marginTop: 32,
-    background: '#091727',
-    border: '1px solid #688299',
-    borderTopColor: '#aec0d0',
-    padding: 32,
-    borderRadius: 7,
-    textAlign: 'center',
-  },
-  deckBox: {
-    background: '#091727',
-    border: '1px solid #688299',
-    borderTopColor: '#aec0d0',
-    borderRadius: 7,
-    padding: 24,
-  },
-  deckGrid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16,
-  },
-  suitRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 16,
-  },
-  suitLabel: {
-    fontSize: 32,
-    width: 40,
-    textAlign: 'center',
-  },
-  rankGrid: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  deckCard: {
-    width: 44,
-    height: 48,
-    background: 'rgba(0,0,0,0.5)',
-    borderRadius: 6,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 16,
-    fontWeight: 800,
-    cursor: 'pointer',
-  },
-};

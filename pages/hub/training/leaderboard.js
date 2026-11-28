@@ -25,6 +25,8 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 // TRAIN-WIRE-EMPTY-4a — adoption: shared empty-state primitive
 import { useSWRConfig } from 'swr';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import sd from '../../../src/styles/training/training-smarterdesign.module.css';
 import {
   TRAINING_LEADERBOARD_DEFAULT_KEY,
   fetchPublicTrainingLeaderboardSeed,
@@ -43,43 +45,27 @@ export async function getServerSideProps({ req, res }) {
   return { props: { seed } };
 }
 
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// ICON COMPONENTS — TRAIN-LEADERBOARD-A11Y-1
-// SVG replacements for the cleaned-emoji gaps in this file. Original file
-// had ●●● medals + a ★ in the page title; they were stripped to empty
-// strings + the literal word 'Trophy' but never replaced. Lucide-style
-// SVGs with currentColor inheritance restore the visual + a11y semantics.
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+const TIMEFRAMES = [
+  { id: 'daily', label: 'Daily', aria: 'Show daily rankings' },
+  { id: 'weekly', label: 'Weekly', aria: 'Show weekly rankings' },
+  { id: 'all-time', label: 'All Time', aria: 'Show all-time rankings' },
+];
 
-function TrophyIcon({ size = 22, color = 'currentColor' }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden="true" focusable="false">
-      <path d="M8 21h8" />
-      <path d="M12 17v4" />
-      <path d="M7 4h10v5a5 5 0 0 1-10 0z" />
-      <path d="M5 4H2v3a3 3 0 0 0 3 3" />
-      <path d="M19 4h3v3a3 3 0 0 1-3 3" />
-    </svg>
-  );
-}
+const CATEGORIES = [
+  { id: 'global', label: 'All Games' },
+  { id: 'mtt', label: 'MTT' },
+  { id: 'cash', label: 'Cash' },
+  { id: 'spins', label: 'Spins' },
+  { id: 'psychology', label: 'Mental Game' },
+  { id: 'advanced', label: 'Poker Strategy' },
+];
 
-function MedalIcon({ rank, size = 22, color = 'currentColor' }) {
-  // rank 1/2/3 each get a distinct medal silhouette via different ribbon
-  // angles; colour comes from the parent (gold/silver/bronze).
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      role="img" aria-label={`Rank ${rank} medal`} focusable="false">
-      <path d="M7 2l3 5" />
-      <path d="M17 2l-3 5" />
-      <circle cx="12" cy="14" r="7" />
-      <text x="12" y="17" textAnchor="middle" fontSize='12px' fontWeight="700"
-        fill={color} stroke="none">{rank}</text>
-    </svg>
-  );
-}
+const LEADERBOARD_HELP = (
+  <>
+    <p>Rankings Come From Verified Training Answers. Choose Daily, Weekly Or All Time, Then Pick A Game Category To Narrow The Board.</p>
+    <p>Each Row Shows The Questions Answered, The Accuracy Across Them And The Number Answered Correctly. The Board Refreshes When You Finish A Training Session.</p>
+  </>
+);
 
 export default function TrainingLeaderboard({ seed = null }) {
   const router = useRouter();
@@ -152,85 +138,46 @@ export default function TrainingLeaderboard({ seed = null }) {
         canonical="/hub/training/leaderboard"
       />
 
-      <div className="sp-intelligence-page-shell" style={styles.container}>
+      <div className={sd.shell}>
         <UniversalHeader pageDepth={2} />
 
-        <div className="sp-training-intelligence sp-training-intelligence--leaderboard sp-intelligence-main" style={styles.content}>
-          {/* TRAIN-LEADERBOARD-A11Y-1: was 'Trophy Training Leaderboard' (a
-              cleaned-emoji artifact — original title was '★ Training
-              Leaderboard'). Restore the icon as proper SVG. */}
-          <h1 style={{ ...styles.title, display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            <TrophyIcon size={24} color="#86daff" />
-            Training Leaderboard
-          </h1>
+        <div className={sd.page}>
+          <TrainingPageHead
+            slug="training-leaderboard"
+            title="Training Leaderboard"
+            helpContent={LEADERBOARD_HELP}
+          />
 
           {!isOnline && (
-            <div
-              role="status"
-              data-offline-banner="true"
-              style={{
-                marginBottom: 16,
-                padding: '10px 14px',
-                borderRadius: 2,
-                border: '1px solid rgba(86, 216, 255, 0.4)',
-                background: 'rgba(86, 216, 255, 0.08)',
-                color: '#86daff',
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
+            <p role="status" data-offline-banner="true" className={sd.offline}>
               Offline Mode Detected: Local Horse Brain Spot Evaluation Remains Active While Verified Leaderboard Sync Waits For Reconnection.
-            </div>
+            </p>
           )}
 
-
           {/* Filters */}
-          <div style={styles.filters}>
-            <div style={styles.filterGroup}>
-              <button
-                type="button"
-                style={timeframe === 'daily' ? styles.filterButtonActive : styles.filterButton}
-                onClick={() => setTimeframe('daily')}
-                aria-label="Show daily rankings"
-                aria-pressed={timeframe === 'daily'}
-              >
-                Daily
-              </button>
-              <button
-                type="button"
-                style={timeframe === 'weekly' ? styles.filterButtonActive : styles.filterButton}
-                onClick={() => setTimeframe('weekly')}
-                aria-label="Show weekly rankings"
-                aria-pressed={timeframe === 'weekly'}
-              >
-                Weekly
-              </button>
-              <button
-                type="button"
-                style={timeframe === 'all-time' ? styles.filterButtonActive : styles.filterButton}
-                onClick={() => setTimeframe('all-time')}
-                aria-label="Show all-time rankings"
-                aria-pressed={timeframe === 'all-time'}
-              >
-                All Time
-              </button>
+          <section className={`sd-panel ${sd.panel}`} aria-label="Leaderboard Filters">
+            <div className={sd.segmented} role="group" aria-label="Timeframe">
+              {TIMEFRAMES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className="sd-button"
+                  onClick={() => setTimeframe(t.id)}
+                  aria-label={t.aria}
+                  aria-pressed={timeframe === t.id}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
-
+            <hr className={sd.rule} />
             {/* Category filter */}
-            <div style={{ ...styles.filterGroup, marginTop: 8 }}>
-            {[
-                { id: 'global', label: 'All Games' },
-                { id: 'mtt', label: 'MTT' },
-                { id: 'cash', label: 'Cash' },
-                { id: 'spins', label: 'Spins' },
-                { id: 'psychology', label: 'Mental Game' },
-                { id: 'advanced', label: 'Poker Strategy' },
-              ].map((cat) => (
+            <div className={sd.chips} role="group" aria-label="Game Category">
+              {CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
                   className="sd-button"
-                  style={styles.categoryButton}
                   onClick={() => setView(cat.id)}
                   aria-label={`Show ${cat.label} category`}
                   aria-pressed={view === cat.id}
@@ -239,7 +186,7 @@ export default function TrainingLeaderboard({ seed = null }) {
                 </button>
               ))}
             </div>
-          </div>
+          </section>
 
           <ErrorBanner
             message={swrError ? 'Unable to load leaderboard data.' : null}
@@ -248,39 +195,50 @@ export default function TrainingLeaderboard({ seed = null }) {
 
           {/* User Rank */}
           {user && userRank && (
-            <div style={styles.userRankCard}>
-              <span style={styles.userRankLabel}>Your Rank:</span>
-              <span style={styles.userRankValue}>#{userRank}</span>
+            <div className={sd.metrics} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+              <div className={`sd-metric ${sd.metric}`}>
+                <span className={sd.metricLabel}>Your Rank</span>
+                <strong className={sd.metricValue} data-tone="ice">#{userRank}</strong>
+              </div>
+              <div className={`sd-metric ${sd.metric}`}>
+                <span className={sd.metricLabel}>Players Ranked</span>
+                <strong className={sd.metricValue}>{leaderboard.length}</strong>
+              </div>
             </div>
           )}
 
           {/* Leaderboard */}
           {loading && !swrData ? (
             <SkeletonLoader variant="leaderboard" rows={8} style={{ padding: '0 8px' }} />
+          ) : leaderboard.length === 0 ? (
+            // A failed load says so in the banner above; it is not an empty board.
+            swrError ? null : (
+              <TrainerEmptyState
+                variant="no-data"
+                title="No Data Yet For This Timeframe"
+                message="Be The First To Put Up A Score In This Window."
+                cta={{ label: 'Start Training', onClick: () => { try { window.location.href = '/hub/training'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[leaderboard] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
+              />
+            )
           ) : (
-            <div style={styles.leaderboardList}>
-              {(() => {
-                const displayList = leaderboard;
-                if (displayList.length === 0) {
-                  return (
-                    <TrainerEmptyState
-                      variant="no-data"
-                      title="No data yet for this timeframe"
-                      message="Be the first to put up a score in this window."
-                      cta={{ label: 'Start Training', onClick: () => { try { window.location.href = '/hub/training'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[leaderboard] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
-                    />
-                  );
-                }
-                return displayList.map((entry) => (
+            <section className={`sd-panel ${sd.panel}`} aria-labelledby="training-board-title">
+              <div className={sd.panelHead}>
+                <h2 id="training-board-title" className={sd.sectionTitle}>
+                  {(TIMEFRAMES.find((t) => t.id === timeframe) || TIMEFRAMES[2]).label} · {(CATEGORIES.find((c) => c.id === view) || CATEGORIES[0]).label}
+                </h2>
+                <span className={sd.metricLabel}>Ranked By Accuracy</span>
+              </div>
+              <div className={sd.board}>
+                {leaderboard.map((entry) => (
                   <LeaderboardEntry
                     key={entry.userId || `rank-${entry.rank}`}
                     rank={entry.rank}
                     {...entry}
                     isCurrentUser={Boolean(user?.id) && user.id === entry.userId}
                   />
-                ));
-              })()}
-            </div>
+                ))}
+              </div>
+            </section>
           )}
         </div>
       </div>
@@ -305,246 +263,33 @@ function LeaderboardEntry({
   accuracy,
   isCurrentUser,
 }) {
-  const getRankColor = () => {
-    if (rank === 1) return '#86daff'; // Ice Cyan
-    if (rank === 2) return '#C0C0C0'; // Silver
-    if (rank === 3) return '#7dd3fc'; // Frost Blue
-    return '#00E0FF';
-  };
-
-  // TRAIN-LEADERBOARD-A11Y-1: previously returned empty strings (emojis
-  // ●●● were stripped but never replaced). Return a SVG MedalIcon for
-  // top-3 ranks; rank colour from getRankColor() flows via currentColor.
-  const getRankIcon = () => {
-    if (rank === 1) return <MedalIcon rank={1} size={26} color="#86daff" />;
-    if (rank === 2) return <MedalIcon rank={2} size={24} color="#C0C0C0" />;
-    if (rank === 3) return <MedalIcon rank={3} size={24} color="#86daff" />;
-    return null;
-  };
-
+  // TRAIN-LEADERBOARD-A11Y-1: ranks 1-3 once rendered empty strings where the
+  // stripped medal emoji had been. Every rank, podium included, now shows its
+  // number in a labelled steel badge (podium ranks get the cobalt rim), and the
+  // page title is the plain "Training Leaderboard" in the image header.
+  const podium = rank >= 1 && rank <= 3 ? String(rank) : undefined;
+  const initial = String(username || '?').trim().charAt(0).toUpperCase() || '?';
   return (
-    <div
-      style={{
-        ...styles.leaderboardEntry,
-        ...(isCurrentUser ? styles.currentUserEntry : {}),
-      }}
-    >
-      <div style={styles.rankSection}>
-        {/* TRAIN-LEADERBOARD-A11Y-1: getRankIcon now returns an SVG element
-            (not a text glyph), so render it directly. The rank colour is
-            embedded in the medal's stroke. */}
-        {getRankIcon() ? (
-          <span style={styles.rankIcon}>{getRankIcon()}</span>
-        ) : (
-          <span style={{ ...styles.rank, color: getRankColor() }}>#{rank}</span>
-        )}
-      </div>
-
-      <div style={styles.userSection}>
-        {avatarUrl && <img src={avatarUrl} alt={username} style={styles.avatar} loading="lazy" />}
-        <div>
-          <div style={styles.username}>
-            {username}
-            {isCurrentUser && <span style={styles.youBadge}>YOU</span>}
-          </div>
-          <div style={styles.userStats}>
-            {questionsAnswered || 0} Questions • {accuracy}% Accuracy
-          </div>
+    <div className={`${sd.boardRow} ${isCurrentUser ? sd.boardRowYou : ''}`}>
+      <span className={sd.rankBadge} data-podium={podium} aria-label={`Rank ${rank}`}>{rank}</span>
+      {avatarUrl ? (
+        <img src={avatarUrl} alt="" className={sd.avatar} loading="lazy" />
+      ) : (
+        <span className={sd.avatarFallback} aria-hidden="true">{initial}</span>
+      )}
+      <div className={sd.who}>
+        <div className={`${sd.name} no-capitalize`}>
+          {username}
+          {isCurrentUser && <span className={sd.you}>You</span>}
+        </div>
+        <div className={sd.sub}>
+          {Number(questionsAnswered || 0).toLocaleString()} Questions · {accuracy}% Accuracy
         </div>
       </div>
-
-      <div style={styles.scoreSection}>
-        <div style={styles.score}>{questionsCorrect || 0}</div>
-        <div style={styles.scoreLabel}>Correct</div>
+      <div className={sd.score}>
+        <div className={sd.scoreValue}>{Number(questionsCorrect || 0).toLocaleString()}</div>
+        <div className={sd.scoreLabel}>Correct</div>
       </div>
     </div>
   );
 }
-
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// STYLES
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-
-const styles = {
-  container: {
-    minHeight: '100dvh',
-    paddingBottom: 70,
-    width: '100%',
-    maxWidth: '100vw',
-    overflowX: 'clip',
-    boxSizing: 'border-box',
-    background: '#040d18',
-    color: '#f2f7fb',
-  },
-  content: {
-    maxWidth: '860px',
-    margin: '0 auto',
-    padding: '80px 24px 40px',
-  },
-  title: {
-    fontSize: '32px',
-    fontWeight: 800,
-    marginBottom: '28px',
-    textAlign: 'center',
-    color: '#f4f8fa',
-  },
-  filters: {
-    marginBottom: '24px',
-  },
-  filterGroup: {
-    display: 'flex',
-    gap: '8px',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  filterButton: {
-    minHeight: '44px',
-    padding: '8px 24px',
-    background: 'linear-gradient(180deg, #0c1820, #050c10)',
-    color: 'var(--sp-fg-muted)',
-    border: '1px solid #4d6472',
-    borderRadius: '2px',
-    fontSize: '14px',
-    fontWeight: 700,
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  filterButtonActive: {
-    minHeight: '44px',
-    padding: '8px 24px',
-    background: 'linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%)',
-    color: '#FFFFFF',
-    border: '1px solid #25c8ff',
-    borderRadius: '2px',
-    fontSize: '14px',
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  userRankCard: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '16px',
-    background: 'linear-gradient(180deg, #0c1820, #050c10)',
-    border: '1px solid #25c8ff',
-    borderLeft: '3px solid #56d8ff',
-    borderRadius: '2px',
-    marginBottom: '24px',
-  },
-  userRankLabel: {
-    fontSize: '16px',
-    color: 'var(--sp-fg-muted)',
-  },
-  userRankValue: {
-    fontSize: '24px',
-    fontWeight: 800,
-    color: '#86daff',
-  },
-  leaderboardList: {
-    display: 'grid',
-    gap: '12px',
-  },
-  leaderboardEntry: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    padding: '16px',
-    background: 'linear-gradient(180deg, #0c1820, #050c10)',
-    border: '1px solid #486170',
-    borderLeft: '3px solid #25c8ff',
-    borderRadius: '2px',
-    transition: 'all 0.2s',
-  },
-  currentUserEntry: {
-    background: 'linear-gradient(180deg, rgba(37, 200, 255, 0.14), rgba(5, 12, 16, 0.96))',
-    border: '1px solid #25c8ff',
-    borderLeft: '3px solid #56d8ff',
-  },
-  rankSection: {
-    minWidth: '50px',
-    textAlign: 'center',
-  },
-  rank: {
-    fontSize: '20px',
-    fontWeight: 800,
-  },
-  rankIcon: {
-    fontSize: '28px',
-  },
-  userSection: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  avatar: {
-    width: '48px',
-    height: '48px',
-    borderRadius: '50%',
-    objectFit: 'cover',
-  },
-  username: {
-    fontSize: '16px',
-    fontWeight: 700,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  youBadge: {
-    padding: '2px 8px',
-    background: '#25c8ff',
-    color: '#020608',
-    fontSize: '12px',
-    fontWeight: 700,
-    borderRadius: '2px',
-  },
-  userStats: {
-    fontSize: '14px',
-    color: 'var(--sp-fg-muted)',
-    marginTop: '4px',
-  },
-  scoreSection: {
-    textAlign: 'right',
-  },
-  score: {
-    fontSize: '24px',
-    fontWeight: 800,
-    color: '#25c8ff',
-  },
-  scoreLabel: {
-    fontSize: '12px',
-    color: 'var(--sp-fg-muted)',
-  },
-  loadingContainer: {
-    textAlign: 'center',
-    padding: '80px 24px',
-  },
-  spinner: {
-    fontSize: '48px',
-    animation: 'pulse 1.5s ease-in-out infinite',
-  },
-  loadingText: {
-    marginTop: '16px',
-    color: 'var(--sp-fg-muted)',
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '80px 24px',
-    color: 'var(--sp-fg-muted)',
-  },
-  button: {
-    display: 'inline-block',
-    marginTop: '24px',
-    padding: '12px 32px',
-    background: '#25c8ff',
-    color: '#020608',
-    borderRadius: '2px',
-    textDecoration: 'none',
-    fontWeight: 700,
-  },
-  categoryButton: {
-    padding: '6px 14px',
-    fontSize: 12,
-  },
-};

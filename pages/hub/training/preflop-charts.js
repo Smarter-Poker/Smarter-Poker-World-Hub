@@ -27,6 +27,8 @@ import useVIPGate from '../../../src/hooks/useVIPGate';
 const BottomSheet = dynamic(() => import('../../../src/components/ui/BottomSheet'), { ssr: false });
 const VIPGateModal = dynamic(() => import('../../../src/components/ui/VIPGateModal'), { ssr: false });
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import at from '../../../src/styles/training/analysis-tools.module.css';
 // TRAIN-CSS-MOTION-ADOPT-18 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -70,7 +72,6 @@ const POSITIONS_BY_SCENARIO = Object.freeze({
 export default function PreflopCharts() {
   const router = useRouter();
   // TRAIN-WIRE-BOTTOMSHEET-5 — info sheet state
-  const [infoOpen, setInfoOpen] = useState(false);
   useTrainingBus('preflop-charts');
   
   // Filters
@@ -217,310 +218,90 @@ export default function PreflopCharts() {
         canonical="/hub/training/preflop-charts"
       />
 
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* ●●● Header ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
-        <BottomSheet
-          open={infoOpen}
-          onClose={() => setInfoOpen(false)}
-          title="How Preflop Charts Work"
-          subtitle="Authored 6-max cash 100BB teaching references"
-        >
-          <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
-            <p style={{ marginTop: 0 }}>
-              Each Chart Shows An Authored Teaching Mix For One Supported
-              6-Max Cash 100BB Reference Spot. Highlighted Cells Show Raise,
-              Call, Or Fold Frequencies In That Reference.
-            </p>
-            <p>
-              <strong style={{ color: 'var(--sp-accent-cyan)' }}>RFI</strong>
-              Charts Show Your First-In Raising Range.
-              <strong style={{ color: '#86daff' }}> Vs RFI</strong>
-              Charts Show How To Respond To An Opener.
-              <strong style={{ color: 'var(--sp-accent-green)' }}> 3-Bet</strong>
-              Charts Show 3-Bet Ranges When Facing An Open.
-            </p>
-            <p>
-              These Charts Are Not Provenance-Sealed Solver Exports. No Solver
-              Binary Checksum, Tree Identity, Or Source Artifact Is Attached,
-              So They Must Be Used As Authored Study References Rather Than
-              Solver-Exact GTO Truth.
-            </p>
-          </div>
-        </BottomSheet>
-
-        <div
-          style={{
-            padding: '20px 24px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
-            <button
-              type="button"
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                padding: '6px 12px',
-                color: 'var(--sp-fg-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              ← Training
-            </button>
-            <button
-              type="button"
-              onClick={() => setInfoOpen(true)}
-              aria-label="How Preflop Charts work"
-              style={{
-                background: 'rgba(0,212,255,0.10)',
-                border: '1px solid rgba(0,212,255,0.30)',
-                color: 'var(--sp-accent-cyan)',
-                fontSize: 12,
-                fontWeight: 700,
-                padding: '6px 12px',
-                borderRadius: 12,
-                cursor: 'pointer',
-                letterSpacing: 0.4,
-                textTransform: 'uppercase',
-              }}
-            >
-              How It Works
-            </button>
-            <h1
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                margin: 0,
-                color: '#f3f7fb',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Preflop Charts
-            </h1>
-            <span
-              style={{
-                fontSize: 12,
-                color: 'var(--sp-accent-cyan)',
-                background: 'rgba(0,212,255,0.1)',
-                padding: '3px 8px',
-                borderRadius: 12,
-                fontWeight: 700,
-                border: '1px solid rgba(0,212,255,0.2)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              PHASE 17
-            </span>
-          </div>
-
-          {/* ●●● Filters ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
-          <div data-pills-row style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-            <span
-              style={{
-                padding: '6px 14px',
-                borderRadius: 10,
-                fontSize: 12,
-                fontWeight: 700,
-                background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
-                border: '1px solid #56d8ff',
-                color: '#ffffff',
-              }}
-            >
-              ● Cash 6-Max · 100BB Only
-            </span>
-          </div>
-
-          {/* Scenario + Stack */}
-          <div data-pills-row style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-              <span
-                style={{
-                  fontSize: 12,
-                  color: 'var(--sp-fg-dim)',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                }}
-              >
-                Scenario:
-              </span>
-              {SCENARIOS.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  aria-pressed={scenario === s.value}
-                  onClick={() => {
-                    if (s.value !== 'rfi' && !allowed) {
-                      showUpgradeModal();
-                      return;
-                    }
-                    selectScenario(s.value);
-                  }}
-                  title={s.desc}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 8,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: 'none',
-                    transition: 'all 0.15s',
-                    background:
-                      scenario === s.value ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
-                    color: scenario === s.value ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                  }}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-
-            <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.08)' }} />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span
-                style={{
-                  fontSize: 12,
-                  color: 'var(--sp-fg-dim)',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                }}
-              >
-                Stack:
-              </span>
-              <span
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: 6,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  background: 'rgba(0,212,255,0.2)',
-                  color: 'var(--sp-accent-cyan)',
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                }}
-              >
-                100BB
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* ●●● Main Content ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
-        <div style={{ padding: '20px 24px' }}>
-          <div
-            role="note"
-            style={{
-              maxWidth: 700,
-              margin: '0 auto 18px',
-              padding: '12px 15px',
-              border: '1px solid #688299',
-              borderTopColor: '#aec0d0',
-              borderRadius: 10,
-              color: 'var(--sp-fg-muted)',
-              background: 'linear-gradient(180deg, #0c2031 0%, #050f19 100%)',
-              fontSize: 12,
-              lineHeight: 1.55,
-            }}
-          >
-            <strong style={{ color: '#86daff' }}>Authored Reference · Not Solver-Exact</strong>
-            <br />
-            {provenance?.disclosure ||
-              'This 6-Max Cash 100BB teaching corpus has no attached solver checksum, tree identity, or audited source artifact.'}
-          </div>
-
-          {rangeError && (
-            <div
-              role="alert"
-              style={{
-                maxWidth: 700,
-                margin: '0 auto 18px',
-                padding: '11px 14px',
-                border: '1px solid rgba(239,68,68,0.3)',
-                borderRadius: 9,
-                color: 'var(--sp-accent-red)',
-                background: 'rgba(127,29,29,0.12)',
-                fontSize: 12,
-              }}
-            >
-              {rangeError}
-            </div>
+      <div className={at.shell}>
+        <TrainingPageHead
+          slug="training-range-browser"
+          note="Cash 6-Max · 100BB Only"
+          helpContent={(
+            <>
+              <p>
+                Each Chart Shows An Authored Teaching Mix For One Supported
+                6-Max Cash 100BB Reference Spot. Highlighted Cells Show Raise,
+                Call, Or Fold Frequencies In That Reference.
+              </p>
+              <div className={at.helpBlock}>
+                <h3>How Preflop Charts Work</h3>
+                <p>
+                  <strong>RFI</strong> Charts Show Your First-In Raising Range.
+                  <strong> Vs RFI</strong> Charts Show How To Respond To An Opener.
+                  <strong> 3-Bet</strong> Charts Show 3-Bet Ranges When Facing An Open.
+                </p>
+                <p>
+                  These Charts Are Not Provenance-Sealed Solver Exports. No Solver
+                  Binary Checksum, Tree Identity, Or Source Artifact Is Attached,
+                  So They Must Be Used As Authored Study References Rather Than
+                  Solver-Exact GTO Truth.
+                </p>
+              </div>
+            </>
           )}
+        />
 
-          {/* Position Selector + Compare Toggle */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 20,
-              flexWrap: 'wrap',
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 6,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 12,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 12,
-                  color: 'var(--sp-fg-dim)',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                  marginRight: 4,
-                }}
-              >
-                {scenario === 'bb_defense' ? 'Opener:' : 'Position:'}
-              </span>
-              {displayedPositions.map((pos) => (
-                <button
-                  key={pos}
-                  type="button"
-                  aria-pressed={position === pos}
-                  onClick={() => selectPosition(pos)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    border: 'none',
-                    transition: 'all 0.2s',
-                    background:
-                      position === pos
-                        ? 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)'
-                        : 'rgba(255,255,255,0.06)',
-                    color: position === pos ? '#fff' : 'var(--sp-fg-muted)',
-                    fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  }}
-                >
-                  {pos}
-                </button>
-              ))}
+        <div className={at.page}>
+          {/* ●●● Filters ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
+          <section className={`sd-panel ${at.panel}`} aria-label="Chart Filters">
+            <div className={at.field}>
+              <span className={at.label}>Scenario</span>
+              <div data-pills-row className={at.chips}>
+                {SCENARIOS.map((s) => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    className="sd-button"
+                    aria-pressed={scenario === s.value}
+                    onClick={() => {
+                      if (s.value !== 'rfi' && !allowed) {
+                        showUpgradeModal();
+                        return;
+                      }
+                      selectScenario(s.value);
+                    }}
+                    title={s.desc}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={at.panelHead}>
+              <span className={at.label}>Stack Depth</span>
+              <span className={at.tag}>100BB</span>
+            </div>
+
+            <hr className={at.rule} />
+
+            <div className={at.field}>
+              <span className={at.label}>{scenario === 'bb_defense' ? 'Opener' : 'Position'}</span>
+              <div className={at.segmented}>
+                {displayedPositions.map((pos) => (
+                  <button
+                    key={pos}
+                    type="button"
+                    className="sd-button"
+                    aria-pressed={position === pos}
+                    onClick={() => selectPosition(pos)}
+                  >
+                    {pos}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Compare Toggle */}
             <button
               type="button"
+              className="sd-button"
               aria-pressed={compareMode}
               onClick={() => {
                 if (!compareMode && !allowed) {
@@ -533,224 +314,127 @@ export default function PreflopCharts() {
                   if (alt) setComparePosition(alt);
                 }
               }}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-                border: compareMode
-                  ? '1px solid rgba(0,212,255,0.4)'
-                  : '1px solid rgba(255,255,255,0.1)',
-                background: compareMode ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.04)',
-                color: compareMode ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
-              }}
             >
               {compareMode ? '✕ Close Compare' : '⇄ Compare Positions'}
             </button>
-          </div>
 
-          {/* Compare position selector */}
-          <AnimatePresence>
-            {compareMode && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                style={{ overflow: 'hidden', marginBottom: 16 }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 6,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '10px 14px',
-                    background: 'rgba(8, 124, 250, 0.08)',
-                    borderRadius: 10,
-                    border: '1px solid #688299',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: '#86daff',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      marginRight: 4,
-                    }}
-                  >
-                    Compare With:
-                  </span>
-                  {displayedPositions
-                    .filter((p) => p !== position)
-                    .map((pos) => (
-                      <button
-                        key={pos}
-                        type="button"
-                        aria-pressed={comparePosition === pos}
-                        onClick={() => setComparePosition(pos)}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: 6,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          border: 'none',
-                          transition: 'all 0.15s',
-                          background:
-                            comparePosition === pos
-                              ? 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)'
-                              : 'rgba(255,255,255,0.06)',
-                          color: comparePosition === pos ? '#fff' : 'var(--sp-fg-muted)',
-                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                        }}
-                      >
-                        {pos}
-                      </button>
-                    ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* ●●● Grid(s) + Stats ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
-          <div
-            style={{
-              display: 'flex',
-              gap: 20,
-              alignItems: 'flex-start',
-              justifyContent: 'center',
-              flexWrap: 'wrap',
-            }}
-          >
-            {/* Primary Range */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: 'var(--sp-accent-cyan)',
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                  marginBottom: 8,
-                  padding: '4px 12px',
-                  background: 'rgba(0,212,255,0.1)',
-                  borderRadius: 6,
-                  border: '1px solid rgba(0,212,255,0.2)',
-                }}
-              >
-                {scenario === 'bb_defense' ? `BB vs ${position}` : position} - {stackDepth}BB
-              </div>
-
-              {loading ? (
-                <div style={{ padding: 60, textAlign: 'center' }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      border: '3px solid rgba(0,212,255,0.2)',
-                      borderTop: '3px solid #00d4ff',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite',
-                      margin: '0 auto',
-                    }}
-                  />
-                  <p style={{ color: 'var(--sp-fg-dim)', fontSize: 12, marginTop: 8 }}>Loading Range...</p>
-                  <style>{`
-                    @keyframes spin {
-                      to {
-                        transform: rotate(360deg);
-                      }
-                    }
-                  `}</style>
-                </div>
-              ) : rangeData ? (
-                <motion.div
-                  key={`${position}-${scenario}-${stackDepth}`}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: MOTION.standard }}
-                >
-                  <RangeGrid
-                    gridData={rangeData}
-                    actions={actions}
-                    cellSize={compareMode ? 'clamp(20px, 6vw, 28px)' : 'clamp(21px, 6.5vw, 34px)'}
-                    colorMode="action"
-                  />
-                </motion.div>
-              ) : (
-                <div
-                  style={{
-                    padding: 60,
-                    textAlign: 'center',
-                    color: 'var(--sp-fg-faint)',
-                    fontSize: 13,
-                  }}
-                >
-                  No Range Data Available For This Configuration
-                </div>
-              )}
-            </div>
-
-            {/* Compare Range */}
+            {/* Compare position selector */}
             <AnimatePresence>
               {compareMode && (
                 <motion.div
-                  initial={{ opacity: 0, x: 30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 30 }}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className={at.field}
+                  style={{ overflow: 'hidden' }}
                 >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: '#86daff',
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      marginBottom: 8,
-                      padding: '4px 12px',
-                      background: 'rgba(86,216,255,0.1)',
-                      borderRadius: 6,
-                      border: '1px solid rgba(86,216,255,0.28)',
-                    }}
-                  >
-                    {scenario === 'bb_defense' ? `BB vs ${comparePosition}` : comparePosition} -{' '}
-                    {stackDepth}BB
+                  <span className={at.label}>Compare With</span>
+                  <div className={at.segmented}>
+                    {displayedPositions
+                      .filter((p) => p !== position)
+                      .map((pos) => (
+                        <button
+                          key={pos}
+                          type="button"
+                          className="sd-button"
+                          aria-pressed={comparePosition === pos}
+                          onClick={() => setComparePosition(pos)}
+                        >
+                          {pos}
+                        </button>
+                      ))}
                   </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </section>
 
-                  {loadingCompare ? (
-                    <div style={{ padding: 60, textAlign: 'center' }}>
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          border: '3px solid rgba(86,216,255,0.22)',
-                          borderTop: '3px solid #56d8ff',
-                          borderRadius: '50%',
-                          animation: 'spin 1s linear infinite',
-                          margin: '0 auto',
-                        }}
-                      />
-                    </div>
-                  ) : compareData ? (
+          {/* ●●● Main Content ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
+          <div role="note" className={`sd-panel ${at.note}`} style={{ borderLeft: 0 }}>
+            <strong>Authored Reference · Not Solver-Exact</strong>
+            <br />
+            {provenance?.disclosure ||
+              'This 6-Max Cash 100BB teaching corpus has no attached solver checksum, tree identity, or audited source artifact.'}
+          </div>
+
+          {rangeError && (
+            <div role="alert" className={at.error}>
+              {rangeError}
+            </div>
+          )}
+
+          {/* ●●● Grid(s) + Stats ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
+          <section className={`sd-panel ${at.panel} ${at.rangeHost}`} aria-labelledby="pc-primary-title">
+            <div className={at.panelHead}>
+              <h2 id="pc-primary-title" className={at.subTitle}>
+                {scenario === 'bb_defense' ? `BB Vs ${position}` : position} - {stackDepth}BB
+              </h2>
+            </div>
+
+            {loading ? (
+              <div className={at.empty} role="status">
+                <span className={at.spinner} aria-hidden />
+                <span className={at.small}>Loading Range...</span>
+              </div>
+            ) : rangeData ? (
+              <motion.div
+                key={`${position}-${scenario}-${stackDepth}`}
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: MOTION.standard }}
+                className={at.gridBox}
+              >
+                <RangeGrid
+                  gridData={rangeData}
+                  actions={actions}
+                  cellSize={compareMode ? 'clamp(20px, 6vw, 28px)' : 'clamp(21px, 6.5vw, 34px)'}
+                  colorMode="action"
+                />
+              </motion.div>
+            ) : (
+              <div className={at.empty}>
+                <span className={at.copy}>No Range Data Available For This Configuration</span>
+              </div>
+            )}
+          </section>
+
+          {/* Compare Range */}
+          <AnimatePresence>
+            {compareMode && (
+              <motion.section
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className={`sd-panel ${at.panel} ${at.rangeHost}`}
+                aria-labelledby="pc-compare-title"
+              >
+                <h2 id="pc-compare-title" className={at.subTitle}>
+                  {scenario === 'bb_defense' ? `BB Vs ${comparePosition}` : comparePosition} - {stackDepth}BB
+                </h2>
+
+                {loadingCompare ? (
+                  <div className={at.empty} role="status">
+                    <span className={at.spinner} aria-hidden />
+                  </div>
+                ) : compareData ? (
+                  <div className={at.gridBox}>
                     <RangeGrid
                       gridData={compareData}
                       actions={compareActions}
                       cellSize={'clamp(20px, 6vw, 28px)'}
                       colorMode="action"
                     />
-                  ) : null}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  </div>
+                ) : null}
+              </motion.section>
+            )}
+          </AnimatePresence>
 
-            {/* Stats Sidebar */}
+          {/* Stats */}
+          <div className={compareMode && compareStats ? `${at.cardsGrid} ${at.cardsGrid2}` : undefined}>
             <PreflopChartStats
               stats={stats}
-              position={scenario === 'bb_defense' ? `BB vs ${position}` : position}
+              position={scenario === 'bb_defense' ? `BB Vs ${position}` : position}
               scenario={scenario}
               actions={actions}
             />
@@ -759,7 +443,7 @@ export default function PreflopCharts() {
             {compareMode && compareStats && (
               <PreflopChartStats
                 stats={compareStats}
-                position={scenario === 'bb_defense' ? `BB vs ${comparePosition}` : comparePosition}
+                position={scenario === 'bb_defense' ? `BB Vs ${comparePosition}` : comparePosition}
                 scenario={scenario}
                 actions={compareActions}
               />
@@ -767,31 +451,9 @@ export default function PreflopCharts() {
           </div>
 
           {/* ●●● Scenario Description ●●●●●●●●●●●●●●●●●●●●●●●●●●●● */}
-          <div
-            style={{
-              marginTop: 24,
-              padding: '14px 18px',
-              background: 'rgba(255,255,255,0.02)',
-              borderRadius: 10,
-              border: '1px solid rgba(255,255,255,0.06)',
-              maxWidth: 700,
-              margin: '24px auto 0',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-                marginBottom: 6,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              About This Chart
-            </div>
-            <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
+          <section className={`sd-panel ${at.panel} ${at.tight}`} aria-labelledby="pc-about-title">
+            <h2 id="pc-about-title" className={at.sectionTitle}>About This Chart</h2>
+            <p className={at.copy}>
               {scenario === 'rfi' && (
                 <>
                   Open-Raising Range (RFI) Shows Which Hands To Raise With When Folded To You In
@@ -814,12 +476,10 @@ export default function PreflopCharts() {
                 </>
               )}
             </p>
-            <div style={{ height: 20 }} />
-          </div>
-
+          </section>
         </div>
       </div>
-      <VIPGateModal 
+      <VIPGateModal
         visible={upgradeModalVisible}
         onClose={hideUpgradeModal}
         featureName="Advanced Preflop Charts"

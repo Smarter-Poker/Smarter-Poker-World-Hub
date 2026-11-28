@@ -23,6 +23,8 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { normalizeTrainingSessionConfig } from '../../../src/lib/training/sessionConfigContract.mjs';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/sessions-coaching.module.css';
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
   ssr: false,
   loading: () => (
@@ -231,24 +233,22 @@ export default function QuickWarmupPage() {
         />
         {/* Timer overlay */}
         <div
+          className="sd-metric"
           style={{
             position: 'fixed',
             top: 12,
             right: 12,
             zIndex: 100,
             padding: '8px 14px',
-            borderRadius: 10,
-            background: timeLeft <= 30 ? 'rgba(239,68,68,0.9)' : 'rgba(0,0,0,0.8)',
-            border: `1px solid ${timeLeft <= 30 ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`,
-            backdropFilter: 'blur(8px)',
+            background: timeLeft <= 30 ? 'linear-gradient(180deg, #7a1c27, #3a0910)' : 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)',
           }}
         >
           <div
             style={{
               fontSize: timeLeft === 0 ? 12 : 18,
-              fontWeight: 900,
-              color: timeLeft <= 30 ? '#fff' : 'var(--sp-accent-cyan)',
-              fontFamily: "'Inter', monospace",
+              fontWeight: 800,
+              color: timeLeft <= 30 ? '#fff' : '#86daff',
+              fontVariantNumeric: 'tabular-nums',
               maxWidth: timeLeft === 0 ? 170 : 'none',
               textAlign: 'center',
             }}
@@ -283,277 +283,121 @@ export default function QuickWarmupPage() {
         description="Calibrate Your Poker Decision Speed And Solver Accuracy Before Sitting Down At The Table With A Timed 5-Minute GTO Speed Warmup On Smarter.Poker."
         canonical="/hub/training/quick-warmup"
       />
-      <div
-        style={{
-          minHeight: '100dvh',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Quick Warmup</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>5-Minute Speed Session</div>
-          </div>
-        </div>
+      <div className={s.shell}>
+        <TrainingPageHead slug="training-quick-warmup" note="5-Minute Speed Session" />
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={s.page}>
 
           {/* READY STATE */}
           {phase === 'ready' && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              style={{ textAlign: 'center', padding: '40px 20px' }}
-            >
-              <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--sp-fg-muted)' }}>
-                Choose A Focus Or Start With The Recommended Drill.
-              </p>
+            <>
+              <motion.section
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`sd-panel ${s.panel}`}
+                aria-labelledby="warmup-focus-title"
+              >
+                <h2 id="warmup-focus-title" className={s.sectionTitle}>Choose A Focus</h2>
+                <p className={s.copy}>Choose A Focus Or Start With The Recommended Drill.</p>
 
-              {/* Warmup mode selector */}
-              <div style={{ display: 'flex', gap: 6, marginBottom: 24, justifyContent: 'center' }}>
-                {[
-                  { id: 'auto', label: 'Auto', desc: 'Weakest area', icon: '◆' },
-                  { id: 'position', label: 'Positions', desc: 'BB/BTN focus', icon: '♠' },
-                  { id: 'postflop', label: 'Postflop', desc: 'Flop-Turn-River', icon: '◇' },
-                ].map((mode) => {
-                  const isActive = (warmupMode || 'auto') === mode.id;
-                  return (
-                    <motion.button
-                      key={mode.id}
-                      whileTap={{ scale: 0.95 }}
-                      aria-label={`Select warmup: ${mode.label}`}
-                      aria-pressed={isActive}
-                      onClick={() => setWarmupMode(mode.id)}
-                      style={{
-                        flex: 1,
-                        padding: '12px 8px',
-                        borderRadius: 10,
-                        border: `1px solid ${isActive ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                        background: isActive ? 'rgba(0,212,255,0.08)' : 'rgba(0,0,0,0.2)',
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <div style={{ fontSize: 18, marginBottom: 4 }}>{mode.icon}</div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: isActive ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
-                        }}
+                {/* Warmup mode selector */}
+                <div className={s.metrics3} role="group" aria-label="Warmup Focus">
+                  {[
+                    { id: 'auto', label: 'Auto', desc: 'Weakest Area', icon: '◆' },
+                    { id: 'position', label: 'Positions', desc: 'BB/BTN Focus', icon: '♠' },
+                    { id: 'postflop', label: 'Postflop', desc: 'Flop-Turn-River', icon: '◇' },
+                  ].map((mode) => {
+                    const isActive = (warmupMode || 'auto') === mode.id;
+                    return (
+                      <motion.button
+                        type="button"
+                        key={mode.id}
+                        whileTap={{ scale: 0.95 }}
+                        className={`sd-button ${s.button}`}
+                        aria-label={`Select warmup: ${mode.label}`}
+                        aria-pressed={isActive}
+                        onClick={() => setWarmupMode(mode.id)}
+                        style={{ flexDirection: 'column', gap: 2, minHeight: 72, padding: '8px 4px' }}
                       >
-                        {mode.label}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginTop: 2 }}>
-                        {mode.desc}
-                      </div>
-                    </motion.button>
-                  );
-                })}
-              </div>
+                        <span aria-hidden style={{ fontSize: 16 }}>{mode.icon}</span>
+                        <span style={{ fontSize: '1rem' }}>{mode.label}</span>
+                        <span style={{ fontSize: '0.74rem', fontWeight: 600, opacity: 0.9 }}>{mode.desc}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
 
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={startWarmup}
-                style={{
-                  padding: '16px 48px',
-                  borderRadius: 14,
-                  border: 'none',
-                  background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
-                  color: '#fff',
-                  fontSize: 18,
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                  boxShadow: '0 6px 30px rgba(0,212,255,0.3)',
-                  letterSpacing: 0.5,
-                }}
-              >
-                START
-              </motion.button>
-
-              <div
-                style={{
-                  marginTop: 30,
-                  padding: '12px',
-                  borderRadius: 10,
-                  background: 'rgba(0,0,0,0.2)',
-                  border: '1px solid rgba(255,255,255,0.04)',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    marginBottom: 6,
-                  }}
+                <motion.button
+                  type="button"
+                  whileTap={{ scale: 0.97 }}
+                  onClick={startWarmup}
+                  className={`sd-button sd-primary ${s.button} ${s.primary} ${s.full}`}
                 >
-                  HOW IT WORKS
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.7 }}>
-                  1. Five-Minute Clock Tracks Your Pace
-                  <br />
-                  2. Answer GTO Questions As Fast As You Can
-                  <br />
-                  3. Game Auto-Selects Your Weakest Area
-                  <br />
-                  4. Finish The Signed Arena To See Verified Results
-                </div>
-              </div>
-            </motion.div>
+                  Start
+                </motion.button>
+              </motion.section>
+
+              <section className={`sd-panel ${s.panel}`} aria-labelledby="warmup-how-title">
+                <h2 id="warmup-how-title" className={s.subTitle}>How It Works</h2>
+                <ol className={s.list} style={{ listStyle: 'decimal', paddingLeft: 20 }}>
+                  <li className={s.copy} style={{ padding: '3px 0' }}>Five-Minute Clock Tracks Your Pace</li>
+                  <li className={s.copy} style={{ padding: '3px 0' }}>Answer GTO Questions As Fast As You Can</li>
+                  <li className={s.copy} style={{ padding: '3px 0' }}>Game Auto-Selects Your Weakest Area</li>
+                  <li className={s.copy} style={{ padding: '3px 0' }}>Finish The Signed Arena To See Verified Results</li>
+                </ol>
+              </section>
+            </>
           )}
 
           {/* RESULTS STATE */}
           {phase === 'results' && (
-            <motion.div
+            <motion.section
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              style={{ textAlign: 'center', padding: '20px 0' }}
+              className={`sd-panel ${s.panel}`}
+              aria-labelledby="warmup-results-title"
             >
-              <div style={{ fontSize: 40, marginBottom: 12 }}>
-                {results?.accuracy >= 80 ? '▲' : results?.accuracy >= 60 ? '✓' : '▲'}
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--sp-fg)', marginBottom: 4 }}>
-                Warmup Complete
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 24 }}>
-                {results?.game?.name || 'GTO Training'}
-              </div>
+              <p className={s.eyebrow}>{results?.game?.name || 'GTO Training'}</p>
+              <h2 id="warmup-results-title" className={s.sectionTitle}>Warmup Complete</h2>
 
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr 1fr',
-                  gap: 8,
-                  marginBottom: 24,
-                }}
-              >
-                <div
-                  style={{
-                    padding: '16px 10px',
-                    borderRadius: 12,
-                    background: 'rgba(0,0,0,0.2)',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 28,
-                      fontWeight: 900,
-                      color: (results?.accuracy || 0) >= 75 ? 'var(--sp-accent-green)' : '#86daff',
-                    }}
-                  >
-                    {results?.accuracy || 0}%
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                    ACCURACY
-                  </div>
+              <div className={s.metrics3}>
+                <div className={`sd-metric ${s.metric}`}>
+                  <strong className={s.metricValue} data-tone={(results?.accuracy || 0) >= 75 ? 'up' : 'ice'}>{results?.accuracy || 0}%</strong>
+                  <span className={s.metricLabel}>Accuracy</span>
                 </div>
-                <div
-                  style={{
-                    padding: '16px 10px',
-                    borderRadius: 12,
-                    background: 'rgba(0,0,0,0.2)',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                  }}
-                >
-                  <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-accent-cyan)' }}>
-                    {results?.questionsAnswered || 0}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                    QUESTIONS
-                  </div>
+                <div className={`sd-metric ${s.metric}`}>
+                  <strong className={s.metricValue} data-tone="ice">{results?.questionsAnswered || 0}</strong>
+                  <span className={s.metricLabel}>Questions</span>
                 </div>
-                <div
-                  style={{
-                    padding: '16px 10px',
-                    borderRadius: 12,
-                    background: 'rgba(0,0,0,0.2)',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                  }}
-                >
-                  <div style={{ fontSize: 28, fontWeight: 900, color: '#86daff' }}>
-                    {formatTime(results?.timeUsed || 0)}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
-                    TIME
-                  </div>
+                <div className={`sd-metric ${s.metric}`}>
+                  <strong className={s.metricValue}>{formatTime(results?.timeUsed || 0)}</strong>
+                  <span className={s.metricLabel}>Time</span>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className={s.actions}>
                 <motion.button
+                  type="button"
                   whileTap={{ scale: 0.97 }}
                   onClick={startWarmup}
-                  style={{
-                    flex: 1,
-                    padding: '14px',
-                    borderRadius: 12,
-                    border: 'none',
-                    background: 'linear-gradient(135deg, rgba(var(--sp-accent-cyan-rgb), 1), rgba(var(--sp-accent-blue-rgb), 1))',
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 20px rgba(0,212,255,0.25)',
-                  }}
+                  className={`sd-button sd-primary ${s.button}`}
                 >
                   Play Again
                 </motion.button>
                 <motion.button
+                  type="button"
                   whileTap={{ scale: 0.97 }}
                   onClick={() => router.push('/hub/training')}
-                  style={{
-                    padding: '14px 20px',
-                    borderRadius: 12,
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    background: 'rgba(255,255,255,0.03)',
-                    color: 'var(--sp-fg-muted)',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
+                  className={`sd-button ${s.button}`}
                 >
                   Done
                 </motion.button>
               </div>
-            </motion.div>
+            </motion.section>
           )}
+          {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchSessions(); }} />}
         </div>
       </div>
-      {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchSessions(); }} />}
       <HubPageSummary page="training-quick-warmup" />
       <ConnectionToast />
     </>

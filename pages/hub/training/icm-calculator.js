@@ -11,7 +11,8 @@
 // TRAIN-CSS-TOKENS-BATCH4-2 — hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH5-23 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-20 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import BankrollImageHeader from '../../../src/components/bankroll/BankrollImageHeader';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import sd from '../../../src/styles/training/training-smarterdesign.module.css';
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -104,7 +105,12 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 // CONSTANTS
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-const PLAYER_COLORS = ['#c4ecff', '#65aaff', '#b4c9db', '#63d3e2', '#9dbcf7', '#73bace', '#e4f1ff', '#87a9c7', '#aaced7'];
+const ordinal = (n) => {
+  const rem = n % 100;
+  if (rem >= 11 && rem <= 13) return `${n}th`;
+  return `${n}${({ 1: 'st', 2: 'nd', 3: 'rd' })[n % 10] || 'th'}`;
+};
+
 
 const PRESETS = [
   {
@@ -120,13 +126,13 @@ const PRESETS = [
     prizePool: 5000,
   },
   {
-    label: 'Bubble (5 left, 4 paid)',
+    label: 'Bubble (5 Left, 4 Paid)',
     stacks: [25000, 20000, 18000, 15000, 12000],
     prizes: [40, 27, 19, 14],
     prizePool: 5000,
   },
   {
-    label: 'Heads-Up (2 left)',
+    label: 'Heads-Up (2 Left)',
     stacks: [60000, 40000],
     prizes: [60, 40],
     prizePool: 2000,
@@ -138,7 +144,7 @@ const PRESETS = [
     prizePool: 3000,
   },
   {
-    label: 'Satellite (4 seats)',
+    label: 'Satellite (4 Seats)',
     stacks: [20000, 18000, 15000, 12000, 10000],
     prizes: [25, 25, 25, 25],
     prizePool: 4000,
@@ -333,941 +339,297 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
         markdownUrl="https://smarter.poker/tools/icm-calculator.md"
       />
 
-      <div
-        className="sp-training-tool sp-training-tool--analysis sp-analysis-icm"
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <BankrollImageHeader art="poker_mtt" title="ICM Calculator" helpContent={<><p>Enter Each Remaining Stack, The Prize Pool And The Payout Percentages. Calculate To See Each Seat’s Tournament Equity. You Can Use The Calculator Without Having To Sign In.</p>
-          {/* Related Tournament Action: Freerolls */}
-          <div
-            style={{
-              marginTop: 20,
-              padding: '16px 18px',
-              background: 'rgba(86, 216, 255, 0.04)',
-              border: '1px solid rgba(86, 216, 255, 0.2)',
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 12,
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#bce5ff' }}>
-                Test Your ICM Skills In Daily Freerolls
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
-                Put Tournament Equity Strategy Into Action With Zero Entry Fee And Real Guaranteed Prizes.
-              </div>
-            </div>
-            <button
-              onClick={() => router.push('/freerolls')}
-              style={{
-                background: 'linear-gradient(135deg, #bce5ff, #186ac3)',
-                color: '#000000',
-                fontWeight: 700,
-                fontSize: 12,
-                border: 'none',
-                borderRadius: 8,
-                padding: '8px 16px',
-                cursor: 'pointer',
-              }}
-            >
-              View Freeroll Schedule
-            </button>
-          </div>
-
-          {/* About */}
-          <div
-            style={{
-              marginTop: 20,
-              padding: '14px 18px',
-              background: 'rgba(255,255,255,0.02)',
-              borderRadius: 10,
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-                marginBottom: 6,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              About ICM
-            </div>
-            <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>
-              The Independent Chip Model (ICM) Converts Tournament Chip Stacks Into Real Dollar
-              Equity Based On The Prize Structure. Unlike Chip EV (Where Each Chip Is Worth The
-              Same), ICM Accounts For The Diminishing Value Of Chips - The Chip Leader's Stack Is
-              Worth Less Per Chip Than A Short Stack's. The Bubble Factor Measures This Effect:
-              Values Above 1.0 Mean Survival Is More Important Than Accumulation.
-            </p>
-          </div>
-
-          {/* Frequently Asked Questions */}
-          <section
-            aria-label="Frequently Asked Questions"
-            style={{
-              marginTop: 20,
-              padding: '16px 18px',
-              background: 'rgba(255,255,255,0.02)',
-              borderRadius: 10,
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <h2
-              style={{
-                fontSize: 14,
-                fontWeight: 800,
-                color: 'var(--sp-fg)',
-                letterSpacing: 0.5,
-                margin: '0 0 12px 0',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Frequently Asked Questions
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {ICM_CALCULATOR_FAQS.map((faq, idx) => (
-                <details
-                  key={idx}
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: 8,
-                    padding: '10px 14px',
-                    color: 'var(--sp-fg)',
-                  }}
-                >
-                  <summary
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 13,
-                      cursor: 'pointer',
-                      color: '#86daff',
-                      outline: 'none',
-                    }}
-                  >
-                    {faq.question}
-                  </summary>
-                  <p
-                    style={{
-                      margin: '8px 0 0',
-                      fontSize: 12,
-                      lineHeight: 1.6,
-                      color: 'var(--sp-fg-muted)',
-                    }}
-                  >
-                    {faq.answer}
+      <div className="sp-training-tool sp-training-tool--analysis sp-analysis-icm">
+        <div className={sd.page}>
+          <TrainingPageHead
+            slug="icm"
+            title="ICM Calculator"
+            helpContent={
+              <>
+                <p>Enter Each Remaining Stack, The Prize Pool And The Payout Percentages. Calculate To See Each Seat’s Tournament Equity. You Can Use The Calculator Without Having To Sign In.</p>
+                <div className={sd.helpBlock}>
+                  <h3>About ICM</h3>
+                  <p>
+                    The Independent Chip Model (ICM) Converts Tournament Chip Stacks Into Real Dollar
+                    Equity Based On The Prize Structure. Unlike Chip EV (Where Each Chip Is Worth The
+                    Same), ICM Accounts For The Diminishing Value Of Chips - The Chip Leader's Stack Is
+                    Worth Less Per Chip Than A Short Stack's. The Bubble Factor Measures This Effect:
+                    Values Above 1.0 Mean Survival Is More Important Than Accumulation.
                   </p>
-                </details>
-              ))}
-            </div>
-          </section>
-
-          {/* Related Poker Tools & Comparisons */}
-          <section
-            aria-label="Related Poker Tools And Software Comparisons"
-            style={{
-              marginTop: 24,
-              padding: '16px 20px',
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 8,
-            }}
-          >
-            <h3
-              style={{
-                fontSize: 14,
-                fontWeight: 800,
-                color: 'var(--sp-fg)',
-                margin: '0 0 10px 0',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Related Poker Tools And Software Comparisons
-            </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              <Link
-                href="/compare"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  background: 'rgba(78, 156, 255, 0.1)',
-                  border: '1px solid rgba(78, 156, 255, 0.3)',
-                  borderRadius: 6,
-                  color: '#4E9CFF',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                }}
-              >
-                Compare ICM Calculator Vs. ICMIZER
-              </Link>
-              <Link
-                href="/freerolls"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  background: 'rgba(0, 230, 118, 0.1)',
-                  border: '1px solid rgba(0, 230, 118, 0.3)',
-                  borderRadius: 6,
-                  color: '#00E676',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                }}
-              >
-                Play Daily Freerolls
-              </Link>
-              <Link
-                href="/tools/poker-odds-calculator"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 6,
-                  color: 'var(--sp-fg)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                }}
-              >
-                Poker Odds Calculator
-              </Link>
-              <Link
-                href="/tools/preflop-ranges"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 6,
-                  color: 'var(--sp-fg)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                }}
-              >
-                13x13 GTO Preflop Ranges
-              </Link>
-            </div>
-          </section>
-
-          <CitationBacklinkBox
-            title="Malmuth-Harville Tournament ICM & Bubble Factor Calculator"
-            canonicalUrl="https://smarter.poker/tools/icm-calculator"
-            badgeType="gto"
-            badgeLabel="GTO Math Verified"
-            badgeValue="Smarter.Poker ICM Solver"
-            summary="Free Tournament Independent Chip Model (ICM) Calculator Converting Chip Stacks To Real Dollar Equity And Bubble Factors."
-            slug="icm-calculator"
+                </div>
+                {/* Related Tournament Action: Freerolls */}
+                <div className={sd.helpBlock}>
+                  <h3>Test Your ICM Skills In Daily Freerolls</h3>
+                  <p>Put Tournament Equity Strategy Into Action With Zero Entry Fee And Real Guaranteed Prizes.</p>
+                  <button type="button" className="sd-button sd-primary" onClick={() => router.push('/freerolls')}>
+                    View Freeroll Schedule
+                  </button>
+                </div>
+                {/* Related Poker Tools & Comparisons */}
+                <section className={sd.helpBlock} aria-label="Related Poker Tools And Software Comparisons">
+                  <h3>Related Poker Tools And Software Comparisons</h3>
+                  <div className={sd.chips}>
+                    <Link href="/compare" className="sd-button">Compare ICM Calculator Vs. ICMIZER</Link>
+                    <Link href="/freerolls" className="sd-button">Play Daily Freerolls</Link>
+                    <Link href="/tools/poker-odds-calculator" className="sd-button">Poker Odds Calculator</Link>
+                    <Link href="/tools/preflop-ranges" className="sd-button">13x13 GTO Preflop Ranges</Link>
+                  </div>
+                </section>
+                <CitationBacklinkBox
+                  title="Malmuth-Harville Tournament ICM & Bubble Factor Calculator"
+                  canonicalUrl="https://smarter.poker/tools/icm-calculator"
+                  badgeType="gto"
+                  badgeLabel="GTO Math Verified"
+                  badgeValue="Smarter.Poker ICM Solver"
+                  summary="Free Tournament Independent Chip Model (ICM) Calculator Converting Chip Stacks To Real Dollar Equity And Bubble Factors."
+                  slug="icm-calculator"
+                />
+                <AiPromptLauncher
+                  title="Malmuth-Harville Tournament ICM & Bubble Factor Calculator"
+                  canonicalUrl="https://smarter.poker/tools/icm-calculator"
+                  markdownUrl="https://smarter.poker/tools/icm-calculator.md"
+                />
+              </>
+            }
           />
-          <AiPromptLauncher
-            title="Malmuth-Harville Tournament ICM & Bubble Factor Calculator"
-            canonicalUrl="https://smarter.poker/tools/icm-calculator"
-            markdownUrl="https://smarter.poker/tools/icm-calculator.md"
-          />
-          </>} />
-        <div className="sp-training-analysis-main" style={{ padding: '16px 24px', maxWidth: 700, margin: '0 auto' }}>
-          {!online && <p role="status">The Calculator Works Offline While This Page Is Open.</p>}
-          {/* Quick Presets */}
-          <div style={{ marginBottom: 14 }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--sp-fg-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-                marginBottom: 6,
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              Quick Presets
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {PRESETS.map((p, i) => (
-                <button
-                  key={i}
-                  onClick={() => loadPreset(p)}
-                  style={{
-                    padding: '5px 10px',
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: 'none',
-                    background: 'rgba(86,216,255,0.1)',
-                    color: '#86daff',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Chip Stacks Input */}
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 12,
-              padding: '14px 16px',
-              marginBottom: 12,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 10,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                }}
-              >
-                Chip Stacks ({stacks.length} Players)
-              </div>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <button
-                  onClick={removePlayer}
-                  disabled={stacks.length <= 2}
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 6,
-                    border: 'none',
-                    background:
-                      stacks.length <= 2 ? 'rgba(255,255,255,0.03)' : 'rgba(239,68,68,0.15)',
-                    color: stacks.length <= 2 ? 'var(--sp-fg-faint)' : 'var(--sp-accent-red)',
-                    cursor: stacks.length <= 2 ? 'default' : 'pointer',
-                    fontSize: 14,
-                    fontWeight: 900,
-                    lineHeight: '24px',
-                  }}
-                >
-                  -
-                </button>
-                <button
-                  onClick={addPlayer}
-                  disabled={stacks.length >= 9}
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 6,
-                    border: 'none',
-                    background:
-                      stacks.length >= 9 ? 'rgba(255,255,255,0.03)' : 'rgba(34,197,94,0.15)',
-                    color: stacks.length >= 9 ? 'var(--sp-fg-faint)' : 'var(--sp-accent-green)',
-                    cursor: stacks.length >= 9 ? 'default' : 'pointer',
-                    fontSize: 14,
-                    fontWeight: 900,
-                    lineHeight: '24px',
-                  }}
-                >
-                  +
-                </button>
-              </div>
-            </div>
+          <div className="sp-training-analysis-main" style={{ display: 'grid', gap: 14, minWidth: 0 }}>
+            {!online && <p role="status" className={sd.offline}>The Calculator Works Offline While This Page Is Open.</p>}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {stacks.map((stack, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: PLAYER_COLORS[i],
-                      width: 14,
-                      textAlign: 'center',
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                    }}
-                  >
-                    {i + 1}
-                  </span>
-                  <input
-                    aria-label={`Player ${i + 1} Stack`}
-                    type="number"
-                    value={stack}
-                    onChange={(e) => updateStack(i, e.target.value)}
-                    style={{
-                      flex: 1,
-                      background: 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${PLAYER_COLORS[i]}20`,
-                      borderRadius: 6,
-                      padding: '6px 10px',
-                      color: 'var(--sp-fg)',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      outline: 'none',
-                      fontFamily: "'Inter', sans-serif",
-                    }}
-                  />
-                  <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 600, minWidth: 36 }}>
-                    {totalChips > 0 ? `${Math.round((stack / totalChips) * 1000) / 10}%` : '0%'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Prize Structure */}
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 12,
-              padding: '14px 16px',
-              marginBottom: 12,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 10,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--sp-fg-dim)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                }}
-              >
-                Prize Structure ({prizes.length} Places)
-              </div>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <button
-                  onClick={removePrize}
-                  disabled={prizes.length <= 1}
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 6,
-                    border: 'none',
-                    background:
-                      prizes.length <= 1 ? 'rgba(255,255,255,0.03)' : 'rgba(239,68,68,0.15)',
-                    color: prizes.length <= 1 ? 'var(--sp-fg-faint)' : 'var(--sp-accent-red)',
-                    cursor: prizes.length <= 1 ? 'default' : 'pointer',
-                    fontSize: 14,
-                    fontWeight: 900,
-                    lineHeight: '24px',
-                  }}
-                >
-                  -
-                </button>
-                <button
-                  onClick={addPrize}
-                  disabled={prizes.length >= 9}
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 6,
-                    border: 'none',
-                    background:
-                      prizes.length >= 9 ? 'rgba(255,255,255,0.03)' : 'rgba(34,197,94,0.15)',
-                    color: prizes.length >= 9 ? 'var(--sp-fg-faint)' : 'var(--sp-accent-green)',
-                    cursor: prizes.length >= 9 ? 'default' : 'pointer',
-                    fontSize: 14,
-                    fontWeight: 900,
-                    lineHeight: '24px',
-                  }}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {prizes.map((prize, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: '#86daff',
-                      width: 20,
-                      textAlign: 'right',
-                    }}
-                  >
-                    {i + 1}st
-                  </span>
-                  <input
-                    aria-label={`Place ${i + 1} Prize Percentage`}
-                    type="number"
-                    value={prize}
-                    onChange={(e) => updatePrize(i, e.target.value)}
-                    step="0.5"
-                    style={{
-                      flex: 1,
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(234,179,8,0.15)',
-                      borderRadius: 6,
-                      padding: '6px 10px',
-                      color: 'var(--sp-fg)',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      outline: 'none',
-                      fontFamily: "'Inter', sans-serif",
-                    }}
-                  />
-                  <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>%</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Prize Pool */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                marginTop: 10,
-                paddingTop: 10,
-                borderTop: '1px solid rgba(255,255,255,0.06)',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: '#86daff',
-                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                }}
-              >
-                POOL $
-              </span>
-              <input
-                aria-label="Total Prize Pool"
-                type="number"
-                value={prizePool}
-                onChange={(e) => setPrizePool(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                style={{
-                  flex: 1,
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(234,179,8,0.2)',
-                  borderRadius: 6,
-                  padding: '6px 10px',
-                  color: '#86daff',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  outline: 'none',
-                  fontFamily: "'Inter', sans-serif",
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Calculate Button */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-            <motion.button
-              className="sp-analysis-primary-action"
-              whileTap={{ scale: 0.97 }}
-              onClick={calculate}
-              disabled={loading}
-              style={{
-                flex: 1,
-                padding: '12px 0',
-                borderRadius: 10,
-                border: 'none',
-                background: loading
-                  ? 'rgba(86,216,255,0.28)'
-                  : 'linear-gradient(135deg, #17447a, #1469bb)',
-                color: '#fff',
-                fontSize: 13,
-                fontWeight: 800,
-                cursor: loading ? 'wait' : 'pointer',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              {loading ? 'Calculating...' : error ? 'Retry Calculation' : 'Calculate ICM'}
-            </motion.button>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div
-              style={{
-                padding: '10px 14px',
-                background: 'rgba(239,68,68,0.1)',
-                border: '1px solid rgba(239,68,68,0.3)',
-                borderRadius: 8,
-                color: 'var(--sp-accent-red)',
-                fontSize: 12,
-                fontWeight: 600,
-                marginBottom: 14,
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          {/* Horse Brain Tournament & ICM/PKO Engine Panel */}
-
-          {/* Results */}
-          <AnimatePresence>
-            {results && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                {/* Summary */}
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 12,
-                    marginBottom: 14,
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  {[
-                    {
-                      label: 'Prize Pool',
-                      value: `$${results.totalPrizePool.toLocaleString()}`,
-                      color: '#86daff',
-                    },
-                    {
-                      label: 'Total Chips',
-                      value: results.totalChips.toLocaleString(),
-                      color: 'var(--sp-fg-muted)',
-                    },
-                    {
-                      label: 'Bubble Factor · Seat 1 Vs 2',
-                      value: results.bubbleFactor == null ? 'N/A' : results.bubbleFactor.toFixed(2),
-                      color: results.bubbleFactor > 1.1 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
-                    },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      style={{
-                        flex: '1 1 100px',
-                        textAlign: 'center',
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        borderRadius: 8,
-                        padding: '8px 10px',
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 16,
-                          fontWeight: 900,
-                          color: item.color,
-                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                        }}
-                      >
-                        {item.value}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: 'var(--sp-fg-dim)',
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          letterSpacing: 1,
-                        }}
-                      >
-                        {item.label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Results Table */}
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: 12,
-                    overflow: 'hidden',
-                    marginBottom: 14,
-                  }}
-                >
-                  {/* Table Header */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '32px 1fr 60px 70px 70px 60px',
-                      padding: '8px 12px',
-                      background: 'rgba(255,255,255,0.04)',
-                      borderBottom: '1px solid rgba(255,255,255,0.06)',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-dim)',
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    <span>#</span>
-                    <span>Chips</span>
-                    <span style={{ textAlign: 'right' }}>Chip%</span>
-                    <span style={{ textAlign: 'right' }}>ICM $</span>
-                    <span style={{ textAlign: 'right' }}>ICM%</span>
-                    <span style={{ textAlign: 'right' }}>Diff $</span>
-                  </div>
-
-                  {/* Table Rows */}
-                  {results.results.map((r, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '32px 1fr 60px 70px 70px 60px',
-                        padding: '8px 12px',
-                        borderBottom:
-                          i < results.results.length - 1
-                            ? '1px solid rgba(255,255,255,0.04)'
-                            : 'none',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 900,
-                          color: PLAYER_COLORS[i],
-                          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                        }}
-                      >
-                        {r.player}
-                      </span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg)' }}>
-                        {r.chips.toLocaleString()}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: 'var(--sp-fg-muted)',
-                          textAlign: 'right',
-                        }}
-                      >
-                        {r.chipPct}%
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 800,
-                          textAlign: 'right',
-                          color: '#86daff',
-                        }}
-                      >
-                        ${(Number.isFinite(Number(r.icmDollars)) ? Number(r.icmDollars) : 0).toFixed(0)}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          textAlign: 'right',
-                          color: '#86daff',
-                        }}
-                      >
-                        {r.icmPct}%
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          textAlign: 'right',
-                          color: r.difference >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
-                        }}
-                      >
-                        {r.difference >= 0 ? '+' : ''}
-                        {(Number.isFinite(Number(r.difference)) ? Number(r.difference) : 0).toFixed(0)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Equity Bars — Chip% vs ICM% */}
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: 12,
-                    padding: '14px 16px',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-dim)',
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      marginBottom: 10,
-                      fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                    }}
-                  >
-                    Chip% Vs ICM% Comparison
-                  </div>
-
-                  {results.results.map((r, i) => (
-                    <div key={i} style={{ marginBottom: 8 }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          marginBottom: 3,
-                        }}
-                      >
-                        <span style={{ color: PLAYER_COLORS[i] }}>Player {r.player}</span>
-                        <span style={{ color: 'var(--sp-fg-dim)' }}>
-                          Chip {r.chipPct}% | ICM {r.icmPct}%
-                        </span>
-                      </div>
-                      {/* Chip% bar */}
-                      <div
-                        style={{
-                          height: 6,
-                          borderRadius: 3,
-                          marginBottom: 2,
-                          background: 'rgba(255,255,255,0.06)',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(r.chipPct, 100)}%` }}
-                          transition={{ duration: MOTION.slow, delay: i * 0.05 }}
-                          style={{
-                            height: '100%',
-                            borderRadius: 3,
-                            background: `${PLAYER_COLORS[i]}60`,
-                          }}
-                        />
-                      </div>
-                      {/* ICM% bar */}
-                      <div
-                        style={{
-                          height: 6,
-                          borderRadius: 3,
-                          background: 'rgba(255,255,255,0.06)',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(r.icmPct, 100)}%` }}
-                          transition={{ duration: MOTION.slow, delay: i * 0.05 + 0.1 }}
-                          style={{
-                            height: '100%',
-                            borderRadius: 3,
-                            background: PLAYER_COLORS[i],
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 16,
-                      marginTop: 8,
-                      fontSize: 12,
-                      color: 'var(--sp-fg-dim)',
-                      fontWeight: 600,
-                    }}
-                  >
-                    <span>Top Bar = Chip%</span>
-                    <span>Bottom Bar = ICM%</span>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* ICM Preflop Ranges Tab */}
-          <div style={{ marginTop: 20 }}>
-            <div
-              style={{
-                display: 'flex',
-                gap: 6,
-                marginBottom: 12,
-              }}
-            >
+            {/* Calculator / Push-Fold view switch */}
+            <div className={sd.segmented} role="group" aria-label="ICM Views">
               {[
                 { key: 'calculator', label: 'ICM Calculator' },
                 { key: 'ranges', label: 'ICM Push/Fold Ranges' },
               ].map((tab) => (
                 <button
                   key={tab.key}
+                  type="button"
+                  className="sd-button"
+                  aria-pressed={icmView === tab.key}
                   onClick={() => setIcmView(tab.key)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 8,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: 'none',
-                    transition: 'all 0.15s',
-                    background:
-                      icmView === tab.key
-                        ? 'linear-gradient(135deg, #17447a, #1469bb)'
-                        : 'rgba(255,255,255,0.06)',
-                    color: icmView === tab.key ? '#fff' : 'var(--sp-fg-muted)',
-                  }}
                 >
                   {tab.label}
                 </button>
               ))}
-
             </div>
 
-            <AnimatePresence mode="wait">
-              {icmView === 'ranges' && (
-                <motion.div
-                  key="icm-ranges"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                >
-                  <VerifiedToolGateway
-                    eyebrow="Graded Tournament Training"
-                    title="Practice ICM Push Or Fold"
-                    description="Open the Club Arena drill for authored tournament decisions, explicit feedback, and manual Next controls. The calculator does not manufacture a push range from a percentage threshold."
-                    href="/hub/training/arena/mtt-002?level=1"
-                    action="Open Push Or Fold Training"
-                    source="Versioned Tournament Corpus"
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+            {icmView === 'ranges' && (
+              <VerifiedToolGateway
+                eyebrow="Graded Tournament Training"
+                title="Practice ICM Push Or Fold"
+                description="Open the Club Arena drill for authored tournament decisions, explicit feedback, and manual Next controls. The calculator does not manufacture a push range from a percentage threshold."
+                href="/hub/training/arena/mtt-002?level=1"
+                action="Open Push Or Fold Training"
+                source="Versioned Tournament Corpus"
+              />
+            )}
 
+            {icmView === 'calculator' && (
+              <>
+                {/* Quick Presets */}
+                <section className={`sd-panel ${sd.panel}`} aria-labelledby="icm-presets-title">
+                  <h2 id="icm-presets-title" className={sd.sectionTitle}>Quick Presets</h2>
+                  <div className={sd.chips}>
+                    {PRESETS.map((p, i) => (
+                      <button key={i} type="button" className="sd-button" onClick={() => loadPreset(p)}>
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Chip Stacks Input */}
+                <section className={`sd-panel ${sd.panel}`} aria-labelledby="icm-stacks-title">
+                  <div className={sd.panelHead}>
+                    <h2 id="icm-stacks-title" className={sd.sectionTitle}>Chip Stacks ({stacks.length} Players)</h2>
+                    <div className={sd.stepper}>
+                      <button type="button" className="sd-button" onClick={removePlayer} disabled={stacks.length <= 2} aria-label="Remove A Player">-</button>
+                      <button type="button" className="sd-button" onClick={addPlayer} disabled={stacks.length >= 9} aria-label="Add A Player">+</button>
+                    </div>
+                  </div>
+                  <div className={sd.fieldList}>
+                    {stacks.map((stack, i) => (
+                      <div key={i} className={sd.fieldRow}>
+                        <span className={sd.seatTag} aria-hidden="true">{i + 1}</span>
+                        <input
+                          className={sd.input}
+                          aria-label={`Player ${i + 1} Stack`}
+                          type="number"
+                          inputMode="numeric"
+                          value={stack}
+                          onChange={(e) => updateStack(i, e.target.value)}
+                        />
+                        <span className={sd.unit}>
+                          {totalChips > 0 ? `${Math.round((stack / totalChips) * 1000) / 10}%` : '0%'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Prize Structure */}
+                <section className={`sd-panel ${sd.panel}`} aria-labelledby="icm-prizes-title">
+                  <div className={sd.panelHead}>
+                    <h2 id="icm-prizes-title" className={sd.sectionTitle}>Prize Structure ({prizes.length} Places)</h2>
+                    <div className={sd.stepper}>
+                      <button type="button" className="sd-button" onClick={removePrize} disabled={prizes.length <= 1} aria-label="Remove A Paid Place">-</button>
+                      <button type="button" className="sd-button" onClick={addPrize} disabled={prizes.length >= 9} aria-label="Add A Paid Place">+</button>
+                    </div>
+                  </div>
+                  <div className={sd.fieldList}>
+                    {prizes.map((prize, i) => (
+                      <div key={i} className={sd.fieldRow}>
+                        <span className={`${sd.seatTag} no-capitalize`} aria-hidden="true">{ordinal(i + 1)}</span>
+                        <input
+                          className={sd.input}
+                          aria-label={`Place ${i + 1} Prize Percentage`}
+                          type="number"
+                          inputMode="decimal"
+                          value={prize}
+                          onChange={(e) => updatePrize(i, e.target.value)}
+                          step="0.5"
+                        />
+                        <span className={sd.unit}>%</span>
+                      </div>
+                    ))}
+                  </div>
+                  <hr className={sd.rule} />
+                  {/* Prize Pool */}
+                  <label className={sd.poolRow}>
+                    <span className={sd.poolLabel}>Prize Pool ($)</span>
+                    <input
+                      className={sd.input}
+                      aria-label="Total Prize Pool"
+                      type="number"
+                      inputMode="numeric"
+                      value={prizePool}
+                      onChange={(e) => setPrizePool(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                    />
+                  </label>
+                </section>
+
+                {/* Calculate Button */}
+                <motion.button
+                  type="button"
+                  className={`sp-analysis-primary-action sd-button sd-primary ${sd.primaryAction}`}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={calculate}
+                  disabled={loading}
+                >
+                  {loading ? 'Calculating...' : error ? 'Retry Calculation' : 'Calculate ICM'}
+                </motion.button>
+
+                {/* Error */}
+                {error && <p role="alert" className={sd.error}>{error}</p>}
+
+                {/* Results */}
+                <AnimatePresence>
+                  {results && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'grid', gap: 14 }}>
+                      {/* Summary */}
+                      <div className={sd.metrics}>
+                        {[
+                          { label: 'Prize Pool', value: `$${results.totalPrizePool.toLocaleString()}`, tone: 'ice' },
+                          { label: 'Total Chips', value: results.totalChips.toLocaleString() },
+                          {
+                            label: 'Bubble Factor · Seat 1 Vs 2',
+                            value: results.bubbleFactor == null ? 'N/A' : results.bubbleFactor.toFixed(2),
+                            tone: results.bubbleFactor == null ? undefined : results.bubbleFactor > 1.1 ? 'down' : 'up',
+                          },
+                        ].map((item) => (
+                          <div key={item.label} className={`sd-metric ${sd.metric}`}>
+                            <span className={sd.metricLabel}>{item.label}</span>
+                            <strong className={sd.metricValue} data-tone={item.tone}>{item.value}</strong>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Results Table */}
+                      <section className={`sd-panel ${sd.panel}`} aria-labelledby="icm-results-title">
+                        <h2 id="icm-results-title" className={sd.sectionTitle}>Tournament Equity By Seat</h2>
+                        <div className={sd.table} role="table" aria-label="ICM Results">
+                          <div className={`${sd.tableRow} ${sd.tableHead}`} role="row">
+                            <span role="columnheader">Seat</span>
+                            <span role="columnheader">Chips</span>
+                            <span role="columnheader">Chip %</span>
+                            <span role="columnheader">ICM $</span>
+                            <span role="columnheader">ICM %</span>
+                            <span role="columnheader">Diff $</span>
+                          </div>
+                          {results.results.map((r, i) => {
+                            const diff = Number.isFinite(Number(r.difference)) ? Number(r.difference) : 0;
+                            return (
+                              <div key={i} className={sd.tableRow} role="row">
+                                <span role="cell"><span className={`${sd.seatTag} ${sd.seatSmall}`}>{r.player}</span></span>
+                                <span role="cell" className={sd.cell}>{r.chips.toLocaleString()}</span>
+                                <span role="cell" className={`${sd.cell} ${sd.cellMuted}`}>{r.chipPct}%</span>
+                                <span role="cell" className={`${sd.cell} ${sd.cellIce}`}>
+                                  ${(Number.isFinite(Number(r.icmDollars)) ? Number(r.icmDollars) : 0).toFixed(0)}
+                                </span>
+                                <span role="cell" className={sd.cell}>{r.icmPct}%</span>
+                                <span role="cell" className={`${sd.cell} ${diff >= 0 ? sd.cellUp : sd.cellDown}`}>
+                                  {diff >= 0 ? '+' : '-'}${Math.abs(diff).toFixed(0)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </section>
+
+                      {/* Equity Bars — Chip% vs ICM% */}
+                      <section className={`sd-panel ${sd.panel}`} aria-labelledby="icm-bars-title">
+                        <h2 id="icm-bars-title" className={sd.sectionTitle}>Chip % Vs ICM % Comparison</h2>
+                        <div className={sd.bars}>
+                          {results.results.map((r, i) => (
+                            <div key={i}>
+                              <div className={sd.barHead}>
+                                <span>Player {r.player}</span>
+                                <span>Chip {r.chipPct}% · ICM {r.icmPct}%</span>
+                              </div>
+                              <div className={sd.track}>
+                                <motion.div
+                                  className={sd.fill}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${Math.min(r.chipPct, 100)}%` }}
+                                  transition={{ duration: MOTION.slow, delay: i * 0.05 }}
+                                />
+                              </div>
+                              <div className={sd.track}>
+                                <motion.div
+                                  className={`${sd.fill} ${sd.fillIcm}`}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${Math.min(r.icmPct, 100)}%` }}
+                                  transition={{ duration: MOTION.slow, delay: i * 0.05 + 0.1 }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className={sd.legend}>
+                          <span><i className={sd.swatch} aria-hidden="true" />Top Bar = Chip %</span>
+                          <span><i className={`${sd.swatch} ${sd.swatchIcm}`} aria-hidden="true" />Bottom Bar = ICM %</span>
+                        </div>
+                      </section>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            )}
+
+            {/* Frequently Asked Questions (also published as the FAQPage schema) */}
+            <section className={`sd-panel ${sd.panel}`} aria-label="Frequently Asked Questions">
+              <h2 className={sd.sectionTitle}>Frequently Asked Questions</h2>
+              <div className={sd.faqList}>
+                {ICM_CALCULATOR_FAQS.map((faq) => (
+                  <details key={faq.question} className={sd.faq}>
+                    <summary>{faq.question}</summary>
+                    <p>{faq.answer}</p>
+                  </details>
+                ))}
+              </div>
+            </section>
+          </div>
         </div>
       </div>
     </>

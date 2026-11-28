@@ -1561,6 +1561,14 @@ export function usesConsoleDress(page) {
   return CONSOLE_DRESS_PAGES.has(key) || CONSOLE_DRESS_PREFIXES.some((prefix) => key.startsWith(prefix));
 }
 
+// #SMARTERDESIGN dress: the Training world and Preflop Charts print the same
+// words on the steel standard - one continuous rim per link card, square
+// corners, white titles, silver copy, ice links (2026-11-27).
+export function usesSmarterDesignDress(page) {
+  const key = String(page || '');
+  return key === 'training' || key.startsWith('training-') || key === 'preflop-charts' || key.startsWith('preflop-');
+}
+
 export function lookupHubSummaryEntry(page) {
   if (!page) return null;
   const raw = String(page).trim().replace(/\.md$/i, '');
@@ -1612,7 +1620,7 @@ export default function HubPageSummary({ page, path, as = 'h2' }) {
   // The console pages are printed on the #ClubArenaConsole chassis: black
   // glass, the master's inks and engraved rules, never rounded boxes.
   // The words, links and schema are identical; only the dress follows the page.
-  const styles = usesConsoleDress(page) ? consoleStyles : defaultStyles;
+  const styles = usesConsoleDress(page) ? consoleStyles : usesSmarterDesignDress(page) ? smarterDesignStyles : defaultStyles;
   const headingId = `hub-summary-${page}`;
   const schema = summarySchema(page, entry);
 
@@ -1734,6 +1742,38 @@ const defaultStyles = {
     textDecoration: 'underline',
     marginRight: 10,
   },
+};
+
+const smarterDesignStyles = {
+  ...defaultStyles,
+  section: { ...defaultStyles.section, maxWidth: 1000, padding: '28px 12px 40px' },
+  heading: {
+    ...defaultStyles.heading,
+    fontFamily: "var(--sd-type, var(--font-rajdhani)), system-ui, sans-serif",
+    fontSize: 'clamp(20px, 3vw, 26px)',
+    letterSpacing: 0,
+  },
+  item: {
+    border: '3px solid transparent',
+    borderImage: "url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch",
+    borderRadius: 0,
+    background: 'linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%)',
+    padding: '14px 16px 14px',
+  },
+  link: {
+    display: 'flex',
+    alignItems: 'center',
+    minHeight: 44,
+    fontFamily: "var(--sd-type, var(--font-rajdhani)), system-ui, sans-serif",
+    fontSize: 17,
+    fontWeight: 700,
+    color: '#86daff',
+    textDecoration: 'none',
+    marginBottom: 2,
+    letterSpacing: 0,
+  },
+  itemText: { ...defaultStyles.itemText, color: '#b9c9d6' },
+  compliance: { ...defaultStyles.compliance, color: '#93a8b8' },
 };
 
 // Console dress: the same content printed the way the console prints copy.

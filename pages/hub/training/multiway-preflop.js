@@ -20,6 +20,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/training-play.module.css';
 const CALIBRATION_HERO_CARDS_BY_VARIANT = Object.freeze({
   nlh: ['As', 'Ks'],
   plo4: ['As', 'Ks', 'Qh', 'Jh'],
@@ -188,11 +190,16 @@ function isInRange(hand, rangeStr) {
   );
 }
 
+const toTitleAction = (action) => {
+  const spaced = String(action || '').replace(/([A-Z])/g, ' $1').trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+};
+
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // RANGE GRID COMPONENT
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-function RangeGrid({ rangeStr, color, label }) {
+function RangeGrid({ rangeStr, label }) {
   const grid = useMemo(() => {
     const cells = [];
     for (let r = 0; r < 13; r++) {
@@ -215,44 +222,18 @@ function RangeGrid({ rangeStr, color, label }) {
   const pct = ((handsInRange / 169) * 100).toFixed(1);
 
   return (
-    <div
-      style={{
-        padding: 12,
-        borderRadius: 10,
-        background: 'rgba(0,0,0,0.2)',
-        border: '1px solid rgba(255,255,255,0.06)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 8,
-        }}
-      >
-        <span style={{ fontSize: 12, fontWeight: 700, color }}>{label}</span>
-        <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{pct}% Of Hands</span>
+    <div className={`sd-metric ${s.rangeCard}`}>
+      <div className={s.rangeHead}>
+        <span className={s.rangeLabel}>{label}</span>
+        <span className={s.small}>{pct}% Of Hands</span>
       </div>
-      <div data-allow-small="true" data-stats-grid style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1 }}>
+      <div data-allow-small="true" className={s.rangeGrid} role="img" aria-label={`${label}: ${pct}% Of Hands`}>
         {grid.map((cell, i) => (
           <div
             key={i}
             title={cell.hand}
-            style={{
-              width: '100%',
-              aspectRatio: '1',
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 6,
-              fontWeight: 600,
-              background: cell.inRange ? `${color}50` : 'rgba(255,255,255,0.02)',
-              color: cell.inRange ? '#fff' : '#333',
-              border: `1px solid ${cell.inRange ? `${color}40` : 'transparent'}`,
-              cursor: 'pointer',
-            }}
+            className={s.rangeCell}
+            data-in={cell.inRange ? 'true' : undefined}
           >
             {cell.hand.length <= 3 ? cell.hand : ''}
           </div>
@@ -279,15 +260,6 @@ export default function MultiwayPreflopPage() {
 
 
   const scenario = MULTIWAY_SCENARIOS[selectedScenario];
-  const posColors = {
-    UTG: 'var(--sp-accent-red)',
-    MP: 'var(--sp-accent-orange)',
-    CO: 'var(--sp-accent-amber)',
-    BTN: 'var(--sp-accent-green)',
-    SB: 'var(--sp-accent-blue)',
-    BB: 'var(--sp-accent-purple)',
-    Caller: 'var(--sp-fg-muted)',
-  };
 
   return (
     <>
@@ -297,277 +269,126 @@ export default function MultiwayPreflopPage() {
         canonical="/hub/training/multiway-preflop"
       />
 
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
+      <BottomSheet
+        open={infoOpen}
+        onClose={() => setInfoOpen(false)}
+        title="How Multiway Preflop Works"
+        subtitle="Authored 3+ Player Preflop Examples"
       >
-        {/* Header */}
-        <BottomSheet
-          open={infoOpen}
-          onClose={() => setInfoOpen(false)}
-          title="How Multiway Preflop Works"
-          subtitle="Authored 3+ player preflop examples"
-        >
-          <div style={{ padding: '0 4px', color: 'var(--sp-fg)', fontSize: 13, lineHeight: 1.6 }}>
-            <p style={{ marginTop: 0 }}>
-              In Multiway Pots (3 Or More Players To A Flop), Opening And
-              Defending Ranges <strong>Tighten Significantly</strong> Compared
-              To Heads-Up. More Opponents Means More Hands Beat Top Pair, So
-              Speculative Hands Lose Value And Premium Pairs/Big Aces Gain It.
-            </p>
-            <p>
-              These Examples Are Authored Teaching References, Not
-              Provenance-Sealed Solver Exports. They Are Provided For Pattern
-              Study Only And Do Not Produce A Grade, EV Result, Progress, Or
-              Reward.
-            </p>
-          </div>
-        </BottomSheet>
-
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 10,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 8,
-              padding: '6px 12px',
-              color: 'var(--sp-fg-muted)',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            ← Training
-          </button>
-          <button
-            type="button"
-            onClick={() => setInfoOpen(true)}
-            aria-label="How Multiway Preflop works"
-            style={{
-              background: 'rgba(86, 216, 255, 0.1)',
-              border: '1px solid rgba(86, 216, 255, 0.35)',
-              color: '#86daff',
-              fontSize: 12,
-              fontWeight: 700,
-              padding: '6px 12px',
-              borderRadius: 12,
-              cursor: 'pointer',
-              letterSpacing: 0.4,
-              textTransform: 'uppercase',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            How It Works
-          </button>
-          <h1
-            style={{
-              fontSize: 20,
-              fontWeight: 800,
-              margin: 0,
-              color: '#eef8ff',
-              fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-            }}
-          >
-            Multiway Preflop Reference
-          </h1>
+        <div className={s.sheetCopy}>
+          <p>
+            In Multiway Pots (3 Or More Players To A Flop), Opening And
+            Defending Ranges <strong>Tighten Significantly</strong> Compared
+            To Heads-Up. More Opponents Means More Hands Beat Top Pair, So
+            Speculative Hands Lose Value And Premium Pairs/Big Aces Gain It.
+          </p>
+          <p>
+            These Examples Are Authored Teaching References, Not
+            Provenance-Sealed Solver Exports. They Are Provided For Pattern
+            Study Only And Do Not Produce A Grade, EV Result, Progress, Or
+            Reward.
+          </p>
         </div>
+      </BottomSheet>
 
-        <div style={{ padding: '20px 16px', maxWidth: 800, margin: '0 auto' }}>
-          <div
+      <div className={s.shell}>
+        <main className={s.page}>
+          <TrainingPageHead slug="training-multiway-preflop" note="Authored 3+ Player Preflop Examples">
+            <button type="button" className="sd-button" onClick={() => setInfoOpen(true)}>
+              How It Works
+            </button>
+          </TrainingPageHead>
+
+          <p
             role="note"
             data-training-authority="authored-reference-ungraded"
-            style={{
-              marginBottom: 18,
-              padding: '12px 15px',
-              border: '1px solid rgba(86,216,255,0.3)',
-              background: 'rgba(86,216,255,0.06)',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 12,
-              lineHeight: 1.6,
-            }}
+            className={s.note}
           >
-            <strong style={{ color: '#86daff' }}>Authored Reference · Ungraded.</strong>{' '}
-            These Hand Sets Have No Solver Artifact, Tree Identity, Or Payout Model. Use Them To
-            Explore A Teaching Example; They Never Affect Accuracy, Streaks, Progress, Or Rewards.
-          </div>
+            <span>
+              <strong className={s.ice}>Authored Reference · Ungraded.</strong>{' '}
+              These Hand Sets Have No Solver Artifact, Tree Identity, Or Payout Model. Use Them To
+              Explore A Teaching Example; They Never Affect Accuracy, Streaks, Progress, Or Rewards.
+            </span>
+          </p>
+
           {/* Scenario Selector */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: 8,
-              marginBottom: 20,
-            }}
-          >
-            {Object.entries(MULTIWAY_SCENARIOS || {}).map(([key, s]) => (
-              <motion.button
-                key={key}
-                type="button"
-                aria-pressed={selectedScenario === key}
-                onClick={() => setSelectedScenario(key)}
-                whileHover={{ scale: 1.02 }}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  background:
-                    selectedScenario === key ? 'rgba(86,216,255,0.12)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${selectedScenario === key ? 'rgba(86,216,255,0.4)' : 'rgba(255,255,255,0.06)'}`,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: selectedScenario === key ? '#eef8ff' : 'var(--sp-fg)',
-                    marginBottom: 4,
-                  }}
+          <section className={`sd-panel ${s.panel}`} aria-labelledby="multiway-scenarios">
+            <h2 id="multiway-scenarios" className={s.sectionTitle}>Choose A Scenario</h2>
+            <div className={s.scenarioGrid}>
+              {Object.entries(MULTIWAY_SCENARIOS || {}).map(([key, sc]) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={selectedScenario === key}
+                  onClick={() => setSelectedScenario(key)}
+                  className={`sd-button ${s.destination}`}
                 >
-                  {s.name}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{s.positions.join(' → ')}</div>
-              </motion.button>
-            ))}
-          </div>
-
-          {/* Scenario Description */}
-          <div
-            style={{
-              padding: '12px 16px',
-              borderRadius: 10,
-              marginBottom: 20,
-              background: 'rgba(86,216,255,0.06)',
-              border: '1px solid rgba(86,216,255,0.22)',
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>
-              {scenario.name}
+                  <span className={s.destinationLabel}>{sc.name}</span>
+                  <span className={s.destinationCopy}>{sc.positions.join(' → ')}</span>
+                </button>
+              ))}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{scenario.desc}</div>
-          </div>
+          </section>
 
-          {/* Range Grids for Each Position */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns:
-                scenario.positions.length <= 3 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
-              gap: 12,
-            }}
-          >
-            {scenario.positions.map((pos) => {
-              const rangeData = scenario.ranges[pos] || {};
-              const action = Object.keys(rangeData || {})[0] || 'range';
-              const rangeStr = Object.values(rangeData || {})[0] || '';
-              return (
-                <RangeGrid
-                  key={pos}
-                  rangeStr={rangeStr}
-                  color={posColors[pos] || 'var(--sp-fg-muted)'}
-                  label={`${pos} - ${action.replace(/([A-Z])/g, ' $1').trim()}`}
-                />
-              );
-            })}
-          </div>
+          <section className={`sd-panel ${s.panel}`} aria-labelledby="multiway-scenario-title">
+            {/* Scenario Description */}
+            <h2 id="multiway-scenario-title" className={s.sectionTitle}>{scenario.name}</h2>
+            <p className={s.copy}>{scenario.desc}</p>
 
-          {/* Interaction Legend */}
-          <div
-            style={{
-              marginTop: 20,
-              padding: 12,
-              borderRadius: 10,
-              background: 'rgba(0,0,0,0.2)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 8 }}>
-              Action Flow
+            {/* Range Grids for Each Position */}
+            <div className={s.rangeGrids} data-count={scenario.positions.length}>
+              {scenario.positions.map((pos) => {
+                const rangeData = scenario.ranges[pos] || {};
+                const action = Object.keys(rangeData || {})[0] || 'range';
+                const rangeStr = Object.values(rangeData || {})[0] || '';
+                return (
+                  <RangeGrid
+                    key={pos}
+                    rangeStr={rangeStr}
+                    label={`${pos} - ${toTitleAction(action)}`}
+                  />
+                );
+              })}
             </div>
-            <div data-pills-row style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+
+            {/* Interaction Legend */}
+            <h3 className={s.subTitle}>Action Flow</h3>
+            <div className={s.pills}>
               {scenario.positions.map((pos, i) => {
                 const rangeData = scenario.ranges[pos] || {};
                 const action = Object.keys(rangeData || {})[0] || '';
                 return (
                   <React.Fragment key={pos}>
-                    <div
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        background: `${posColors[pos] || 'var(--sp-fg-muted)'}20`,
-                        color: posColors[pos] || 'var(--sp-fg-muted)',
-                        border: `1px solid ${posColors[pos] || 'var(--sp-fg-muted)'}40`,
-                      }}
-                    >
-                      {pos}: {action.replace(/([A-Z])/g, ' $1').trim()}
-                    </div>
+                    <span className={s.pill}>
+                      {pos}: {toTitleAction(action)}
+                    </span>
                     {i < scenario.positions.length - 1 && (
-                      <span style={{ color: 'var(--sp-fg-faint)', fontSize: 12 }}>→</span>
+                      <span className={s.ice} aria-hidden>→</span>
                     )}
                   </React.Fragment>
                 );
               })}
             </div>
-          </div>
 
-          {/* Authored teaching note */}
-          {scenario.tip && (
-            <div
-              style={{
-                marginTop: 12,
-                padding: '10px 14px',
-                borderRadius: 8,
-                background: 'rgba(0,212,255,0.05)',
-                border: '1px solid rgba(0,212,255,0.15)',
-                fontSize: 12,
-                color: 'var(--sp-fg-muted)',
-              }}
-            >
-              <span style={{ fontWeight: 700, color: 'var(--sp-accent-cyan)', marginRight: 6 }}>AUTHORED NOTE:</span>
-              {scenario.tip}
-            </div>
-          )}
+            {/* Authored teaching note */}
+            {scenario.tip && (
+              <p className={s.note}>
+                <span><strong className={s.ice}>Authored Note: </strong>{scenario.tip}</span>
+              </p>
+            )}
+          </section>
 
           {/* Authority boundary */}
-          <div
-            style={{
-              marginTop: 20,
-              padding: 16,
-              borderRadius: 12,
-              background: 'rgba(0,0,0,0.2)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg)', marginBottom: 8 }}>
-              Why This Page Is Ungraded
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.65 }}>
+          <section className={`sd-panel ${s.panel}`} aria-labelledby="multiway-ungraded">
+            <h2 id="multiway-ungraded" className={s.subTitle}>Why This Page Is Ungraded</h2>
+            <p className={s.copy}>
               A Multiway Decision Depends On Exact Stacks, Raise Sizes, Antes, Payouts, Players,
               And Prior Action. Those Inputs Are Not Proven For These Authored Examples, So A
               Correct/Incorrect Quiz Would Create False Authority. Open A Verified Training Game
               From The Hub When You Want Scored Practice.
-            </div>
-          </div>
-
-        </div>
+            </p>
+          </section>
+        </main>
       </div>
       <HubPageSummary page="training-multiway-preflop" />
     </>

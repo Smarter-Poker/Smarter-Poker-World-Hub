@@ -29,6 +29,8 @@ import {
   setOfflineQuestions,
 } from '../../../src/lib/training/offlineQuestionCache';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import s from '../../../src/styles/training/sessions-coaching.module.css';
 const OFFLINE_PACK_DELIVERY_CONTRACT = createOfflineQuestionCacheContract({
   difficulty: 'standard',
   gameMode: 'full',
@@ -323,264 +325,79 @@ export default function GtoPreloaderPage() {
         description="Download And Cache Solved GTO Poker Scenario Packs And Preflop Range Matrices Into Browser Storage For Offline And Airplane Study On Smarter.Poker."
         canonical="/hub/training/gto-preloader"
       />
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: '#040d18',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', sans-serif",
-        }}
-      >
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: '#0f172a',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              onClick={() => router.push('/hub/training')}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                color: 'var(--sp-fg-muted)',
-                fontSize: 18,
-                cursor: 'pointer',
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              ←
-            </button>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Preloader</div>
-              <div style={{ fontSize: 12, color: '#b9cbd4' }}>Signed Question Cache Sync</div>
-            </div>
-          </div>
-        </div>
+      <div className={s.shell}>
+        <TrainingPageHead slug="training-gto-preloader" note="Signed Question Cache Sync" />
 
-        <div style={{ padding: '20px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={s.page}>
           {/* Storage Summary */}
-          <div
-            style={{
-              background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(0,0,0,0.3))',
-              border: '1px solid rgba(59,130,246,0.2)',
-              padding: 24,
-              borderRadius: 16,
-              marginBottom: 32,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 20,
-            }}
-          >
-            <div
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: '50%',
-                border: '8px solid rgba(59,130,246,0.2)',
-                borderTopColor: 'var(--sp-accent-blue)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 24,
-              }}
-            >
-
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: 'var(--sp-fg-muted)',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: 1,
-                  marginBottom: 4,
-                }}
-              >
-                IDB Cache Used
+          <section className={`sd-panel ${s.panel}`} aria-labelledby="preloader-storage-title">
+            <div className={s.panelHead}>
+              <div>
+                <p id="preloader-storage-title" className={s.eyebrow}>IDB Cache Used</p>
+                <p className={s.copy}>Verified Question Payloads Currently Stored On This Device</p>
               </div>
-              <div style={{ fontSize: 32, fontWeight: 900, color: '#fff', letterSpacing: '-1px' }}>
-                {getDiskUsage()}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
-                Verified Question Payloads Currently Stored On This Device
+              <div className={`sd-metric ${s.metric}`}>
+                <strong className={s.metricValue} data-tone="ice">{getDiskUsage()}</strong>
+                <span className={s.metricLabel}>On Device</span>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: 'var(--sp-fg-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: 1,
-              marginBottom: 16,
-            }}
-          >
-            Available Training Packs
-          </div>
+          <h2 className={s.sectionTitle}>Available Training Packs</h2>
 
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 16,
-              opacity: idbReady ? 1 : 0.5,
-            }}
-          >
+          <div style={{ display: 'grid', gap: 12, opacity: idbReady ? 1 : 0.6 }}>
             {TREES.map((tree) => {
               const state = downloads[tree.id] || { status: 'idle', progress: 0 };
 
               return (
-                <div
-                  key={tree.id}
-                  style={{
-                    background: 'rgba(255,255,255,0.02)',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                    padding: 20,
-                    borderRadius: 16,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      marginBottom: 12,
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}
-                      >
-                        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-fg)' }}>
-                          {tree.label}
-                        </div>
-                        {state.status === 'done' && (
-                          <span
-                            style={{
-                              background: 'rgba(34,197,94,0.1)',
-                              color: 'var(--sp-accent-green)',
-                              fontSize: 12,
-                              fontWeight: 800,
-                              textTransform: 'uppercase',
-                              padding: '2px 6px',
-                              borderRadius: 4,
-                            }}
-                          >
-                            Signed Cache Ready
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
-                        {tree.desc}
-                      </div>
+                <article key={tree.id} className={`sd-panel ${s.panel}`} aria-labelledby={`pack-${tree.id}-title`}>
+                  <div className={s.panelHead} style={{ alignItems: 'flex-start', flexWrap: 'nowrap' }}>
+                    <div style={{ display: 'grid', gap: 6, minWidth: 0 }}>
+                      <h3 id={`pack-${tree.id}-title`} className={s.subTitle}>{tree.label}</h3>
+                      {state.status === 'done' && (
+                        <span className={s.tag} style={{ color: '#5ee08a' }}>Signed Cache Ready</span>
+                      )}
+                      <p className={s.copy}>{tree.desc}</p>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-blue)' }}>
-                        {state.cachedLevels || 0}/{state.eligibleLevels || '-'} Unlocked Levels
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
-                        {state.questionCount || 0} Questions
-                      </div>
+                    <div className={`sd-metric ${s.metric}`} style={{ flex: 'none', minWidth: 104 }}>
+                      <strong className={s.metricValue} data-tone="ice">{state.cachedLevels || 0}/{state.eligibleLevels || '-'}</strong>
+                      <span className={s.metricLabel}>Unlocked Levels</span>
+                      <span className={s.metricLabel}>{state.questionCount || 0} Questions</span>
                     </div>
                   </div>
 
                   {state.status === 'idle' && (
                     <button
+                      type="button"
+                      className={`sd-button ${idbReady ? 'sd-primary' : ''} ${s.button} ${s.full}`}
                       onClick={() => startDownload(tree.id)}
                       disabled={!idbReady}
-                      style={{
-                        width: '100%',
-                        padding: 12,
-                        borderRadius: 8,
-                        background: 'rgba(59,130,246,0.1)',
-                        border: '1px solid rgba(59,130,246,0.3)',
-                        color: 'var(--sp-accent-blue)',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
                     >
                       ↓ Cache Unlocked Levels
                     </button>
                   )}
 
                   {state.status === 'downloading' && (
-                    <div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: 'var(--sp-fg-muted)',
-                          marginBottom: 6,
-                        }}
-                      >
-                        <span>Downloading Verified Questions...</span>
-                        <span style={{ color: 'var(--sp-accent-cyan)' }}>{Math.round(state.progress)}%</span>
+                    <div style={{ display: 'grid', gap: 6 }} role="status" aria-live="polite">
+                      <div className={s.panelHead}>
+                        <span className={s.metricLabel}>Downloading Verified Questions...</span>
+                        <span className={s.ice} style={{ fontWeight: 800 }}>{Math.round(state.progress)}%</span>
                       </div>
-                      <div
-                        style={{
-                          height: 6,
-                          background: 'rgba(0,0,0,0.5)',
-                          borderRadius: 3,
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <motion.div
-                          style={{
-                            height: '100%',
-                            background: 'linear-gradient(90deg, rgba(var(--sp-accent-blue-rgb), 1), rgba(var(--sp-accent-cyan-rgb), 1))',
-                          }}
-                          animate={{ width: `${state.progress}%` }}
-                        />
+                      <div className={s.track}>
+                        <motion.div className={s.fill} animate={{ width: `${state.progress}%` }} />
                       </div>
                     </div>
                   )}
 
                   {state.status === 'done' && (
-                    <div style={{ display: 'flex', gap: 12 }}>
-                      <button
-                        disabled
-                        style={{
-                          flex: 1,
-                          padding: 12,
-                          borderRadius: 8,
-                          background: 'transparent',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          color: 'var(--sp-fg-dim)',
-                          fontSize: 13,
-                          fontWeight: 700,
-                          cursor: 'not-allowed',
-                        }}
-                      >
+                    <div className={s.actions}>
+                      <button type="button" disabled className={`sd-button ${s.button}`}>
                         ✓ Offline Pack Ready
                       </button>
                       <button
+                        type="button"
                         onClick={() => deleteTree(tree.id)}
-                        style={{
-                          padding: '12px 16px',
-                          borderRadius: 8,
-                          background: 'rgba(239,68,68,0.1)',
-                          border: 'none',
-                          color: 'var(--sp-accent-red)',
-                          fontSize: 13,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
+                        className={`sd-button ${s.button}`}
                       >
                         Delete Pack
                       </button>
@@ -588,34 +405,23 @@ export default function GtoPreloaderPage() {
                   )}
 
                   {state.status === 'error' && (
-                    <div role="alert" style={{ marginTop: 10 }}>
-                      <div style={{ color: 'var(--sp-accent-red)', fontSize: 12, marginBottom: 8 }}>
-                        {state.error || 'The pack could not be downloaded.'}
-                      </div>
+                    <div role="alert" style={{ display: 'grid', gap: 8 }}>
+                      <p className={s.error}>
+                        {state.error || 'The Pack Could Not Be Downloaded.'}
+                      </p>
                       <button
                         type="button"
                         onClick={() => startDownload(tree.id)}
-                        style={{
-                          width: '100%',
-                          padding: 12,
-                          borderRadius: 8,
-                          background: 'rgba(59,130,246,0.1)',
-                          border: '1px solid rgba(59,130,246,0.3)',
-                          color: 'var(--sp-accent-blue)',
-                          fontSize: 13,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
+                        className={`sd-button ${s.button} ${s.full}`}
                       >
                         Retry Download
                       </button>
                     </div>
                   )}
-                </div>
+                </article>
               );
             })}
           </div>
-
         </div>
       </div>
       <HubPageSummary page="training-gto-preloader" />

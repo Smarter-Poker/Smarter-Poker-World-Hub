@@ -2024,7 +2024,7 @@ export default function MemoryGamesPage() {
               <PullToRefresh onRefresh={refreshMenu} disabled={anySheetOpen}>
                 <div className="preflop-menu">
                   {/* Title */}
-                  <BankrollImageHeader art="series" title="Preflop Charts" helpContent={<p>Authored Range Practice. No Solver-Exact Or Account-Progress Claim. Free Local Practice / No Entry Fee.</p>} />
+                  <BankrollImageHeader art="preflop-charts" title="Preflop Charts" helpContent={<p>Authored Range Practice. No Solver-Exact Or Account-Progress Claim. Free Local Practice / No Entry Fee.</p>} />
                       {memoryDashboard?.current_grade &&
                         memoryDashboard?.rolling_30d_sessions > 0 && (
                           <div

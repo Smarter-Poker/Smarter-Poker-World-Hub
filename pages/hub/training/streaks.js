@@ -8,7 +8,8 @@
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
 // TRAIN-CSS-TOKENS-BATCH5-55 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH6-16 — hex sweep batch 6: extended palette literals routed
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import { TrainingConsoleSkeleton } from '../../../src/components/training/console/TrainingConsoleStates';
+import sd from '../../../src/styles/training/training-journey-sd.module.css';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -16,6 +17,7 @@ import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import { motion } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import TrainingPageHead, { TrainingDailyNav } from '../../../src/components/training/TrainingPageHead';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
@@ -306,33 +308,27 @@ export default function StreaksPage() {
   };
 
   const offlineNotice = !isOnline && (
-    <div
-      role="status"
-      data-offline-banner="true"
-      style={{
-        marginBottom: 16,
-        padding: '10px 14px',
-        borderRadius: 2,
-        border: '1px solid rgba(86, 216, 255, 0.4)',
-        background: 'rgba(86, 216, 255, 0.08)',
-        color: '#86daff',
-        fontSize: 12,
-        fontWeight: 700,
-      }}
-    >
+    <div role="status" data-offline-banner="true" className={sd.notice}>
       Offline. Streak Updates Will Resume After Reconnection.
     </div>
   );
 
+  const pageHead = (
+    <TrainingPageHead slug="training-streaks" nav={<TrainingDailyNav current="/hub/training/streaks" />} />
+  );
+
   if (loading) {
     return (
-      <>
+      <PageTransition>
         <SEOHead title="Training Streaks - Stay Consistent" description="Build And Maintain Your Daily Training Streaks On Smarter.Poker." canonical="/hub/training/streaks" noindex={true} />
-        <div style={{ ...styles.loadingContainer, padding: 24 }} role="status" aria-label="Loading Streak Data">
-          <SkeletonLoader variant="profile" style={{ maxWidth: 480, margin: '0 auto 24px' }} />
-          <SkeletonLoader variant="card" count={2} style={{ maxWidth: 480, margin: '0 auto' }} />
+        <div className={`sp-training-journey sp-training-journey--streaks ${sd.root}`}>
+          <UniversalHeader pageDepth={2} />
+          {pageHead}
+          <div className={`sp-journey-main ${sd.main}`}>
+            <TrainingConsoleSkeleton label="Loading Streak Data" metrics={1} panels={2} rows={3} />
+          </div>
         </div>
-      </>
+      </PageTransition>
     );
   }
 
@@ -340,31 +336,15 @@ export default function StreaksPage() {
     return (
       <PageTransition>
         <SEOHead title="Training Streaks - Stay Consistent" description="Build And Maintain Your Daily Training Streaks On Smarter.Poker." canonical="/hub/training/streaks" noindex={true} />
-        <div style={styles.container}>
+        <div className={`sp-training-journey sp-training-journey--streaks ${sd.root}`}>
           <UniversalHeader pageDepth={2} />
-          <div style={styles.content}>
-            <nav style={styles.subpageNav} aria-label="Daily Challenges And Goals Subpages">
-              <Link href="/hub/training/daily-challenge" style={styles.navPlate}>
-                Hand Of The Day
-              </Link>
-              <Link href="/hub/training/daily-goals" style={styles.navPlate}>
-                Daily Goals Vault
-              </Link>
-              <Link href="/hub/training/challenges" style={styles.navPlate}>
-                Weekly &amp; Monthly Goals
-              </Link>
-              <Link href="/hub/training/achievements" style={styles.navPlate}>
-                Achievements Vault
-              </Link>
-              <Link href="/hub/training/streaks" style={styles.navPlateActive}>
-                Streaks Vault
-              </Link>
-            </nav>
+          {pageHead}
+          <div className={`sp-journey-main ${sd.main}`}>
             {offlineNotice}
             <TrainerEmptyState
               variant="locked"
-              title="Sign in to view your streak"
-              message="Daily streaks unlock once you sign in to track your training."
+              title="Sign In To View Your Streak"
+              message="Daily Streaks Unlock Once You Sign In To Track Your Training."
               cta={{ label: 'Sign In', onClick: () => { try { window.location.href = '/auth/login'; } catch (_) { if (typeof console !== "undefined" && console.warn) console.warn(`[streaks] swallowed:`, _); /* TRAIN-CATCH-FIX-1 */ } } }}
             />
           </div>
@@ -377,32 +357,16 @@ export default function StreaksPage() {
     return (
       <PageTransition>
         <SEOHead title="Training Streaks - Stay Consistent" description="Build And Maintain Your Daily Training Streaks On Smarter.Poker." canonical="/hub/training/streaks" noindex={true} />
-        <div style={styles.container}>
+        <div className={`sp-training-journey sp-training-journey--streaks ${sd.root}`}>
           <UniversalHeader pageDepth={2} />
-          <div style={styles.content}>
-            <nav style={styles.subpageNav} aria-label="Daily Challenges And Goals Subpages">
-              <Link href="/hub/training/daily-challenge" style={styles.navPlate}>
-                Hand Of The Day
-              </Link>
-              <Link href="/hub/training/daily-goals" style={styles.navPlate}>
-                Daily Goals Vault
-              </Link>
-              <Link href="/hub/training/challenges" style={styles.navPlate}>
-                Weekly &amp; Monthly Goals
-              </Link>
-              <Link href="/hub/training/achievements" style={styles.navPlate}>
-                Achievements Vault
-              </Link>
-              <Link href="/hub/training/streaks" style={styles.navPlateActive}>
-                Streaks Vault
-              </Link>
-            </nav>
+          {pageHead}
+          <div className={`sp-journey-main ${sd.main}`}>
             {offlineNotice}
             <ErrorBanner message="Unable to verify your training streak." onRetry={() => refreshStreak()} />
             <TrainerEmptyState
               variant="retry"
               title="Training Streak Is Unavailable"
-              message="We could not verify sealed training sessions. No zero-streak fallback has been shown."
+              message="We Could Not Verify Sealed Training Sessions. No Zero-Streak Fallback Has Been Shown."
               cta={{ label: 'Try Again', onClick: () => refreshStreak() }}
             />
           </div>
@@ -414,6 +378,18 @@ export default function StreaksPage() {
 
   const calendar = generateCalendar();
   const nextMilestone = STREAK_MILESTONES.find((m) => m.days > streak.currentStreak);
+  const tips = [
+    'Consistency beats intensity. 30 minutes every day > 4 hours once a week.',
+    'The best players review their mistakes the same day they make them.',
+    'Position awareness is the fastest ROI skill. Master your BTN game first.',
+    'Review 5 flashcards per day and you will master 50 GTO concepts in 2 weeks.',
+    'Warm up with 5 minutes of preflop ranges before every session.',
+    'Track your tilt patterns. Most leaks are emotional, not strategic.',
+    'The gap between 70% and 90% accuracy is where the real money is hidden.',
+  ];
+  const tipOfTheDay = tips[Math.floor(Date.now() / 86400000) % tips.length];
+  const todayKey = new Date().toISOString().split('T')[0];
+  const streakAtRisk = streak.currentStreak >= 3 && !trainingDays.includes(todayKey);
 
   return (
     <PageTransition>
@@ -424,28 +400,12 @@ export default function StreaksPage() {
         noindex={true}
       />
 
-      <div className="sp-training-journey sp-training-journey--streaks" style={styles.container}>
+      <div className={`sp-training-journey sp-training-journey--streaks ${sd.root}`}>
         <UniversalHeader pageDepth={2} />
 
-        <div className="sp-journey-main" style={styles.content}>
-          <nav style={styles.subpageNav} aria-label="Daily Challenges And Goals Subpages">
-            <Link href="/hub/training/daily-challenge" style={styles.navPlate}>
-              Hand Of The Day
-            </Link>
-            <Link href="/hub/training/daily-goals" style={styles.navPlate}>
-              Daily Goals Vault
-            </Link>
-            <Link href="/hub/training/challenges" style={styles.navPlate}>
-              Weekly &amp; Monthly Goals
-            </Link>
-            <Link href="/hub/training/achievements" style={styles.navPlate}>
-              Achievements Vault
-            </Link>
-            <Link href="/hub/training/streaks" style={styles.navPlateActive}>
-              Streaks Vault
-            </Link>
-          </nav>
+        {pageHead}
 
+        <div className={`sp-journey-main ${sd.main}`}>
           {offlineNotice}
 
           <ErrorBanner
@@ -454,78 +414,41 @@ export default function StreaksPage() {
           />
 
           {/* At-Risk Warning */}
-          {streak.currentStreak >= 3 && (() => {
-            const today = new Date().toISOString().split('T')[0];
-            const trainedToday = trainingDays.includes(today);
-            if (trainedToday) return null;
-            return (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: '2px',
-                  marginBottom: 16,
-                  background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
-                  border: '1px solid rgba(239,68,68,0.45)',
-                  borderLeft: '3px solid #56d8ff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                }}
-                role="alert"
-              >
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-red)' }}>
-                    Your {streak.currentStreak}-Day Streak Is At Risk!
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
-                    Train Today To Keep It Alive.
-                  </div>
+          {streakAtRisk && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`${sd.card} ${sd.row}`}
+              data-tone="bad"
+              role="alert"
+            >
+              <div>
+                <div className={`${sd.title} ${sd.bad}`}>
+                  Your {streak.currentStreak}-Day Streak Is At Risk
                 </div>
-                <Link
-                  href="/hub/training"
-                  style={{
-                    minHeight: '44px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    padding: '8px 16px',
-                    borderRadius: '2px',
-                    background: 'rgba(239,68,68,0.16)',
-                    border: '1px solid rgba(239,68,68,0.4)',
-                    color: 'var(--sp-accent-red)',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  Start Training
-                </Link>
-              </motion.div>
-            );
-          })()}
+                <div className={sd.copy}>Train Today To Keep It Alive.</div>
+              </div>
+              <Link href="/hub/training" className={`${sd.button} ${sd.primary}`} style={{ flex: '0 0 auto' }}>
+                Start Training
+              </Link>
+            </motion.div>
+          )}
 
           {/* Hero Section */}
           <motion.div
-            className="sp-journey-hero-meter"
-            style={styles.heroSection}
-            initial={{ scale: 0.9, opacity: 0 }}
+            className={`sp-journey-hero-meter ${sd.panel} ${sd.streakHero}`}
+            initial={{ scale: 0.96, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: MOTION.slow }}
           >
-            <div style={styles.flameContainer}>
-              {/* TRAIN-STREAKS-A11Y-1: SVG flame replaces ▲ hero icon.
-                  Color drives the gradient; CSS keeps the pulse animation. */}
-              <span style={{ ...styles.flame, color: '#86daff', display: 'inline-flex' }} aria-hidden>
-                <FlameIcon size={64} />
-              </span>
-            </div>
-            <div style={styles.streakNumber} role="status" aria-label={`${streak.currentStreak} day streak`}>{streak.currentStreak}</div>
-            <div style={styles.streakLabel}>Day Streak</div>
+            {/* TRAIN-STREAKS-A11Y-1: SVG flame replaces the hero glyph. */}
+            <span className={sd.metricIcon} aria-hidden>
+              <FlameIcon size={48} />
+            </span>
+            <div className={sd.streakNumber} role="status" aria-label={`${streak.currentStreak} day streak`}>{streak.currentStreak}</div>
+            <div className={sd.metricLabel}>Day Streak</div>
             {streak.longestStreak > streak.currentStreak && (
-              <div style={styles.longestStreak}>Best: {streak.longestStreak} Days</div>
+              <div className={sd.copy}>Best: <strong className={sd.ice}>{streak.longestStreak} Days</strong></div>
             )}
 
             {streak.currentStreak >= 3 && (
@@ -535,74 +458,41 @@ export default function StreaksPage() {
                 aria-label={`Feed sharing is unavailable for your ${streak.currentStreak}-day streak`}
                 disabled
                 title="Feed Sharing Reopens After Verified Streak Settlement Is Certified"
-                style={{
-                  ...styles.shareStreakBtn,
-                  opacity: 0.6,
-                  cursor: 'not-allowed',
-                }}
+                className={sd.button}
               >
                 Feed Sharing Unavailable
               </button>
             )}
 
             {/* Daily Motivational Tip */}
-            {(() => {
-              const tips = [
-                'Consistency beats intensity. 30 minutes every day > 4 hours once a week.',
-                'The best players review their mistakes the same day they make them.',
-                'Position awareness is the fastest ROI skill. Master your BTN game first.',
-                'Review 5 flashcards per day and you will master 50 GTO concepts in 2 weeks.',
-                'Warm up with 5 minutes of preflop ranges before every session.',
-                'Track your tilt patterns. Most leaks are emotional, not strategic.',
-                'The gap between 70% and 90% accuracy is where the real money is hidden.',
-              ];
-              const dayIdx = Math.floor(Date.now() / 86400000) % tips.length;
-              return (
-                <div style={{
-                  marginTop: 16,
-                  padding: '10px 14px',
-                  borderRadius: '2px',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid #415866',
-                  fontSize: 12,
-                  color: 'var(--sp-fg-muted)',
-                  lineHeight: 1.5,
-                  fontStyle: 'italic',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 8,
-                }}>
-                  {/* TRAIN-STREAKS-A11Y-1: SVG lightbulb replaces inline emoji */}
-                  <span style={{ display: 'inline-flex', color: '#86daff', flexShrink: 0, marginTop: 1 }} aria-hidden>
-                    <LightbulbIcon size={14} />
-                  </span>
-                  <span>{tips[dayIdx]}</span>
-                </div>
-              );
-            })()}
+            <div className={sd.tip}>
+              {/* TRAIN-STREAKS-A11Y-1: SVG lightbulb replaces inline emoji */}
+              <span className={sd.ice} aria-hidden>
+                <LightbulbIcon size={16} />
+              </span>
+              <span>{tipOfTheDay}</span>
+            </div>
           </motion.div>
 
           {/* Next Milestone Progress */}
           {nextMilestone && (
-            <div style={styles.nextMilestoneCard}>
-              <div style={styles.nextMilestoneHeader}>
+            <div className={sd.card}>
+              <div className={sd.row}>
                 {/* TRAIN-STREAKS-A11Y-1: route milestone icon via MilestoneIcon */}
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ display: 'inline-flex', color: '#86daff' }} aria-hidden>
+                <span className={`${sd.title} ${sd.inline}`}>
+                  <span className={sd.ice} aria-hidden>
                     <MilestoneIcon kind={nextMilestone.iconKind} size={20} />
                   </span>
                   Next: {nextMilestone.name}
                 </span>
-                <span style={styles.diamondReward}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    {/* TRAIN-STREAKS-A11Y-1: SVG diamond replaces */}
-                    <span aria-hidden style={{ display: 'inline-flex' }}><DiamondIcon size={14} /></span>
-                    {nextMilestone.diamonds}
-                  </span>
+                <span className={`${sd.value} ${sd.inline}`}>
+                  {/* TRAIN-STREAKS-A11Y-1: SVG diamond */}
+                  <span aria-hidden className={sd.inline}><DiamondIcon size={14} /></span>
+                  {nextMilestone.diamonds}
                 </span>
               </div>
               <div
-                style={styles.progressBarContainer}
+                className={sd.meter}
                 role="progressbar"
                 aria-label={`Progress to ${nextMilestone.name}`}
                 aria-valuenow={Math.round((streak.currentStreak / nextMilestone.days) * 100)}
@@ -610,90 +500,74 @@ export default function StreaksPage() {
                 aria-valuemax={100}
               >
                 <div
-                  style={{
-                    ...styles.progressBarFill,
-                    width: `${(streak.currentStreak / nextMilestone.days) * 100}%`,
-                  }}
+                  className={sd.meterFill}
+                  style={{ width: `${(streak.currentStreak / nextMilestone.days) * 100}%` }}
                 />
               </div>
-              <div style={styles.progressText}>
+              <div className={`${sd.copy} ${sd.alignEnd}`}>
                 {streak.currentStreak}/{nextMilestone.days} Days
               </div>
             </div>
           )}
 
           {/* 30-Day Calendar */}
-          <section style={styles.section}>
-            {/* TRAIN-STREAKS-A11Y-1: SVG calendar icon in section heading */}
-            <h2 style={styles.sectionTitle}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ display: 'inline-flex', color: '#25c8ff' }} aria-hidden>
-                  <CalendarIcon size={18} />
-                </span>
+          <section className={sd.section}>
+            <div className={sd.sectionHead}>
+              {/* TRAIN-STREAKS-A11Y-1: SVG calendar icon in section heading */}
+              <h2 className={sd.sectionTitle}>
+                <CalendarIcon size={18} />
                 Last 30 Days
-              </span>
-            </h2>
-            <div style={styles.calendarGrid}>
+              </h2>
+            </div>
+            <div className={sd.calendar}>
               {calendar.map((day, i) => (
                 <motion.div
                   key={day.date}
-                  style={{
-                    ...styles.calendarDay,
-                    background: day.trained
-                      ? 'linear-gradient(135deg, #25c8ff, #56d8ff)'
-                      : day.isToday
-                        ? 'rgba(37, 200, 255, 0.2)'
-                        : 'linear-gradient(180deg, #0d1a22, #060d12)',
-                    border: day.isToday ? '2px solid #25c8ff' : '1px solid #354c58',
-                  }}
+                  className={sd.calendarDay}
+                  data-trained={day.trained || undefined}
+                  data-today={day.isToday || undefined}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.02 }}
                   aria-label={`${day.date}${day.trained ? ', trained' : ''}${day.isToday ? ', today' : ''}`}
                 >
-                  <span style={styles.calendarDayNumber}>{day.dayOfMonth}</span>
-                  {/* TRAIN-STREAKS-A11Y-1: SVG flame indicator replaces ▲ */}
+                  <span>{day.dayOfMonth}</span>
+                  {/* TRAIN-STREAKS-A11Y-1: SVG flame indicator */}
                   {day.trained && (
-                    <span style={styles.trainedIndicator} aria-hidden>
+                    <span className={sd.calendarFlame} aria-hidden>
                       <FlameIcon size={10} />
                     </span>
                   )}
                 </motion.div>
               ))}
             </div>
-            <div style={styles.calendarLegend}>
-              <span>
-                <span style={styles.legendDot} /> Trained
-              </span>
-              <span>
-                <span style={{ ...styles.legendDot, background: '#25c8ff' }} /> Today
-              </span>
+            <div className={sd.legend}>
+              <span><i className={sd.legendTrained} /> Trained</span>
+              <span><i className={sd.legendToday} /> Today</span>
             </div>
           </section>
 
           {/* Milestones */}
-          <section style={styles.section}>
-            {/* TRAIN-STREAKS-A11Y-1: SVG trophy in section heading */}
-            <h2 style={styles.sectionTitle}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ display: 'inline-flex', color: '#86daff' }} aria-hidden>
-                  <TrophyIcon size={18} />
-                </span>
+          <section className={sd.section}>
+            <div className={sd.sectionHead}>
+              {/* TRAIN-STREAKS-A11Y-1: SVG trophy in section heading */}
+              <h2 className={sd.sectionTitle}>
+                <TrophyIcon size={18} />
                 Milestones
-              </span>
-            </h2>
+              </h2>
+            </div>
             <ErrorBanner
               message={claimError}
               onRetry={claiming ? null : () => setClaimError(null)}
             />
             {claimReceipt && (
-              <div style={styles.claimReceipt} role="status">
+              <div className={sd.notice} role="status">
                 {claimReceipt.milestoneCompleted
                   ? `${claimReceipt.entitlementDiamonds} Diamonds Verified And Paid.`
                   : `${claimReceipt.diamondsAwardedTotal} Of ${claimReceipt.entitlementDiamonds} Diamonds Paid. ${claimReceipt.diamondsRemaining} Remain For The Next Monthly Award Window.`}
               </div>
             )}
-            <div style={styles.milestonesGrid}>
+            <div className={sd.milestoneGrid}>
               {(
                 streak.allMilestones ||
                 STREAK_MILESTONES.map((m) => ({
@@ -718,51 +592,39 @@ export default function StreaksPage() {
                 return (
                   <motion.div
                     key={milestone.days}
-                    style={{
-                      ...styles.milestoneCard,
-                      opacity: milestone.achieved ? 1 : 0.55,
-                      border: isClaimable ? '1px solid #56d8ff' : '1px solid #415866',
-                    }}
+                    className={`${sd.card} ${sd.milestone}`}
+                    data-tone={milestone.claimed ? 'good' : isClaimable ? 'ice' : undefined}
+                    data-locked={milestone.achieved ? undefined : true}
                     whileHover={isClaimable ? { scale: 1.02 } : {}}
                   >
                     {/* TRAIN-STREAKS-A11Y-1: SVG milestone icon via MilestoneIcon */}
-                    <div style={{ ...styles.milestoneIcon, color: isClaimable ? '#86daff' : 'var(--sp-fg-muted)', display: 'inline-flex' }} aria-hidden>
-                      <MilestoneIcon kind={kind} size={32} />
+                    <div className={isClaimable ? sd.ice : sd.muted} aria-hidden>
+                      <MilestoneIcon kind={kind} size={30} />
                     </div>
-                    <div style={styles.milestoneInfo}>
-                      <div style={styles.milestoneName}>{baseData.name}</div>
-                      <div style={styles.milestoneDays}>{baseData.days} Days</div>
-                    </div>
-                    <div style={styles.milestoneReward}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <span aria-hidden style={{ display: 'inline-flex', color: '#25c8ff' }}><DiamondIcon size={14} /></span>
-                        {entitlement}
-                      </span>
+                    <div className={sd.title}>{baseData.name}</div>
+                    <div className={sd.copy}>{baseData.days} Days</div>
+                    <div className={`${sd.value} ${sd.inline}`}>
+                      <span aria-hidden className={sd.inline}><DiamondIcon size={14} /></span>
+                      {entitlement}
                     </div>
                     {partialSettlement && (
-                      <div style={styles.settlementStatus} role="status">
+                      <div className={sd.copy} role="status">
                         {milestone.diamondsAwardedTotal} Paid · {milestone.diamondsRemaining} Remaining · Retry Next Month
                       </div>
                     )}
                     {pendingVerification && (
-                      <div style={styles.settlementStatus} role="status">
+                      <div className={sd.copy} role="status">
                         Historical Credit Is Pending Verification
                       </div>
                     )}
                     {milestone.claimed ? (
-                      <div style={styles.claimedBadge}>
-                        {/* TRAIN-STREAKS-A11Y-1: SVG check replaces ✓ */}
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <CheckIcon size={12} />
-                          Claimed
-                        </span>
+                      <div className={`${sd.good} ${sd.inline} ${sd.stateLabel}`}>
+                        {/* TRAIN-STREAKS-A11Y-1: SVG check */}
+                        <CheckIcon size={12} />
+                        Claimed
                       </div>
                     ) : partialSettlement || pendingVerification ? (
-                      <button
-                        type="button"
-                        disabled
-                        style={{ ...styles.claimButton, opacity: 0.65, cursor: 'not-allowed' }}
-                      >
+                      <button type="button" disabled className={sd.button}>
                         {partialSettlement ? 'Retry Next Month' : 'Verification Pending'}
                       </button>
                     ) : isClaimable ? (
@@ -772,7 +634,7 @@ export default function StreaksPage() {
                         aria-label={`Claim ${baseData.diamonds} diamonds for ${baseData.name}`}
                         onClick={() => claimMilestone(milestone.days)}
                         disabled={claiming === milestone.days}
-                        style={styles.claimButton}
+                        className={`${sd.button} ${sd.primary}`}
                       >
                         {claiming === milestone.days ? 'Claiming...' : 'Claim'}
                       </button>
@@ -788,300 +650,3 @@ export default function StreaksPage() {
     </PageTransition>
   );
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// STYLES
-// ═══════════════════════════════════════════════════════════════════════════
-
-const styles = {
-  container: {
-    minHeight: '100dvh',
-    paddingBottom: 70,
-    width: '100%',
-    maxWidth: '100vw',
-    overflowX: 'clip',
-    boxSizing: 'border-box',
-    background: '#020608',
-    color: '#eef6f9',
-  },
-  content: {
-    maxWidth: '720px',
-    margin: '0 auto',
-    padding: '80px 24px 40px',
-  },
-  subpageNav: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '8px',
-    marginBottom: '20px',
-  },
-  navPlate: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '44px',
-    padding: '0 14px',
-    border: '1px solid #536a76',
-    borderRadius: '2px',
-    background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
-    color: '#e7f0f4',
-    fontSize: '12px',
-    fontWeight: 700,
-    textDecoration: 'none',
-  },
-  navPlateActive: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '44px',
-    padding: '0 14px',
-    border: '1px solid #25c8ff',
-    borderRadius: '2px',
-    background: 'linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%)',
-    color: '#ffffff',
-    fontSize: '12px',
-    fontWeight: 700,
-    textDecoration: 'none',
-  },
-  claimReceipt: {
-    marginBottom: 12,
-    padding: '10px 12px',
-    border: '1px solid rgba(37, 200, 255, 0.35)',
-    borderRadius: '2px',
-    background: 'rgba(37, 200, 255, 0.08)',
-    color: 'var(--sp-fg)',
-    fontSize: 12,
-    lineHeight: 1.5,
-  },
-  settlementStatus: {
-    marginTop: 6,
-    color: '#86daff',
-    fontSize: 12,
-    lineHeight: 1.4,
-  },
-  heroSection: {
-    textAlign: 'center',
-    padding: '40px 20px',
-    background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
-    border: '1px solid #536a76',
-    borderLeft: '3px solid #25c8ff',
-    borderRadius: '2px',
-    marginBottom: '24px',
-  },
-  flameContainer: {
-    marginBottom: '16px',
-  },
-  flame: {
-    fontSize: '64px',
-    animation: 'pulse 1.5s ease-in-out infinite',
-  },
-  streakNumber: {
-    fontSize: '72px',
-    fontWeight: 800,
-    background: 'linear-gradient(135deg, #25c8ff, #86daff)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-  },
-  streakLabel: {
-    fontSize: '20px',
-    color: 'var(--sp-fg-muted)',
-    marginTop: '8px',
-  },
-  longestStreak: {
-    marginTop: '16px',
-    fontSize: '14px',
-    color: 'var(--sp-fg-dim)',
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid #415866',
-    padding: '8px 16px',
-    borderRadius: '2px',
-    display: 'inline-block',
-  },
-  shareStreakBtn: {
-    marginTop: '20px',
-    minHeight: '44px',
-    padding: '10px 24px',
-    background: 'linear-gradient(180deg, #165e7d 0%, #062535 55%, #0c3b53 100%)',
-    border: '1px solid #25c8ff',
-    borderRadius: '2px',
-    color: '#fff',
-    fontWeight: 700,
-    fontSize: '14px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    margin: '20px auto 0',
-  },
-  nextMilestoneCard: {
-    background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
-    border: '1px solid #536a76',
-    borderLeft: '3px solid #56d8ff',
-    borderRadius: '2px',
-    padding: '20px',
-    marginBottom: '24px',
-  },
-  nextMilestoneHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '12px',
-    fontWeight: 700,
-  },
-  diamondReward: {
-    color: '#25c8ff',
-  },
-  progressBarContainer: {
-    height: '8px',
-    background: 'rgba(255,255,255,0.1)',
-    borderRadius: '2px',
-    overflow: 'hidden',
-    marginBottom: '8px',
-  },
-  progressBarFill: {
-    height: '100%',
-    background: 'linear-gradient(90deg, #25c8ff, #56d8ff)',
-    borderRadius: '2px',
-    transition: 'width 0.3s ease',
-  },
-  progressText: {
-    fontSize: '14px',
-    color: 'var(--sp-fg-muted)',
-    textAlign: 'center',
-  },
-  section: {
-    marginBottom: '32px',
-  },
-  sectionTitle: {
-    fontSize: '18px',
-    fontWeight: 700,
-    marginBottom: '16px',
-  },
-  calendarGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(7, 1fr)',
-    gap: '6px',
-    marginBottom: '16px',
-  },
-  calendarDay: {
-    aspectRatio: '1',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '2px',
-    position: 'relative',
-  },
-  calendarDayNumber: {
-    fontSize: '12px',
-    fontWeight: 600,
-  },
-  trainedIndicator: {
-    fontSize: '12px',
-    position: 'absolute',
-    bottom: '2px',
-    color: '#fff',
-    display: 'inline-flex',
-  },
-  calendarLegend: {
-    display: 'flex',
-    gap: '20px',
-    justifyContent: 'center',
-    fontSize: '12px',
-    color: 'var(--sp-fg-muted)',
-  },
-  legendDot: {
-    display: 'inline-block',
-    width: '12px',
-    height: '12px',
-    borderRadius: '2px',
-    background: 'linear-gradient(135deg, #25c8ff, #56d8ff)',
-    marginRight: '6px',
-    verticalAlign: 'middle',
-  },
-  milestonesGrid: {
-    display: 'grid',
-    gap: '12px',
-  },
-  milestoneCard: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
-    border: '1px solid #415866',
-    borderLeft: '3px solid #25c8ff',
-    borderRadius: '2px',
-    padding: '16px',
-  },
-  milestoneIcon: {
-    fontSize: '32px',
-  },
-  milestoneInfo: {
-    flex: 1,
-  },
-  milestoneName: {
-    fontWeight: 700,
-    marginBottom: '4px',
-  },
-  milestoneDays: {
-    fontSize: '13px',
-    color: 'var(--sp-fg-muted)',
-  },
-  milestoneReward: {
-    fontSize: '16px',
-    fontWeight: 700,
-    color: '#25c8ff',
-  },
-  claimedBadge: {
-    fontSize: '14px',
-    color: '#39d59b',
-    padding: '6px 12px',
-    background: 'rgba(57, 213, 155, 0.1)',
-    border: '1px solid rgba(57, 213, 155, 0.4)',
-    borderRadius: '2px',
-  },
-  claimButton: {
-    minHeight: '44px',
-    padding: '8px 16px',
-    background: 'linear-gradient(135deg, #56d8ff, #25c8ff)',
-    border: 'none',
-    borderRadius: '2px',
-    color: '#020608',
-    fontWeight: 700,
-    fontSize: '12px',
-    cursor: 'pointer',
-  },
-  actions: {
-    textAlign: 'center',
-    marginTop: '40px',
-  },
-  backButton: {
-    color: '#25c8ff',
-    textDecoration: 'none',
-    fontSize: '16px',
-  },
-  loadingContainer: {
-    minHeight: '100dvh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#020608',
-  },
-  loadingText: {
-    color: 'var(--sp-fg-muted)',
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '80px 24px',
-  },
-  button: {
-    display: 'inline-block',
-    marginTop: '24px',
-    padding: '12px 32px',
-    background: '#25c8ff',
-    color: '#020608',
-    borderRadius: '2px',
-    textDecoration: 'none',
-    fontWeight: 700,
-  },
-};

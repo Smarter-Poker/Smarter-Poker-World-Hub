@@ -221,7 +221,12 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
 
   const flashcards = read('pages/hub/training/flashcards.js');
   assert.match(flashcards, /aria-pressed=\{catFilter === c\}/, 'flashcards category filters must expose aria-pressed');
-  assert.match(flashcards, /flexWrap:\s*'wrap'/, 'flashcards category row must wrap cleanly on narrow phones');
+  // #SMARTERDESIGN study-tools module (2026-11-27): the category chips wrap from .chips.
+  const studyToolsCss = read('src/styles/training/study-tools.module.css');
+  assert.ok(
+    /flexWrap:\s*'wrap'/.test(flashcards) || (flashcards.includes('className={st.chips}') && /\.chips\s*\{[^}]*flex-wrap:\s*wrap/.test(studyToolsCss)),
+    'flashcards category row must wrap cleanly on narrow phones',
+  );
 
   const quizBuilder = read('pages/hub/training/quiz-builder.js');
   assert.match(quizBuilder, /aria-selected=\{tab === t\.id\}/, 'quiz-builder tabs must expose aria-selected');
@@ -230,7 +235,11 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
   assert.doesNotMatch(jarvis, /#fbbf24|rgba\(251,\s*191,\s*36|rgba\(139,\s*92,\s*246/i, 'jarvis.js must not use banned amber/gold/purple styling');
 
   const tournaments = read('pages/hub/training/tournaments.js');
-  assert.match(tournaments, /whiteSpace:\s*'nowrap'/, 'tournaments tabs must not split "Upcoming" mid-word');
+  const playCss = read('src/styles/training/training-play.module.css');
+  assert.ok(
+    /whiteSpace:\s*'nowrap'/.test(tournaments) || (tournaments.includes('className={s.segmented}') && /\.segmented > \.button \{ white-space: nowrap; \}/.test(playCss)),
+    'tournaments tabs must not split "Upcoming" mid-word',
+  );
   assert.doesNotMatch(tournaments, /rgba\(251,\s*191,\s*36/i, 'tournaments.js offline banner must not use banned amber border');
 
   // 6. Deep Pass-2 hardened pages: active ARIA states, wrapping rows, centered icons, and zero banned purple across ALL 95 Training pages
@@ -243,13 +252,16 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
   assert.match(studyGroupFinder, /aria-pressed=\{filterFmt === f\}/, 'study-group-finder format buttons must expose aria-pressed');
   assert.match(studyGroupFinder, /aria-pressed=\{filterLevel === l\}/, 'study-group-finder level buttons must expose aria-pressed');
   assert.match(studyGroupFinder, /aria-pressed=\{sortBy === s\.k\}/, 'study-group-finder sort buttons must expose aria-pressed');
-  assert.match(studyGroupFinder, /whiteSpace:\s*'nowrap'/, 'study-group-finder level buttons must not split "Beginner"/"Intermediate"');
+  // #SMARTERDESIGN study-tools module (2026-11-27): chip rows set nowrap in CSS.
+  const studyCss = read('src/styles/training/study-tools.module.css');
+  const studyChipsNoWrap = /\.page \.chips > :is\(a, button\) \{[^}]*white-space:\s*nowrap/.test(studyCss);
+  assert.ok(/whiteSpace:\s*'nowrap'/.test(studyGroupFinder) || (studyGroupFinder.includes('className={st.chips}') && studyChipsNoWrap), 'study-group-finder level buttons must not split "Beginner"/"Intermediate"');
 
   const sessionNotes = read('pages/hub/training/session-notes.js');
   assert.match(sessionNotes, /aria-pressed=\{mood === m\.id\}/, 'session-notes mood buttons must expose aria-pressed');
   assert.match(sessionNotes, /aria-pressed=\{isActive\}/, 'session-notes tag buttons must expose aria-pressed');
   assert.match(sessionNotes, /aria-pressed=\{searchTerm === tag\}/, 'session-notes search tag buttons must expose aria-pressed');
-  assert.match(sessionNotes, /flex:\s*'1 1 92px'/, 'session-notes mood buttons must wrap cleanly instead of slicing "Confident"/"Frustrated"');
+  assert.ok(/flex:\s*'1 1 92px'/.test(sessionNotes) || (sessionNotes.includes('className={st.chips}') && studyChipsNoWrap), 'session-notes mood buttons must wrap cleanly instead of slicing "Confident"/"Frustrated"');
 
   const customSolve = read('pages/hub/training/custom-solve.js');
   assert.match(customSolve, /aria-pressed=\{heroPos === p\}/, 'custom-solve hero position buttons must expose aria-pressed');
@@ -257,7 +269,12 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
   assert.match(customSolve, /aria-pressed=\{stackDepth === sd\}/, 'custom-solve stack depth buttons must expose aria-pressed');
 
   const gtoNews = read('pages/hub/training/gto-news.js');
-  assert.match(gtoNews, /alignItems:\s*'center',\s*justifyContent:\s*'center',\s*width:\s*44,\s*height:\s*44/, 'gto-news bookmark star button must center its icon inside the 44px chrome target');
+  const coachingCss = read('src/styles/training/sessions-coaching.module.css');
+  assert.ok(
+    /alignItems:\s*'center',\s*justifyContent:\s*'center',\s*width:\s*44,\s*height:\s*44/.test(gtoNews)
+      || (gtoNews.includes('s.iconButton') && /\.iconButton \{[^}]*place-items:\s*center;[^}]*inline-size:\s*44px;[^}]*block-size:\s*44px/.test(coachingCss)),
+    'gto-news bookmark star button must center its icon inside the 44px chrome target',
+  );
 
   assert.match(read('pages/hub/training/drill-builder.js'), /aria-pressed=\{Boolean\(selected\)\}/, 'drill-builder Chip button must expose aria-pressed');
   assert.match(read('pages/hub/training/custom-rake.js'), /aria-pressed=\{preset\.id === r\.id\}/, 'custom-rake preset buttons must expose aria-pressed');

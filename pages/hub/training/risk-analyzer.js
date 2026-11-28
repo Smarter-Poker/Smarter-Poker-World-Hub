@@ -10,7 +10,7 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-50 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-40 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -19,6 +19,9 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import { TrendingDown } from 'lucide-react';
+import at from '../../../src/styles/training/analysis-tools.module.css';
 export default function RiskAnalyzerPage() {
   const router = useRouter();
   useTrainingBus('risk-analyzer');
@@ -105,366 +108,179 @@ export default function RiskAnalyzerPage() {
         description="Simulate Thousands Of Monte Carlo Poker Bankroll Trajectories To Calculate Risk Of Ruin, Downswing Probabilities, And Variance Cushions On Smarter.Poker."
         canonical="/hub/training/risk-analyzer"
       />
-      <div
-        className="sp-training-tool sp-training-tool--analysis sp-analysis-risk"
-        style={{
-          minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: '#040d18',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', sans-serif",
-          paddingBottom: 60,
-        }}
-      >
-        {/* Header */}
-        <div
-          className="sp-training-analysis-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <button
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              marginRight: 16,
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Risk Analyzer</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Monte Carlo Bankroll Simulator</div>
-          </div>
-        </div>
+      <div className={`sp-training-tool sp-training-tool--analysis sp-analysis-risk ${at.shell}`}>
+        <TrainingPageHead slug="training-risk-analyzer" note="Monte Carlo Bankroll Simulator" />
 
-        <div
-          className="sp-training-analysis-main sp-risk-analysis-layout"
-          style={{
-            maxWidth: 1000,
-            margin: '40px auto',
-            padding: '0 20px',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 32,
-          }}
-        >
+        <div className={`sp-training-analysis-main sp-risk-analysis-layout ${at.page}`}>
           {/* Controls */}
-          <div
-            className="sp-analysis-control-deck"
-            style={{
-              flex: '1 1 350px',
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.05)',
-              borderRadius: 16,
-              padding: 32,
-            }}
-          >
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
-                  True Win Rate (BB/100)
-                </label>
-                <span style={{ color: 'var(--sp-accent-green)', fontWeight: 800 }}>{winRate} BB</span>
-              </div>
+          <section className={`sp-analysis-control-deck sd-panel ${at.panel}`} aria-label="Simulation Inputs">
+            <label className={at.field}>
+              <span className={at.barHead}>
+                <span>True Win Rate (BB/100)</span>
+                <strong className={at.ice}>{winRate} BB</strong>
+              </span>
               <input
                 aria-label="Expected Return Percentage"
                 type="range"
+                className={at.range}
                 min="-5"
                 max="25"
                 step="0.5"
                 value={winRate}
                 disabled={loading}
                 onChange={(e) => { setWinRate(e.target.value); setRiskOfRuin(null); setError(null); }}
-                style={{ width: '100%', accentColor: 'var(--sp-accent-green)' }}
               />
-            </div>
+            </label>
 
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
-                  Standard Deviation
-                </label>
-                <span style={{ color: '#86daff', fontWeight: 800 }}>{stdDev} BB/100</span>
-              </div>
+            <label className={at.field}>
+              <span className={at.barHead}>
+                <span>Standard Deviation</span>
+                <strong className={at.ice}>{stdDev} BB/100</strong>
+              </span>
               <input
                 aria-label="Standard Deviation"
                 type="range"
+                className={at.range}
                 min="40"
                 max="180"
                 step="5"
                 value={stdDev}
                 disabled={loading}
                 onChange={(e) => { setStdDev(e.target.value); setRiskOfRuin(null); setError(null); }}
-                style={{ width: '100%', accentColor: 'var(--sp-accent-amber)' }}
               />
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
-                Live Full Ring ~ 60 | Online 6-Max ~ 90 | PLO ~ 140
-              </div>
-            </div>
+              <span className={at.small}>Live Full Ring ~ 60 | Online 6-Max ~ 90 | PLO ~ 140</span>
+            </label>
 
-            <div style={{ marginBottom: 32 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
-                  Dedicated Bankroll (BBs)
-                </label>
-                <span style={{ color: 'var(--sp-accent-cyan)', fontWeight: 800 }}>{bankroll} BBs</span>
-              </div>
+            <label className={at.field}>
+              <span className={at.barHead}>
+                <span>Dedicated Bankroll (BBs)</span>
+                <strong className={at.ice}>{bankroll} BBs</strong>
+              </span>
               <input
                 aria-label="Simulation Sample Size"
                 type="range"
+                className={at.range}
                 min="500"
                 max="10000"
                 step="100"
                 value={bankroll}
                 disabled={loading}
                 onChange={(e) => { setBankroll(e.target.value); setRiskOfRuin(null); setError(null); }}
-                style={{ width: '100%', accentColor: 'var(--sp-accent-cyan)' }}
               />
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
-                E.G. 25 Buy-Ins At 100BB = 2500 BBs
-              </div>
-            </div>
+              <span className={at.small}>E.G. 25 Buy-Ins At 100BB = 2500 BBs</span>
+            </label>
 
             <motion.button
+              type="button"
               className="sp-analysis-primary-action"
-              whileTap={{ scale: 0.96 }}
+              whileTap={{ scale: 0.97 }}
               onClick={runMonteCarlo}
               disabled={loading}
-              style={{
-                width: '100%',
-                padding: '16px',
-                background: 'linear-gradient(135deg, rgba(var(--sp-accent-blue-rgb), 1), #6366f1)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 12,
-                fontSize: 15,
-                fontWeight: 800,
-                cursor: 'pointer',
-                boxShadow: '0 8px 24px rgba(59,130,246,0.3)',
-              }}
             >
               {loading ? 'Calculating…' : error ? 'Retry Estimate' : 'Calculate Risk'}
             </motion.button>
-            {error && <p role="alert">{error}</p>}
-          </div>
+            {error && <div role="alert" className={at.error}>{error}</div>}
+          </section>
 
           {/* Output & Chart */}
-          <div className="sp-analysis-output-deck" style={{ flex: '2 1 450px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div className="sp-analysis-output-deck">
             {riskOfRuin !== null && !loading ? (
               <AnimatePresence>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
+                <motion.section
+                  initial={{ opacity: 0, scale: 0.97 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  style={{
-                    padding: 32,
-                    background: 'rgba(0,0,0,0.3)',
-                    borderRadius: 24,
-                    border: `1px solid ${riskOfRuin > 5 ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.3)'}`,
-                  }}
+                  className={`sd-panel ${at.panel}`}
+                  aria-label="Risk Of Ruin Result"
                 >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 24,
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 800,
-                          color: 'var(--sp-fg-muted)',
-                          textTransform: 'uppercase',
-                          letterSpacing: 2,
-                        }}
-                      >
-                        Risk Of Ruin
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 56,
-                          fontWeight: 900,
-                          color: riskOfRuin > 5 ? 'var(--sp-accent-red)' : 'var(--sp-accent-green)',
-                          letterSpacing: '-1px',
-                          lineHeight: 1,
-                        }}
-                      >
-                        {riskOfRuin < 0.1 && riskOfRuin > 0 ? '< 0.1' : (Number.isFinite(Number(riskOfRuin)) ? Number(riskOfRuin) : 0).toFixed(1)}%
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        width: '50%',
-                        fontSize: 13,
-                        color: 'var(--sp-fg)',
-                        lineHeight: 1.5,
-                        background: 'rgba(255,255,255,0.03)',
-                        padding: 16,
-                        borderRadius: 12,
-                      }}
-                    >
-                      {riskOfRuin === 100
-                        ? 'Mathematical certainty of going broke. Your win rate must be positive.'
-                        : riskOfRuin > 10
-                          ? 'Extremely dangerous bankroll management. Increase your bankroll or drop stakes immediately.'
-                          : riskOfRuin > 5
-                            ? 'Aggressive shot-taking. Prepare to move down if a downswing occurs.'
-                            : riskOfRuin > 1
-                              ? 'Standard professional risk tolerance. Bankroll is adequate for variance.'
-                              : 'Ultra-safe bankroll. You are statistically bulletproof against standard downswings.'}
-                    </div>
+                  <div className={at.metric} style={{ textAlign: 'left' }}>
+                    <span className={at.metricLabel}>Risk Of Ruin</span>
+                    <strong className={at.bigFigure} style={{ textAlign: 'left', color: riskOfRuin > 5 ? '#ff7a86' : '#5ee08a' }}>
+                      {riskOfRuin < 0.1 && riskOfRuin > 0 ? '< 0.1' : (Number.isFinite(Number(riskOfRuin)) ? Number(riskOfRuin) : 0).toFixed(1)}%
+                    </strong>
                   </div>
+                  <p className={at.note}>
+                    {riskOfRuin === 100
+                      ? 'Mathematical Certainty Of Going Broke. Your Win Rate Must Be Positive.'
+                      : riskOfRuin > 10
+                        ? 'Extremely Dangerous Bankroll Management. Increase Your Bankroll Or Drop Stakes Immediately.'
+                        : riskOfRuin > 5
+                          ? 'Aggressive Shot-Taking. Prepare To Move Down If A Downswing Occurs.'
+                          : riskOfRuin > 1
+                            ? 'Standard Professional Risk Tolerance. Bankroll Is Adequate For Variance.'
+                            : 'Ultra-Safe Bankroll. You Are Statistically Bulletproof Against Standard Downswings.'}
+                  </p>
 
                   {/* Mini SVG Chart of standard paths */}
-                  <div
-                    style={{
-                      height: 200,
-                      position: 'relative',
-                      borderBottom: '1px solid rgba(255,255,255,0.1)',
-                      borderLeft: '1px solid rgba(255,255,255,0.1)',
-                    }}
-                  >
-                    {/* Chart Zero Line */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        borderBottom: '1px dashed rgba(239,68,68,0.5)',
-                        zIndex: 0,
-                      }}
-                    />
+                  <div className={at.chartFrame}>
+                    <span className={at.chartAxisY}>Bankroll</span>
+                    <div className={at.chart}>
+                      <svg
+                        width="100%"
+                        height="100%"
+                        preserveAspectRatio="none"
+                        viewBox={`0 0 100 100`}
+                        role="img"
+                        aria-label={`Sample Bankroll Paths, ${chartData.filter((p) => p.busted).length} Of ${chartData.length} Plotted Careers Went Broke`}
+                        style={{ overflow: 'visible' }}
+                      >
+                        {chartData.map((pathObj) => {
+                          const maxBankroll = Math.max(
+                            parseFloat(bankroll) * 4,
+                            ...chartData.flatMap((p) => p.data)
+                          );
+                          // Generate points normalized 0-100
+                          const points = pathObj.data
+                            .map((val, idx) => {
+                              const x = (idx / (pathObj.data.length - 1)) * 100;
+                              // Normalize Y so 0 is at bottom (or near bottom) and max is at top
+                              const y = 100 - (val / maxBankroll) * 100;
+                              return `${x},${y}`;
+                            })
+                            .join(' ');
 
-                    <svg
-                      width="100%"
-                      height="100%"
-                      preserveAspectRatio="none"
-                      viewBox={`0 0 100 100`}
-                      style={{ overflow: 'visible' }}
-                    >
-                      {chartData.map((pathObj) => {
-                        const maxBankroll = Math.max(
-                          parseFloat(bankroll) * 4,
-                          ...chartData.flatMap((p) => p.data)
-                        );
-                        // Generate points normalized 0-100
-                        const points = pathObj.data
-                          .map((val, idx) => {
-                            const x = (idx / (pathObj.data.length - 1)) * 100;
-                            // Normalize Y so 0 is at bottom (or near bottom) and max is at top
-                            const y = 100 - (val / maxBankroll) * 100;
-                            return `${x},${y}`;
-                          })
-                          .join(' ');
-
-                        return (
-                          <polyline
-                            key={pathObj.id}
-                            points={points}
-                            fill="none"
-                            stroke={pathObj.busted ? 'rgba(239,68,68,0.5)' : 'rgba(59,130,246,0.3)'}
-                            strokeWidth={pathObj.busted ? '1.5' : '0.5'}
-                            opacity={0.8}
-                          />
-                        );
-                      })}
-                    </svg>
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: -20,
-                        right: 0,
-                        fontSize: 12,
-                        color: 'var(--sp-fg-dim)',
-                      }}
-                    >
-                      10,000 Hands
+                          return (
+                            <polyline
+                              key={pathObj.id}
+                              points={points}
+                              fill="none"
+                              stroke={pathObj.busted ? 'rgba(255,122,134,0.7)' : 'rgba(134,218,255,0.45)'}
+                              strokeWidth={pathObj.busted ? '1.5' : '0.6'}
+                              vectorEffect="non-scaling-stroke"
+                            />
+                          );
+                        })}
+                      </svg>
                     </div>
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: -20,
-                        left: 0,
-                        fontSize: 12,
-                        color: 'var(--sp-fg-dim)',
-                      }}
-                    >
-                      Bankroll
-                    </div>
+                    <span className={at.chartAxisX}>10,000 Hands</span>
                   </div>
-                  <div
-                    style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textAlign: 'center', marginTop: 32 }}
-                  >
+                  <div className={at.legend} style={{ gridAutoFlow: 'column', justifyContent: 'start', gap: 16 }}>
+                    <span className={at.legendItem}><span className={at.legendSwatch} style={{ background: '#86daff' }} aria-hidden />Survived</span>
+                    <span className={at.legendItem}><span className={at.legendSwatch} style={{ background: '#ff7a86' }} aria-hidden />Went Broke</span>
+                  </div>
+                  <p className={at.small} style={{ textAlign: 'center' }}>
                     Sample Subset Of 20 Careers Plotted Out Of 1,000 Simulated.
-                  </div>
-                </motion.div>
+                  </p>
+                </motion.section>
               </AnimatePresence>
             ) : (
-              <div
-                style={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: loading ? 1 : 0.4,
-                  background: 'rgba(255,255,255,0.02)',
-                  borderRadius: 24,
-                  border: '1px solid rgba(255,255,255,0.05)',
-                }}
-              >
+              <section className={`sd-panel ${at.empty}`} aria-live="polite">
                 {loading ? (
                   <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, ease: 'linear', duration: 1 }}
-                      style={{
-                        width: 60,
-                        height: 60,
-                        border: '4px solid rgba(59,130,246,0.2)',
-                        borderTopColor: 'var(--sp-accent-blue)',
-                        borderRadius: '50%',
-                        marginBottom: 24,
-                      }}
-                    />
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
-                      Simulating 1,000 Careers...
-                    </div>
-                    <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginTop: 8 }}>
-                      Rolling 10,000,000 Hands Of Variance.
-                    </div>
+                    <span className={at.spinner} aria-hidden />
+                    <h2 className={at.subTitle}>Simulating 1,000 Careers...</h2>
+                    <p className={at.copy}>Rolling 10,000,000 Hands Of Variance.</p>
                   </>
                 ) : (
                   <>
-                    <div style={{ fontSize: 50, marginBottom: 20 }}>▼</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
-                      Simulate Variance
-                    </div>
-                    <div
-                      style={{ fontSize: 14, color: 'var(--sp-fg-muted)', marginTop: 8, textAlign: 'center' }}
-                    >
-                      Find Out If Your Bankroll Can Survive
-                      <br />
-                      The Mathematical Realities Of The Game.
-                    </div>
+                    <TrendingDown size={40} aria-hidden />
+                    <h2 className={at.subTitle}>Simulate Variance</h2>
+                    <p className={at.copy}>
+                      Find Out If Your Bankroll Can Survive The Mathematical Realities Of The Game.
+                    </p>
                   </>
                 )}
-              </div>
+              </section>
             )}
-
           </div>
         </div>
       </div>

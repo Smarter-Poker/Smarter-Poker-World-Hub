@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Play, X } from 'lucide-react';
 import TrainingLobbyDialog from './TrainingLobbyDialog';
 import styles from './TrainingLobby.module.css';
+import { SD_HEADER_HELP_ICON } from '../../smarterdesign/headerHelp';
 
 export default function TrainingLobbyHeader({
   heroGame,
@@ -20,11 +21,14 @@ export default function TrainingLobbyHeader({
         <h1 id="hero-h">Training Games</h1>
         <button
           type="button"
-          className={`${styles.chromeButton} ${styles.helpButton}`}
+          className="sd-header-help"
+          data-focus-custom=""
           aria-label="Training Games Help"
           aria-haspopup="dialog"
           onClick={() => setHelpOpen(true)}
-        >?</button>
+        >
+          <img src={SD_HEADER_HELP_ICON} alt="" width="36" height="37" draggable={false} />
+        </button>
       </div>
       <div className={styles.launchActions}>
         <button

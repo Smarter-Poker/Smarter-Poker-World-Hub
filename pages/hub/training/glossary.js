@@ -20,6 +20,8 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { GLOSSARY_TERMS, GLOSSARY_CATEGORIES, glossaryTermPath } from '../../../src/content/glossary/terms';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import st from '../../../src/styles/training/study-tools.module.css';
 // TRAIN-WIRE-EMPTY-3c — adoption: shared empty-state primitive
 
 
@@ -38,14 +40,6 @@ const ICON_PROPS = {
   strokeLinejoin: 'round',
   'aria-hidden': true,
 };
-function BackArrowIcon({ size=18 }) {
-  return (
-    <svg {...ICON_PROPS} width={size} height={size} viewBox="0 0 24 24">
-      <line x1="19" y1="12" x2="5" y2="12"/>
-      <polyline points="12 19 5 12 12 5"/>
-    </svg>
-  );
-}
 function StarToggleIcon({ filled=false, size=14 }) {
   // Filled uses currentColor for both fill+stroke; outline uses stroke only.
   return (
@@ -73,8 +67,6 @@ function StarToggleIcon({ filled=false, size=14 }) {
    ───────────────────────────────────────────────────────────────────────── */
 const TERMS = GLOSSARY_TERMS;
 const CATS = ['All', ...GLOSSARY_CATEGORIES];
-
-const CAT_COLORS = { 'Club Poker': 'var(--sp-accent-cyan)', 'Live Room': 'var(--sp-accent-amber)', Basics: 'var(--sp-fg-muted)', Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: 'var(--sp-accent-amber)', Theory: 'var(--sp-accent-purple)' };
 
 export default function GlossaryPage() {
   const online = useOnlineStatus();
@@ -162,55 +154,11 @@ export default function GlossaryPage() {
         description="Search, Filter And Save The Smarter.Poker Poker Glossary While You Train. Every Definition Links To Its Full Entry In The Poker Glossary."
         canonical="/glossary"
       />
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back To Training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-GLOSSARY-A11Y-1: SVG arrow + button hardening */}
-            <BackArrowIcon size={18} />
-          </button>
-          <div>
-            {/* TRAIN-GLOSSARY-A11Y-1: semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Glossary Study Tool</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              {TERMS.length} Terms · {TERMS.filter((t) => favorites.has(t.term)).length} Saved
-            </div>
-          </div>
-        </div>
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+      <div className={st.shell}>
+        <TrainingPageHead slug="training-glossary" />
+        <div className={st.page}>
 
-          {!online && <p role="status">Glossary Terms Are Available Offline.</p>}
+          {!online && <p role="status" className={st.notice}>Glossary Terms Are Available Offline.</p>}
           {/* Search */}
           <input
             value={search}
@@ -218,21 +166,11 @@ export default function GlossaryPage() {
             placeholder="Search Terms..."
             aria-label="Search Glossary Terms"
             type="search"
-            style={{
-              width: '100%',
-              padding: '10px 14px',
-              borderRadius: 8,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'var(--sp-fg)',
-              fontSize: 13,
-              marginBottom: 12,
-              fontFamily: 'Inter, sans-serif',
-            }}
+            className={st.input}
           />
 
           {/* Category */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 16 }} role="group" aria-label="Filter Glossary By Category">
+          <div className={st.chips} role="group" aria-label="Filter Glossary By Category">
             {CATS.map((c) => (
               <motion.button
                 key={c}
@@ -241,17 +179,7 @@ export default function GlossaryPage() {
                 aria-label={`Filter by ${c} terms`}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setCatFilter(c)}
-                style={{
-                  flex: '1 0 auto',
-                  padding: '6px',
-                  borderRadius: 6,
-                  border: `1px solid ${catFilter === c ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
-                  background: catFilter === c ? 'rgba(0,212,255,0.06)' : 'transparent',
-                  color: catFilter === c ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
+                className="sd-button"
               >
                 {c}
               </motion.button>
@@ -260,11 +188,12 @@ export default function GlossaryPage() {
 
           {/* Results count */}
           {/* TRAIN-GLOSSARY-A11Y-1: live region for filtered count */}
-          <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginBottom: 10, paddingLeft: 4 }} role="status" aria-live="polite" aria-atomic="true">
+          <div className={st.small} role="status" aria-live="polite" aria-atomic="true">
             {filtered.length} Terms
           </div>
 
           {/* Terms */}
+          <div className={st.list}>
           {filtered.map((t, i) => (
             <motion.div
               key={t.term}
@@ -272,33 +201,15 @@ export default function GlossaryPage() {
               id={`term-${t.slug}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: i * 0.015 }}
+              transition={{ delay: Math.min(i, 20) * 0.015 }}
               onClick={() => setExpanded(expanded === t.term ? null : t.term)}
-              style={{
-                padding: '12px 14px',
-                borderRadius: 10,
-                marginBottom: 4,
-                background: 'rgba(0,0,0,0.15)',
-                border: `1px solid ${favorites.has(t.term) ? 'rgba(86, 216, 255,0.15)' : 'rgba(255,255,255,0.04)'}`,
-                cursor: 'pointer',
-              }}
+              className={`${st.item} ${st.termCard} ${favorites.has(t.term) ? st.itemActive : ''}`}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)', flex: 1, margin: 0 }}>
+              <div className={st.termHead}>
+                <h2 className={st.itemTitle}>
                   {t.term}
                 </h2>
-                <span
-                  style={{
-                    padding: '1px 6px',
-                    borderRadius: 3,
-                    background: `${CAT_COLORS[t.category]}12`,
-                    color: CAT_COLORS[t.category],
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  {t.category}
-                </span>
+                <span className={st.tag}>{t.category}</span>
                 <motion.button
                   type="button"
                   aria-label={favorites.has(t.term) ? `Remove ${t.term} from favorites` : `Add ${t.term} to favorites`}
@@ -308,18 +219,10 @@ export default function GlossaryPage() {
                     e.stopPropagation();
                     toggleFavorite(t.term);
                   }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    padding: 0,
-                    display: 'inline-flex',
-                    color: favorites.has(t.term) ? '#86daff' : 'var(--sp-fg-faint)',
-                  }}
+                  className={`sd-button ${st.close}`}
                 >
                   {/* TRAIN-GLOSSARY-A11Y-1: SVG StarToggle replaces ★/☆ */}
-                  <StarToggleIcon filled={favorites.has(t.term)} size={14} />
+                  <StarToggleIcon filled={favorites.has(t.term)} size={16} />
                 </motion.button>
               </div>
               {expanded === t.term ? (
@@ -327,34 +230,25 @@ export default function GlossaryPage() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                 >
-                  <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, marginTop: 6 }}>
+                  <div className={st.copy}>
                     {t.definition}
                   </div>
                 </motion.div>
               ) : (
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: 'var(--sp-fg-faint)',
-                    lineHeight: 1.4,
-                    marginTop: 4,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'normal',
-                  }}
-                >
+                <div className={`${st.small} ${st.clamp}`}>
                   {t.definition}
                 </div>
               )}
               <a
                 href={glossaryTermPath(t.slug)}
                 onClick={(e) => e.stopPropagation()}
-                style={{ display: 'inline-block', marginTop: 6, fontSize: 12, color: 'var(--sp-accent-cyan)' }}
+                className={st.link}
               >
                 Full Entry: {t.term}
               </a>
             </motion.div>
           ))}
+          </div>
 
           {filtered.length === 0 && (
             <TrainerEmptyState

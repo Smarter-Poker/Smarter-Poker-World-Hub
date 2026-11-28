@@ -66,12 +66,19 @@ test('preflop-ranges index uses 6-column responsive grid so SB tab never clips o
 
 test('qre-explorer and quiz-builder render semantic h1, wrap cleanly, and guard guest fetches', () => {
   const qre = read('pages/hub/training/qre-explorer.js');
-  assert.ok(/<h1[\s>]/.test(qre), 'qre-explorer.js must render an <h1>');
-  assert.ok(qre.includes("flexWrap: 'wrap'"), 'qre-explorer.js Decision Spot tabs must wrap');
+  // #SMARTERDESIGN (2026-11-27): the page h1 comes from its TrainingPageHead image
+  // header, and the Decision Spot chips wrap from the analysis-tools module.
+  const hasH1 = (src) => /<h1[\s>]/.test(src) || /<TrainingPageHead[\s\n]/.test(src);
+  const analysisCss = read('src/styles/training/analysis-tools.module.css');
+  assert.ok(hasH1(qre), 'qre-explorer.js must render an <h1>');
+  assert.ok(
+    qre.includes("flexWrap: 'wrap'") || (qre.includes('className={at.chips}') && /\.chips\s*\{[^}]*flex-wrap:\s*wrap/.test(analysisCss)),
+    'qre-explorer.js Decision Spot tabs must wrap',
+  );
   assert.ok(!qre.includes('--sp-accent-purple'), 'qre-explorer.js must not use banned purple accent');
 
   const quiz = read('pages/hub/training/quiz-builder.js');
-  assert.ok(/<h1[\s>]/.test(quiz), 'quiz-builder.js must render an <h1>');
+  assert.ok(hasH1(quiz), 'quiz-builder.js must render an <h1>');
   assert.ok(
     quiz.includes('!getAuthUser()?.id'),
     'quiz-builder.js must guard /api/training/tool-records against unauthenticated 401 fetches',

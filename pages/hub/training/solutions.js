@@ -1216,7 +1216,7 @@ function SolutionsBrowserInner() {
                       cursor: 'pointer',
                       border: 'none',
                       background: showBookmarksOnly
-                        ? 'rgba(86,216,255,0.16)'
+                        ? 'rgba(134, 218, 255, 0.15)'
                         : 'rgba(255,255,255,0.04)',
                       color: showBookmarksOnly ? '#86daff' : 'var(--sp-fg-dim)',
                       transition: 'all 0.15s',
@@ -1419,7 +1419,7 @@ function SolutionsBrowserInner() {
                     marginBottom: 12,
                     padding: '16px 20px',
                     background:
-                      'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(6,72,226,0.08))',
+                      'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(134, 218, 255, 0.05))',
                     borderRadius: 12,
                     border: '1px solid rgba(0,212,255,0.15)',
                     flexWrap: 'wrap',

@@ -17,10 +17,11 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import st from '../../../src/styles/training/study-tools.module.css';
 // TRAIN-CSS-MOTION-ADOPT-28 - durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
@@ -55,7 +56,6 @@ function CardsIcon({ size=20 })       { return <_Svg size={size}><rect x="3" y="
 function AbacusIcon({ size=20 })      { return <_Svg size={size}><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="7" cy="6" r="1"/><circle cx="11" cy="6" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="9" cy="18" r="1"/></_Svg>; }
 function CompassIcon({ size=20 })     { return <_Svg size={size}><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></_Svg>; }
 function CheckSquareIcon({ size=40 }) { return <_Svg size={size}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></_Svg>; }
-function BackArrowIcon({ size=18 })   { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function TipIcon({ kind, size=20 }) {
   switch (kind) {
     case 'meditate':  return <MeditateIcon size={size}/>;
@@ -183,7 +183,7 @@ function analyzeTiltRisk(sessions) {
     risk = 'medium';
     message = `Slight accuracy dip detected (${Math.round(delta)}%). Watch for tilt signs.`;
   } else if (recentAvg >= 80) {
-    risk: 'none';
+    risk = 'none';
     message = "You're in the zone! Keep going.";
   }
 
@@ -229,85 +229,49 @@ function BreathingExercise({ onClose }) {
   }, []);
 
   const phaseLabel = { inhale: 'Breathe In', hold1: 'Hold', exhale: 'Breathe Out', hold2: 'Hold' };
-  const phaseColor = { inhale: 'var(--sp-accent-blue)', hold1: 'var(--sp-accent-purple)', exhale: 'var(--sp-accent-green)', hold2: 'var(--sp-accent-orange)' };
 
   if (cycle > 4) {
     return (
-      <motion.div
+      <motion.section
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        style={{
-          padding: '40px 20px',
-          borderRadius: 16,
-          textAlign: 'center',
-          background: 'rgba(34,197,94,0.04)',
-          border: '1px solid rgba(34,197,94,0.15)',
-        }}
+        className={`sd-panel ${st.panel} ${st.state}`}
+        aria-labelledby="breathing-done-title"
       >
         {/* TRAIN-TILTGUARD-A11Y-1: SVG check-square replaces ✓ */}
-        <div style={{ display: 'inline-flex', marginBottom: 12, color: 'var(--sp-accent-green)' }} aria-hidden>
+        <div className={st.ice} style={{ display: 'inline-flex' }} aria-hidden>
           <CheckSquareIcon size={40} />
         </div>
-        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-green)', marginBottom: 6 }}>
-          Exercise Complete
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 16 }}>
-          4 Cycles Done. Feeling Calmer?
-        </div>
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={onClose}
-          style={{
-            padding: '10px 24px',
-            borderRadius: 8,
-            border: '1px solid rgba(0,212,255,0.2)',
-            background: 'rgba(0,212,255,0.06)',
-            color: 'var(--sp-accent-cyan)',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
+        <h2 id="breathing-done-title" className={st.title}>Exercise Complete</h2>
+        <p className={st.copy}>4 Cycles Done. Feeling Calmer?</p>
+        <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={onClose} className="sd-button sd-primary">
           Done
         </motion.button>
-      </motion.div>
+      </motion.section>
     );
   }
 
   return (
-    <motion.div
-      style={{
-        padding: '40px 20px',
-        borderRadius: 16,
-        textAlign: 'center',
-        background: 'rgba(0,0,0,0.3)',
-        border: `1px solid ${phaseColor[phase]}30`,
-      }}
-    >
-      <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginBottom: 8 }}>Cycle {cycle} Of 4</div>
+    <motion.section className={`sd-panel ${st.panel} ${st.breathPanel}`} aria-labelledby="breathing-title">
+      <div className={st.panelHead}>
+        <h2 id="breathing-title" className={st.title}>Box Breathing</h2>
+        <span className={st.tag}>Cycle {cycle} Of 4</span>
+      </div>
       <motion.div
         animate={{
-          scale: phase === 'inhale' ? [1, 1.3] : phase === 'exhale' ? [1.3, 1] : 1.3,
+          scale: phase === 'inhale' ? [1, 1.25] : phase === 'exhale' ? [1.25, 1] : 1.25,
         }}
         transition={{ duration: 4, ease: 'easeInOut' }}
-        style={{
-          width: 100,
-          height: 100,
-          borderRadius: '50%',
-          margin: '0 auto 16px',
-          background: `radial-gradient(circle, ${phaseColor[phase]}20, transparent)`,
-          border: `2px solid ${phaseColor[phase]}40`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+        className={st.breathOrb}
+        data-phase={phase}
       >
-        <span style={{ fontSize: 32, fontWeight: 900, color: phaseColor[phase] }}>{timer}</span>
+        <span className={st.breathCount} role="timer" aria-live="off">{timer}</span>
       </motion.div>
-      <div style={{ fontSize: 20, fontWeight: 800, color: phaseColor[phase] }}>
-        {phaseLabel[phase]}
-      </div>
-    </motion.div>
+      <div className={st.breathLabel} aria-live="polite">{phaseLabel[phase]}</div>
+      <button type="button" onClick={onClose} className="sd-button">
+        Stop Exercise
+      </button>
+    </motion.section>
   );
 }
 
@@ -353,8 +317,7 @@ export default function TiltGuardPage() {
     return unsub;
   }, [fetchData]);
 
-  const riskColors = { high: 'var(--sp-accent-red)', medium: 'var(--sp-accent-amber)', low: 'var(--sp-accent-green)', none: 'var(--sp-fg-dim)' };
-  const riskLabels = { high: 'HIGH TILT RISK', medium: 'MODERATE', low: 'STABLE', none: 'NEUTRAL' };
+  const riskLabels = { high: 'High Tilt Risk', medium: 'Moderate', low: 'Stable', none: 'Neutral' };
 
   return (
     <>
@@ -363,207 +326,122 @@ export default function TiltGuardPage() {
         description="Monitor Mid-Session Emotional Triggers, Log Mental Game Check-Ins, And Run Guided Breathing And Stop-Loss Cooldown Protocols On Smarter.Poker."
         canonical="/hub/training/tilt-guard"
       />
-      <div
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-TILTGUARD-A11Y-1: SVG back arrow */}
-            <BackArrowIcon size={18} />
-          </button>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Tilt Guard</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Emotional Intelligence Coach</div>
-          </div>
-        </div>
+      <div className={st.shell}>
+        <TrainingPageHead slug="training-tilt-guard" note="Emotional Intelligence Coach" />
 
-        <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+        <div className={st.page}>
+          {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
 
           {/* Loading */}
           {loading && (
-            <div style={{ padding: '20px 0' }}>
-              <SkeletonLoader variant="card" count={2} />
-            </div>
+            <section className={`sd-panel ${st.panel}`} role="status" aria-label="Loading Tilt Data">
+              <div className={st.skeleton} aria-hidden><span /><span /><span /><span /></div>
+              <p className={st.small}>Loading Recent Sessions...</p>
+            </section>
+          )}
+
+          {!loading && !tiltData && !showBreathing && !fetchError && (
+            <section className={`sd-panel ${st.panel} ${st.state}`} aria-labelledby="tilt-empty-title">
+              <h2 id="tilt-empty-title" className={st.title}>Tilt Check Needs Recent Sessions</h2>
+              <p className={st.copy}>Your Tilt Risk Appears After Verified Training Sessions Load. The Breathing Exercise And Tips Below Work Any Time.</p>
+            </section>
           )}
 
           {tiltData && !showBreathing && (
             <>
               {/* Risk Status */}
-              <motion.div
+              <motion.section
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                style={{
-                  padding: '24px 20px',
-                  borderRadius: 16,
-                  marginBottom: 20,
-                  background: `linear-gradient(135deg, ${riskColors[tiltData.risk]}08, ${riskColors[tiltData.risk]}02)`,
-                  border: `1px solid ${riskColors[tiltData.risk]}20`,
-                  textAlign: 'center',
-                }}
+                className={`sd-panel ${st.panel} ${st.riskPanel}`}
+                aria-labelledby="tilt-risk-title"
               >
-                <div
-                  style={{
-                    display: 'inline-block',
-                    padding: '4px 12px',
-                    borderRadius: 6,
-                    background: `${riskColors[tiltData.risk]}15`,
-                    border: `1px solid ${riskColors[tiltData.risk]}30`,
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: riskColors[tiltData.risk],
-                    letterSpacing: 1,
-                    marginBottom: 12,
-                  }}
-                >
+                <h2 id="tilt-risk-title" className={st.title}>Tilt Risk</h2>
+                <span className={st.riskBadge} data-risk={tiltData.risk}>
                   {riskLabels[tiltData.risk]}
-                </div>
-                <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', lineHeight: 1.6 }}>
-                  {tiltData.message}
-                </div>
+                </span>
+                <p className={st.copy}>{tiltData.message}</p>
                 {tiltData.recentAvg !== null && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'center',
-                      gap: 20,
-                      marginTop: 16,
-                    }}
-                  >
+                  <dl className={st.facts3}>
+                    <div><dt>Recent (3)</dt><dd>{tiltData.recentAvg}%</dd></div>
+                    <div><dt>Previous (3)</dt><dd>{tiltData.previousAvg}%</dd></div>
                     <div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-fg)' }}>
-                        {tiltData.recentAvg}%
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>RECENT (3)</div>
-                    </div>
-                    <div style={{ width: 1, background: 'rgba(255,255,255,0.06)' }} />
-                    <div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-fg-muted)' }}>
-                        {tiltData.previousAvg}%
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>PREVIOUS (3)</div>
-                    </div>
-                    <div style={{ width: 1, background: 'rgba(255,255,255,0.06)' }} />
-                    <div>
-                      <div
-                        style={{
-                          fontSize: 22,
-                          fontWeight: 800,
-                          color: tiltData.delta >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
-                        }}
-                      >
+                      <dt>Change</dt>
+                      <dd className={tiltData.delta >= 0 ? st.up : st.down}>
                         {tiltData.delta >= 0 ? '+' : ''}
                         {Math.round(tiltData.delta)}%
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>DELTA</div>
+                      </dd>
                     </div>
-                  </div>
+                  </dl>
                 )}
-              </motion.div>
+              </motion.section>
 
               {/* Trend Chart (simple bar chart) */}
               {tiltData.trend.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-dim)',
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      marginBottom: 10,
-                    }}
-                  >
-                    ACCURACY TREND (Last {tiltData.trend.length} Sessions)
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 80 }}>
+                <section className={`sd-panel ${st.panel}`} aria-labelledby="tilt-trend-title">
+                  <h2 id="tilt-trend-title" className={st.title}>Accuracy Trend (Last {tiltData.trend.length} Sessions)</h2>
+                  <div className={st.bars} role="img" aria-label={`Accuracy by session: ${tiltData.trend.map((t) => `${t.accuracy}%`).join(', ')}`}>
                     {tiltData.trend.map((t, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ height: 0 }}
-                        animate={{ height: `${t.accuracy}%` }}
-                        transition={{ delay: i * 0.05, duration: MOTION.standard }}
-                        style={{
-                          flex: 1,
-                          borderRadius: 3,
-                          background:
-                            t.accuracy >= 75 ? 'var(--sp-accent-green)' : t.accuracy >= 60 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)',
-                          opacity: 0.7,
-                          minHeight: 4,
-                          position: 'relative',
-                        }}
-                      >
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: -14,
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            fontSize: 12,
-                            color: 'var(--sp-fg-faint)',
-                            fontWeight: 700,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {t.accuracy}%
+                      <div key={i} className={st.barCol}>
+                        <span className={st.barValue}>{t.accuracy}%</span>
+                        <div className={st.barTrack}>
+                          <motion.div
+                            initial={{ height: 0 }}
+                            animate={{ height: `${t.accuracy}%` }}
+                            transition={{ delay: i * 0.05, duration: MOTION.standard }}
+                            className={st.barFill}
+                            data-band={t.accuracy >= 75 ? 'good' : t.accuracy >= 60 ? 'mid' : 'low'}
+                          />
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
-                </div>
+                  <p className={st.small}>Bars Of 75%+ Are Steady, 60-74% Are Watch, Under 60% Are At Risk.</p>
+                </section>
               )}
 
+              {/* Cool Down Drills */}
+              {tiltData.risk === 'high' && (
+                <section className={`sd-panel ${st.panel}`} aria-labelledby="tilt-cooldown-title">
+                  <h2 id="tilt-cooldown-title" className={st.title}>Cool Down Drills</h2>
+                  <div className={st.list}>
+                    {WARMUP_GAMES.map((game) => (
+                      <motion.button
+                        key={game.id}
+                        type="button"
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() =>
+                          router.push(`/hub/training/arena/${game.id}?level=1&source=tilt-guard`)
+                        }
+                        className={`sd-button ${st.savedRow}`}
+                      >
+                        <span className={st.tipRow}>
+                          {/* TRAIN-TILTGUARD-A11Y-1: SVG WarmupIcon */}
+                          <span className={st.stateIcon} aria-hidden>
+                            <WarmupIcon kind={game.iconKind} size={18} />
+                          </span>
+                          <span className={st.savedText}>
+                            <span className={st.presetName}>{game.name}</span>
+                            <span className={st.presetDesc}>{game.desc}</span>
+                          </span>
+                        </span>
+                        <span className={st.tag}>Play</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+
+          {!loading && !showBreathing && (
+            <>
               {/* Breathing Exercise CTA */}
               <motion.button
+                type="button"
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setShowBreathing(true)}
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  borderRadius: 12,
-                  marginBottom: 20,
-                  border: '1px solid rgba(59,130,246,0.2)',
-                  background:
-                    'linear-gradient(135deg, rgba(59,130,246,0.08), rgba(59,130,246,0.02))',
-                  color: 'var(--sp-accent-blue)',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                }}
+                className={`sd-button sd-primary ${st.block}`}
               >
                 {/* TRAIN-TILTGUARD-A11Y-1: SVG meditate replaces */}
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -573,100 +451,29 @@ export default function TiltGuardPage() {
               </motion.button>
 
               {/* Mental Tips */}
-              <div style={{ marginBottom: 20 }}>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--sp-fg-dim)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    marginBottom: 10,
-                  }}
-                >
-                  MENTAL GAME TIPS
-                </div>
-                {MENTAL_TIPS.map((tip, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06 }}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: 10,
-                      marginBottom: 6,
-                      background: 'rgba(0,0,0,0.2)',
-                      border: `1px solid ${tip.color}12`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                    }}
-                  >
-                    {/* TRAIN-TILTGUARD-A11Y-1: SVG TipIcon */}
-                    <span style={{ fontSize: 18, flexShrink: 0, color: tip.color, display: 'inline-flex' }} aria-hidden>
-                      <TipIcon kind={tip.iconKind} size={18} />
-                    </span>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: tip.color }}>
-                        {tip.title}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 1 }}>{tip.desc}</div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Cool Down Drills */}
-              {tiltData.risk === 'high' && (
-                <div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--sp-fg-dim)',
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      marginBottom: 10,
-                    }}
-                  >
-                    COOL DOWN DRILLS
-                  </div>
-                  {WARMUP_GAMES.map((game) => (
-                    <motion.button
-                      key={game.id}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() =>
-                        router.push(`/hub/training/arena/${game.id}?level=1&source=tilt-guard`)
-                      }
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        borderRadius: 10,
-                        marginBottom: 6,
-                        background: 'rgba(34,197,94,0.04)',
-                        border: '1px solid rgba(34,197,94,0.1)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                      }}
+              <section className={`sd-panel ${st.panel}`} aria-labelledby="tilt-tips-title">
+                <h2 id="tilt-tips-title" className={st.title}>Mental Game Tips</h2>
+                <div className={st.list}>
+                  {MENTAL_TIPS.map((tip, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.06 }}
+                      className={`${st.item} ${st.tipRow}`}
                     >
-                      {/* TRAIN-TILTGUARD-A11Y-1: SVG WarmupIcon */}
-                      <span style={{ fontSize: 18, display: 'inline-flex', color: 'var(--sp-fg-muted)' }} aria-hidden>
-                        <WarmupIcon kind={game.iconKind} size={18} />
+                      {/* TRAIN-TILTGUARD-A11Y-1: SVG TipIcon */}
+                      <span className={st.stateIcon} aria-hidden>
+                        <TipIcon kind={tip.iconKind} size={18} />
                       </span>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)' }}>
-                          {game.name}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{game.desc}</div>
-                      </div>
-                    </motion.button>
+                      <span className={st.savedText}>
+                        <span className={st.itemTitle}>{tip.title}</span>
+                        <span className={st.small}>{tip.desc}</span>
+                      </span>
+                    </motion.div>
                   ))}
                 </div>
-              )}
+              </section>
             </>
           )}
 
@@ -674,7 +481,6 @@ export default function TiltGuardPage() {
           {showBreathing && <BreathingExercise onClose={() => setShowBreathing(false)} />}
         </div>
       </div>
-      {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
       <ConnectionToast />
       <HubPageSummary page="training-tilt-guard" />
     </>

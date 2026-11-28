@@ -21,6 +21,9 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { deriveTrainingSessionAccuracy } from '../../../src/lib/training/sessionEvidence.mjs';
+import TrainingPageHead from '../../../src/components/training/TrainingPageHead';
+import { TrainingConsoleSkeleton } from '../../../src/components/training/console/TrainingConsoleStates';
+import sd from '../../../src/styles/training/training-journey-sd.module.css';
 // TRAIN-WIRE-EMPTY-2b — adoption: shared empty-state primitive
 
 
@@ -59,7 +62,6 @@ function TrophySvg({ size })   { return <_Svg size={size}><path d="M6 9H4.5a2.5 
 function StarSvg({ size })     { return <_Svg size={size}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></_Svg>; }
 function ChartSvg({ size })    { return <_Svg size={size}><line x1="3" y1="21" x2="21" y2="21"/><rect x="5" y="13" width="3" height="7"/><rect x="10" y="8" width="3" height="12"/><rect x="15" y="4" width="3" height="16"/></_Svg>; }
 function UserSvg({ size })     { return <_Svg size={size}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></_Svg>; }
-function BackArrowSvg({ size }) { return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 function EventIcon({ kind, size=10 }) {
   switch (kind) {
     case 'target': return <TargetSvg size={size}/>;
@@ -126,54 +128,48 @@ function FeedItem({ item }) {
       case 'session':
         return (
           <>
-            <span style={{ fontWeight: 700, color: item.isYou ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)' }}>
-              {item.user}
-            </span>
-            {' completed a '}
-            <span style={{ fontWeight: 700, color: eventType.color }}>{item.handsPlayed}-Hand</span>
-            {' session on '}
-            <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.game}</span>
+            <strong className={item.isYou ? sd.ice : sd.strong}>{item.user}</strong>
+            {' Completed A '}
+            <strong className={sd.ice}>{item.handsPlayed}-Hand</strong>
+            {' Session On '}
+            <strong className={sd.strong}>{item.game}</strong>
             {' - '}
-            <span
-              style={{
-                fontWeight: 800,
-                color:
-                  Number.isFinite(item.accuracy)
-                    ? (item.accuracy >= 80 ? 'var(--sp-accent-green)' : item.accuracy >= 65 ? 'var(--sp-accent-amber)' : 'var(--sp-accent-red)')
-                    : 'var(--sp-fg-muted)',
-              }}
+            <strong
+              className={Number.isFinite(item.accuracy)
+                ? (item.accuracy >= 80 ? sd.good : sd.ice)
+                : sd.muted}
             >
               {Number.isFinite(item.accuracy) ? `${item.accuracy}%` : 'Accuracy Not Available'}
-            </span>
-            {Number.isFinite(item.accuracy) ? ' accuracy' : ''}
+            </strong>
+            {Number.isFinite(item.accuracy) ? ' Accuracy' : ''}
           </>
         );
       case 'streak':
         return (
           <>
-            <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.user}</span>
-            {' hit a '}
-            <span style={{ fontWeight: 800, color: '#86daff' }}>{item.streakDays}-Day Streak</span>
-            {' milestone!'}
+            <strong className={sd.strong}>{item.user}</strong>
+            {' Hit A '}
+            <strong className={sd.ice}>{item.streakDays}-Day Streak</strong>
+            {' Milestone'}
           </>
         );
       case 'achievement':
         return (
           <>
-            <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.user}</span>
-            {' unlocked the '}
-            <span style={{ fontWeight: 800, color: '#86daff' }}>{item.badge}</span>
-            {' badge'}
+            <strong className={sd.strong}>{item.user}</strong>
+            {' Unlocked The '}
+            <strong className={sd.ice}>{item.badge}</strong>
+            {' Badge'}
           </>
         );
       case 'mastery':
         return (
           <>
-            <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.user}</span>
-            {' mastered Level '}
-            <span style={{ fontWeight: 800, color: '#86daff' }}>{item.level}</span>
-            {' of '}
-            <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.game}</span>
+            <strong className={sd.strong}>{item.user}</strong>
+            {' Mastered Level '}
+            <strong className={sd.ice}>{item.level}</strong>
+            {' Of '}
+            <strong className={sd.strong}>{item.game}</strong>
           </>
         );
       default:
@@ -185,59 +181,27 @@ function FeedItem({ item }) {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{
-        padding: '14px 16px',
-        borderBottom: '1px solid rgba(255,255,255,0.04)',
-        display: 'flex',
-        gap: 12,
-      }}
+      className={`${sd.card} ${sd.feedItem}`}
+      data-tone={item.isYou ? 'ice' : undefined}
     >
       {/* Avatar */}
-      <div
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: '50%',
-          flexShrink: 0,
-          background: `linear-gradient(135deg, ${item.avatarColor}, ${item.avatarColor}88)`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 16,
-          fontWeight: 800,
-          color: '#fff',
-        }}
-      >
-        {/* TRAIN-FEED-A11Y-1: SVG user replaces ● */}
-        {item.isYou ? <span aria-hidden style={{ display: 'inline-flex' }}><UserSvg size={18} /></span> : item.user.charAt(0)}
-      </div>
+      <span className={sd.avatar} aria-hidden>
+        {/* TRAIN-FEED-A11Y-1: SVG user */}
+        {item.isYou ? <UserSvg size={18} /> : item.user.charAt(0)}
+      </span>
 
       {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, color: 'var(--sp-fg-muted)', lineHeight: 1.5, marginBottom: 6 }}>
-          {renderContent()}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span
-            style={{
-              padding: '2px 8px',
-              borderRadius: 4,
-              background: `${eventType.color}12`,
-              border: `1px solid ${eventType.color}22`,
-              color: eventType.color,
-              fontSize: 12,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-            }}
-          >
-            {/* TRAIN-FEED-A11Y-1: SVG EventIcon replaces emoji */}
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <EventIcon kind={eventType.iconKind} size={10} />
+      <div className={sd.feedBody}>
+        <div className={sd.copy}>{renderContent()}</div>
+        <div className={sd.feedMeta}>
+          <span className={sd.tag}>
+            {/* TRAIN-FEED-A11Y-1: SVG EventIcon */}
+            <span className={sd.inline}>
+              <EventIcon kind={eventType.iconKind} size={12} />
               {eventType.label}
             </span>
           </span>
-          <span style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>{formatTimeAgo(item.timestamp)}</span>
+          <span className={sd.skillNodeHint}>{formatTimeAgo(item.timestamp)}</span>
         </div>
       </div>
     </motion.div>
@@ -323,160 +287,63 @@ export default function TrainingFeedPage() {
         description="Follow Live GTO Training Milestones, High-Accuracy Sessions, And Consecutive Daily Streaks From Players Across The Community On Smarter.Poker."
         canonical="/hub/training/training-feed"
       />
-      <div
-        className="sp-training-command sp-training-command--feed"
-        style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
-          color: 'var(--sp-fg)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="sp-command-header"
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Back to training"
-            onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* TRAIN-FEED-A11Y-1: SVG back arrow replaces ← entity */}
-            <BackArrowSvg size={18} />
-          </button>
-          <div>
-            <h1 style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)', margin: 0 }}>Training Feed</h1>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Your Verified Training Activity</div>
+      <div className={`sp-training-feed ${sd.root}`}>
+        <TrainingPageHead slug="training-training-feed" note="Your Verified Training Activity" />
+
+        <div className={sd.main}>
+          {/* Filter tabs */}
+          <div className={`${sd.chips} ${sd.chipsEven}`} role="group" aria-label="Filter Training Feed">
+            {FILTER_OPTIONS.map((f) => (
+              <motion.button
+                key={f.id}
+                type="button"
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setFilter(f.id)}
+                aria-label={`Show ${f.label.toLowerCase()} only`}
+                aria-pressed={filter === f.id}
+                className={sd.chip}
+              >
+                {f.label}
+              </motion.button>
+            ))}
           </div>
-        </div>
 
-        {/* Filter tabs */}
-        <div
-          className="sp-command-filter-rail"
-          role="group"
-          aria-label="Filter Training Feed"
-          style={{
-            display: 'flex',
-            gap: 4,
-            padding: '10px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.04)',
-            background: 'rgba(0,0,0,0.15)',
-          }}
-        >
-          {FILTER_OPTIONS.map((f) => (
-            <motion.button
-              key={f.id}
-              type="button"
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setFilter(f.id)}
-              aria-label={`Show ${f.label.toLowerCase()} only`}
-              aria-pressed={filter === f.id}
-              style={{
-                flex: 1,
-                padding: '7px',
-                borderRadius: 6,
-                border: `1px solid ${filter === f.id ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
-                background: filter === f.id ? 'rgba(0,212,255,0.06)' : 'transparent',
-                color: filter === f.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              {f.label}
-            </motion.button>
-          ))}
-        </div>
-
-        <div className="sp-command-main" style={{ maxWidth: 600, margin: '0 auto' }}>
           {!isOnline && (
-            <div
-              role="status"
-              data-offline-banner="true"
-              style={{
-                margin: '12px 16px 0',
-                padding: '10px 14px',
-                borderRadius: 8,
-                border: '1px solid rgba(86, 216, 255, 0.4)',
-                background: 'rgba(86, 216, 255, 0.08)',
-                color: '#86daff',
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            >
+            <div role="status" data-offline-banner="true" className={sd.notice}>
               Offline. Verified Feed Sync Will Resume After Reconnection.
             </div>
           )}
-
 
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchFeed(); }} />
 
           {/* Loading */}
           {loading && (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--sp-fg-dim)' }} role="status" aria-label="Loading training feed">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                style={{
-                  width: 32,
-                  height: 32,
-                  margin: '0 auto 12px',
-                  border: '2px solid rgba(255,255,255,0.05)',
-                  borderTopColor: 'var(--sp-accent-cyan)',
-                  borderRadius: '50%',
-                }}
-              />
-              Loading Feed...
-            </div>
+            <TrainingConsoleSkeleton label="Loading Training Feed" panels={3} rows={2} />
           )}
 
           {/* Feed Items */}
-          {!loading &&
-            filteredItems.map((item) => (
-              <FeedItem key={item.id} item={item} />
-            ))}
+          {!loading && filteredItems.length > 0 && (
+            <div className={sd.list}>
+              {filteredItems.map((item) => (
+                <FeedItem key={item.id} item={item} />
+              ))}
+            </div>
+          )}
 
           {/* Empty state */}
           {!loading && filteredItems.length === 0 && (
             <TrainerEmptyState
               variant="no-data"
-              title="No activity yet"
-              message="Complete some training sessions to see activity here."
+              title="No Activity Yet"
+              message="Complete Some Training Sessions To See Activity Here."
               compact
             />
           )}
 
           {/* Footer */}
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '20px 16px',
-              fontSize: 12,
-              color: 'var(--sp-fg-faint)',
-            }}
-          >
+          <p className={`${sd.copy} ${sd.center}`}>
             Feed Updates Automatically When Your Saved Training Sessions Complete
-          </div>
+          </p>
         </div>
       </div>
       <ConnectionToast />
