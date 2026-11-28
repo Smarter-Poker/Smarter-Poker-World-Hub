@@ -94,6 +94,10 @@ const EXPECTED_SLUGS = [
   'borgata-vs-parx-poker',
   'best-poker-rooms-in-florida',
   'plo4-vs-plo5',
+  'smarter-poker-vs-gto-wizard',
+  'smarter-poker-vs-pokeratlas',
+  'smarter-poker-vs-bravo-poker-live',
+  'smarter-poker-vs-poker-bankroll-tracker',
 ];
 
 /** Other names a product goes by in running copy. */

@@ -106,6 +106,26 @@ const TRAINER_COLUMNS = [
   { key: 'platforms', label: 'Platforms' },
 ];
 
+const SWITCHER_GTO_COLUMNS = [
+  { key: 'pricing', label: 'Published Pricing' },
+  { key: 'freeTier', label: 'Free Access' },
+  { key: 'training', label: 'GTO Training' },
+  { key: 'solver', label: 'Solver And Ranges' },
+  { key: 'handReview', label: 'Hand History Review' },
+  { key: 'ecosystem', label: 'Live Venues And Bankroll' },
+  { key: 'platforms', label: 'Platforms' },
+];
+
+const LIVE_DIRECTORY_COLUMNS = [
+  { key: 'pricing', label: 'Pricing' },
+  { key: 'venues', label: 'Live Venues And Waitlists' },
+  { key: 'series', label: 'Tournament Series' },
+  { key: 'roomSoftware', label: 'Room Management Software' },
+  { key: 'gtoTraining', label: 'GTO Training And Odds Tools' },
+  { key: 'bankroll', label: 'Bankroll Manager' },
+  { key: 'platforms', label: 'Platforms' },
+];
+
 const BANKROLL_COLUMNS = [
   { key: 'maker', label: 'Maker' },
   { key: 'pricing', label: 'Price' },
@@ -114,6 +134,11 @@ const BANKROLL_COLUMNS = [
   { key: 'export', label: 'Export' },
   { key: 'extras', label: 'Also Offers' },
   { key: 'platforms', label: 'Platforms' },
+];
+
+const SWITCHER_BANKROLL_COLUMNS = [
+  ...BANKROLL_COLUMNS,
+  { key: 'ecosystem', label: 'Connected Poker Suite' },
 ];
 
 const VENUE_COLUMNS = [
@@ -1249,44 +1274,67 @@ export const COMPARE_PAGES = [
     title: 'Smarter.Poker Vs Upswing Poker',
     h1: 'Smarter.Poker Vs Upswing Poker',
     description:
-      'Smarter.Poker And Upswing Poker Compared Side By Side On Structured Curriculums, GTO Trainers, Preflop Charts, Pricing And Hand History Analysis.',
+      'Smarter.Poker And Upswing Poker Compared On 107 Interactive GTO Drills, Free Preflop Range Matrix, Live Poker Hub, Video Courses And Pricing.',
     summary: p(
-      'Upswing Poker Offers The Upswing Lab Subscription Curriculum, Specialist Masterclasses And The Lucid GTO Trainer Founded By Doug Polk And Ryan Fee. Smarter.Poker Provides A Free Web-Based GTO Training Platform With 107 Interactive Drills, A 40-Lesson Answer-First Strategy Curriculum, Solver Ranges And Free Hand History Upload.',
-      ['upswingSite', 'spTraining', 'spSolutions', 'spHandHistory', 'spHome']
+      'Upswing Poker Offers The Paid Upswing Lab Video Course Subscription, Specialist Masterclasses And The Lucid GTO Postflop Trainer. Smarter.Poker Is Free Forever In Any Browser, Combining 107 Interactive GTO Training Games, A Free Preflop Range Matrix, Free Hand History Review And A Full Live Poker Venue And Bankroll Hub.',
+      ['upswingSite', 'spTraining', 'spPreflopRanges', 'spSolutions', 'spHandHistory', 'spPokerNearMe', 'spBankroll', 'spHome']
     ),
     intro: p(
-      'Structured Poker Curriculums Help Players Build Preflop And Postflop Fundamentals. Here Is How Smarter.Poker And Upswing Poker Compare On Published Features And Access.',
+      'Players Weighing A Video-Course Subscription Against An Interactive Browser Training And Live Poker Hub Often Compare Upswing Poker And Smarter.Poker. Every Fact Below Comes From Each Platform\'s Publicly Listed Pages.',
       ['upswingSite', 'spTraining']
     ),
     table: {
       caption: 'Smarter.Poker And Upswing Poker, ' + CHECKED_LABEL,
       products: ['smarterTraining', 'upswingPoker'],
-      columns: TRAINER_COLUMNS,
+      columns: SWITCHER_GTO_COLUMNS,
     },
     sections: [
       {
         heading: 'Where Upswing Poker Stands Out',
         bullets: [
-          p('Upswing Poker Features The Upswing Lab Step-By-Step Learning Modules And Play-And-Explain Video Series Created By Touring Pros.', ['upswingSite']),
-          p('Upswing Poker Offers Dedicated High-Stakes Masterclasses And The Lucid GTO Postflop Trainer.', ['upswingSite']),
+          p('Upswing Poker Features The Upswing Lab Step-By-Step Video Modules And Play-And-Explain Series Led By Touring Professionals.', ['upswingSite']),
+          p('Upswing Poker Offers Dedicated High-Stakes Masterclasses, Member Group Hand Reviews And The Lucid GTO Postflop Trainer.', ['upswingSite']),
+          p('Upswing Poker Provides Both A Web Browser Portal And A Dedicated Mobile App For Course Subscribers.', ['upswingSite']),
         ],
       },
       {
         heading: 'Where Smarter.Poker Stands Out',
         bullets: [
-          p('Smarter.Poker Provides 107 Interactive GTO Drills, Preflop Charts And A Complete Strategy Curriculum Free In The Browser.', ['spTraining', 'spSolutions', 'spHome']),
-          p('Smarter.Poker Connects Training Directly To Free Hand History Upload, Multiway Equity Calculators And Live Poker Room Discovery.', ['spHandHistory', 'spOddsCalculator', 'spPokerNearMe']),
+          p('Smarter.Poker Delivers 107 Interactive GTO Training Games Across Cash Games, Tournaments, Spins And Advanced Spots Free Forever In Any Browser.', ['spTraining', 'spHome']),
+          p('Smarter.Poker Includes A Free Interactive 13x13 GTO Preflop Range Matrix, Browsable Solver Baselines And Free TXT Hand History Review.', ['spPreflopRanges', 'spSolutions', 'spHandHistory']),
+          p('Smarter.Poker Connects Daily Study Directly To A Live Poker Venue Directory, Tournament Series Calendar, Bankroll Manager And Multi-Variant Odds Calculator.', ['spPokerNearMe', 'spPokerSeries', 'spBankroll', 'spOddsCalculator']),
+        ],
+      },
+      {
+        heading: 'Interactive Drills Vs Video Course Subscriptions',
+        paragraphs: [
+          p(
+            'Video Course Libraries Like Upswing Poker Work Well For Players Who Prefer Long-Form Lecture Modules And Paid Masterclasses. Players Who Want Active Decision Repetition, Free Preflop Range Matrices And Integrated Live Venue And Bankroll Tools Without Recurring Fees Can Study And Track Everything Free Inside Smarter.Poker.',
+            ['upswingSite', 'spTraining', 'spPreflopRanges', 'spPokerNearMe', 'spBankroll', 'spHome']
+          ),
         ],
       },
     ],
     faq: [
       {
         q: 'Does Smarter.Poker Include Free Preflop Charts Like Upswing Poker?',
-        a: p('Yes. Smarter.Poker Provides Interactive 100BB 6-Max GTO Preflop Charts Plus A Full Solutions Browser Free Of Charge In Any Web Browser.', ['upswingSite', 'spSolutions', 'spHome']),
+        a: p('Yes. Smarter.Poker Provides An Interactive 100BB 6-Max GTO Preflop Range Matrix And A Full Solutions Browser Free Of Charge In Any Web Browser, Whereas Upswing Poker Pairs Free Introductory Charts With Paid Upswing Lab And Masterclass Tiers.', ['upswingSite', 'spPreflopRanges', 'spSolutions', 'spHome']),
+      },
+      {
+        q: 'How Do Smarter.Poker And Upswing Poker Differ On Pricing?',
+        a: p('Upswing Poker Sells Monthly And Annual Upswing Lab Subscriptions Plus Standalone Advanced Masterclasses, While Smarter.Poker GTO Training, Preflop Range Matrices, Hand History Upload And Live Poker Tools Are Free To Play.', ['upswingSite', 'spTraining', 'spHome']),
+      },
+      {
+        q: 'Which Platform Offers More Interactive GTO Practice Games?',
+        a: p('Smarter.Poker Includes 107 Interactive GTO Training Games Coached By Jarvis Free In The Browser, While Upswing Poker Focuses Primarily On Upswing Lab Video Modules Alongside Quiz Drills And Its Lucid GTO Trainer.', ['spTraining', 'upswingSite']),
+      },
+      {
+        q: 'Does Upswing Poker Include Live Venue Tracking Or A Bankroll Manager?',
+        a: p('The Upswing Poker Site We Read Focuses On Strategy Courses And Training Modules Rather Than Live Venue Directories Or Bankroll Tracking. Smarter.Poker Combines GTO Training With Poker Near Me, Series Schedules And A Free Cloud Bankroll Manager.', ['upswingSite', 'spPokerNearMe', 'spPokerSeries', 'spBankroll']),
       },
     ],
-    related: ['best-gto-poker-trainers', 'smarter-poker-vs-run-it-once', 'smarter-poker-vs-pokercoaching'],
-    productLinks: ['smarterTraining'],
+    related: ['smarter-poker-vs-gto-wizard', 'best-gto-poker-trainers', 'smarter-poker-vs-run-it-once', 'smarter-poker-vs-pokercoaching'],
+    productLinks: ['smarterTraining', 'smarterLiveHub', 'bankrollManager'],
     glossary: ['GTO', 'Range', '3-Bet'],
   },
 
@@ -1842,6 +1890,290 @@ export const COMPARE_PAGES = [
       },
     ],
     glossary: ['Equity', 'Variance', 'Pot Odds', 'Implied Odds', 'SPR', 'EV (Expected Value)'],
+  },
+
+  // 32 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-gto-wizard',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs GTO Wizard',
+    h1: 'Smarter.Poker Vs GTO Wizard',
+    description:
+      'Smarter.Poker And GTO Wizard Compared On Free Forever Access, 107 GTO Training Games, Solver Baselines, Live Venues, Bankroll Tracking And Pricing.',
+    summary: p(
+      'GTO Wizard Is A Standalone Paid Solver And Trainer Publicly Listed At $49 To $169 A Month (Or $39 To $139 Billed Annually) With A Limited Free Tier. Smarter.Poker Is Free Forever In The Browser, Pairing 107 Interactive GTO Training Games And Solver Baselines With Live Venues, Cloud Bankroll Tracking And Free Odds Tools.',
+      ['pokernewsGtoWizardPricing', 'gtowizardHelp', 'gtowizardSite', 'spHome', 'spTraining', 'spSolutions', 'spPokerNearMe', 'spBankroll', 'spOddsCalculator']
+    ),
+    intro: p(
+      'Players Looking For A Free GTO Wizard Alternative Often Compare Recurring Solver Subscriptions Against All-In-One Platforms. Every Fact Below Comes From Publicly Listed GTO Wizard Documentation, Published Pricing Coverage And Live Smarter.Poker Product Pages.',
+      ['gtowizardSite', 'gtowizardHelp', 'pokernewsGtoWizardPricing', 'spTraining']
+    ),
+    table: {
+      caption: 'Smarter.Poker And GTO Wizard, ' + CHECKED_LABEL,
+      products: ['smarterTraining', 'gtowizard'],
+      columns: SWITCHER_GTO_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where GTO Wizard Stands Out',
+        bullets: [
+          p('GTO Wizard Offers Its GTO Wizard AI Solver For Custom Postflop Spots Defined By The Player, Going Beyond Pre-Solved Baseline Libraries.', ['gtowizardSite']),
+          p('GTO Wizard Lets Paid Subscribers Practice Any Spot Preflop To River With Instant GTO And EV Scoring Across Deep Multi-Street Game Trees.', ['gtowizardSite']),
+          p('GTO Wizard Supports Bulk Hand History Uploads To Flag Leaks Across Large Online Databases On Paid Plans.', ['gtowizardSite']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Is Free Forever With Zero Subscription Paywalls, Giving Players 107 Interactive GTO Training Games Coached By Jarvis And A Free Solutions Library.', ['spHome', 'spTraining', 'spSolutions']),
+          p('Smarter.Poker Offers Free TXT Hand History Upload For PokerStars, GGPoker, 888 And ACR Alongside A Free 13x13 Preflop Range Matrix And Multi-Variant Odds And ICM Calculators.', ['spHandHistory', 'spPreflopRanges', 'spOddsCalculator', 'spIcmCalculator']),
+          p('Smarter.Poker Combines Study With Real-World Live Play: Poker Near Me Venue Discovery, Tournament Series Schedules And A Free Cloud Bankroll And Tax Manager.', ['spPokerNearMe', 'spPokerSeries', 'spBankroll']),
+        ],
+      },
+      {
+        heading: 'When To Switch Or Combine Both Tools',
+        paragraphs: [
+          p(
+            'High-Volume Online Grinders Who Need Custom Multi-Street AI Spot Solving Often Pay For GTO Wizard Starter, Premium Or Elite Plans. Recreational, Live And Mid-Stakes Players Who Want Daily Interactive GTO Drills, Preflop Charts, Live Venue Discovery And Bankroll Tracking Without Paying $49 To $169 A Month Can Run Their Entire Workflow Free On Smarter.Poker.',
+            ['pokernewsGtoWizardPricing', 'gtowizardSite', 'spHome', 'spTraining', 'spPokerNearMe', 'spBankroll']
+          ),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Is Smarter.Poker A Free Alternative To GTO Wizard?',
+        a: p('Yes For Daily GTO Practice, Preflop Ranges And Hand History Review. Smarter.Poker Provides 107 Interactive GTO Training Games, Solver Baselines And Free Hand History Upload At $0, Whereas GTO Wizard Free Access Is Limited To One Postflop Spot A Day, 10 Practice Hands A Day And 5 Analyzed Hands A Month.', ['spHome', 'spTraining', 'spSolutions', 'spHandHistory', 'gtowizardHelp']),
+      },
+      {
+        q: 'How Much Does GTO Wizard Cost Compared To Smarter.Poker?',
+        a: p('Published Coverage Lists GTO Wizard Plans At $49 (Starter), $99 (Premium) And $169 (Elite) Per Month, Or $39, $79 And $139 Per Month Billed Annually. Smarter.Poker GTO Training, Preflop Ranges, Bankroll Manager And Live Venue Tools Are Free To Play.', ['pokernewsGtoWizardPricing', 'spHome', 'spTraining', 'spBankroll']),
+      },
+      {
+        q: 'Does Smarter.Poker Have A Custom Postflop Solver Like GTO Wizard AI?',
+        a: p('The Smarter.Poker Pages Checked Provide A Free Browsable Library Of Pre-Solved GTO Baselines And 107 Interactive Scenario Drills Rather Than A Custom Multi-Street AI Solver Like GTO Wizard AI.', ['spSolutions', 'spTraining', 'gtowizardSite']),
+      },
+      {
+        q: 'What Extra Tools Does Smarter.Poker Include That GTO Wizard Does Not?',
+        a: p('Beyond GTO Training, Smarter.Poker Includes The Poker Near Me Live Venue Directory, Tournament Series Schedules, A Free Cloud Bankroll And Tax Manager, And Multi-Variant Hold\'em And Omaha Odds And ICM Calculators.', ['spPokerNearMe', 'spPokerSeries', 'spBankroll', 'spOddsCalculator', 'spIcmCalculator', 'gtowizardSite']),
+      },
+    ],
+    related: ['best-gto-poker-trainers', 'smarter-poker-vs-upswing-poker', 'smarter-poker-vs-piosolver', 'smarter-poker-vs-icmizer'],
+    productLinks: ['smarterTraining', 'smarterLiveHub', 'bankrollManager'],
+    glossary: ['GTO', 'Nash Equilibrium', 'EV (Expected Value)', 'Range', 'ICM'],
+  },
+
+  // 33 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-pokeratlas',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs PokerAtlas',
+    h1: 'Smarter.Poker Vs PokerAtlas',
+    description:
+      'Smarter.Poker And PokerAtlas Compared On Verified Live Poker Venues, Tournament Series, Club Commander, 107 GTO Games, Bankroll Tracking And Odds Tools.',
+    summary: p(
+      'PokerAtlas Is A Dedicated Live Poker Room Directory And Casino Tournament Listing Network Paired With Its Quote-Priced TableCaptain Venue System. Smarter.Poker Combines Verified Live Venues, Live Series Schedules And Free Club Commander Room Management With 107 GTO Training Games, Cloud Bankroll Tracking And Free Odds Calculators.',
+      ['pokeratlasSite', 'pokeratlasDirectory', 'tablecaptainPokerAtlas', 'spPokerNearMe', 'spPokerSeries', 'spCommander', 'spTraining', 'spBankroll', 'spOddsCalculator', 'spHome']
+    ),
+    intro: p(
+      'Live Poker Players Comparing Venue Directories Often Decide Between A Directory-Only Listing Site Like PokerAtlas And A Complete Poker Platform Like Smarter.Poker. Every Fact Below Is Read From Publicly Listed Pages.',
+      ['pokeratlasSite', 'pokeratlasDirectory', 'spPokerNearMe']
+    ),
+    table: {
+      caption: 'Smarter.Poker And PokerAtlas, ' + CHECKED_LABEL,
+      products: ['smarterLiveHub', 'pokeratlas'],
+      columns: LIVE_DIRECTORY_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where PokerAtlas Stands Out',
+        bullets: [
+          p('PokerAtlas Describes Itself As Reaching 6 Million Users A Year Across Its United States And International Poker Room Listings.', ['tablecaptainPokerAtlas', 'pokeratlasDirectory']),
+          p('PokerAtlas Connects Directly To Participating Casinos Running TableCaptain For Live Waitlist And Tournament Schedule Broadcasts.', ['tablecaptainPokerAtlas', 'pokeratlasSite']),
+          p('TableCaptain Supports Rooms Sized From 2 Tables Up To 200 Tables With Quote-On-Request Venue Licensing.', ['tablecaptainPokerAtlas']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Pairs Verified Live Venue Discovery And Tournament Series Calendars With 107 Free GTO Training Games, Preflop Ranges And Multiway Odds And ICM Calculators.', ['spPokerNearMe', 'spPokerSeries', 'spTraining', 'spPreflopRanges', 'spOddsCalculator', 'spIcmCalculator']),
+          p('Smarter.Poker Includes A Free Cloud Bankroll Manager With Trip And Series Grouping, Receipt Scanning, Staking Logs And Tax Reports In The Same Account.', ['spBankroll']),
+          p('For Poker Room Operators, Smarter.Poker Club Commander Is Free For Live Venues With Digital Waitlists, SMS Seat Alerts And Tournament Clocks.', ['spCommander', 'spHome']),
+        ],
+      },
+      {
+        heading: 'Directory-Only Listings Vs An Integrated Player Hub',
+        paragraphs: [
+          p(
+            'PokerAtlas Focuses On Helping Players Look Up Casino Rooms, Active Cash Games And Event Schedules. Smarter.Poker Covers That Live Venue And Series Discovery While Also Giving Players The GTO Training, Equity Math And Bankroll Ledger Needed Before And After Every Live Session.',
+            ['pokeratlasSite', 'pokeratlasDirectory', 'spPokerNearMe', 'spPokerSeries', 'spTraining', 'spBankroll']
+          ),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'How Does Smarter.Poker Compare To PokerAtlas For Live Poker Players?',
+        a: p('Both Platforms List Live Poker Venues And Tournament Series Schedules. Smarter.Poker Adds 107 Free GTO Training Games, A Free Cloud Bankroll Manager, Preflop Range Matrices And Browser-Native Odds And ICM Calculators That PokerAtlas Pages Do Not Publish.', ['pokeratlasSite', 'pokeratlasDirectory', 'spPokerNearMe', 'spTraining', 'spBankroll', 'spOddsCalculator']),
+      },
+      {
+        q: 'How Does Club Commander Pricing Compare To PokerAtlas TableCaptain?',
+        a: p('Club Commander Publishes Its Price As Free For Live Venues, Whereas PokerAtlas Lists TableCaptain Pricing As Quote On Request.', ['spHome', 'spCommander', 'tablecaptainPokerAtlas']),
+      },
+      {
+        q: 'Can I Track My Live Sessions And Tournament Series In Smarter.Poker?',
+        a: p('Yes. Smarter.Poker Connects Its Live Venue Directory And Series Calendar Directly To The Free Bankroll Manager For Session Logging, Trip Grouping, Receipt Scanning And CSV Export.', ['spPokerNearMe', 'spPokerSeries', 'spBankroll']),
+      },
+      {
+        q: 'Does Smarter.Poker Require A Paid Subscription Or App Store Purchase?',
+        a: p('No. Smarter.Poker Runs Free Forever In Any Desktop Or Mobile Web Browser With No Paid Subscription Required For Venue Discovery, GTO Drills Or Bankroll Tracking.', ['spHome', 'spPokerNearMe', 'spTraining', 'spBankroll']),
+      },
+    ],
+    related: ['club-commander-vs-tablecaptain', 'smarter-poker-vs-bravo-poker-live', 'best-poker-room-management-software', 'smarter-poker-vs-poker-bankroll-tracker'],
+    productLinks: ['smarterLiveHub', 'clubCommander', 'bankrollManager'],
+    glossary: ['Waitlist', 'Rake', 'Comp', 'Straddle'],
+  },
+
+  // 34 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-bravo-poker-live',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs Bravo Poker Live',
+    h1: 'Smarter.Poker Vs Bravo Poker Live',
+    description:
+      'Smarter.Poker And Bravo Poker Live Compared On Live Waitlists, Venue Discovery, Tournament Series Schedules, 107 GTO Training Games And Bankroll Tools.',
+    summary: p(
+      'Bravo Poker Live From Genesis Gaming Solutions Is A Legacy Casino Room Management System And Free Apple App Store Waitlist Viewer Listing Only Participating Bravo Venues. Smarter.Poker Offers Free Browser-Based Live Venue Discovery, Waitlists And Series Schedules Plus 107 GTO Training Games And A Cloud Bankroll Manager.',
+      ['bravoGenesis', 'bravoAppStore', 'spPokerNearMe', 'spCommander', 'spPokerSeries', 'spTraining', 'spBankroll', 'spHome']
+    ),
+    intro: p(
+      'Players Checking Live Cash Tables And Waitlists Often Compare The BravoPokerLive App Against Modern Web Platforms Like Smarter.Poker. Every Fact Below Is Read Directly From Genesis Gaming, The Apple App Store Listing And Live Smarter.Poker Pages.',
+      ['bravoGenesis', 'bravoAppStore', 'spPokerNearMe']
+    ),
+    table: {
+      caption: 'Smarter.Poker And Bravo Poker Live, ' + CHECKED_LABEL,
+      products: ['smarterLiveHub', 'bravo'],
+      columns: LIVE_DIRECTORY_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where Bravo Poker Live Stands Out',
+        bullets: [
+          p('BravoPokerLive Is A Free Native App On The Apple App Store Displaying Live Cash Tables And Waiting Lists For Participating Bravo Casinos.', ['bravoAppStore', 'bravoGenesis']),
+          p('Bravo Poker Provides Casino Operators With Point Tracking, Table Drop Analysis, Room Statistics And Online Tournament Seat Purchase.', ['bravoGenesis']),
+          p('Bravo Poker Covers Operations, Marketing And Payments Inside Participating Brick-And-Mortar Casino Rooms.', ['bravoGenesis']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Stands Out',
+        bullets: [
+          p('Smarter.Poker Covers Live Poker Venues Nationwide, Major Tour And Series Schedules, Daily Tournaments And Local Home Games In Any Web Browser Without Limiting Listings To One Vendor.', ['spPokerNearMe', 'spPokerSeries', 'spEventsCalendar']),
+          p('Smarter.Poker Pairs Live Discovery With 107 Interactive GTO Training Games, Free Preflop Range Matrices, Multiway Odds And ICM Calculators, And A Free Cloud Bankroll Manager.', ['spTraining', 'spPreflopRanges', 'spOddsCalculator', 'spIcmCalculator', 'spBankroll']),
+          p('Smarter.Poker Club Commander Gives Live Venues Digital Waitlists, SMS Seat Alerts And Tournament Clocks Free Of Charge.', ['spCommander', 'spHome']),
+        ],
+      },
+      {
+        heading: 'Waitlist Viewer Vs Full Live And Study Platform',
+        paragraphs: [
+          p(
+            'BravoPokerLive Serves Players Looking Specifically For Active Table Counts At Casinos Running Genesis Gaming Bravo Hardware. Smarter.Poker Adds Nationwide Venue And Series Discovery Alongside Full GTO Study Drills, Equity Calculators And Bankroll Accounting In One Free Browser Account.',
+            ['bravoAppStore', 'bravoGenesis', 'spPokerNearMe', 'spPokerSeries', 'spTraining', 'spBankroll', 'spHome']
+          ),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'What Is The Difference Between Smarter.Poker And Bravo Poker Live?',
+        a: p('BravoPokerLive Is A Waitlist Viewer App Listing Only Participating Bravo Poker Rooms, While Smarter.Poker Combines Nationwide Live Venue Discovery, Tournament Series Schedules And Free Club Commander Waitlists With 107 GTO Training Games And A Cloud Bankroll Manager.', ['bravoAppStore', 'bravoGenesis', 'spPokerNearMe', 'spPokerSeries', 'spCommander', 'spTraining', 'spBankroll']),
+      },
+      {
+        q: 'Is Bravo Poker Live Free For Players And Venues?',
+        a: p('The BravoPokerLive Player App Is Free On The Apple App Store, While Genesis Gaming Publishes No Room Software Price On The Page We Read. Smarter.Poker Is Free For Players And Free For Live Venues Using Club Commander.', ['bravoAppStore', 'bravoGenesis', 'spHome', 'spCommander']),
+      },
+      {
+        q: 'Does Bravo Poker Live Include GTO Training Or Bankroll Tracking?',
+        a: p('No. The Genesis Gaming And BravoPokerLive Pages We Read Focus On Casino Waitlists, Operations And Reporting And Do Not List GTO Training Games Or A Player Bankroll Manager. Smarter.Poker Includes Both Free.', ['bravoGenesis', 'bravoAppStore', 'spTraining', 'spBankroll']),
+      },
+      {
+        q: 'Can I Use Smarter.Poker Live Venue Discovery Without Installing An App?',
+        a: p('Yes. Smarter.Poker Poker Near Me, Series Schedules, GTO Training And Bankroll Manager Run Directly In Any Desktop Or Mobile Web Browser.', ['spPokerNearMe', 'spPokerSeries', 'spTraining', 'spBankroll']),
+      },
+    ],
+    related: ['club-commander-vs-bravo-poker-live', 'smarter-poker-vs-pokeratlas', 'best-poker-room-management-software', 'smarter-poker-vs-poker-bankroll-tracker'],
+    productLinks: ['smarterLiveHub', 'clubCommander', 'smarterTraining'],
+    glossary: ['Waitlist', 'Rake', 'Comp', 'Must-Move Table'],
+  },
+
+  // 35 ────────────────────────────────────────────────────────────────────
+  {
+    slug: 'smarter-poker-vs-poker-bankroll-tracker',
+    kind: 'versus',
+    title: 'Smarter.Poker Vs Poker Bankroll Tracker',
+    h1: 'Smarter.Poker Vs Poker Bankroll Tracker',
+    description:
+      'Smarter.Poker Bankroll Manager And Poker Bankroll Tracker Compared On Free Cloud Tracking, CSV Export, Tax Reports, GTO Training And Live Venues.',
+    summary: p(
+      'Poker Bankroll Tracker From Pixelnomads Ltd Is A Standalone Bankroll App Free To Download With A Publicly Listed Pro Upgrade At $29.99 A Year Or $199.99 Lifetime That Unlocks CSV Export. Smarter.Poker Bankroll Manager Is Free Forever In The Browser With Unlimited CSV Export, Tax Reports, Integrated GTO Training And Live Venue Discovery.',
+      ['pbtAppStore', 'pbtSite', 'spBankroll', 'spTraining', 'spPokerNearMe', 'spPokerSeries', 'spHome']
+    ),
+    intro: p(
+      'Live And Online Players Comparing Bankroll Apps Often Weigh A Standalone Mobile Tracker Against An Integrated Cloud Suite. Every Fact Below Comes Directly From The Poker Bankroll Tracker Site, Apple App Store Listing And Live Smarter.Poker Pages.',
+      ['pbtSite', 'pbtAppStore', 'spBankroll']
+    ),
+    table: {
+      caption: 'Smarter.Poker Bankroll Manager And Poker Bankroll Tracker, ' + CHECKED_LABEL,
+      products: ['bankrollManager', 'pokerBankrollTracker'],
+      columns: SWITCHER_BANKROLL_COLUMNS,
+    },
+    sections: [
+      {
+        heading: 'Where Poker Bankroll Tracker Stands Out',
+        bullets: [
+          p('Poker Bankroll Tracker Offers Native Apps Across The Apple App Store, Google Play And Desktop With Cloud Sync And Support For 40 Currencies.', ['pbtSite', 'pbtAppStore']),
+          p('Poker Bankroll Tracker Includes A Built-In Hand Replayer, Player Stats Such As VPIP And PFR, Built-In Odds And ICM Calculators, And A Public API.', ['pbtSite', 'pbtAppStore']),
+          p('Poker Bankroll Tracker Offers Both An Annual Pro Plan ($29.99 A Year) And A One-Time Lifetime Pro Option ($199.99) On The Apple App Store.', ['pbtAppStore']),
+        ],
+      },
+      {
+        heading: 'Where Smarter.Poker Bankroll Manager Stands Out',
+        bullets: [
+          p('Smarter.Poker Bankroll Manager Is 100% Free Forever With Unlimited CSV Export, Trip And Series Grouping, Receipt Scanning, Tax Reports, Staking Tracking And A Dealer Toke Tracker.', ['spBankroll', 'spHome']),
+          p('Smarter.Poker Connects Every Logged Session To A Complete Poker Platform: 107 Interactive GTO Training Games, Live Venue Directory, Series Calendar And Free Multi-Variant Odds And ICM Calculators.', ['spBankroll', 'spTraining', 'spPokerNearMe', 'spPokerSeries', 'spOddsCalculator', 'spIcmCalculator']),
+          p('Smarter.Poker Runs Instantly In Any Desktop Or Mobile Web Browser With Zero Paywalls For Exporting Your Own Session Data.', ['spBankroll', 'spHome']),
+        ],
+      },
+      {
+        heading: 'Standalone Tracker App Vs All-In-One Poker Workspace',
+        paragraphs: [
+          p(
+            'Poker Bankroll Tracker Is Well Suited To Players Who Specifically Want A Dedicated Native Mobile App With 40 Currencies, A Built-In Replayer And A Public API. Players Who Want Free Cloud Bankroll Accounting, Free CSV Exports, Tax Documentation And Integrated GTO Training Plus Live Venue Discovery In One Place Can Switch To Smarter.Poker Bankroll Manager At $0.',
+            ['pbtSite', 'pbtAppStore', 'spBankroll', 'spTraining', 'spPokerNearMe', 'spHome']
+          ),
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Is Smarter.Poker Bankroll Manager Free Compared To Poker Bankroll Tracker?',
+        a: p('Yes. Smarter.Poker Bankroll Manager Is Free Forever Including CSV Export, Tax Reports, Receipt Scanning And Staking Tools. Poker Bankroll Tracker Is Free To Download With A Pro Upgrade Listed At $29.99 A Year Or $199.99 Lifetime On The Apple App Store.', ['spBankroll', 'spHome', 'pbtAppStore']),
+      },
+      {
+        q: 'Does Smarter.Poker Charge For CSV Export Like Poker Bankroll Tracker Pro?',
+        a: p('No. Smarter.Poker Bankroll Manager Includes Free CSV Export For All Players, Whereas The Poker Bankroll Tracker App Store Listing Places CSV Export In Its Paid Pro Tier.', ['spBankroll', 'pbtAppStore']),
+      },
+      {
+        q: 'What Tools Come With Smarter.Poker Beyond Bankroll Tracking?',
+        a: p('Your Free Smarter.Poker Account Connects The Cloud Bankroll Manager Directly To 107 GTO Training Games, Free Preflop Range Matrices, The Poker Near Me Live Venue Directory, Live Series Schedules And Multi-Variant Odds And ICM Calculators.', ['spBankroll', 'spTraining', 'spPreflopRanges', 'spPokerNearMe', 'spPokerSeries', 'spOddsCalculator', 'spIcmCalculator']),
+      },
+      {
+        q: 'Does Smarter.Poker Handle Real-Money Deposits Or Wagering?',
+        a: p('No. Smarter.Poker Bankroll Manager Is A Self-Logged Session And Tax Ledger Only. There Is No Real-Money Gambling On Smarter.Poker, And Club Chips Have No Cash Value.', ['spBankroll', 'spHome']),
+      },
+    ],
+    related: ['best-poker-bankroll-trackers', 'smarter-poker-vs-pokeratlas', 'smarter-poker-vs-gto-wizard', 'smarter-poker-vs-bravo-poker-live'],
+    productLinks: ['bankrollManager', 'smarterTraining', 'smarterLiveHub'],
+    glossary: ['Variance', 'VPIP', 'ICM', 'EV (Expected Value)'],
   },
 ];
 

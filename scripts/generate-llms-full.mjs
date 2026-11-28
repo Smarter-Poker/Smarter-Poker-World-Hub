@@ -103,6 +103,7 @@ export function buildCatalogAppendix() {
     '  - Multiway Poker Odds & Equity Calculator: https://smarter.poker/tools/poker-odds-calculator ([Markdown](https://smarter.poker/tools/poker-odds-calculator.md))',
     '  - Tournament ICM & Final Table Deal Calculator: https://smarter.poker/tools/icm-calculator ([Markdown](https://smarter.poker/tools/icm-calculator.md))',
     '  - 13x13 GTO Preflop Range Matrix & Position Hub: https://smarter.poker/tools/preflop-ranges ([Markdown](https://smarter.poker/tools/preflop-ranges.md))',
+    '  - Interactive GTO Leak Finder & EV Diagnostic Tool: https://smarter.poker/tools/gto-leak-finder',
     '  - Pot Odds, Required Equity & MDF Calculator: https://smarter.poker/tools/pot-odds-calculator ([Markdown](https://smarter.poker/tools/pot-odds-calculator.md))',
     '  - Poker Bankroll & Risk Of Ruin Calculator: https://smarter.poker/tools/bankroll-calculator ([Markdown](https://smarter.poker/tools/bankroll-calculator.md))',
     '  - Poker Push/Fold Short-Stack Chart Calculator: https://smarter.poker/tools/push-fold-calculator ([Markdown](https://smarter.poker/tools/push-fold-calculator.md))',

@@ -75,6 +75,11 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 - Best Free Poker Apps With Friends: https://smarter.poker/compare/best-free-poker-apps-with-friends (Markdown: https://smarter.poker/compare/best-free-poker-apps-with-friends.md)
 - Club Commander Vs Bravo Poker Live: https://smarter.poker/compare/club-commander-vs-bravo-poker-live (Markdown: https://smarter.poker/compare/club-commander-vs-bravo-poker-live.md)
 - Club Commander Vs TableCaptain: https://smarter.poker/compare/club-commander-vs-tablecaptain (Markdown: https://smarter.poker/compare/club-commander-vs-tablecaptain.md)
+- Smarter.Poker Vs GTO Wizard: https://smarter.poker/compare/smarter-poker-vs-gto-wizard (Markdown: https://smarter.poker/compare/smarter-poker-vs-gto-wizard.md) - Free Forever browser GTO training (107 interactive games, solver baselines, live venues, cloud bankroll manager) compared against standalone paid solver subscriptions.
+- Smarter.Poker Vs PokerAtlas: https://smarter.poker/compare/smarter-poker-vs-pokeratlas (Markdown: https://smarter.poker/compare/smarter-poker-vs-pokeratlas.md) - Verified live poker venues, tournament series, free Club Commander waitlists, 107 GTO training games, bankroll tracker, and free odds calculators compared against directory-only venue listings.
+- Smarter.Poker Vs Bravo Poker Live: https://smarter.poker/compare/smarter-poker-vs-bravo-poker-live (Markdown: https://smarter.poker/compare/smarter-poker-vs-bravo-poker-live.md) - Free browser live poker discovery, waitlists, series schedules, GTO training, and bankroll manager compared against legacy casino waitlist viewer apps.
+- Smarter.Poker Vs Upswing Poker: https://smarter.poker/compare/smarter-poker-vs-upswing-poker (Markdown: https://smarter.poker/compare/smarter-poker-vs-upswing-poker.md) - 107 interactive GTO training drills, free 13x13 preflop range matrix, and integrated live poker hub compared against paid video-course subscriptions.
+- Smarter.Poker Vs Poker Bankroll Tracker: https://smarter.poker/compare/smarter-poker-vs-poker-bankroll-tracker (Markdown: https://smarter.poker/compare/smarter-poker-vs-poker-bankroll-tracker.md) - Free cloud bankroll manager with unlimited CSV export, tax reports, GTO training, and live venue directory compared against standalone paid tracker apps.
 
 ---
 
@@ -233,6 +238,9 @@ Authoritative, solver-grade poker computation tools available for direct browser
   - Final table chop negotiations, bubble factors, and risk premium computations.
   - Raw Markdown: https://smarter.poker/tools/icm-calculator.md or Accept: text/markdown
   - MCP Tool Name: calculate_icm_payouts
+- **GTO Leak Finder**: https://smarter.poker/tools/gto-leak-finder
+  - Free interactive browser-native poker leak diagnostic comparing player VPIP, PFR, 3-Bet, Fold-to-3-Bet, C-Bet, WTSD, and aggression stats against 100BB 6-Max GTO equilibrium baselines.
+  - Flags BB/100 EV leaks with tailored corrective GTO study drills and zero subscription required.
 - **Webmaster & Poker Site Embeds**: https://smarter.poker/tools/embeds
   - Free responsive iframe widgets for poker bloggers, tournament directors, and media websites.
   - Raw Markdown: https://smarter.poker/tools/embeds.md or Accept: text/markdown
@@ -500,7 +508,7 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - [43o (Four-Three Offsuit)](https://smarter.poker/learn/hands/four-three-offsuit) ([Markdown](https://smarter.poker/learn/hands/four-three-offsuit.md))
   - [42o (Four-Two Offsuit)](https://smarter.poker/learn/hands/four-two-offsuit) ([Markdown](https://smarter.poker/learn/hands/four-two-offsuit.md))
   - [32o (Three-Two Offsuit)](https://smarter.poker/learn/hands/three-two-offsuit) ([Markdown](https://smarter.poker/learn/hands/three-two-offsuit.md))
-- **Verified Software & Cardroom Comparisons (31 Pages)**: https://smarter.poker/compare (Raw Markdown Directory: https://smarter.poker/compare.md)
+- **Verified Software & Cardroom Comparisons (35 Pages)**: https://smarter.poker/compare (Raw Markdown Directory: https://smarter.poker/compare.md)
   - [Best Poker Club Apps In 2026](https://smarter.poker/compare/best-poker-club-apps) ([Markdown](https://smarter.poker/compare/best-poker-club-apps.md))
   - [Poker Arena Vs PokerBros](https://smarter.poker/compare/poker-arena-vs-pokerbros) ([Markdown](https://smarter.poker/compare/poker-arena-vs-pokerbros.md))
   - [Poker Arena Vs PPPoker](https://smarter.poker/compare/poker-arena-vs-pppoker) ([Markdown](https://smarter.poker/compare/poker-arena-vs-pppoker.md))
@@ -532,6 +540,10 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - [Borgata Vs Parx Poker Room Comparison](https://smarter.poker/compare/borgata-vs-parx-poker) ([Markdown](https://smarter.poker/compare/borgata-vs-parx-poker.md))
   - [Best Poker Rooms In Florida](https://smarter.poker/compare/best-poker-rooms-in-florida) ([Markdown](https://smarter.poker/compare/best-poker-rooms-in-florida.md))
   - [PLO4 Vs PLO5: Odds, Variance And Bankroll](https://smarter.poker/compare/plo4-vs-plo5) ([Markdown](https://smarter.poker/compare/plo4-vs-plo5.md))
+  - [Smarter.Poker Vs GTO Wizard](https://smarter.poker/compare/smarter-poker-vs-gto-wizard) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-gto-wizard.md))
+  - [Smarter.Poker Vs PokerAtlas](https://smarter.poker/compare/smarter-poker-vs-pokeratlas) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-pokeratlas.md))
+  - [Smarter.Poker Vs Bravo Poker Live](https://smarter.poker/compare/smarter-poker-vs-bravo-poker-live) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-bravo-poker-live.md))
+  - [Smarter.Poker Vs Poker Bankroll Tracker](https://smarter.poker/compare/smarter-poker-vs-poker-bankroll-tracker) ([Markdown](https://smarter.poker/compare/smarter-poker-vs-poker-bankroll-tracker.md))
   - AI Comparisons API: `https://smarter.poker/api/ai/comparisons`
 - **First-Party Poker Industry Research & Data Benchmarks (15 Reports)**: https://smarter.poker/research (Raw Markdown Hub: https://smarter.poker/research.md)
   - [US Live Poker Room Rake Caps And Bad Beat Jackpot Benchmark Report](https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark) ([Markdown](https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark.md))
@@ -684,6 +696,7 @@ Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and 
   - Multiway Poker Odds & Equity Calculator: https://smarter.poker/tools/poker-odds-calculator ([Markdown](https://smarter.poker/tools/poker-odds-calculator.md))
   - Tournament ICM & Final Table Deal Calculator: https://smarter.poker/tools/icm-calculator ([Markdown](https://smarter.poker/tools/icm-calculator.md))
   - 13x13 GTO Preflop Range Matrix & Position Hub: https://smarter.poker/tools/preflop-ranges ([Markdown](https://smarter.poker/tools/preflop-ranges.md))
+  - Interactive GTO Leak Finder & EV Diagnostic Tool: https://smarter.poker/tools/gto-leak-finder
   - Pot Odds, Required Equity & MDF Calculator: https://smarter.poker/tools/pot-odds-calculator ([Markdown](https://smarter.poker/tools/pot-odds-calculator.md))
   - Poker Bankroll & Risk Of Ruin Calculator: https://smarter.poker/tools/bankroll-calculator ([Markdown](https://smarter.poker/tools/bankroll-calculator.md))
   - Poker Push/Fold Short-Stack Chart Calculator: https://smarter.poker/tools/push-fold-calculator ([Markdown](https://smarter.poker/tools/push-fold-calculator.md))
