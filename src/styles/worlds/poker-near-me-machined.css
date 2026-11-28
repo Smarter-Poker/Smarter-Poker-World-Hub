@@ -119,7 +119,7 @@ body.world-poker-near-me .vc3-badge-modeled,
 body.world-poker-near-me .vc3-cash-count[data-modeled='true'] {
   color: #a8d4ea !important;
   border-color: rgba(90, 164, 201, 0.44) !important;
-  background: rgba(64, 47, 16, 0.42) !important;
+  background: rgba(16, 40, 64, 0.42) !important;
 }
 
 body.world-poker-near-me .vc3-badge-modeled .vc3-live-dot {
@@ -140,7 +140,7 @@ body.world-poker-near-me .vc3-cash-count {
 body.world-poker-near-me .pnm-location-card__cash[data-modeled='true'] {
   color: #a8d4ea;
   border-color: rgba(90, 164, 201, 0.42);
-  background: rgba(64, 47, 16, 0.36);
+  background: rgba(16, 40, 64, 0.36);
 }
 
 body.world-poker-near-me .vc3-cash-count[data-catalog='true'],
