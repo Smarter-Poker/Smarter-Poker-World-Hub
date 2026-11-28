@@ -14,6 +14,8 @@ import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import SmarterSeoMasthead from '../../../src/components/seo/SmarterSeoMasthead';
 import SmarterCalculatorSaveBar from '../../../src/components/seo/SmarterCalculatorSaveBar';
 import SmarterAccountUnlockGate from '../../../src/components/seo/SmarterAccountUnlockGate';
+import SmarterHandPasteTeaser from '../../../src/components/seo/SmarterHandPasteTeaser';
+import { resolveMatchupLinkMesh } from '../../../src/lib/seo/internalLinkMesh.mjs';
 import FaqSection from '../../../src/components/seo/FaqSection';
 import styles from '../../../src/components/seo/SmarterSeoKit.module.css';
 import {
@@ -49,16 +51,20 @@ export async function getStaticProps({ params }) {
       gameLabel: item.gameLabel,
     }));
 
+  const linkMesh = resolveMatchupLinkMesh(matchup, TOOL_HAND_MATCHUPS);
+
   return {
     props: {
       matchup,
       related,
+      linkMesh,
     },
   };
 }
 
-export default function ToolHandMatchupPage({ matchup, related = [] }) {
+export default function ToolHandMatchupPage({ matchup, related = [], linkMesh = null }) {
   const canonicalPath = toolMatchupPath(matchup.slug);
+  const resolvedLinkMesh = linkMesh || resolveMatchupLinkMesh(matchup, TOOL_HAND_MATCHUPS);
   const faqs = matchup.faqs;
   const schemaNodes = hubProductSchema({
     path: canonicalPath,
@@ -370,6 +376,109 @@ export default function ToolHandMatchupPage({ matchup, related = [] }) {
               unlockKey={`tools-odds-${matchup.slug}`}
             />
           </div>
+
+          <SmarterHandPasteTeaser
+            context={`odds-${matchup.slug}`}
+            redirectPath={canonicalPath}
+          />
+
+          <section
+            data-testid="internal-link-mesh"
+            aria-label="Preflop Ranges, GTO Leak Finder, And Related Matchups"
+            style={{
+              boxSizing: 'border-box',
+              width: '100%',
+              maxWidth: '100%',
+              margin: '24px 0',
+              padding: 20,
+              background: '#0b1120',
+              border: '1px solid #1e3a5f',
+              borderRadius: 0,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: '#38bdf8',
+                marginBottom: 6,
+              }}
+            >
+              Connected GTO Tools & Matchups
+            </div>
+            <h2
+              style={{
+                margin: '0 0 14px',
+                fontSize: 19,
+                fontWeight: 800,
+                color: '#f2f7ff',
+              }}
+            >
+              Drill Preflop Ranges & Sibling Equity Matchups
+            </h2>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+                gap: 12,
+              }}
+            >
+              {resolvedLinkMesh.links.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    minHeight: 44,
+                    padding: '14px 16px',
+                    background: '#060c18',
+                    border: '1px solid #1e3a5f',
+                    borderLeft: item.kind === 'tool' ? '3px solid #2563eb' : '3px solid #38bdf8',
+                    borderRadius: 0,
+                    textDecoration: 'none',
+                    color: '#f2f7ff',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase',
+                      color: '#38bdf8',
+                    }}
+                  >
+                    {item.eyebrow}
+                  </span>
+                  <span
+                    style={{
+                      marginTop: 6,
+                      fontSize: 15,
+                      fontWeight: 800,
+                      color: '#f2f7ff',
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                  <span
+                    style={{
+                      marginTop: 6,
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                      color: '#bdd0e2',
+                    }}
+                  >
+                    {item.description}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
 
           <div style={{ marginTop: 24 }}>
             <SmarterAccountUnlockGate
