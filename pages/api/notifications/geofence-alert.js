@@ -69,18 +69,18 @@ export default async function handler(req, res) {
       }
 
       try {
-          // Emoji based on venue type
-          const venueEmoji = {
-              casino: '🎲',
-              card_room: '♠️',
-              poker_club: '🃏',
-              charity: '🎗️',
-          }[venueType] || '📍';
+          // Plain words, no emoji (CLAUDE.md rule 7): the venue type names the place.
+          const venueKind = {
+              casino: 'Casino',
+              card_room: 'Card Room',
+              poker_club: 'Poker Club',
+              charity: 'Charity Game',
+          }[venueType] || 'Poker Venue';
 
           const pushResult = await sendPushNotification({
               externalIds: [userId],
               notifyType: 'venue_alert',
-              heading: `${venueEmoji} Poker Venue Nearby`,
+              heading: `${venueKind} Nearby`,
               content: `You're near ${venueName}! Tap to log a session.`,
               url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/bankroll-manager?venue=${venueId}`,
               collapseId: `geofence-${venueId}`,
