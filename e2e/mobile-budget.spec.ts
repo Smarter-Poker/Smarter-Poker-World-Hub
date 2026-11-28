@@ -52,10 +52,10 @@ const pnmMeasuredTest = test.extend({
   },
 });
 
-for (const route of ROUTES) {
+for (const rep of [1, 2, 3]) for (const route of ROUTES) {
   const budget = budgets[route];
   const routeTest = route === '/hub/poker-near-me' ? pnmMeasuredTest : test;
-  routeTest(`mobile budget: ${route}`, async ({ page }) => {
+  routeTest(`mobile budget: ${route} #${rep}`, async ({ page }) => {
     const scripts: { url: string; bytes: number }[] = [];
     const scriptMeasurements: Promise<void>[] = [];
     let unmeasuredScripts = 0;
