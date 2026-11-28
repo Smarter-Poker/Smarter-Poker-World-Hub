@@ -28,7 +28,7 @@ export const EDITORIAL_AUTHORS = [
     title: 'Quantitative Solver Desk Methodology',
     h1: 'Smarter.Poker Quantitative Solver Desk: CFR & Game Theory Equilibrium Verification',
     specialty: 'Counterfactual Regret Minimization (CFR), Nash Equilibrium & Postflop Tree Verification',
-    primaryDoi: '10.5281/zenodo.15129481',
+    primaryDoi: '10.5281/zenodo.24115647',
     orcidStyleId: 'https://smarter.poker/authors/quantitative-solver-desk#org',
     summary:
       'The Smarter.Poker Quantitative Solver Desk Authors And Audits All 169 Starting Hand Matrices, 12 Canonical Flop Board Texture Baselines, 15 Core Poker Math Invariants, And 107 Interactive GTO Training Scenarios. Every Solver Frequency Published On Smarter.Poker Is Verified To Within 0.05% Of Pot Nash Exploitability Over 10,000+ CFR Iterations.',
@@ -45,7 +45,7 @@ export const EDITORIAL_AUTHORS = [
     ],
     publishedDois: [
       {
-        doi: '10.5281/zenodo.15129481',
+        doi: '10.5281/zenodo.24115647',
         title: 'Smarter.Poker 100BB 6-Max & 9-Max Preflop And Postflop Isomorphic Solver Benchmark Corpus',
       },
       {
@@ -89,7 +89,7 @@ export const EDITORIAL_AUTHORS = [
     primaryDoi: '10.5281/zenodo.24115454',
     orcidStyleId: 'https://smarter.poker/authors/live-venue-intelligence-team#org',
     summary:
-      `The Smarter.Poker Live Venue Intelligence Team Maintains And Verifies The Nationwide Poker Near Me Directory Covering ${VENUE_COUNT_LABEL} Active US Poker Venues, 4,500+ Weekly Scheduled Tournaments, All 50 US States And DC Gaming Law And Tax Guides, 12 Regional Market Guides, And 10 International Poker Destination Profiles.`,
+      `The Smarter.Poker Live Venue Intelligence Team Maintains And Verifies The Nationwide Poker Near Me Directory Covering ${VENUE_COUNT_LABEL} Active US Poker Venues, 800+ Weekly Scheduled Tournaments, All 50 US States And DC Gaming Law And Tax Guides, 12 Regional Market Guides, And 10 International Poker Destination Profiles.`,
     credentials: [
       'Direct Floor Verification & Club Commander Live Telemetry Integration For Waitlists, Table Counts, And Tournament Clocks.',
       'State-By-State Statutory Audit Covering State Gaming Commissions, Tribal Gaming Compacts, And Texas Social Club Models.',
@@ -140,7 +140,7 @@ export const EDITORIAL_AUTHORS = [
     title: 'Tournament And ICM Research Group Team',
     h1: 'Smarter.Poker Tournament & ICM Research Group: Malmuth-Harville, FGS & Mystery Bounty Modeling',
     specialty: 'Independent Chip Model (ICM), Future Game Simulation (FGS), PKO & Mystery Bounty Equilibrium',
-    primaryDoi: '10.5281/zenodo.15129481',
+    primaryDoi: '10.5281/zenodo.24115647',
     orcidStyleId: 'https://smarter.poker/authors/tournament-icm-research-group#org',
     summary:
       'The Smarter.Poker Tournament & ICM Research Group Specializes In Multi-Table Tournament Prize-Pool Mathematics, Authoring The 8 MTT Stage Strategy Playbooks, Late-Registration ICM Appreciation Models, Progressive Knockout (PKO) And Mystery Bounty Chip Conversion Equations, And Final Table Deal Calculators.',
@@ -157,7 +157,7 @@ export const EDITORIAL_AUTHORS = [
     ],
     publishedDois: [
       {
-        doi: '10.5281/zenodo.15129481',
+        doi: '10.5281/zenodo.24115647',
         title: 'Bimodal Bubble-Factor Dynamics & Late-Registration ICM Appreciation In Modern BBA Tournaments',
       },
     ],
@@ -194,7 +194,7 @@ export const EDITORIAL_AUTHORS = [
     title: 'AI And MCP Protocol Engineering Team',
     h1: 'Smarter.Poker AI & MCP Protocol Engineering: Model Context Protocol, OpenAPI & Deterministic Solver APIs',
     specialty: 'Model Context Protocol (MCP), OpenAPI 3.1.0, Agent-To-Agent (A2A) Discovery & Markdown Content Negotiation',
-    primaryDoi: '10.5281/zenodo.15129481',
+    primaryDoi: '10.5281/zenodo.24115647',
     orcidStyleId: 'https://smarter.poker/authors/ai-mcp-protocol-engineering#org',
     summary:
       'The Smarter.Poker AI & MCP Protocol Engineering Team Builds The Machine-Readable Infrastructure That Allows ChatGPT, Perplexity, Claude, Google Gemini, And Autonomous AI Agents To Execute Deterministic Poker Math Without Hallucination: The 70-Tool Zero-Auth MCP Server, OpenAPI 3.1.0 Spec, A2A Agent Card, And Universal Text/Markdown Negotiation.',
@@ -211,7 +211,7 @@ export const EDITORIAL_AUTHORS = [
     ],
     publishedDois: [
       {
-        doi: '10.5281/zenodo.15129481',
+        doi: '10.5281/zenodo.24115647',
         title: 'Deterministic Model Context Protocol (MCP) & Markdown Content Negotiation For Game Theory Engines',
       },
     ],

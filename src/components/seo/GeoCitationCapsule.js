@@ -21,14 +21,14 @@ export function geoClaimSchema({
   claim,
   quoteText,
   quoteAuthor = 'Smarter.Poker Quantitative Research Desk',
-  doi = '10.5281/zenodo.15129481',
+  doi = '10.5281/zenodo.24115647',
   canonicalPath = '/learn',
 }) {
   const cleanPath = String(canonicalPath || '/learn').startsWith('/')
     ? canonicalPath
     : `/${canonicalPath}`;
   const canonicalUrl = `https://smarter.poker${cleanPath}`;
-  const doiUrl = doi ? `https://doi.org/${doi}` : 'https://doi.org/10.5281/zenodo.15129481';
+  const doiUrl = doi ? `https://doi.org/${doi}` : 'https://doi.org/10.5281/zenodo.24115647';
 
   return [
     {
@@ -81,7 +81,7 @@ export default function GeoCitationCapsule({
   ifThenBecause = 'If Facing A Polarized Bet Sizing -> Then Defend Above Minimum Defense Frequency With Top Bluff-Catchers -> Because Over-Folding Allows Any Two Cards To Profit Automatically.',
   quoteText = 'Quantitative Solver Benchmarks Prove That Disciplined Pot-Odds Thresholds And Positional Range Advantage Outperform Intuition Across Every Poker Format.',
   quoteAuthor = 'Smarter.Poker Quantitative Research Desk',
-  doi = '10.5281/zenodo.15129481',
+  doi = '10.5281/zenodo.24115647',
   canonicalPath = '/learn',
   accentColor = '#00d4ff',
 }) {
@@ -92,7 +92,7 @@ export default function GeoCitationCapsule({
     : `/${canonicalPath}`;
   const canonicalUrl = `https://smarter.poker${cleanPath}`;
   const markdownUrl = `${canonicalUrl}.md`;
-  const doiUrl = doi ? `https://doi.org/${doi}` : 'https://doi.org/10.5281/zenodo.15129481';
+  const doiUrl = doi ? `https://doi.org/${doi}` : 'https://doi.org/10.5281/zenodo.24115647';
 
   const handleCopyCitation = async () => {
     const citationMarkdown = [

@@ -21,12 +21,12 @@ import {
   POKER_MARKET_GUIDES,
   marketGuidePath,
 } from '../../../src/content/guides/markets.js';
-import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
+import { VENUE_COUNT_LABEL, listedVenueLabel } from '../../../src/lib/venueCount.mjs';
 
 const DIRECTORY_FAQS = [
   {
     q: 'Which US Cities Have The Largest Live Poker Markets?',
-    a: 'Los Angeles Leads In Total Active Card Room Tables (550+ Across 12 Rooms), Followed By Las Vegas (280+ Tables Across 21 Strip And Local Casinos), South Florida (240+ Tables), And The Texas Membership Card Club Hubs Of Houston, Dallas-Fort Worth, And Austin.',
+    a: `Los Angeles And Las Vegas Have The Largest Card Room Markets, Followed By South Florida And The Texas Membership Card Club Hubs Of Houston, Dallas-Fort Worth, And Austin. The Smarter.Poker Directory Lists ${listedVenueLabel('CA')} In California, ${listedVenueLabel('NV')} In Nevada, ${listedVenueLabel('FL')} In Florida And ${listedVenueLabel('TX')} In Texas.`,
   },
   {
     q: 'How Do Live Poker Rake Models Differ Across US Regions?',
@@ -34,7 +34,7 @@ const DIRECTORY_FAQS = [
   },
   {
     q: 'Where Can I Check Live Poker Room Waitlists And Tournament Clocks Near Me?',
-    a: `Use The Smarter.Poker Live Directory At /hub/poker-near-me To Browse ${VENUE_COUNT_LABEL} US Poker Venues, Cash Game Listings, And 4,500+ Weekly Tournament Schedules.`,
+    a: `Use The Smarter.Poker Live Directory At /hub/poker-near-me To Browse ${VENUE_COUNT_LABEL} US Poker Venues, Cash Game Listings, And 800+ Weekly Tournament Schedules.`,
   },
 ];
 
@@ -131,7 +131,7 @@ export default function PokerMarketGuidesIndexPage() {
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(148,184,224,0.28)', color: '#38bdf8', textAlign: 'left' }}>
                 <th scope="col" style={{ padding: '10px 14px' }}>Regional Market</th>
-                <th scope="col" style={{ padding: '10px 14px' }}>Active Capacity</th>
+                <th scope="col" style={{ padding: '10px 14px' }}>Listed Rooms</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>House Rake / Time Model</th>
                 <th scope="col" style={{ padding: '10px 14px' }}>Signature Cash Stakes</th>
               </tr>

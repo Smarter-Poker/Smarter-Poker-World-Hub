@@ -68,19 +68,16 @@ export const INTERNATIONAL_POKER_GUIDES = [
       {
         name: 'The Poker Room At Grosvenor Victoria Casino ("The Vic")',
         neighborhood: 'Paddington / Edgware Road, London W2',
-        tables: '35+ Tables',
         highlights: 'Historic Flagship Of British Poker, Deep £2/£5 And £5/£10 Cash Games, Heavy 4-Card & 5-Card PLO, And GUKPT Championships',
       },
       {
         name: 'PokerStars Live At The Hippodrome Casino',
         neighborhood: 'Leicester Square, West End, London WC2',
-        tables: '20+ Tables',
         highlights: 'Central West End Flagship Hosting UKIPT Series, High-Traffic £1/£2 And £2/£5 Cash Tables, And Tourist-Heavy Weekend Lineups',
       },
       {
         name: 'Empire Casino Poker Room & Aspers Westfield Stratford',
         neighborhood: 'Leicester Square WC2 & Stratford E20',
-        tables: '35+ Combined Tables',
         highlights: '24/7 Low-To-Mid Stakes £1/£2 Cash Games, Deepstack Daily Tournaments, And Late-Night Recreational Foot Traffic',
       },
     ],
@@ -122,7 +119,6 @@ export const INTERNATIONAL_POKER_GUIDES = [
       {
         name: 'Casino Barcelona (Port Olimpic Waterfront)',
         neighborhood: 'Marina / Port Olimpic, Barcelona',
-        tables: '25 Daily Tables (100+ Tournament & Cash Tables During EPT)',
         highlights: 'Home Of Record-Breaking EPT & Estrellas Main Events, Beachfront Location Below Hotel Arts, And Deep European Cash Action',
       },
     ],
@@ -159,12 +155,11 @@ export const INTERNATIONAL_POKER_GUIDES = [
     flagshipSeries: 'WSOP Europe (WSOPE), WSOP Circuit Rozvadov, German Poker Days, And Euro Poker Million',
     visitorTaxRule: '0% Czech Casino Cage Withholding On Live Poker Tournament & Cash Game Payouts Under Standard EU/Bilateral Rules',
     summary:
-      'Located Just Five Minutes Across The German-Czech Border In Bohemia, King\'s Resort Rozvadov Is Europe\'s Largest Dedicated 24/7 Poker Arena With 160+ Poker Tables. Operating Entirely In Euros (€) And Hosting World Series Of Poker Europe (WSOPE), Rozvadov Is Purpose-Built Around Non-Stop Festival Guarantees And Round-The-Clock Cash Games.',
+      'Located Just Five Minutes Across The German-Czech Border In Bohemia, King\'s Resort Rozvadov Is One Of Europe\'s Largest Dedicated 24/7 Poker Arenas. Operating Entirely In Euros (€) And Hosting World Series Of Poker Europe (WSOPE), Rozvadov Is Purpose-Built Around Non-Stop Festival Guarantees And Round-The-Clock Cash Games.',
     topPokerRooms: [
       {
         name: 'King\'s Resort Rozvadov Poker Arena',
         neighborhood: 'Rozvadov (Czech-German Border Off Autobahn A6 / D5)',
-        tables: '160+ Tournament & Cash Poker Tables',
         highlights: 'Home Of WSOP Europe Bracelet Events, 24/7 €1/€3 To €50/€100 Cash Games, On-Site 5-Star Hotel, And Massive PLO Action',
       },
     ],
@@ -206,13 +201,11 @@ export const INTERNATIONAL_POKER_GUIDES = [
       {
         name: 'Sporting Monte-Carlo (Salle Des Etoiles)',
         neighborhood: 'Larvotto Peninsula, Monte Carlo, Monaco',
-        tables: '80+ Tables During EPT & Triton Festivals',
         highlights: 'Retractable-Roof Mediterranean Ballroom Hosting EPT Monte Carlo Main Event, €100K Super High Rollers, And VIP Cash Games',
       },
       {
         name: 'Casino De Monte-Carlo & Casino Cafe De Paris',
         neighborhood: 'Place Du Casino, Monte Carlo',
-        tables: 'Seasonal VIP & Festival Cash Tables',
         highlights: 'World-Famous Belle Epoque Gaming Floors And High-Limit Private Salons',
       },
     ],
@@ -254,13 +247,11 @@ export const INTERNATIONAL_POKER_GUIDES = [
       {
         name: 'King\'s Casino Prague (At Hilton Prague Hotel)',
         neighborhood: 'Karlin / Florenc, Prague 8',
-        tables: '15+ Daily Tables (100+ Tables During December EPT Prague)',
         highlights: 'Official Host Venue Of EPT Prague & Eureka Poker Tour, Euro-Denominated Cash Games, And Luxury Hotel Integration',
       },
       {
         name: 'Rebuy Stars Casino Savarin & Showdown Poker Club',
         neighborhood: 'Wenceslas Square / New Town, Prague 1',
-        tables: '25+ Combined Tables',
         highlights: 'Historic Central Prague Architecture, Nightly Low-To-Mid Stakes Cash Games, And High-Action Local Tournament Guarantees',
       },
     ],
@@ -302,19 +293,16 @@ export const INTERNATIONAL_POKER_GUIDES = [
       {
         name: 'Okada Manila Poker Room (PokerStars Live / Entertainment City)',
         neighborhood: 'Entertainment City, Paranaque, Metro Manila',
-        tables: '25+ Tables',
         highlights: 'Ultra-Luxury Integrated Resort Hosting APPT Manila, Deep ₱100/₱200 And ₱200/₱400 Cash Games, And VIP Bayfront Suites',
       },
       {
         name: 'Newport World Resorts Poker Room & Masters Poker',
         neighborhood: 'Newport City (Directly Across From Manila NAIA Terminal 3)',
-        tables: '25+ Tables',
         highlights: 'Walkable From Airport Terminal 3 Via Runway Manila Skybridge, Hosting APT Events And Round-The-Clock Cash Games',
       },
       {
         name: 'Metro Card Club (Metrowalk Pasig)',
         neighborhood: 'Ortigas / Pasig City, Metro Manila',
-        tables: '30+ Tables',
         highlights: 'The Philippines\' Largest Dedicated Local Tournament And Cash Club With Massive Guaranteed Local Fields',
       },
     ],
@@ -356,13 +344,11 @@ export const INTERNATIONAL_POKER_GUIDES = [
       {
         name: 'Wynn Macau & Wynn Palace Cotai Poker Rooms',
         neighborhood: 'Macau Peninsula & Cotai Strip',
-        tables: '18+ High-Limit Tables',
         highlights: 'Asia\'s Flagship High-Stakes Cash Game Room Spreading $50/$100, $100/$200, And $300/$600+ HKD No-Limit Hold\'em',
       },
       {
         name: 'The Venetian Macao Poker Room',
         neighborhood: 'Cotai Strip, Macau',
-        tables: '12+ Tables',
         highlights: 'Central Cotai Strip Action Spreading $50/$100 And $100/$200 HKD Cash Games With Heavy Weekend Tourist Traffic',
       },
     ],
@@ -404,7 +390,6 @@ export const INTERNATIONAL_POKER_GUIDES = [
       {
         name: 'Crown Melbourne Poker Room (Southbank)',
         neighborhood: 'Southbank Promenade, Melbourne VIC 3006',
-        tables: '50+ Tables',
         highlights: 'One Of The Largest Permanent Casino Poker Floors In The Southern Hemisphere With Famous $5/$5 And $5/$10 PLO And NLH Action',
       },
     ],
@@ -446,13 +431,11 @@ export const INTERNATIONAL_POKER_GUIDES = [
       {
         name: 'Playground Poker Club (Kahnawake / Greater Montreal)',
         neighborhood: 'Route 138, Kahnawake, QC (15 Mins From Downtown Montreal)',
-        tables: '70+ Permanent Tables (130+ During WPT / WSOPC Festivals)',
         highlights: 'Purpose-Built Poker Mecca Hosting WPT Montreal & WSOP Circuit, Complimentary Food & Beverages At Cash Tables, And Huge Bad Beat Jackpots',
       },
       {
         name: 'Casino De Montreal Poker Room (OK Poker)',
         neighborhood: 'Ile Notre-Dame / Parc Jean-Drapeau, Montreal',
-        tables: '18+ Electronic / Live Dealer Tables',
         highlights: 'Government-Operated Architectural Landmark Minutes From Old Montreal With Casual Weekend Recreational Traffic',
       },
     ],
@@ -494,13 +477,11 @@ export const INTERNATIONAL_POKER_GUIDES = [
       {
         name: 'Atlantis Paradise Island Convention & Imperial Ballroom Arena',
         neighborhood: 'Paradise Island, Nassau, Bahamas',
-        tables: '120+ Tables During December WSOP Paradise & Triton Series',
         highlights: 'Home Of WSOP Paradise Gold Bracelet Events, $25K-$100K Super Million$, And High-Stakes Caribbean Cash Games',
       },
       {
         name: 'Baha Mar Casino (Cable Beach)',
         neighborhood: 'Cable Beach, Nassau, Bahamas',
-        tables: 'Seasonal Festival & Resort Gaming Floor',
         highlights: 'Luxury Cable Beach Mega-Resort Complex Just 15 Minutes From Nassau Airport (NAS)',
       },
     ],
@@ -576,7 +557,7 @@ export function renderInternationalGuideDetailMarkdown(slugOrObj) {
     '',
     '## Premier Poker Rooms',
     ...g.topPokerRooms.map(
-      (r) => `- **${r.name}** (${r.neighborhood} - ${r.tables}): ${r.highlights}`
+      (r) => `- **${r.name}** (${r.neighborhood}): ${r.highlights}`
     ),
     '',
     '## Travel Logistics & Table Strategy Tips',

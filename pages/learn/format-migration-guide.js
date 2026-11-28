@@ -139,7 +139,7 @@ export function renderFormatMigrationMarkdown() {
   return [
     '# Poker Format Transition & Migration Blueprint: Live Cash, Online 6-Max, MTTs & PLO | Smarter.Poker',
     '',
-    'Last Verified: 2026-11-24 | Zenodo DOI: 10.5281/zenodo.15129481',
+    'Last Verified: 2026-11-24 | Zenodo DOI: 10.5281/zenodo.24115647',
     'Canonical URL: https://smarter.poker/learn/format-migration-guide',
     '',
     '## Master 4-Format Structural Comparison Matrix',
@@ -195,7 +195,7 @@ export default function FormatMigrationGuidePage() {
       claim: claimText,
       quoteText,
       quoteAuthor: 'Smarter.Poker Quantitative Solver Desk',
-      doi: '10.5281/zenodo.15129481',
+      doi: '10.5281/zenodo.24115647',
       canonicalPath,
     }),
     {
@@ -272,7 +272,7 @@ export default function FormatMigrationGuidePage() {
           ifThenBecause="If Switching Between Any Two Poker Formats -> Then Recalibrate Your Open Sizing, Big Blind Defense Width, One-Pair Stack-Off SPR, And Bankroll Cushion -> Because Dead Money Ratios And Variance Multiply Across Formats."
           quoteText={quoteText}
           quoteAuthor="Smarter.Poker Quantitative Solver Desk"
-          doi="10.5281/zenodo.15129481"
+          doi="10.5281/zenodo.24115647"
           canonicalPath={canonicalPath}
         />
 
@@ -419,7 +419,7 @@ export default function FormatMigrationGuidePage() {
           summary="Complete mathematical transition guide for switching between Live Cash, Online 6-Max, Multi-Table Tournaments, and Pot-Limit Omaha."
           publishedYear="2026"
           slug="poker-format-migration-blueprint"
-          doi="10.5281/zenodo.15129481"
+          doi="10.5281/zenodo.24115647"
         />
 
         <AiPromptLauncher

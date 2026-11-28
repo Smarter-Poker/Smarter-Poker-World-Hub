@@ -362,7 +362,7 @@ export default function PokerGamesIndexPage() {
           ifThenBecause="If Transitioning From Texas Holdem To Any Omaha Or Mixed-Game Variant -> Then Verify The Exact Hole-Card Usage Mandate And Lowball Qualifier (8-Or-Better A-5 vs 2-7 Kansas City) -> Because Misreading Single-Card Flushes Or Aces-High Lowball Rules Costs Entire Stacks."
           quoteText="Mastering Mixed Games And PLO Variants Unlocks The Highest-EV Live Cash Games And Championship Bracelet Fields Because Most Holdem Specialists Never Study Non-Holdem Combinatorics."
           quoteAuthor="Smarter.Poker Quantitative Solver Desk"
-          doi="10.5281/zenodo.15129481"
+          doi="10.5281/zenodo.24115647"
           canonicalPath="/games"
         />
 

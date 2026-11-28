@@ -981,6 +981,7 @@ import './unlock-gate-shows-no-fabricated-data.law.test.mjs';
 import './the-room-count-is-real.law.test.mjs';
 import './the-venue-claims-are-real.law.test.mjs';
 import './the-room-counts-maintain-themselves.law.test.mjs';
+import './the-research-figures-are-real.law.test.mjs';
 import './phase3-conversion-funnel-fortress-20261127.law.test.mjs';
 import './phase4-seo-ctr-and-activation-fortress-20261127.law.test.mjs';
 import './forensic-hardening-fortress-20261127.law.test.mjs';

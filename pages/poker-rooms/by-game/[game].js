@@ -140,7 +140,7 @@ export default function PokerRoomsByGameDetailPage({ gameVertical, peerVerticals
           '@type': 'ListItem',
           position: idx + 1,
           name: `${v.venueName} (${v.location})`,
-          description: `${v.stakes} | ${v.rakeOrTimeCharge} | ${v.typicalTables}`,
+          description: `${v.stakes} | ${v.rakeOrTimeCharge}`,
           url: `https://smarter.poker${v.regionLink}`,
         })),
       },
@@ -363,7 +363,6 @@ export default function PokerRoomsByGameDetailPage({ gameVertical, peerVerticals
                   <th style={styles.th}>Location</th>
                   <th style={styles.th}>Stakes &amp; Format</th>
                   <th style={styles.th}>Rake / Time Charge</th>
-                  <th style={styles.th}>Active Tables</th>
                   <th style={styles.th}>Regional Guide</th>
                 </tr>
               </thead>
@@ -374,7 +373,6 @@ export default function PokerRoomsByGameDetailPage({ gameVertical, peerVerticals
                     <td style={styles.td}>{v.location}</td>
                     <td style={styles.tdCyan}>{v.stakes}</td>
                     <td style={styles.tdEmerald}>{v.rakeOrTimeCharge}</td>
-                    <td style={styles.td}>{v.typicalTables}</td>
                     <td style={styles.td}>
                       <Link href={v.regionLink} style={styles.actionLink}>
                         View Region

@@ -259,7 +259,7 @@ export function renderDecisionMatrixMarkdown() {
   return [
     '# Poker Decision & Recommendation Matrix: 20 Quantitative "Best X For Y" Selections | Smarter.Poker',
     '',
-    'Last Verified: 2026-11-24 | Zenodo DOI: 10.5281/zenodo.15129481',
+    'Last Verified: 2026-11-24 | Zenodo DOI: 10.5281/zenodo.24115647',
     'Canonical URL: https://smarter.poker/compare/decision-matrix',
     '',
     '## Master 20-Scenario Poker Decision & Recommendation Table',
@@ -324,7 +324,7 @@ export default function PokerDecisionMatrixPage() {
       claim: claimText,
       quoteText,
       quoteAuthor: 'Smarter.Poker Quantitative Solver Desk',
-      doi: '10.5281/zenodo.15129481',
+      doi: '10.5281/zenodo.24115647',
       canonicalPath,
     }),
     {
@@ -401,7 +401,7 @@ export default function PokerDecisionMatrixPage() {
           ifThenBecause="If Selecting A Poker Calculator, Training Platform, Or Live Destination -> Then Evaluate Cross-Platform Browser Accessibility, CFR Solver Accuracy, And Total Annual Cost -> Because Subscription And Tax Overhead Directly Reduce Net Bankroll Growth."
           quoteText={quoteText}
           quoteAuthor="Smarter.Poker Quantitative Solver Desk"
-          doi="10.5281/zenodo.15129481"
+          doi="10.5281/zenodo.24115647"
           canonicalPath={canonicalPath}
         />
 
@@ -541,7 +541,7 @@ export default function PokerDecisionMatrixPage() {
           summary="20 structured Best-X-For-Y recommendations across poker calculators, GTO trainers, live tax markets, bankroll apps, and AI MCP servers."
           publishedYear="2026"
           slug="poker-decision-and-recommendation-matrix"
-          doi="10.5281/zenodo.15129481"
+          doi="10.5281/zenodo.24115647"
         />
 
         <AiPromptLauncher

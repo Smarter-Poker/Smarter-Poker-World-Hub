@@ -11,6 +11,9 @@
  * House style: Title Case, zero em dashes.
  */
 
+import { listedVenueLabel } from '../../lib/venueCount.mjs';
+import { tablesLabel } from '../../lib/research/venueTablesOnFile.mjs';
+
 export const STATES_AS_OF = '2026-11-26';
 export const STATES_BASE_PATH = '/poker-rooms/states';
 export const STATES_URL = 'https://smarter.poker/poker-rooms/states';
@@ -110,7 +113,7 @@ export const US_POKER_STATES = [
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap (Zero Promo Drop At Premier Strip Rooms)',
     onlineRealMoneyStatus: 'Legal & Regulated (WSOP.com Multi-State Shared Liquidity Pool)',
     summary:
-      'Nevada Is The Global Capital Of Regulated Poker, Offering 28+ Active Brick-And-Mortar Casino Poker Rooms, Multi-State Regulated Online Poker, Low 10% Up To $5-$6 Cap Rake On The Las Vegas Strip, And A 0% State Income Tax Rate.',
+      `Nevada Is The Global Capital Of Regulated Poker, Offering Brick-And-Mortar Casino Poker Rooms (${listedVenueLabel('NV')} In The Smarter.Poker Directory), Multi-State Regulated Online Poker, Low 10% Up To $5-$6 Cap Rake On The Las Vegas Strip, And A 0% State Income Tax Rate.`,
     regulatoryOverview:
       'Regulated By The Nevada Gaming Control Board (NGCB) And Nevada Gaming Commission. Commercial Casino Cardrooms Operate 24/7 Across Clark County And Washoe County, And Nevada Participates In The Multi-State Internet Gaming Agreement (MSIGA) Alongside New Jersey, Michigan, And Pennsylvania.',
     taxWithholdingNotes:
@@ -168,7 +171,7 @@ export const US_POKER_STATES = [
     rakeModel: '10% Up To $5 - $7 Cap + $2 High-Hand / Bad Beat Jackpot Drop',
     onlineRealMoneyStatus: 'Social & Club Play (No Regulated Real-Money Online Operator License)',
     summary:
-      'Florida Is A Year-Round Live Poker Powerhouse Combining Flagship Seminole Hard Rock Casinos In Hollywood And Tampa With Nearly 30 Pari-Mutuel Cardrooms (Allowing 18+ Entry), High-Hand Promotions, And 0% State Income Tax.',
+      'Florida Is A Year-Round Live Poker Powerhouse Combining Flagship Seminole Hard Rock Casinos In Hollywood And Tampa With Licensed Pari-Mutuel Cardrooms (Allowing 18+ Entry), High-Hand Promotions, And 0% State Income Tax.',
     regulatoryOverview:
       'Regulated By The Florida Gaming Control Commission (FGCC) For Pari-Mutuel Cardrooms And The Seminole Tribe Of Florida Compact. In 2017 Florida Eliminated Previous Buy-In Caps On Pari-Mutuel Cash Games, Unlocking Uncapped No-Limit Hold\'em And Pot-Limit Omaha Statewide.',
     taxWithholdingNotes:
@@ -209,7 +212,7 @@ export const US_POKER_STATES = [
       },
       {
         q: 'What Are The Largest Poker Rooms In California?',
-        a: 'Commerce Casino (150+ Tables), The Bicycle Casino (120+ Tables), The Gardens Casino (100+ Tables), Hustler Casino, Bay 101, Matrix Casino, And Graton Resort Lead The State.',
+        a: 'Commerce Casino, The Bicycle Casino, The Gardens Casino, Hustler Casino, Bay 101, Matrix Casino, And Graton Resort Lead The State.',
       },
     ],
   },
@@ -263,7 +266,7 @@ export const US_POKER_STATES = [
     faqs: [
       {
         q: 'Which Atlantic City Casinos Currently Have Live Poker Rooms?',
-        a: 'Borgata Hotel Casino & Spa Leads Atlantic City With 52+ Tables And Year-Round Tournament Series, Joined By Harrah\'s Resort Atlantic City And Tropicana Atlantic City.',
+        a: `Borgata Hotel Casino & Spa Leads Atlantic City With ${tablesLabel('Borgata Hotel Casino')} And Year-Round Tournament Series, Joined By Harrah\'s Resort Atlantic City And Tropicana Atlantic City.`,
       },
       {
         q: 'Does New Jersey Allow Deducting Gambling Losses On State Taxes?',
@@ -313,7 +316,7 @@ export const US_POKER_STATES = [
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play (No Regulated Real-Money Online Poker Yet)',
     summary:
-      'Serving The Affluent Washington D.C. And Baltimore Corridor, Maryland Hosts Two Of The Ten Largest Poker Rooms On The East Coast: Maryland Live! Casino (52 Tables) And MGM National Harbor (46 Tables), Plus Horseshoe Baltimore.',
+      'Serving The Affluent Washington D.C. And Baltimore Corridor, Maryland Hosts Two Of The Largest Poker Rooms In The Mid-Atlantic: Maryland Live! Casino And MGM National Harbor, Plus Horseshoe Baltimore.',
     regulatoryOverview:
       'Regulated By The Maryland Lottery And Gaming Control Agency (MLGCA). Maryland Casinos Operate 24/7 With Uncapped High-Stakes Cash Games And Major WPT And WSOP Circuit Stops.',
     taxWithholdingNotes:
@@ -350,7 +353,7 @@ export const US_POKER_STATES = [
     faqs: [
       {
         q: 'What Is The Biggest Poker Tournament In Arizona?',
-        a: 'The Annual Arizona State Poker Championship Hosted Every August At Talking Stick Resort In Scottsdale Regularly Draws 1,500+ Entrants And Builds A $1.5 Million+ Prize Pool.',
+        a: 'The Annual Arizona State Poker Championship Hosted Every August At Talking Stick Resort In Scottsdale Is One Of The Largest Annual Tournament Festivals In The Southwest.',
       },
       {
         q: 'Are Spread-Limit Rules Gone In Arizona Poker Rooms?',
@@ -383,7 +386,7 @@ export const US_POKER_STATES = [
       },
       {
         q: 'Which Black Hawk Casinos Have The Best Poker Rooms?',
-        a: 'Monarch Casino Resort Spa Black Hawk (14 Tables) And Bally\'s / Ameristar Black Hawk Lead The Market With Non-Stop $1/$3, $2/$5, PLO, And Major Mid-States Poker Tour (MSPT) And WSOP Circuit Festivals.',
+        a: 'Monarch Casino Resort Spa Black Hawk And Bally\'s / Ameristar Black Hawk Lead The Market With Non-Stop $1/$3, $2/$5, PLO, And Major Mid-States Poker Tour (MSPT) And WSOP Circuit Festivals.',
       },
     ],
   },
@@ -400,7 +403,7 @@ export const US_POKER_STATES = [
     rakeModel: '10% Pot Rake Up To $6 Cap + $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play (Online Poker Legislation Pending In General Assembly)',
     summary:
-      'Serving The 9.5-Million-Resident Chicagoland Market, Illinois Features High-Demand Live Poker Rooms Led By Rivers Casino Des Plaines (22 Tables Near O\'Hare), Grand Victoria Casino In Elgin, And Hard Rock Rockford.',
+      'Serving The 9.5-Million-Resident Chicagoland Market, Illinois Features High-Demand Live Poker Rooms Led By Rivers Casino Des Plaines Near O\'Hare, Grand Victoria Casino In Elgin, And Hard Rock Rockford.',
     regulatoryOverview:
       'Regulated By The Illinois Gaming Board (IGB). Because Table Supply In Chicagoland Is Tight Relative To Population, Cash Games At $1/$3, $2/$5, And $5/$5 PLO Run Deep With Long Waitlists On Weekends.',
     taxWithholdingNotes:
@@ -528,7 +531,7 @@ export const US_POKER_STATES = [
       },
       {
         q: 'Which Ohio Poker Room Spreads The Biggest Tournament Series?',
-        a: 'Hollywood Casino Columbus (34 Tables), Hard Rock Casino Cincinnati (31 Tables), And Jack Cleveland Casino Regularly Host Major Regional Deepstack And WSOP/WPT Satellite Series.',
+        a: 'Hollywood Casino Columbus, Hard Rock Casino Cincinnati, And Jack Cleveland Casino Regularly Host Major Regional Deepstack And WSOP/WPT Satellite Series.',
       },
     ],
   },
@@ -545,7 +548,7 @@ export const US_POKER_STATES = [
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
     summary:
-      'Oklahoma Hosts Some Of The Highest-Volume Tribal Poker Rooms In The Country Including WinStar World Casino (55+ Tables), Choctaw Durant (WSOP Circuit & WPT Host), And Hard Rock Tulsa, Many Admitting Players Age 18+.',
+      'Oklahoma Hosts Some Of The Highest-Volume Tribal Poker Rooms In The Country Including WinStar World Casino, Choctaw Durant (WSOP Circuit & WPT Host), And Hard Rock Tulsa, Many Admitting Players Age 18+.',
     regulatoryOverview:
       'Live Poker Operates Under Class III Tribal-State Gaming Compacts Supervised By Sovereign Tribal Gaming Commissions And The Oklahoma Office Of Management And Enterprise Services.',
     taxWithholdingNotes:
@@ -574,7 +577,7 @@ export const US_POKER_STATES = [
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Jackpot Drop (Spread-Limit Caps Up To $300-$500)',
     onlineRealMoneyStatus: 'Strictly Prohibited Under RCW 9.46.240 (Free Social Play Only)',
     summary:
-      'Washington Offers Over 25 Live Poker Rooms Including Fortune Poker, Muckleshoot, Tulalip, And Ilani With 0% State Income Tax, While Enforcing Strict Spread-Limit Betting Caps And Prohibiting Real-Money Online Poker.',
+      `Washington Offers Live Poker Rooms (${listedVenueLabel('WA')} In The Smarter.Poker Directory) Including Fortune Poker, Muckleshoot, Tulalip, And Ilani With 0% State Income Tax, While Enforcing Strict Spread-Limit Betting Caps And Prohibiting Real-Money Online Poker.`,
     regulatoryOverview:
       'Regulated By The Washington State Gambling Commission (WSGC) Under RCW 9.46. Commercial House-Banked Cardrooms And Tribal Casinos Operate Spread-Limit Cash Games (Typically $300-$500 Max Bet Per Street) And No-Limit Tournaments.',
     taxWithholdingNotes:
@@ -603,7 +606,7 @@ export const US_POKER_STATES = [
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop ($100 Max Bet Spread-Limit Cash)',
     onlineRealMoneyStatus: 'Social & Club Play Only',
     summary:
-      'Minnesota Is A Midwest Poker Hub Anchored By Canterbury Park (30+ Tables, MSPT Host) And Running Aces Casino In The Twin Cities, Both Admitting Players Age 18+ Under State Spread-Limit Cash Rules.',
+      'Minnesota Is A Midwest Poker Hub Anchored By Canterbury Park And Running Aces Casino In The Twin Cities, Both Admitting Players Age 18+ Under State Spread-Limit Cash Rules.',
     regulatoryOverview:
       'Pari-Mutuel Card Clubs At Canterbury Park And Running Aces Are Regulated By The Minnesota Racing Commission With A Statutory $100 Max Bet Spread-Limit On Cash Games And Full No-Limit Tournament Structures.',
     taxWithholdingNotes:
@@ -669,7 +672,7 @@ export const US_POKER_STATES = [
     faqs: [
       {
         q: 'Which Connecticut Poker Room Is Larger: Foxwoods Or Mohegan Sun?',
-        a: 'Foxwoods Resort Casino Operates The Larger Poker Room In Connecticut (50+ Tables During Major Series) And Hosts Regular WPT And Foxwoods Poker Classic Festivals, While Mohegan Sun Runs A Busy 25+ Table Room.',
+        a: 'Foxwoods Resort Casino Operates The Larger Poker Room In Connecticut And Hosts Regular WPT And Foxwoods Poker Classic Festivals, While Mohegan Sun Runs A Busy Room Of Its Own.',
       },
       {
         q: 'Is Real-Money Online Poker Legal In Connecticut?',
@@ -690,7 +693,7 @@ export const US_POKER_STATES = [
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap (No Promo Drop At Select Limits) Or Hourly Time At Higher Stakes',
     onlineRealMoneyStatus: 'Social & Club Play Only',
     summary:
-      'Massachusetts Live Poker Is Anchored By Encore Boston Harbor (24+ Tables In Metro Boston) And MGM Springfield, Offering Deep Cash Games Under A Flat 5.0% State Income Tax Rate.',
+      'Massachusetts Live Poker Is Anchored By Encore Boston Harbor And MGM Springfield, Offering Deep Cash Games Under A Flat 5.0% State Income Tax Rate.',
     regulatoryOverview:
       'Commercial Casino Poker Rooms Are Licensed And Audited By The Massachusetts Gaming Commission (MGC) Under The Expanded Gaming Act Of 2011.',
     taxWithholdingNotes:
@@ -756,7 +759,7 @@ export const US_POKER_STATES = [
     faqs: [
       {
         q: 'Where Are The Biggest Live Poker Rooms In Missouri?',
-        a: 'Hollywood Casino St. Louis (20+ Tables) And Ameristar Casino Kansas City Lead Missouri\'s Live Cash Game And Daily Tournament Schedule.',
+        a: 'Hollywood Casino St. Louis And Ameristar Casino Kansas City Lead Missouri\'s Live Cash Game And Daily Tournament Schedule.',
       },
       {
         q: 'Are Private Home Poker Games Legal In Missouri?',
@@ -901,7 +904,7 @@ export const US_POKER_STATES = [
     faqs: [
       {
         q: 'Which Live Poker Rooms Operate In Delaware?',
-        a: 'Delaware Park Casino Near Wilmington (20+ Tables) And Bally\'s Dover Casino Resort Both Spread Daily Hold\'em, PLO Cash Games, And Scheduled Tournaments.',
+        a: 'Delaware Park Casino Near Wilmington And Bally\'s Dover Casino Resort Both Spread Daily Hold\'em, PLO Cash Games, And Scheduled Tournaments.',
       },
       {
         q: 'Is Online Poker Legal In Delaware?',
@@ -922,7 +925,7 @@ export const US_POKER_STATES = [
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap (No-Limit Cash & Tournaments Under State Charitable Rules)',
     onlineRealMoneyStatus: 'Social & Club Play Only',
     summary:
-      'New Hampshire Is A Premier Northeast Poker Destination Offering 0% State Income Tax, 18+ Entry, And Over 10 Active Charitable Cardrooms Including Boston Billiard Club & Casino (Nashua) And The Brook (Seabrook).',
+      `New Hampshire Is A Premier Northeast Poker Destination Offering 0% State Income Tax, 18+ Entry, And Charitable Cardrooms (${listedVenueLabel('NH')} In The Smarter.Poker Directory) Including Boston Billiard Club & Casino (Nashua) And The Brook (Seabrook).`,
     regulatoryOverview:
       'Charitable Gaming Poker Rooms Are Licensed By The New Hampshire Lottery Commission Under RSA 287-D, Directing A Portion Of Gaming Revenue To Registered New Hampshire Nonprofits.',
     taxWithholdingNotes:
@@ -980,7 +983,7 @@ export const US_POKER_STATES = [
     rakeModel: '10% Pot Rake Up To $5 - $6 Cap + $1 - $2 Promo Drop',
     onlineRealMoneyStatus: 'Social & Club Play Only',
     summary:
-      'Virginia\'s Live Poker Market Has Expanded Rapidly With Commercial Casino Poker Rooms At Rivers Casino Portsmouth (24 Tables), Caesars Virginia (Danville), And Hard Rock Bristol Alongside Licensed Charitable Poker.',
+      'Virginia\'s Live Poker Market Has Expanded Rapidly With Commercial Casino Poker Rooms At Rivers Casino Portsmouth, Caesars Virginia (Danville), And Hard Rock Bristol Alongside Licensed Charitable Poker.',
     regulatoryOverview:
       'Commercial Casinos Are Licensed By The Virginia Lottery Board, While Charitable Texas Hold\'em Tournaments Are Supervised By The Virginia Department Of Agriculture And Consumer Services (VDACS).',
     taxWithholdingNotes:
@@ -1560,7 +1563,7 @@ export const US_POKER_STATES = [
     rakeModel: 'Neighboring MGM National Harbor & Live! Maryland Run 10% Up To $5-$6 Cap',
     onlineRealMoneyStatus: 'Social & Club Play Only (Sports Betting Only In-District)',
     summary:
-      'While Washington, D.C. Does Not Host A Brick-And-Mortar Casino Within District Borders, Players Are Just 15 Minutes Across The Potomac From MGM National Harbor (46 Tables) And 35 Minutes From Live! Casino Maryland (50+ Tables).',
+      'While Washington, D.C. Does Not Host A Brick-And-Mortar Casino Within District Borders, Players Are Just 15 Minutes Across The Potomac From MGM National Harbor And 35 Minutes From Live! Casino Maryland.',
     regulatoryOverview:
       'Gaming Inside The District Is Regulated By The DC Office Of Lottery And Gaming (OLG), Covering Lottery, Sports Betting, And Charitable Raffles, Without Commercial Casino Table Games.',
     taxWithholdingNotes:

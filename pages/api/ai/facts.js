@@ -59,7 +59,7 @@ export function buildCanonicalFacts(venueStats = SNAPSHOT_VENUE_STATS) {
     usRegionalMarketsCount: 12,
     usStatesCoveredCount: 51,
     internationalDestinationsCount: 10,
-    primaryDoi: '10.5281/zenodo.15129481',
+    primaryDoi: '10.5281/zenodo.24115647',
     archiveDoi: '10.5281/zenodo.24115647',
     swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
     license: 'CC-BY-4.0',
