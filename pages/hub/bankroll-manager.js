@@ -2206,7 +2206,7 @@ export default function BankrollManagerPage() {
               {/* Session Hand Review (sidebar Hand Review, ?view=hand-review) */}
               {activeSection === 'hand-review' && (
                 <BankrollProGate userId={userId}>
-                  <SessionHandReview userId={userId} />
+                  <SessionHandReview userId={userId} displayEUR={preferences.currencyEUR} />
                 </BankrollProGate>
               )}
 
@@ -2227,6 +2227,12 @@ export default function BankrollManagerPage() {
               {activeSection === 'reports' && (
                 <div className={`sd-panel ${layout.panel}`}>
                   <h2 className="sd-section-title">Performance Reports</h2>
+                  {/* The page keeps the dashboard's Location and Time filters
+                      across views now (it is no longer remounted per view),
+                      so these totals say which slice they cover. */}
+                  <p data-testid="reports-scope" style={{ margin: '0 0 12px', fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+                    {locationFilter ? `At ${selectedLocationName}` : 'All Locations'} · {timeFilter}
+                  </p>
 
                   {failedScope === reportScope && (
                     <p role="alert">Could Not Refresh Reports. <button type="button" className="sd-button" onClick={loadData}>Retry</button></p>
@@ -2251,7 +2257,7 @@ export default function BankrollManagerPage() {
                     <label style={styles.settingRow}>
                       <span style={{ minWidth: 0 }}>
                         <span style={{ display: 'block', fontSize: 14, color: '#fff' }}>Display EUR</span>
-                        <span style={styles.settingHint}>Show Every Amount In Euros. Your Ledger Stays In Dollars.</span>
+                        <span style={styles.settingHint}>Show Dashboard Totals, Charts And Analysis In Euros. Your Ledger Stays In Dollars.</span>
                       </span>
                       <input type="checkbox" checked={Boolean(preferences.currencyEUR)} onChange={(e) => updatePreference('currencyEUR', e.target.checked)} style={styles.settingCheck} />
                     </label>
