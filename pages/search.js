@@ -36,6 +36,7 @@ import { US_POKER_STATES, stateGuidePath } from '../src/content/guides/states';
 import { PLAYER_ARCHETYPES, playerTypePath } from '../src/content/learn/playerTypes';
 import { BOARD_TEXTURES, boardTexturePath } from '../src/content/learn/boardTextures';
 import { INTERNATIONAL_POKER_GUIDES, internationalGuidePath } from '../src/content/guides/internationalMarkets';
+import { VENUE_COUNT_LABEL } from '../src/lib/venueCount.mjs';
 
 export const POKER_GAMES = POKER_VARIANTS;
 export const POKER_MARKETS = POKER_MARKET_GUIDES;
@@ -557,7 +558,7 @@ const AUTHORITY_HUB_ITEMS = [
     title: 'Best Live Poker Rooms By Game Variant (PLO, Big O, Mixed, Stud & High-Stakes)',
     href: '/poker-rooms/by-game',
     badge: '6 Variant Directories',
-    summary: 'Curated Directory Grouping 715+ North American Poker Rooms By PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, And Daily MTTs.',
+    summary: `Curated Directory Grouping ${VENUE_COUNT_LABEL} North American Poker Rooms By PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, And Daily MTTs.`,
   },
   {
     category: 'Regional Poker Markets',
@@ -578,7 +579,7 @@ const AUTHORITY_HUB_ITEMS = [
     title: '2026 Annual State Of Live & Online Poker Industry Whitepaper',
     href: '/research/annual-state-of-poker-2026',
     badge: '2026 Flagship Whitepaper',
-    summary: 'Flagship 2026 Quantitative Industry Report Synthesizing 715+ Venues, 4,500+ Weekly Tournaments, And 10M+ Simulated GTO Hands.',
+    summary: `Flagship 2026 Quantitative Industry Report Synthesizing ${VENUE_COUNT_LABEL} Venues, 4,500+ Weekly Tournaments, And 10M+ Simulated GTO Hands.`,
   },
   {
     category: 'Research Studies',

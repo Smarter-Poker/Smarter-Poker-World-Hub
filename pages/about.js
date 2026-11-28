@@ -25,6 +25,7 @@ import FaqSection from '../src/components/seo/FaqSection';
 import SmarterConversionCta from '../src/components/seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
 import { LANDING_PRODUCTS } from '../src/components/landing/LandingProductSummary';
+import { VENUE_COUNT_LABEL } from '../src/lib/venueCount.mjs';
 
 const ABOUT_FAQS = [
   {
@@ -45,7 +46,7 @@ const ABOUT_FAQS = [
   {
     question: 'What Free Poker Tools Does Smarter.Poker Include?',
     answer:
-      'Smarter.Poker Includes 52 Browser-Native Poker Calculators (Odds, ICM, Push/Fold, Preflop Ranges, Bankroll, Form W-2G Tax Ledger), Over 100 GTO Training Scenario Games, A 324+ Room US Live Poker Directory, And Free Club Commander Cardroom Management Software.',
+      `Smarter.Poker Includes 52 Browser-Native Poker Calculators (Odds, ICM, Push/Fold, Preflop Ranges, Bankroll, Form W-2G Tax Ledger), Over 100 GTO Training Scenario Games, A ${VENUE_COUNT_LABEL} Room US Live Poker Directory, And Free Club Commander Cardroom Management Software.`,
   },
 ];
 
@@ -202,7 +203,7 @@ export default function AboutPage() {
           <SmarterConversionCta
             eyebrow="Free Smarter.Poker Account"
             title="Start Playing And Training Free On Smarter.Poker"
-            description="Join Free To Access 107 Interactive GTO Training Games, 715+ Verified Live Poker Rooms, Bankroll Tracking, And Private Poker Clubs."
+            description={`Join Free To Access 107 Interactive GTO Training Games, ${VENUE_COUNT_LABEL} Verified Live Poker Rooms, Bankroll Tracking, And Private Poker Clubs.`}
             primaryLabel="Create Free Account"
             primaryHref="/auth/signup?redirect=/hub&src=about"
             secondaryLabel="Sign In"

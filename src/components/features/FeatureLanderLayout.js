@@ -5,6 +5,7 @@ import AiPromptLauncher from '../seo/AiPromptLauncher';
 import CitationBacklinkBox from '../seo/CitationBacklinkBox';
 import SmarterConversionCta from '../seo/SmarterConversionCta';
 import SmarterAccountUnlockGate from '../seo/SmarterAccountUnlockGate';
+import { VENUE_COUNT_LABEL } from '../../lib/venueCount.mjs';
 
 const FEATURE_SEMANTIC_MESH = {
   '/features/preflop-charts-matrix': {
@@ -579,12 +580,12 @@ export default function FeatureLanderLayout({
             <SmarterConversionCta
               eyebrow="Free Smarter.Poker Account"
               title={`Unlock ${title} With A Free Account`}
-              description="Save Your Drills, Sync Bankroll Sessions, Track 715+ Live Poker Rooms, And Access Every Smarter.Poker Tool With Zero Subscription Fees."
+              description={`Save Your Drills, Sync Bankroll Sessions, Track ${VENUE_COUNT_LABEL} Live Poker Rooms, And Access Every Smarter.Poker Tool With Zero Subscription Fees.`}
               primaryLabel="Create Free Account"
               primaryHref={signupHref}
               secondaryLabel="Sign In"
               secondaryHref={loginHref}
-              highlights={['100% Free Forever', '107 GTO Drills', '715+ Live Rooms']}
+              highlights={['100% Free Forever', '107 GTO Drills', `${VENUE_COUNT_LABEL} Poker Rooms`]}
             />
           </div>
 

@@ -23,6 +23,7 @@ import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderFormatQuizMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const FORMAT_PROFILES = {
   'live-cash': {
@@ -641,7 +642,7 @@ export default function FormatQuizPage({
               compact
               eyebrow="Free Smarter.Poker Account"
               title="Start Your Personalized Poker Study Plan Free"
-              description="Unlock 107 Free GTO Training Games, Track Sessions In Bankroll Manager, And Find 715+ Live Poker Rooms."
+              description={`Unlock 107 Free GTO Training Games, Track Sessions In Bankroll Manager, And Find ${VENUE_COUNT_LABEL} Live Poker Rooms.`}
               primaryLabel="Create Free Account"
               primaryHref="/auth/signup?redirect=/tools/format-quiz&src=format-quiz"
               secondaryLabel="Sign In"

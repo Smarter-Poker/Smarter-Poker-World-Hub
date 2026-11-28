@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "name": "Smarter.Poker Quantitative Poker & GTO Intelligence Agent",
-  "description": "Zero-auth autonomous poker mathematics, Malmuth-Harville ICM/Chop solver, 169-hand GTO preflop range engine, 52 interactive calculators, 70 MCP tools, 44 streamer bot commands, 324+ live cardroom directory, and TDA floor rules agent.",
+  "description": "Zero-auth autonomous poker mathematics, Malmuth-Harville ICM/Chop solver, 169-hand GTO preflop range engine, 52 interactive calculators, 70 MCP tools, 44 streamer bot commands, 560+ live cardroom directory, and TDA floor rules agent.",
   "version": "2.2.0",
   "packageVersion": "1.0.8",
   "url": "https://smarter.poker/api/mcp",
@@ -92,7 +92,7 @@
     {
       "id": "live-poker-venues-and-series",
       "name": "North American & International Live Cardroom, Travel Corridors, US State Law, Player Archetypes & Series Intelligence",
-      "description": "Search 324+ verified live poker rooms, 10 US airport/border travel corridors, 10 international poker destinations, US state legal/tax/rake guides, 8 player archetype exploits, 15 HUD stat benchmarks, 12 leak cures, and 10 major tournament series strategy guides.",
+      "description": "Search 560+ verified live poker rooms, 10 US airport/border travel corridors, 10 international poker destinations, US state legal/tax/rake guides, 8 player archetype exploits, 15 HUD stat benchmarks, 12 leak cures, and 10 major tournament series strategy guides.",
       "tags": ["venues", "wsop", "wpt", "mspt", "cardrooms", "positions", "states", "international", "corridors"]
     }
   ]

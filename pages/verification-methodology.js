@@ -17,6 +17,7 @@ import SEOHead, { schemas } from '../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
 import SmarterSeoMasthead from '../src/components/seo/SmarterSeoMasthead';
 import SmarterAccountUnlockGate from '../src/components/seo/SmarterAccountUnlockGate';
+import { VENUE_COUNT_LABEL } from '../src/lib/venueCount.mjs';
 
 const SITE_URL = 'https://smarter.poker';
 const CANONICAL_PATH = '/verification-methodology';
@@ -32,7 +33,7 @@ export function renderVerificationMethodologyMarkdown() {
     'Smarter.Poker Is Operated By Smarter Software Inc. Every Dataset, Comparison Table, Live Poker Venue Profile, And Strategy Calculation Published On Smarter.Poker Follows Strict Primary-Source Provenance Rules. Unknown Facts Are Printed As Not Published Rather Than Estimated, And Every Mathematical Figure Is Derived From Deterministic Formulas.',
     '',
     '## 1. Live Poker Venue & Tournament Schedule Verification',
-    '- **Verified Venue Profiles**: Smarter.Poker Tracks 324+ Licensed Casino Poker Rooms, Cardrooms, And Charity Poker Rooms Across North America With Source URLs, Scrape Hashes, And Verification Timestamps.',
+    `- **Verified Venue Profiles**: Smarter.Poker Tracks ${VENUE_COUNT_LABEL} Licensed Casino Poker Rooms, Cardrooms, And Charity Poker Rooms Across North America With Source URLs, Scrape Hashes, And Verification Timestamps.`,
     '- **Recurring Daily Tournaments & Series**: Tournament Series (/hub/poker-series) And Daily Tournaments (/hub/daily-tournaments) Record Explicit Data Quality Classifications And Primary Operator Sources.',
     '',
     '## 2. Competitor & Cardroom Comparison Provenance (/compare)',
@@ -139,7 +140,7 @@ export default function VerificationMethodologyPage() {
               title={title}
               lead="Every Live Venue Profile, Software Comparison Matrix & GTO Calculation Verified Against Primary Sources & Zenodo DOIs."
               stats={[
-                { label: 'Verified Venues', value: '324+ Rooms' },
+                { label: 'Verified Venues', value: `${VENUE_COUNT_LABEL} Rooms` },
                 { label: 'Zenodo Deposits', value: '6 Archives' },
                 { label: 'CFR Precision', value: '<= 0.05% Pot' },
                 { label: 'Open License', value: 'CC BY 4.0' },
@@ -272,7 +273,7 @@ export default function VerificationMethodologyPage() {
             badgeType="research"
             badgeLabel="Data Provenance"
             badgeValue="Verified By Smarter.Poker"
-            summary="Primary-Source Verification Rules For 324+ Live Poker Rooms, Tournament Schedules, Software Comparisons, And Deterministic GTO Math."
+            summary={`Primary-Source Verification Rules For ${VENUE_COUNT_LABEL} Live Poker Rooms, Tournament Schedules, Software Comparisons, And Deterministic GTO Math.`}
             slug="verification-methodology"
           />
 

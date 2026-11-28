@@ -2,6 +2,7 @@ import PokerNearMeLocationPage from '../../../../src/components/poker-near-me/Po
 import SmarterAccountUnlockGate from '../../../../src/components/seo/SmarterAccountUnlockGate';
 import SmarterConversionCta from '../../../../src/components/seo/SmarterConversionCta';
 import { aggregateVenueStates, fetchPokerVenueLocation, venueLocationCanonical, venuesWithoutAState } from '../../../../src/lib/poker-near-me/locationPages';
+import { VENUE_COUNT_LABEL } from '../../../../src/lib/venueCount.mjs';
 
 export async function getServerSideProps({ req, res, query }) {
   try {
@@ -69,7 +70,7 @@ export default function PokerLocationsIndex(props) {
             primaryHref="/auth/signup?redirect=%2Fhub%2Fpoker-near-me%2Fin&src=pnm-locations-index"
             secondaryLabel="Sign In"
             secondaryHref="/auth/login?redirect=%2Fhub%2Fpoker-near-me%2Fin"
-            highlights={['100% Free Account', '715+ Live Rooms', 'Bankroll Tracker']}
+            highlights={['100% Free Account', `${VENUE_COUNT_LABEL} Poker Rooms`, 'Bankroll Tracker']}
           />
         </div>
       )}

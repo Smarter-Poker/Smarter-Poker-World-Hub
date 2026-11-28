@@ -29,6 +29,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import NewsletterCaptureBar from '../../src/components/news/NewsletterCaptureBar';
 import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnlockGate';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
 const FALLBACK_HERO_IMAGE = '/api/news/email-image?fallback=1&m=hero';
@@ -957,7 +958,7 @@ export default function ArticlePage({ initialArticle = null, initialRelated = []
                         </Link>
                         <Link href="/hub/poker-near-me/lobby">
                             <div className="related-card" style={{ padding: 14 }}>
-                                <span>Poker Near Me: 324+ Verified US Live Rooms</span>
+                                <span>Poker Near Me: {VENUE_COUNT_LABEL} Verified US Poker Rooms</span>
                             </div>
                         </Link>
                         <Link href="/poker-rooms/states">

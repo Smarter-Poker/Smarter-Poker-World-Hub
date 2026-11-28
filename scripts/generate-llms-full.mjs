@@ -23,6 +23,7 @@ import { POKER_RULES } from '../src/content/rules/rules.js';
 import { POKER_VARIANTS } from '../src/content/games/variants.js';
 import { POKER_MARKET_GUIDES } from '../src/content/guides/markets.js';
 import { HAND_MATCHUPS } from '../src/content/learn/matchups.js';
+import { VENUE_COUNT_LABEL } from '../src/lib/venueCount.mjs';
 import { SERIES_GUIDES } from '../src/content/guides/seriesGuides.js';
 import { MCP_TOOLS, MCP_PROMPTS, MCP_RESOURCE_TEMPLATES } from '../src/lib/mcp/mcpServer.mjs';
 import { STREAMER_BOT_COMMANDS } from '../pages/api/stream/cmd.js';
@@ -201,7 +202,7 @@ export function buildCatalogAppendix() {
     '- **Data Provenance & Verification Methodology**: https://smarter.poker/verification-methodology (Markdown: https://smarter.poker/verification-methodology.md)',
     '- **Unified JSON-LD Knowledge Graph**: https://smarter.poker/knowledge-graph.jsonld',
     '- **Multilingual AI Grounding Corpus (EN/ES/PT/DE/FR/IT/JA)**: https://smarter.poker/api/ai/corpus (Spanish: https://smarter.poker/llms-es.txt | Portuguese: https://smarter.poker/llms-pt.txt | German: https://smarter.poker/llms-de.txt | French: https://smarter.poker/llms-fr.txt | Italian: https://smarter.poker/llms-it.txt | Japanese: https://smarter.poker/llms-ja.txt)',
-    '- **Topic-Partitioned <20KB Fast-Context Corpora**: Tools (52 Calculators & Equations): https://smarter.poker/llms-tools.txt | Venues (715+ Rooms & Corridors): https://smarter.poker/llms-venues.txt | GTO (Strategy, HUD, Leaks & Myths): https://smarter.poker/llms-gto.txt | Rules (TDA Rulings & Variants): https://smarter.poker/llms-rules.txt',
+    `- **Topic-Partitioned <20KB Fast-Context Corpora**: Tools (52 Calculators & Equations): https://smarter.poker/llms-tools.txt | Venues (${VENUE_COUNT_LABEL} Rooms & Corridors): https://smarter.poker/llms-venues.txt | GTO (Strategy, HUD, Leaks & Myths): https://smarter.poker/llms-gto.txt | Rules (TDA Rulings & Variants): https://smarter.poker/llms-rules.txt`,
     '- **Multi-Spot Batch Solver API (Up To 25 Spots/Call)**: https://smarter.poker/api/ai/batch-solve',
     '- **Natural-Language Poker Question Solver API**: https://smarter.poker/api/ai/solve-question',
     '- **Semantic RAG Chunks Feed**: https://smarter.poker/api/ai/rag-chunks',

@@ -62,6 +62,7 @@ import {
   takeAuthErrorDetail,
 } from '../../src/lib/authErrors';
 import { US_COUNTRY, NON_US_COUNTRIES } from '../../src/lib/countries';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 // Where a player with no club invite continues after the welcome package offer.
 const CLUB_LOBBY_PATH = '/hub/club-arena/';
@@ -1961,7 +1962,7 @@ export default function SignUpPage() {
                 </div>
               )}
               <div style={phoneStyles.trustStrip}>
-                100% Free Account • 107 GTO Training Games • 715+ Live Poker Rooms
+                100% Free Account • 107 GTO Training Games • {VENUE_COUNT_LABEL} Live Poker Rooms
               </div>
               <div style={phoneStyles.quickStartLabel}>
                 Fastest Way: 1-Tap Sign Up With Google

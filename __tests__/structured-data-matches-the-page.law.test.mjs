@@ -36,6 +36,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import * as venueCount from '../src/lib/venueCount.mjs';
 
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
@@ -321,6 +322,7 @@ test('About publishes the visible company identity, not identities of its softwa
   const faqSection = compiled('src/components/seo/FaqSection.js', () => { throw new Error('Unexpected FaqSection import'); });
   const page = compiled('pages/about.js', (name) => {
     if (name === 'next/link') return link;
+    if (name.endsWith('venueCount.mjs')) return venueCount;
     if (name.endsWith('LandingProductSummary')) return products;
     if (name.endsWith('FaqSection')) return faqSection;
     if (name.endsWith('SmarterConversionCta') || name.endsWith('SmarterAccountUnlockGate')) {

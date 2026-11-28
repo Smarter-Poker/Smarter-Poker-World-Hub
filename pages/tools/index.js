@@ -18,6 +18,7 @@ import SmarterAccountUnlockGate from '../../src/components/seo/SmarterAccountUnl
 import SmarterSeoMasthead from '../../src/components/seo/SmarterSeoMasthead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const INTERACTIVE_TOOLS = [
   {
@@ -958,7 +959,7 @@ export default function PokerToolsDirectoryPage() {
           compact
           eyebrow="Free Smarter.Poker Account"
           title="Save Solved Spots & Unlock 107 Free GTO Training Games"
-          description="Create A Free Smarter.Poker Account To Bookmark All 52 Calculators, Track Live Sessions, And Find 715+ Verified Poker Rooms."
+          description={`Create A Free Smarter.Poker Account To Bookmark All 52 Calculators, Track Live Sessions, And Find ${VENUE_COUNT_LABEL} Verified Poker Rooms.`}
           primaryLabel="Create Free Account"
           primaryHref="/auth/signup?redirect=/tools&src=tools-index"
           secondaryLabel="Sign In"

@@ -22,6 +22,7 @@ import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShar
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 const TRIP_PRESETS = [
   {
@@ -511,7 +512,7 @@ export default function PokerTripPlannerPage() {
           compact
           eyebrow="Free Smarter.Poker Account"
           title="Save Your Poker Trip Budget & Track Live Series Free"
-          description="Plan Festival Travel Costs, Browse 715+ Verified Poker Rooms, And Track Series Results In Bankroll Manager."
+          description={`Plan Festival Travel Costs, Browse ${VENUE_COUNT_LABEL} Verified Poker Rooms, And Track Series Results In Bankroll Manager.`}
           primaryLabel="Create Free Account"
           primaryHref="/auth/signup?redirect=/tools/poker-trip-planner&src=trip-planner"
           secondaryLabel="Sign In"

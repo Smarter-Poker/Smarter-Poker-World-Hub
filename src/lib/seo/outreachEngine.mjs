@@ -15,12 +15,13 @@
  *
  * House style: Title Case, zero em dashes.
  */
+import { VENUE_COUNT_LABEL } from '../venueCount.mjs';
 
 export const SUPPORTED_OUTREACH_LANGUAGES = {
   en: {
     code: 'en',
     name: 'English',
-    anchorTitle: 'Smarter.Poker Free GTO Poker Calculators, ICM Solver & 324+ Live Room Directory',
+    anchorTitle: `Smarter.Poker Free GTO Poker Calculators, ICM Solver & ${VENUE_COUNT_LABEL} Live Room Directory`,
     badgeLabel: 'Verified Poker Resource',
     badgeValue: 'Smarter.Poker Official',
     ctaText: 'Launch Free Poker Odds & ICM Calculator On Smarter.Poker',
@@ -149,7 +150,7 @@ Smarter.Poker Engineering Team`,
     emailSubjectTemplate: 'Smarter.Poker Live Venue Directory Listing & Benchmark Badge For {{target}}',
     emailBodyTemplate: `Hi {{target}} Poker Room Management,
 
-{{target}} is listed in the Smarter.Poker US Live Poker Room Directory (324+ tracked venues) and regional rake/tournament benchmark studies.
+{{target}} is listed in the Smarter.Poker US Live Poker Room Directory (${VENUE_COUNT_LABEL} tracked venues) and regional rake/tournament benchmark studies.
 
 If your team would like to link to your listing or display our Live Poker Room Index SVG Badge on your website footer or poker room information page, here is the zero-dependency HTML snippet:
 

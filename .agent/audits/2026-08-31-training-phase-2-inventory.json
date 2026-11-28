@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 55,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 422,
+    "dependencyFiles": 423,
     "componentFiles": 70,
     "hookFiles": 16,
     "ctas": 562,
@@ -4671,6 +4671,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -5128,7 +5129,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/handHistoryReviewAuthority.mjs",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "redirectDestination": "/hub/training/hand-history-upload",
       "states": {
@@ -5899,6 +5901,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/services/avatar-service.js",
         "src/stores/toastStore.js",
@@ -6487,6 +6490,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/SolverPolicyService.js",
         "src/services/avatar-service.js",
@@ -6949,6 +6953,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -7295,6 +7300,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -7609,6 +7615,7 @@
         "src/lib/training/guestTrainingFavorites.mjs",
         "src/lib/training/trainingLobbyFilter.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -7945,6 +7952,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -8290,6 +8298,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -8483,7 +8492,8 @@
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
-        "src/lib/training/trainingPresets.mjs"
+        "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -8658,7 +8668,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -8791,7 +8802,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -8956,6 +8968,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -9190,7 +9203,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
-        "src/lib/training/solverPolicyContract.js"
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -9534,7 +9548,8 @@
         "src/lib/supabase.js",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
-        "src/lib/training/trainingPresets.mjs"
+        "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -9723,6 +9738,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -10128,6 +10144,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -10385,7 +10402,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -10610,6 +10628,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -10926,6 +10945,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -11114,7 +11134,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -11329,6 +11350,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -11581,7 +11603,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -11749,7 +11772,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -11890,6 +11914,7 @@
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/offlineQuestionCache.js",
         "src/lib/training/questionContract.mjs",
+        "src/lib/venueCount.mjs",
         "src/utils/actionGrouper.js"
       ],
       "states": {
@@ -12410,6 +12435,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -12667,7 +12693,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -12775,7 +12802,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/handHistoryReviewAuthority.mjs",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -13035,6 +13063,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -13340,7 +13369,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/solvedSpotEngine.js",
-        "src/lib/seo/wikidataRegistry.mjs"
+        "src/lib/seo/wikidataRegistry.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -13649,6 +13679,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -13954,6 +13985,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -14204,6 +14236,7 @@
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
         "src/lib/training/weaknessAnalysis.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -14522,6 +14555,7 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/publicLeaderboardSeed.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -15423,6 +15457,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -15770,6 +15805,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -16158,6 +16194,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -16415,7 +16452,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -16741,6 +16779,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -17525,6 +17564,7 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -17984,6 +18024,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -18263,7 +18304,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -18501,6 +18543,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -18847,6 +18890,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -19134,6 +19178,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/services/avatar-service.js",
         "src/utils/pokerHandEvaluator.js"
       ],
@@ -19375,6 +19420,7 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/sessionEvidence.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -20004,7 +20050,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -20231,6 +20278,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -20547,6 +20595,7 @@
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -21148,7 +21197,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -21354,6 +21404,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -21616,7 +21667,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -21805,6 +21857,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/services/avatar-service.js",
         "src/utils/pokerHandEvaluator.js"
       ],
@@ -22330,7 +22383,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -22467,7 +22521,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -22865,7 +22920,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -22999,7 +23055,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -23136,7 +23193,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -23320,6 +23378,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/utils/pokerHandEvaluator.js"
       ],
       "states": {
@@ -23548,7 +23607,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
-        "src/lib/training/solverPolicyContract.js"
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -23842,6 +23902,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -24153,6 +24214,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -24703,7 +24765,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -25040,6 +25103,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -25319,6 +25383,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -25582,7 +25647,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -25758,6 +25824,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -26040,6 +26107,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -26393,6 +26461,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -26873,7 +26942,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/sessionEvidence.mjs"
+        "src/lib/training/sessionEvidence.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -27125,6 +27195,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -27393,7 +27464,8 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
-        "src/lib/training/weaknessAnalysis.mjs"
+        "src/lib/training/weaknessAnalysis.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "states": {
         "loading": {
@@ -47489,7 +47561,8 @@
       "file": "src/components/seo/HubPageSummary.js",
       "imports": [
         "src/components/seo/SmarterConversionCta.jsx",
-        "src/lib/seo/summarySchema.js"
+        "src/lib/seo/summarySchema.js",
+        "src/lib/venueCount.mjs"
       ],
       "links": [
         "/hub/training",
@@ -47538,7 +47611,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 1649,
+          "line": 1650,
           "handler": null,
           "destination": "link.href",
           "type": null,
@@ -47548,7 +47621,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 1660,
+          "line": 1661,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -47558,7 +47631,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 1663,
+          "line": 1664,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -47598,7 +47671,7 @@
       "functions": [
         {
           "name": "usesConsoleDress",
-          "line": 1558,
+          "line": 1559,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -47606,7 +47679,7 @@
         },
         {
           "name": "lookupHubSummaryEntry",
-          "line": 1563,
+          "line": 1564,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -47614,7 +47687,7 @@
         },
         {
           "name": "HubPageSummarySchema",
-          "line": 1589,
+          "line": 1590,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -47622,7 +47695,7 @@
         },
         {
           "name": "HubPageSummary",
-          "line": 1606,
+          "line": 1607,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -47636,7 +47709,7 @@
       "markers": [
         {
           "kind": "SIMULATE",
-          "line": 117,
+          "line": 118,
           "excerpt": "{ name: 'Risk Of Ruin Analyzer', href: '/hub/training/risk-analyzer', text: 'Simulate Monte Carlo Bankroll Trajectories And Downswings.' },",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -47644,7 +47717,7 @@
         },
         {
           "kind": "SIMULATE",
-          "line": 1258,
+          "line": 1259,
           "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -47652,15 +47725,15 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 1460,
-          "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
+          "line": 1461,
+          "excerpt": "`The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across ${VENUE_COUNT_LABEL} Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And ",
           "disposition": "domain-simulation",
           "review": "accepted",
           "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
         },
         {
           "kind": "SIMULATED",
-          "line": 1463,
+          "line": 1464,
           "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -47880,7 +47953,8 @@
     {
       "file": "src/components/seo/SmarterConversionCta.jsx",
       "imports": [
-        "src/components/seo/SmarterQuickSignupSheet.jsx"
+        "src/components/seo/SmarterQuickSignupSheet.jsx",
+        "src/lib/venueCount.mjs"
       ],
       "links": [],
       "apiReferences": [],
@@ -47889,7 +47963,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 122,
+          "line": 123,
           "handler": "handlePrimaryClick",
           "destination": "resolvedPrimaryHref",
           "type": null,
@@ -47899,7 +47973,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 131,
+          "line": 132,
           "handler": null,
           "destination": "resolvedSecondaryHref",
           "type": null,
@@ -47939,7 +48013,7 @@
       "functions": [
         {
           "name": "hasStoredAuthSession",
-          "line": 7,
+          "line": 8,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -47947,7 +48021,7 @@
         },
         {
           "name": "SmarterConversionCta",
-          "line": 34,
+          "line": 35,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -47955,7 +48029,7 @@
         },
         {
           "name": "syncAuth",
-          "line": 52,
+          "line": 53,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -47963,7 +48037,7 @@
         },
         {
           "name": "handlePrimaryClick",
-          "line": 82,
+          "line": 83,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70569,7 +70643,9 @@
     },
     {
       "file": "src/lib/seo/productOgImage.js",
-      "imports": [],
+      "imports": [
+        "src/lib/venueCount.mjs"
+      ],
       "links": [
         "/hub/training"
       ],
@@ -70608,7 +70684,7 @@
       "functions": [
         {
           "name": "productOgImage",
-          "line": 39,
+          "line": 43,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -80899,6 +80975,46 @@
       "markers": []
     },
     {
+      "file": "src/lib/venueCount.mjs",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [],
+      "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
       "file": "src/lib/world-menu/navigationState.mjs",
       "imports": [],
       "links": [],
@@ -86295,6 +86411,10 @@
       "to": "src/lib/seo/summarySchema.js"
     },
     {
+      "from": "src/components/seo/HubPageSummary.js",
+      "to": "src/lib/venueCount.mjs"
+    },
+    {
       "from": "src/components/seo/SEOHead.js",
       "to": "src/lib/seo/productOgImage.js"
     },
@@ -86309,6 +86429,10 @@
     {
       "from": "src/components/seo/SmarterConversionCta.jsx",
       "to": "src/components/seo/SmarterQuickSignupSheet.jsx"
+    },
+    {
+      "from": "src/components/seo/SmarterConversionCta.jsx",
+      "to": "src/lib/venueCount.mjs"
     },
     {
       "from": "src/components/seo/SmarterQuickSignupSheet.jsx",
@@ -87409,6 +87533,10 @@
     {
       "from": "src/lib/seo/hubPageSchema.js",
       "to": "src/lib/seo/wikidataRegistry.mjs"
+    },
+    {
+      "from": "src/lib/seo/productOgImage.js",
+      "to": "src/lib/venueCount.mjs"
     },
     {
       "from": "src/lib/seo/quizStructuredData.mjs",
@@ -93234,11 +93362,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1649:1",
+      "id": "src/components/seo/HubPageSummary.js:1650:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "<dynamic>",
-      "line": 1649,
+      "line": 1650,
       "handler": null,
       "destination": "link.href",
       "type": null,
@@ -93247,11 +93375,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1660:2",
+      "id": "src/components/seo/HubPageSummary.js:1661:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 1660,
+      "line": 1661,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -93260,11 +93388,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1663:3",
+      "id": "src/components/seo/HubPageSummary.js:1664:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 1663,
+      "line": 1664,
       "handler": null,
       "destination": "/privacy",
       "type": null,
@@ -93312,11 +93440,11 @@
       "effectRef": "src/components/seo/SmarterAccountUnlockGate.jsx"
     },
     {
-      "id": "src/components/seo/SmarterConversionCta.jsx:122:1",
+      "id": "src/components/seo/SmarterConversionCta.jsx:123:1",
       "file": "src/components/seo/SmarterConversionCta.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 122,
+      "line": 123,
       "handler": "handlePrimaryClick",
       "destination": "resolvedPrimaryHref",
       "type": null,
@@ -93325,11 +93453,11 @@
       "effectRef": "src/components/seo/SmarterConversionCta.jsx"
     },
     {
-      "id": "src/components/seo/SmarterConversionCta.jsx:131:2",
+      "id": "src/components/seo/SmarterConversionCta.jsx:132:2",
       "file": "src/components/seo/SmarterConversionCta.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 131,
+      "line": 132,
       "handler": null,
       "destination": "resolvedSecondaryHref",
       "type": null,
@@ -100639,6 +100767,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -101454,6 +101583,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/services/avatar-service.js",
         "src/stores/toastStore.js",
@@ -101895,6 +102025,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -102228,7 +102359,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -102286,7 +102418,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -102398,6 +102531,7 @@
         "src/lib/training/guestTrainingFavorites.mjs",
         "src/lib/training/trainingLobbyFilter.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -102811,6 +102945,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -103185,6 +103320,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -103489,7 +103625,8 @@
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
-        "src/lib/training/trainingPresets.mjs"
+        "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -103585,7 +103722,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -103673,7 +103811,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -103767,6 +103906,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -103977,7 +104117,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
-        "src/lib/training/solverPolicyContract.js"
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/seo/referral-stats",
@@ -104145,7 +104286,8 @@
         "src/lib/supabase.js",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
-        "src/lib/training/trainingPresets.mjs"
+        "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -104285,6 +104427,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -104451,7 +104594,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -104512,7 +104656,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -104573,7 +104718,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -104668,6 +104814,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -104872,7 +105019,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -104969,7 +105117,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -105025,7 +105174,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -105098,7 +105248,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/news/articles",
@@ -105208,6 +105359,7 @@
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/offlineQuestionCache.js",
         "src/lib/training/questionContract.mjs",
+        "src/lib/venueCount.mjs",
         "src/utils/actionGrouper.js"
       ],
       "apiReferences": [
@@ -105384,7 +105536,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -105445,7 +105598,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -105513,7 +105667,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/handHistoryReviewAuthority.mjs",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/audit-hand-history",
@@ -105673,6 +105828,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -106028,7 +106184,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/solvedSpotEngine.js",
-        "src/lib/seo/wikidataRegistry.mjs"
+        "src/lib/seo/wikidataRegistry.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/og/tool-card",
@@ -106067,7 +106224,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -106160,6 +106318,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -106401,6 +106560,7 @@
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
         "src/lib/training/weaknessAnalysis.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -106792,6 +106952,7 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/publicLeaderboardSeed.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -107586,7 +107747,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -107737,6 +107899,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -108053,7 +108216,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -108114,7 +108278,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -108232,7 +108397,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -108366,6 +108532,7 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -108707,7 +108874,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -108772,7 +108940,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -108859,7 +109028,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -108917,7 +109087,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -109008,6 +109179,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/services/avatar-service.js",
         "src/utils/pokerHandEvaluator.js"
       ],
@@ -109229,6 +109401,7 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/sessionEvidence.mjs",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -109878,7 +110051,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -110033,6 +110207,7 @@
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainerConfigMode.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/actionGrouper.js",
         "src/utils/formatScenario.js",
@@ -110372,6 +110547,7 @@
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainingPresets.mjs",
+        "src/lib/venueCount.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -110603,7 +110779,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -110663,7 +110840,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -110729,7 +110907,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -110967,7 +111146,8 @@
         "src/lib/seo/shareImageMetadata.mjs",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -111038,7 +111218,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -111264,7 +111445,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -111372,7 +111554,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/practiceSession.js"
+        "src/lib/training/practiceSession.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -111480,7 +111663,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -111586,6 +111770,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/utils/pokerHandEvaluator.js"
       ],
       "apiReferences": [
@@ -111709,7 +111894,8 @@
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/cacheTruthContract.mjs",
-        "src/lib/training/solverPolicyContract.js"
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -111800,7 +111986,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -111897,6 +112084,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -112209,7 +112397,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -112726,6 +112915,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -113024,7 +113214,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -113091,7 +113282,8 @@
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
-        "src/lib/training/boundedTrainingFetch.js"
+        "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -113224,6 +113416,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -113596,6 +113789,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -113958,6 +114152,7 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
+        "src/lib/venueCount.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/avatar-service.js",
         "src/stores/pageOverlayStore.js",
@@ -114373,7 +114568,8 @@
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
-        "src/lib/training/sessionEvidence.mjs"
+        "src/lib/training/sessionEvidence.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -114462,7 +114658,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -114534,7 +114731,8 @@
         "src/lib/training/boundedTrainingFetch.js",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
-        "src/lib/training/weaknessAnalysis.mjs"
+        "src/lib/training/weaknessAnalysis.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [
         "/api/training/challenges",
@@ -114894,7 +115092,8 @@
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -114945,7 +115144,8 @@
       "reachableFiles": [
         "src/components/seo/SEOHead.js",
         "src/lib/seo/productOgImage.js",
-        "src/lib/seo/shareImageMetadata.mjs"
+        "src/lib/seo/shareImageMetadata.mjs",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -115024,7 +115224,8 @@
         "src/components/seo/SmarterUnlockedWelcomeBanner.jsx",
         "src/lib/acquisition/firstTouch.mjs",
         "src/lib/seo/seoFunnelTelemetry.js",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -116491,7 +116692,8 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/seoFunnelTelemetry.js",
         "src/lib/seo/shareImageMetadata.mjs",
-        "src/lib/supabase.js"
+        "src/lib/supabase.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [
@@ -121316,7 +121518,8 @@
     {
       "file": "src/lib/seo/productOgImage.js",
       "reachableFiles": [
-        "src/lib/seo/productOgImage.js"
+        "src/lib/seo/productOgImage.js",
+        "src/lib/venueCount.mjs"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -123122,6 +123325,18 @@
       "tests": []
     },
     {
+      "file": "src/lib/venueCount.mjs",
+      "reachableFiles": [
+        "src/lib/venueCount.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/phases-35-50-aeo.test.mjs"
+      ]
+    },
+    {
       "file": "src/lib/world-menu/navigationState.mjs",
       "reachableFiles": [
         "src/lib/world-menu/navigationState.mjs"
@@ -124378,7 +124593,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 117,
+        "line": 118,
         "excerpt": "{ name: 'Risk Of Ruin Analyzer', href: '/hub/training/risk-analyzer', text: 'Simulate Monte Carlo Bankroll Trajectories And Downswings.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -124387,7 +124602,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 1258,
+        "line": 1259,
         "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -124396,8 +124611,8 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1460,
-        "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
+        "line": 1461,
+        "excerpt": "`The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across ${VENUE_COUNT_LABEL} Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And ",
         "disposition": "domain-simulation",
         "review": "accepted",
         "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
@@ -124405,7 +124620,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1463,
+        "line": 1464,
         "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -129266,7 +129481,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummarySchema",
-        "line": 1589,
+        "line": 1590,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -129288,7 +129503,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 1606,
+        "line": 1607,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -129599,7 +129814,7 @@
       {
         "file": "src/components/seo/SmarterConversionCta.jsx",
         "name": "SmarterConversionCta",
-        "line": 34,
+        "line": 35,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -132363,7 +132578,7 @@
       {
         "file": "src/lib/seo/productOgImage.js",
         "name": "productOgImage",
-        "line": 39,
+        "line": 43,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -136649,7 +136864,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 117,
+        "line": 118,
         "excerpt": "{ name: 'Risk Of Ruin Analyzer', href: '/hub/training/risk-analyzer', text: 'Simulate Monte Carlo Bankroll Trajectories And Downswings.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -136658,7 +136873,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATE",
-        "line": 1258,
+        "line": 1259,
         "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -136667,8 +136882,8 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1460,
-        "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
+        "line": 1461,
+        "excerpt": "`The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across ${VENUE_COUNT_LABEL} Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And ",
         "disposition": "domain-simulation",
         "review": "accepted",
         "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
@@ -136676,7 +136891,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "kind": "SIMULATED",
-        "line": 1463,
+        "line": 1464,
         "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -141537,7 +141752,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummarySchema",
-        "line": 1589,
+        "line": 1590,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -141559,7 +141774,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 1606,
+        "line": 1607,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -141870,7 +142085,7 @@
       {
         "file": "src/components/seo/SmarterConversionCta.jsx",
         "name": "SmarterConversionCta",
-        "line": 34,
+        "line": 35,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -144634,7 +144849,7 @@
       {
         "file": "src/lib/seo/productOgImage.js",
         "name": "productOgImage",
-        "line": 39,
+        "line": 43,
         "references": 1,
         "exported": true,
         "defaultExport": false,

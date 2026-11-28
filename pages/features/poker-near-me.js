@@ -1,11 +1,12 @@
 import React from 'react';
 import FeatureLanderLayout from '../../src/components/features/FeatureLanderLayout';
 import { setPublicSeoHtmlCache } from '../../src/lib/seo/edgeCacheHeaders.mjs';
+import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 
 export default function PokerNearMeFeaturePage() {
   const features = [
     {
-      title: '324+ Verified Poker Venues',
+      title: `${VENUE_COUNT_LABEL} Verified Poker Venues`,
       description: 'Directory Of Legal Casino Cardrooms And Poker Venues Across North America With Contact Details And Hours.',
     },
     {
@@ -80,9 +81,9 @@ export default function PokerNearMeFeaturePage() {
     <FeatureLanderLayout
       title="Live Poker Rooms and Cardroom Directory"
       metaTitle="Live Poker Rooms and Cardroom Directory | Smarter.Poker"
-      description="Discover 324+ Legal Poker Rooms, Cardrooms, And 4,500+ Weekly Tournaments With Real-Time Waiting Lists, Tournament Clocks, Cash Games, And Phone Contacts."
+      description={`Discover ${VENUE_COUNT_LABEL} Legal Poker Rooms, Cardrooms, And 4,500+ Weekly Tournaments With Real-Time Waiting Lists, Tournament Clocks, Cash Games, And Phone Contacts.`}
       canonical="/features/poker-near-me"
-      badgeText="324+ Verified Venues & 4,500+ Weekly Tournaments"
+      badgeText={`${VENUE_COUNT_LABEL} Verified Venues & 4,500+ Weekly Tournaments`}
       primaryCtaText="Explore Poker Near Me"
       primaryCtaHref="/hub/poker-near-me/lobby"
       secondaryCtaText="View Plain-Text Spec"

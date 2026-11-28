@@ -13,6 +13,7 @@
  * - value: Custom right-side value (optional)
  * - theme: 'dark' | 'blue' | 'emerald' | 'gold' (default: preset per type)
  */
+import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 
 export const BADGE_PRESETS = {
   venue: {
@@ -467,7 +468,7 @@ export function renderOgCardSvg({
   const resolvedSubtitle =
     subtitle ||
     toolPreset?.subtitle ||
-    '52 Free Interactive Calculators • 169 Hand Guides • 500+ Live Rooms';
+    `52 Free Interactive Calculators • 169 Hand Guides • ${VENUE_COUNT_LABEL} Poker Rooms`;
   const resolvedStat =
     metric ||
     stat ||

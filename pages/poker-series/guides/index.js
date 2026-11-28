@@ -23,6 +23,7 @@ import {
   SERIES_GUIDES_URL,
   seriesGuidePath,
 } from '../../../src/content/guides/seriesGuides';
+import { VENUE_COUNT_LABEL } from '../../../src/lib/venueCount.mjs';
 
 const INDEX_FAQS = [
   {
@@ -138,7 +139,7 @@ export default function PokerSeriesGuidesIndexPage() {
             stats={[
               { label: 'Major Series', value: `${SERIES_GUIDES.length} Guides` },
               { label: 'Weekly MTTs', value: '4,500+ Events' },
-              { label: 'Live Venues', value: '715+ Rooms' },
+              { label: 'Listed Venues', value: `${VENUE_COUNT_LABEL} Rooms` },
               { label: 'Schedule Sync', value: 'Free Account' },
             ]}
             redirectPath="/poker-series/guides"

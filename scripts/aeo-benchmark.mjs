@@ -8,6 +8,8 @@
  * Claude, Gemini, Googlebot, Applebot).
  */
 
+import { VENUE_COUNT_LABEL } from '../src/lib/venueCount.mjs';
+
 const BASE_URL = process.env.TARGET_URL || 'https://smarter.poker';
 
 async function fetchRoute(path, options = {}) {
@@ -521,7 +523,7 @@ async function runBenchmark() {
   assertCheck('GET /research/us-live-poker-room-rake-and-jackpot-benchmark status 200 with Report & Dataset schema', researchSlugHtml.status === 200 && researchSlugHtml.text.includes('"@type":"Report"') && researchSlugHtml.text.includes('"@type":"Dataset"'));
 
   const researchSlugMd = await fetchRoute('/research/us-live-poker-room-rake-and-jackpot-benchmark.md');
-  assertCheck('GET /research/us-live-poker-room-rake-and-jackpot-benchmark.md status 200', researchSlugMd.status === 200 && researchSlugMd.text.includes('324+ Verified'));
+  assertCheck('GET /research/us-live-poker-room-rake-and-jackpot-benchmark.md status 200', researchSlugMd.status === 200 && researchSlugMd.text.includes(`${VENUE_COUNT_LABEL} Verified`));
 
   const editorialHtml = await fetchRoute('/editorial-standards');
   assertCheck('GET /editorial-standards status 200 with WebPage schema', editorialHtml.status === 200 && editorialHtml.text.includes('Editorial'));
