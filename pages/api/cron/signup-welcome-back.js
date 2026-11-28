@@ -94,14 +94,18 @@ async function handler(req, res) {
             console.error('[lifecycle-retention]', lifecycle.error);
         }
 
-        // Idempotent Day-0 organic activation welcome drip for recent organic signups.
+        // Idempotent Day-0 organic activation welcome drip + Phase B Day-1 behavioral
+        // activation nudge for unverified organic signups (single bounded user pass).
         // Isolated try/catch: never turns signup-welcome-back red.
         let organicDrip = null;
         try {
             organicDrip = await runOrganicWelcomeDrip(sb, {
                 sendEmail: sendBulkEmail,
                 maxSends: 20,
+                maxDay1Sends: 20,
                 windowHours: 48,
+                day1MinHours: 20,
+                day1MaxHours: 96,
                 deadline: startedAt + 295_000,
                 log: (m) => console.log(m),
             });

@@ -99,6 +99,8 @@ const EXPECTED_SLUGS = [
   'smarter-poker-vs-bravo-poker-live',
   'smarter-poker-vs-poker-bankroll-tracker',
   'smarter-poker-vs-hendon-mob',
+  'smarter-poker-vs-pokercode',
+  'smarter-poker-vs-cardschat',
 ];
 
 /** Other names a product goes by in running copy. */
@@ -123,6 +125,8 @@ const ALIASES = {
   seminoleHardRock: ['Seminole Hard Rock Hollywood'],
   bestbetJax: ['Bestbet Jacksonville'],
   hendonMob: ['Hendon Mob'],
+  pokercode: ['Pokercode'],
+  cardschat: ['CardsChat'],
 };
 
 const allFacts = () =>

@@ -1014,6 +1014,10 @@ import './otc-tier4-live-funnel-telemetry-20261127.law.test.mjs';
 import './otc-tier4-reminder-sync-and-viral-loop-20261127.law.test.mjs';
 import './otc-tier4-local-geo-conversion-20261127.law.test.mjs';
 import './otc-tier4-100-matchups-and-live-drip-20261127.law.test.mjs';
+import './otc-tier5-overlay-and-pwa-peak-20261128.law.test.mjs';
+import './otc-tier5-metered-calc-and-magic-link-20261128.law.test.mjs';
+import './otc-tier5-glossary-rules-bridges-20261128.law.test.mjs';
+import './otc-tier5-day1-drip-and-bofu-switchers-20261128.law.test.mjs';
 import './site-wide-payload-budget.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {

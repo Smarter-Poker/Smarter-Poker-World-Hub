@@ -122,6 +122,9 @@ export default function SmarterQuickSignupSheet() {
   const [oauthProviderBusy, setOauthProviderBusy] = useState('');
   const [oauthError, setOauthError] = useState('');
   const [inlineEmail, setInlineEmail] = useState('');
+  const [magicLinkBusy, setMagicLinkBusy] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [magicLinkError, setMagicLinkError] = useState('');
   const [experimentVariant, setExperimentVariant] = useState('control-gto');
   const [aiWelcome, setAiWelcome] = useState(null);
   const [socialProof, setSocialProof] = useState(STATIC_SOCIAL_PROOF);
@@ -131,6 +134,9 @@ export default function SmarterQuickSignupSheet() {
     setOauthProviderBusy('');
     setOauthError('');
     setInlineEmail('');
+    setMagicLinkBusy(false);
+    setMagicLinkSent(false);
+    setMagicLinkError('');
   }, []);
 
   useEffect(() => {
@@ -143,6 +149,9 @@ export default function SmarterQuickSignupSheet() {
       setOauthError('');
       setOauthProviderBusy('');
       setInlineEmail('');
+      setMagicLinkBusy(false);
+      setMagicLinkSent(false);
+      setMagicLinkError('');
       const nextPayload = {
         unlockKey: detail.unlockKey || 'free-account',
         eyebrow: detail.eyebrow || 'Free Smarter.Poker Account',
@@ -321,6 +330,86 @@ export default function SmarterQuickSignupSheet() {
     router.push(target);
   };
 
+  const handleMagicLinkSignIn = async () => {
+    if (magicLinkBusy) return;
+    setOauthError('');
+    setMagicLinkError('');
+    setMagicLinkSent(false);
+
+    const trimmed = inlineEmail.trim().toLowerCase();
+    if (!trimmed || !BASIC_EMAIL_RE.test(trimmed)) {
+      setMagicLinkError('Enter Your Account Email Above To Receive A 1-Click Sign-In Link');
+      return;
+    }
+
+    setMagicLinkBusy(true);
+    try {
+      try {
+        recordPendingSeoUnlock({
+          unlockKey: payload.unlockKey,
+          source: payload.source,
+          redirectPath: payload.redirectPath,
+        });
+        trackFunnelEvent('seo_quick_signup_magic_link_sent', {
+          unlock_key: payload.unlockKey,
+          source: payload.source,
+          redirect_path: payload.redirectPath,
+          experiment_variant: experimentVariant,
+          ...(aiWelcome ? { ai_engine: aiWelcome.engine } : {}),
+        });
+      } catch (_) {
+        /* non-blocking */
+      }
+
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker';
+      const cbParams = new URLSearchParams();
+      cbParams.set('redirect', payload.redirectPath);
+      if (payload.unlockKey) cbParams.set('unlock', String(payload.unlockKey).slice(0, 64));
+      if (payload.source) cbParams.set('src', String(payload.source).slice(0, 64));
+      const callbackUrl = `${origin}/auth/callback?${cbParams.toString()}`;
+
+      const { error } = await supabase.auth.signInWithOtp({
+        email: trimmed,
+        options: {
+          emailRedirectTo: callbackUrl,
+          shouldCreateUser: false,
+        },
+      });
+
+      if (error) {
+        const msg = String(error.message || '').toLowerCase();
+        if (
+          msg.includes('signups not allowed') ||
+          msg.includes('user not found') ||
+          msg.includes('not found') ||
+          msg.includes('no user') ||
+          error.status === 422
+        ) {
+          setMagicLinkError('No Existing Account Found For That Email - Click Create Free Account Above.');
+        } else {
+          setMagicLinkError(error.message || 'Unable To Send Magic Sign-In Link Right Now. Try Again In A Moment.');
+        }
+        return;
+      }
+
+      setMagicLinkSent(true);
+    } catch (err) {
+      const msg = String(err?.message || '').toLowerCase();
+      if (
+        msg.includes('signups not allowed') ||
+        msg.includes('user not found') ||
+        msg.includes('not found') ||
+        msg.includes('no user')
+      ) {
+        setMagicLinkError('No Existing Account Found For That Email - Click Create Free Account Above.');
+      } else {
+        setMagicLinkError(err?.message || 'Unable To Send Magic Sign-In Link Right Now. Try Again In A Moment.');
+      }
+    } finally {
+      setMagicLinkBusy(false);
+    }
+  };
+
   const googleButtonLabel =
     oauthProviderBusy === 'google'
       ? 'Connecting To Google...'
@@ -446,6 +535,8 @@ export default function SmarterQuickSignupSheet() {
               onChange={(ev) => {
                 setInlineEmail(ev.target.value);
                 if (oauthError) setOauthError('');
+                if (magicLinkError) setMagicLinkError('');
+                if (magicLinkSent) setMagicLinkSent(false);
               }}
               placeholder="Enter Your Email To Unlock Free"
               aria-label="Enter Your Email To Unlock Free"
@@ -462,6 +553,61 @@ export default function SmarterQuickSignupSheet() {
               <span>Create Free Account With Email</span>
             </button>
           </form>
+
+          <button
+            type="button"
+            className={styles.btnSharpSecondary}
+            data-testid="quick-sheet-magic-link-btn"
+            disabled={magicLinkBusy}
+            onClick={handleMagicLinkSignIn}
+            style={{
+              width: '100%',
+              minHeight: 40,
+              padding: '8px 12px',
+              borderRadius: 0,
+              borderColor: '#2563eb',
+              background: '#0b1120',
+              color: '#38bdf8',
+              fontSize: 12.5,
+              whiteSpace: 'normal',
+              lineHeight: 1.3,
+              textAlign: 'center',
+            }}
+          >
+            {magicLinkBusy
+              ? 'Sending Magic Sign-In Link...'
+              : 'Already Have An Account? Email 1-Click Magic Sign-In Link'}
+          </button>
+
+          {magicLinkSent ? (
+            <p
+              data-testid="quick-sheet-magic-link-sent"
+              role="status"
+              style={{
+                margin: 0,
+                padding: '10px 12px',
+                borderRadius: 0,
+                border: '1px solid #10b981',
+                background: 'rgba(6, 78, 59, 0.36)',
+                color: '#a7f3d0',
+                fontSize: 13,
+                fontWeight: 700,
+                lineHeight: 1.4,
+              }}
+            >
+              Magic Sign-In Link Sent! Check Your Inbox To Return Directly Here.
+            </p>
+          ) : null}
+
+          {magicLinkError ? (
+            <p
+              className={styles.sheetError}
+              data-testid="quick-sheet-magic-link-error"
+              role="alert"
+            >
+              {magicLinkError}
+            </p>
+          ) : null}
 
           <Link
             href={signupHref}
