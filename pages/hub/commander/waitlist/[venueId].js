@@ -11,7 +11,7 @@ import { ArrowLeft, Users, MapPin, Loader2, ChevronDown, ChevronUp, X, Globe, Ch
 import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 // Capitalize first letter of every word
 function titleCase(str) {
@@ -209,14 +209,14 @@ export default function PlayerWaitlistPage() {
         fetchData();
         setTimeout(() => setSuccess(null), 4000);
       } else if (data.error?.code === 'ALREADY_ON_WAITLIST') {
-        setError('You are already on this waitlist.');
+        setError('You Are Already On This Waitlist.');
         setTimeout(() => setError(null), 3000);
       } else {
-        setError(data.error?.message || 'Failed to join.');
+        setError(data.error?.message || 'Failed To Join.');
         setTimeout(() => setError(null), 3000);
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError('Network Error. Please Try Again.');
       setTimeout(() => setError(null), 3000);
     }
 
@@ -250,7 +250,7 @@ export default function PlayerWaitlistPage() {
     // Find games the player is NOT already on
     const availableGames = waitlistColumns.filter(col => !isMyEntry(col.gameType, col.stakes));
     if (availableGames.length === 0) {
-      setError('You are already on all available waitlists.');
+      setError('You Are Already On All Available Waitlists.');
       setTimeout(() => setError(null), 3000);
       return;
     }
@@ -322,12 +322,12 @@ export default function PlayerWaitlistPage() {
         fetchData(); // Refresh to show updated checked_in_at
         setTimeout(() => setSuccess(null), 5000);
       } else {
-        setError(data.error?.message || 'Could not signal arrival. Please try again.');
+        setError(data.error?.message || 'Could Not Signal Arrival. Please Try Again.');
         setTimeout(() => setError(null), 3000);
       }
     } catch (err) {
       console.warn('Arrival signal failed:', err);
-      setError('Network error. Please try again.');
+      setError('Network Error. Please Try Again.');
       setTimeout(() => setError(null), 3000);
     }
   }
@@ -590,9 +590,9 @@ export default function PlayerWaitlistPage() {
             <div style={S.howItWorksContent}>
               {[
                 'Find your game and tap "Join List"',
-                'Your name appears on the board instantly',
+                'Your Name Appears On The Board Instantly',
                 'You\'ll get a text when your seat is ready',
-                'Check in at the desk when you arrive'
+                'Check In At The Desk When You Arrive'
               ].map((step, idx) => (
                 <div key={idx} style={S.howStep}>
                   <div style={S.stepNum}>{idx + 1}</div>
@@ -1070,3 +1070,5 @@ const S = {
     boxShadow: '0 2px 12px rgba(134, 218, 255, 0.15)',
   },
 };
+
+PlayerWaitlistPage.getLayout = commanderPageLayout;

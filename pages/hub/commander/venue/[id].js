@@ -21,7 +21,7 @@ import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync
 import { supabase } from '../../../../src/lib/supabase';
 // 2026-07-25 audit fix: needed for the authenticated public-join call.
 import { getAccessToken, getFreshAccessToken } from '../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 export default function VenueDetail() {
   const router = useRouter();
@@ -135,7 +135,7 @@ export default function VenueDetail() {
         });
         fetchData();
       } else {
-        setMessage({ type: 'error', text: data.error?.message || 'Failed to join waitlist' });
+        setMessage({ type: 'error', text: data.error?.message || 'Failed To Join Waitlist' });
       }
     } catch (error) {
       console.warn('Failed to join waitlist:', error);
@@ -380,3 +380,5 @@ export default function VenueDetail() {
     </CommanderPageShell>
   );
 }
+
+VenueDetail.getLayout = commanderPageLayout;

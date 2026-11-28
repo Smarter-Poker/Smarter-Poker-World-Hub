@@ -9,7 +9,7 @@ import Head from 'next/head';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
 import { getFreshAccessToken } from '../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import { publicPromotionsUrl, publicVenueGamesUrl, normalizePublicPromotion, normalizePublicGame } from '../../../../src/lib/commanderPublicReads';
 import {
   CheckCircle,
@@ -80,7 +80,7 @@ export default function PlayerCheckInPage() {
       }
     } catch (err) {
       console.warn('Fetch failed:', err);
-      setError('Unable to load venue information');
+      setError('Unable To Load Venue Information');
     } finally {
       setLoading(false);
     }
@@ -122,7 +122,7 @@ export default function PlayerCheckInPage() {
       }
     } catch (err) {
       console.warn('Check-in failed:', err);
-      setError('Connection error. Please try again.');
+      setError('Connection Error. Please Try Again.');
     } finally {
       setCheckingIn(false);
     }
@@ -319,3 +319,5 @@ export default function PlayerCheckInPage() {
     </CommanderPageShell>
   );
 }
+
+PlayerCheckInPage.getLayout = commanderPageLayout;

@@ -9,7 +9,7 @@ import { Users, Loader2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../../src/components/commander/CommanderPageShell';
 
 export default function SquadJoinPage() {
   const router = useRouter();
@@ -41,11 +41,11 @@ export default function SquadJoinPage() {
         setSquad(data.data.squad);
         setStatus('found');
       } else {
-        setError(data.error?.message || (typeof data.error === 'string' ? data.error : '') || 'Squad not found');
+        setError(data.error?.message || (typeof data.error === 'string' ? data.error : '') || 'Squad Not Found');
         setStatus('error');
       }
     } catch (err) {
-      setError('Failed to look up invite code');
+      setError('Failed To Look Up Invite Code');
       setStatus('error');
     }
   }
@@ -70,11 +70,11 @@ export default function SquadJoinPage() {
           router.push(`/hub/commander/squads/${squadId}`);
         }, 1500);
       } else {
-        setError(data.error?.message || (typeof data.error === 'string' ? data.error : '') || 'Failed to join');
+        setError(data.error?.message || (typeof data.error === 'string' ? data.error : '') || 'Failed To Join');
         setStatus('error');
       }
     } catch (err) {
-      setError('Failed to join squad');
+      setError('Failed To Join Squad');
       setStatus('error');
     } finally {
       setJoining(false);
@@ -173,3 +173,5 @@ export default function SquadJoinPage() {
     </CommanderPageShell>
   );
 }
+
+SquadJoinPage.getLayout = commanderPageLayout;

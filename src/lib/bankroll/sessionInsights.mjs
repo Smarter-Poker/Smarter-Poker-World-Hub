@@ -1,3 +1,5 @@
+import { sessionHours } from './ledgerMath.mjs';
+
 /** Personal session results are stored in USD; the client converts them for display. Compare whole ledger days, not timestamps. */
 export const INSIGHT_WINDOWS = [7, 30, 90];
 const CATEGORY_NAMES = {
@@ -74,8 +76,12 @@ function periodTotals(rows) {
     format.count++;
     format.net += cents;
     formats.set(row.category, format);
-    const elapsed = Date.parse(row.end_time) - Date.parse(row.start_time);
-    if (Number.isFinite(elapsed) && elapsed > 0) {
+    // The same rule as every other screen (ledgerMath.sessionHours): an end
+    // before the start ran past midnight. This used to give such a session 0
+    // hours here while the dashboard counted it, so Jarvis's hourly rate
+    // disagreed with the dashboard's for anyone who played late.
+    const elapsed = Math.round(sessionHours(row.start_time, row.end_time) * 3600000);
+    if (elapsed > 0) {
       timeMs += elapsed;
       timedNet += cents;
       timed++;

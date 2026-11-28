@@ -213,15 +213,19 @@ const EmptyConversationState = dynamic(
 // we attach onerror to recover, and we wrap the whole thing in try/catch so a
 // favicon failure can never take down the page.
 let _faviconImg = null;
+// The site's tab icon (pages/_app.js). There is no /favicon.ico on this site,
+// so the badge used to draw on its blank fallback and clearing it pointed the
+// tab at a 404 (pre-merge internal link check, 2026-11-28).
+const SITE_FAVICON = '/icons/smarter-king-192.png';
 function updateFaviconBadge(count) {
     if (typeof document === 'undefined') return;
     try {
         const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
-        link.type = 'image/x-icon';
-        link.rel = 'shortcut icon';
+        link.type = 'image/png';
+        link.rel = 'icon';
 
         if (count <= 0) {
-            link.href = '/favicon.ico';
+            link.href = SITE_FAVICON;
             if (!link.parentNode) document.head.appendChild(link);
             return;
         }
@@ -235,7 +239,7 @@ function updateFaviconBadge(count) {
         if (!_faviconImg) {
             _faviconImg = new window.Image();
             _faviconImg.onerror = () => { _faviconImg = null; };
-            _faviconImg.src = '/favicon.ico';
+            _faviconImg.src = SITE_FAVICON;
         }
 
         const draw = () => {

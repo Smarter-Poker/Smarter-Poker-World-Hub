@@ -4,7 +4,19 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PAGES = join(ROOT, 'pages');
-const OUTPUT = join(ROOT, '.agent/audits/2026-08-31-world-hub-menu-route-inventory.json');
+// THE 2026-08-31 AUDIT IS A FROZEN RECORD (2026-11-28). Its consumers,
+// __tests__/world-command-menu-law.test.mjs and world-copy-policy.test.mjs,
+// pin it at 14 worlds and 203 routes on purpose ("Preserve the historical
+// 203-route audit"). This generator used to write straight over it, so any
+// run against today's tree rewrote history and broke those tests. It now
+// writes only where --out names, and refuses the frozen file.
+const FROZEN_AUDIT = join(ROOT, '.agent/audits/2026-08-31-world-hub-menu-route-inventory.json');
+const outIndex = process.argv.indexOf('--out');
+const OUTPUT = outIndex > 0 && process.argv[outIndex + 1] ? resolve(process.argv[outIndex + 1]) : null;
+if (OUTPUT === FROZEN_AUDIT) {
+  console.error(`Refusing to overwrite the frozen audit ${relative(ROOT, FROZEN_AUDIT)}; write a new dated file instead.`);
+  process.exit(1);
+}
 const registry = JSON.parse(
   readFileSync(join(ROOT, 'src/config/world-footer-navigation.json'), 'utf8')
 );
@@ -117,5 +129,10 @@ const output = {
   routes,
 };
 
-writeFileSync(OUTPUT, `${JSON.stringify(output, null, 2)}\n`);
-console.log(`Wrote ${routes.length} routes across ${registry.worlds.length} worlds to ${relative(ROOT, OUTPUT)}`);
+if (!OUTPUT) {
+  console.log(`Current tree: ${routes.length} routes across ${registry.worlds.length} worlds (not written).`);
+  console.log(`Pass --out <path> to write a new inventory; ${relative(ROOT, FROZEN_AUDIT)} is a frozen 2026-08-31 record.`);
+} else {
+  writeFileSync(OUTPUT, `${JSON.stringify(output, null, 2)}\n`);
+  console.log(`Wrote ${routes.length} routes across ${registry.worlds.length} worlds to ${relative(ROOT, OUTPUT)}`);
+}

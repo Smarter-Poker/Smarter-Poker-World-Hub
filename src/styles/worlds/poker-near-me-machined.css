@@ -119,7 +119,7 @@ body.world-poker-near-me .vc3-badge-modeled,
 body.world-poker-near-me .vc3-cash-count[data-modeled='true'] {
   color: #a8d4ea !important;
   border-color: rgba(90, 164, 201, 0.44) !important;
-  background: rgba(64, 47, 16, 0.42) !important;
+  background: rgba(16, 40, 64, 0.42) !important;
 }
 
 body.world-poker-near-me .vc3-badge-modeled .vc3-live-dot {
@@ -140,7 +140,7 @@ body.world-poker-near-me .vc3-cash-count {
 body.world-poker-near-me .pnm-location-card__cash[data-modeled='true'] {
   color: #a8d4ea;
   border-color: rgba(90, 164, 201, 0.42);
-  background: rgba(64, 47, 16, 0.36);
+  background: rgba(16, 40, 64, 0.36);
 }
 
 body.world-poker-near-me .vc3-cash-count[data-catalog='true'],
@@ -627,7 +627,9 @@ body.world-poker-near-me .pnm-live-map-toggle > span {
 }
 
 body.world-poker-near-me .pnm-live-map-toggle > small {
-  color: #82cae8;
+  /* White ink: the #SmarterDesign button layer paints this toggle cobalt,
+     where the old ice ink read 3.6:1. */
+  color: #f2f7ff;
   font: 750 12px/1 var(--font-premium-body);
   letter-spacing: 0.1em;
 }

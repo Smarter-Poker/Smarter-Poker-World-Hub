@@ -19,7 +19,7 @@ import {
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: 'No Limit Hold\'em' },
@@ -145,13 +145,13 @@ export default function CreateSquadPage() {
         const squadId = data.data?.squad?.id || data.data?.squad_id || '';
         router.push(`/hub/commander/squads/${squadId}`);
       } else {
-        setErrorMessage(data.error?.message || 'Failed to create squad');
+        setErrorMessage(data.error?.message || 'Failed To Create Squad');
         setTimeout(() => setErrorMessage(null), 4000);
       }
     } catch (err) {
       console.warn('Create failed:', err);
       // 2026-07-25 audit fix: show the server's message when available.
-      setErrorMessage(err?.message || 'Failed to create squad. Please try again.');
+      setErrorMessage(err?.message || 'Failed To Create Squad. Please Try Again.');
       setTimeout(() => setErrorMessage(null), 4000);
     } finally {
       setLoading(false);
@@ -473,3 +473,5 @@ export default function CreateSquadPage() {
     </CommanderPageShell>
   );
 }
+
+CreateSquadPage.getLayout = commanderPageLayout;

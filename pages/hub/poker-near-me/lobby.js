@@ -3440,9 +3440,9 @@ export default function PokerNearMeLobby() {
         width: 6px; height: 6px; border-radius: 50%; background: #ef4444;
         box-shadow: 0 0 6px rgba(239,68,68,0.5); animation: livePulse 2s ease-in-out infinite;
       }
-      .vc3-badge-checkin { background: rgba(230,81,0,0.15); color: #E65100; border: 1px solid rgba(230,81,0,0.3); cursor: pointer; }
+      .vc3-badge-checkin { background: rgba(116,223,255,0.12); color: #86daff; border: 1px solid rgba(116,223,255,0.32); cursor: pointer; }
       .vc3-badge-checkin:hover,
-      .vc3-badge-checkin:active { background: rgba(230,81,0,0.25); }
+      .vc3-badge-checkin:active { background: rgba(116,223,255,0.2); }
 
       /* Data Zone */
       .vc3-data-zone { margin-top: 4px; }
@@ -3641,14 +3641,14 @@ export default function PokerNearMeLobby() {
         animation: livePulse 2s ease-in-out infinite;
       }
       .checkin-badge {
-        background: rgba(230,81,0,0.15);
-        color: #E65100;
-        border: 1px solid rgba(230,81,0,0.3);
+        background: rgba(116,223,255,0.12);
+        color: #86daff;
+        border: 1px solid rgba(116,223,255,0.32);
         cursor: pointer;
       }
       .checkin-badge:hover,
       .checkin-badge:active {
-        background: rgba(230,81,0,0.25);
+        background: rgba(116,223,255,0.2);
       }
       @keyframes livePulse {
         0%, 100% { box-shadow: 0 0 8px rgba(239,68,68,0.2); }

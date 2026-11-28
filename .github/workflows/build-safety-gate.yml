@@ -896,6 +896,18 @@ jobs:
       # of not-visibly-bounded .in() lists may only go down.
       - name: "CHECK 27: No new unbatched .in() lists"
         run: node scripts/ci/check-unbatched-in-lists.mjs
+      # Poker Near Me #SmarterDesign (2026-11-28): no text-transform uppercase,
+      # no gold/amber/orange/yellow or violet/purple/pink/magenta colour
+      # literal outside a short reasoned exemption list, and no new reference
+      # to the retired painted chassis (a per-file ratchet that only goes
+      # down). The rendered half is e2e/pnm-smarterdesign-render.spec.ts.
+      # The image test holds the PNM header art and lobby tiles to byte
+      # ceilings and keeps tiles past the first two rows lazy.
+      - name: "CHECK 30: Poker Near Me #SmarterDesign CSS cannot regress"
+        run: |
+          node scripts/ci/check-pnm-smarterdesign-css.mjs --self-test
+          node scripts/ci/check-pnm-smarterdesign-css.mjs
+          node --test __tests__/pnm-image-weight-budget.test.mjs
       - name: "CHECK 10: Diamond economy invariants"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -1437,6 +1449,15 @@ jobs:
       # ===============================================================
       - name: "CHECK 19: No em dashes in player-facing copy"
         run: node scripts/ci/check-ui-text.mjs
+
+      # CHECK 30: every internal link the source builds reaches a page
+      # (2026-11-28). The Live SEO Contract only finds broken links after a
+      # deploy and only on the pages it samples; this reads every href in
+      # src/config, src/content, pages and src/components and fails before
+      # merge when one has no page, content slug, redirect or rewrite behind
+      # it. Needs no node_modules; ~1s.
+      - name: "CHECK 30: Every internal link reaches a page"
+        run: node --no-warnings scripts/ci/check-internal-links.mjs
 
       # check-title-case parses JSX with the TypeScript compiler, because the
       # careful part of it is the AST walk and its `{n}s` / `x{count}` suffix

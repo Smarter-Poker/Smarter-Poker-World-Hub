@@ -41,6 +41,26 @@ Use white for primary text, silver for secondary text, and ice blue or cyan for 
 
 Never use yellow, gold, amber, purple, violet, lavender, pink or magenta text anywhere. Apply the rule to headings, values, links, badges, chart labels, legends, tooltips, input placeholders, disabled controls, print and export previews. Set the color at its source. Leave uploaded photographs and original records intact.
 
+### Cross-repo palette (2026-11-28)
+
+Club Arena defines the table palette as `--sd-ice` #86daff, `--sd-ice-strong` #74dfff, `--sd-silver` #bdd0e2, `--sd-silver-dim` #9fbacc, `--sd-white` #f4f8ff, `--sd-cobalt-top` #087cfa, `--sd-cobalt-mid` #0044ac, `--sd-cobalt-deep` #002b68, `--sd-green` #4dc660 and `--sd-red` #ff8a93 (its `docs/SMARTERDESIGN-TABLE-PALETTE.md`). World Hub declares the same names with the same values on `:root` in `styles/smarterdesign.css`. One name differs in meaning: Club Arena's `--sd-ink` is body text (#f1f5fc); World Hub's scoped `--sd-ink` is the navy ground, so World Hub code uses `--sd-white-ink` for body text. Change a shared value in both repos in the same piece of work.
+
+World Hub and Club Arena use the same custom-property names for the #SmarterDesign inks, so a colour is read by name in both repos instead of being copied as a literal. World Hub declares them in `styles/smarterdesign.css`: the new names on `:root`, and `--sd-ice`, `--sd-silver` and `--sd-text` in the `.smarterdesign` scope, where they already were.
+
+| Token | Value | Job |
+| --- | --- | --- |
+| `--sd-ice` | `#86daff` | Emphasis, links, focus (scoped to `.smarterdesign`) |
+| `--sd-ice-strong` | `#74dfff` | Live values, chevrons, timestamps, the strongest emphasis |
+| `--sd-silver` | `#bdd0e2` | Secondary text (scoped to `.smarterdesign`) |
+| `--sd-silver-dim` | `#9fbacc` | Labels, counts, meta |
+| `--sd-white-ink` | `#f2f7ff` | Titles and values (the same ink as the scoped `--sd-text`) |
+| `--sd-cobalt-1` to `--sd-cobalt-4` | `#1981ec`, `#0c55c0`, `#07377e`, `#125bba` | Stops of the selected/primary cobalt: `linear-gradient(180deg, var(--sd-cobalt-1), var(--sd-cobalt-2) 26%, var(--sd-cobalt-3) 76%, var(--sd-cobalt-4))`, inside `chrome-active-v2.webp` |
+| `--sd-house-green` | `#4dc660` | Real wins, gains and success only |
+| `--sd-error-red` | `#ff5b6e` | Error ink and real losses only |
+| `--sd-error-rule` | `#f02849` | Error rule or border |
+
+New work reads these names. Changing a value is a change to both repos, made in the same round. Poker Near Me is guarded at source by `scripts/ci/check-pnm-smarterdesign-css.mjs` (CHECK 30: no `text-transform: uppercase`, no colour literal in the 20-70 or 260-345 degree hue bands outside its reasoned exemptions, no new painted-chassis reference) and on rendered pages by `e2e/pnm-smarterdesign-render.spec.ts`.
+
 ## Controls and responsive layout
 
 Use one frame per surface. Group related information with spacing, dividers and headings. Keep the primary action visible and subordinate secondary actions. Mark selection visually and expose it to assistive technology. Give buttons a visible keyboard focus, pressed and disabled state and a comfortable touch target. Use one simple view with authorized tools available in context.

@@ -54,7 +54,7 @@ const LeafletLocationPicker = dynamic(
   { ssr: false }
 );
 import { getAccessToken } from '../../../../src/lib/authUtils';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import { publishPlannedHomeGameTournaments, submitHomeGameOccurrence } from '../../../../src/lib/home-games/tournamentPublication.mjs';
 
 const GAME_TYPES = [
@@ -305,7 +305,7 @@ export default function CreateHomeGamePage() {
     try {
       const token = getAccessToken();
       if (!token) {
-        setLogoError('Please sign in again before uploading');
+        setLogoError('Please Sign In Again Before Uploading');
         setUploadingLogo(false);
         return;
       }
@@ -334,13 +334,13 @@ export default function CreateHomeGamePage() {
       const json = await res.json();
 
       if (!json.success || !json.url) {
-        throw new Error(json.error || 'Upload failed');
+        throw new Error(json.error || 'Upload Failed');
       }
 
       updateField('profile_photo_url', json.url);
     } catch (err) {
       console.warn('Logo upload failed:', err);
-      setLogoError(err?.message || 'Upload failed - please try again');
+      setLogoError(err?.message || 'Upload Failed - Please Try Again');
     } finally {
       setUploadingLogo(false);
       e.target.value = ''; // Reset so the same file can be re-picked if needed
@@ -350,14 +350,14 @@ export default function CreateHomeGamePage() {
   async function handleSubmit() {
     if (groupSubmissionLockRef.current || createdGroup) return;
     if (!formData.name.trim()) {
-      setError('Please enter a group name');
+      setError('Please Enter A Group Name');
       return;
     }
 
     // Phase 17: hard gate - logo upload required before we even call the API.
     // Server will reject anyway, but failing fast here gives a clearer UX.
     if (!formData.profile_photo_url) {
-      setError('Please upload a logo before creating your group');
+      setError('Please Upload A Logo Before Creating Your Group');
       return;
     }
 
@@ -631,7 +631,7 @@ export default function CreateHomeGamePage() {
     } catch (err) {
       // Phase 41/audit-fix-B8: keep the specific message when we have one;
       // fall back to generic only on true network errors (no message).
-      setError(err && err.message ? err.message : 'Connection error. Please try again.');
+      setError(err && err.message ? err.message : 'Connection Error. Please Try Again.');
     } finally {
       groupSubmissionLockRef.current = false;
       setSubmitting(false);
@@ -956,7 +956,7 @@ export default function CreateHomeGamePage() {
                   </div>
                   <p className="text-xs text-[#9FB3C8] mt-2">
                     {formData.tables_count === 1
-                      ? 'Single table - pick the game type and stakes below.'
+                      ? 'Single Table - Pick The Game Type And Stakes Below.'
                       : `Running ${formData.tables_count} tables - set the game type and stakes for each table below.`}
                   </p>
                   {formData.tables_count > 1 && (
@@ -1159,7 +1159,7 @@ export default function CreateHomeGamePage() {
                 <button
                   onClick={() => setStep(3)}
                   disabled={!isStep2Valid()}
-                  title={isStep2Valid() ? '' : 'Fix the highlighted fields to continue'}
+                  title={isStep2Valid() ? '' : 'Fix The Highlighted Fields To Continue'}
                   className="cmd-btn cmd-btn-primary flex-1 h-12 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Continue
@@ -1661,7 +1661,7 @@ export default function CreateHomeGamePage() {
                   <div className="p-3 bg-[#0D192E] rounded-lg border border-[#10B981]/40 flex items-center gap-3">
                     <img
                       src={formData.profile_photo_url}
-                      alt="Group logo preview"
+                      alt="Group Logo Preview"
                       style={{
                         width: 56,
                         height: 56,
@@ -1713,7 +1713,7 @@ export default function CreateHomeGamePage() {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || uploadingLogo || !formData.profile_photo_url}
-                  title={!formData.profile_photo_url ? 'Upload a logo to continue' : ''}
+                  title={!formData.profile_photo_url ? 'Upload A Logo To Continue' : ''}
                   className="cmd-btn cmd-btn-primary flex-1 h-12 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting ? (
@@ -1975,7 +1975,7 @@ export default function CreateHomeGamePage() {
                     try {
                       const token = getAccessToken();
                       if (!token) {
-                        setFirstGameError('Please sign in again - your session expired.');
+                        setFirstGameError('Please Sign In Again - Your Session Expired.');
                         return;
                       }
                       const fullAddress = [
@@ -2022,7 +2022,7 @@ export default function CreateHomeGamePage() {
                       setFirstGameError(
                         err && err.message
                           ? err.message
-                          : 'Failed to schedule. Check your details and try again.'
+                          : 'Failed To Schedule. Check Your Details And Try Again.'
                       );
                     } finally {
                       eventSubmissionLockRef.current = false;
@@ -2048,3 +2048,5 @@ export default function CreateHomeGamePage() {
     </CommanderPageShell>
   );
 }
+
+CreateHomeGamePage.getLayout = commanderPageLayout;

@@ -38,6 +38,7 @@ import {
   loadRecentSignupAttribution,
   summarizeSignupAttribution,
 } from '../src/lib/acquisition/attributionSummary.mjs';
+import { evaluateAuthDoors } from '../src/lib/acquisition/authDoorProbe.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -366,6 +367,7 @@ test('pages/api/health/signup.js wires seoFunnel in parallel and never degrades 
       if (name.endsWith('apiErrorHandler')) return { reportApiError: () => {} };
       if (name.endsWith('attributionSummary.mjs')) return { loadRecentSignupAttribution, summarizeSignupAttribution };
       if (name.endsWith('seoFunnelRollup.mjs')) return { loadSeoFunnelRollup: mockLoadSeoFunnelRollup };
+      if (name.endsWith('authDoorProbe.mjs')) return { evaluateAuthDoors };
       return {};
     },
   });

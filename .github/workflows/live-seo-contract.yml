@@ -38,3 +38,43 @@ jobs:
           node-version: 22
       - name: Read production as Googlebot and hold it to the contract
         run: node scripts/ci/check-live-seo-contract.mjs --sha "${{ github.event.deployment.sha || '' }}" --sample 40
+
+  # PREFLOP CHARTS KEEPS ITS FONTS (2026-11-28). The #SmarterDesign pass on
+  # Preflop Charts removed the old Orbitron face and found the shared FAQ in
+  # Times New Roman, both by hand after a deploy. This job renders Preflop
+  # Charts and its four sub pages at phone width on the deployment that
+  # triggered the workflow and fails if any visible text computes to Orbitron
+  # or a serif face. Its own job, so an SEO failure never hides it. Installs
+  # only Playwright, at the lockfile's version.
+  preflop-fonts:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       contains(github.event.deployment_status.environment, 'Production'))
+    name: Preflop Charts Keeps Its Fonts Live
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha || github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Installed into its own folder: "npm install <pkg>" inside the
+      # checkout reinstalls the whole project tree, and the browser it then
+      # downloaded belonged to a different Playwright copy than the one the
+      # script loaded (first run, 2026-11-28). One folder, one copy.
+      - name: Install Playwright at the locked version
+        run: |
+          PW_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/playwright'].version")
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null
+          npm install --ignore-scripts --no-audit --no-fund "playwright@${PW_VERSION}"
+          if [ "${{ runner.environment }}" = "self-hosted" ]; then ./node_modules/.bin/playwright install chromium; else ./node_modules/.bin/playwright install --with-deps chromium; fi
+      - name: Render Preflop Charts and hold its fonts
+        env:
+          PLAYWRIGHT_DIR: ${{ runner.temp }}/pw
+        run: node scripts/ci/check-live-preflop-fonts.mjs --sha "${{ github.event.deployment.sha || '' }}"

@@ -12,7 +12,7 @@ import { ArrowLeft, Save, User, Camera } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 export default function ProfileEditPage() {
   const router = useRouter();
@@ -42,7 +42,7 @@ export default function ProfileEditPage() {
 
   async function handleSave(signal) {
     if (!formData.display_name.trim()) {
-      setError('Display name is required');
+      setError('Display Name Is Required');
       return;
     }
     setSaving(true);
@@ -64,10 +64,10 @@ export default function ProfileEditPage() {
         setSuccess(true);
         setTimeout(() => router.push('/hub/commander/profile'), 1000);
       } else {
-        setError(data.error || 'Failed to save');
+        setError(data.error || 'Failed To Save');
       }
     } catch (err) {
-      setError('Failed to save profile');
+      setError('Failed To Save Profile');
     } finally {
       setSaving(false);
     }
@@ -185,3 +185,5 @@ export default function ProfileEditPage() {
     </CommanderPageShell>
   );
 }
+
+ProfileEditPage.getLayout = commanderPageLayout;

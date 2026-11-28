@@ -26,8 +26,12 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createHash } from 'crypto';
 import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
 import { APP_ORIGIN, classifyRequest, describeRequest, normaliseSha } from './fixtures/bankrollLiveGuard.mjs';
+import { CEILING, PHONE_PROFILE, SPEED_RUNS, ceilingBreaches, supabaseLabel } from './fixtures/bankrollPhoneSpeed.mjs';
+import { FIXTURE_LOW_CENTS, FIXTURE_PEAK_CENTS, isFixtureRow, isTestRow, missingFixtureSessions } from './fixtures/bankrollWriteGuard.mjs';
+import { buildTrend } from '../src/lib/bankroll/analyticsView.mjs';
 
 const EXPECTED_SHA = normaliseSha(process.env.BANKROLL_LIVE_EXPECTED_SHA);
 const RECEIPT_DIR = path.resolve(__dirname, '../test-results/bankroll-live/sections');
@@ -313,7 +317,9 @@ for (const chart of CHART_TYPES) {
         results[filter] = `heatmap: ${days} day cells`;
       } else {
         // The plot is dynamically imported: wait for a drawn path, not a placeholder.
-        const drawn = region.locator('svg path[d]:not([d=""])');
+        // Recharts' own surface: the header's Activity icon is an SVG path too,
+        // so a bare `svg path[d]` was satisfied before any chart was drawn.
+        const drawn = region.locator('svg.recharts-surface path[d]:not([d=""])');
         await expect(drawn.first(), `${chart.label} / ${filter} has data but drew no SVG path`).toBeAttached({ timeout: 20_000 });
         const sessions = await region.locator('dl').innerText().catch(() => '');
         results[filter] = `svg: ${await drawn.count()} paths; ${sessions.replace(/\s+/g, ' ').slice(0, 80)}`;
@@ -330,3 +336,207 @@ for (const chart of CHART_TYPES) {
     }
   });
 }
+
+// PHONE SPEED (2026-11-28). How long the dashboard takes to become usable on a
+// mid-range phone over cellular: Lighthouse's mobile reference (4x CPU, Slow 4G),
+// cold, signed in, through the same read-only guard as every test above. Runs
+// only in the bankroll-live-phone-speed project, alone on its worker, so no
+// other test competes for the throttled CPU. See e2e/fixtures/bankrollPhoneSpeed.mjs
+// for the profile's source and the disaster ceiling's reasoning.
+const SPEED_DIR = path.resolve(__dirname, '../test-results/bankroll-live/speed');
+
+for (let run = 1; run <= SPEED_RUNS; run += 1) {
+  test(`phone speed: cold dashboard load ${run} of ${SPEED_RUNS}`, async ({ page }, info) => {
+    test.skip(info.project.name !== 'bankroll-live-phone-speed', 'measured only on the throttled phone project');
+    const guard = await guardPage(page);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Network.enable');
+    await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
+    await cdp.send('Network.emulateNetworkConditions', {
+      offline: false,
+      latency: PHONE_PROFILE.latencyMs,
+      downloadThroughput: PHONE_PROFILE.downloadBytesPerSecond,
+      uploadThroughput: PHONE_PROFILE.uploadBytesPerSecond,
+    });
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: PHONE_PROFILE.cpuThrottlingRate });
+
+    // Bytes on the wire, from Chrome's own accounting (compressed, headers included).
+    const types = new Map<string, string>();
+    const js = { transferred: 0, decoded: 0, requests: 0 };
+    let totalTransferred = 0;
+    cdp.on('Network.responseReceived', (e: any) => types.set(e.requestId, e.type));
+    cdp.on('Network.dataReceived', (e: any) => { if (types.get(e.requestId) === 'Script') js.decoded += e.dataLength; });
+    cdp.on('Network.loadingFinished', (e: any) => {
+      totalTransferred += e.encodedDataLength;
+      if (types.get(e.requestId) === 'Script') { js.transferred += e.encodedDataLength; js.requests += 1; }
+    });
+    // Supabase reads: method + path for the receipt, a hash of the full URL
+    // only to tell an exact repeat from a different read.
+    const supabaseByPath: Record<string, number> = {};
+    const exact = new Map<string, number>();
+    page.on('request', (request) => {
+      const label = supabaseLabel(request.method(), request.url());
+      if (!label) return;
+      supabaseByPath[label] = (supabaseByPath[label] || 0) + 1;
+      const key = createHash('sha256').update(`${request.method()} ${request.url()}`).digest('hex').slice(0, 16);
+      exact.set(key, (exact.get(key) || 0) + 1);
+    });
+
+    // Timings from navigation start, polled in the page every 50ms.
+    await page.addInitScript(() => {
+      const w = window as any;
+      const s = w.__phoneSpeed = { lcp: [] as number[], longTaskMs: 0, tilesAt: null as number | null, chartAt: null as number | null, chartOutcome: null as string | null, emptyBeforeTiles: false };
+      try { new PerformanceObserver((l) => { for (const e of l.getEntries()) s.lcp.push(e.startTime); }).observe({ type: 'largest-contentful-paint', buffered: true }); } catch {}
+      try { new PerformanceObserver((l) => { for (const e of l.getEntries()) s.longTaskMs += e.duration; }).observe({ type: 'longtask', buffered: true }); } catch {}
+      const empties = ['No Data For This Period', 'Every Category Is Even For This Period.', 'No Gaming Sessions In This Period.'];
+      const timer = setInterval(() => {
+        const now = performance.now();
+        if (s.tilesAt === null) {
+          const tiles = Array.from(document.querySelectorAll('section.bankroll-main-content .bankroll-stats-grid .sd-metric'));
+          if (tiles.length >= 2 && tiles.every((t) => /\d/.test(t.textContent || ''))) s.tilesAt = now;
+        }
+        if (s.chartAt === null) {
+          const region = document.querySelector('section[aria-label="Bankroll Trend"]');
+          if (region && region.getAttribute('aria-busy') === 'false') {
+            const text = region.textContent || '';
+            const empty = empties.find((line) => text.includes(line));
+            if (region.querySelector('svg.recharts-surface path[d]:not([d=""])')) s.chartOutcome = 'drawn';
+            else if (region.querySelector('button[aria-label*=", "]')) s.chartOutcome = 'heatmap';
+            else if (empty) s.chartOutcome = `empty: ${empty}`;
+            if (s.chartOutcome) s.chartAt = now;
+            // An empty trend while the tiles still read "-" is the page
+            // claiming "no data" before it has read any: a false empty.
+            if (s.chartOutcome && s.chartOutcome.startsWith('empty') && s.tilesAt === null) s.emptyBeforeTiles = true;
+          }
+        }
+        if (s.tilesAt !== null && s.chartAt !== null) clearInterval(timer);
+      }, 50);
+    });
+
+    const record: Record<string, unknown> = { run, profile: PHONE_PROFILE.name };
+    try {
+      const response = await page.goto('/hub/bankroll-manager?view=dashboard', { waitUntil: 'domcontentloaded', timeout: 120_000 });
+      expect(response?.status(), 'page response').toBeLessThan(400);
+      await page.waitForFunction(() => {
+        const s = (window as any).__phoneSpeed;
+        return s && s.tilesAt !== null && s.chartAt !== null;
+      }, undefined, { timeout: CEILING.chartMs + 30_000, polling: 250 }).catch(() => undefined);
+      // Let the first load finish its trailing reads before counting them.
+      await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
+      await assertSignedIn(page);
+      const timings = await page.evaluate(() => {
+        const s = (window as any).__phoneSpeed;
+        const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+        return {
+          lcpMs: s.lcp.length ? s.lcp[s.lcp.length - 1] : null,
+          tilesMs: s.tilesAt, chartMs: s.chartAt, chartOutcome: s.chartOutcome, emptyBeforeTiles: s.emptyBeforeTiles,
+          longTaskMs: Math.round(s.longTaskMs),
+          ttfbMs: nav ? nav.responseStart : null,
+          domContentLoadedMs: nav ? nav.domContentLoadedEventEnd : null,
+          loadMs: nav && nav.loadEventEnd > 0 ? nav.loadEventEnd : null,
+        };
+      });
+      Object.assign(record, timings, {
+        jsTransferredBytes: js.transferred,
+        jsDecodedBytes: js.decoded,
+        jsRequests: js.requests,
+        totalTransferredBytes: totalTransferred,
+        supabaseRequests: Object.values(supabaseByPath).reduce((a, b) => a + b, 0),
+        supabaseExactDuplicates: [...exact.values()].reduce((a, n) => a + (n - 1), 0),
+        supabaseByPath,
+      });
+      // The default period can be empty for the service account, and then
+      // the "chart drawn" above is its honest empty state. All Time is the
+      // widest window the account has: the time from choosing it to the plot
+      // drawn includes the Recharts chunk, which the first load never fetched.
+      if (timings.tilesMs !== null && timings.chartMs !== null) {
+        const started = Date.now();
+        await pickFromDropdown(page, /^(Last 7 Days|Last 30 Days|Last 90 Days|This Year|All Time)/, 'All Time');
+        const outcome = await page.waitForFunction(() => {
+          const region = document.querySelector('section[aria-label="Bankroll Trend"]');
+          if (!region || region.getAttribute('aria-busy') !== 'false' || !(region.textContent || '').includes('All Time')) return null;
+          if (region.querySelector('svg.recharts-surface path[d]:not([d=""])')) return 'drawn';
+          const text = region.textContent || '';
+          return ['No Data For This Period', 'Every Category Is Even For This Period.', 'No Gaming Sessions In This Period.'].find((line) => text.includes(line)) ? 'empty' : null;
+        }, undefined, { timeout: CEILING.chartMs, polling: 50 }).then((h) => h.jsonValue()).catch(() => null);
+        record.allTimeChartMs = outcome ? Date.now() - started : null;
+        record.allTimeChartOutcome = outcome || 'not drawn';
+      }
+      expect(guard.writes, 'the dashboard attempted a write (aborted before it left the browser)').toEqual([]);
+      expect(ceilingBreaches(record), 'phone load crossed the disaster ceiling').toEqual([]);
+      record.passed = true;
+    } finally {
+      fs.mkdirSync(SPEED_DIR, { recursive: true });
+      fs.writeFileSync(path.join(SPEED_DIR, `run-${run}.json`), JSON.stringify(record, null, 2));
+      finish(info, guard, { phoneSpeed: record });
+    }
+  });
+}
+
+/** "+$29,217" / "\u2212$14,363" -> cents. */
+function trendCents(text: string): number {
+  const t = String(text).replace(/\s/g, '');
+  const m = /([+\-\u2212]?)[$\u20ac]([\d,]+(?:\.\d{1,2})?)/.exec(t);
+  if (!m) throw new Error(`no amount in "${text}"`);
+  const value = Math.round(Number(m[2].replace(/,/g, '')) * 100);
+  return m[1] === '-' || m[1] === '\u2212' ? -value : value;
+}
+
+// When the bankroll-write-live fixture is on the service account, the All Time
+// trend must show its peak and low (READ-ONLY: GETs as the signed-in user).
+test('dashboard All Time trend shows the fixture peak and low', async ({ page }, info) => {
+  const guard = await guardPage(page);
+  let supabase: string | null = null, apikey: string | null = null;
+  page.on('request', (request) => {
+    if (!apikey && /\.supabase\.co\/rest\/v1\//.test(request.url()) && request.headers().apikey) {
+      supabase = new URL(request.url()).origin;
+      apikey = request.headers().apikey;
+    }
+  });
+  const extra: Record<string, unknown> = {};
+  try {
+    await page.goto('/hub/bankroll-manager?view=dashboard', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await waitForSection(page, 'Bankroll Manager');
+    await assertSignedIn(page);
+    const session = await page.evaluate(() => JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}'));
+    expect(supabase && apikey, 'no Supabase read seen').toBeTruthy();
+    const rows: any[] = [];
+    for (let from = 0; ; from += 1000) {
+      const response = await fetch(`${supabase}/rest/v1/bankroll_ledger?select=id,category,entry_date,gross_in,gross_out,net_result,notes&user_id=eq.${session.user.id}&is_revision=eq.false&order=id.asc`, {
+        headers: { apikey: apikey!, Authorization: `Bearer ${session.access_token}`, Range: `${from}-${from + 999}`, 'Range-Unit': 'items' },
+      });
+      expect(response.ok, 'ledger read').toBe(true);
+      const batch = await response.json();
+      rows.push(...batch);
+      if (batch.length < 1000) break;
+    }
+    const fixturePresent = missingFixtureSessions(rows).length === 0;
+    extra.fixturePresent = fixturePresent;
+    if (!fixturePresent) {
+      extra.passed = 'fixture absent: nothing to compare';
+      return;
+    }
+    const foreign = rows.filter((r) => !isFixtureRow(r) && !isTestRow(r) && r.category !== 'deposit' && r.category !== 'withdrawal');
+    const all = buildTrend(rows, '2000-01-01', '2099-12-31');
+    const expected = foreign.length ? { peak: all.high, low: all.low } : { peak: FIXTURE_PEAK_CENTS, low: FIXTURE_LOW_CENTS };
+    extra.foreignResultRows = foreign.length;
+    await pickFromDropdown(page, /^(Line Chart|Bar Chart|Donut Chart|Stacked Bar|Histogram|Heatmap)/, 'Line Chart');
+    await pickFromDropdown(page, /^(Last 7 Days|Last 30 Days|Last 90 Days|This Year|All Time)/, 'All Time');
+    const region = page.getByRole('region', { name: 'Bankroll Trend' });
+    await expect(region).toHaveAttribute('aria-busy', 'false', { timeout: 30_000 });
+    const curve = region.locator('path.recharts-area-curve').first();
+    await expect(curve, 'the line chart drew no curve').toBeAttached({ timeout: 20_000 });
+    const ys = ((await curve.getAttribute('d')) || '').match(/-?\d+(?:\.\d+)?/g)?.map(Number).filter((_, i) => i % 2 === 1) || [];
+    const peak = trendCents(await region.locator('dl div').filter({ hasText: 'Peak Net' }).locator('dd').innerText());
+    const low = trendCents(await region.locator('dl div').filter({ hasText: 'Lowest Net' }).locator('dd').innerText());
+    Object.assign(extra, { points: ys.length, peak, low, expected });
+    expect(ys.length, 'the line has no more than two points').toBeGreaterThan(2);
+    expect(Math.max(...ys), 'the line is flat').not.toBe(Math.min(...ys));
+    expect(peak, 'Peak Net').toBe(expected.peak);
+    expect(low, 'Lowest Net').toBe(expected.low);
+    expect(guard.writes, 'the dashboard attempted a write').toEqual([]);
+    extra.passed = true;
+  } finally {
+    finish(info, guard, extra);
+  }
+});

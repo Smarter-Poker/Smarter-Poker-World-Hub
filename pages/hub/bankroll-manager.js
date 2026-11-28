@@ -79,11 +79,12 @@ import { getBankrollPreferences, updateBankrollPreferences } from '../../src/ser
 // Bankroll library
 import { getBankrollStats, calculateTotalBankroll } from '../../src/lib/bankroll/calculations';
 import { centsToDollars, resultsCents, toCents } from '../../src/lib/bankroll/ledgerMath.mjs';
+import { sessionReport } from '../../src/lib/bankroll/ledgerReport.mjs';
 import { evaluateRuleViolations, monthBounds } from '../../src/lib/bankroll/ruleViolations.mjs';
 import { parseLedgerDay } from '../../src/lib/bankroll/localDates.mjs';
 import {
   TIME_FILTERS, CHART_TYPES, CHART_TYPE_LABELS, GAME_TYPES,
-  sanitizeTimeFilter, sanitizeChartType, sanitizeGameTypes, toggleGameType as toggleGameTypeIn,
+  sanitizeTimeFilter, sanitizeChartType, sanitizeGameTypes, sanitizeLineAxis, toggleGameType as toggleGameTypeIn,
 } from '../../src/lib/bankroll/dashboardFilters.mjs';
 import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
 import { fetchReportLedger, fetchTrips, fetchSeries, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
@@ -131,10 +132,12 @@ const SectionSkeleton = () => <div className="bankroll-skel" style={{ height: 30
 const lazySection = (loader) => dynamic(loader, { ssr: false, loading: SectionSkeleton });
 
 const LogEntryModal = dynamic(() => import('../../src/components/bankroll/LogEntryModal'), { ssr: false });
+const ClubArenaSessionsPrompt = dynamic(() => import('../../src/components/bankroll/ClubArenaSessions').then((m) => m.ClubArenaSessionsPrompt), { ssr: false });
 const BankrollExportFormats = lazySection(() => import('../../src/components/bankroll/BankrollExportFormats'));
 const LedgerTimeline = lazySection(() => import('../../src/components/bankroll/LedgerTimeline'));
 const LocationAnalytics = lazySection(() => import('../../src/components/bankroll/LocationAnalytics'));
 const BankrollProjection = lazySection(() => import('../../src/components/bankroll/BankrollProjection'));
+const StakeAffordability = dynamic(() => import('../../src/components/bankroll/StakeAffordability'), { ssr: false });
 const PlayerNotes = lazySection(() => import('../../src/components/bankroll/PlayerNotes'));
 const HistoricalComparison = lazySection(() => import('../../src/components/bankroll/HistoricalComparison'));
 const VarianceCalculator = lazySection(() => import('../../src/components/bankroll/VarianceCalculator'));
@@ -148,6 +151,9 @@ const TripTracker = lazySection(() => import('../../src/components/bankroll/Trip
 const TokeTracker = lazySection(() => import('../../src/components/bankroll/TokeTracker'));
 const CategoryOverview = lazySection(() => import('../../src/components/bankroll/CategoryOverview'));
 const AdvancedTaxReport = lazySection(() => import('../../src/components/bankroll/AdvancedTaxReport'));
+const BankrollDataTools = lazySection(() => import('../../src/components/bankroll/BankrollDataTools'));
+const TaxPacketDownload = lazySection(() => import('../../src/components/bankroll/TaxPacketDownload'));
+const ImportSessionsPrompt = dynamic(() => import('../../src/components/bankroll/ImportSessionsPrompt'), { ssr: false });
 const BankrollBadges = lazySection(() => import('../../src/components/bankroll/BankrollBadges'));
 const SocialStakingProfile = lazySection(() => import('../../src/components/bankroll/SocialStakingProfile'));
 const TournamentCalendar = lazySection(() => import('../../src/components/bankroll/TournamentCalendar'));
@@ -327,7 +333,9 @@ function DayPassCountdown({ expiresAt }) {
 
 export default function BankrollManagerPage() {
   const router = useRouter();
-  const { user } = useAvatar();
+  // `initializing` stays true until Supabase restores the session (or a 5s
+  // fallback): until then a missing user is unknown, not signed out.
+  const { user, initializing: authInitializing } = useAvatar();
   const userId = user?.id;
   const haptic = useHaptics();
   const online = useOnlineStatus();
@@ -365,6 +373,7 @@ export default function BankrollManagerPage() {
     timeFilter: 'All Time',
     chartType: 'line',
     gameTypes: GAME_TYPES,
+    lineAxis: 'auto',
   });
 
   const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
@@ -387,6 +396,7 @@ export default function BankrollManagerPage() {
 
   const setTimeFilter = (val) => setFilter('timeFilter', val);
   const setChartType = (val) => setFilter('chartType', val);
+  const setLineAxis = (val) => setFilter('lineAxis', sanitizeLineAxis(val));
 
   const [editEntry, setEditEntry] = useState(null);
 
@@ -533,17 +543,8 @@ export default function BankrollManagerPage() {
     () => analysisEntries.filter(entry => Object.hasOwn(CATEGORY_LABELS, entry.category) && entry.category !== 'expense'),
     [analysisEntries],
   );
-  const report = useMemo(() => {
-    const count = gamingSessions.length;
-    let net = 0;
-    let wins = 0;
-    for (const entry of gamingSessions) {
-      const result = Number(entry.net_result ?? (Number(entry.gross_out || 0) - Number(entry.gross_in || 0)));
-      net += result;
-      if (result > 0) wins += 1;
-    }
-    return { count, net, winRate: count ? Math.round(wins / count * 100) : 0, average: count ? net / count : 0 };
-  }, [gamingSessions]);
+  // Summed in cents by ledgerReport.mjs, like every other figure on the page.
+  const report = useMemo(() => sessionReport(gamingSessions), [gamingSessions]);
   const filteredAnalyticsEntries = useMemo(
     () => gamingSessions.filter(entry => gameTypeFilter.includes(entry.category)),
     [gamingSessions, gameTypeFilter],
@@ -566,6 +567,11 @@ export default function BankrollManagerPage() {
   // Load all data
   const loadData = useCallback(async () => {
     const request = ++latestLoad.current;
+    // While the session is still being restored, a missing user is not a
+    // signed-out visitor: keep the skeleton. Clearing it here painted an empty
+    // dashboard ("No Data For This Period", "-" tiles) for every signed-in
+    // load before the real numbers arrived.
+    if (!userId && authInitializing) return;
     // Fix: Set isLoading false even when no user (prevents infinite skeleton)
     if (!userId) {
       setAnalysisLedger(null);
@@ -584,7 +590,12 @@ export default function BankrollManagerPage() {
       // picker: if it cannot be read, the last list stays and the ledger still
       // loads. (Leak analysis used to run here on every load for a view no
       // address reached; LeakAnalysisView now reads it while it is open.)
-      const [statsData, entriesData, tripsData, locationsData] = await Promise.all([
+      // Series feed the dashboard banner and Recent Activity. If they cannot
+      // be read, their rows are still grouped (never shown loose), because
+      // buildRecentActivity treats an unknown trip as possibly active. They
+      // are read in the same batch: awaited after it, they held the tiles and
+      // the chart for one more round trip (about a second on a phone radio).
+      const [statsData, entriesData, tripsData, locationsData, seriesList] = await Promise.all([
         getBankrollStats(userId, dateRange.startDate, dateRange.endDate, locationFilter),
         fetchReportLedger(userId, {
           locationId: locationFilter,
@@ -597,23 +608,16 @@ export default function BankrollManagerPage() {
           console.warn('Could not load venues:', error);
           return null;
         }),
+        fetchSeries(userId).catch((e) => {
+          console.warn('Could not load series:', e);
+          return [];
+        }),
       ]);
 
       if (request !== latestLoad.current || !isMountedRef.current) return;
       setStats(statsData);
       setTrips(tripsData);
       if (locationsData) setLocations(locationsData);
-
-      // Series feed the dashboard banner and Recent Activity. If they cannot
-      // be read, their rows are still grouped (never shown loose), because
-      // buildRecentActivity treats an unknown trip as possibly active.
-      var seriesList = [];
-      try {
-        seriesList = await fetchSeries(userId);
-      } catch (e) {
-        console.warn('Could not load series:', e);
-      }
-      if (request !== latestLoad.current || !isMountedRef.current) return;
       setActiveSeries(seriesList.find(function (s) { return s.status === 'active'; }) || null);
 
       // Rows of an active trip or series stay hidden until it is completed;
@@ -634,7 +638,7 @@ export default function BankrollManagerPage() {
         }
       }
     }
-  }, [userId, locationFilter, timeFilter, reportScope]);
+  }, [userId, authInitializing, locationFilter, timeFilter, reportScope]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // TIER 3 REALTIME: Bankroll Data Sync
@@ -1934,6 +1938,12 @@ export default function BankrollManagerPage() {
                     </div>
                   )}
 
+                  {/* Finished Club Arena sessions not yet in the ledger. */}
+                  {userId && <ClubArenaSessionsPrompt userId={userId} />}
+
+                  {/* An empty ledger is offered Import Sessions (it checks the whole ledger itself). */}
+                  {hasLoadedOnce && failedScope !== reportScope && userId && <ImportSessionsPrompt userId={userId} />}
+
                   {/* === Unified Dashboard Frame === */}
                   {!(isLoading && !hasLoadedOnce) && (
                   <div className={`sd-panel ${layout.dashboard}`}>
@@ -1963,7 +1973,7 @@ export default function BankrollManagerPage() {
 
                     {/* Bankroll Trend Chart, filtered by gameTypeFilter, always include expenses */}
                     <div data-tutorial="chart">
-                    <BankrollTrendChart displayEUR={preferences.currencyEUR} entries={chartEntries} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
+                    <BankrollTrendChart displayEUR={preferences.currencyEUR} entries={chartEntries} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} lineAxis={sanitizeLineAxis(filters.lineAxis)} onLineAxisChange={setLineAxis} />
 
                     {/* Filters Row. Two columns at phone width (bankroll.css),
                         so the right column's menus open leftward to stay on
@@ -2060,6 +2070,12 @@ export default function BankrollManagerPage() {
                       </div>
                     </div>
                   </div>
+                  )}
+
+                  {userId && !(isLoading && !hasLoadedOnce) && (
+                    <HubErrorBoundary name="Stake Affordability">
+                      <StakeAffordability userId={userId} bankroll={stats ? stats.totalBankroll : null} displayEUR={preferences.currencyEUR} refreshKey={refreshTrigger} />
+                    </HubErrorBoundary>
                   )}
 
                   {/* Recent Activity Section */}
@@ -2298,6 +2314,7 @@ export default function BankrollManagerPage() {
                       <input type="checkbox" checked={preferences.notifications !== false} onChange={(e) => updatePreference('notifications', e.target.checked)} style={styles.settingCheck} />
                     </label>
                   </div>
+                  <BankrollDataTools userId={userId} />
                   <button
                     type="button"
                     onClick={() => { haptic('light'); setShowVenueModal(true); }}
@@ -2375,6 +2392,9 @@ export default function BankrollManagerPage() {
                       <div style={{ marginTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 24 }}>
                         <HubErrorBoundary name="Tax Reports">
                           <TaxReportPanel userId={userId} />
+                        </HubErrorBoundary>
+                        <HubErrorBoundary name="Tax Packet">
+                          <div style={{ marginTop: 16 }}><TaxPacketDownload /></div>
                         </HubErrorBoundary>
                       </div>
                     </div>
@@ -2924,6 +2944,7 @@ export default function BankrollManagerPage() {
             userId={userId}
             currentBankroll={stats?.totalBankroll || 0}
             displayEUR={preferences.currencyEUR}
+            bankrollKnown={Boolean(stats)}
             onClose={() => { clearActionView('projection'); setShowProjection(false); }}
           />
         )}

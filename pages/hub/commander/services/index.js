@@ -13,7 +13,7 @@ import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import {
   Coffee,
   Coins,
@@ -32,35 +32,35 @@ const SERVICE_TYPES = [
   {
     type: 'food',
     label: 'Food & Drinks',
-    description: 'Order From the Menu',
+    description: 'Order From The Menu',
     icon: Coffee,
     color: '#22D3EE'
   },
   {
     type: 'chips',
     label: 'Chips',
-    description: 'Request a Chip Runner',
+    description: 'Request A Chip Runner',
     icon: Coins,
     color: '#22D3EE'
   },
   {
     type: 'table_change',
     label: 'Table Change',
-    description: 'Request to Move Tables',
+    description: 'Request To Move Tables',
     icon: ArrowRightLeft,
     color: '#5AA9FF'
   },
   {
     type: 'cashout',
     label: 'Cash Out',
-    description: 'Ready to Leave the Game',
+    description: 'Ready To Leave The Game',
     icon: DollarSign,
     color: '#10B981'
   },
   {
     type: 'floor',
     label: 'Floor Manager',
-    description: 'Need Assistance or Ruling',
+    description: 'Need Assistance Or Ruling',
     icon: Hand,
     color: '#EF4444'
   }
@@ -359,7 +359,7 @@ export default function ServicesPage() {
       }
     } catch (err) {
       console.warn('Submit failed:', err);
-      setErrorMessage('Could not send request. Please try again.');
+      setErrorMessage('Could Not Send Request. Please Try Again.');
       setTimeout(() => setErrorMessage(null), 4000);
     }
   }
@@ -377,7 +377,7 @@ export default function ServicesPage() {
       refreshServices();
     } catch (err) {
       console.warn('Cancel failed:', err);
-      setErrorMessage('Could not cancel request. Please try again.');
+      setErrorMessage('Could Not Cancel Request. Please Try Again.');
       setTimeout(() => setErrorMessage(null), 4000);
     }
   }
@@ -497,3 +497,5 @@ export default function ServicesPage() {
     </CommanderPageShell>
   );
 }
+
+ServicesPage.getLayout = commanderPageLayout;

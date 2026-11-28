@@ -1,0 +1,9 @@
+{
+  "retired-chassis": {
+    "src/styles/worlds/poker-near-me-console-cards.css": 4,
+    "src/styles/worlds/poker-near-me-console-map.css": 4,
+    "src/styles/worlds/poker-near-me-console-search.css": 1,
+    "src/styles/worlds/poker-near-me-console-surfaces.css": 1,
+    "src/styles/worlds/poker-near-me-home-games-directory.css": 1
+  }
+}

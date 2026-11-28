@@ -58,10 +58,9 @@ const PROVISION_TABLES = new Set(['/rest/v1/bankroll_segments', '/rest/v1/bankro
 // non-volatile function, so they cannot write. Every other RPC stays blocked.
 // fn_lightning_my_sessions is the one the global active-seat link calls on
 // every page; blocking it painted "Could Not Check Your Active Seats / Retry".
-// fn_bankroll_totals is the Bankroll Manager's own dashboard read: declared
-// STABLE in its migration draft (branch bookmark/bankroll-db-migrations-2026-11-28),
-// and until it is installed PostgREST answers 404 PGRST202 and the page reads
-// the rows instead. Blocking it would turn every dashboard load into an error.
+// fn_bankroll_totals is the Bankroll Manager's own dashboard read, STABLE
+// (supabase/migrations/20261128101707_fn_bankroll_totals.sql, installed
+// 2026-11-28). Blocking it would turn every dashboard load into an error.
 export const READ_ONLY_RPCS = Object.freeze([
   'fn_bankroll_totals', 'fn_bbj_pool_for_club', 'fn_ca_club_data_downline', 'fn_ca_player_session_live',
   'fn_cashout_request_card', 'fn_club_notice_unread_counts', 'fn_get_my_guest_invite_code',
@@ -75,6 +74,9 @@ export const READ_ONLY_RPCS = Object.freeze([
   'get_user_achievements', 'get_visible_live_comments', 'get_visible_live_streams',
   'resolve_social_reel_reference', 'rpc_hg_list_public_tournaments',
   'training_dashboard_30day_stats', 'training_dashboard_last_session', 'user_reel_topics',
+  // The dashboard totals (getBankrollStats, #3296): STABLE in the production
+  // catalog (read 2026-11-28). Blocking it made the stats tiles fail.
+  'fn_bankroll_totals',
 ]);
 
 const READ_VERBS = new Set(['GET', 'HEAD', 'OPTIONS']);

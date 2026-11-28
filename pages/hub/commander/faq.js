@@ -8,7 +8,7 @@ import { useState } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { commanderBreadcrumbs } from '../../../src/lib/seo/commanderBreadcrumbs';
 import Link from 'next/link';
-import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../src/components/commander/CommanderPageShell';
 import {
   ChevronLeft,
   ChevronDown,
@@ -568,3 +568,5 @@ export default function PlayerFAQPage() {
     </CommanderPageShell>
   );
 }
+
+PlayerFAQPage.getLayout = commanderPageLayout;

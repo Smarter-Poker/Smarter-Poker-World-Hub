@@ -1,3 +1,5 @@
+import { sessionHours } from './ledgerMath.mjs';
+
 export const GAME_LABELS = {
   poker_cash: 'Cash Games',
   poker_mtt: 'Tournaments',
@@ -7,15 +9,22 @@ export const GAME_LABELS = {
   expense: 'Expenses',
 };
 export const SERIES_COLORS = ['#409eff', '#74e1ed', '#b8cee4', '#547caa', '#82b9d0', '#788fa6'];
+// A superseded revision is history, never a result (see isCurrentRow in ledgerMath.mjs).
 export const isSession = (entry) =>
-  Object.hasOwn(GAME_LABELS, entry.category) && entry.category !== 'expense';
+  !entry.is_revision && Object.hasOwn(GAME_LABELS, entry.category) && entry.category !== 'expense';
+const isPlotted = (entry) => !entry.is_revision && (isSession(entry) || entry.category === 'expense');
 const DAY = 86400000;
 
+// net_result is the generated gross_out - gross_in. An expense is always a
+// cost, whatever sign its row carries: the same rule as expenseCostCents in
+// ledgerMath.mjs, so the chart and the Net Results tile never part ways.
 export function netCents(entry) {
   const stored = entry.net_result;
-  if (stored !== null && stored !== undefined && stored !== '' && Number.isFinite(Number(stored)))
-    return Math.round(Number(stored) * 100);
-  return Math.round(Number(entry.gross_out || 0) * 100) - Math.round(Number(entry.gross_in || 0) * 100);
+  const raw =
+    stored !== null && stored !== undefined && stored !== '' && Number.isFinite(Number(stored))
+      ? Math.round(Number(stored) * 100)
+      : Math.round(Number(entry.gross_out || 0) * 100) - Math.round(Number(entry.gross_in || 0) * 100);
+  return entry.category === 'expense' ? -Math.abs(raw) : raw;
 }
 
 export function sortedSessions(entries) {
@@ -31,8 +40,7 @@ export function sortedSessions(entries) {
 
 export function buildTrend(entries, startDate, endDate) {
   const rows = entries.filter(
-    (e) =>
-      (isSession(e) || e.category === 'expense') && e.entry_date >= startDate && e.entry_date <= endDate
+    (e) => isPlotted(e) && e.entry_date >= startDate && e.entry_date <= endDate
   );
   const byDate = new Map();
   const categories = new Map();
@@ -180,7 +188,8 @@ export function sessionSummary(entries) {
     result.worst = result.worst === null ? value : Math.min(result.worst, value);
     peak = Math.max(peak, result.net);
     result.drawdown = Math.max(result.drawdown, peak - result.net);
-    const measured = (Date.parse(entry.end_time) - Date.parse(entry.start_time)) / 3600000;
+    // Overnight rule shared with the dashboard (ledgerMath sessionHours).
+    const measured = sessionHours(entry.start_time, entry.end_time);
     const hours = measured > 0 ? measured : Number(entry.duration_hours);
     if (Number.isFinite(hours) && hours > 0) {
       result.hours += hours;
@@ -224,8 +233,16 @@ export function venueBreakdown(entries, sort) {
   for (const entry of entries.filter(isSession)) {
     const name = entry.location_name || entry.location?.name || 'Unspecified Venue';
     const id = entry.location_id || name;
-    const venue = venues.get(id) || { id, name, count: 0, net: 0, wins: 0 };
+    const venue = venues.get(id) || { id, name, count: 0, net: 0, wins: 0, hours: 0, timed: 0, timedNet: 0 };
     const net = netCents(entry);
+    // Hours and the hourly rate come from timed sessions only, so an untimed
+    // session never drags the rate toward zero.
+    const hours = sessionHours(entry.start_time, entry.end_time);
+    if (hours > 0) {
+      venue.hours += hours;
+      venue.timed++;
+      venue.timedNet += net;
+    }
     venue.count++;
     venue.net += net;
     venue.wins += Number(net > 0);

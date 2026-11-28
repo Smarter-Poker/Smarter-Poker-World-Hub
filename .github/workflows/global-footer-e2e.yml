@@ -52,7 +52,9 @@ jobs:
     # Marketplace steps). A healthy run with every step passing reached the
     # Phase 3 mobile menu step at minute 28 and was canceled at 30 before
     # the last two gates ran, so the ceiling is now 45.
-    timeout-minutes: 45
+    # 2026-11-28: the Poker Near Me #SmarterDesign render gate adds about
+    # 102 page loads (two workers); 55 keeps the same headroom.
+    timeout-minutes: 55
 
     steps:
       - uses: actions/checkout@v4
@@ -258,12 +260,39 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
+      # Preflop Charts signed in and signed out, at phone, tablet and desktop
+      # widths (2026-11-28). The #SmarterDesign pass on Preflop Charts was
+      # checked by a throwaway harness that never ran in CI; it is what found
+      # the last gold tokens and the "RunS"/"40S" capitalisation bugs. This
+      # spec is that harness made permanent. It fabricates its session and
+      # answers every request itself, so it needs no secrets and no account.
+      - name: Verify Preflop Charts signed in and signed out at three widths
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
+        run: npx playwright test e2e/036-preflop-charts.spec.ts --project=chromium --no-deps --workers=2
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
       # Every other image header with the painted "?" (Poker Tools, Memory
       # Games, Training calculators, VIP, the store's VIP tab): icon, corner
       # clearance, and no page skin boxing it at rest or on keyboard focus.
       - name: Verify every other image header "?"
         if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
         run: npx playwright test e2e/032-image-header-help.spec.ts --project=chromium --project=mobile-chrome --no-deps --workers=2
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
+      # Poker Near Me #SmarterDesign measured on rendered styles: banned hues,
+      # uppercase, contrast, 44px targets, the fixed footer and the painted
+      # header "?" on every PNM page at 393/768/1280, signed out and signed
+      # in, in Chromium and WebKit. Browser traffic is answered by fixtures
+      # (e2e/fixtures/pnmSmarterDesignFixtures.ts) and needs no secrets.
+      - name: Verify Poker Near Me #SmarterDesign rendered styles
+        if: ${{ !cancelled() && steps.production_server_ready.outcome == 'success' }}
+        run: npx playwright test e2e/pnm-smarterdesign-render.spec.ts --project=pnm-smarterdesign-chromium --project=pnm-smarterdesign-webkit --workers=2
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}

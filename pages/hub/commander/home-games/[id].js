@@ -14,7 +14,7 @@ import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken, getFreshAccessToken } from '../../../../src/lib/authUtils';
 import { toast } from 'react-hot-toast';
 import { safeCopyToClipboard } from '../../../../src/lib/clipboard';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 import useAccessibleDialog from '../../../../src/hooks/useAccessibleDialog';
 import { homeGameJoinOutcome, createHomeGameJoinOperation } from '../../../../src/lib/home-games/joinOutcome.mjs';
 import CasinoActionDialog from '../../../../src/components/poker-near-me/CasinoActionDialog';
@@ -508,12 +508,12 @@ export default function HomeGameDetailPage() {
       } else if (data.error) {
         const errCode = data.error?.code || data.error;
         if (errCode === 'GAME_STARTED') {
-          toast.error('This game started already - messaging the host');
+          toast.error('This Game Started Already - Messaging The Host');
           setTimeout(() => {
             if (data.dm_url) router.push(data.dm_url);
           }, 1500);
         } else {
-          toast.error(data.error?.message || data.error || 'Failed to RSVP');
+          toast.error(data.error?.message || data.error || 'Failed To RSVP');
         }
         return false;
       } else {
@@ -526,7 +526,7 @@ export default function HomeGameDetailPage() {
       }
     } catch (error) {
       console.warn('RSVP failed:', error);
-      toast.error(error.message || 'Failed to RSVP');
+      toast.error(error.message || 'Failed To RSVP');
       return false;
     } finally {
       // bug-hunt-zero/B-ID-3: always clear the in-flight marker for this event
@@ -556,11 +556,11 @@ export default function HomeGameDetailPage() {
       if (data.success && data.dm_url) {
         router.push(data.dm_url);
       } else {
-        toast.error(data.error?.message || data.error || 'Failed to start message');
+        toast.error(data.error?.message || data.error || 'Failed To Start Message');
       }
     } catch (err) {
       console.warn('DM start failed:', err);
-      toast.error('Failed to start message');
+      toast.error('Failed To Start Message');
     }
   }
 
@@ -605,7 +605,7 @@ export default function HomeGameDetailPage() {
     setReportBusy(true);
     try {
       const token = await getFreshAccessToken();
-      if (!token) { setReportError('Sign in again before submitting a report.'); return; }
+      if (!token) { setReportError('Sign In Again Before Submitting A Report.'); return; }
       const response = await fetch('/api/home-games/reports', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ group_id: id, post_id: reportTarget.id, report_id: operation.id,
@@ -613,10 +613,10 @@ export default function HomeGameDetailPage() {
       });
       const data = await response.json().catch(() => ({}));
       if (response.status === 201 && data.success === true && data.report_id === operation.id) {
-        toast.success('Report submitted for moderation.');
+        toast.success('Report Submitted For Moderation.');
         setReportTarget(null);
       } else if (response.status >= 400 && response.status < 500) {
-        setReportError(typeof data.error === 'string' ? data.error : 'This report was not accepted.');
+        setReportError(typeof data.error === 'string' ? data.error : 'This Report Was Not Accepted.');
       } else {
         operation.unknown = true;
         setReportError('Report submission could not be confirmed. Review with the host before sending another report.');
@@ -685,7 +685,7 @@ export default function HomeGameDetailPage() {
           <button className="cmd-back-link"
             type="button"
             onClick={() => router.push('/hub/commander/home-games')}
-            aria-label="Back to Home Games"
+            aria-label="Back To Home Games"
             >
             <ArrowLeft className="w-5 h-5 text-[#9FB3C8]" aria-hidden="true" />
             <span>Back</span>
@@ -705,7 +705,7 @@ export default function HomeGameDetailPage() {
                 type="button"
                 onClick={() => setShowShareModal(true)}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
-                aria-label="Share home game"
+                aria-label="Share Home Game"
               >
                 <Share2 className="w-5 h-5 text-[#9FB3C8]" />
               </button>
@@ -714,7 +714,7 @@ export default function HomeGameDetailPage() {
                   type="button"
                   onClick={() => router.push(`/hub/commander/home-games/${id}/manage`)}
                   className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
-                  aria-label="Manage home game"
+                  aria-label="Manage Home Game"
                 >
                   <Settings className="w-5 h-5 text-[#9FB3C8]" />
                 </button>
@@ -725,7 +725,7 @@ export default function HomeGameDetailPage() {
                   onClick={() => handleStartDm(group.owner_id)} // 2026-07-25 audit fix: owner_id, not host_id
                   className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
                   title="Message Host"
-                  aria-label="Message host"
+                  aria-label="Message Host"
                 >
                   <MessageSquare className="w-5 h-5 text-[#22D3EE]" />
                 </button>
@@ -781,7 +781,7 @@ export default function HomeGameDetailPage() {
                 ) : (
                   <>
                     <UserPlus className="w-5 h-5" />
-                    {group.requires_approval ? 'Request to Join' : 'Join Group'}
+                    {group.requires_approval ? 'Request To Join' : 'Join Group'}
                   </>
                 )}
               </button>
@@ -817,7 +817,7 @@ export default function HomeGameDetailPage() {
                 toast.success(`"${t.name}" cancelled`);
                 fetchGroup();
               } catch (ex) {
-                toast.error(ex?.message || 'Failed to cancel tournament');
+                toast.error(ex?.message || 'Failed To Cancel Tournament');
               }
             }}
           />
@@ -940,7 +940,7 @@ export default function HomeGameDetailPage() {
                         fetchGroup();
                       } catch (err) {
                         console.warn('Post failed:', err);
-                        toast.error(err && err.message ? err.message : 'Failed to post');
+                        toast.error(err && err.message ? err.message : 'Failed To Post');
                       } finally {
                         postingRef.current = false;
                       }
@@ -966,7 +966,7 @@ export default function HomeGameDetailPage() {
                       </div>
                       <p className="text-sm text-[#C0CDE0]">{post.content}</p>
                       {post.author_id !== currentUserId && (
-                        <button type="button" onClick={() => openPostReport(post)} className="cmd-btn cmd-btn-secondary min-h-[44px] mt-3 px-3" aria-label="Report this Home Game post">
+                        <button type="button" onClick={() => openPostReport(post)} className="cmd-btn cmd-btn-secondary min-h-[44px] mt-3 px-3" aria-label="Report This Home Game Post">
                           Report Post
                         </button>
                       )}
@@ -1017,11 +1017,11 @@ export default function HomeGameDetailPage() {
                     const data = await res.json();
                     if (data.success) {
                       setUserReview(reviewData);
-                      toast.success('Review submitted');
+                      toast.success('Review Submitted');
                     }
                   } catch (err) {
                     console.warn('Submit review error:', err);
-                    toast.error(err && err.message ? err.message : 'Failed to submit review');
+                    toast.error(err && err.message ? err.message : 'Failed To Submit Review');
                   } finally {
                     setReviewSubmitting(false);
                   }
@@ -1092,7 +1092,7 @@ export default function HomeGameDetailPage() {
       </div>
 
       <CasinoActionDialog open={Boolean(reportTarget)} title="Report Home Game Post"
-        eyebrow="Player safety" message="Reports enter the existing moderation queue. Reporting does not automatically remove a post."
+        eyebrow="Player Safety" message="Reports Enter The Existing Moderation Queue. Reporting Does Not Automatically Remove A Post."
         confirmLabel="Submit Report" busy={reportBusy}
         confirmDisabled={reportText.trim().length < 5 || reportOperations.current.get(reportTarget?.id)?.unknown === true}
         onClose={() => setReportTarget(null)} onConfirm={submitPostReport}>
@@ -1130,7 +1130,7 @@ export default function HomeGameDetailPage() {
                 type="button"
                 onClick={() => setSelectedRsvpEvent(null)}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
-                aria-label="Close RSVP dialog"
+                aria-label="Close RSVP Dialog"
               >
                 <X className="w-5 h-5 text-[#9FB3C8]" />
               </button>
@@ -1186,7 +1186,7 @@ export default function HomeGameDetailPage() {
                 type="button"
                 onClick={() => setShowShareModal(false)}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
-                aria-label="Close share dialog"
+                aria-label="Close Share Dialog"
               >
                 <X className="w-5 h-5 text-[#9FB3C8]" />
               </button>
@@ -1207,7 +1207,7 @@ export default function HomeGameDetailPage() {
                   type="button"
                   onClick={copyInviteCode}
                   className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
-                  aria-label={copied ? 'Club code copied' : 'Copy club code'}
+                  aria-label={copied ? 'Club Code Copied' : 'Copy Club Code'}
                 >
                   {copied ? (
                     <Check className="w-5 h-5 text-[#10B981]" />
@@ -1238,3 +1238,5 @@ export default function HomeGameDetailPage() {
     </CommanderPageShell>
   );
 }
+
+HomeGameDetailPage.getLayout = commanderPageLayout;

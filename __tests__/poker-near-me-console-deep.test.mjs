@@ -182,7 +182,9 @@ test('venue schedule and live report states use complete painted panels without 
   assert.match(page, /<PokerNearMePanelShell as="section" className="live-games-section venue-console-body"/);
   assert.match(page, /onSubmit=\{handleReportGame\}/);
   assert.match(page, /disabled=\{reportSubmitting \|\| !reportForm.stakes.trim\(\)\}/);
-  assert.match(page, /venue.schedule_read_error \? 'Tournament Schedule Could Not Be Loaded/);
+  // 2026-11-28: the read-error branch moved into venueScheduleFreshnessCopy
+  // (pinned in poker-near-me-venue-schedule-freshness.test.mjs).
+  assert.match(page, /venueScheduleFreshnessCopy\(venue\.schedule_freshness, \{ readError: Boolean\(venue\.schedule_read_error\) \}\)\.emptyMessage/);
   const css = read('src/styles/worlds/poker-near-me-console-deep.css');
   assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
   assert.match(css, /chrome-(?:row|active-v2|readout|stat)\.webp/, 'the painted control is a #SMARTERDESIGN chrome rim (2026-11-27)');
@@ -430,4 +432,49 @@ test('the deep surfaces keep their routes, canonicals and crawlable links', () =
   assert.match(tour, /canonical=\{seo\.canonical\}/);
   assert.match(tour, /jsonLd=\{tourSchema/);
   assert.match(tour, /PokerNearMeFamilyNav/);
+});
+
+test('the deep-route breadcrumb is one tidy line with its separator inline (2026-11-28)', () => {
+  const css = read('src/styles/worlds/poker-near-me.css');
+  // The separator leads the item it introduces, so it is never stranded on a
+  // line below the words it followed.
+  assert.match(css, /\.pnm-deep-deck__breadcrumbs li \+ li::before \{[^}]*content: '\/';/);
+  assert.doesNotMatch(css, /\.pnm-deep-deck__breadcrumbs li:not\(:last-child\)::after/);
+  assert.match(css, /\.pnm-deep-deck__breadcrumbs ol \{[^}]*flex-wrap: wrap;/);
+  assert.match(css, /\.pnm-deep-deck__breadcrumbs li \{[^}]*letter-spacing: 0;[^}]*text-transform: none;/);
+  assert.match(css, /\.pnm-deep-deck__breadcrumbs :is\(a, \[aria-current='page'\]\) \{[^}]*min-height: 44px;[^}]*text-overflow: ellipsis;/);
+  assert.match(css, /\.pnm-deep-deck__breadcrumbs li \{[^}]*max-width: 100%;/, 'one item never runs past the line');
+});
+
+test('empty venue sections fold into one Not Yet Available group and keep their real UI (2026-11-28)', () => {
+  const page = read('pages/hub/venues/[id].js');
+  assert.match(page, /<h2 id="venue-quiet-title" className="venue-quiet-group__title">Not Yet Available<\/h2>/);
+  assert.match(page, /\{!liveGamesQuiet && \(\s*<PokerNearMePanelShell as="section" className="live-games-section venue-console-body" id="live-games-section">/);
+  assert.match(page, /\{!checkinsQuiet && \(\s*<section id="checkins-section" className="checkins-section">/);
+  assert.match(page, /\{!activityQuiet && \(\s*<section className="activity-section" id="activity-section">/);
+  assert.match(page, /<section id=\{reviewsQuiet \? undefined : 'reviews-section'\} hidden=\{reviewsQuiet \|\| undefined\}/);
+  assert.match(page, /<BestTimeToGoWidget venueId=\{id\} venueName=\{venue.name\} onAvailabilityChange=\{onBestTimeAvailability\} \/>/);
+  assert.equal((page.match(/<PeakHoursHeatmap venueId=\{id\} onAvailabilityChange=\{onPopularTimesAvailability\} \/>/g) || []).length, 2);
+  // A quiet row that took the section's anchor still answers ?action= links.
+  assert.match(page, /key: 'checkins', anchor: 'checkins-section'/);
+  assert.match(page, /key: 'reviews', anchor: 'reviews-section'/);
+  // Each action opens the section's own form; nothing is rebuilt in the row.
+  assert.match(page, /setReportError\(''\); setShowReportGame\(true\)/);
+  assert.match(page, /setShowCheckinForm\(true\); openQuietSection\('checkins-section'\)/);
+  assert.match(page, /setReviewOpenRequest\(function \(n\) \{ return n \+ 1; \}\)/);
+  // A section open for input is never folded away.
+  assert.match(page, /var checkinsQuiet = checkins.length === 0 && !showCheckinForm && !hasCheckedIn/);
+  assert.match(page, /var liveGamesQuiet = liveGames.length === 0 && !showReportGame;/);
+  const widget = read('src/components/poker-near-me/BestTimeToGoWidget.jsx');
+  assert.match(widget, /if \(isEmpty\) \{\s*if \(onAvailabilityChange\) return null;/);
+  const heat = read('src/components/poker/PeakHoursHeatmap.js');
+  assert.match(heat, /if \(!onAvailabilityChange \|\| loading \|\| !allowed\) return;/, 'a gated read is never reported as empty');
+  const reviews = read('src/components/poker/VenueReviews.js');
+  assert.match(reviews, /if \(openFormRequest\) \{ setShowForm\(true\); setError\(''\); \}/);
+  assert.match(reviews, /onAvailabilityChange\(reviewsQuiet \? \{ canWrite \} : false\)/);
+  const css = read('src/styles/worlds/poker-near-me-console-deep.css');
+  assert.match(css, /\.venue-quiet-group \{[^}]*chrome-readout\.webp/);
+  assert.match(css, /\.venue-quiet-row__action \{[^}]*min-height: 44px;[^}]*chrome-row\.webp/);
+  assert.match(css, /\.venue-page section\[hidden\] \{\s*display: none !important;/);
+  assert.doesNotMatch(page, /\u{1F512}/u, 'no emoji in the VIP lock');
 });

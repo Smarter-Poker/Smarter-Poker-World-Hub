@@ -191,3 +191,79 @@ test('tabs are the shared chrome tab, cobalt when selected, never a cyan outline
   assert.match(css, /\.cmd-tab \{[\s\S]*?min-height: 44px;[\s\S]*?chrome-row\.webp/);
   assert.match(css, /\.cmd-tab--active \{[\s\S]*?chrome-active-v2\.webp/);
 });
+
+test('every state of every player page renders inside the shell (page layout), not only the content state', () => {
+  // Most pages return their loading, not-found and error screens before
+  // reaching their own <CommanderPageShell>, so those screens showed no
+  // global header. Each page now declares commanderPageLayout, which
+  // pages/_app.js applies around the whole page.
+  const app = read('pages/_app.js');
+  assert.match(app, /typeof Component\.getLayout === 'function' \? Component\.getLayout : \(page\) => page/);
+  assert.match(app, /\{renderWithPageLayout\(<Component \{\.\.\.pageProps\} \/>\)\}/);
+  const shell = read(SHELL);
+  assert.match(shell, /export function commanderPageLayout\(page\)/);
+  assert.match(shell, /if \(insideShell\) return <>\{children\}<\/>;/, 'a nested shell must render its children only');
+  const missing = walk(PAGES_DIR)
+    .filter((f) => f.endsWith('.js'))
+    .filter((f) => !/\n\w+\.getLayout = commanderPageLayout;\n?$/.test(read(f)));
+  assert.deepEqual(missing, []);
+});
+
+test('every player page resolves to a scene of its own family, and reuse only comes down', () => {
+  // 2026-11-28: 37 pages were on 13 scenes, first-hit and any-character
+  // matching gave /tournaments and /venues the /tournament and /venue art.
+  // sceneFor now takes the longest prefix that ends on a path segment.
+  const shell = maskComments(read(SHELL));
+  assert.match(shell, /pathname\.startsWith\(prefix \+ '\/'\)/, 'prefixes match on a path segment');
+  assert.doesNotMatch(shell, /pathname\.startsWith\(prefix\)\)/, 'no any-character prefix match');
+  const scenes = [...shell.matchAll(/\['(\/hub\/commander[^']*)', '([\w-]+)'\]/g)].map((m) => [m[1], m[2]]);
+  const sceneFor = (p) => {
+    let best = null;
+    for (const [prefix, art] of scenes) {
+      if ((p === prefix || p.startsWith(`${prefix}/`)) && (!best || prefix.length > best[0].length)) best = [prefix, art];
+    }
+    return best;
+  };
+  const routes = walk(PAGES_DIR)
+    .filter((f) => f.endsWith('.js'))
+    .map((f) => `/${f.replace(/^pages\//, '').replace(/\.js$/, '').replace(/\/index$/, '')}`);
+  assert.equal(routes.length, 37);
+  const byArt = new Map();
+  for (const route of routes) {
+    const hit = sceneFor(route);
+    assert.ok(hit, `${route} has no scene`);
+    if (route !== '/hub/commander') assert.notEqual(hit[0], '/hub/commander', `${route} falls back to the Commander home scene`);
+    if (!byArt.has(hit[1])) byArt.set(hit[1], new Set());
+    byArt.get(hit[1]).add(hit[0].split('/')[3] || '');
+  }
+  for (const [art, families] of byArt) {
+    const fams = [...families].map((f) => f.replace(/s$/, ''));
+    assert.equal(new Set(fams).size, 1, `${art} is shared across page families: ${[...families].join(', ')}`);
+  }
+  const reuse = routes.length - byArt.size;
+  assert.ok(reuse <= 7, `scene reuse ${reuse} (cap 7)`);
+  assert.equal(sceneFor('/hub/commander/tournaments')[1] === sceneFor('/hub/commander/tournament/[id]/my-status')[1], false);
+});
+
+test('user-facing strings on the player pages are Title Case (toasts, empty states, accessible names)', () => {
+  // Every word capitalised, the house style ("Back To Dashboard"). Data sent to
+  // the API (reason fields), headers and URLs are not UI and are skipped.
+  const NOT_UI = /(?:console\.\w+\(\s*|(?:p_reason|reason|Authorization|import|from|className)\s*[:=(]?\s*)$/;
+  const offenders = [];
+  for (const file of walk(PAGES_DIR).filter((f) => f.endsWith('.js'))) {
+    const lines = maskComments(read(file)).split('\n');
+    lines.forEach((line, i) => {
+      for (const m of line.matchAll(/(?<![\w.[])(['"])([A-Z][a-z]+(?: [A-Za-z()&,.:-]+){1,9})\1/g)) {
+        if (NOT_UI.test(line.slice(0, m.index)) || /Bearer /.test(m[2])) continue;
+        const words = m[2].match(/[A-Za-z][A-Za-z']*/g) || [];
+        if (words.slice(1).some((w) => /^[a-z]/.test(w) && w !== 'e' && w !== 'g')) offenders.push(`${file}:${i + 1} ${m[2]}`);
+      }
+      for (const m of line.matchAll(/(?:aria-label|placeholder|title|alt)="([A-Z][^"]{2,140})"/g)) {
+        if (m[1].includes('/') && !m[1].includes(' / ')) continue;
+        const words = m[1].match(/[A-Za-z][A-Za-z']*/g) || [];
+        if (words.slice(1).some((w) => /^[a-z]/.test(w) && w !== 'e' && w !== 'g')) offenders.push(`${file}:${i + 1} ${m[1]}`);
+      }
+    });
+  }
+  assert.deepEqual(offenders, []);
+});

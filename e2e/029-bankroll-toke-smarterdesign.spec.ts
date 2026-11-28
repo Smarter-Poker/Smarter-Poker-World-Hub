@@ -2,6 +2,7 @@ import { verifyBankrollHeader } from './fixtures/verifyBankrollHeader';
 import { captureBankrollPanel } from './fixtures/bankrollPanelCapture';
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
+import { totalsFromRows } from '../src/lib/bankroll/bankrollTotals.mjs';
 
 test.use({ storageState: { cookies: [], origins: [] }, serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } });
 
@@ -167,6 +168,15 @@ async function installInitialisedProBankroll(page: Page, userId: string) {
   }));
 }
 
+// fn_bankroll_totals answered from fixture rows, by the client-side statement
+// of the function's rules (totalsFromRows), with the period the page asked for.
+async function answerBankrollTotals(page: Page, ledgerRows: Record<string, unknown>[], segments: Record<string, unknown>[] = []) {
+  await page.route('**/rest/v1/rpc/fn_bankroll_totals*', route => {
+    const args = route.request().postDataJSON() || {};
+    return route.fulfill({ json: totalsFromRows({ ledgerRows, segments, from: args.p_from, to: args.p_to, locationId: args.p_location_id }) });
+  });
+}
+
 async function installBankrollSession(page: Page) {
   const user = { id: '1ad77cca-ddcb-4000-9777-b1fdce8e7381', email: 'layout@example.invalid', role: 'authenticated', user_metadata: {} };
   await page.addInitScript(({ user }) => {
@@ -179,6 +189,12 @@ async function installBankrollSession(page: Page) {
     sessionStorage.setItem('sp_auth_confirmed', '1');
   }, { user });
   await page.route('**/auth/v1/user*', route => route.fulfill({ json: user }));
+  // Dashboard totals come from fn_bankroll_totals (#3296), now installed in
+  // production. Unanswered, the call reached the build's Supabase project
+  // with this fixture's unsigned token, failed as a permission error (never
+  // a fallback, by design) and every view's load read as failed. Answer it
+  // from an empty ledger here; a test with ledger rows answers from them.
+  await answerBankrollTotals(page, []);
   return user;
 }
 
@@ -379,6 +395,7 @@ test('Reports count filtered ledger sessions across pages and preserve signed cu
     gross_in: 20, gross_out: 20, net_result: i === 500 ? -125.25 : 0,
   }));
   const offsets: number[] = [];
+  await answerBankrollTotals(page, rows);
   await page.route('**/rest/v1/bankroll_ledger*', route => {
     const request = route.request();
     const q = new URL(request.url()).searchParams;
@@ -516,6 +533,7 @@ test('Ledger chart modes, venue ordering, history and staking privacy use the di
     location_id:i===2?'summit':'river', bankroll_locations:{name:i===2?'Summit Room':'River Room'},
     start_time:entry_date+'T12:00:00Z',end_time:entry_date+'T14:00:00Z',is_revision:false,
   }));
+  await answerBankrollTotals(page, rows);
   await page.route('**/rest/v1/bankroll_ledger*', route => {
     const q = new URL(route.request().url()).searchParams;
     return q.get('select')?.includes('bankroll_locations') ? route.fulfill({json:rows}) : route.fallback();

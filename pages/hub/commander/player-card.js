@@ -10,7 +10,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { ArrowLeft, QrCode, CreditCard, Users, Clock, Gift, Star, Loader2, RefreshCw, Trophy, Crown } from 'lucide-react';
 import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../src/components/commander/CommanderPageShell';
 
 const TIER_COLORS = {
   bronze: { bg: 'linear-gradient(135deg, #2A4560, #0EA5C6)', text: '#F2F7FF' },
@@ -167,7 +167,7 @@ export default function PlayerCard() {
                         decorative SVG dot pattern scanners couldn't read. */}
                     <img
                       src={qrImageUrl}
-                      alt="Player check-in QR code"
+                      alt="Player Check-In QR Code"
                       width={180}
                       height={180}
                       style={{ display: 'block' }}
@@ -230,3 +230,5 @@ export default function PlayerCard() {
     </CommanderPageShell>
   );
 }
+
+PlayerCard.getLayout = commanderPageLayout;

@@ -13,7 +13,7 @@ import { supabase } from '../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
-import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import CommanderPageShell, { commanderPageLayout } from '../../../../src/components/commander/CommanderPageShell';
 
 const NOTIFICATION_ICONS = {
   seat_available: Users,
@@ -289,7 +289,7 @@ export default function PlayerNotificationsPage() {
                 <Bell className="w-7 h-7" />
               </div>
               <p className="text-[#9FB3C8] font-medium">
-                {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
+                {filter === 'unread' ? 'No Unread Notifications' : 'No Notifications Yet'}
               </p>
               <p className="text-sm text-[#9FB3C8] mt-1">
                 Join A Waitlist To Receive Updates
@@ -313,3 +313,5 @@ export default function PlayerNotificationsPage() {
     </CommanderPageShell>
   );
 }
+
+PlayerNotificationsPage.getLayout = commanderPageLayout;
