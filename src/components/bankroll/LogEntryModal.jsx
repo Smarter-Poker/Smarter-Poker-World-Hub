@@ -100,7 +100,7 @@ function withTournamentSummary(notes, original, summary) {
   return lines.join('\n') || null;
 }
 
-function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, defaultMediaUrls, defaultPrefillData, livePrefill, onStartLiveSession, onClose, onSubmit, displayEUR = false }) {
+function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, defaultMediaUrls, defaultPrefillData, onClose, onSubmit, displayEUR = false }) {
   const formId = useId();
   const fieldId = (name) => `${formId}-${name}`;
   const isEditMode = !!editEntry;
@@ -120,13 +120,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
   // A default category the ledger does not know (the scanner once passed
   // 'session') would render the generic form and then be refused by the
   // category CHECK on save. Unknown means: let the user choose.
-  // An ended live session (src/lib/bankroll/liveSession.mjs) opens this same
-  // form with its times, buy-ins and venue filled in, so it is saved through
-  // exactly the path, checks and rules of any other log.
-  const live = !editEntry && livePrefill && livePrefill.fields ? livePrefill : null;
-  const knownDefault = live
-    ? (CATEGORIES.some((c) => c.id === live.category) ? live.category : null)
-    : (CATEGORIES.some((c) => c.id === defaultCategory) ? defaultCategory : null);
+  const knownDefault = CATEGORIES.some((c) => c.id === defaultCategory) ? defaultCategory : null;
   const [step, setStep] = useState(isEditMode || knownDefault ? 'details' : 'category');
   const [category, setCategory] = useState(isEditMode ? editEntry.category : knownDefault);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -318,16 +312,14 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
       action_amount: '',
       add_on_amount: '',
       bounties_collected: '',
-      ...(live ? live.fields : {}),
     };
   };
 
   const [formData, setFormData] = useState(buildInitialFormData);
   const [activeTrip, setActiveTrip] = useState(null);
 
-  // Auto-detect location on mount (a live session already chose its venue)
+  // Auto-detect location on mount
   useEffect(() => {
-    if (live && live.fields.location_name) return;
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -1690,13 +1682,6 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         </div>
 
         <div className="bankroll-modal-body" style={styles.content}>
-          {onStartLiveSession && !isEditMode && !live && !defaultPrefillData && category !== 'expense' && (
-            <button type="button" className="sd-button" data-testid="bankroll-start-live-session"
-              onClick={() => onStartLiveSession(category)}
-              style={{ width: '100%', minHeight: 44, marginBottom: 14 }}>
-              Start Live Session Instead
-            </button>
-          )}
           {step === 'category' ? renderCategorySelector() : renderDetailsForm()}
         </div>
       </motion.div>

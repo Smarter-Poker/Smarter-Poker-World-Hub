@@ -66,7 +66,7 @@ test('the nine page-owned actions keep their offline guards before their effects
     const code = withoutLineComments(read('pages/hub/bankroll-manager.js'));
     const actions = [
         ['const handleLogClick', 'if (!guardAction())'],
-        ['const handleDeleteEntry', 'scheduleLedgerDelete('],
+        ['const handleDeleteEntry', 'setEntries('],
         ['const openAdjustModal', 'setShowAdjustModal(true)'],
         ['const resumeHeldScan', 'await noteAttempt('],
         ['if (actionId === RECEIPT_ACTIONS.LOG_SESSION)', 'const activeTrip'],
