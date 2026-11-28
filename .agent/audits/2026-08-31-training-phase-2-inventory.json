@@ -134009,10 +134009,13 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/bankroll/AdjustBankrollModal.jsx",
+          "src/components/bankroll/BankrollDataTools.jsx",
           "src/components/bankroll/BankrollExportFormats.jsx",
           "src/components/bankroll/LogEntryModal.jsx",
           "src/components/bankroll/ManageVenuesModal.jsx",
+          "src/components/bankroll/SessionImportSheet.jsx",
           "src/components/bankroll/StartingBankrollModal.jsx",
+          "src/components/bankroll/TaxPacketDownload.jsx",
           "src/components/poker-near-me/ReportGameModal.jsx",
           "src/components/poker-near-me/VenueCard.js",
           "src/components/poker-near-me/VenueReviews.jsx"
@@ -146596,10 +146599,13 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/bankroll/AdjustBankrollModal.jsx",
+          "src/components/bankroll/BankrollDataTools.jsx",
           "src/components/bankroll/BankrollExportFormats.jsx",
           "src/components/bankroll/LogEntryModal.jsx",
           "src/components/bankroll/ManageVenuesModal.jsx",
+          "src/components/bankroll/SessionImportSheet.jsx",
           "src/components/bankroll/StartingBankrollModal.jsx",
+          "src/components/bankroll/TaxPacketDownload.jsx",
           "src/components/poker-near-me/ReportGameModal.jsx",
           "src/components/poker-near-me/VenueCard.js",
           "src/components/poker-near-me/VenueReviews.jsx"
