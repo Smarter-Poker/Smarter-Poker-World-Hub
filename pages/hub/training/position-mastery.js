@@ -117,7 +117,7 @@ function TableHeatmap({ positionData }) {
       </text>
 
       {/* Dealer button */}
-      <circle cx="230" cy="170" r="8" fill="#d4a020" stroke="#fff" strokeWidth="1" />
+      <circle cx="230" cy="170" r="8" fill="#56d8ff" stroke="#fff" strokeWidth="1" />
       <text x="230" y="173" textAnchor="middle" fill="#1a1d24" fontSize='12px' fontWeight="900">
         D
       </text>

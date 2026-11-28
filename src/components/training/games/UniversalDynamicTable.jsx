@@ -53,7 +53,7 @@ import {
     resolveClubArenaTableBox,
     seatPodPx,
 } from '../../../lib/training/clubArenaTableGeometry.mjs';
-import PokerSoundManager, * as PokerSoundManagerModule from '../../poker/PokerSoundManager';
+import PokerSoundManager from '../../poker/PokerSoundManager';
 import {
     parseStakesToBlinds,
     computeClubArenaParityState,
@@ -95,7 +95,7 @@ import {
 } from '../../../lib/training/trainingPresets.mjs';
 
 const soundManager = typeof window !== 'undefined'
-    ? (PokerSoundManagerModule.soundManager || new PokerSoundManager())
+    ? new PokerSoundManager()
     : null;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -651,7 +651,7 @@ function StreakToast({ message }) {
                 top: 60,
                 left: '50%',
                 x: '-50%',
-                background: 'linear-gradient(135deg, #b45309 0%, #f59e0b 50%, #b45309 100%)',
+                background: 'linear-gradient(135deg, #17447a 0%, #56d8ff 50%, #17447a 100%)',
                 color: '#fff',
                 padding: '8px 20px',
                 borderRadius: 30,
@@ -1285,7 +1285,7 @@ function LoadingSkeleton() {
                 }}>
                     <div style={{
                         position: 'absolute', inset: 4, borderRadius: '50%',
-                        border: '2px solid rgba(251, 191, 36, 0.2)',
+                        border: '2px solid rgba(86, 216, 255, 0.2)',
                     }} />
                     <div style={{
                         position: 'absolute', inset: 8, borderRadius: '50%',
@@ -4068,7 +4068,7 @@ function UniversalDynamicTable({
         const accuracy = questionNumber > 0 ? ((questionNumber - sessionMistakes) / questionNumber) * 100 : 100;
         if (accuracy >= 85) return { label: 'EXPERT', color: 'var(--sp-accent-red)', bg: 'rgba(239,68,68,0.15)' };
         if (accuracy >= 70) return { label: 'HARD', color: '#86daff', bg: 'rgba(249,115,22,0.15)' };
-        if (accuracy >= 50) return { label: 'MEDIUM', color: '#86daff', bg: 'rgba(251,191,36,0.15)' };
+        if (accuracy >= 50) return { label: 'MEDIUM', color: '#86daff', bg: 'rgba(86, 216, 255,0.15)' };
         return { label: 'EASY', color: 'var(--sp-accent-green)', bg: 'rgba(34,197,94,0.15)' };
     }, [questionNumber, sessionMistakes]);
 
@@ -5459,7 +5459,7 @@ function UniversalDynamicTable({
                     background: linear-gradient(180deg,#14df75,#00ad4e 56%,#006d30) !important;
                 }
                 .sp-club-gto-actions [data-action='allin']:not(:disabled) {
-                    background: linear-gradient(180deg,#fbbf24 0%,#d97706 52%,#92400e 100%) !important;
+                    background: linear-gradient(180deg, #51c9ff 0%, #0873ff 52%, #0648e2 100%) !important;
                 }
                 .sp-club-gto-actions [data-action='neutral']:not(:disabled) {
                     background: linear-gradient(180deg,#2563eb 0%,#1d4ed8 56%,#1e3a8a 100%) !important;
@@ -6138,8 +6138,8 @@ function UniversalDynamicTable({
                                     fontSize: 12,
                                     fontWeight: 800,
                                     cursor: 'pointer',
-                                    border: '1px solid rgba(251, 191, 36, 0.45)',
-                                    background: displayInChips ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255,255,255,0.05)',
+                                    border: '1px solid rgba(86, 216, 255, 0.45)',
+                                    background: displayInChips ? 'rgba(86, 216, 255, 0.2)' : 'rgba(255,255,255,0.05)',
                                     color: '#86daff',
                                 }}
                             >
@@ -6647,7 +6647,7 @@ function UniversalDynamicTable({
                                 padding: '2px 7px',
                                 borderRadius: 5,
                                 background: 'rgba(2, 6, 23, 0.85)',
-                                border: '1px solid rgba(168, 85, 247, 0.42)',
+                                border: '1px solid rgba(86, 216, 255, 0.42)',
                             }}
                         >
                             <span style={{ color: '#86daff', fontWeight: 800, fontSize: 12 }}>Node-Lock Villain:</span>
@@ -6666,8 +6666,8 @@ function UniversalDynamicTable({
                                             fontSize: 12,
                                             fontWeight: 800,
                                             cursor: 'pointer',
-                                            border: isProfActive ? '1px solid #c084fc' : '1px solid rgba(255,255,255,0.14)',
-                                            background: isProfActive ? 'rgba(168, 85, 247, 0.28)' : 'rgba(255,255,255,0.04)',
+                                            border: isProfActive ? '1px solid #86daff' : '1px solid rgba(255,255,255,0.14)',
+                                            background: isProfActive ? 'rgba(86, 216, 255, 0.28)' : 'rgba(255,255,255,0.04)',
                                             color: isProfActive ? '#86daff' : '#cbd5e1',
                                         }}
                                     >
@@ -6696,7 +6696,7 @@ function UniversalDynamicTable({
                                     gap: 8,
                                     padding: '4px 10px',
                                     borderRadius: 6,
-                                    background: 'linear-gradient(90deg, rgba(249, 115, 22, 0.22) 0%, rgba(168, 85, 247, 0.22) 100%)',
+                                    background: 'linear-gradient(90deg, rgba(249, 115, 22, 0.22) 0%, rgba(86, 216, 255, 0.22) 100%)',
                                     border: '1px solid rgba(251, 146, 60, 0.65)',
                                     color: '#86daff',
                                     fontSize: 12,
@@ -6721,7 +6721,7 @@ function UniversalDynamicTable({
                                 padding: '6px 10px',
                                 borderRadius: 6,
                                 background: 'rgba(15, 23, 42, 0.94)',
-                                border: '1px solid rgba(168, 85, 247, 0.48)',
+                                border: '1px solid rgba(86, 216, 255, 0.48)',
                                 color: '#e2e8f0',
                                 fontSize: 12,
                             }}
@@ -7188,8 +7188,8 @@ function UniversalDynamicTable({
                                     fontSize: 12,
                                     fontWeight: 900,
                                     cursor: 'pointer',
-                                    border: '1px solid rgba(245, 158, 11, 0.65)',
-                                    background: 'rgba(245, 158, 11, 0.18)',
+                                    border: '1px solid rgba(86, 216, 255, 0.65)',
+                                    background: 'rgba(86, 216, 255, 0.18)',
                                     color: '#86daff',
                                 }}
                             >
@@ -8007,8 +8007,8 @@ function UniversalDynamicTable({
                                                             fontWeight: 900,
                                                             letterSpacing: 0.4,
                                                             color: '#86daff',
-                                                            background: 'rgba(251,191,36,0.14)',
-                                                            border: '1px solid rgba(251,191,36,0.45)',
+                                                            background: 'rgba(86, 216, 255,0.14)',
+                                                            border: '1px solid rgba(86, 216, 255,0.45)',
                                                             borderRadius: 4,
                                                             padding: '0 4px',
                                                             lineHeight: 1.25,
@@ -8573,8 +8573,8 @@ function UniversalDynamicTable({
                                         style={{
                                             ...styles.potOverlayBadge,
                                             color: '#86daff',
-                                            borderColor: 'rgba(245, 158, 11, 0.45)',
-                                            background: 'rgba(245, 158, 11, 0.14)',
+                                            borderColor: 'rgba(86, 216, 255, 0.45)',
+                                            background: 'rgba(86, 216, 255, 0.14)',
                                         }}
                                     >
                                         {hasBf ? `ICM BF ${rawBf}x` : rawPressure ? `ICM: ${rawPressure}` : 'ICM REF'}
@@ -8726,9 +8726,9 @@ function UniversalDynamicTable({
                             transition={{ type: 'spring', stiffness: 200, damping: 12 }}
                             style={{
                                 width: 80, height: 80, borderRadius: '50%',
-                                background: 'linear-gradient(135deg, #fbbf24 0%, #f97316 100%)',
+                                background: 'linear-gradient(135deg, #51c9ff 0%, #0648e2 100%)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 36, boxShadow: '0 0 40px rgba(251,191,36,0.5)',
+                                fontSize: 36, boxShadow: '0 0 40px rgba(86, 216, 255,0.5)',
                                 marginBottom: 12,
                             }}
                         >
@@ -8741,7 +8741,7 @@ function UniversalDynamicTable({
                             style={{
                                 fontFamily: "'Inter', sans-serif", fontSize: 22,
                                 fontWeight: 900, color: '#86daff', letterSpacing: 2,
-                                textShadow: '0 2px 8px rgba(251,191,36,0.4)',
+                                textShadow: '0 2px 8px rgba(86, 216, 255,0.4)',
                             }}
                         >
                             {streakCelebration.streak} STREAK!
@@ -8885,7 +8885,7 @@ function UniversalDynamicTable({
                             gap: 6,
                             padding: '5px 10px',
                             background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(7,11,22,0.98) 100%)',
-                            borderTop: '1px solid rgba(251,191,36,0.28)',
+                            borderTop: '1px solid rgba(86, 216, 255,0.28)',
                         }}
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
@@ -9235,6 +9235,9 @@ function UniversalDynamicTable({
                 {MODE_TABS.map(mode => (
                     <button
                         key={mode.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeMode === mode.id}
                         disabled={!showFeedback && (mode.id === 'range' || mode.id === 'strategy')}
                         title={!showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 'Available After You Answer' : undefined}
                         onClick={() => {
@@ -9341,7 +9344,7 @@ function UniversalDynamicTable({
                                                             background: isHeroCell
                                                                 ? 'rgba(0, 212, 255, 0.42)'
                                                                 : isPair
-                                                                    ? 'rgba(168, 85, 247, 0.16)'
+                                                                    ? 'rgba(86, 216, 255, 0.16)'
                                                                     : isSuited
                                                                         ? 'rgba(34, 197, 94, 0.12)'
                                                                         : 'rgba(255, 255, 255, 0.04)',
@@ -9846,7 +9849,7 @@ function UniversalDynamicTable({
                                         marginTop: 10,
                                         padding: '10px 12px',
                                         borderRadius: 10,
-                                        background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.14) 0%, rgba(2, 6, 23, 0.85) 100%)',
+                                        background: 'linear-gradient(135deg, rgba(86, 216, 255, 0.14) 0%, rgba(2, 6, 23, 0.85) 100%)',
                                         border: '1px solid rgba(192, 132, 252, 0.42)',
                                         color: '#e2e8f0',
                                         fontSize: 12,
@@ -9876,8 +9879,8 @@ function UniversalDynamicTable({
                                                         fontSize: 12,
                                                         fontWeight: 800,
                                                         cursor: 'pointer',
-                                                        border: isBucketActive ? '1.5px solid #c084fc' : '1px solid rgba(255,255,255,0.18)',
-                                                        background: isBucketActive ? 'rgba(168, 85, 247, 0.28)' : 'rgba(255,255,255,0.05)',
+                                                        border: isBucketActive ? '1.5px solid #86daff' : '1px solid rgba(255,255,255,0.18)',
+                                                        background: isBucketActive ? 'rgba(86, 216, 255, 0.28)' : 'rgba(255,255,255,0.05)',
                                                         color: isBucketActive ? '#faf5ff' : '#cbd5e1',
                                                     }}
                                                 >
@@ -9955,8 +9958,8 @@ function UniversalDynamicTable({
                                         marginTop: 10,
                                         padding: '10px 12px',
                                         borderRadius: 10,
-                                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(2, 6, 23, 0.88) 100%)',
-                                        border: '1px solid rgba(251, 191, 36, 0.45)',
+                                        background: 'linear-gradient(135deg, rgba(86, 216, 255, 0.14) 0%, rgba(2, 6, 23, 0.88) 100%)',
+                                        border: '1px solid rgba(86, 216, 255, 0.45)',
                                         color: '#e2e8f0',
                                         fontSize: 12,
                                     }}
@@ -10181,7 +10184,7 @@ function UniversalDynamicTable({
                                     return (
                                         <span style={{
                                             fontSize: 12, fontWeight: 700, color: '#86daff',
-                                            background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)',
+                                            background: 'rgba(86, 216, 255,0.12)', border: '1px solid rgba(86, 216, 255,0.25)',
                                             padding: '1px 6px', borderRadius: 4, letterSpacing: 0.5,
                                         }}>
                                             MIXED STRATEGY
@@ -10740,11 +10743,13 @@ function UniversalDynamicTable({
                                     </button>
                                     {fq?.rawFrequencies && rangeModeGrid?.actionPresentation && (
                                         <button
+                                            type="button"
+                                            aria-pressed={showRangeGrid}
                                             onClick={() => setShowRangeGrid(!showRangeGrid)}
                                             style={{
                                                 padding: '4px 12px', borderRadius: 6,
-                                                background: showRangeGrid ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.08)',
-                                                border: `1px solid rgba(168, 85, 247, ${showRangeGrid ? '0.4' : '0.25'})`,
+                                                background: showRangeGrid ? 'rgba(86, 216, 255, 0.15)' : 'rgba(86, 216, 255, 0.08)',
+                                                border: `1px solid rgba(86, 216, 255, ${showRangeGrid ? '0.4' : '0.25'})`,
                                                 color: '#86daff', fontSize: 12, fontWeight: 700,
                                                 cursor: 'pointer', letterSpacing: 0.5,
                                             }}
@@ -10833,9 +10838,9 @@ function UniversalDynamicTable({
                                                 {evLossMeasured && evLoss > 0 && selectedAnswer !== correctAnswer && (
                                                     <div style={{
                                                         marginBottom: 4, padding: '5px 8px',
-                                                        background: evLoss >= 0.5 ? 'rgba(239, 68, 68, 0.08)' : 'rgba(251, 191, 36, 0.06)',
+                                                        background: evLoss >= 0.5 ? 'rgba(239, 68, 68, 0.08)' : 'rgba(86, 216, 255, 0.06)',
                                                         borderRadius: 6,
-                                                        border: `1px solid ${evLoss >= 0.5 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(251, 191, 36, 0.12)'}`,
+                                                        border: `1px solid ${evLoss >= 0.5 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(86, 216, 255, 0.12)'}`,
                                                         fontSize: 12, color: evLoss >= 0.5 ? 'var(--sp-accent-red)' : '#86daff', lineHeight: 1.5,
                                                     }}>
                                                         <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5 }}>EV IMPACT: </span>
@@ -10943,8 +10948,8 @@ function UniversalDynamicTable({
                                 {structuredExplanation.concept && (
                                     <span style={{
                                         fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
-                                        background: 'rgba(168, 85, 247, 0.12)',
-                                        border: '1px solid rgba(168, 85, 247, 0.25)',
+                                        background: 'rgba(86, 216, 255, 0.12)',
+                                        border: '1px solid rgba(86, 216, 255, 0.25)',
                                         color: '#86daff', letterSpacing: 0.3,
                                     }}>
                                         {structuredExplanation.concept}
@@ -10953,9 +10958,9 @@ function UniversalDynamicTable({
                                 {structuredExplanation.spotDifficulty && (
                                     <span style={{
                                         fontSize: 12, fontWeight: 700, padding: '2px 6px', borderRadius: 10,
-                                        background: structuredExplanation.spotDifficulty.difficulty >= 7 ? 'rgba(239,68,68,0.1)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? 'rgba(251,191,36,0.1)' : 'rgba(34,197,94,0.1)',
+                                        background: structuredExplanation.spotDifficulty.difficulty >= 7 ? 'rgba(239,68,68,0.1)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? 'rgba(86, 216, 255,0.1)' : 'rgba(34,197,94,0.1)',
                                         color: structuredExplanation.spotDifficulty.difficulty >= 7 ? 'var(--sp-accent-red)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? '#86daff' : 'var(--sp-accent-green)',
-                                        border: '1px solid ' + (structuredExplanation.spotDifficulty.difficulty >= 7 ? 'rgba(239,68,68,0.2)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? 'rgba(251,191,36,0.2)' : 'rgba(34,197,94,0.2)'),
+                                        border: '1px solid ' + (structuredExplanation.spotDifficulty.difficulty >= 7 ? 'rgba(239,68,68,0.2)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? 'rgba(86, 216, 255,0.2)' : 'rgba(34,197,94,0.2)'),
                                     }}>
                                         {structuredExplanation.spotDifficulty.label} ({structuredExplanation.spotDifficulty.difficulty}/10)
                                     </span>
@@ -10967,9 +10972,9 @@ function UniversalDynamicTable({
                             {structuredExplanation.takeaway && explanationMatchesScenario(structuredExplanation.takeaway, fScenario) && (
                                 <div style={{
                                     padding: '6px 10px', marginBottom: 6,
-                                    background: structuredExplanation.isCorrect ? 'rgba(34, 197, 94, 0.06)' : 'rgba(251, 191, 36, 0.06)',
+                                    background: structuredExplanation.isCorrect ? 'rgba(34, 197, 94, 0.06)' : 'rgba(86, 216, 255, 0.06)',
                                     borderRadius: 8,
-                                    border: `1px solid ${structuredExplanation.isCorrect ? 'rgba(34, 197, 94, 0.15)' : 'rgba(251, 191, 36, 0.15)'}`,
+                                    border: `1px solid ${structuredExplanation.isCorrect ? 'rgba(34, 197, 94, 0.15)' : 'rgba(86, 216, 255, 0.15)'}`,
                                     fontSize: 12, lineHeight: 1.5,
                                     color: structuredExplanation.isCorrect ? 'var(--sp-accent-green)' : '#86daff',
                                 }}>
@@ -10990,7 +10995,7 @@ function UniversalDynamicTable({
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                                         <span style={{
                                             fontSize: 12, fontWeight: 800, padding: '1px 5px', borderRadius: 3,
-                                            background: structuredExplanation.mistakeType.severity === 'high' ? 'rgba(239,68,68,0.2)' : 'rgba(251,191,36,0.15)',
+                                            background: structuredExplanation.mistakeType.severity === 'high' ? 'rgba(239,68,68,0.2)' : 'rgba(86, 216, 255,0.15)',
                                             color: structuredExplanation.mistakeType.severity === 'high' ? 'var(--sp-accent-red)' : '#86daff',
                                         }}>
                                             {structuredExplanation.mistakeType.label}
@@ -11078,7 +11083,7 @@ function UniversalDynamicTable({
                                     const sc = fScenario;
                                     const r = getPositionReminder(sc.heroPosition || sc.position || '', sc.street || 'flop', sc.nodeType || '');
                                     if (!r || !r.tip) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(251,191,36,0.04)', borderRadius: 8, border: '1px solid rgba(251,191,36,0.1)', fontSize: 12, lineHeight: 1.5, color: '#86daff' }}>
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(86, 216, 255,0.04)', borderRadius: 8, border: '1px solid rgba(86, 216, 255,0.1)', fontSize: 12, lineHeight: 1.5, color: '#86daff' }}>
                                         <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5, color: '#86daff' }}>POSITION: </span>{r.tip}
                                     </div>);
                                 } catch (_) { return null; }
@@ -11090,7 +11095,7 @@ function UniversalDynamicTable({
                                     if (!sc.texture && !sc.boardTexture) return null;
                                     const g = getTextureStrategyGuide(sc.texture || sc.boardTexture || '', sc.street || 'flop', sc.heroPosition || '', sc.villainPosition || '');
                                     if (!g || !g.strategy) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(168,85,247,0.04)', borderRadius: 8, border: '1px solid rgba(168,85,247,0.1)', fontSize: 12, lineHeight: 1.5, color: '#86daff' }}>
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(86, 216, 255,0.04)', borderRadius: 8, border: '1px solid rgba(86, 216, 255,0.1)', fontSize: 12, lineHeight: 1.5, color: '#86daff' }}>
                                         <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5, color: '#86daff' }}>TEXTURE: </span>{g.strategy}
                                     </div>);
                                 } catch (_) { return null; }
@@ -11162,7 +11167,7 @@ function UniversalDynamicTable({
                                     const sc = fScenario;
                                     const drill = getRangeConstructionDrill(sc.heroPosition || 'CO', sc.nodeType?.includes('3bet') ? '3bet' : 'open');
                                     if (!drill) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(168,85,247,0.06)', borderRadius: 8, border: '1px solid rgba(168,85,247,0.15)', fontSize: 12, lineHeight: 1.5, color: '#86daff' }}>
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(86, 216, 255,0.06)', borderRadius: 8, border: '1px solid rgba(86, 216, 255,0.15)', fontSize: 12, lineHeight: 1.5, color: '#86daff' }}>
                                         <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5 }}>RANGE TIP: </span>{drill.tip}
                                     </div>);
                                 } catch (_) { return null; }
@@ -11175,7 +11180,7 @@ function UniversalDynamicTable({
                                     const sc = fScenario;
                                     const drill = getHandReadingDrill(sc.street || 'flop');
                                     if (!drill) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(245,158,11,0.06)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.15)', fontSize: 12, lineHeight: 1.5, color: '#86daff' }}>
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(86, 216, 255,0.06)', borderRadius: 8, border: '1px solid rgba(86, 216, 255,0.15)', fontSize: 12, lineHeight: 1.5, color: '#86daff' }}>
                                         <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5 }}>HAND READING: </span>{drill.keyPrinciple}
                                     </div>);
                                 } catch (_) { return null; }
@@ -11311,8 +11316,8 @@ function UniversalDynamicTable({
                             style={{
                                 marginTop: 6, marginBottom: 6,
                                 padding: '8px 12px', borderRadius: 10,
-                                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%)',
-                                border: '1px solid rgba(139, 92, 246, 0.2)',
+                                background: 'linear-gradient(135deg, rgba(86, 216, 255, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%)',
+                                border: '1px solid rgba(86, 216, 255, 0.2)',
                             }}
                         >
                             {/* BUG FIX (TRAIN-FB-COPY-1): "Hand Complete — 1 STREET PLAYED" reads
@@ -11516,6 +11521,8 @@ function UniversalDynamicTable({
                                 )}
                                 {/* PHASE 6: Bookmark Button */}
                                 <motion.button
+                                    type="button"
+                                    aria-pressed={isCurrentBookmarked}
                                     onClick={toggleBookmark}
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
@@ -11523,8 +11530,8 @@ function UniversalDynamicTable({
                                     whileTap={{ scale: 0.95 }}
                                     style={{
                                         padding: '8px 16px', borderRadius: 8,
-                                        border: isCurrentBookmarked ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(255,255,255,0.1)',
-                                        background: isCurrentBookmarked ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.03)',
+                                        border: isCurrentBookmarked ? '1px solid rgba(86, 216, 255, 0.4)' : '1px solid rgba(255,255,255,0.1)',
+                                        background: isCurrentBookmarked ? 'rgba(86, 216, 255, 0.1)' : 'rgba(255,255,255,0.03)',
                                         color: isCurrentBookmarked ? '#86daff' : 'var(--sp-fg-muted)',
                                         fontSize: 12, fontWeight: 600,
                                         cursor: 'pointer',
@@ -12408,9 +12415,9 @@ const styles = {
         transition: 'background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
     },
     modeButtonRng: {
-        background: 'rgba(168,85,247,0.22)',
+        background: 'rgba(86, 216, 255,0.22)',
         color: '#86daff',
-        boxShadow: 'inset 0 0 12px rgba(168,85,247,0.35)',
+        boxShadow: 'inset 0 0 12px rgba(86, 216, 255,0.35)',
     },
     modeButtonStudy: {
         background: 'rgba(0,212,255,0.18)',

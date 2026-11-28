@@ -1469,7 +1469,7 @@ function GlobalStyle() {
       .sp-cta-primary:hover { transform: translateY(-1px); }
       .sp-cta-secondary { background: rgba(255,255,255,0.04); color: var(--sp-ink-0); border: 1px solid var(--sp-line-2); }
       .sp-cta-secondary:hover { background: rgba(255,255,255,0.08); }
-      .sp-cta-warn { border-color: rgba(245,158,11,0.4); color: var(--sp-warn); }
+      .sp-cta-warn { border-color: rgba(86, 216, 255,0.4); color: var(--sp-warn); }
       .sp-cta:focus-visible { outline: 2px solid var(--sp-primary); outline-offset: 2px; }
 
       .sp-grade-card { background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); padding: 18px; }
@@ -1488,14 +1488,14 @@ function GlobalStyle() {
       .sp-skel-block { height: 6px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 100%); background-size: 200% 100%; animation: sp-shimmer 1.4s ease-in-out infinite; border-radius: 999px; }
       @keyframes sp-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-      .sp-leak { border-radius: var(--sp-r-lg); border: 1px solid rgba(245,158,11,0.30); background: linear-gradient(180deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02)); padding: 18px 20px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
+      .sp-leak { border-radius: var(--sp-r-lg); border: 1px solid rgba(86, 216, 255,0.30); background: linear-gradient(180deg, rgba(86, 216, 255,0.06), rgba(86, 216, 255,0.02)); padding: 18px 20px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
       @media (max-width: 768px) { .sp-leak { grid-template-columns: 1fr; } }
-      .sp-leak-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #86daff; padding: 4px 10px; border-radius: 9999px; background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.25); }
+      .sp-leak-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #86daff; padding: 4px 10px; border-radius: 9999px; background: rgba(86, 216, 255,0.10); border: 1px solid rgba(86, 216, 255,0.25); }
       .sp-leak-title { font-size: 17px; font-weight: 600; margin: 8px 0 6px; letter-spacing: -0.2px; color: var(--sp-ink-0); }
       .sp-leak-body { font-size: 14px; color: var(--sp-ink-1); margin: 0; line-height: 1.5; }
       .sp-leak-body b { color: #86daff; font-weight: 500; }
       .sp-spark { display: flex; align-items: flex-end; gap: 3px; height: 32px; margin-top: 8px; }
-      .sp-spark span { display: block; width: 10px; border-radius: 2px; background: rgba(245,158,11,0.4); }
+      .sp-spark span { display: block; width: 10px; border-radius: 2px; background: rgba(86, 216, 255,0.4); }
       .sp-spark span.sp-spark-miss { background: var(--sp-bad); }
 
       .sp-progress { background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); padding: 16px; }
@@ -1534,8 +1534,8 @@ function GlobalStyle() {
 
       .sp-data-unavailable {
         display: flex; align-items: center; gap: 12px; min-height: 88px; padding: 16px;
-        border: 1px solid rgba(245,158,11,0.34); border-radius: var(--sp-r-md);
-        background: linear-gradient(180deg, rgba(245,158,11,0.08), rgba(245,158,11,0.025));
+        border: 1px solid rgba(86, 216, 255,0.34); border-radius: var(--sp-r-md);
+        background: linear-gradient(180deg, rgba(86, 216, 255,0.08), rgba(86, 216, 255,0.025));
         color: #86daff;
       }
       .sp-data-unavailable-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 4px; }

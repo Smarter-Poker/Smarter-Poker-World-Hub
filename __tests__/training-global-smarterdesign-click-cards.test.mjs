@@ -272,19 +272,68 @@ test('anti-regression: Training chrome CSS never clobbers active states, Phase 8
   assert.match(read('src/components/training/GodModeArena.jsx'), /aria-selected=\{reviewTab === tab\.id\}/, 'GodModeArena review tabs must expose aria-selected');
   assert.doesNotMatch(read('src/components/training/PreflopChartStats.jsx'), /#7c3aed|#a855f7|#fbbf24|rgba\(251,191,36/i, 'PreflopChartStats must not use banned purple/amber colors');
 
-  // Codebase-wide zero-purple guard across ALL 95 Training route files
+  // Codebase-wide zero-purple AND zero-gold/amber guard across ALL 95 Training route files + 9 mounted Training components
   const allTrainingPages = ['pages/hub/training.js', ...walkTrainingSource('pages/hub/training')];
-  const purpleHits = [];
-  const PURPLE_RE = /#(?:7c3aed|8b5cf6|a855f7|c084fc|6d28d9|9333ea|1e1b4b)\b|rgba\(\s*(?:124\s*,\s*58\s*,\s*237|139\s*,\s*92\s*,\s*246|168\s*,\s*85\s*,\s*247)\b/i;
+  const BANNED_UI_COLOR_RE = /#(?:7c3aed|8b5cf6|a855f7|c084fc|6d28d9|9333ea|1e1b4b|fbbf24|f59e0b|d97706|ffd700|f2b84b|d4a020|8b6914)\b|rgba\(\s*(?:124\s*,\s*58\s*,\s*237|139\s*,\s*92\s*,\s*246|168\s*,\s*85\s*,\s*247|251\s*,\s*191\s*,\s*36|245\s*,\s*158\s*,\s*11|255\s*,\s*215\s*,\s*0)\b/i;
+  const bannedColorHits = [];
   for (const rel of allTrainingPages) {
-    const src = read(rel);
-    if (PURPLE_RE.test(src)) purpleHits.push(rel);
+    const lines = read(rel).split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (trimmed.startsWith('//') || trimmed.startsWith('*')) continue;
+      if (BANNED_UI_COLOR_RE.test(lines[i])) bannedColorHits.push(`${rel}:${i + 1}`);
+    }
+  }
+  const mountedTrainingUiComponents = [
+    'src/components/training/GTOQuestionCard.jsx',
+    'src/components/training/LeaderboardPanel.jsx',
+    'src/components/training/PerformanceTrends.jsx',
+    'src/components/training/GameBadge.jsx',
+    'src/components/training/RangeGrid.jsx',
+    'src/components/training/Card.tsx',
+    'src/components/training/PreflopChartStats.jsx',
+    'src/components/training/GodModeArena.jsx',
+    'src/components/training/games/UniversalDynamicTable.jsx',
+  ];
+  for (const rel of mountedTrainingUiComponents) {
+    const lines = read(rel).split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (trimmed.startsWith('//') || trimmed.startsWith('*')) continue;
+      // Physical casino chip denominations on the poker felt are authentic chip colors, not UI chrome
+      if (rel.endsWith('UniversalDynamicTable.jsx') && /--chip-(?:face|rim)/.test(lines[i])) continue;
+      if (BANNED_UI_COLOR_RE.test(lines[i])) bannedColorHits.push(`${rel}:${i + 1}`);
+    }
   }
   assert.deepEqual(
-    purpleHits,
+    bannedColorHits,
     [],
-    `Banned purple/violet accents found in Training route pages:\n${purpleHits.join('\n')}`,
+    `Banned purple/violet/gold/amber UI accents found in Training pages or mounted components:\n${bannedColorHits.join('\n')}`,
   );
+
+  // 7. Gameplay table wiring, instant 52-card picker prefetch, editorial gto-news headlines, and Playwright layout spec
+  const udt = read('src/components/training/games/UniversalDynamicTable.jsx');
+  assert.doesNotMatch(udt, /PokerSoundManagerModule\.soundManager/, 'UniversalDynamicTable must import PokerSoundManager cleanly without nonexistent soundManager named export');
+  assert.match(udt, /aria-selected=\{activeMode === mode\.id\}/, 'UniversalDynamicTable mode bar tabs must expose aria-selected');
+  assert.match(udt, /aria-pressed=\{showRangeGrid\}/, 'UniversalDynamicTable Range toggle must expose aria-pressed');
+  assert.match(udt, /aria-pressed=\{isCurrentBookmarked\}/, 'UniversalDynamicTable Save bookmark button must expose aria-pressed');
+
+  const arena = read('src/components/training/GodModeArena.jsx');
+  assert.match(arena, /aria-pressed=\{difficulty === d\}/, 'GodModeArena difficulty buttons must expose aria-pressed');
+  assert.match(arena, /aria-pressed=\{timerMode === t\.id\}/, 'GodModeArena timer buttons must expose aria-pressed');
+
+  const playingCard = read('src/components/poker/PlayingCard.jsx');
+  assert.match(playingCard, /export function preloadArenaDeckCards\(/, 'PlayingCard must export preloadArenaDeckCards for instant 52-card picker loading');
+  assert.match(read('pages/hub/training/hand-lab.js'), /preloadArenaDeckCards\(\)/, 'hand-lab must preload 52-card arena deck assets');
+  assert.match(read('pages/hub/training/hand-lab.js'), /<PlayingCard arena priority card=\{card\}/, 'hand-lab picker cards must render with priority eager loading');
+  assert.match(read('pages/hub/training/equity-calculator.js'), /preloadArenaDeckCards\(\)/, 'equity-calculator must preload 52-card arena deck assets');
+  assert.match(read('pages/hub/training/equity-calculator.js'), /<PlayingCard arena priority card=\{card\}/, 'equity-calculator picker cards must render with priority eager loading');
+
+  assert.match(gtoNews, /data-training-raw-control="true"[\s\S]{0,120}aria-expanded=\{expanded === a\.id\}/, 'gto-news article headline must use data-training-raw-control="true" so it renders as clean editorial copy');
+
+  const layoutSpec = read('e2e/030-training-smarterdesign-layout.spec.ts');
+  assert.match(layoutSpec, /getClientRects\(\)/, 'Playwright layout spec must enforce per-word Range.getClientRects() anti-slicing check');
+  assert.match(layoutSpec, /Select Hole Card 1/, 'Playwright layout spec must verify Hand Lab 52-card picker and Escape dismiss');
 });
 
 test('anti-regression: all Training GET /api/training/tool-records callers guard signed-out visitors against spurious 401 errors', () => {
@@ -312,8 +361,9 @@ test('anti-regression: all Training GET /api/training/tool-records callers guard
     `Found unguarded GET /api/training/tool-records calls that cause 401 errors for guests:\n${unguarded.join('\n')}`,
   );
 
-  // drill-builder must check getSession() before EVERY getUser() call so guests never hit AuthSessionMissingError
+  // drill-builder must check getSession() before EVERY getUser() call and guard missing env vars in getSupabase()
   const drillBuilder = read('pages/hub/training/drill-builder.js');
+  assert.match(drillBuilder, /if\s*\(!url\s*\|\|\s*!key\)\s*return\s*null;/, 'drill-builder.js getSupabase() must return null cleanly when Supabase env vars are absent');
   const getUserCount = (drillBuilder.match(/\.auth\.getUser\(\)/g) || []).length;
   const getSessionCount = (drillBuilder.match(/\.auth\.getSession\(\)/g) || []).length;
   assert.ok(getUserCount >= 1 && getSessionCount >= getUserCount, 'drill-builder.js must guard every auth.getUser() call with auth.getSession()');

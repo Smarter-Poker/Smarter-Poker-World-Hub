@@ -172,8 +172,8 @@ export default function TrainingLeaderboard({ seed = null }) {
                 marginBottom: 16,
                 padding: '10px 14px',
                 borderRadius: 2,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
+                border: '1px solid rgba(86, 216, 255, 0.4)',
+                background: 'rgba(86, 216, 255, 0.08)',
                 color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,
@@ -428,7 +428,7 @@ const styles = {
     padding: '16px',
     background: 'linear-gradient(180deg, #0c1820, #050c10)',
     border: '1px solid #25c8ff',
-    borderLeft: '3px solid #f2b84b',
+    borderLeft: '3px solid #56d8ff',
     borderRadius: '2px',
     marginBottom: '24px',
   },
@@ -459,7 +459,7 @@ const styles = {
   currentUserEntry: {
     background: 'linear-gradient(180deg, rgba(37, 200, 255, 0.14), rgba(5, 12, 16, 0.96))',
     border: '1px solid #25c8ff',
-    borderLeft: '3px solid #f2b84b',
+    borderLeft: '3px solid #56d8ff',
   },
   rankSection: {
     minWidth: '50px',

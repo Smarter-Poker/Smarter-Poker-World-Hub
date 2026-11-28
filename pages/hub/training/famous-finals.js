@@ -91,7 +91,7 @@ export default function FamousFinalsArchivePage() {
               style={{
                 display: 'inline-flex',
                 padding: '6px 10px',
-                border: '1px solid rgba(251,191,36,0.5)',
+                border: '1px solid rgba(86, 216, 255,0.5)',
                 color: '#86daff',
                 background: 'rgba(90,61,10,0.24)',
                 fontSize: 12,

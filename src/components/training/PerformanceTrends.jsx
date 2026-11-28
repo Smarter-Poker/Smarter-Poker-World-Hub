@@ -155,7 +155,7 @@ function ClassificationTrendChart({ data = [], height = 70 }) {
     const colors = {
         best: '#3b82f6',
         correct: '#22c55e',
-        inaccuracy: '#fbbf24',
+        inaccuracy: '#56d8ff',
         wrong: '#f97316',
         blunder: '#ef4444',
     };
@@ -337,7 +337,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                         label="Verified Score"
                         value={Number.isFinite(milestones.last5Avg) ? `${milestones.last5Avg}` : '-'}
                         color={Number.isFinite(milestones.last5Avg)
-                            ? (milestones.last5Avg >= 80 ? '#22c55e' : milestones.last5Avg >= 60 ? '#fbbf24' : '#ef4444')
+                            ? (milestones.last5Avg >= 80 ? '#22c55e' : milestones.last5Avg >= 60 ? '#56d8ff' : '#ef4444')
                             : '#64748b'}
                         subValue={Number.isFinite(milestones.prev5Avg) ? `Was ${milestones.prev5Avg}` : null}
                     />
@@ -348,7 +348,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                             ? Number(milestones.avgEvPerHand).toFixed(2)
                             : '-'}
                         color={Number.isFinite(milestones.avgEvPerHand)
-                            ? (milestones.avgEvPerHand < 0.5 ? '#22c55e' : '#fbbf24')
+                            ? (milestones.avgEvPerHand < 0.5 ? '#22c55e' : '#56d8ff')
                             : '#64748b'}
                     />
                     <MilestoneBadge
@@ -475,7 +475,7 @@ function LeakDetectionPanel({ sessionHistory }) {
 
     if (!leaks || leaks.length === 0) return null;
 
-    const severityColors = { critical: '#ef4444', major: '#f97316', minor: '#fbbf24' };
+    const severityColors = { critical: '#ef4444', major: '#f97316', minor: '#56d8ff' };
 
     return (
         <motion.div
@@ -502,7 +502,7 @@ function LeakDetectionPanel({ sessionHistory }) {
                     background: 'rgba(255,255,255,0.02)',
                     borderRadius: 6,
                     marginBottom: i < 2 ? 6 : 0,
-                    borderLeft: `3px solid ${severityColors[leak.severity] || '#fbbf24'}`,
+                    borderLeft: `3px solid ${severityColors[leak.severity] || '#56d8ff'}`,
                 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', marginBottom: 2 }}>
                         {leak.title || leak.type}

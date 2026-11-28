@@ -539,8 +539,8 @@ export default function MilestonesPage() {
               marginLeft: 'auto',
               padding: '4px 10px',
               borderRadius: 6,
-              background: 'rgba(251,191,36,0.08)',
-              border: '1px solid rgba(251,191,36,0.2)',
+              background: 'rgba(86, 216, 255,0.08)',
+              border: '1px solid rgba(86, 216, 255,0.2)',
             }}
           >
             {/* TRAIN-MILESTONES-A11Y-1: status role for the reached counter */}
@@ -558,8 +558,8 @@ export default function MilestonesPage() {
                 marginBottom: 14,
                 padding: '10px 14px',
                 borderRadius: 8,
-                border: '1px solid rgba(251, 191, 36, 0.4)',
-                background: 'rgba(251, 191, 36, 0.08)',
+                border: '1px solid rgba(86, 216, 255, 0.4)',
+                background: 'rgba(86, 216, 255, 0.08)',
                 color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,

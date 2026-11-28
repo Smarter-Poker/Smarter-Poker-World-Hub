@@ -365,8 +365,8 @@ const GRADE_TIERS = {
     label: 'Inaccuracy',
     icon: '~',
     color: '#86daff',
-    bg: 'rgba(251,191,36,0.1)',
-    border: 'rgba(251,191,36,0.3)',
+    bg: 'rgba(86, 216, 255,0.1)',
+    border: 'rgba(86, 216, 255,0.3)',
   },
   MISTAKE: {
     label: 'Mistake',

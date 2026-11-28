@@ -1,4 +1,4 @@
-import PlayingCard from '../../../src/components/poker/PlayingCard';
+import PlayingCard, { preloadArenaDeckCards } from '../../../src/components/poker/PlayingCard';
 import { runLocalTrainingEquity } from '../../../src/lib/poker/runLocalTrainingEquity';
 /**
  * Equity Calculator — Monte Carlo Hand vs Hand Equity Tool
@@ -264,7 +264,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
                         padding: 0,
                       }}
                     >
-                      <PlayingCard arena card={card} width={32} />
+                      <PlayingCard arena priority card={card} width={32} />
                     </button>
                   );
                 })}
@@ -471,7 +471,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                         padding: 0,
                       }}
                     >
-                      <PlayingCard arena card={card} width={32} />
+                      <PlayingCard arena priority card={card} width={32} />
                     </button>
                   );
                 })}
@@ -647,6 +647,7 @@ export default function EquityCalculatorPage() {
   const [offlineFallbackUsed, setOfflineFallbackUsed] = useState(false);
 
   useEffect(() => {
+    preloadArenaDeckCards();
     if (typeof window === 'undefined') return undefined;
     setIsOffline(navigator.onLine === false);
     const handleOnline = () => setIsOffline(false);
@@ -1272,7 +1273,7 @@ export default function EquityCalculatorPage() {
                 padding: '12px 14px',
                 marginBottom: 16,
                 borderRadius: 10,
-                border: '1px solid rgba(251, 191, 36, 0.45)',
+                border: '1px solid rgba(86, 216, 255, 0.45)',
                 background: 'rgba(120, 53, 15, 0.22)',
                 color: '#86daff',
                 fontSize: 12,
@@ -1291,7 +1292,7 @@ export default function EquityCalculatorPage() {
                   style={{
                     padding: '4px 10px',
                     borderRadius: 6,
-                    border: '1px solid rgba(251, 191, 36, 0.5)',
+                    border: '1px solid rgba(86, 216, 255, 0.5)',
                     background: 'rgba(217, 119, 6, 0.28)',
                     color: '#86daff',
                     fontSize: 12,

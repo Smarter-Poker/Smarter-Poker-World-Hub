@@ -349,8 +349,8 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
             style={{
               marginTop: 20,
               padding: '16px 18px',
-              background: 'rgba(255, 215, 0, 0.04)',
-              border: '1px solid rgba(255, 215, 0, 0.2)',
+              background: 'rgba(86, 216, 255, 0.04)',
+              border: '1px solid rgba(86, 216, 255, 0.2)',
               borderRadius: 10,
               display: 'flex',
               alignItems: 'center',
