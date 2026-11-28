@@ -148,6 +148,38 @@ export function deriveCaptureHeadline(rawPath) {
     return 'Get Curated World Poker News, Solver Spots And Club Rewards';
 }
 
+const INTERACTIVE_CONVERSION_PREFIXES = ['/tools/', '/learn/', '/hub/series/', '/features/'];
+
+export function isInteractiveConversionRoute(rawPath) {
+    const norm = normalizeCapturePath(rawPath);
+    if (!norm) return false;
+    return (
+        norm === '/tools' ||
+        norm === '/learn' ||
+        norm === '/features' ||
+        INTERACTIVE_CONVERSION_PREFIXES.some((prefix) => norm.startsWith(prefix))
+    );
+}
+
+export function shouldSuppressNewsletterBar({
+    pathname = '',
+    quickSignupOpen = false,
+    toolEngaged = false,
+    viewportWidth = 1280,
+    scrollRatio = 0,
+    guestBarDismissed = false,
+} = {}) {
+    if (quickSignupOpen) return true;
+    if (!isInteractiveConversionRoute(pathname)) return false;
+    if (toolEngaged) return true;
+    const width = Number.isFinite(Number(viewportWidth)) ? Number(viewportWidth) : 1280;
+    const ratio = Number.isFinite(Number(scrollRatio)) ? Number(scrollRatio) : 0;
+    if (width < 768 && !guestBarDismissed && ratio < 0.85) {
+        return true;
+    }
+    return false;
+}
+
 export default function NewsletterCaptureBar({
     pathname: pathnameProp,
     variant = 'floating',
@@ -161,6 +193,10 @@ export default function NewsletterCaptureBar({
     const [ready, setReady] = useState(false);
     const [hidden, setHidden] = useState(false);
     const [quickSignupOpen, setQuickSignupOpen] = useState(false);
+    const [toolEngaged, setToolEngaged] = useState(false);
+    const [viewportWidth, setViewportWidth] = useState(1280);
+    const [scrollRatio, setScrollRatio] = useState(0);
+    const [guestBarDismissed, setGuestBarDismissed] = useState(false);
     const [hasScrolled, setHasScrolled] = useState(false);
     const [email, setEmail] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -170,9 +206,11 @@ export default function NewsletterCaptureBar({
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
         let active = true;
+        setToolEngaged(false);
         const readHidden = () => {
             let alreadySubscribed = false;
             let dismissedSession = false;
+            let guestDismissed = false;
             try {
                 alreadySubscribed = window.localStorage.getItem(WIRE_SUBSCRIBED_KEY) === '1';
             } catch {
@@ -180,14 +218,17 @@ export default function NewsletterCaptureBar({
             }
             try {
                 dismissedSession = window.sessionStorage.getItem(WIRE_DISMISSED_KEY) === '1';
+                guestDismissed = window.sessionStorage.getItem('sp_guest_conversion_bar_dismissed_v1') === '1';
             } catch {
                 dismissedSession = false;
+                guestDismissed = false;
             }
-            return { alreadySubscribed, hiddenNow: alreadySubscribed || dismissedSession };
+            return { alreadySubscribed, hiddenNow: alreadySubscribed || dismissedSession, guestDismissed };
         };
 
-        const { alreadySubscribed, hiddenNow } = readHidden();
+        const { alreadySubscribed, hiddenNow, guestDismissed } = readHidden();
         setHidden(hiddenNow);
+        setGuestBarDismissed(guestDismissed);
         setReady(true);
 
         if (!alwaysVisible && !alreadySubscribed) {
@@ -229,26 +270,52 @@ export default function NewsletterCaptureBar({
         }
 
         const syncFromStorage = () => {
-            if (active) setHidden(readHidden().hiddenNow);
+            if (!active) return;
+            const state = readHidden();
+            setHidden(state.hiddenNow);
+            setGuestBarDismissed(state.guestDismissed);
         };
         const syncQuickSignup = (ev) => {
             if (active) setQuickSignupOpen(Boolean(ev?.detail?.open));
         };
-        const syncScroll = () => {
-            if (active && window.scrollY >= 320) {
-                setHasScrolled(true);
+        const syncToolEngaged = () => {
+            if (active) setToolEngaged(true);
+        };
+        const syncGuestBarDismissed = () => {
+            if (active) setGuestBarDismissed(true);
+        };
+        const syncViewport = () => {
+            if (active && typeof window.innerWidth === 'number') {
+                setViewportWidth(window.innerWidth);
             }
         };
+        const syncScroll = () => {
+            if (!active) return;
+            if (window.scrollY >= 320) {
+                setHasScrolled(true);
+            }
+            const docEl = typeof document !== 'undefined' ? document.documentElement : null;
+            const maxScroll = Math.max(1, (docEl?.scrollHeight || 0) - (window.innerHeight || 0));
+            const ratio = Math.min(1, Math.max(0, (window.scrollY || 0) / maxScroll));
+            setScrollRatio(ratio);
+        };
+        syncViewport();
         syncScroll();
         window.addEventListener(WIRE_SUBSCRIPTION_CHANGED_EVENT, syncFromStorage);
         window.addEventListener('storage', syncFromStorage);
         window.addEventListener('sp:quick-signup-state', syncQuickSignup);
+        window.addEventListener('sp:seo-tool-engaged', syncToolEngaged);
+        window.addEventListener('sp:guest-bar-dismissed', syncGuestBarDismissed);
+        window.addEventListener('resize', syncViewport, { passive: true });
         window.addEventListener('scroll', syncScroll, { passive: true });
         return () => {
             active = false;
             window.removeEventListener(WIRE_SUBSCRIPTION_CHANGED_EVENT, syncFromStorage);
             window.removeEventListener('storage', syncFromStorage);
             window.removeEventListener('sp:quick-signup-state', syncQuickSignup);
+            window.removeEventListener('sp:seo-tool-engaged', syncToolEngaged);
+            window.removeEventListener('sp:guest-bar-dismissed', syncGuestBarDismissed);
+            window.removeEventListener('resize', syncViewport);
             window.removeEventListener('scroll', syncScroll);
         };
     }, [activePath, alwaysVisible]);
@@ -277,6 +344,21 @@ export default function NewsletterCaptureBar({
     }
 
     if (!isInline && !alwaysVisible && (quickSignupOpen || !hasScrolled)) {
+        return null;
+    }
+
+    if (
+        !isInline &&
+        !alwaysVisible &&
+        shouldSuppressNewsletterBar({
+            pathname: cleanPath,
+            quickSignupOpen,
+            toolEngaged,
+            viewportWidth,
+            scrollRatio,
+            guestBarDismissed,
+        })
+    ) {
         return null;
     }
 

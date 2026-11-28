@@ -7,6 +7,7 @@ import { getSeoOfferExperiment, getAiWelcomeContext } from '../../lib/seo/seoExp
 import { recordPendingSeoUnlock } from './SmarterUnlockedWelcomeBanner';
 import {
   recordFirstTouch,
+  recordUnlockIntent,
   beginOAuthAttribution,
   withAttributionNonce,
 } from '../../lib/acquisition/firstTouch.mjs';
@@ -161,6 +162,12 @@ export default function SmarterQuickSignupSheet() {
       };
       setPayload(nextPayload);
       try {
+        recordUnlockIntent({
+          unlockKey: nextPayload.unlockKey,
+          source: nextPayload.source,
+          experimentVariant: activeVariant,
+          aiEngine: activeAi?.engine || '',
+        });
         trackFunnelEvent('seo_quick_signup_opened', {
           unlock_key: nextPayload.unlockKey,
           source: nextPayload.source,
@@ -234,6 +241,12 @@ export default function SmarterQuickSignupSheet() {
       let nonce = null;
       try {
         recordFirstTouch();
+        recordUnlockIntent({
+          unlockKey: payload.unlockKey,
+          source: payload.source,
+          experimentVariant,
+          aiEngine: aiWelcome?.engine || '',
+        });
         nonce = beginOAuthAttribution();
         recordPendingSeoUnlock({
           unlockKey: payload.unlockKey,
@@ -276,6 +289,12 @@ export default function SmarterQuickSignupSheet() {
       return;
     }
     try {
+      recordUnlockIntent({
+        unlockKey: payload.unlockKey,
+        source: payload.source,
+        experimentVariant,
+        aiEngine: aiWelcome?.engine || '',
+      });
       recordPendingSeoUnlock({
         unlockKey: payload.unlockKey,
         source: payload.source,
@@ -448,6 +467,17 @@ export default function SmarterQuickSignupSheet() {
             href={signupHref}
             onClick={() => {
               try {
+                recordUnlockIntent({
+                  unlockKey: payload.unlockKey,
+                  source: payload.source,
+                  experimentVariant,
+                  aiEngine: aiWelcome?.engine || '',
+                });
+                recordPendingSeoUnlock({
+                  unlockKey: payload.unlockKey,
+                  source: payload.source,
+                  redirectPath: payload.redirectPath,
+                });
                 trackFunnelEvent('seo_quick_signup_email_continue', {
                   has_prefilled_email: Boolean(inlineEmail.trim()),
                   unlock_key: payload.unlockKey,

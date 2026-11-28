@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { openQuickSignup } from './SmarterQuickSignupSheet';
+import SmarterGoogleOneTap from './SmarterGoogleOneTap';
 import { VENUE_COUNT_LABEL } from '../../lib/venueCount.mjs';
 import { getAiWelcomeContext } from '../../lib/seo/seoExperiment';
 
@@ -174,6 +175,7 @@ export default function GuestConversionBar() {
   const handleDismiss = () => {
     try {
       window.sessionStorage?.setItem(GUEST_BAR_DISMISSED_KEY, '1');
+      window.dispatchEvent(new CustomEvent('sp:guest-bar-dismissed'));
     } catch (_) {
       /* ignore storage restrictions */
     }
@@ -238,6 +240,7 @@ export default function GuestConversionBar() {
         </div>
       </div>
 
+      <SmarterGoogleOneTap currentPath={currentPath} signedIn={signedIn} />
       <style jsx>{`
         .sd-guest-bar {
           position: sticky;

@@ -67,6 +67,12 @@ import { VENUE_COUNT_LABEL } from '../../src/lib/venueCount.mjs';
 // Where a player with no club invite continues after the welcome package offer.
 const CLUB_LOBBY_PATH = '/hub/club-arena/';
 
+function cleanAttributionTag(value) {
+  if (typeof value !== 'string') return null;
+  const v = value.trim().toLowerCase().slice(0, 64);
+  return /^[a-z0-9][a-z0-9._-]*$/.test(v) ? v : null;
+}
+
 function formatUnlockPromise(rawUnlock) {
   const key = String(rawUnlock || '').trim().toLowerCase();
   if (!key) return 'Free Account Unlock Ready: Complete Below To Continue Immediately';
@@ -465,8 +471,16 @@ export default function SignUpPage() {
 
   const buildCallbackUrl = () => {
     const base = `${window.location.origin}/auth/callback`;
+    const parts = [];
     const target = getSafeRedirect();
-    return target ? `${base}?next=${encodeURIComponent(target)}` : base;
+    if (target) parts.push(`next=${encodeURIComponent(target)}`);
+    const rawUnlock = Array.isArray(router.query?.unlock) ? router.query.unlock[0] : router.query?.unlock;
+    const rawSrc = Array.isArray(router.query?.src) ? router.query.src[0] : router.query?.src;
+    const cleanUnlock = cleanAttributionTag(rawUnlock);
+    const cleanSrc = cleanAttributionTag(rawSrc);
+    if (cleanUnlock) parts.push(`unlock=${encodeURIComponent(cleanUnlock)}`);
+    if (cleanSrc) parts.push(`src=${encodeURIComponent(cleanSrc)}`);
+    return parts.length > 0 ? `${base}?${parts.join('&')}` : base;
   };
 
   // Auto-fill promo/referral code from ?ref=, ?promo=, or ?code= query parameter
@@ -988,6 +1002,19 @@ export default function SignUpPage() {
         ? router.query.redirect[0]
         : router.query?.redirect || (Array.isArray(router.query?.next) ? router.query.next[0] : router.query?.next);
       const clubJoinPath = typeof safeClubArenaPath === 'function' ? safeClubArenaPath(rawRedirect) : null;
+      let rawUnlockParam = Array.isArray(router.query?.unlock) ? router.query.unlock[0] : router.query?.unlock;
+      let rawSrcParam = Array.isArray(router.query?.src) ? router.query.src[0] : router.query?.src;
+      if ((!rawUnlockParam || !rawSrcParam) && typeof window !== 'undefined' && window.location?.search) {
+        try {
+          const sp = new URLSearchParams(window.location.search);
+          if (!rawUnlockParam) rawUnlockParam = sp.get('unlock') || '';
+          if (!rawSrcParam) rawSrcParam = sp.get('src') || '';
+        } catch {
+          /* ignore malformed search */
+        }
+      }
+      const queryUnlockKey = cleanAttributionTag(rawUnlockParam);
+      const querySeoSource = cleanAttributionTag(rawSrcParam);
 
       // Step 1: Create auth user with email/password
       // [2026-08-04] Normalize the email the same way login.js does —
@@ -1026,9 +1053,12 @@ export default function SignUpPage() {
             // a fast tap on Create Account cannot drop it; the database
             // resolves it and ignores anything that names nobody.
             ...referralMetadata(formData.promoCode, referralDetails),
-            // First UTM-tagged landing (LinkedIn, Reddit, ...), kept on
+            // First UTM-tagged landing (LinkedIn, Reddit, ...), plus dark-social
+            // landing path and SEO unlock intent metadata kept on
             // auth.users.raw_user_meta_data. src/lib/acquisition/firstTouch.mjs
             ...firstTouchMetadata(),
+            ...(queryUnlockKey ? { unlock_key: queryUnlockKey } : {}),
+            ...(querySeoSource ? { seo_source: querySeoSource } : {}),
           },
           // Enable email confirmation - redirect to /auth/callback after verification
           emailRedirectTo: buildCallbackUrl(),
