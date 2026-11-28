@@ -18,7 +18,7 @@
     "dialogs": 22,
     "persistenceFiles": 100,
     "realtimeFiles": 7,
-    "tests": 203,
+    "tests": 204,
     "markerCandidates": 406,
     "possibleUnwiredFunctions": 511,
     "routeStateCells": 752,
@@ -47789,7 +47789,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 246,
+          "line": 211,
           "handler": null,
           "destination": "preset.unlockedHref",
           "type": null,
@@ -47799,7 +47799,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 305,
+          "line": 253,
           "handler": "handleOpenQuickSheet",
           "destination": "signupHref",
           "type": null,
@@ -47809,7 +47809,7 @@
         {
           "element": "link",
           "name": "Sign In To Existing Account",
-          "line": 313,
+          "line": 261,
           "handler": null,
           "destination": "loginHref",
           "type": null,
@@ -47857,7 +47857,7 @@
         },
         {
           "name": "SmarterAccountUnlockGate",
-          "line": 178,
+          "line": 147,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -47865,7 +47865,7 @@
         },
         {
           "name": "handleOpenQuickSheet",
-          "line": 217,
+          "line": 182,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -88074,6 +88074,7 @@
     "__tests__/trivia-club-spectator-training.test.mjs",
     "__tests__/trivia-realtime-social-growth.test.mjs",
     "__tests__/trivia-study-pool-curation.test.mjs",
+    "__tests__/unlock-gate-shows-no-fabricated-data.law.test.mjs",
     "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
     "__tests__/world-command-navigation-state.test.mjs",
     "__tests__/world-hub-connection-hardening.test.mjs",
@@ -93272,11 +93273,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:246:1",
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:211:1",
       "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 246,
+      "line": 211,
       "handler": null,
       "destination": "preset.unlockedHref",
       "type": null,
@@ -93285,11 +93286,11 @@
       "effectRef": "src/components/seo/SmarterAccountUnlockGate.jsx"
     },
     {
-      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:305:2",
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:253:2",
       "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 305,
+      "line": 253,
       "handler": "handleOpenQuickSheet",
       "destination": "signupHref",
       "type": null,
@@ -93298,11 +93299,11 @@
       "effectRef": "src/components/seo/SmarterAccountUnlockGate.jsx"
     },
     {
-      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:313:3",
+      "id": "src/components/seo/SmarterAccountUnlockGate.jsx:261:3",
       "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
       "element": "link",
       "name": "Sign In To Existing Account",
-      "line": 313,
+      "line": 261,
       "handler": null,
       "destination": "loginHref",
       "type": null,
@@ -115011,7 +115012,9 @@
         }
       ],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/unlock-gate-shows-no-fabricated-data.law.test.mjs"
+      ]
     },
     {
       "file": "src/components/seo/SmarterConversionCta.jsx",
@@ -118388,7 +118391,8 @@
         "__tests__/training-secondary-surfaces-phase-6.test.mjs",
         "__tests__/training-session-config-contract.test.mjs",
         "__tests__/training-simplification-mtt-design.test.mjs",
-        "__tests__/training-verified-leaderboard.test.mjs"
+        "__tests__/training-verified-leaderboard.test.mjs",
+        "__tests__/unlock-gate-shows-no-fabricated-data.law.test.mjs"
       ]
     },
     {
@@ -129408,7 +129412,7 @@
       {
         "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
         "name": "SmarterAccountUnlockGate",
-        "line": 178,
+        "line": 147,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -141679,7 +141683,7 @@
       {
         "file": "src/components/seo/SmarterAccountUnlockGate.jsx",
         "name": "SmarterAccountUnlockGate",
-        "line": 178,
+        "line": 147,
         "references": 1,
         "exported": true,
         "defaultExport": true,
