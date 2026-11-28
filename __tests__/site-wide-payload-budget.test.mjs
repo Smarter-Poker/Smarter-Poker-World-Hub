@@ -57,6 +57,13 @@ test('page-scoped world stylesheets are never imported by _app', () => {
   }
 });
 
+test('the module gate allows exactly these page-scoped sheets, and the App Router root layout that permits them exists', async () => {
+  const { PAGE_SCOPED_GLOBAL_CSS } = await import('../scripts/ci/check-module-parse-and-bindings.mjs');
+  assert.deepEqual([...PAGE_SCOPED_GLOBAL_CSS].sort(), Object.keys(PAGE_SCOPED_WORLD_CSS).sort());
+  // Next only accepts global CSS from a page when app/ exists (see the gate).
+  assert.ok(fs.existsSync(path.join(ROOT, 'app/layout.js')), 'app/layout.js must exist while pages import world CSS');
+});
+
 test('_app CSS stays inside its byte budget', () => {
   // 1,394,524 bytes of source CSS after the Video Library moved out. The
   // headroom is for ordinary site-wide work; a whole world stylesheet does not
