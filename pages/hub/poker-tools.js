@@ -70,7 +70,7 @@ const ODDS_CALCULATOR_HOW_TO = {
         },
         {
             name: 'Assign Player Hole Cards',
-            text: 'Click player seat card slots and pick exact cards from the interactive 52-card deck palette to set up your matchup with up to 6 players.',
+            text: 'Click player seat card slots and pick exact cards from the interactive 52-card deck palette to set up your matchup with up to 7 players (4 in PLO5 and PLO6).',
         },
         {
             name: 'Set Community Board Cards',
@@ -82,7 +82,7 @@ const ODDS_CALCULATOR_HOW_TO = {
         },
         {
             name: 'Review Monte Carlo Simulation Results',
-            text: 'Inspect instant win percentages, tie odds, and split-pot equity calculated across 10,000 iterations to guide your betting and calling decisions.',
+            text: 'Inspect instant win percentages, tie odds, and split-pot equity, counted exactly from the flop onward or estimated from 10,000 random deals preflop, to guide your betting and calling decisions.',
         },
     ],
 };
@@ -614,7 +614,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                     ))}
                                 </div>
                             </section>
-                            <HubPageSummary surface="poker-tools" />
+                            <HubPageSummary page="poker-tools" />
                             <CitationBacklinkBox
                                 title="Multiway Poker Odds & Equity Calculator"
                                 canonicalUrl="https://smarter.poker/tools/poker-odds-calculator"

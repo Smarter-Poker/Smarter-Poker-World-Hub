@@ -171,12 +171,12 @@ export const HUB_PAGE_SUMMARIES = {
   'poker-tools': {
     heading: 'About The Smarter Poker Odds Calculator',
     lead:
-      'The Smarter Poker Odds Calculator Computes Real-Time Hand Equity For Texas Holdem, Omaha, PLO5, PLO6, Seven Card Stud And Razz. Run Exact Multiway Monte Carlo Simulations Against Up To Six Opponents, Analyze Flop, Turn And River Textures, Factor Dead Cards, And Test Critical Tournament Scenarios With Zero Account Sign-Up Or Fees.',
+      'The Smarter Poker Odds Calculator Computes Hand Equity For Texas Holdem, Omaha, PLO5, PLO6, Seven Card Stud And Razz. Set Your Hand Against Up To Six Opponents, Or Three In PLO5 And PLO6, Preflop Or On A Flop, Turn Or River, And Mark Dead Cards To Take Them Out Of The Deck. Once A Flop Is Set, Every Remaining Board Is Counted Exactly; Preflop Spots, And Stud Or Razz Hands With More Than One Card To Come, Are Estimated From 10,000 Random Deals. Split Pots Are Shared Equally. The Calculator Is Free And Needs No Account.',
     links: [
-      { name: 'Preflop Charts', href: '/hub/preflop-charts', text: 'Master Position-Based Opening And Push-Fold Ranges.' },
-      { name: 'GTO Training', href: '/hub/training', text: 'Over 100 Solver-Grade Training Scenarios With Live Feedback.' },
-      { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Track Real Sessions, Hourly Win Rates And Variance.' },
-      { name: 'Poker Strategy Lessons', href: '/learn', text: 'Step-By-Step Guides On Pot Odds, Implied Odds And Expected Value.' },
+      { name: 'Preflop Charts', href: '/hub/preflop-charts', text: 'Drill Opening, Three-Bet And Defending Ranges By Position.' },
+      { name: 'GTO Training', href: '/hub/training', text: 'Over 100 Scenario Games With Solver-Grade Hand Analysis.' },
+      { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Log Real Sessions And Track Results And Hourly Win Rate.' },
+      { name: 'Poker Strategy Lessons', href: '/learn', text: 'Free Lessons On Pot Odds, Implied Odds And Expected Value.' },
     ],
   },
   'poker-near-me': {

@@ -49,7 +49,7 @@ export default function PokerOddsCalculatorLander() {
                         toolName="Poker Odds Calculator"
                         eyebrow="Free Equity Cloud Sync"
                         title="Save This Equity Matchup To Your Free Cloud Account"
-                        description="Keep Multiway Hold'Em, PLO4, PLO5 & Short Deck Equity Simulations Synced Across Phone & Desktop."
+                        description="Keep Multiway Hold'Em, PLO4, PLO5 & PLO6 Equity Simulations Synced Across Phone & Desktop."
                         ctaLabel="Save Odds Spot Free"
                         summaryText="Multiway Hold'Em, PLO4 & PLO5 Equity Matchup"
                         redirectPath="/tools/poker-odds-calculator"
