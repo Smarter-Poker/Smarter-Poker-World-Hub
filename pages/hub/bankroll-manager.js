@@ -83,7 +83,8 @@ import { evaluateRuleViolations, monthBounds } from '../../src/lib/bankroll/rule
 import { parseLedgerDay } from '../../src/lib/bankroll/localDates.mjs';
 import { runLeakAnalysis } from '../../src/lib/bankroll/leakDetection';
 import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
-import { fetchReportLedger, fetchTrips, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, getActiveSeries, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
+import { fetchReportLedger, fetchTrips, fetchSeries, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
+import { buildRecentActivity, tripDayLabel, withoutActiveTripRows } from '../../src/lib/bankroll/tripMath.mjs';
 import {
   receiptActions, tripFromReceipt, w2gRowFromReceipt, receiptRowFromScan, ledgerCategoryFor,
   matchLocationByName, findOpenSessionFor, rankEntriesForReceipt,
@@ -348,6 +349,7 @@ export default function BankrollManagerPage() {
 
   const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
   const requestedType = Array.isArray(router.query.type) ? router.query.type[0] : router.query.type;
+  const requestedTripId = (Array.isArray(router.query.trip) ? router.query.trip[0] : router.query.trip) || null;
   const categoryFilter = Object.hasOwn(TYPE_TO_CATEGORY, requestedType) ? TYPE_TO_CATEGORY[requestedType] :
     Object.hasOwn(CATEGORY_LABELS, requestedType) ? requestedType : 'all';
   const activeSection = categoryFilter !== 'all' ? 'dashboard' : resolveBankrollView(requestedView);
@@ -593,88 +595,24 @@ export default function BankrollManagerPage() {
       setLocations(locationsData);
       setLeakAnalysis(leakData);
 
-      // Fetch active series for dashboard banner
-      var seriesData = null;
+      // Series feed the dashboard banner and Recent Activity. If they cannot
+      // be read, their rows are still grouped (never shown loose), because
+      // buildRecentActivity treats an unknown trip as possibly active.
+      var seriesList = [];
       try {
-        seriesData = await getActiveSeries(userId);
-        if (request !== latestLoad.current || !isMountedRef.current) return;
-        setActiveSeries(seriesData);
+        seriesList = await fetchSeries(userId);
       } catch (e) {
-      setIsLoading(false);
+        console.warn('Could not load series:', e);
       }
-
-      // ── Filter out active trip/series entries ──
-      // Entries belonging to an active trip or series stay hidden
-      // until the user completes the trip/series. Then they appear
-      // as ONE summary row in Recent Activity.
-
-      // 1. Collect active trip IDs
-      var activeIds = [];
-      for (var t = 0; t < tripsData.length; t++) {
-        if (tripsData[t].status === 'active') {
-          activeIds.push(tripsData[t].id);
-        }
-      }
-      // 2. Collect active series ID (if any)
-      if (seriesData && seriesData.id) {
-        activeIds.push(seriesData.id);
-      }
-
-      // 3. Separate entries: hide active trip/series, keep the rest
       if (request !== latestLoad.current || !isMountedRef.current) return;
-      setAnalysisLedger({ scope: reportScope, rows: entriesData.filter(entry => !entry.trip_id || !activeIds.includes(entry.trip_id)) });
+      setActiveSeries(seriesList.find(function (s) { return s.status === 'active'; }) || null);
+
+      // Rows of an active trip or series stay hidden until it is completed;
+      // then the trip appears as ONE summary row covering all of its rows.
+      var allTrips = tripsData.concat(seriesList);
+      setAnalysisLedger({ scope: reportScope, rows: withoutActiveTripRows(entriesData, allTrips) });
       setFailedScope(null);
-      var visible = [];
-      var completedTripMap = {};
-      for (var i = 0; i < Math.min(50, entriesData.length); i++) {
-        var entry = entriesData[i];
-        if (entry.trip_id && activeIds.indexOf(entry.trip_id) !== -1) {
-          // Entry belongs to an active trip/series - HIDE it
-          continue;
-        }
-        if (entry.trip_id) {
-          // Entry belongs to a completed trip/series - group for summary
-          if (!completedTripMap[entry.trip_id]) completedTripMap[entry.trip_id] = [];
-          completedTripMap[entry.trip_id].push(entry);
-        } else {
-          // Standalone entry - show directly
-          visible.push(entry);
-        }
-      }
-
-      // 4. Create ONE summary row per completed trip/series
-      var completedTripIds = Object.keys(completedTripMap || {});
-      for (var k = 0; k < completedTripIds.length; k++) {
-        var tid = completedTripIds[k];
-        var items = completedTripMap[tid];
-        // Find the trip/series metadata
-        var tripMeta = null;
-        for (var m = 0; m < tripsData.length; m++) {
-          if (tripsData[m].id === tid) { tripMeta = tripsData[m]; break; }
-        }
-        var net = 0;
-        var latestDate = items[0].entry_date || '';
-        for (var n = 0; n < items.length; n++) {
-          net += (items[n].gross_out || 0) - (items[n].gross_in || 0);
-          if (items[n].entry_date > latestDate) latestDate = items[n].entry_date;
-        }
-        visible.push({
-          id: 'trip-summary-' + tid,
-          category: 'trip_summary',
-          entry_date: latestDate,
-          net_result: net,
-          gross_in: 0,
-          gross_out: 0,
-          location_name: (tripMeta ? tripMeta.location_name : '') || (items[0] ? items[0].location_name : '') || '',
-          _tripName: (tripMeta ? tripMeta.name : '') || 'Trip',
-          _sessionCount: items.length,
-          _isTripSummary: true,
-        });
-      }
-
-      // 5. Sort by date descending
-      visible.sort(function (a, b) { return b.entry_date.localeCompare(a.entry_date); });
-      setEntries(visible);
+      setEntries(buildRecentActivity(entriesData, allTrips, 50));
     } catch (error) {
       if (request === latestLoad.current && isMountedRef.current) setFailedScope(reportScope);
       console.warn('Error loading bankroll data:', error);
@@ -803,7 +741,14 @@ export default function BankrollManagerPage() {
     hasStartingBankroll(userId).then(has => setBankrollInitialized(has));
   }, [userId]);
 
+  // A trip summary row is not a ledger row: open its trip's report instead.
+  const openTripSummary = (entry) => {
+    const view = entry._tripType === 'series' ? 'series' : 'trips';
+    void router.push({ pathname: '/hub/bankroll-manager', query: { view, trip: entry._tripId } }, undefined, { shallow: true, scroll: true });
+  };
+
   const handleEditEntry = (entry) => {
+    if (entry && entry._isTripSummary) { openTripSummary(entry); return; }
     setEditEntry(entry);
     setShowLogModal(true);
   };
@@ -811,6 +756,11 @@ export default function BankrollManagerPage() {
   const handleDeleteEntry = async (entryId) => {
     if (!userId) { toast.error('You Must Be Logged In'); return; }
     if (!requireOnline()) return;
+    if (typeof entryId === 'string' && entryId.startsWith('trip-summary-')) {
+      toast.info('Open The Trip To Manage Its Entries');
+      openTripSummary({ _tripId: entryId.slice('trip-summary-'.length), _tripType: (entries.find(e => e.id === entryId) || {})._tripType });
+      return;
+    }
     // Optimistic removal - entry disappears immediately
     setEntries(prev => prev.filter(e => e.id !== entryId));
     try {
@@ -1758,7 +1708,7 @@ export default function BankrollManagerPage() {
                   {(() => {
                     const activeTrip = trips.find(t => t.status === 'active' && t.trip_type !== 'series');
                     if (!activeTrip) return null;
-                    const daysSinceStart = Math.max(1, Math.ceil((Date.now() - new Date(activeTrip.start_date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)));
+                    const dayLabel = tripDayLabel(activeTrip.start_date);
                     return (
                       <div
                         style={{
@@ -1794,7 +1744,7 @@ export default function BankrollManagerPage() {
                           </div>
                           <div style={{ fontSize: 14, color: '#94a3b8' }}>
                             {activeTrip.location_name && `${activeTrip.location_name} · `}
-                            Day {daysSinceStart} · {activeTrip.entryCount || 0} Sessions
+                            {dayLabel} · {activeTrip.sessionCount || 0} Sessions
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -1830,7 +1780,7 @@ export default function BankrollManagerPage() {
 
                   {/* Active Series Featured Banner */}
                   {activeSeries && (() => {
-                    const daysSinceStart = Math.max(1, Math.ceil((Date.now() - new Date(activeSeries.start_date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)));
+                    const dayLabel = tripDayLabel(activeSeries.start_date);
                     return (
                       <div
                         style={{
@@ -1866,7 +1816,7 @@ export default function BankrollManagerPage() {
                           </div>
                           <div style={{ fontSize: 14, color: '#94a3b8' }}>
                             {activeSeries.location_name && `${activeSeries.location_name} · `}
-                            Day {daysSinceStart} · {activeSeries.entryCount || 0} Sessions
+                            {dayLabel} · {activeSeries.sessionCount || 0} Sessions
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -2283,6 +2233,7 @@ export default function BankrollManagerPage() {
                     onEditEntry={handleEditEntry}
                     onDeleteEntry={handleDeleteEntry}
                     refreshTrigger={refreshTrigger}
+                    openTripId={requestedTripId}
                   />
                 </HubErrorBoundary>
               )}
@@ -2296,6 +2247,7 @@ export default function BankrollManagerPage() {
                     onEditEntry={handleEditEntry}
                     onDeleteEntry={handleDeleteEntry}
                     refreshTrigger={refreshTrigger}
+                    openSeriesId={requestedTripId}
                   />
                 </HubErrorBoundary>
               )}
