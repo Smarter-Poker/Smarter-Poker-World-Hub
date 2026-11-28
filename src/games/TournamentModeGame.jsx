@@ -799,7 +799,7 @@ const styles = {
     },
     scoreSeparator: {
         fontSize: 24,
-        color: 'rgba(255,255,255,0.3)',
+        color: '#93a9bd',
     },
     roundIndicator: {
         textAlign: 'center',

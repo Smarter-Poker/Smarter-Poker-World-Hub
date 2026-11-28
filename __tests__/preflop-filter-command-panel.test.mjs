@@ -7,7 +7,7 @@ const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const PANEL = read('src/games/ScenarioFilterPanel.jsx');
 const PAGE = read('pages/hub/memory-games.js');
-const CSS = read('src/styles/worlds/memory-games.css');
+const CSS = read('src/styles/worlds/preflop-smarterdesign.css');
 
 test('preflop scenario filters expose an accessible range-tuning form', () => {
     assert.match(PANEL, /<motion\.section/);

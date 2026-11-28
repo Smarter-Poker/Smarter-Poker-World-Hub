@@ -15,25 +15,22 @@
  * scoring, keyboard handling and persistence.
  */
 import { ArrowLeft, ChevronRight, RotateCcw, Share2, Target, TriangleAlert } from 'lucide-react';
+import { MotionConfig } from 'framer-motion';
 
-/** Grade letters carry the meaning; colour is only a second cue (no gold). */
-export const GRADE_TONES = {
-  S: '#86daff',
-  A: '#39e9a5',
-  B: '#5aa9ff',
-  C: '#bdd0e2',
-  D: '#ff5c74',
-};
+import { GRADE_TONES, gradeTone } from './gradeTone';
 
-export function gradeTone(grade) {
-  return GRADE_TONES[grade] || '#f2f7ff';
-}
+export { GRADE_TONES, gradeTone };
 
+// reducedMotion="user": every framer-motion animation inside a game screen
+// follows the player's system setting (WCAG 2.3.3), the same way the CSS
+// reduced-motion rule stills the stylesheet animations.
 export function GameFrame({ children, className = '', ...rest }) {
   return (
-    <div className={`preflop-sd-game smarterdesign${className ? ` ${className}` : ''}`} {...rest}>
-      {children}
-    </div>
+    <MotionConfig reducedMotion="user">
+      <div className={`preflop-sd-game smarterdesign${className ? ` ${className}` : ''}`} {...rest}>
+        {children}
+      </div>
+    </MotionConfig>
   );
 }
 

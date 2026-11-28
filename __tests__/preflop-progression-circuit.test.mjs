@@ -6,7 +6,7 @@ import test from 'node:test';
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const PAGE = read('pages/hub/memory-games.js');
-const CSS = read('src/styles/worlds/memory-games.css');
+const CSS = read('src/styles/worlds/preflop-smarterdesign.css');
 
 test('the progression circuit reports live level, mastery, and practice-pool state', () => {
     assert.match(PAGE, /className="preflop-circuit-status"/);
@@ -42,5 +42,6 @@ test('the circuit and level states retain responsive, accessible styling', () =>
     assert.match(CSS, /@media \(max-width: 768px\)[\s\S]*\.preflop-circuit-stat\s*\{[\s\S]*min-height:\s*72px/);
     assert.match(CSS, /\.preflop-level-card\.is-no-match/);
     assert.match(CSS, /\.preflop-level-state\.is-mastered/);
-    assert.match(CSS, /\.preflop-level-card:focus-within/);
+    // Focus on a level card's action shows the shared keyboard ring (section 3).
+    assert.match(CSS, /═══ 3\. ACCESSIBILITY[\s\S]*\.preflop-command-deck[\s\S]*:focus-visible \{[\s\S]*box-shadow: 0 0 0 2px var\(--pcsd-ink\), 0 0 0 4px var\(--pcsd-ice\)/);
 });

@@ -40,7 +40,7 @@ const PHASES = {
     'src/styles/worlds/bankroll.css',
     'src/components/bankroll',
   ],
-  2: ['pages/hub/memory-games.js', 'src/styles/worlds/memory-games.css', 'src/components/memory-games'],
+  2: ['pages/hub/memory-games.js', 'src/styles/worlds/preflop-smarterdesign.css', 'src/components/memory-games'],
   3: [
     'pages/hub/poker-near-me',
     'src/styles/worlds/poker-near-me.css',

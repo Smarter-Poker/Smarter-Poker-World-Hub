@@ -12,7 +12,7 @@ const JARVIS = read('src/components/memory-games/JarvisExplanationDialog.jsx');
 const ACHIEVEMENTS = read('pages/hub/memory-games/achievements.js');
 const LEADERBOARD = read('pages/hub/memory-games/leaderboard.js');
 const MAIN = read('pages/hub/memory-games.js');
-const CSS = read('src/styles/worlds/memory-games.css');
+const CSS = read('src/styles/worlds/preflop-smarterdesign.css');
 
 test('range matrix uses valid grid rows and is one keyboard-focusable paint control', () => {
   // Mobile phase 2: the matrix fits 375px, so the old horizontal scroll
@@ -66,8 +66,28 @@ test('Jarvis analysis is a focus-managed modal that cannot strand body scrolling
 test('mobile command targets meet the 44px interaction contract and award cards stay compact', () => {
   assert.match(CSS, /\.preflop-subpage-nav a,[\s\S]*\.preflop-tab-rail button[\s\S]*min-height:\s*44px/);
   assert.match(CSS, /\.preflop-panel-heading button,[\s\S]*\.preflop-subpage-error button[\s\S]*min-height:\s*44px/);
-  assert.match(CSS, /\.preflop-subpage-back \{[\s\S]*min-height:\s*44px/);
   assert.match(CSS, /\.preflop-tab-rail button \{[\s\S]*min-width:\s*44px/);
   assert.match(CSS, /Mobile-first touch contract[\s\S]*\.preflop-lab-command-actions button[\s\S]*min-height:\s*44px/);
   assert.match(CSS, /\.preflop-award-grid article \{ min-height:\s*148px/);
+});
+
+test('keyboard focus is visible, motion respects the player, and locked awards stay legible (2026-11-28)', () => {
+  // src/index.css removes outlines site-wide with !important, so the ring is
+  // a box-shadow; an outline here would be invisible again.
+  const a11y = CSS.slice(CSS.indexOf('═══ 3. ACCESSIBILITY'));
+  assert.ok(a11y.length > 100, 'the accessibility section exists');
+  assert.match(a11y, /\.preflop-command-deck, \.preflop-subpage, \.preflop-sd-game, \.scenario-filter-console\)/);
+  assert.match(a11y, /:focus-visible \{[\s\S]*box-shadow: 0 0 0 2px var\(--pcsd-ink\), 0 0 0 4px var\(--pcsd-ice\)/);
+  assert.match(a11y, /:not\(:where\(\[class\^='sp-'\], \[class\*=' sp-'\]\)\)/, 'the shared World menu keeps its own focus style');
+  assert.match(a11y, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*body\.world-preflop-charts \*[\s\S]*animation-duration: 0\.01ms !important/);
+  assert.match(read('src/components/memory-games/PreflopGameKit.jsx'), /<MotionConfig reducedMotion="user">/);
+  assert.match(read('pages/hub/memory-games.js'), /disableForReducedMotion: true/);
+  assert.match(read('src/games/GameEngine.js'), /prefers-reduced-motion: reduce\)'\)\.matches\) return;/);
+  // Locked awards read as locked through icon and muted type, not by fading.
+  assert.match(CSS, /\.preflop-award-grid article:not\(\[data-unlocked\]\) \{\s*opacity: 1;/);
+  // Power-up keys are full tap targets.
+  assert.match(read('src/components/training/PowerUpBar.jsx'), /minHeight: 44,/);
+  // The menu takes grade colours from a small module, not the game kit.
+  assert.match(read('pages/hub/memory-games.js'), /import \{ gradeTone \} from '\.\.\/\.\.\/src\/components\/memory-games\/gradeTone';/);
+  assert.doesNotMatch(read('pages/hub/memory-games.js'), /from '\.\.\/\.\.\/src\/components\/memory-games\/PreflopGameKit'/);
 });

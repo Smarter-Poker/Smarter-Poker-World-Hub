@@ -101,7 +101,8 @@ async function fireConfetti(opts) {
       const m = await import('canvas-confetti');
       _confetti = m.default || m;
     }
-    _confetti(opts);
+    // canvas-confetti skips the burst when the player asks for less motion.
+    _confetti({ disableForReducedMotion: true, ...opts });
   } catch (e) {
     console.warn('[App] Handled exception:', e?.message || e);
   }
@@ -221,7 +222,7 @@ import { VIP_MEMBERSHIP } from '../../src/data/diamondStoreData';
 import PreflopRangeMatrix from '../../src/components/memory-games/PreflopRangeMatrix';
 import PreflopMatrixPrimer from '../../src/components/memory-games/PreflopMatrixPrimer';
 import PreflopSubpageNav from '../../src/components/memory-games/PreflopSubpageNav';
-import { gradeTone } from '../../src/components/memory-games/PreflopGameKit';
+import { gradeTone } from '../../src/components/memory-games/gradeTone';
 import {
   accuracyToPercent,
   getUnlockedLevel,
@@ -499,7 +500,7 @@ function LabMounted({ onMount }) {
 
 // First-paint skeleton that mirrors the menu: hero, daily card, seven mode
 // cards, the level list. One class (.preflop-skel) and one keyframe in
-// src/styles/worlds/memory-games.css.
+// src/styles/worlds/preflop-smarterdesign.css.
 function MenuSkeleton() {
   return (
     <div
