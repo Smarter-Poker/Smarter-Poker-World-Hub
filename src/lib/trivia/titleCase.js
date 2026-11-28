@@ -114,9 +114,9 @@ export function toTitleCase(text, strict = true) {
                 return leadingPunct + fixedCards + trailingPunct;
             }
 
-            // Check if core word is an acronym
+            // Check if core word is an acronym or big-blind stack notation (e.g., 10BB, 30BB, 2.5BB)
             const upperCore = coreWord.toUpperCase();
-            if (ACRONYMS.has(upperCore)) {
+            if (ACRONYMS.has(upperCore) || /^\d+(?:\.\d+)?BB$/i.test(coreWord)) {
                 return leadingPunct + upperCore + trailingPunct;
             }
 

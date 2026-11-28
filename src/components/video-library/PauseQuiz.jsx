@@ -1,10 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { playbackMessage, PLAYER_ORIGIN, timestamp } from '../../lib/videoLibraryPlayback.mjs';
 import { crossedDecisionMarker, decisionPlayerState, DECISION_ACTIONS, DECISION_FEEDBACK } from '../../lib/videoLibraryQuiz.mjs';
 
-export default function PauseQuiz({ iframeRef, videoId, active = true, markers = [] }) {
+const NO_CHAPTERS = Object.freeze([]);
+
+export default function PauseQuiz({ iframeRef, videoId, active = true, markers = [], chapters = NO_CHAPTERS }) {
     const [ready, setReady] = useState(false);
     const [autoPause, setAutoPause] = useState(false);
+    // The creator's chapters are offered as pause points, labelled as theirs.
+    // The opening chapter at 0:00 is not a decision point.
+    const [chapterPause, setChapterPause] = useState(false);
+    const chapterStarts = useMemo(() => chapters.map(chapter => chapter.startSeconds).filter(second => second > 0), [chapters]);
+    const pausePoints = useMemo(() => [...(autoPause ? markers : []), ...(chapterPause ? chapterStarts : [])], [autoPause, markers, chapterPause, chapterStarts]);
     const [prompt, setPrompt] = useState(null);
     const [choice, setChoice] = useState(null);
     const [reason, setReason] = useState('');
@@ -29,7 +36,9 @@ export default function PauseQuiz({ iframeRef, videoId, active = true, markers =
         setError(''); setChoice(null); setReason('');
         // An idempotent pause on an already paused provider need not emit a
         // second state-change event. Its existing trusted acknowledgement counts.
-        const next = { phase: state.current.playerState === 2 ? 'answer' : 'waiting', position: marker ?? state.current.position };
+        const chapter = marker === null || marker === undefined || (autoPause && markers.includes(marker)) ? null
+            : chapters.find(item => item.startSeconds === marker) || null;
+        const next = { phase: state.current.playerState === 2 ? 'answer' : 'waiting', position: marker ?? state.current.position, chapterTitle: chapter?.title || null };
         state.current.prompt = next; setPrompt(next);
         if (!command('pauseVideo')) {
             close(); setError('The Player Could Not Be Paused. Try Again When Playback Is Available.'); return;
@@ -45,7 +54,7 @@ export default function PauseQuiz({ iframeRef, videoId, active = true, markers =
     useEffect(() => {
         clearDeadline();
         state.current = { position: null, duration: 0, seen: new Set(), prompt: null, frame: null, playing: false, playerState: null, failed: false };
-        setReady(false); setPrompt(null); setChoice(null); setReason(''); setError(''); setAutoPause(false);
+        setReady(false); setPrompt(null); setChoice(null); setReason(''); setError(''); setAutoPause(false); setChapterPause(false);
         return clearDeadline;
     }, [videoId]);
     useEffect(() => {
@@ -65,8 +74,8 @@ export default function PauseQuiz({ iframeRef, videoId, active = true, markers =
                 if (Number.isFinite(position) && position >= 0 && position <= duration && duration > 0) {
                     const previous = state.current.position;
                     state.current.position = position; state.current.frame = event.source; setReady(true);
-                    if (autoPause && state.current.playing && !document.hidden && !state.current.prompt) {
-                        const marker = crossedDecisionMarker(previous, position, duration, markers, state.current.seen);
+                    if (pausePoints.length > 0 && state.current.playing && !document.hidden && !state.current.prompt) {
+                        const marker = crossedDecisionMarker(previous, position, duration, pausePoints, state.current.seen);
                         if (marker !== null) { state.current.seen.add(marker); beginRef.current(marker); }
                     }
                 }
@@ -88,7 +97,7 @@ export default function PauseQuiz({ iframeRef, videoId, active = true, markers =
         window.addEventListener('message', receive);
         document.addEventListener('visibilitychange', hidden);
         return () => { iframe?.removeEventListener?.('load', loaded); window.removeEventListener('message', receive); document.removeEventListener('visibilitychange', hidden); };
-    }, [active, iframeRef, autoPause, markers]);
+    }, [active, iframeRef, pausePoints]);
     const resume = () => {
         if (state.current.prompt?.phase !== 'answer' || !choice) return;
         if (!command('playVideo')) { setError('Playback Could Not Resume. Use The Player Controls.'); return; }
@@ -99,10 +108,12 @@ export default function PauseQuiz({ iframeRef, videoId, active = true, markers =
         {/* How the pause works lives behind the page's "?" (Dan, 2026-11-27). */}
         <button type="button" disabled={!ready || !active || !!prompt} onClick={() => begin(null)}>What Would You Do?</button>
         <label><input type="checkbox" checked={autoPause} disabled={!active} onChange={event => setAutoPause(event.target.checked)} />Pause At Hand Markers</label>
+        {chapterStarts.length > 0 && <label><input type="checkbox" checked={chapterPause} disabled={!active} onChange={event => setChapterPause(event.target.checked)} />Pause At The Creator's Chapters</label>}
         {autoPause && markers.length === 0 && <p>Mark A Hand On The Timeline To Add A Decision Pause.</p>}
         {error && <p role="alert">{error}</p>}
         {prompt && <div className="vl-quiz-prompt" aria-label="Your Hand Decision" aria-live="polite">
             <h4>Decision At {timestamp(prompt.position)}</h4>
+            {prompt.chapterTitle && <p className="vl-quiz-chapter">Creator's Chapter: {prompt.chapterTitle}</p>}
             {prompt.phase === 'waiting' ? <p>Waiting For The Player To Pause.</p> : <>
                 <p>Use The Cards, Position, Stacks And Action Shown In The Video.</p>
                 <div className="vl-quiz-actions" role="group" aria-label="Choose Your Action">{DECISION_ACTIONS.map(action =>

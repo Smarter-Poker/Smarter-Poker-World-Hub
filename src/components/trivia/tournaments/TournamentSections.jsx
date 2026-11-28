@@ -459,7 +459,7 @@ export function TournamentQuestionStage({ session, question, secondsLeft, select
             ) : null}
             {error ? <TournamentStateBanner title="Answer Not Recorded" message={error} tone="red" role="alert" action={{ label: 'Retry From Server', onClick: onRetry }} /> : null}
             <h2 id="tt-question-title" className="tt-question">
-                <TriviaCardText text={question?.question || 'Opening Question'} formatText={toTitleCase} />
+                <TriviaCardText text={question?.question || 'Opening Question'} formatText={toTitleCase} structured />
             </h2>
             <div className="tt-options">
                 {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-3: shared accessible option primitive, driven only by the authoritative tournament answer state. */}

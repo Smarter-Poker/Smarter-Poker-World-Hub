@@ -888,7 +888,7 @@ export default function MixedModePage() {
                                     </p>
 
                                     <h2 id="mixed-question-title" className="trivia-challenge-question">
-                                        <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} />
+                                        <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} structured />
                                     </h2>
 
                                     <div className="trivia-challenge-options">

@@ -474,7 +474,7 @@ export default function TriviaStudyDeck() {
                                                     </span>
                                                 </header>
 
-                                                <h2 className="study-card__question"><TriviaCardText text={currentDrillCard.question} /></h2>
+                                                <h2 className="study-card__question"><TriviaCardText text={currentDrillCard.question} structured /></h2>
 
                                                 <div className="study-drill__options" role="group" aria-label="Practice Drill Answer Choices">
                                                     {currentDrillCard.options.map((optText, idx) => {
@@ -675,7 +675,7 @@ export default function TriviaStudyDeck() {
                                                     <span>Last Missed {formatDate(activeCard.lastMissedAt)}</span>
                                                 </div>
 
-                                                <h2 className="study-card__question"><TriviaCardText text={activeCard.question} /></h2>
+                                                <h2 className="study-card__question"><TriviaCardText text={activeCard.question} structured /></h2>
 
                                                 <ol className="study-options">
                                                     {activeCard.options.map((optText, idx) => {

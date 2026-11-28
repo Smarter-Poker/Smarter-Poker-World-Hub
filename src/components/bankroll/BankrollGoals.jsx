@@ -8,6 +8,7 @@ import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
+import { localDay } from '../../lib/bankroll/localDates.mjs';
 
 const PERIOD_OPTIONS = [
     { id: 'weekly', label: 'Weekly', days: 7 },
@@ -65,8 +66,8 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                     user_id: userId,
                     target_amount: targetAmount,
                     period: newGoal.period,
-                    start_date: startDate.toISOString().split('T')[0],
-                    end_date: endDate.toISOString().split('T')[0],
+                    start_date: localDay(startDate),
+                    end_date: localDay(endDate),
                 })
                 .select()
                 .maybeSingle();

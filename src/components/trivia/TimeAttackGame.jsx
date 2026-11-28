@@ -364,7 +364,7 @@ export default function TimeAttackGame({
             {/* Question */}
             {!gameOver && currentQuestion && (
                 <div className="time-attack-question">
-                    <p className="trivia-challenge-question"><TriviaCardText text={currentQuestion.question} /></p>
+                    <p className="trivia-challenge-question"><TriviaCardText text={currentQuestion.question} structured /></p>
 
                     <div
                         className="trivia-challenge-options"

@@ -78,6 +78,7 @@ import { getBankrollPreferences, updateBankrollPreferences } from '../../src/ser
 
 // Bankroll library
 import { getBankrollStats } from '../../src/lib/bankroll/calculations';
+import { localDay, parseLedgerDay } from '../../src/lib/bankroll/localDates.mjs';
 import { runLeakAnalysis } from '../../src/lib/bankroll/leakDetection';
 import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
 import { fetchLedgerEntries, fetchReportLedger, fetchTrips, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, getActiveSeries, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
@@ -748,7 +749,7 @@ export default function BankrollManagerPage() {
           ]);
 
           const violations = [];
-          const today = new Date().toISOString().split('T')[0];
+          const today = localDay();
           const todayEntries = latestEntries.filter(e => e.entry_date === today);
           const todayNet = todayEntries.reduce((sum, e) => sum + ((e.gross_out || 0) - (e.gross_in || 0)), 0);
           const lastEntry = latestEntries[0];
@@ -2709,7 +2710,7 @@ export default function BankrollManagerPage() {
                       {rankEntriesForReceipt(entries, scannerRoute).slice(0, 20).map((entry) => {
                         const isPositive = entry.net_result >= 0;
                         const dateStr = entry.entry_date
-                          ? new Date(entry.entry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                          ? parseLedgerDay(entry.entry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                           : '';
                         const LABELS = { cash: 'Cash Game', tournament: 'Tournament', expense: 'Expense', deposit: 'Deposit', withdrawal: 'Withdrawal', sports_bet: 'Sports Bet' };
                         return (

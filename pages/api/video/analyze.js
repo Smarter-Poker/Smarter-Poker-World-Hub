@@ -123,7 +123,7 @@ Focus on actual poker hands and strategy moments. If no specific hands are discu
     }
 
     return {
-        chapters: [{ timestamp: "0:00", title: "Video Start", description: "Beginning of video" }],
+        chapters: [],
         keyHands: [],
         summary: "Analysis could not be generated for this video.",
         learningPoints: []
@@ -254,7 +254,7 @@ export default async function handler(req, res) {
                   }
               } catch (e) {
                   analysis = {
-                      chapters: [{ timestamp: "0:00", title: "Video Start", description: "Beginning of video" }],
+                      chapters: [],
                       keyHands: [],
                       summary: `Poker video: ${title}`,
                       learningPoints: [],

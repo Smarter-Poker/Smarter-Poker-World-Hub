@@ -29,7 +29,7 @@
   position: absolute;
   inset: 0;
   border: 10px solid transparent;
-  border-image: url('/assets/video-library/mast/chrome-readout.webp') 21 / 10px stretch;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 10px stretch;
   pointer-events: none;
   z-index: 2;
 }

@@ -1846,7 +1846,7 @@ export default function SurvivalGamePage() {
                                             label={`Question ${currentQuestionIndex + 1} Of ${QUESTIONS_PER_LEVEL}`}
                                         />
                                         <h2 id="survival-question-title" className="trivia-challenge-question">
-                                            <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} />
+                                            <TriviaCardText text={currentQuestion.question} formatText={toTitleCase} structured />
                                         </h2>
 
                                         <div className="trivia-challenge-options">

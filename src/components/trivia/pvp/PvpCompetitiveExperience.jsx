@@ -1730,7 +1730,7 @@ export default function PvpCompetitiveExperience({
                                 outcomes={questions.map((q) => (q.state === 'answered' ? 'answered' : null))}
                                 label={`Question ${currentQuestion.position || questionIndex + 1} Of ${questions.length}`}
                             />
-                            <p className="trivia-pvp-question"><TriviaCardText text={currentQuestion.question} /></p>
+                            <p className="trivia-pvp-question"><TriviaCardText text={currentQuestion.question} structured /></p>
                             <div className="trivia-pvp-options" role="group" aria-label={`Question ${currentQuestion.position || questionIndex + 1} Answers`}>
                                 {currentQuestion.options.map((option, index) => (
                                     <button
