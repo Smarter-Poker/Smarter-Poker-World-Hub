@@ -15,9 +15,12 @@ import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BANKROLL_MANAGER_PAGE, bankrollManagerSource } from './helpers/bankroll-manager-source.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+// The page reads as itself plus its section modules (the 2026-11-28 split;
+// __tests__/helpers/bankroll-manager-source.mjs).
+const read = (rel) => (rel === BANKROLL_MANAGER_PAGE ? bankrollManagerSource() : fs.readFileSync(path.join(ROOT, rel), 'utf8'));
 
 const PAGE = 'pages/hub/bankroll-manager.js';
 const TUTORIAL = 'src/tutorials/bankroll-manager.js';

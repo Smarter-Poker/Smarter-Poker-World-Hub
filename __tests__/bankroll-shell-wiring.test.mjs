@@ -12,9 +12,12 @@ import {
   TIME_FILTERS, CHART_TYPES, CHART_TYPE_LABELS, GAME_TYPES,
   sanitizeTimeFilter, sanitizeChartType, sanitizeGameTypes, toggleGameType, nextMenuIndex,
 } from '../src/lib/bankroll/dashboardFilters.mjs';
+import { BANKROLL_MANAGER_PAGE, bankrollManagerSource } from './helpers/bankroll-manager-source.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const read = (p) => readFileSync(join(ROOT, p), 'utf8');
+// The page reads as itself plus its section modules (the 2026-11-28 split;
+// __tests__/helpers/bankroll-manager-source.mjs).
+const read = (p) => (p === BANKROLL_MANAGER_PAGE ? bankrollManagerSource() : readFileSync(join(ROOT, p), 'utf8'));
 const PAGE = read('pages/hub/bankroll-manager.js');
 
 // The page's own view table and resolver, evaluated as written.

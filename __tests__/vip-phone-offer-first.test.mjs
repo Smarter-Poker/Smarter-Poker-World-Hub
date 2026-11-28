@@ -158,7 +158,8 @@ test('every VIP and Diamond prompt shows the phone step first', async () => {
   }
   // Pages that render the shared VipUpgradePrompt inherit the step.
   for (const path of [
-    'pages/hub/bankroll-manager.js',
+    // The Bankroll Manager's dashboard view (2026-11-28 page split).
+    'src/components/bankroll/sections/DashboardSection.jsx',
     'pages/hub/settings.js',
     'pages/hub/trivia/[mode].js',
     'pages/hub/trivia/endless.js',

@@ -17,8 +17,11 @@ import {
   USD_TO_EUR, USD_TO_EUR_AS_OF, convertCurrency, eurRateNote, formatCentsCurrency,
   formatCurrency, formatCurrencyCompact, formatCurrencyWithSign, formatSplit,
 } from '../src/lib/bankroll/currencyUtils.js';
+import { BANKROLL_MANAGER_PAGE, bankrollManagerSource } from './helpers/bankroll-manager-source.mjs';
 
-const read = (path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+// The page reads as itself plus its section modules (the 2026-11-28 split;
+// __tests__/helpers/bankroll-manager-source.mjs).
+const read = (path) => (path === BANKROLL_MANAGER_PAGE ? bankrollManagerSource() : readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 const code = (path) => read(path).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 test('the rate is one dated constant from a cited primary source', () => {
