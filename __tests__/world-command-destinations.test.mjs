@@ -60,7 +60,12 @@ test('every query-bearing command is consumed by its destination implementation'
     );
     const source = readFileSync(join(ROOT, sourcePath), 'utf8');
     for (const [key, value] of url.searchParams) {
-      assert.match(source, new RegExp(`query(?:\\?\\.)?(?:\\.${key}|\\[['\"]${key}['\"]\\])`), `${command.href} does not consume ${key}`);
+      // Read as query.key, query?.key, query['key'], or destructured from the
+      // query object (`const { gameId, level: queryLevel } = router.query`,
+      // the Training arena's form). All three consume the parameter.
+      const memberRead = new RegExp(`query(?:\\?\\.)?(?:\\.${key}|\\[['\"]${key}['\"]\\])`);
+      const destructured = new RegExp(`\\{[^{}]*\\b${key}\\b[^{}]*\\}\\s*=\\s*(?:[\\w.?]+\\.)?query\\b`);
+      assert.ok(memberRead.test(source) || destructured.test(source), `${command.href} does not consume ${key}`);
       assert.ok(source.includes(value), `${command.href} does not recognize ${key}=${value}`);
     }
   }
