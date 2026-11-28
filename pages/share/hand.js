@@ -291,6 +291,62 @@ export default function ShareHandPage({ initialQuery = {} }) {
         textDecoration: 'none',
     };
 
+    const clubArenaRailStyle = {
+        width: '100%',
+        maxWidth: 560,
+        marginBottom: 32,
+        padding: 10,
+        borderRadius: 28,
+        background: 'linear-gradient(180deg, #8b5530 0%, #5c3318 42%, #331a0c 100%)',
+        border: '1px solid rgba(212, 175, 118, 0.42)',
+        boxShadow: '0 22px 54px rgba(0, 0, 0, 0.68), inset 0 2px 3px rgba(240, 206, 158, 0.24), inset 0 -4px 10px rgba(0, 0, 0, 0.65)',
+        boxSizing: 'border-box',
+    };
+
+    const clubArenaFeltStyle = {
+        position: 'relative',
+        borderRadius: 20,
+        padding: '18px 20px 22px',
+        background: 'radial-gradient(ellipse at 50% 34%, #1b6b44 0%, #104b2e 58%, #072c1a 100%)',
+        border: '1px solid rgba(204, 168, 78, 0.46)',
+        boxShadow: 'inset 0 0 0 5px rgba(7, 24, 15, 0.58), inset 0 10px 28px rgba(0, 0, 0, 0.48)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 14,
+        textAlign: 'center',
+    };
+
+    const clubArenaPotPillStyle = {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        padding: '6px 16px',
+        borderRadius: 999,
+        background: 'rgba(4, 12, 22, 0.72)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        border: '1px solid rgba(86, 216, 255, 0.42)',
+        color: '#f1f5fc',
+        fontSize: 12,
+        fontWeight: 800,
+        letterSpacing: '0.08em',
+        fontVariantNumeric: 'tabular-nums',
+        boxShadow: '0 4px 14px rgba(0, 0, 0, 0.42)',
+    };
+
+    const clubArenaWatermarkStyle = {
+        fontSize: 12,
+        fontWeight: 800,
+        letterSpacing: '0.16em',
+        color: 'rgba(220, 238, 232, 0.48)',
+        textTransform: 'uppercase',
+        userSelect: 'none',
+    };
+
+    const potPillLabel = cleanPot ? `POT · ${cleanPot}` : 'POT · NOT SHARED';
+
     return (
         <>
             <Head>
@@ -418,67 +474,94 @@ export default function ShareHandPage({ initialQuery = {} }) {
                 {/* Review links: explicit cards only, opponents anonymized */}
                 {isReview && (
                     <div
-                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 36, maxWidth: 500, textAlign: 'center' }}
                         data-share-review="true"
+                        data-share-club-arena-table="true"
+                        style={clubArenaRailStyle}
                     >
-                        {heroCards.length > 0 ? (
-                            <div style={{ display: 'flex', gap: heroCards.length > 4 ? 6 : 8, flexWrap: 'wrap', justifyContent: 'center' }} aria-label="Hole Cards">
-                                {heroCards.map((c, i) => (
-                                    <PlayingCard key={i} card={c} variant="hero" compact={heroCards.length > 4} />
-                                ))}
+                        <div style={clubArenaFeltStyle}>
+                            <div data-share-felt-watermark="true" style={clubArenaWatermarkStyle}>
+                                SMARTER.POKER · CLUB ARENA
                             </div>
-                        ) : (
-                            <div style={{ fontSize: 14, color: '#dce5ef' }}>Hole Cards Hidden By The Player</div>
-                        )}
-                        {boardCards.length > 0 && (
-                            <div style={{ display: 'flex', gap: 6 }} aria-label="Board">
-                                {boardCards.map((c, i) => (
-                                    <PlayingCard key={i} card={c} variant="board" />
-                                ))}
+                            <div data-share-pot-pill="true" style={clubArenaPotPillStyle}>
+                                {potPillLabel}
                             </div>
-                        )}
-                        <div style={{ fontSize: 13, color: '#9eb4c8' }}>
-                            {reviewAnonymized ? 'Opponents: Anonymized Villain' : 'Opponent Names Are Not Included In This Link'}
+                            {boardCards.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                                    <div style={{ color: '#c4dbd0', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Board</div>
+                                    <div style={{ display: 'flex', gap: 6 }} aria-label="Board">
+                                        {boardCards.map((c, i) => (
+                                            <PlayingCard key={i} card={c} variant="board" />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {heroCards.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                                    <div style={{ color: '#c4dbd0', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Hole Cards</div>
+                                    <div style={{ display: 'flex', gap: heroCards.length > 4 ? 6 : 8, flexWrap: 'wrap', justifyContent: 'center' }} aria-label="Hole Cards">
+                                        {heroCards.map((c, i) => (
+                                            <PlayingCard key={i} card={c} variant="hero" compact={heroCards.length > 4} />
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{ fontSize: 14, color: '#dce5ef', fontWeight: 600 }}>Hole Cards Hidden By The Player</div>
+                            )}
+                            <div style={{ fontSize: 13, color: '#cfe0d8' }}>
+                                {reviewAnonymized ? 'Opponents: Anonymized Villain' : 'Opponent Names Are Not Included In This Link'}
+                            </div>
                         </div>
                     </div>
                 )}
 
                 {/* Interactive card display */}
                 {!isReview && (heroCards.length > 0 || boardCards.length > 0) && (
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 20,
-                        marginBottom: 36,
-                        flexWrap: 'wrap',
-                        justifyContent: 'center',
-                    }}>
-                        {heroCards.length > 0 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                                <div style={{ color: '#9eb4c8', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Hole Cards</div>
-                                <div style={{ display: 'flex', gap: heroCards.length > 4 ? 6 : 8, flexWrap: 'wrap', justifyContent: 'center' }} aria-label="Hole Cards">
-                                    {heroCards.map((c, i) => (
-                                        <PlayingCard key={i} card={c} variant="hero" compact={heroCards.length > 4} />
-                                    ))}
-                                </div>
+                    <div
+                        data-share-club-arena-table="true"
+                        style={clubArenaRailStyle}
+                    >
+                        <div style={clubArenaFeltStyle}>
+                            <div data-share-felt-watermark="true" style={clubArenaWatermarkStyle}>
+                                SMARTER.POKER · CLUB ARENA
                             </div>
-                        )}
-                        {heroCards.length > 0 && boardCards.length > 0 && (
-                            <div
-                                aria-hidden="true"
-                                style={{ width: 1, height: 64, background: 'rgba(174, 192, 208, 0.28)' }}
-                            />
-                        )}
-                        {boardCards.length > 0 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                                <div data-testid="share-board-label" style={{ color: '#9eb4c8', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Board</div>
-                                <div style={{ display: 'flex', gap: 6 }} aria-label="Board">
-                                    {boardCards.map((c, i) => (
-                                        <PlayingCard key={i} card={c} variant="board" />
-                                    ))}
-                                </div>
+                            <div data-share-pot-pill="true" style={clubArenaPotPillStyle}>
+                                {potPillLabel}
                             </div>
-                        )}
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 20,
+                                flexWrap: 'wrap',
+                                justifyContent: 'center',
+                            }}>
+                                {heroCards.length > 0 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                                        <div style={{ color: '#c4dbd0', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Hole Cards</div>
+                                        <div style={{ display: 'flex', gap: heroCards.length > 4 ? 6 : 8, flexWrap: 'wrap', justifyContent: 'center' }} aria-label="Hole Cards">
+                                            {heroCards.map((c, i) => (
+                                                <PlayingCard key={i} card={c} variant="hero" compact={heroCards.length > 4} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {heroCards.length > 0 && boardCards.length > 0 && (
+                                    <div
+                                        aria-hidden="true"
+                                        style={{ width: 1, height: 64, background: 'rgba(174, 192, 208, 0.36)' }}
+                                    />
+                                )}
+                                {boardCards.length > 0 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                                        <div data-testid="share-board-label" style={{ color: '#c4dbd0', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Board</div>
+                                        <div style={{ display: 'flex', gap: 6 }} aria-label="Board">
+                                            {boardCards.map((c, i) => (
+                                                <PlayingCard key={i} card={c} variant="board" />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
 

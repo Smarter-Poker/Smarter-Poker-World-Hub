@@ -43,6 +43,7 @@ import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import styles from '../../../src/styles/worlds/PersonalAssistantHub.module.css';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
 import { APPROVED_LANDING_SPRITE, ApprovedChrome, ApprovedIllustration, ApprovedTitleLight } from '../../../src/components/personal-assistant/ApprovedLandingArt';
+import { recordPaMilestone } from '../../../src/lib/personal-assistant/telemetry.mjs';
 
 const LiveSpotQuickEntry = dynamic(
   () => import('../../../src/components/personal-assistant/LiveSpotQuickEntry'),
@@ -314,6 +315,15 @@ export default function PersonalAssistantPage() {
   const topFocusTitle = coachingSnapshot?.priorities?.[0]?.title
     || coachingSnapshot?.trainingPlan?.modules?.[0]?.title
     || null;
+  const hasDebriefPending = !isSignedOut
+    && (((unreviewedHandsCount ?? 0) > 0) || ((activeLeakCount ?? 0) > 0));
+  const dynamicFocusSubtitle = topFocusTitle
+    ? `Focus: ${topFocusTitle}`
+    : !isSignedOut && (unreviewedHandsCount ?? 0) > 0
+      ? `Next Best Action: Debrief ${unreviewedHandsCount.toLocaleString()} Unreviewed ${unreviewedHandsCount === 1 ? 'Hand' : 'Hands'}`
+      : !isSignedOut && (activeLeakCount ?? 0) > 0
+        ? `Next Best Action: Fix ${activeLeakCount.toLocaleString()} Active ${activeLeakCount === 1 ? 'Leak' : 'Leaks'}`
+        : 'Your Saved Hands. Your Next Improvement.';
 
   const readyToReviewText = isSignedOut
     ? 'Sign In To Access Your Saved Hands'
@@ -438,10 +448,27 @@ export default function PersonalAssistantPage() {
                         />
                       </div>
                       <div className={styles.featureBody}>
-                        <span className={styles.featureEyebrow}>Recommended</span>
+                        <div className={styles.featureEyebrowRow}>
+                          <span className={styles.featureEyebrow}>Recommended</span>
+                          {hasDebriefPending && (
+                            <Link
+                              href="/hub/personal-assistant/review"
+                              className={styles.debriefBadge}
+                              data-post-session-debrief="true"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                recordPaMilestone('post_session_debrief_clicked', { surface: 'landing' });
+                                openInternalRoute('/hub/personal-assistant/review');
+                              }}
+                            >
+                              <span>Post-Session Debrief</span>
+                              <ChevronRight size={14} aria-hidden="true" />
+                            </Link>
+                          )}
+                        </div>
                         <h2 id="card-review-title" className={styles.featureTitle}>Review My Play</h2>
                         <p className={styles.featureFocus}>
-                          {topFocusTitle ? `Focus: ${topFocusTitle}` : 'Your Saved Hands. Your Next Improvement.'}
+                          {dynamicFocusSubtitle}
                         </p>
                         <p className={styles.featureMeta} aria-live="polite">
                           <ApprovedIllustration kind="target" className={styles.statusIcon} />

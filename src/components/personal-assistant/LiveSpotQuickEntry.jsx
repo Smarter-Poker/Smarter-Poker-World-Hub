@@ -16,6 +16,7 @@ import React, { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef
 import { ChevronRight } from 'lucide-react';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import { useAvatar } from '../../contexts/AvatarContext';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { BottomSheet, PAStyles, Segmented } from '../sandbox/paKit';
 import { T, F, S, R, DISPLAY_FONT, btn, pill } from '../sandbox/paTokens';
 import {
@@ -26,10 +27,14 @@ import {
   detectExternalHandFormat,
   summarizeLiveSpotAudit,
 } from '../../lib/personal-assistant/liveSpotHandHistory.mjs';
+import { parseLiveShorthand } from '../../lib/personal-assistant/shorthandParser.mjs';
+import { recordPaMilestone } from '../../lib/personal-assistant/telemetry.mjs';
 
 export { buildLiveSpotHandHistory, detectExternalHandFormat };
+export { parseLiveShorthand };
 
 const AUDIT_ENDPOINT = '/api/training/audit-hand-history';
+const LIVE_SPOT_DRAFT_PREFIX = 'pa-live-spot-draft-v1:';
 const MAX_PASTE_CHARS = 800000;
 const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB safe limit
 const REQUEST_TIMEOUT_MS = 60000;
@@ -255,11 +260,16 @@ export default function LiveSpotQuickEntry({
 }) {
   const { user } = useAvatar();
   const userId = user?.id || null;
+  const online = useOnlineStatus();
+  const isOffline = !online || (typeof navigator !== 'undefined' && navigator.onLine === false);
   const baseId = useId();
   const triggerRef = useRef(null);
   const [tab, setTab] = useState(initialTab === 'paste' ? 'paste' : 'spot');
   const [wizardStep, setWizardStep] = useState(1);
   const [spot, setSpot] = useState(DEFAULT_SPOT);
+  const [shorthandInput, setShorthandInput] = useState('');
+  const [shorthandFeedback, setShorthandFeedback] = useState('');
+  const [draftSavedNotice, setDraftSavedNotice] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const [pasted, setPasted] = useState('');
   const [running, setRunning] = useState(false);
@@ -352,6 +362,82 @@ export default function LiveSpotQuickEntry({
     setResult(null);
   }, []);
 
+  const draftKey = `pa-live-spot-draft-v1:${userId || 'guest'}`;
+
+  // Restore account-scoped local draft on mount or account switch.
+  useEffect(() => {
+    setShorthandInput('');
+    setShorthandFeedback('');
+    let restoredAny = false;
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const raw = window.localStorage.getItem(draftKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object' && parsed.spot && typeof parsed.spot === 'object') {
+            const nextSpot = { ...DEFAULT_SPOT, ...parsed.spot };
+            setSpot(nextSpot);
+            if (typeof parsed.shorthand === 'string') setShorthandInput(parsed.shorthand);
+            restoredAny = Boolean(nextSpot.heroCards || nextSpot.board || parsed.shorthand);
+          }
+        }
+      } catch {
+        /* ignore malformed draft */
+      }
+    }
+    setDraftSavedNotice(restoredAny);
+  }, [draftKey]);
+
+  // Auto-save spot draft locally so offline or interrupted live room notes are never lost.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const hasInput = Boolean(spot.heroCards.trim() || spot.board.trim() || shorthandInput.trim());
+    try {
+      if (hasInput) {
+        window.localStorage.setItem(draftKey, JSON.stringify({
+          spot,
+          shorthand: shorthandInput,
+          savedAt: Date.now(),
+        }));
+        setDraftSavedNotice(true);
+      } else {
+        window.localStorage.removeItem(draftKey);
+        setDraftSavedNotice(false);
+      }
+    } catch {
+      /* ignore quota errors */
+    }
+  }, [draftKey, spot, shorthandInput]);
+
+  const handleParseShorthand = useCallback(() => {
+    const raw = shorthandInput.trim();
+    if (!raw) {
+      setShorthandFeedback('Paste A Quick Poker Note Like "UTG Opens 3x, I 3b AhKh BTN 9x, Flop Ks7c2d, Cbet 1/3".');
+      return;
+    }
+    const parsed = parseLiveShorthand(raw);
+    const hasAnyField = parsed.heroCards.length > 0 || Boolean(parsed.position) || parsed.boardCards.length >= 3 || parsed.stackBb !== null;
+    if (!hasAnyField) {
+      setShorthandFeedback('Could Not Detect Cards Or Position. Try Including Hero Cards Like AhKh And Position Like BTN.');
+      return;
+    }
+    setSpot((current) => ({
+      ...current,
+      heroCards: parsed.heroCards.length > 0 ? parsed.heroCards.join(' ') : current.heroCards,
+      position: parsed.position || current.position,
+      stackBb: parsed.stackBb !== null ? String(parsed.stackBb) : current.stackBb,
+      format: parsed.gameFormat || current.format,
+      board: parsed.boardCards.length >= 3 ? parsed.boardCards.join(' ') : (parsed.boardCards.length === 0 && !/\b(?:board|flop|turn|river)\b/i.test(raw) ? '' : current.board),
+      facing: parsed.facingAction || current.facing,
+      action: parsed.heroAction || current.action,
+    }));
+    setResult(null);
+    setShowErrors(false);
+    setShorthandFeedback(`Parsed: ${parsed.parsedSummary}`);
+    setStatusAnnouncement(`Parsed Shorthand Into Form. ${parsed.parsedSummary}`);
+    recordPaMilestone('shorthand_parsed', { surface: 'live_spot', format: parsed.gameFormat });
+  }, [shorthandInput]);
+
   const handleAdvanceToStep2 = useCallback(() => {
     setShowErrors(true);
     if (!built.ok) return;
@@ -398,6 +484,14 @@ export default function LiveSpotQuickEntry({
       throw error;
     };
     try {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        const offlineMsg = 'You Are Currently Offline. Your Draft Is Saved Locally On This Device, Not Yet Uploaded To Your Account. Reconnect And Try Again.';
+        if (!suppressEvents) {
+          setResult({ kind: 'error', title: 'Offline · Draft Saved Locally', message: offlineMsg });
+          setStatusAnnouncement('Offline. Draft Saved Locally Only.');
+        }
+        return { ok: false, offline: true, title: 'Offline · Draft Saved Locally', error: offlineMsg };
+      }
       const token = ownerId ? await getFreshAccessToken() : null;
       if (!isCurrent()) return null;
       throwIfAborted();
@@ -442,8 +536,13 @@ export default function LiveSpotQuickEntry({
       }
       if (!suppressEvents) {
         setResult({ kind: 'ok', summary });
-        setStatusAnnouncement(`Audit Complete. ${summary.handsParsed} Hand${summary.handsParsed === 1 ? '' : 's'} Read.`);
+        setStatusAnnouncement(`Audit Complete. ${summary.handsParsed} ${summary.handsParsed === 1 ? 'Hand' : 'Hands'} Read.`);
+        if (typeof recordPaMilestone === 'function') {
+          recordPaMilestone('hand_logged', { surface: 'live_spot', source: evidenceScope });
+        }
         if (typeof window !== 'undefined') {
+          try { window.localStorage?.removeItem(`pa-live-spot-draft-v1:${userId || 'guest'}`); } catch (_) {}
+          if (typeof setDraftSavedNotice === 'function') setDraftSavedNotice(false);
           window.dispatchEvent(new Event('pa-data-updated'));
           window.dispatchEvent(new Event('pa-sandbox-updated'));
         }
@@ -918,6 +1017,81 @@ export default function LiveSpotQuickEntry({
 
             {wizardStep === 1 ? (
               <div data-testid="live-spot-step-1" style={{ display: 'grid', gap: 12 }}>
+                {isOffline && (
+                  <div
+                    role="status"
+                    data-offline-draft-notice="true"
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: R.sm,
+                      border: '1px solid rgba(86, 216, 255, 0.45)',
+                      background: 'rgba(8, 47, 73, 0.42)',
+                      color: '#cdeeff',
+                      fontSize: F.caption,
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    Offline Mode · Your Draft Auto-Saves Locally On This Device. Reconnect To Run Solver Audit And Save To Your Account.
+                  </div>
+                )}
+
+                {/* Quick Shorthand Paste Bar */}
+                <div
+                  data-shorthand-paste-bar="true"
+                  style={{
+                    display: 'grid',
+                    gap: 8,
+                    padding: '10px 12px',
+                    borderRadius: R.sm,
+                    border: '1px solid rgba(86, 216, 255, 0.34)',
+                    background: '#071322',
+                  }}
+                >
+                  <label htmlFor={id('shorthand')} style={{ ...labelStyle, marginBottom: 0, color: '#83deff' }}>
+                    Quick Shorthand Paste
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                    <input
+                      id={id('shorthand')}
+                      type="text"
+                      inputMode="text"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      data-pa-verbatim="true"
+                      value={shorthandInput}
+                      onChange={(event) => setShorthandInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          handleParseShorthand();
+                        }
+                      }}
+                      placeholder="e.g. UTG Opens 3x, I 3b AhKh BTN 9x, Flop Ks7c2d, Cbet 1/3"
+                      style={{ ...controlStyle, flex: '1 1 220px' }}
+                    />
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      data-shorthand-parse-btn="true"
+                      onClick={handleParseShorthand}
+                      style={{ ...btn('secondary'), minHeight: 44, padding: '8px 14px', whiteSpace: 'nowrap' }}
+                    >
+                      <span>Parse Into Form</span>
+                    </button>
+                  </div>
+                  {shorthandFeedback && (
+                    <p role="status" style={{ ...noteStyle, color: '#9ee5ff' }}>
+                      {shorthandFeedback}
+                    </p>
+                  )}
+                  {draftSavedNotice && !isOffline && (
+                    <p style={{ ...noteStyle, fontSize: 12, color: '#9eb4c8' }}>
+                      Draft Auto-Saved Locally On This Device.
+                    </p>
+                  )}
+                </div>
+
                 <Field id={id('hero')} label="Hero Cards">
                   <input
                     id={id('hero')}

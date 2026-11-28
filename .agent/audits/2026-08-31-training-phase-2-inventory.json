@@ -20,7 +20,7 @@
     "realtimeFiles": 7,
     "tests": 203,
     "markerCandidates": 406,
-    "possibleUnwiredFunctions": 510,
+    "possibleUnwiredFunctions": 511,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 0,
     "routeStateUnassignedGaps": 0,
@@ -62752,7 +62752,7 @@
       "functions": [
         {
           "name": "canonicalSkinId",
-          "line": 211,
+          "line": 275,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -62760,7 +62760,7 @@
         },
         {
           "name": "resolveArenaSkinUrl",
-          "line": 223,
+          "line": 287,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -62768,7 +62768,7 @@
         },
         {
           "name": "resolveArenaFeltGradient",
-          "line": 228,
+          "line": 292,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -62776,7 +62776,7 @@
         },
         {
           "name": "resolveArenaFeltLayers",
-          "line": 233,
+          "line": 297,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -62784,7 +62784,7 @@
         },
         {
           "name": "resolveArenaBackgroundLayers",
-          "line": 238,
+          "line": 302,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -62792,7 +62792,7 @@
         },
         {
           "name": "resolveArenaDealerButton",
-          "line": 248,
+          "line": 312,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -62800,15 +62800,23 @@
         },
         {
           "name": "resolveArenaCardBackUrl",
-          "line": 256,
+          "line": 320,
           "references": 2,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "resolveArenaCardUrl",
+          "line": 329,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "readAuthUserId",
-          "line": 262,
+          "line": 338,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -62816,7 +62824,7 @@
         },
         {
           "name": "readArenaThemeRow",
-          "line": 278,
+          "line": 354,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -62824,7 +62832,7 @@
         },
         {
           "name": "getClubArenaTheme",
-          "line": 301,
+          "line": 377,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -62832,7 +62840,7 @@
         },
         {
           "name": "onClubArenaThemeChange",
-          "line": 323,
+          "line": 399,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -62840,7 +62848,7 @@
         },
         {
           "name": "handler",
-          "line": 325,
+          "line": 401,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -62848,6 +62856,7 @@
         }
       ],
       "possibleUnwiredFunctions": [
+        "resolveArenaCardUrl",
         "onClubArenaThemeChange"
       ],
       "markers": [
@@ -131482,8 +131491,23 @@
       },
       {
         "file": "src/lib/clubArenaTheme.js",
+        "name": "resolveArenaCardUrl",
+        "line": 329,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/sandbox/SandboxPokerTable.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/clubArenaTheme.js",
         "name": "onClubArenaThemeChange",
-        "line": 323,
+        "line": 399,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -143731,8 +143755,23 @@
       },
       {
         "file": "src/lib/clubArenaTheme.js",
+        "name": "resolveArenaCardUrl",
+        "line": 329,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/sandbox/SandboxPokerTable.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/clubArenaTheme.js",
         "name": "onClubArenaThemeChange",
-        "line": 323,
+        "line": 399,
         "references": 1,
         "exported": true,
         "defaultExport": false,
