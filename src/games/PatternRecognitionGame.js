@@ -13,6 +13,7 @@ import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness } from '../utils/weaknessTracker';
 import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
 import PowerUpBar from '../components/training/PowerUpBar';
+import PreflopGuestSavePrompt from '../components/memory-games/PreflopGuestSavePrompt';
 import { Puzzle } from 'lucide-react';
 import { GameFrame, GameTopBar, GameIntro, GameResult, GameWeakness, GameNote, GameActions, GameShare, GameCoachTip, GameSuggestedNext, GameNextButton, gradeTone } from '../components/memory-games/PreflopGameKit';
 let _confetti = null;
@@ -215,6 +216,8 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                         ]} />
 
                         <AnimatedAccuracyBar accuracy={accuracy} grade={grade} />
+
+                        <PreflopGuestSavePrompt mode="pattern-recognition" accuracy={accuracy} />
 
                         <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={maxRounds} />
 

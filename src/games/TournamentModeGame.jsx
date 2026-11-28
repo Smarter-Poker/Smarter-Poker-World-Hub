@@ -13,6 +13,7 @@ import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness } from '../utils/weaknessTracker';
 import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
 import PowerUpBar from '../components/training/PowerUpBar';
+import PreflopGuestSavePrompt from '../components/memory-games/PreflopGuestSavePrompt';
 import { resolveArenaCardUrl } from '../lib/clubArenaTheme';
 import { CheckCircle2, Swords, XCircle } from 'lucide-react';
 import { GameFrame, GameTopBar, GameIntro, GameResult, GameActions, GameShare, GameCoachTip, GameNextButton } from '../components/memory-games/PreflopGameKit';
@@ -674,6 +675,8 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                     />
 
                     <AnimatedAccuracyBar accuracy={accuracy} grade={playerWon ? 'A' : 'D'} label="Round Win Rate" />
+
+                    <PreflopGuestSavePrompt mode="local-vs" accuracy={accuracy} />
 
                     <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={ROUNDS_PER_MATCH} />
 

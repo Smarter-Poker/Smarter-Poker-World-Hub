@@ -188,6 +188,11 @@ const PatternRecognitionGame = lazyScreen(
   420
 );
 const MixedStrategyGame = lazyScreen(() => import('../../src/games/MixedStrategyGame'), 420);
+// Only a signed-out player's strong result shows it, so it loads on demand.
+const PreflopGuestSavePrompt = dynamic(
+  () => import('../../src/components/memory-games/PreflopGuestSavePrompt'),
+  { ssr: false }
+);
 
 import { filterScenarios } from '../../src/games/scenarioFilters';
 import { getAccessToken, authedFetch } from '../../src/lib/authUtils';
@@ -3343,6 +3348,9 @@ export default function MemoryGamesPage() {
                         <ArrowRight size={17} aria-hidden />
                       </button>
                     </div>
+                  )}
+                  {gradeResult && !userId && (
+                    <PreflopGuestSavePrompt mode="range-lab" accuracy={gradeResult.score} />
                   )}
                 </div>
 

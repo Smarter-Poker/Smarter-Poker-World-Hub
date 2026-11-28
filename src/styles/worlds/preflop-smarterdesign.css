@@ -5221,6 +5221,83 @@ body.world-preflop-charts .preflop-session-time {
     text-transform: none;
 }
 
+/* Guest save prompt (src/components/memory-games/PreflopGuestSavePrompt.jsx):
+   a chrome readout under a strong result, cobalt primary key, steel
+   secondary key. Same vocabulary on the Range Lab and in the game screens. */
+body.world-preflop-charts .preflop-guest-save {
+    box-sizing: border-box;
+    margin: 12px 0;
+    padding: 14px;
+    border: 3px solid transparent;
+    border-radius: 0;
+    border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+    background: var(--pcsd-navy);
+    color: var(--pcsd-silver);
+    text-align: left;
+}
+
+body.world-preflop-charts .preflop-guest-save-kicker {
+    margin: 0 0 4px;
+    color: var(--pcsd-ice);
+    font-family: var(--pcsd-type);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+body.world-preflop-charts .preflop-guest-save h2 {
+    margin: 0 0 6px;
+    color: var(--pcsd-text);
+    font-family: var(--pcsd-type);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+body.world-preflop-charts .preflop-guest-save p {
+    margin: 0 0 12px;
+    color: var(--pcsd-silver);
+    font-family: var(--pcsd-body);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+body.world-preflop-charts .preflop-guest-save-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+body.world-preflop-charts .preflop-guest-save-actions button {
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 3px solid transparent;
+    border-radius: 0;
+    background-clip: padding-box;
+    font-family: var(--pcsd-type);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+body.world-preflop-charts .preflop-guest-save-actions .preflop-guest-save-primary {
+    flex: 1 1 200px;
+    border-image: url('/images/smarterdesign/chrome-active-v2.webp') 11 / 4px stretch;
+    background: var(--pcsd-cobalt);
+    background-clip: padding-box;
+    color: #fff;
+}
+
+body.world-preflop-charts .preflop-guest-save-actions .preflop-guest-save-secondary {
+    flex: 0 1 auto;
+    border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+    background: var(--pcsd-control);
+    background-clip: padding-box;
+    color: var(--pcsd-text);
+}
+
 /* ═══ 3. ACCESSIBILITY ═══════════════════════════════════════════════════ */
 
 /* Keyboard focus is always visible. src/index.css removes every outline
