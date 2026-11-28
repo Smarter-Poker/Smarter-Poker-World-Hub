@@ -86,6 +86,14 @@ export default function NewsSmarterDesignStyles() {
                 gap: 16px;
             }
             @media (min-width: 1001px) {
+                /* overflow-x: hidden on the page makes it a scroll container,
+                   and a sticky element inside one never sticks to the window.
+                   clip hides the same overflow without that side effect. A
+                   browser without clip drops this rule and keeps hidden. */
+                .news-hub.smarterdesign {
+                    overflow-x: clip !important;
+                    overflow-y: visible !important;
+                }
                 /* The global header is about 10.2vw tall at every width. */
                 .news-hub.smarterdesign .sidebar-dock {
                     position: sticky;
