@@ -374,7 +374,7 @@ export default function ReceiptScanner({
             });
             if (!res.ok) {
                 const detail = await res.json().catch(() => null);
-                console.warn('[ReceiptScanner] Read failed:', res.status, detail && detail.detail);
+                console.warn('[ReceiptScanner] Read failed:', res.status, detail && detail.error);
                 // The engine worked; the server refused. A 403 is the
                 // entitlement gate, a 429 is the rate limit, and those are
                 // different problems from a bad photograph.

@@ -21,6 +21,7 @@ import { downscaleForOcr } from '../../lib/docscan/imageSource';
 import { reportReaderFailure, READER_SECTIONS } from '../../lib/bankroll/reportReaderFailure';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import { licenseExpiry, venue1099Alerts, vaultCanPreview, vaultFileType, VAULT_MAX_BYTES } from '../../lib/bankroll/dealerTax.mjs';
+import { requestErrorMessage } from '../../lib/bankroll/apiGuard.mjs';
 import toast from '../../stores/toastStore';
 import LiveCameraScanner from './LiveCameraScanner';
 import DocumentCropper from './DocumentCropper';
@@ -301,7 +302,13 @@ function DealerVault({ userId, completedGigs = [] }) {
                 body: JSON.stringify({ text: read.text, ocrConfidence: read.confidence })
             });
 
-            if (!res.ok) throw new Error('OCR failed');
+            // A refusal is not an unreadable document: say which it was. The
+            // document still saves either way; only the auto-fill is skipped.
+            if (!res.ok) {
+                const refusal = new Error('OCR failed');
+                refusal.status = res.status;
+                throw refusal;
+            }
 
             const { data } = await res.json();
 
@@ -332,7 +339,10 @@ function DealerVault({ userId, completedGigs = [] }) {
             if (err instanceof OcrUnavailableError || err instanceof PdfUnreadableError) {
                 reportReaderFailure(err, READER_SECTIONS.DEALER_VAULT, userId);
             }
-            toast.error('Could not auto-extract data. Please enter manually.');
+            const refused = err && [401, 403, 429, 503].includes(err.status);
+            toast.error(refused
+                ? requestErrorMessage(err.status, '').replace(/\.?$/, '.') + ' Enter the details manually for now.'
+                : 'Could not auto-extract data. Please enter manually.');
         } finally {
             setOcrProgress(null);
             setIsAnalyzing(false);

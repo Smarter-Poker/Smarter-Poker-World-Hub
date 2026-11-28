@@ -1,4 +1,5 @@
 import { localDay } from './localDates.mjs';
+import { requestErrorMessage } from './apiGuard.mjs';
 
 // The PDF endpoint streams a document. CSV and JSON return file data and a suggested filename.
 export async function fetchBankrollExport(format, token, fetcher = fetch, now = new Date()) {
@@ -15,9 +16,7 @@ export async function fetchBankrollExport(format, token, fetcher = fetch, now = 
             body: JSON.stringify({ format, today: date }),
         });
     if (!response.ok) {
-        if (response.status === 403) throw new Error('Bankroll Pro Or VIP Access Is Required');
-        if (response.status === 401) throw new Error('Please Sign In To Export Your Bankroll');
-        throw new Error(`${format.toUpperCase()} Export Failed`);
+        throw new Error(requestErrorMessage(response.status, `${format.toUpperCase()} Export Failed`, { signIn: 'Please Sign In To Export Your Bankroll' }));
     }
     if (pdf) {
         if (!response.headers.get('content-type')?.includes('application/pdf')) throw new Error('PDF Export Failed');
