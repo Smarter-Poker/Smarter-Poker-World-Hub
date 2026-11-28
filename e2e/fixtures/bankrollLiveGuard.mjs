@@ -75,6 +75,9 @@ export const READ_ONLY_RPCS = Object.freeze([
   'get_user_achievements', 'get_visible_live_comments', 'get_visible_live_streams',
   'resolve_social_reel_reference', 'rpc_hg_list_public_tournaments',
   'training_dashboard_30day_stats', 'training_dashboard_last_session', 'user_reel_topics',
+  // The dashboard totals (getBankrollStats, #3296): STABLE in the production
+  // catalog (read 2026-11-28). Blocking it made the stats tiles fail.
+  'fn_bankroll_totals',
 ]);
 
 const READ_VERBS = new Set(['GET', 'HEAD', 'OPTIONS']);

@@ -21,6 +21,8 @@ test('reads pass, ledger and API writes are data-writes', () => {
   assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/rpc/fn_anything`), 'data-write');
   assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/rpc/fn_platform_frozen`), 'data-write');
   assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/rpc/fn_lightning_my_sessions`), 'read');
+  assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/rpc/fn_bankroll_totals`), 'read', 'the STABLE dashboard totals read');
+  assert.equal(classifyRequest('POST', `${SUPABASE}/rest/v1/rpc/fn_profile_settings_set_key`), 'data-write');
   assert.equal(classifyRequest('PATCH', `${SUPABASE}/rest/v1/rpc/fn_lightning_my_sessions`), 'data-write');
   assert.equal(classifyRequest('POST', `${SUPABASE}/storage/v1/object/receipts/x.jpg`), 'data-write');
   assert.equal(classifyRequest('POST', `${SUPABASE}/functions/v1/anything`), 'data-write');
@@ -45,7 +47,7 @@ test('receipts carry method and path only, and SHAs are exact', () => {
 
 test('the workflow runs bankroll-live signed in as the service account and pinned to the deployment', () => {
   const wf = readFileSync(new URL('../.github/workflows/e2e-tests.yml', import.meta.url), 'utf8');
-  assert.match(wf, /options: \[[^\]]*\bbankroll-live\]/);
+  assert.match(wf, /options: \[[^\]]*\bbankroll-live\b[^\]]*\]/);
   const job = wf.match(/^  bankroll-live:\n[\s\S]*?(?=^  [a-zA-Z0-9_-]+:\n|(?![\s\S]))/m)?.[0] || '';
   assert.ok(job, 'bankroll-live job missing');
   assert.match(job, /if: \$\{\{ inputs\.suite == 'bankroll-live' \}\}/);
