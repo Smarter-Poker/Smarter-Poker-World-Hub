@@ -302,7 +302,9 @@ test('every route that renders a count-bearing renderer opens the live scope', (
   assert.ok(bearing.length >= 15);
   const callRe = new RegExp(`\\b(${bearing.join('|')})\\(`);
   const missing = [];
-  for (const rel of walk('pages')) {
+  const pageFiles = walk('pages');
+  assert.ok(pageFiles.length > 300, `expected the whole pages/ tree, found ${pageFiles.length}`);
+  for (const rel of pageFiles) {
     const src = read(rel);
     // Only a route that serves Markdown, or an API route, counts here.
     if (!/text\/markdown/.test(src) && !rel.startsWith(path.join('pages', 'api'))) continue;
@@ -320,6 +322,7 @@ test('every static crawler file that carries the room label is rewritten from li
     ...fs.readdirSync(path.join(ROOT, 'public')).filter((f) => /\.(?:txt|xml|json)$/.test(f)).map((f) => `public/${f}`),
     ...fs.readdirSync(path.join(ROOT, 'public/.well-known')).map((f) => `public/.well-known/${f}`),
   ];
+  assert.ok(candidates.length > 5, `expected the public crawler files, found ${candidates.length}`);
   const snapLabel = new RegExp(`(?<![\\d.])${SNAP.label.replace('+', '\\+')}`);
   for (const rel of candidates) {
     const p = path.join(ROOT, rel);
