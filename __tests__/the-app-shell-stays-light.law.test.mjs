@@ -216,3 +216,32 @@ test('both streaming components are still declared with dynamic() on those pages
     );
   }
 });
+
+/*
+ * DYNAMIC IS NOT DEFERRED (2026-11-27). A dynamic() component that the shell
+ * renders on every page still fetches its chunk on every page load. Poker Near
+ * Me's mobile budget measured the LiveKit client (about 140 KB compressed,
+ * behind GlobalPiPManager) and Jarvis with its three chunks arriving on a page
+ * that shows neither. Each is mounted only when it could show something:
+ * the PiP manager once LiveStreamService has been evaluated in the tab (no
+ * room can exist before that), Jarvis the first time it opens.
+ */
+test('the PiP manager and Jarvis are mounted only when they could render', () => {
+  const app = readFileSync(join(ROOT, 'pages/_app.js'), 'utf8');
+  const service = readFileSync(join(ROOT, 'src/services/LiveStreamService.js'), 'utf8');
+  assert.ok(!/<GlobalPiPManager\s*\/>\s*\n\s*<\/HubErrorBoundary>/.test(app),
+    'GlobalPiPManager is rendered unconditionally again - every page fetches LiveKit');
+  assert.match(app, /<LiveStreamPiPGate \/>/, 'the shell no longer renders LiveStreamPiPGate');
+  assert.match(app, /return liveStreamLoaded \? <GlobalPiPManager \/> : null;/,
+    'LiveStreamPiPGate no longer waits for LiveStreamService');
+  assert.match(app, /addEventListener\('sp:live-stream-service-loaded'/,
+    'LiveStreamPiPGate no longer listens for LiveStreamService to load');
+  assert.match(service, /window\.__spLiveStreamServiceLoaded = true;/,
+    'LiveStreamService no longer sets the flag LiveStreamPiPGate reads');
+  assert.match(service, /LIVE_STREAM_SERVICE_LOADED_EVENT = 'sp:live-stream-service-loaded'/,
+    'LiveStreamService no longer announces itself with the event the shell listens for');
+  assert.match(app, /<JarvisPanelGate isOpen=\{isJarvisOpen\} onClose=\{onJarvisClose\} \/>/,
+    'the shell renders JarvisPanel directly again - every page fetches the Jarvis chunks');
+  assert.match(app, /return hasOpened \|\| isOpen \? <JarvisPanel /,
+    'JarvisPanelGate no longer mounts Jarvis on first open');
+});

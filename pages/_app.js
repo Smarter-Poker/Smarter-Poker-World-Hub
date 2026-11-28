@@ -245,6 +245,46 @@ const GlobalPiPManager = dynamic(() => import('../src/components/social/GlobalPi
   loading: () => null,
 });
 
+/*
+ * Jarvis renders null until it is opened (JarvisPanel.tsx, `if (!isOpen)`),
+ * yet mounting it closed still fetched its chunk and the three it depends on
+ * on every page load. Mount it the first time it opens and keep it mounted
+ * after that, so a conversation survives closing the panel exactly as before.
+ */
+function JarvisPanelGate({ isOpen, onClose }) {
+  const [hasOpened, setHasOpened] = useState(false);
+  useEffect(() => {
+    if (isOpen) setHasOpened(true);
+  }, [isOpen]);
+  return hasOpened || isOpen ? <JarvisPanel isOpen={isOpen} onClose={onClose} /> : null;
+}
+
+/*
+ * THE PIP MANAGER WAITS FOR A LIVE ROOM TO BE POSSIBLE (2026-11-27). Being
+ * dynamic kept LiveKit out of the shell chunk, but rendering it on every page
+ * still fetched its chunk - the LiveKit client, about 140 KB compressed - on
+ * every page load, including pages with no live surface (Poker Near Me
+ * measured it as the largest script after _app). The PiP window can only show
+ * a room LiveStreamService has joined, and that module announces itself with
+ * window.__spLiveStreamServiceLoaded and the 'sp:live-stream-service-loaded'
+ * event when it is evaluated (no import, so this shell's graph stays put).
+ * Until then there is nothing the manager could show, so it is not mounted.
+ */
+function LiveStreamPiPGate() {
+  const [liveStreamLoaded, setLiveStreamLoaded] = useState(false);
+  useEffect(() => {
+    // Set and dispatched by src/services/LiveStreamService.js when it loads.
+    if (window.__spLiveStreamServiceLoaded) {
+      setLiveStreamLoaded(true);
+      return undefined;
+    }
+    const onLoaded = () => setLiveStreamLoaded(true);
+    window.addEventListener('sp:live-stream-service-loaded', onLoaded);
+    return () => window.removeEventListener('sp:live-stream-service-loaded', onLoaded);
+  }, []);
+  return liveStreamLoaded ? <GlobalPiPManager /> : null;
+}
+
 const WorldCommandDock = dynamic(() => import('../src/components/ui/WorldCommandDock'), {
   ssr: false,
   loading: () => null,
@@ -1368,10 +1408,10 @@ export default function App({ Component, pageProps }) {
                                   />
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Jarvis Panel" fallback={<></>}>
-                                  <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
+                                  <JarvisPanelGate isOpen={isJarvisOpen} onClose={onJarvisClose} />
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Global PiP Manager" fallback={<></>}>
-                                  <GlobalPiPManager />
+                                  <LiveStreamPiPGate />
                                 </HubErrorBoundary>
 
                                 <HubErrorBoundary name="Global Error Catcher" fallback={<></>}>

@@ -496,7 +496,11 @@ body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'
   box-sizing: border-box !important;
   width: calc(100% - 2 * var(--pnm-menu-inset)) !important;
   height: auto !important;
-  min-height: 0 !important;
+  /* The painted well used to give this button its height through
+     aspect-ratio 1829 / 271. The #SmarterDesign rim (#3209) retired that
+     ratio, so the floor has to be explicit: 48px like the menu rows, never
+     under the 44px drawer control minimum. */
+  min-height: 48px !important;
   margin: 0 var(--pnm-menu-inset) !important;
   padding: 0 var(--pnm-face-inline) var(--pnm-face-lift) !important;
   color: #dfe8ef !important;

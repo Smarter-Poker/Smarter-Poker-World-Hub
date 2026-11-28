@@ -1670,4 +1670,15 @@ class LiveStreamService {
 
 // Singleton
 export const liveStreamService = new LiveStreamService();
+
+// Tell the app shell a live room is now possible in this tab, so it can mount
+// GlobalPiPManager (LiveStreamPiPGate in pages/_app.js). Until this module is
+// evaluated no room can exist, so the shell does not fetch LiveKit for a
+// picture-in-picture window that could not appear. A window flag plus an
+// event, not an import, so the shell's static graph does not grow.
+export const LIVE_STREAM_SERVICE_LOADED_EVENT = 'sp:live-stream-service-loaded';
+if (typeof window !== 'undefined') {
+  window.__spLiveStreamServiceLoaded = true;
+  window.dispatchEvent(new Event(LIVE_STREAM_SERVICE_LOADED_EVENT));
+}
 export default LiveStreamService;
