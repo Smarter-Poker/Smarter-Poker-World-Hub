@@ -42,6 +42,13 @@ def classify(row):
             'language_code':'en','source_quality_score':min(100,quality),
             'quality_score':min(100,quality),'quality_findings':findings}
 
+CHAPTER_SOURCE='creator_description'
+
+def creator_chapter_output(stored):
+    chapters=[entry for entry in (stored if isinstance(stored,list) else []) if isinstance(entry,dict) and entry.get('source')==CHAPTER_SOURCE]
+    if chapters: return {'status':'creator_chapters','source':CHAPTER_SOURCE,'count':len(chapters)}
+    return {'status':'unavailable','reason':'no_creator_chapters'}
+
 def promote_candidate(db, video_id):
     pending=(db.table('video_enrichment_jobs').select('id',count='exact').eq('video_id',video_id).neq('status','succeeded').execute())
     if (pending.count or 0) != 0: return False
@@ -74,8 +81,11 @@ def main():
                 output={'status':'unavailable','reason':'provider_caption_authority_not_configured'}
                 db.table('video_enrichment_records').update({'transcript_status':'unavailable'}).eq('video_id',job['video_id']).execute()
             elif job_type=='chapters':
-                output={'chapters':[{'start_seconds':0,'title':'Video Start'}]}
-                db.table('video_enrichment_records').update({'chapters':output['chapters']}).eq('video_id',job['video_id']).execute()
+                # Chapters are the creator's own, read from the YouTube description by
+                # video_source_registry_ingest.py. This worker has no chapter source, so it
+                # never writes the column: no invented chapter, and a creator's list stays.
+                stored=(db.table('video_enrichment_records').select('chapters').eq('video_id',job['video_id']).maybe_single().execute().data or {}).get('chapters')
+                output=creator_chapter_output(stored)
             status=db.rpc('fn_finish_video_enrichment_job',{'p_job_id':job['id'],'p_worker':WORKER,'p_succeeded':True,'p_output':output}).execute().data
             promote_candidate(db,job['video_id'])
             result['succeeded']+=1

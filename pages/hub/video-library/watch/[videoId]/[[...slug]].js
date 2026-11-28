@@ -77,6 +77,7 @@ import {
     watchUrl,
 } from '../../../../../src/lib/videoLibraryWatch.mjs';
 import { formatViewCount, getVideoChannel, getVideoMetaLine } from '../../../../../src/lib/videoLibraryCards';
+import { creatorChapters } from '../../../../../src/lib/videoLibraryChapters.mjs';
 
 const UniversalHeader = dynamic(() => import('../../../../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../../../../src/components/ui/HamburgerMenu'), { ssr: false });
@@ -145,7 +146,7 @@ export async function getServerSideProps({ req, query, params, res }) {
         }
 
         const relatedTypes = VIDEO_LIBRARY_POKER_TYPES.includes(video.type) ? VIDEO_LIBRARY_POKER_TYPES : [video.type];
-        const [channelResult, relatedResult] = await Promise.all([
+        const [channelResult, relatedResult, chaptersResult] = await Promise.all([
             db.from('video_library_public_catalog')
                 .select(VIDEO_ROW_FIELDS)
                 .eq('source_id', video.source)
@@ -161,6 +162,13 @@ export async function getServerSideProps({ req, query, params, res }) {
                 .or(mixedContentFilter())
                 .order('published_at', { ascending: false, nullsFirst: false })
                 .limit(RELATED_LIMIT + 6),
+            // The creator's own chapters, read from the YouTube description at
+            // ingest. creatorChapters() keeps only marked, valid entries.
+            db.from('video_enrichment_records')
+                .select('chapters, video_library_videos!inner(youtube_video_id)')
+                .eq('video_library_videos.youtube_video_id', videoId)
+                .limit(1)
+                .maybeSingle(),
         ]);
         const usable = (result, limit) => (result.error ? [] : (result.data || []))
             .map(normaliseVideoRow)
@@ -169,6 +177,8 @@ export async function getServerSideProps({ req, query, params, res }) {
             .map(pickCard);
         if (channelResult.error) console.warn('[video-watch] channel videos unavailable:', channelResult.error.message);
         if (relatedResult.error) console.warn('[video-watch] related videos unavailable:', relatedResult.error.message);
+        if (chaptersResult.error) console.warn('[video-watch] creator chapters unavailable:', chaptersResult.error.message);
+        const chapters = chaptersResult.error ? [] : creatorChapters(chaptersResult.data?.chapters, durationSeconds(video.duration));
 
         const channel = getVideoChannel(video);
         // Link only to a channel page that exists, at its canonical address.
@@ -229,6 +239,7 @@ export async function getServerSideProps({ req, query, params, res }) {
                     ...buildVideoJsonLd(video, { channelName: channel.name, channelHref, description }),
                     buildVideoWatchWebPageJsonLd(video),
                 ].filter(Boolean),
+                chapters,
                 channelVideos: usable(channelResult, CHANNEL_LIMIT),
                 relatedVideos: usable(relatedResult, RELATED_LIMIT),
             },
@@ -271,7 +282,7 @@ function VideoList({ title, videos }) {
     );
 }
 
-export default function VideoWatchPage({ unavailable, video, channel, channelHref = null, description, canonical, indexable, jsonLd, channelVideos, relatedVideos }) {
+export default function VideoWatchPage({ unavailable, video, channel, channelHref = null, description, canonical, indexable, jsonLd, chapters = [], channelVideos, relatedVideos }) {
     const router = useRouter();
     const { user } = useAvatar();
     const playbackQueue = useVideoLibraryQueue(user?.id);
@@ -428,11 +439,12 @@ export default function VideoWatchPage({ unavailable, video, channel, channelHre
                                 <WatchPlaybackTools key={`tools:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} active={!ytError} attemptPlayback={attemptPlayback}
                                     initialSeekSeconds={initialSeekSeconds}
                                     onMarkersChange={setQuizMarkers}
+                                    chapters={chapters}
                                     duration={seconds} nextTitle={nextVideo?.title}
                                     onNext={() => openQueuedVideo(queueIndex >= 0 ? playbackQueue.advance(video.videoId) : nextVideo)}
                                     autoplay={autoplayNext} onAutoplayChange={setAutoplayNext}
                                     mini={miniPlayer} onMiniChange={setMiniPlayer} />
-                                {VIDEO_LIBRARY_POKER_TYPES.includes(video.type) && <PauseQuiz key={`quiz:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} videoId={video.videoId} active={!ytError} markers={quizMarkers} />}
+                                {VIDEO_LIBRARY_POKER_TYPES.includes(video.type) && <PauseQuiz key={`quiz:${video.videoId}:${user?.id || 'anonymous'}`} iframeRef={iframeRef} videoId={video.videoId} active={!ytError} markers={quizMarkers} chapters={chapters} />}
                                 {tracking.status === 'ready' && tracking.resumeSeconds > 0 && <button type="button" className="vl-pill-button" onClick={resumeWatching}>Resume Saved Position</button>}
                                 <WatchTracking tracking={tracking} ownerId={user?.id} returnPath={watchPath(video)} />
 

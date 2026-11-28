@@ -58,6 +58,94 @@ def is_permanent_source_absence(failure: str | None) -> bool:
     return bool(failure) and any(failure.startswith(code) for code in PERMANENT_SOURCE_ABSENCE)
 
 
+# CREATOR CHAPTERS ARE READ, NEVER INVENTED (2026-11-27).
+# A creator's own YouTube chapters live in the video description: lines that
+# start with a timestamp, the first at 0:00, at least three, ascending, each at
+# least ten seconds long. videos.list already returns snippet.description, so
+# the chapters cost no extra quota. Only a list that meets YouTube's own rules
+# is stored, each entry marked with CHAPTER_SOURCE, and the titles are kept as
+# the creator wrote them. Nothing here ever writes a chapter that the creator
+# did not publish: no list means an empty list.
+CHAPTER_SOURCE = 'creator_description'
+CHAPTER_MIN_COUNT = 3
+CHAPTER_MIN_SECONDS = 10
+CHAPTER_MAX_COUNT = 100
+CHAPTER_TITLE_MAX = 160
+_CHAPTER_LINE = re.compile(
+    r'^[\s\-*•>]*[(\[]?'
+    r'(?:(?P<h>\d{1,2}):(?P<hm>[0-5]\d)|(?P<m>\d{1,3})):(?P<s>[0-5]\d)'
+    r'[)\]]?(?=\s|$|[-–—:|.)])'
+    r'[\s\-–—:|.)]*(?P<title>.*)$'
+)
+
+
+def _chapter_line(line: str) -> tuple[int, str] | None:
+    match = _CHAPTER_LINE.match(line)
+    if not match:
+        return None
+    if match.group('h') is not None:
+        seconds = int(match.group('h')) * 3600 + int(match.group('hm')) * 60 + int(match.group('s'))
+    else:
+        seconds = int(match.group('m')) * 60 + int(match.group('s'))
+    return seconds, match.group('title').strip()
+
+
+def parse_creator_chapters(description: str | None, duration_seconds: int | None = None) -> list[dict]:
+    """The creator's chapter list from a YouTube description, or [].
+
+    The list starts at the first line whose timestamp is 0:00 and runs through
+    the timestamp lines that follow it (blank lines allowed). Any rule YouTube
+    would refuse (fewer than three, not ascending, a chapter under ten
+    seconds, an empty title, a start past the end) rejects the whole list.
+    """
+    if not isinstance(description, str) or not description.strip():
+        return []
+    lines = description.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+    start = None
+    for index, line in enumerate(lines):
+        parsed = _chapter_line(line)
+        if parsed and parsed[0] == 0:
+            start = index
+            break
+    if start is None:
+        return []
+    chapters: list[dict] = []
+    for line in lines[start:]:
+        if not line.strip():
+            continue
+        parsed = _chapter_line(line)
+        if not parsed:
+            break
+        seconds, title = parsed
+        if not title:
+            return []
+        if chapters and seconds - chapters[-1]['start_seconds'] < CHAPTER_MIN_SECONDS:
+            return []
+        chapters.append({'start_seconds': seconds, 'title': title[:CHAPTER_TITLE_MAX], 'source': CHAPTER_SOURCE})
+        if len(chapters) > CHAPTER_MAX_COUNT:
+            return []
+    if len(chapters) < CHAPTER_MIN_COUNT:
+        return []
+    if duration_seconds and duration_seconds > 0 and \
+            chapters[-1]['start_seconds'] > duration_seconds - CHAPTER_MIN_SECONDS:
+        return []
+    return chapters
+
+
+def iso_duration_seconds(value: str | None) -> int | None:
+    match = re.fullmatch(r'P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', value or '')
+    if not match or not value or value in ('P', 'PT'):
+        return None
+    days, hours, minutes, seconds = (int(part or 0) for part in match.groups())
+    return days * 86400 + hours * 3600 + minutes * 60 + seconds
+
+
+def item_chapters(item: dict) -> list[dict]:
+    snippet = item.get('snippet') or {}
+    details = item.get('contentDetails') or {}
+    return parse_creator_chapters(snippet.get('description'), iso_duration_seconds(details.get('duration')))
+
+
 def load_env() -> None:
     env_file = Path(os.environ.get('SP_ENV_FILE') or REPO_ROOT / '.env.local')
     if not env_file.exists():
@@ -308,6 +396,7 @@ class RegistryIngestor:
                   'rejected': 0, 'quota_units': 0}
         cursor_after = cursor_before
         status, failure = 'failed', None
+        chapters_stored, chapter_failure = 0, None
         try:
             if source['ingestion_mode'] == 'sports_chart':
                 ids, cursor_after = self.sports_candidates(source)
@@ -315,6 +404,7 @@ class RegistryIngestor:
                 ids, cursor_after = self.creator_candidates(source)
             counts['candidates'] = len(ids)
             metadata = self.metadata(ids) if ids else []
+            chapters_by_id = {item.get('id'): item_chapters(item) for item in metadata if item.get('id')}
             qualified = []
             for item in metadata:
                 row, reason = self.qualify(source, item)
@@ -341,6 +431,15 @@ class RegistryIngestor:
                     self.supabase.rpc('fn_enqueue_video_enrichment', {
                         'p_video_id': video_id, 'p_generation': 1,
                     }).execute()
+                    chapters = chapters_by_id.get(inserted.get('youtube_video_id')) or []
+                    if chapters:
+                        # The enrichment record exists now: fn_enqueue_video_enrichment
+                        # creates it. A chapter write never fails the ingestion.
+                        try:
+                            if self.store_chapters(video_id, chapters):
+                                chapters_stored += 1
+                        except Exception as error:
+                            chapter_failure = f'chapters_store: {type(error).__name__}'
             counts['inserted'] = inserted_count
             status = 'succeeded' if counts['inserted'] else 'empty'
         except QuotaStopped as error:
@@ -359,7 +458,65 @@ class RegistryIngestor:
                 failure = f'{failure} (quarantine refused: {type(error).__name__})'[:240]
         return {'operation_id': operation_id, 'source_id': source['id'], 'source_name': source['name'],
                 'topic': source['ingest_topic'], 'status': status, **counts,
+                'chapters_stored': chapters_stored, 'chapter_failure': chapter_failure,
                 'failure_code': failure}
+
+    def store_chapters(self, video_id: str, chapters: list[dict]) -> bool:
+        """Write a validated creator chapter list to the video's enrichment record."""
+        if not chapters or any(entry.get('source') != CHAPTER_SOURCE for entry in chapters):
+            return False
+        if self.dry_run:
+            return True
+        result = (self.supabase.table('video_enrichment_records')
+                  .update({'chapters': chapters, 'updated_at': iso_now()})
+                  .eq('video_id', video_id).execute())
+        return bool(result.data)
+
+    def backfill_chapters(self, max_videos: int) -> dict:
+        """One-off: read creator chapters for videos already in the public catalog.
+
+        Uses the same videos.list read and quota reservation as ingestion (one
+        unit per 50 videos). Only a list that passes parse_creator_chapters is
+        written; a video without one is left as it is. Safe to re-run.
+        """
+        quota_before = self.quota_units
+        summary = {'mode': 'chapter_backfill', 'dry_run': self.dry_run, 'scanned': 0, 'fetched': 0,
+                   'with_chapters': 0, 'stored': 0, 'missing_record': 0, 'status': 'succeeded',
+                   'failure_code': None}
+        ids: list[str] = []
+        offset = 0
+        while len(ids) < max_videos:
+            page = (self.supabase.table('video_library_public_catalog').select('youtube_video_id')
+                    .order('youtube_video_id').range(offset, offset + 999).execute()).data or []
+            ids.extend(row['youtube_video_id'] for row in page if row.get('youtube_video_id'))
+            if len(page) < 1000:
+                break
+            offset += 1000
+        ids = list(dict.fromkeys(ids))[:max_videos]
+        summary['scanned'] = len(ids)
+        try:
+            for start in range(0, len(ids), 50):
+                batch = ids[start:start + 50]
+                items = self.metadata(batch)
+                summary['fetched'] += len(items)
+                found = {item.get('id'): item_chapters(item) for item in items if item.get('id')}
+                found = {video: chapters for video, chapters in found.items() if chapters}
+                if not found:
+                    continue
+                summary['with_chapters'] += len(found)
+                rows = (self.supabase.table('video_library_videos').select('id,youtube_video_id')
+                        .in_('youtube_video_id', list(found)).execute()).data or []
+                for row in rows:
+                    if self.store_chapters(row['id'], found[row['youtube_video_id']]):
+                        summary['stored'] += 1
+                    else:
+                        summary['missing_record'] += 1
+        except QuotaStopped as error:
+            summary['status'], summary['failure_code'] = 'quota_stopped', str(error)
+        except Exception as error:
+            summary['status'], summary['failure_code'] = 'failed', str(error)[:240]
+        summary['quota_units'] = self.quota_units - quota_before
+        return summary
 
     def quarantine(self, source: dict) -> None:
         """Move a source YouTube says does not exist out of the active registry.
@@ -395,6 +552,8 @@ def main() -> int:
     parser.add_argument('--source-id')
     parser.add_argument('--max-sources', type=int, default=500)
     parser.add_argument('--preflight-only', action='store_true')
+    parser.add_argument('--backfill-chapters', type=int, default=0,
+                        help='One-off: read creator chapters for up to N catalog videos, then exit')
     args = parser.parse_args()
     load_env()
     url = (os.environ.get('NEXT_PUBLIC_SUPABASE_URL') or '').strip()
@@ -413,6 +572,10 @@ def main() -> int:
         print(json.dumps({'ok': True, 'mode': 'registry-youtube-data-api-v3'}))
         return 0
     ingestor = RegistryIngestor(db, youtube_key, dry_run=args.dry_run)
+    if args.backfill_chapters:
+        summary = ingestor.backfill_chapters(max(1, min(args.backfill_chapters, 10000)))
+        print(json.dumps(summary, sort_keys=True))
+        return 0 if summary['status'] == 'succeeded' else 1
     summary = ingestor.run(args.source_id, max(1, min(args.max_sources, 500)))
     print(json.dumps(summary, sort_keys=True))
     return run_exit_code(summary)

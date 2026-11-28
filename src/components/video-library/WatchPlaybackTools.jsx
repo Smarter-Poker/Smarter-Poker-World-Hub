@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { addHandMarker, boundedPosition, playbackMessage, PLAYER_ORIGIN, timestamp } from '../../lib/videoLibraryPlayback.mjs';
+import { addHandMarker, boundedPosition, chapterAt, playbackMessage, PLAYER_ORIGIN, timestamp } from '../../lib/videoLibraryPlayback.mjs';
 
 // Both watch surfaces talk to the one existing embed. No replacement player,
 // media download, made-up chapters, or second hidden iframe.
@@ -23,7 +23,7 @@ export function WatchDescription({ text }) {
     </section>;
 }
 
-export default function WatchPlaybackTools({ iframeRef, active = true, attemptPlayback = true, initialSeekSeconds = 0, duration: catalogDuration = 0, nextTitle, onNext, autoplay, onAutoplayChange, mini, onMiniChange, onMarkersChange }) {
+export default function WatchPlaybackTools({ iframeRef, active = true, attemptPlayback = true, initialSeekSeconds = 0, duration: catalogDuration = 0, nextTitle, onNext, autoplay, onAutoplayChange, mini, onMiniChange, onMarkersChange, chapters = [], requestPlayer }) {
     const [position, setPosition] = useState(0);
     const [duration, setDuration] = useState(catalogDuration);
     const knownDurationRef = useRef(catalogDuration);
@@ -38,6 +38,20 @@ export default function WatchPlaybackTools({ iframeRef, active = true, attemptPl
     const nextRef = useRef(onNext);
     nextRef.current = onNext;
     const command = (func, args = []) => iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), PLAYER_ORIGIN);
+    // A chapter tapped before the player reports its timeline is held here and
+    // applied once it does, so the tap starts the player and lands on the chapter.
+    const pendingSeekRef = useRef(null);
+    const [pendingSeek, setPendingSeek] = useState(null);
+    useEffect(() => {
+        if (!ready || pendingSeek === null) return;
+        const target = boundedPosition(pendingSeek, duration);
+        pendingSeekRef.current = null;
+        setPendingSeek(null);
+        if (target === null) return;
+        initialSeekDoneRef.current = true;
+        command('seekTo', [target, true]);
+        setPosition(target);
+    }, [ready, pendingSeek, duration]);
     useEffect(() => {
         if (!ready || initialSeekDoneRef.current || !(initialSeekSeconds > 0)) return;
         const target = boundedPosition(initialSeekSeconds, duration);
@@ -55,7 +69,9 @@ export default function WatchPlaybackTools({ iframeRef, active = true, attemptPl
         subscribeWatchPlayer(iframe);
         const loaded = () => {
             mutedFallbackRef.current = false;
-            subscribeWatchPlayer(iframe, attemptPlayback);
+            const pending = pendingSeekRef.current;
+            subscribeWatchPlayer(iframe, attemptPlayback || pending !== null);
+            if (pending !== null) iframe?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [pending, true] }), PLAYER_ORIGIN);
         };
         iframe?.addEventListener('load', loaded);
         return () => iframe?.removeEventListener('load', loaded);
@@ -116,6 +132,16 @@ export default function WatchPlaybackTools({ iframeRef, active = true, attemptPl
         command('seekTo', [second, true]);
         setPosition(second);
     };
+    const jumpToChapter = second => {
+        if (ready) { seek(second); return; }
+        if (document.hidden) return;
+        pendingSeekRef.current = second;
+        setPendingSeek(second);
+        requestPlayer?.();
+        command('seekTo', [second, true]);
+        command('playVideo');
+    };
+    const currentChapter = chapterAt(chapters, position);
     return <section className="vl-playback-tools" aria-label="Playback Tools">
         <div className="vl-playback-buttons">
             <button type="button" onClick={() => onMiniChange(!mini)}>{mini ? 'Expand Player' : 'Mini-Player'}</button>
@@ -126,7 +152,19 @@ export default function WatchPlaybackTools({ iframeRef, active = true, attemptPl
             <label>Hand Timeline <span>{timestamp(position)} / {timestamp(duration)}</span>
                 <input type="range" aria-label="Seek Video" aria-valuetext={timestamp(position)} min="0" max={duration || 1} step="1" value={position} disabled={!ready} onChange={event => seek(event.target.value)} />
             </label>
-            <div className="vl-timeline-marks" aria-hidden="true">{markers.map(second => <span key={second} style={{ left: `${duration > 0 ? second / duration * 100 : 0}%` }} />)}</div>
+            <div className="vl-timeline-marks" aria-hidden="true">
+                {duration > 0 && chapters.map(chapter => <span key={`chapter:${chapter.startSeconds}`} className="is-chapter" style={{ left: `${chapter.startSeconds / duration * 100}%` }} />)}
+                {markers.map(second => <span key={second} style={{ left: `${duration > 0 ? second / duration * 100 : 0}%` }} />)}
+            </div>
+            {chapters.length > 0 && <div className="vl-chapters" aria-label="Chapters">
+                <h4>Chapters</h4>
+                {/* The creator's own chapter titles, shown as they wrote them. */}
+                <ol>{chapters.map(chapter => <li key={chapter.startSeconds}>
+                    <button type="button" aria-current={currentChapter === chapter && ready ? 'true' : undefined} aria-label={`Play Chapter At ${timestamp(chapter.startSeconds)}: ${chapter.title}`} onClick={() => jumpToChapter(chapter.startSeconds)}>
+                        <span className="vl-chapter-time">{timestamp(chapter.startSeconds)}</span> <span className="vl-chapter-title">{chapter.title}</span>
+                    </button>
+                </li>)}</ol>
+            </div>}
             <button type="button" disabled={!ready || markers.length >= 50} onClick={() => setMarkers(current => addHandMarker(current, position, duration))}>Mark This Hand</button>
             {/* When the timeline opens and how long markers last live behind the
                 page's "?" (Dan, 2026-11-27); the disabled slider already shows it. */}
