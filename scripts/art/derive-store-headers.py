@@ -31,11 +31,16 @@ SEAL_KEEP = 0.82
 # Seals whose subject is small in the master get a tighter, re-centred crop:
 # name -> (centre x, centre y, kept side as a fraction of the master).
 SEAL_FOCUS = {
-    'store-diamonds': (0.47, 0.42, 0.28),
+    'store-diamonds': (0.47, 0.42, 0.31),
 }
 # Seals whose master puts a bright pedestal under the subject: fade the lower
 # part into the header navy (#0b1c2c) so the ring frames the subject alone.
 # name -> (fade start as a fraction of height, strength at the bottom 0..1).
+# Seals painted darker than the rest of the set: lift them so they still read
+# on the small package-card seals. name -> (brightness, colour).
+SEAL_LIFT = {
+    'store-diamonds': (1.45, 1.2),
+}
 SEAL_FLOOR_FADE = {
     'store-diamonds': (0.5, 0.95),
 }
@@ -46,7 +51,7 @@ SEAL_FLOOR_FADE = {
 SUBJECT = {
     'store-diamonds': (0.72, 0.47),
     'store-merch': (0.75, 0.45),
-    'store-rewards': (0.72, 0.50),
+    'store-rewards': (0.72, 0.40),
     'store-club-shop': (0.72, 0.45),
     'store-cart': (0.69, 0.55),
     'store-orders': (0.70, 0.55),
@@ -56,6 +61,16 @@ SUBJECT = {
 # Phone frame: 2:1, 55% of the master's width, subject at 74% across so it
 # clears the title on the left of a 393px header.
 PHONE_WIDTH = 0.55
+# Tall subjects get a wider (so taller) frame: the whole subject, smaller,
+# clear of the "?" in the header's top-right corner.
+PHONE_WIDTH_FOR = {
+    'store-rewards': 0.78,
+}
+# Where the subject lands across the phone frame, where a long title needs it
+# further right than PHONE_SUBJECT_X.
+PHONE_SUBJECT_X_FOR = {
+    'store-rewards': 0.86,
+}
 PHONE_SUBJECT_X = 0.74
 
 
@@ -67,6 +82,9 @@ def seal(img, name):
     t = min(max(cy * h - side / 2, 0), h - side)
     out = img.crop((round(l), round(t), round(l + side), round(t + side)))
     out = out.resize((352, 352), Image.LANCZOS)
+    if name in SEAL_LIFT:
+        bright, colour = SEAL_LIFT[name]
+        out = ImageEnhance.Color(ImageEnhance.Brightness(out).enhance(bright)).enhance(colour)
     if name in SEAL_FLOOR_FADE:
         start, strength = SEAL_FLOOR_FADE[name]
         navy = Image.new('RGB', out.size, (11, 28, 44))
@@ -87,8 +105,9 @@ def scene(img):
 def phone_scene(img, name):
     w, h = img.size
     sx, sy = SUBJECT[name]
-    fw, fh = w * PHONE_WIDTH, w * PHONE_WIDTH / 2
-    l = min(max(sx * w - PHONE_SUBJECT_X * fw, 0), w - fw)
+    width = PHONE_WIDTH_FOR.get(name, PHONE_WIDTH)
+    fw, fh = w * width, w * width / 2
+    l = min(max(sx * w - PHONE_SUBJECT_X_FOR.get(name, PHONE_SUBJECT_X) * fw, 0), w - fw)
     t = min(max(sy * h - fh / 2, 0), h - fh)
     out = img.crop((round(l), round(t), round(l + fw), round(t + fh)))
     return out.resize((480, 240), Image.LANCZOS)
