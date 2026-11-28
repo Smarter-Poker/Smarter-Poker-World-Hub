@@ -844,6 +844,49 @@ export default function SeriesDetailPage({ seoSeries = null }) {
 
   const googleCalUrl = series ? buildGoogleCalendarUrl(series) : null;
 
+  const handleEventRemindMe = (evt, eventObj) => {
+    if (eventObj && typeof eventObj.stopPropagation === 'function') {
+      eventObj.stopPropagation();
+    }
+    if (typeof window === 'undefined') return;
+    const eventLabel = cleanEventName(evt?.event_name) || 'Tournament Event';
+    const buyInLabel = evt?.buy_in != null ? formatMoney(evt.buy_in) : 'TBD';
+    const dateLabel = evt?.start_date ? formatEventDate(evt.start_date) : 'Date TBD';
+    const seriesLabel = series?.name ? decodeHtml(series.name) : 'This Poker Series';
+    const redirectTarget = `/hub/series/${id || series?.id || ''}`;
+    try {
+      window.dispatchEvent(
+        new CustomEvent('sp:seo-tool-engaged', {
+          detail: {
+            tool: 'series-event-reminder',
+            eventName: eventLabel,
+            buyIn: buyInLabel,
+            date: dateLabel,
+          },
+        }),
+      );
+      window.dispatchEvent(
+        new CustomEvent('sp:open-quick-signup', {
+          detail: {
+            unlockKey: 'series-alerts-event-reminder',
+            source: 'series-event-row-reminder',
+            redirectPath: redirectTarget,
+            eyebrow: 'Free Tournament Event Alert',
+            title: `Remind Me: ${eventLabel}`,
+            subtitle: `Get Free Start-Time & Registration Alerts For ${eventLabel} (${buyInLabel} Buy-In · ${dateLabel}) At ${seriesLabel}.`,
+            benefits: [
+              '100% Free Tournament Start-Time & Late-Reg Reminders',
+              'Bookmark Series Schedules & Track Live Buy-Ins',
+              'Sync Poker Bankroll Sessions & Venue Waitlists Free',
+            ],
+          },
+        }),
+      );
+    } catch (_) {
+      /* non-blocking */
+    }
+  };
+
   const handleShare = async () => {
     const url = window.location.href;
     const setMsg = (msg) => {
@@ -1318,6 +1361,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
                     <th scope="col">Game</th>
                     <th scope="col">Stack</th>
                     <th scope="col">Format</th>
+                    <th scope="col">Alert</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1327,6 +1371,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
                     const evtBaseKey = (evt.event_number != null && evt.event_number !== '') ? evt.event_number : i + 1;
                     const evtKey = `${evtBaseKey}-${(evt.event_name || '').slice(0, 20) || i}-${i}`;
                     var isExpanded = expandedEvent === evtKey;
+                    const rowEventLabel = cleanEventName(evt.event_name) || 'TBD';
                     return (
                       <Fragment key={'evt-' + evtKey}>
                         <tr
@@ -1335,7 +1380,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
                         >
                           <td className="event-num">{evt.event_number != null && evt.event_number !== '' ? evt.event_number : i + 1}</td>
                           <td className="event-name">
-                            {cleanEventName(evt.event_name) || 'TBD'}
+                            {rowEventLabel}
                             <span className="expand-indicator">{isExpanded ? '\u25B2' : '\u25BC'}</span>
                           </td>
                           <td className="event-date">
@@ -1349,10 +1394,21 @@ export default function SeriesDetailPage({ seoSeries = null }) {
                           <td className="event-game">{evt.game_type ? formatGameType(evt.game_type) : '--'}</td>
                           <td className="event-stack">{evt.starting_stack ? Number(evt.starting_stack).toLocaleString() : '--'}</td>
                           <td className="event-format">{evt.format || '--'}</td>
+                          <td className="event-remind">
+                            <button
+                              type="button"
+                              className="event-remind-btn"
+                              data-testid={`series-event-remind-btn-${i}`}
+                              aria-label={`Set Free Reminder For ${rowEventLabel}`}
+                              onClick={(eventObj) => handleEventRemindMe(evt, eventObj)}
+                            >
+                              Remind Me
+                            </button>
+                          </td>
                         </tr>
                         {isExpanded && (
                           <tr className="event-detail-row">
-                            <td colSpan="8">
+                            <td colSpan="9">
                               <div className="event-detail-content">
                                 <div className="event-detail-grid">
                                   {evt.event_name && (
@@ -2093,6 +2149,34 @@ const styles = `
     white-space: nowrap;
   }
 
+  .event-remind {
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  .event-remind-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 96px;
+    padding: 8px 12px;
+    border-radius: 0;
+    border: 1px solid #38bdf8;
+    background: linear-gradient(180deg, #1d4ed8 0%, #10328c 100%);
+    color: #f2f7ff;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .event-remind-btn:focus-visible {
+    outline: 2px solid #86daff;
+    outline-offset: 2px;
+  }
+
   .event-row-clickable {
     cursor: pointer;
     user-select: none;
@@ -2637,6 +2721,14 @@ const styles = `
     }
     .event-game, .event-stack, .event-format {
       display: none; /* Keep mobile view clean, they can click to expand */
+    }
+    .event-remind {
+      flex: 1 1 100%;
+      margin-top: 8px;
+      text-align: left;
+    }
+    .event-remind-btn {
+      width: 100%;
     }
     .event-detail-row td {
       padding: 0 0 16px !important;
